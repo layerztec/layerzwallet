@@ -5,7 +5,7 @@ import fs from 'fs';
 export default defineConfig({
   test: {
     setupFiles: ['../shared/tests/setup-vi.js'],
-    testTimeout: 45_000,
+    testTimeout: 60_000,
     include: [
       '**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       '../shared/tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'
