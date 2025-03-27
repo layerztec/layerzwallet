@@ -1,29 +1,28 @@
-import React, { useContext, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { DEFAULT_NETWORK } from '@shared/config';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { useBalance } from '@shared/hooks/useBalance';
-import BigNumber from 'bignumber.js';
-import assert from 'assert';
-import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
-import { router } from 'expo-router';
-import { decrypt } from '@shared/modules/encryption';
-import { getDeviceID } from '@shared/modules/device-id';
-import { ArkWallet } from '@shared/class/wallets/ark-wallet';
-import { formatBalance } from '@shared/modules/string-utils';
-import { ScanQrContext } from '@/src/hooks/ScanQrContext';
+import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { LayerzStorage } from '@/src/class/layerz-storage';
-import LongPressButton from '@/components/LongPressButton';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { STORAGE_KEY_MNEMONIC, ENCRYPTED_PREFIX } from '@shared/types/IStorage';
 import { Csprng } from '@/src/class/rng';
 import { SecureStorage } from '@/src/class/secure-storage';
+import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
+import { ScanQrContext } from '@/src/hooks/ScanQrContext';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { Ionicons } from '@expo/vector-icons';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { DEFAULT_NETWORK } from '@shared/config';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { useBalance } from '@shared/hooks/useBalance';
+import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { getDeviceID } from '@shared/modules/device-id';
+import { decrypt } from '@shared/modules/encryption';
+import { formatBalance } from '@shared/modules/string-utils';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import assert from 'assert';
+import BigNumber from 'bignumber.js';
+import { router } from 'expo-router';
+import React, { useContext, useRef, useState } from 'react';
+import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SendArk = () => {
   const { scanQr } = useContext(ScanQrContext);
@@ -75,7 +74,7 @@ const SendArk = () => {
       if (encryptedMnemonic.startsWith(ENCRYPTED_PREFIX)) {
         try {
           decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, await getDeviceID(SecureStorage, Csprng));
-        } catch (_) {
+        } catch {
           throw new Error('Incorrect password');
         }
       }
@@ -117,14 +116,7 @@ const SendArk = () => {
         <ThemedView style={styles.inputSection}>
           <ThemedText style={styles.inputLabel}>Recipient</ThemedText>
           <ThemedView style={styles.addressInputContainer}>
-            <TextInput
-              style={styles.input}
-              testID="recipient-address-input"
-              placeholder="Enter the recipient's address"
-              placeholderTextColor="#999"
-              onChangeText={setToAddress}
-              value={toAddress}
-            />
+            <TextInput style={styles.input} testID="recipient-address-input" placeholder="Enter the recipient's address" placeholderTextColor="#999" onChangeText={setToAddress} value={toAddress} />
             <TouchableOpacity
               style={styles.scanButton}
               onPress={async () => {
@@ -144,15 +136,7 @@ const SendArk = () => {
 
         <ThemedView style={styles.inputSection}>
           <ThemedText style={styles.inputLabel}>Amount</ThemedText>
-          <TextInput
-            style={styles.input2}
-            testID="amount-input"
-            placeholder="0.00"
-            placeholderTextColor="#999"
-            keyboardType="numeric"
-            onChangeText={setAmount}
-            value={amount}
-          />
+          <TextInput style={styles.input2} testID="amount-input" placeholder="0.00" placeholderTextColor="#999" keyboardType="numeric" onChangeText={setAmount} value={amount} />
           <ThemedText style={styles.balanceText}>
             Available balance: {balance ? formatBalance(balance, getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
           </ThemedText>
@@ -180,7 +164,6 @@ const SendArk = () => {
 
         {isPrepared ? (
           <ThemedView style={styles.confirmContainer}>
-
             <LongPressButton
               style={styles.sendButton}
               textStyle={styles.sendButtonText}
@@ -188,7 +171,7 @@ const SendArk = () => {
               title="Hold to confirm send"
               progressColor="#FFFFFF"
               backgroundColor="#007AFF"
-                  />
+            />
 
             <TouchableOpacity
               onPress={() => {

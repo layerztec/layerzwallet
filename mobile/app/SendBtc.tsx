@@ -1,31 +1,30 @@
-import assert from 'assert';
-import BigNumber from 'bignumber.js';
-import * as bip21 from 'bip21';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, ScrollView, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { ScanQrContext } from '@/src/hooks/ScanQrContext';
-import { TFeeEstimate } from '@shared/blue_modules/BlueElectrum';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
-import { DEFAULT_NETWORK } from '@shared/config';
-import { useBalance } from '@shared/hooks/useBalance';
-import { CreateTransactionTarget, CreateTransactionUtxo } from '@shared/class/wallets/types';
-import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
-import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { LayerzStorage } from '@/src/class/layerz-storage';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
-import { decrypt } from '@shared/modules/encryption';
-import { getDeviceID } from '@shared/modules/device-id';
-import { formatBalance } from '@shared/modules/string-utils';
-import { Stack } from 'expo-router';
 import LongPressButton from '@/components/LongPressButton';
 import { Csprng } from '@/src/class/rng';
 import { SecureStorage } from '@/src/class/secure-storage';
+import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
+import { ScanQrContext } from '@/src/hooks/ScanQrContext';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
+import { TFeeEstimate } from '@shared/blue_modules/BlueElectrum';
+import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
+import { CreateTransactionTarget, CreateTransactionUtxo } from '@shared/class/wallets/types';
+import { DEFAULT_NETWORK } from '@shared/config';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { useBalance } from '@shared/hooks/useBalance';
+import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { getDeviceID } from '@shared/modules/device-id';
+import { decrypt } from '@shared/modules/encryption';
+import { formatBalance } from '@shared/modules/string-utils';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import assert from 'assert';
+import BigNumber from 'bignumber.js';
+import * as bip21 from 'bip21';
+import { Stack } from 'expo-router';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 type TFeeRateOptions = { [rate: number]: number };
 
 const SendBtc: React.FC = () => {
@@ -90,7 +89,7 @@ const SendBtc: React.FC = () => {
           try {
             const { fee } = wallet.current.coinselect(sendData.utxos, targets2, v);
             result[v] = fee;
-          } catch (e) {}
+          } catch {}
         }
       }
     });
@@ -166,7 +165,7 @@ const SendBtc: React.FC = () => {
         decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, await getDeviceID(SecureStorage, Csprng));
         w.setSecret(decrypted);
         w.setDerivationPath(`m/84'/0'/${accountNumber}'`);
-      } catch (_) {
+      } catch {
         // only catching and re-throwing to change the error message. probably would be better to
         // make a separate place to interpret errors and display the appropriate ones
         throw new Error('Incorrect password');
@@ -233,7 +232,7 @@ const SendBtc: React.FC = () => {
                   const decoded = bip21.decode(scanned);
                   if (decoded?.address) setToAddress(decoded.address);
                   if (decoded?.options?.amount) setAmount(String(decoded.options.amount));
-                } catch (_) {
+                } catch {
                   setToAddress(scanned);
                 }
               }

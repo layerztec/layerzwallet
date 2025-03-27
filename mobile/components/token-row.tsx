@@ -1,16 +1,16 @@
-import React, { useContext } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { Ionicons } from '@expo/vector-icons';
 import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { getTokenList } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
-import { Ionicons } from '@expo/vector-icons';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { useRouter } from 'expo-router';
+import React, { useContext } from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
   const { network } = useContext(NetworkContext);

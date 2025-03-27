@@ -1,7 +1,6 @@
 import { BarcodeScanningResult, CameraType, CameraView, useCameraPermissions } from 'expo-camera';
-import React, { createContext, ReactNode, useEffect, useState } from 'react';
-import { Button, Modal, StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
-import { LayerzStorage } from '../class/layerz-storage';
+import React, { createContext, ReactNode, useState } from 'react';
+import { Button, Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface IScanQrContext {
   scanQr: () => Promise<string>;

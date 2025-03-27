@@ -1,18 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Networks } from '@shared/types/networks';
-import { getDecimalsByNetwork, getExplorerUrlByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import BigNumber from 'bignumber.js';
-import { useTransactionReceipt } from '@shared/hooks/useTransactionReceipt';
-import { ethers } from 'ethers';
-import { capitalizeFirstLetter, formatBalance, hexToDec } from '@shared/modules/string-utils';
-import { getTokenList } from '@shared/models/token-list';
-import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { Ionicons } from '@expo/vector-icons';
+import { useTransactionReceipt } from '@shared/hooks/useTransactionReceipt';
+import { getDecimalsByNetwork, getExplorerUrlByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { getTokenList } from '@shared/models/token-list';
+import { capitalizeFirstLetter, formatBalance, hexToDec } from '@shared/modules/string-utils';
+import { Networks } from '@shared/types/networks';
+import BigNumber from 'bignumber.js';
+import { ethers } from 'ethers';
 import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export type TransactionSuccessProps = {
   amount: string; // in sats
@@ -28,7 +28,6 @@ const TransactionSuccessEvm: React.FC = () => {
   const params = useLocalSearchParams<TransactionSuccessProps>();
   const { transactionId, amount, recipient, network, bytes, amountToken, tokenContractAddress } = params;
   const { receipt } = useTransactionReceipt(network, transactionId);
-  const router = useRouter();
 
   const list = getTokenList(network);
   const tokenInfo = list.find((token) => token.address === tokenContractAddress);

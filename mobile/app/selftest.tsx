@@ -1,4 +1,4 @@
-import { Button, StyleSheet, View } from 'react-native';
+import { Button, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { EvmWallet } from '@shared/class/evm-wallet';
@@ -7,8 +7,8 @@ import { decrypt, encrypt } from '@shared/modules/encryption';
 import assert from 'assert';
 import { useState } from 'react';
 
-import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { Csprng } from '@/src/class/rng';
+import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 
 export default function TabThreeScreen() {
   const [testState, setTestState] = useState<'not_started' | 'running' | 'ok' | 'error'>('not_started');
@@ -82,16 +82,3 @@ export default function TabThreeScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-});

@@ -10,8 +10,8 @@ export const SecureStorage: IStorage = {
     try {
       let result = await SecureStore.getItemAsync(key);
       return result || '';
-    } catch (_: any) {
+    } catch {
       return '';
     }
-  }
-}
+  },
+};

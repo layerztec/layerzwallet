@@ -1,24 +1,23 @@
-import { StyleSheet, View, TouchableOpacity, Share, Alert, ActivityIndicator } from 'react-native';
-import React, { useContext, useEffect, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
+import { Stack } from 'expo-router';
+import React, { useContext, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Share, StyleSheet, TouchableOpacity } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { DEFAULT_NETWORK } from '@shared/config';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 
 export default function ReceiveScreen() {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const [address, setAddress] = useState('');
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -34,16 +33,12 @@ export default function ReceiveScreen() {
       });
   }, [accountNumber, network]);
 
-  const handleBack = () => {
-    router.back();
-  };
-
   const handleShare = async () => {
     try {
       await Share.share({
         message: `My ${capitalizeFirstLetter(network)} address: ${address}`,
       });
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to share address');
     }
   };

@@ -15,7 +15,7 @@
     "e2e": "playwright test",
     "test": "npm run unit && npm run integration && npm run circular",
     "circular": "npx tsx utils/madge.ts",
-    "lint": "prettier '**/*.{js,jsx,ts,tsx,json,css,scss,md}' --check && tsc --noEmit & eslint ./",
+    "lint": "prettier '**/*.{js,jsx,ts,tsx,json,css,scss,md}' --check && tsc --noEmit && eslint ./",
     "lint:write": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'; eslint ./ --fix"
   },
   "dependencies": {

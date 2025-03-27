@@ -1,34 +1,33 @@
+import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Csprng } from '@/src/class/rng';
+import { SecureStorage } from '@/src/class/secure-storage';
 import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
-import { LayerzStorage } from '@/src/class/layerz-storage';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { getDeviceID } from '@shared/modules/device-id';
 import { decrypt } from '@shared/modules/encryption';
 import { formatBalance } from '@shared/modules/string-utils';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { TransactionSuccessProps } from './TransactionSuccessEvm';
-import { Csprng } from '@/src/class/rng';
-import { SecureStorage } from '@/src/class/secure-storage';
 export default function SendScreen() {
   const [screenState, setScreenState] = useState<'init' | 'preparing' | 'prepared' | 'broadcasting'>('init');
   const { network } = useContext(NetworkContext);
@@ -176,7 +175,7 @@ export default function SendScreen() {
       let baseFee;
       try {
         baseFee = await e.getBaseFeePerGas(network);
-      } catch (_) {
+      } catch {
         baseFee = 0n;
       }
       const prepared = await e.prepareTransaction(paymentTransaction, network, feeData, BigInt(Math.round(feeMultiplier)));
@@ -210,7 +209,7 @@ export default function SendScreen() {
 
         try {
           decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, await getDeviceID(SecureStorage, Csprng));
-        } catch (_) {
+        } catch {
           // only catching and re-throwing to change the error message. probably would be better to
           // make a separate place to interpret errors and display the appropriate ones
           throw new Error('Incorrect password');

@@ -10,8 +10,8 @@ export const LayerzStorage: IStorage = {
     try {
       const value = await AsyncStorage.getItem(key);
       return value || '';
-    } catch (_) {
+    } catch {
       return '';
     }
-  }
-}
+  },
+};

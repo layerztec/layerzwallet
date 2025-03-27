@@ -34,6 +34,7 @@ const LongPressButton: React.FC<LongPressButtonProps> = ({
     if (disabled) {
       resetProgress();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [disabled]);
 
   const startProgress = () => {

@@ -1,17 +1,25 @@
-import { LayerzStorage } from '../class/layerz-storage';
-import { EvmWallet } from '@shared/class/evm-wallet';
+import { SecureStorage } from '@/src/class/secure-storage';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, Networks } from '@shared//types/networks';
-import { STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_BTC_XPUB, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_WHITELIST } from '@shared/types/IStorage';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
-import { getDeviceID } from '@shared/modules/device-id';
-import { encrypt } from '@shared/modules/encryption';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
-import { CreateMnemonicResponse, EncryptMnemonicResponse, getBtcBalanceResponse, GetBtcSendDataResponse, IBackgroundCaller, LogRequest, MessageType, ProcessRPCRequest, SaveMnemonicResponse, SignPersonalMessageRequest, SignPersonalMessageResponse, SignTypedDataRequest, SignTypedDataResponse } from '@shared/types/IBackgroundCaller';
-import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
+import { EvmWallet } from '@shared/class/evm-wallet';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
+import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
+import { getDeviceID } from '@shared/modules/device-id';
+import { encrypt } from '@shared/modules/encryption';
+import {
+  CreateMnemonicResponse,
+  EncryptMnemonicResponse,
+  getBtcBalanceResponse,
+  GetBtcSendDataResponse,
+  IBackgroundCaller,
+  SaveMnemonicResponse,
+  SignPersonalMessageResponse,
+  SignTypedDataResponse,
+} from '@shared/types/IBackgroundCaller';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_BTC_XPUB, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_WHITELIST } from '@shared/types/IStorage';
+import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
-import { SecureStorage } from '@/src/class/secure-storage';
 
 // TODO: unify lazyInitBitcoinWallet, saveArkAddresses & saveBitcoinXpubs in SHARED
 
@@ -33,7 +41,6 @@ async function lazyInitBitcoinWallet(accountNumber: number): Promise<WatchOnlyWa
 
   return wallet;
 }
-
 
 async function saveArkAddresses(mnemonic: string) {
   for (let accountNum = 0; accountNum <= 5; accountNum++) {
@@ -161,13 +168,13 @@ export const BackgroundExecutor: IBackgroundCaller = {
     let whitelist: string[] = [];
     try {
       whitelist = JSON.parse(await LayerzStorage.getItem(STORAGE_KEY_WHITELIST));
-    } catch (_) {}
+    } catch {}
 
     try {
       whitelist.push(dapp);
       const unique = [...new Set(whitelist)];
       await LayerzStorage.setItem(STORAGE_KEY_WHITELIST, JSON.stringify(unique));
-    } catch (_) {}
+    } catch {}
   },
 
   async unwhitelistDapp(dapp: string): Promise<void> {
@@ -177,7 +184,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
   async getWhitelist(): Promise<string[]> {
     try {
       return JSON.parse(await LayerzStorage.getItem(STORAGE_KEY_WHITELIST)) || [];
-    } catch (_) {
+    } catch {
       return [];
     }
   },

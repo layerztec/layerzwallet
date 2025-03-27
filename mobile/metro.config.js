@@ -18,9 +18,7 @@ module.exports = (async () => {
   // @see https://stackoverflow.com/questions/69257460/react-native-monorepo-unable-to-resolve-module-babel-runtime-helpers-interopr
   defaultConfig.resolver.nodeModulesPaths = [path.resolve(path.join(__dirname, './node_modules'))];
 
-  defaultConfig.watchFolders = [
-    path.resolve(path.join(__dirname, '../shared'))
-  ];
+  defaultConfig.watchFolders = [path.resolve(path.join(__dirname, '../shared'))];
 
   return defaultConfig;
 })();

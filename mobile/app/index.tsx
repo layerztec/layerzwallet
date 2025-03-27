@@ -1,34 +1,27 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import React, { useContext, useEffect } from 'react';
+import { StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import TokensView from '@/components/tokens-view';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { Hello } from '@shared/class/hello';
 import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN } from '@shared/types/networks';
-import { useRouter } from 'expo-router';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import TokensView from '@/components/tokens-view';
-import { Hello } from '@shared/class/hello';
+import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN } from '@shared/types/networks';
+import { useRouter } from 'expo-router';
 
 export default function IndexScreen() {
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundExecutor);
-  const [address, setAddress] = useState('');
   const router = useRouter();
-
-  useEffect(() => {
-    BackgroundExecutor.getAddress(network || DEFAULT_NETWORK, accountNumber).then((addressResponse) => {
-      setAddress(addressResponse);
-    });
-  }, [accountNumber, network]);
 
   useEffect(() => {
     const checkMnemonic = async () => {

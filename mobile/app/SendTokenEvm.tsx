@@ -1,37 +1,36 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useContext, useEffect, useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import LongPressButton from '@/components/LongPressButton';
-import { TextInput } from 'react-native';
 import Slider from '@react-native-community/slider';
+import { TextInput } from 'react-native';
 
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { DEFAULT_NETWORK } from '@shared/config';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { ScanQrContext } from '@/src/hooks/ScanQrContext';
-import BigNumber from 'bignumber.js';
-import { Networks } from '@shared/types/networks';
-import { EvmWallet } from '@shared/class/evm-wallet';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
-import assert from 'assert';
-import { StringNumber } from '@shared/types/string-number';
-import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
-import { LayerzStorage } from '@/src/class/layerz-storage';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
-import { decrypt } from '@shared/modules/encryption';
-import { getDeviceID } from '@shared/modules/device-id';
-import { getTokenList } from '@shared/models/token-list';
-import { useTokenBalance } from '@shared/hooks/useTokenBalance';
-import { formatBalance } from '@shared/modules/string-utils';
 import { Csprng } from '@/src/class/rng';
-import { Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { SecureStorage } from '@/src/class/secure-storage';
+import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
+import { ScanQrContext } from '@/src/hooks/ScanQrContext';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { EvmWallet } from '@shared/class/evm-wallet';
+import { DEFAULT_NETWORK } from '@shared/config';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { useTokenBalance } from '@shared/hooks/useTokenBalance';
+import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { getTokenList } from '@shared/models/token-list';
+import { getDeviceID } from '@shared/modules/device-id';
+import { decrypt } from '@shared/modules/encryption';
+import { formatBalance } from '@shared/modules/string-utils';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { Networks } from '@shared/types/networks';
+import { StringNumber } from '@shared/types/string-number';
+import assert from 'assert';
+import BigNumber from 'bignumber.js';
+import { Keyboard, TouchableWithoutFeedback } from 'react-native';
 
 export type SendTokenEvmProps = {
   contractAddress: string;
@@ -141,7 +140,7 @@ const SendTokenEvm: React.FC = () => {
       let baseFee;
       try {
         baseFee = await e.getBaseFeePerGas(network);
-      } catch (_) {
+      } catch {
         baseFee = 0n;
       }
       const prepared = await e.prepareTransaction(paymentTransaction, network, feeData, BigInt(feeMultiplier));
@@ -174,7 +173,7 @@ const SendTokenEvm: React.FC = () => {
 
         try {
           decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, await getDeviceID(SecureStorage, Csprng));
-        } catch (_) {
+        } catch {
           throw new Error('Incorrect password');
         }
       }

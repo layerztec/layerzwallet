@@ -12,6 +12,7 @@ export function HelloWave() {
       withSequence(withTiming(25, { duration: 150 }), withTiming(0, { duration: 150 })),
       4 // Run the animation 4 times
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({
