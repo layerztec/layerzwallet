@@ -27,6 +27,8 @@ jobs:
         run: cd ext && npm run unit
 
   ext-integration:
+    env:
+      TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project
@@ -136,6 +138,8 @@ jobs:
         run: cd mobile && npm run unit
 
   mobile-integration:
+    env:
+      TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project
@@ -153,3 +157,22 @@ jobs:
 
       - name: Run integration tests
         run: cd mobile && npm run integration
+
+  mobile-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Specify node version
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install node_modules
+        run: cd mobile && npm ci
+
+      - name: Run lint
+        run: cd mobile && npm run lint
