@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { decrypt, encrypt } from '@shared/modules/encryption';
+import { decrypt, encrypt } from '../../modules/encryption';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { Button, Select } from './DesignSystem';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';

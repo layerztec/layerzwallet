@@ -20,7 +20,7 @@ import {
 } from '@shared/types/IBackgroundCaller';
 
 import { getDeviceID } from '@shared/modules/device-id';
-import { decrypt, encrypt } from '@shared/modules/encryption';
+import { decrypt, encrypt } from '../modules/encryption';
 
 import { LayerzStorage } from '../class/layerz-storage';
 import { EvmWallet } from '@shared/class/evm-wallet';

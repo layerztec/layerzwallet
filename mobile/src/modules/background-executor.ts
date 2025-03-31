@@ -6,7 +6,7 @@ import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { encrypt } from '@shared/modules/encryption';
+import { encrypt } from '../modules/encryption';
 import {
   CreateMnemonicResponse,
   EncryptMnemonicResponse,

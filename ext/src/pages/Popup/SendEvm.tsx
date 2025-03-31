@@ -14,7 +14,7 @@ import { StringNumber } from '@shared/types/string-number';
 import { AskPasswordContext } from '../../hooks/AskPasswordContext';
 import { useNavigate } from 'react-router-dom';
 import { TransactionSuccessProps } from './TransactionSuccessEvm';
-import { decrypt } from '@shared/modules/encryption';
+import { decrypt } from '../../modules/encryption';
 import { getDeviceID } from '@shared/modules/device-id';
 import { formatBalance } from '@shared/modules/string-utils';
 import { ScanQrContext } from '../../hooks/ScanQrContext';

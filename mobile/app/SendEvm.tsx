@@ -20,7 +20,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { getDeviceID } from '@shared/modules/device-id';
-import { decrypt } from '@shared/modules/encryption';
+import { decrypt } from '../src/modules/encryption';
 import { formatBalance } from '@shared/modules/string-utils';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { NETWORK_BITCOIN } from '@shared/types/networks';

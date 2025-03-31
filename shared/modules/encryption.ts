@@ -6,13 +6,23 @@ import * as aes from 'browserify-cipher';
 const createCipheriv = aes.createCipheriv;
 const createDecipheriv = aes.createDecipheriv;
 
-// cant use higher values, it becomes too slow in our pure-js environment
-const scryptConfig = { N: 2 ** 11, r: 8, p: 1, dkLen: 32 };
+export interface IScryptConfig {
+  N: number;    // CPU/memory cost parameter
+  r: number;    // Block size parameter
+  p: number;    // Parallelization parameter
+  dkLen: number; // Desired key length in bytes
+}
 
 /**
  * @see https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
  */
-export async function encrypt(csprng: ICsprng, plaintext: string, password: string, saltValue: string): Promise<string> {
+export async function encrypt(
+  scryptConfig: IScryptConfig,
+  csprng: ICsprng,
+  plaintext: string,
+  password: string,
+  saltValue: string,
+): Promise<string> {
   const derivedKey = (await scryptAsync(normalizeString(password), saltValue, scryptConfig)) as Uint8Array;
   const initializationVector = await csprng.randomBytes(16);
   const encryptionCipher = createCipheriv('aes-256-gcm', derivedKey, initializationVector, { authTagLength: 16 });
@@ -25,8 +35,12 @@ export async function encrypt(csprng: ICsprng, plaintext: string, password: stri
   return [uint8ArrayToHex(initializationVector), authenticationTag.toString('hex'), ciphertextHex].join(':');
 }
 
-
-export async function decrypt(encryptedData: string, password: string, saltValue: string): Promise<string> {
+export async function decrypt(
+  scryptConfig: IScryptConfig,
+  encryptedData: string,
+  password: string,
+  saltValue: string
+): Promise<string> {
   let initializationVectorHex: string, authenticationTagHex: string, ciphertextHex: string;
 
   // Parse cryptogram string in format <InitializationVector>:<AuthenticationTag>:<Ciphertext>

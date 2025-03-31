@@ -17,7 +17,7 @@ import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { getDeviceID } from '@shared/modules/device-id';
-import { decrypt } from '@shared/modules/encryption';
+import { decrypt } from '../../modules/encryption';
 import { Button, HodlButton, Input, Modal, RadioButton, WideButton } from './DesignSystem';
 import ClipboardBackdoor from './components/ClipboardBackdoor';
 import { formatBalance } from '@shared/modules/string-utils';
