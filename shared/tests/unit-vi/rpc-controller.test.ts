@@ -8,7 +8,16 @@ import { Eip1193CustomEventResponse } from '../../types/eip1193-custom-event';
 // import { LayerzStorage } from '../../class/layerz-storage';
 import * as networkGetters from '../../models/network-getters';
 import { IStorage } from '../../types/IStorage';
-import { CreateMnemonicResponse, EncryptMnemonicResponse, getBtcBalanceResponse, GetBtcSendDataResponse, IBackgroundCaller, SaveMnemonicResponse, SignPersonalMessageResponse, SignTypedDataResponse } from '../../types/IBackgroundCaller';
+import {
+  CreateMnemonicResponse,
+  EncryptMnemonicResponse,
+  getBtcBalanceResponse,
+  GetBtcSendDataResponse,
+  IBackgroundCaller,
+  SaveMnemonicResponse,
+  SignPersonalMessageResponse,
+  SignTypedDataResponse,
+} from '../../types/IBackgroundCaller';
 import { Networks } from '../../types/networks';
 
 const messengerMock = () => ({
@@ -31,7 +40,6 @@ const backgroundCallerMock = () => ({
 jest.mock('../../../src/modules/messenger.ts', messengerMock);
 jest.mock('../../../src/modules/background-caller.ts', backgroundCallerMock);
 
-
 const _cache: Record<string, string> = {};
 const storageMock: IStorage = {
   getItem: async (key: string) => {
@@ -40,7 +48,7 @@ const storageMock: IStorage = {
   setItem: async (key: string, value: string) => {
     _cache[key] = value;
     return Promise.resolve();
-  }
+  },
 };
 
 const backgroundCallerMock2: IBackgroundCaller = {
@@ -82,9 +90,8 @@ const backgroundCallerMock2: IBackgroundCaller = {
   },
   getBtcSendData: function (accountNumber: number): Promise<GetBtcSendDataResponse> {
     throw new Error('Function not implemented.');
-  }
+  },
 };
-
 
 beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {

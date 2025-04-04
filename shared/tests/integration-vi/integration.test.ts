@@ -14,7 +14,6 @@ import { CreateMnemonicResponse, EncryptMnemonicResponse, getBtcBalanceResponse 
 import { SaveMnemonicResponse } from '../../types/IBackgroundCaller';
 import { IBackgroundCaller } from '../../types/IBackgroundCaller';
 
-
 const backgroundCallerMock2: IBackgroundCaller = {
   log: () => Promise.resolve(),
   getWhitelist: async () => Promise.resolve([]),
@@ -54,9 +53,8 @@ const backgroundCallerMock2: IBackgroundCaller = {
   },
   getBtcSendData: function (accountNumber: number): Promise<GetBtcSendDataResponse> {
     throw new Error('Function not implemented.');
-  }
+  },
 };
-
 
 test('can fetch balance', async () => {
   if (!process.env.TEST_MNEMONIC) {

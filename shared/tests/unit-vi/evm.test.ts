@@ -120,7 +120,7 @@ test('isAddressValid()', () => {
 
 test('generateMnemonic()', async () => {
   const rng: ICsprng = {
-    randomBytes: async (length: number) => new Uint8Array(length).fill(0)
+    randomBytes: async (length: number) => new Uint8Array(length).fill(0),
   };
 
   const mnemonic = await EvmWallet.generateMnemonic(rng);

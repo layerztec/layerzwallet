@@ -8,7 +8,7 @@ const scryptConfig: IScryptConfig = { N: 2 ** 10, r: 8, p: 1, dkLen: 32 };
 describe('unit - encryption', function () {
   it('encrypts and decrypts', async function () {
     const rng: ICsprng = {
-      randomBytes: async (length: number) => new Uint8Array(length).fill(0)
+      randomBytes: async (length: number) => new Uint8Array(length).fill(0),
     };
     const data2encrypt = 'really long data string bla bla really long data string bla bla really long data string bla bla';
     const crypted = await encrypt(scryptConfig, rng, data2encrypt, 'password', '53B63311-D2D5-4C62-9F7F-28F25447B825');

@@ -1,4 +1,4 @@
-import { IStorage } from "../types/IStorage";
+import { IStorage } from '../types/IStorage';
 
 interface Caveat {
   type: string;

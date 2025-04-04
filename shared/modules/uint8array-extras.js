@@ -4,8 +4,8 @@
  * source: https://github.com/sindresorhus/uint8array-extras
  */
 const objectToString = Object.prototype.toString;
-const uint8ArrayStringified = "[object Uint8Array]";
-const arrayBufferStringified = "[object ArrayBuffer]";
+const uint8ArrayStringified = '[object Uint8Array]';
+const arrayBufferStringified = '[object ArrayBuffer]';
 
 function isType(value, typeConstructor, typeStringified) {
   if (!value) {
@@ -115,17 +115,17 @@ export function compareUint8Arrays(a, b) {
 }
 
 const cachedDecoders = {
-  utf8: new globalThis.TextDecoder("utf8"),
+  utf8: new globalThis.TextDecoder('utf8'),
 };
 
-export function uint8ArrayToString(array, encoding = "utf8") {
+export function uint8ArrayToString(array, encoding = 'utf8') {
   assertUint8ArrayOrArrayBuffer(array);
   cachedDecoders[encoding] ??= new globalThis.TextDecoder(encoding);
   return cachedDecoders[encoding].decode(array);
 }
 
 function assertString(value) {
-  if (typeof value !== "string") {
+  if (typeof value !== 'string') {
     throw new TypeError(`Expected \`string\`, got \`${typeof value}\``);
   }
 }
@@ -138,11 +138,11 @@ export function stringToUint8Array(string) {
 }
 
 function base64ToBase64Url(base64) {
-  return base64.replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+  return base64.replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
 }
 
 function base64UrlToBase64(base64url) {
-  return base64url.replaceAll("-", "+").replaceAll("_", "/");
+  return base64url.replaceAll('-', '+').replaceAll('_', '/');
 }
 
 // Reference: https://phuoc.ng/collection/this-vs-that/concat-vs-push/
@@ -157,7 +157,7 @@ export function uint8ArrayToBase64(array, { urlSafe = false } = {}) {
     // Required as `btoa` and `atob` don't properly support Unicode: https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
     base64 = globalThis.btoa(String.fromCodePoint.apply(this, array));
   } else {
-    base64 = "";
+    base64 = '';
     for (const value of array) {
       base64 += String.fromCodePoint(value);
     }
@@ -183,13 +183,13 @@ export function base64ToString(base64String) {
   return uint8ArrayToString(base64ToUint8Array(base64String));
 }
 
-const byteToHexLookupTable = Array.from({ length: 256 }, (_, index) => index.toString(16).padStart(2, "0"));
+const byteToHexLookupTable = Array.from({ length: 256 }, (_, index) => index.toString(16).padStart(2, '0'));
 
 export function uint8ArrayToHex(array) {
   assertUint8Array(array);
 
   // Concatenating a string is faster than using an array.
-  let hexString = "";
+  let hexString = '';
 
   // eslint-disable-next-line unicorn/no-for-loop -- Max performance is critical.
   for (let index = 0; index < array.length; index++) {
@@ -228,7 +228,7 @@ export function hexToUint8Array(hexString) {
   assertString(hexString);
 
   if (hexString.length % 2 !== 0) {
-    throw new Error("Invalid Hex string length.");
+    throw new Error('Invalid Hex string length.');
   }
 
   const resultLength = hexString.length / 2;

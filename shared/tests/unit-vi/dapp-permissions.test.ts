@@ -18,7 +18,7 @@ const storageMock: IStorage = {
   setItem: async (key: string, value: string) => {
     _cache[key] = value;
     return Promise.resolve();
-  }
+  },
 };
 
 const backgroundCallerMock = () => ({

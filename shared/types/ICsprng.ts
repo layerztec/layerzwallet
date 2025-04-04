@@ -8,4 +8,4 @@ export interface ICsprng {
    * @returns Promise that resolves to a Uint8Array containing the random bytes
    */
   randomBytes(size: number): Promise<Uint8Array>;
-} 
+}

@@ -5,8 +5,6 @@ Experience the future of Bitcoin with Layer2-focused wallet. Bitcoin-only, non-c
 * Mobile apps (iOS/Android)
 * Browser extension
 
-🌐 [https://layerzwallet.com](https://layerzwallet.com)
-
 > **Developer Preview Release**
 > This is an early access version for developers. Use with caution and report any issues you encounter.
 
@@ -31,7 +29,7 @@ Experience the future of Bitcoin with Layer2-focused wallet. Bitcoin-only, non-c
 
 # Project structure
 
-This is a monorepo with 2 subprojects, `mobile/` & `ext/`. Mobile app is buit with React Native (Expo), Extension is built with React.
+This is a monorepo with 2 subprojects, `mobile/` & `ext/`. Mobile app is built with React Native (Expo), Extension is built with React.
 Shared code (anything thah can be reused, cryptography, network fetchers, react hooks) are shared in `shared/`
 
 

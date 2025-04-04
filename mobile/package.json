@@ -16,8 +16,8 @@
     "test": "jest --watchAll",
     "unit": "vitest run ../shared/tests/unit-vi/",
     "integration": "vitest run ../shared/tests/integration-vi/",
-    "lint": "prettier '**/*.{js,jsx,ts,tsx,json,css,scss,md}' --check && eslint ./",
-    "lint:write": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'; eslint ./ --fix"
+    "lint": "prettier '**/*.{js,jsx,ts,tsx,json,css,scss,md}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md}' --config ./.prettierrc --check && eslint ./",
+    "lint:write": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md}' --config ./.prettierrc; eslint ./ --fix"
   },
   "jest": {
     "preset": "jest-expo"
