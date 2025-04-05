@@ -10,6 +10,15 @@
         "EXAMPLE_ENV": "example value"
       }
     },
+    "e2e-test": {
+      "withoutCredentials": true,
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "development": {
       "extends": "base",
       "developmentClient": true,

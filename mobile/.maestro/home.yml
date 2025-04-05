@@ -1,0 +1,4 @@
+appId: com.layerzwallet.mobile
+---
+- launchApp
+- assertVisible: 'Welcome to LZW'
