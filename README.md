@@ -60,3 +60,13 @@ TBD
 - `npx playwright install-deps`
 - `./utils/add-sepolia.sh`
 - `npm run e2e`
+
+## e2e (mobile)
+
+We are using Maestro since it's the only recommended option for Expo EAS. Test flows are located in `mobile/.maestro/`.
+We are also relying on Expo EAS for builds, so a generic workflow to run e2e tests on USB-connected Android device would be:
+
+- get a list of builds from EAS: `eas build:list` (optionally trigger the build manually first)
+- Note the `Artifacts` field, and download the one you need: `wget https://expo.dev/artifacts/eas/example.apk`
+- make sure Android device is connected and in dev mode, then install the apk: `adb install example.apk`
+- run the tests `npm run e2e` (from `mobile/` dir)
