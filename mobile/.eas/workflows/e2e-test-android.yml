@@ -8,7 +8,7 @@ jobs:
     type: build
     params:
       platform: android
-      profile: e2e-test # your eas build profile for E2E test
+      profile: preview
 
   maestro_test:
     needs: [build_android_for_e2e]
