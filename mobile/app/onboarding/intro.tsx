@@ -16,7 +16,7 @@ export default function IntroScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Welcome to LZW</Text>
+        <Text style={styles.title}>TEST SHOULD FAIL</Text>
         <Text style={styles.subtitle}>Do you want to create a new wallet or import an existing one?</Text>
       </View>
 

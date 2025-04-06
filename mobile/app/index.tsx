@@ -76,7 +76,7 @@ export default function IndexScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.headerContainer}>
         <ThemedView style={styles.header}>
-          <ThemedText style={styles.title}>Welcome to LZW Mobile</ThemedText>
+          <ThemedText style={styles.title}>TEST SHOULD FAIL</ThemedText>
           <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
           <ThemedText style={styles.subtitle}>Explore Bitcoin Layer 2</ThemedText>
         </ThemedView>
