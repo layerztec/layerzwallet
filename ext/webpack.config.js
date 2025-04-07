@@ -17,7 +17,7 @@ var alias = {};
 var secretsPath = path.join(__dirname, 'secrets.' + env.NODE_ENV + '.js');
 
 // Add the @shared alias pointing to the parent directory's shared folder
-alias['@shared'] = path.join(__dirname, '..', 'shared');
+alias['@shared'] = path.join(__dirname, 'src', 'shared-link');
 
 var fileExtensions = ['jpg', 'jpeg', 'png', 'gif', 'eot', 'otf', 'svg', 'ttf', 'woff', 'woff2'];
 
@@ -104,7 +104,7 @@ var options = {
               getCustomTransformers: () => ({
                 before: [isDevelopment && ReactRefreshTypeScript()].filter(Boolean),
               }),
-              transpileOnly: isDevelopment,
+              transpileOnly: true,
             },
           },
         ],

@@ -86,7 +86,6 @@ export function areUint8ArraysEqual(a, b) {
     return false;
   }
 
-  // eslint-disable-next-line unicorn/no-for-loop
   for (let index = 0; index < a.length; index++) {
     if (a[index] !== b[index]) {
       return false;
@@ -191,7 +190,6 @@ export function uint8ArrayToHex(array) {
   // Concatenating a string is faster than using an array.
   let hexString = '';
 
-  // eslint-disable-next-line unicorn/no-for-loop -- Max performance is critical.
   for (let index = 0; index < array.length; index++) {
     hexString += byteToHexLookupTable[array[index]];
   }

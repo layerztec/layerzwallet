@@ -58,7 +58,7 @@ export const AccountNumberContextProvider: React.FC<AccountNumberContextProvider
             for: 'webpage',
             event: 'accountsChanged',
             type: 'eventCallback',
-            arg: [addressResponse] as Array<string>,
+            arg: [addressResponse] as string[],
           });
         } catch (error: any) {
           console.error(error.message);

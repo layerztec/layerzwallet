@@ -64,7 +64,7 @@ export interface MetaMaskProvider extends EIP1193Provider {
 
   /** @deprecated */
   send(payload: JsonRpcRequest, callback: JsonRpcCallback): void;
-  send(method: string, params?: Array<unknown>): Promise<JsonRpcResponse>;
+  send(method: string, params?: unknown[]): Promise<JsonRpcResponse>;
   send(payload: JsonRpcRequest): unknown;
   /** @deprecated */
   sendAsync(payload: JsonRpcRequest, callback: JsonRpcCallback): void;

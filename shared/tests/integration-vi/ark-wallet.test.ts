@@ -1,6 +1,6 @@
-import { ArkWallet } from '../../class/wallets/ark-wallet';
 import assert from 'assert';
-import { test, vi } from 'vitest';
+import { test } from 'vitest';
+import { ArkWallet } from '../../class/wallets/ark-wallet';
 
 test('ark', async () => {
   if (!process.env.TEST_MNEMONIC) {

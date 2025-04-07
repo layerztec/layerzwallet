@@ -16,14 +16,13 @@
     "jsx": "react",
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["../shared/*"],
-      "@/*": ["./src/*"],
-      "*": ["node_modules/*"]
+      "@shared/*": ["./src/shared-link/*"],
+      "@/*": ["./src/*"]
     },
     "typeRoots": ["./node_modules/@types"],
     "isolatedModules": true,
     "sourceMap": true
   },
-  "include": ["src/**/*", "../shared/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["build", "node_modules", "**/*.spec.ts", "**/*.test.ts", "../**/node_modules"]
 }

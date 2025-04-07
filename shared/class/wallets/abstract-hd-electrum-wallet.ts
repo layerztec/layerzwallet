@@ -3,7 +3,6 @@
  * LICENSE: MIT
  */
 /* eslint react/prop-types: "off", @typescript-eslint/ban-ts-comment: "off", camelcase: "off"   */
-import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import BIP32Factory, { BIP32Interface } from 'bip32';
 import * as bip39 from 'bip39';
@@ -11,7 +10,7 @@ import * as bitcoin from 'bitcoinjs-lib';
 import { Psbt, Transaction as BTransaction } from 'bitcoinjs-lib';
 // @ts-ignore
 import b58 from 'bs58check';
-import { CoinSelectOutput, CoinSelectReturnInput } from 'coinselect';
+import { CoinSelectReturnInput } from 'coinselect';
 import { ECPairFactory } from 'ecpair';
 import { ECPairInterface } from 'ecpair/src/ecpair';
 

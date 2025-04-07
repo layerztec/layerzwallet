@@ -38,5 +38,5 @@ export interface EIP1193Provider {
   /** @deprecated */
   send(...args: unknown[]): unknown;
   /** @deprecated */
-  sendAsync(request: Object, callback: Function): void;
+  sendAsync(request: object, callback: Function): void;
 }

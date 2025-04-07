@@ -22,7 +22,7 @@ export type Utxo = {
 /**
  * same as coinselect.d.ts/CoinSelectUtxo
  */
-export interface CreateTransactionUtxo extends CoinSelectUtxo {}
+export interface CreateTransactionUtxo extends CoinSelectUtxo {} // eslint-disable-line
 
 /**
  * if address is missing and `script.hex` is set - this is a custom script (like OP_RETURN)

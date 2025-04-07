@@ -116,7 +116,7 @@ export class Provider implements MetaMaskProvider {
     return undefined;
   }
 
-  sendAsync(request: Object, callback: Function): void {}
+  sendAsync(request: object, callback: Function): void {}
 
   _metamask = {
     isUnlocked: function () {
