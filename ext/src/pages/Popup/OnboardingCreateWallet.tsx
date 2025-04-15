@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
+import React, { useContext, useEffect, useState } from 'react';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { Bubble, Button } from './DesignSystem';
 
 const OnboardingCreateWallet: React.FC = () => {
-  const navigate = useNavigate();
   const [recoveryPhrase, setRecoveryPhrase] = useState<string>('');
+  const { setStep } = useContext(InitializationContext);
 
   const handleNext = async () => {
-    navigate('/onboarding-create-password');
+    setStep(EStep.PASSWORD);
   };
 
   useEffect(() => {

@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
+import React, { useContext, useState } from 'react';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { Button, TextArea } from './DesignSystem';
 
 export default function OnboardingImport() {
   const [value, setValue] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const navigate = useNavigate();
+  const { setStep } = useContext(InitializationContext);
 
   const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     console.log(event.target.value);
@@ -20,7 +20,7 @@ export default function OnboardingImport() {
       setError('Invalid mnemonic seed');
       return;
     } else {
-      navigate('/onboarding-create-password');
+      setStep(EStep.PASSWORD);
     }
   };
 

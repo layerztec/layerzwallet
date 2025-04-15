@@ -21,29 +21,6 @@ const Home: React.FC = () => {
   const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundCaller);
   const [isTestnet, setIsTestnet] = useState<boolean>(false);
 
-  // effect used only to navigate to onboarding screens if user is not onboarded
-  useEffect(() => {
-    (async () => {
-      const hasAcceptedTermsOfService = await BackgroundCaller.hasAcceptedTermsOfService();
-      const hasMnemonic = await BackgroundCaller.hasMnemonic();
-      const hasEncryptedMnemonic = await BackgroundCaller.hasEncryptedMnemonic();
-
-      if (!hasMnemonic) {
-        return navigate('/onboarding-intro');
-      }
-
-      if (!hasEncryptedMnemonic) {
-        return navigate('/onboarding-create-password');
-      }
-
-      if (!hasAcceptedTermsOfService) {
-        return navigate('/onboarding-tos');
-      }
-
-      // default: not navigating anywhere
-    })();
-  }, [navigate]);
-
   useEffect(() => {
     setIsTestnet(getIsTestnet(network));
   }, [network]);

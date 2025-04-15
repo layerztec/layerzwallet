@@ -1,16 +1,18 @@
-import React, { useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { decrypt, encrypt } from '../../modules/encryption';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { Button, Select } from './DesignSystem';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
+import React, { useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Csprng } from '../../class/rng';
+import { decrypt, encrypt } from '../../modules/encryption';
+import { Button, Select } from './DesignSystem';
 
 const pck = require('../../../package.json');
 
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { setStep } = useContext(InitializationContext);
   const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
   const assert = (condition: boolean, message: string) => {
     if (!condition) throw new Error('Assertion failed: ' + message);
@@ -116,6 +118,7 @@ const SettingsPage: React.FC = () => {
           setAccountNumber(-1); // to notify change
           // alert('done!');
           navigate('/');
+          setStep(EStep.INTRO);
         }}
       >
         Clear storage

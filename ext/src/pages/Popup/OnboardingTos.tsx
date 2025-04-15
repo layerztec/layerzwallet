@@ -1,11 +1,13 @@
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BackgroundCaller } from '../../modules/background-caller';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { Button } from './DesignSystem';
 
 const OnboardingIntro: React.FC = () => {
   const navigate = useNavigate();
+  const { setStep } = useContext(InitializationContext);
   const { setAccountNumber } = useContext(AccountNumberContext);
   const [showWarning, setShowWarning] = useState(false);
 
@@ -28,6 +30,7 @@ const OnboardingIntro: React.FC = () => {
           await BackgroundCaller.acceptTermsOfService();
           setAccountNumber(0);
 
+          setStep(EStep.READY);
           navigate('/');
         }}
       >

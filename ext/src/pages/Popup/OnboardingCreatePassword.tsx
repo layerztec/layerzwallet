@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
+import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { Button, Input } from './DesignSystem';
 
 export default function OnboardingCreatePassword() {
   const navigate = useNavigate();
+  const { setStep } = useContext(InitializationContext);
   const [pass1, setPass1] = useState<string>('');
   const [pass2, setPass2] = useState<string>('');
   const arePasswordsEqual = pass1 && pass1 === pass2;
@@ -21,6 +23,7 @@ export default function OnboardingCreatePassword() {
 
     try {
       await BackgroundCaller.encryptMnemonic(pass1);
+      setStep(EStep.TOS);
       navigate('/onboarding-tos');
     } catch (error) {
       setValidationError('An error occurred');
