@@ -33,6 +33,7 @@ export default function ReceiveScreen() {
           width: 200,
           backgroundColor: 'white',
           color: 'black',
+          correctionLevel: 'L',
         })
           .then((response) => {
             setQrCodeUri(response.uri);
@@ -80,7 +81,7 @@ export default function ReceiveScreen() {
 
         <ThemedView style={styles.qrContainerWrapper}>
           <ThemedText style={styles.qrTitle}>Scan QR Code</ThemedText>
-          <ThemedView style={styles.qrContainer}>
+          <ThemedView style={styles.qrContainer} testID="qrContainer">
             {isLoading ? (
               <ThemedView style={styles.qrPlaceholder}>
                 <ActivityIndicator size="large" color="#007AFF" />
@@ -104,13 +105,19 @@ export default function ReceiveScreen() {
 
         <ThemedView style={styles.addressContainer}>
           <ThemedText style={styles.addressLabel}>Address:</ThemedText>
-          <TouchableOpacity onPress={handleCopyAddress} style={styles.addressTextContainer} disabled={!address}>
-            {isLoading ? <ThemedText style={styles.addressText}>Loading...</ThemedText> : <ThemedText style={styles.addressText}>{address ? address : 'No address available'}</ThemedText>}
+          <TouchableOpacity onPress={handleCopyAddress} style={styles.addressTextContainer} disabled={!address} testID="copyAddressButton">
+            {isLoading ? (
+              <ThemedText style={styles.addressText}>Loading...</ThemedText>
+            ) : (
+              <ThemedText style={styles.addressText} testID="addressText">
+                {address ? address : 'No address available'}
+              </ThemedText>
+            )}
             {address && <Ionicons name="copy-outline" size={20} color="#007AFF" style={styles.copyIcon} />}
           </TouchableOpacity>
         </ThemedView>
 
-        <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
+        <TouchableOpacity onPress={handleShare} style={styles.shareButton} testID="shareButton">
           <Ionicons name="share-outline" size={24} color="#007AFF" />
         </TouchableOpacity>
       </ThemedView>

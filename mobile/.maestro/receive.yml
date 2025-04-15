@@ -1,0 +1,47 @@
+appId: com.layerzwallet.mobile
+---
+# E2E test for the Receive screen functionality
+- launchApp:
+    clearState: true
+
+# Import or create a wallet first (this is a prerequisite for testing the receive screen)
+- runFlow:
+    when:
+      visible: "Welcome to LZW"
+    file: wallet-creation-and-selftest.yml
+
+# Navigate to the Receive screen
+- tapOn:
+    text: "Receive"
+
+# Test Receive screen elements are displayed
+- assertVisible: "Receive" # Verify the screen title is visible
+- assertVisible: "Your .* Address" # Verify the subtitle is visible with dynamic network name
+
+# Wait for QR code to load (wait for the loading indicator to disappear)
+- waitForInvisible:
+    text: "Loading address..."
+    timeout: 5000
+    optional: true
+
+# Verify QR code container is visible
+- assertVisible:
+    id: "qrContainer"
+
+# Wait for address to load
+- waitForInvisible:
+    text: "Loading..."
+    timeout: 5000
+    optional: true
+
+# Verify the address is displayed
+- assertVisible:
+    id: "addressText"
+    
+# Verify copy button is visible
+- assertVisible:
+    id: "copyAddressButton"
+
+# Verify share button is visible
+- assertVisible:
+    id: "shareButton"
