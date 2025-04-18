@@ -18,7 +18,9 @@ describe('codebase', function () {
   it('prettier config files are the same', async function () {
     const extPrettierConfig = fs.readFileSync(resolve(__dirname, '../../../ext/.prettierrc'), 'utf8');
     const mobilePrettierConfig = fs.readFileSync(resolve(__dirname, '../../../mobile/.prettierrc'), 'utf8');
+    const sharedPrettierConfig = fs.readFileSync(resolve(__dirname, '../../../shared/.prettierrc'), 'utf8');
 
     assert.strictEqual(extPrettierConfig, mobilePrettierConfig);
+    assert.strictEqual(extPrettierConfig, sharedPrettierConfig);
   });
 });

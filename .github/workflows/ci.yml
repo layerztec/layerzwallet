@@ -118,6 +118,32 @@ jobs:
       - name: Run e2e tests
         run: cd ext && npm run e2e
 
+  ext-commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Specify node version
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: ext/package-lock.json
+
+      - name: Install node_modules
+        run: cd ext && npm ci
+
+      - name: Validate current commit (last commit) with commitlint
+        if: github.event_name == 'push'
+        run: cd ext && npx commitlint --last --verbose
+
+      - name: Validate PR commits with commitlint
+        if: github.event_name == 'pull_request'
+        run: cd ext && npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+
   mobile-unit:
     runs-on: ubuntu-latest
     steps:
