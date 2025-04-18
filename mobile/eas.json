@@ -17,7 +17,16 @@
     },
     "preview": {
       "extends": "base",
-      "distribution": "internal"
+      "distribution": "internal",
+      "ios": {
+        "credentialsSource": "remote"
+      }
+    },
+    "simulator": {
+      "extends": "base",
+      "ios": {
+        "simulator": true
+      }
     },
     "production": {
       "extends": "base",

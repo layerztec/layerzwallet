@@ -1,0 +1,18 @@
+name: e2e-test-ios
+
+on:
+  pull_request:
+    branches: ['*'] # Run the E2E test workflow on every pull request.
+jobs:
+  build_ios_for_e2e:
+    type: build
+    params:
+      platform: ios
+      profile: simulator
+
+  maestro_test:
+    needs: [build_ios_for_e2e]
+    type: maestro
+    params:
+      build_id: ${{ needs.build_ios_for_e2e.outputs.build_id }}
+      flow_path: ['.maestro/*.yml']
