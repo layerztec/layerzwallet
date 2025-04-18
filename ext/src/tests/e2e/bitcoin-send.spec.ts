@@ -2,10 +2,7 @@ import { expect, test } from './fixtures';
 import { helperImportWallet } from './helpers';
 
 test('can prepare BTC transaction', async ({ page, extensionId }) => {
-  if (!process.env.TEST_MNEMONIC) {
-    console.warn('skipped because TEST_MNEMONIC env var is not set');
-    return;
-  }
+  test.skip(!process.env.TEST_MNEMONIC, 'skipped because TEST_MNEMONIC env var is not set');
 
   await helperImportWallet(page, extensionId, process.env.TEST_MNEMONIC);
   await page.goto(`chrome-extension://${extensionId}/popup.html`);

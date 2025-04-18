@@ -2,9 +2,9 @@ import assert from 'assert';
 import { test } from 'vitest';
 import { ArkWallet } from '../../class/wallets/ark-wallet';
 
-test('ark', async () => {
+test('ark', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
-    console.warn('skipped because TEST_MNEMONIC env var is not set');
+    context.skip();
     return;
   }
 

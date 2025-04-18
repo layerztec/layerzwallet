@@ -56,9 +56,9 @@ const backgroundCallerMock2: IBackgroundCaller = {
   },
 };
 
-test('can fetch balance', async () => {
+test('can fetch balance', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
-    console.warn('skipped because TEST_MNEMONIC env var is not set');
+    context.skip();
     return;
   }
 
@@ -74,9 +74,9 @@ test('can fetch balance', async () => {
   assert.ok(new BigNumber(balance).gt(0));
 });
 
-test('can fetch STRATA balance', async () => {
+test('can fetch STRATA balance', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
-    console.warn('skipped because TEST_MNEMONIC env var is not set');
+    context.skip();
     return;
   }
 
@@ -92,9 +92,9 @@ test('can fetch STRATA balance', async () => {
   assert.ok(new BigNumber(balance).eq(0));
 });
 
-test('can fetch token balance', async () => {
+test('can fetch token balance', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
-    console.warn('skipped because TEST_MNEMONIC env var is not set');
+    context.skip();
     return;
   }
 
@@ -111,9 +111,9 @@ test('can fetch token balance', async () => {
   assert.ok(+balance / 1e18 >= 1);
 });
 
-test('can send ETH', async () => {
+test('can send ETH', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
-    console.warn('skipped because TEST_MNEMONIC env var is not set');
+    context.skip();
     return;
   }
 
@@ -145,9 +145,9 @@ test('can send ETH', async () => {
   expect(+maxFee).toBeGreaterThan(0);
 });
 
-test('can send RSK', async () => {
+test('can send RSK', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
-    console.warn('skipped because TEST_MNEMONIC env var is not set');
+    context.skip();
     return;
   }
 
@@ -174,9 +174,9 @@ test('can send RSK', async () => {
   expect(+maxFee).toBeGreaterThan(0);
 });
 
-test('transfer ERC-20 token', async () => {
+test('transfer ERC-20 token', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
-    console.warn('skipped because TEST_MNEMONIC env var is not set');
+    context.skip();
     return;
   }
 

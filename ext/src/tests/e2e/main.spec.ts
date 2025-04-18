@@ -50,10 +50,7 @@ test('switch account and verify receive address', async ({ page, extensionId }) 
 });
 
 test('can send coins to second account, and verify balance', async ({ page, extensionId }) => {
-  if (!process.env.TEST_MNEMONIC) {
-    console.warn('skipped because TEST_MNEMONIC env var is not set');
-    return;
-  }
+  test.skip(!process.env.TEST_MNEMONIC, 'skipped because TEST_MNEMONIC env var is not set');
 
   /**
    * test plan:
