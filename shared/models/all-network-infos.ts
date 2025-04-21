@@ -1,5 +1,15 @@
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BOTANIXTESTNET, NETWORK_CITREATESTNET, NETWORK_ROOTSTOCK, NETWORK_SEPOLIA, NETWORK_STRATADEVNET, Networks } from '../types/networks';
 import { NetworkInfo } from '../types/network-info';
+import {
+  NETWORK_ARKMUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_BOTANIXTESTNET,
+  NETWORK_CITREATESTNET,
+  NETWORK_LIQUIDTESTNET,
+  NETWORK_ROOTSTOCK,
+  NETWORK_SEPOLIA,
+  NETWORK_STRATADEVNET,
+  Networks,
+} from '../types/networks';
 
 export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   [NETWORK_BITCOIN]: {
@@ -59,6 +69,15 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     explorerUrl: '',
     decimals: 8,
     knowMoreUrl: 'https://arklabs.to/',
+    isTestnet: true,
+  },
+  [NETWORK_LIQUIDTESTNET]: {
+    chainId: 666,
+    ticker: 'tLBTC',
+    rpcUrl: '',
+    explorerUrl: 'https://blockstream.info/liquidtestnet',
+    decimals: 8,
+    knowMoreUrl: 'https://liquid.net/',
     isTestnet: true,
   },
 };

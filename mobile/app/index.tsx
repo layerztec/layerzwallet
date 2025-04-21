@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useContext, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,14 +15,16 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN } from '@shared/types/networks';
-import { useRouter } from 'expo-router';
+import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
 
 export default function IndexScreen() {
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundExecutor);
   const router = useRouter();
+
+  // Liquid is not available on mobile yet
+  const networks = getAvailableNetworks().filter((n) => n !== NETWORK_LIQUIDTESTNET);
 
   useEffect(() => {
     const checkMnemonic = async () => {
@@ -86,7 +89,7 @@ export default function IndexScreen() {
       </ThemedView>
 
       <ThemedView style={styles.networkContainer}>
-        {getAvailableNetworks().map((availableNetwork) => (
+        {networks.map((availableNetwork) => (
           <TouchableOpacity key={availableNetwork} style={[styles.networkButton, network === availableNetwork && styles.selectedNetworkButton]} onPress={() => setNetwork(availableNetwork)}>
             <ThemedText style={[styles.networkButtonText, network === availableNetwork && styles.selectedNetworkButtonText]}>{availableNetwork.toUpperCase()}</ThemedText>
           </TouchableOpacity>

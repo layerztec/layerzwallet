@@ -1,23 +1,23 @@
 import assert from 'assert';
-import { vi as jest, beforeEach, afterEach, test, expect } from 'vitest';
+import { afterEach, beforeEach, expect, vi as jest, test } from 'vitest';
 
-import { processRPC } from '../../modules/rpc-controller';
-// import { BackgroundCaller } from '../../modules/background-caller';
-import { Messenger } from '../../modules/messenger';
-import { Eip1193CustomEventResponse } from '../../types/eip1193-custom-event';
-// import { LayerzStorage } from '../../class/layerz-storage';
 import * as networkGetters from '../../models/network-getters';
-import { IStorage } from '../../types/IStorage';
+import { Messenger } from '../../modules/messenger';
+import { processRPC } from '../../modules/rpc-controller';
+import { Eip1193CustomEventResponse } from '../../types/eip1193-custom-event';
 import {
   CreateMnemonicResponse,
   EncryptMnemonicResponse,
-  getBtcBalanceResponse,
+  GetBtcBalanceResponse,
   GetBtcSendDataResponse,
+  GetLiquidBalanceResponse,
+  GetLiquidSendDataResponse,
   IBackgroundCaller,
   SaveMnemonicResponse,
   SignPersonalMessageResponse,
   SignTypedDataResponse,
 } from '../../types/IBackgroundCaller';
+import { IStorage } from '../../types/IStorage';
 import { Networks } from '../../types/networks';
 
 const messengerMock = () => ({
@@ -73,7 +73,7 @@ const backgroundCallerMock2: IBackgroundCaller = {
   encryptMnemonic: function (password: string): Promise<EncryptMnemonicResponse> {
     throw new Error('Function not implemented.');
   },
-  getBtcBalance: function (accountNumber: number): Promise<getBtcBalanceResponse> {
+  getBtcBalance: function (accountNumber: number): Promise<GetBtcBalanceResponse> {
     throw new Error('Function not implemented.');
   },
   whitelistDapp: function (dapp: string): Promise<void> {
@@ -89,6 +89,12 @@ const backgroundCallerMock2: IBackgroundCaller = {
     throw new Error('Function not implemented.');
   },
   getBtcSendData: function (accountNumber: number): Promise<GetBtcSendDataResponse> {
+    throw new Error('Function not implemented.');
+  },
+  getLiquidBalance(accountNumber: number): Promise<GetLiquidBalanceResponse> {
+    throw new Error('Function not implemented.');
+  },
+  getLiquidSendData(accountNumber: number): Promise<GetLiquidSendDataResponse> {
     throw new Error('Function not implemented.');
   },
 };

@@ -53,13 +53,20 @@ test('BackgroundMessageController can handle messages SAVE_MNEMONIC', async () =
     STORAGE_KEY_BTC_XPUB5: 'zpub6rFR7y4Q2AijQjSx77gqZXw7AaQbpFuyD1YAZVjGDyWv4cPPMDQL5S2VbzHXp6wC5jLgawPtSMg5cRoC6UncmteTRF6PxeUemGdRm9fxuQM',
     STORAGE_KEY_EVM_XPUB: 'xpub6EF8jXqFeFEW5bwMU7RpQtHkzE4KJxcqJtvkCjJumzW8CPpacXkb92ek4WzLQXjL93HycJwTPUAcuNxCqFPKKU5m5Z2Vq4nCyh5CyPeBFFr',
     STORAGE_KEY_MNEMONIC: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+    STORAGE_KEY_LIQUID_MBK: '9c8e4f05c7711a98c838be228bcb84924d4570ca53f35fa1c793e58841d47023',
+    STORAGE_KEY_LIQUID_XPUB0: 'xpub6Bm9M1SxZdzL3TxdNV8897FgtTLBgehR1wVNnMyJ5VLRK5n3tFqXxrCVnVQj4zooN4eFSkf6Sma84reWc5ZCXMxPbLXQs3BcaBdTd4YQa3B',
+    STORAGE_KEY_LIQUID_XPUB1: 'xpub6Bm9M1SxZdzL7En61NC6MXPGg4F2RnFFA4QWtzQVUMvfdi2CTBrH53qysjDokoXVcWPaRCTTw3oiFucxidKEuZ5purNVFAdVXJ62JpitXgS',
+    STORAGE_KEY_LIQUID_XPUB2: 'xpub6Bm9M1SxZdzL8LJiEdgyQSM5hsuovuVFucFXL3PUDmdbknLbiETfxBieFS23Zpkwate52JNFvvRHckYnseggzo1teeAgUqFf7YXUVDLAimS',
+    STORAGE_KEY_LIQUID_XPUB3: 'xpub6Bm9M1SxZdzLB5XNMSQEFAHdQnvAt4phdAEwnLijnhYESNDGuoU9SzXuv3GFS8yFmm5YuEfwAsWwdBziJMZn6S5g5z4FfyCCV97KVN3KJXD',
+    STORAGE_KEY_LIQUID_XPUB4: 'xpub6Bm9M1SxZdzLE3xBMJ334AnGD9J5fcasJc3HmWLmHjYeNCqkLEVGWrbYZABNcg3kXQm83nTaDh1igsD3yu2f2NHTdrAkuAtTMcMtkEtJNsE',
+    STORAGE_KEY_LIQUID_XPUB5: 'xpub6Bm9M1SxZdzLHSaNd3baNXCamzfBC7ZBLHQuEtZi9FfY3tGaUniY3xxqu9mHQ87CSYxcdo3gts2HyybLUGYJyaNJy3ctq97WwBHpM2r6q4o',
   });
   assert.strictEqual(response2, true);
 
   // checking that it was saved:
 
   await new Promise((resolve) => setTimeout(resolve, 100)); // sleep to allow callback to fire
-  expect(setMockedMethod2).toHaveBeenCalledTimes(14);
+  expect(setMockedMethod2).toHaveBeenCalledTimes(21);
   expect(getMockedMethod).toHaveBeenCalledTimes(0);
 
   // confirm mnemonic not encrypted though present

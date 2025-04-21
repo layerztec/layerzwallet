@@ -1,18 +1,24 @@
+import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { ethers } from 'ethers';
-import assert from 'assert';
+import { expect, test, vi } from 'vitest';
 import { EvmWallet } from '../../class/evm-wallet';
 import { balanceFetcher } from '../../hooks/useBalance';
-import { NETWORK_ROOTSTOCK, NETWORK_SEPOLIA, NETWORK_STRATADEVNET, Networks } from '../../types/networks';
 import { tokenBalanceFetcher } from '../../hooks/useTokenBalance';
 import { getTokenList } from '../../models/token-list';
-import { expect, test, vi } from 'vitest';
-import { GetBtcSendDataResponse } from '../../types/IBackgroundCaller';
-import { SignTypedDataResponse } from '../../types/IBackgroundCaller';
-import { SignPersonalMessageResponse } from '../../types/IBackgroundCaller';
-import { CreateMnemonicResponse, EncryptMnemonicResponse, getBtcBalanceResponse } from '../../types/IBackgroundCaller';
-import { SaveMnemonicResponse } from '../../types/IBackgroundCaller';
-import { IBackgroundCaller } from '../../types/IBackgroundCaller';
+import {
+  GetLiquidBalanceResponse,
+  GetLiquidSendDataResponse,
+  CreateMnemonicResponse,
+  EncryptMnemonicResponse,
+  GetBtcBalanceResponse,
+  GetBtcSendDataResponse,
+  IBackgroundCaller,
+  SaveMnemonicResponse,
+  SignPersonalMessageResponse,
+  SignTypedDataResponse,
+} from '../../types/IBackgroundCaller';
+import { NETWORK_ROOTSTOCK, NETWORK_SEPOLIA, NETWORK_STRATADEVNET, Networks } from '../../types/networks';
 
 const backgroundCallerMock2: IBackgroundCaller = {
   log: () => Promise.resolve(),
@@ -36,7 +42,7 @@ const backgroundCallerMock2: IBackgroundCaller = {
   encryptMnemonic: function (password: string): Promise<EncryptMnemonicResponse> {
     throw new Error('Function not implemented.');
   },
-  getBtcBalance: function (accountNumber: number): Promise<getBtcBalanceResponse> {
+  getBtcBalance: function (accountNumber: number): Promise<GetBtcBalanceResponse> {
     throw new Error('Function not implemented.');
   },
   whitelistDapp: function (dapp: string): Promise<void> {
@@ -52,6 +58,12 @@ const backgroundCallerMock2: IBackgroundCaller = {
     throw new Error('Function not implemented.');
   },
   getBtcSendData: function (accountNumber: number): Promise<GetBtcSendDataResponse> {
+    throw new Error('Function not implemented.');
+  },
+  getLiquidBalance(accountNumber: number): Promise<GetLiquidBalanceResponse> {
+    throw new Error('Function not implemented.');
+  },
+  getLiquidSendData(accountNumber: number): Promise<GetLiquidSendDataResponse> {
     throw new Error('Function not implemented.');
   },
 };

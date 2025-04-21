@@ -1,6 +1,6 @@
 import { frontalCamera, QRCanvas } from '@paulmillr/qr/dom.js';
 import assert from 'assert';
-import React, { createContext, ReactNode, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Button } from '../pages/Popup/DesignSystem';
 
@@ -48,7 +48,7 @@ type ResolverFunction = (resolveValue: string) => void;
  */
 export const ScanQrContextProvider: React.FC<{ children: ReactNode }> = (props) => {
   const [isScanningQr, setIsScanningQr] = useState<boolean>(false);
-  const [resolverFunc, setResolverFunc] = React.useState<ResolverFunction>(() => () => {});
+  const [resolverFunc, setResolverFunc] = useState<ResolverFunction>(() => () => {});
   const [shouldStartScanning, setShouldStartScanning] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -197,3 +197,8 @@ export const ScanQrContextProvider: React.FC<{ children: ReactNode }> = (props) 
     </ScanQrContext.Provider>
   );
 };
+
+export function useScanQR() {
+  const { scanQr } = useContext(ScanQrContext);
+  return scanQr;
+}

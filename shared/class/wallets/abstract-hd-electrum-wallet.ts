@@ -189,70 +189,34 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
     return child.toWIF();
   }
 
-  _getNodeAddressByIndex(node: number, index: number): string {
-    index = index * 1; // cast to int
-    if (node === 0) {
-      if (this.external_addresses_cache[index]) return this.external_addresses_cache[index]; // cache hit
+  _getNodeByIndex(node: 0 | 1, index: number): BIP32Interface {
+    let hdNode = this[`_node${node}`];
+    if (hdNode) {
+      return hdNode.derive(index);
     }
 
-    if (node === 1) {
-      if (this.internal_addresses_cache[index]) return this.internal_addresses_cache[index]; // cache hit
-    }
-
-    if (node === 0 && !this._node0) {
-      const xpub = this._zpubToXpub(this.getXpub());
-      const hdNode = bip32.fromBase58(xpub);
-      this._node0 = hdNode.derive(node);
-    }
-
-    if (node === 1 && !this._node1) {
-      const xpub = this._zpubToXpub(this.getXpub());
-      const hdNode = bip32.fromBase58(xpub);
-      this._node1 = hdNode.derive(node);
-    }
-
-    let address: string;
-    if (node === 0) {
-      // @ts-ignore
-      address = this._hdNodeToAddress(this._node0.derive(index));
-    } else {
-      // tbh the only possible else is node === 1
-      // @ts-ignore
-      address = this._hdNodeToAddress(this._node1.derive(index));
-    }
-
-    if (node === 0) {
-      return (this.external_addresses_cache[index] = address);
-    } else {
-      // tbh the only possible else option is node === 1
-      return (this.internal_addresses_cache[index] = address);
-    }
+    const xpub = this._zpubToXpub(this.getXpub());
+    hdNode = bip32.fromBase58(xpub).derive(node);
+    this[`_node${node}`] = hdNode;
+    return hdNode.derive(index);
   }
 
-  _getNodePubkeyByIndex(node: number, index: number) {
+  _getNodeAddressByIndex(node: 0 | 1, index: number): string {
     index = index * 1; // cast to int
+    const cache = node === 0 ? this.external_addresses_cache : this.internal_addresses_cache;
 
-    if (node === 0 && !this._node0) {
-      const xpub = this._zpubToXpub(this.getXpub());
-      const hdNode = bip32.fromBase58(xpub);
-      this._node0 = hdNode.derive(node);
-    }
+    if (cache[index]) return cache[index]; // cache hit
 
-    if (node === 1 && !this._node1) {
-      const xpub = this._zpubToXpub(this.getXpub());
-      const hdNode = bip32.fromBase58(xpub);
-      this._node1 = hdNode.derive(node);
-    }
+    const hdNode = this._getNodeByIndex(node, index);
+    const address = this._hdNodeToAddress(hdNode);
 
-    if (node === 0 && this._node0) {
-      return this._node0.derive(index).publicKey;
-    }
+    return (cache[index] = address);
+  }
 
-    if (node === 1 && this._node1) {
-      return this._node1.derive(index).publicKey;
-    }
-
-    throw new Error('Internal error: this._node0 or this._node1 is undefined');
+  _getNodePubkeyByIndex(node: 0 | 1, index: number) {
+    index = index * 1; // cast to int
+    const hdNode = this._getNodeByIndex(node, index);
+    return hdNode.publicKey;
   }
 
   _getExternalAddressByIndex(index: number): string {

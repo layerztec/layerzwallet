@@ -5,6 +5,7 @@ export const NETWORK_BOTANIXTESTNET = 'botanix' as const;
 export const NETWORK_STRATADEVNET = 'strata' as const;
 export const NETWORK_CITREATESTNET = 'citrea' as const;
 export const NETWORK_ARKMUTINYNET = 'ark' as const;
+export const NETWORK_LIQUIDTESTNET = 'liquidtest' as const;
 
 const NetworksIterator = {
   BITCOIN: NETWORK_BITCOIN,
@@ -14,6 +15,7 @@ const NetworksIterator = {
   STRATADEVNET: NETWORK_STRATADEVNET,
   CITREATESTNET: NETWORK_CITREATESTNET,
   ARKMUTINYNET: NETWORK_ARKMUTINYNET,
+  LIQUIDTESTNET: NETWORK_LIQUIDTESTNET,
 } as const;
 
 export type Networks = (typeof NetworksIterator)[keyof typeof NetworksIterator];

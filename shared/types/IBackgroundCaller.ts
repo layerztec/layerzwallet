@@ -1,5 +1,7 @@
-import { Networks } from '../types/networks';
+import { UnblindedOutput } from '@shared/class/wallets/liquid-deps/types';
+import { LiquidWallet } from '@shared/class/wallets/liquid-wallet';
 import { CreateTransactionUtxo } from '../class/wallets/types';
+import { Networks } from '../types/networks';
 
 // Message types for background script communication
 export enum MessageType {
@@ -13,13 +15,15 @@ export enum MessageType {
   OPEN_POPUP,
   GET_ADDRESS,
   GET_BTC_SEND_DATA,
+  GET_LIQUID_BALANCE,
+  GET_LIQUID_SEND_DATA,
 }
 
 export interface SaveMnemonicResponse {
   success: boolean;
 }
 
-export interface getBtcBalanceResponse {
+export interface GetBtcBalanceResponse {
   confirmed: number;
   unconfirmed: number;
 }
@@ -97,6 +101,25 @@ export type GetBtcSendDataResponse = {
   changeAddress: string;
 };
 
+export interface GetLiquidBalanceRequest {
+  accountNumber: number;
+}
+
+export interface GetLiquidBalanceResponse {
+  [key: string]: number;
+}
+
+export interface GetLiquidSendDataRequest {
+  accountNumber: number;
+}
+
+export type GetLiquidSendDataResponse = {
+  utxos: UnblindedOutput[];
+  txDetails: LiquidWallet['txDetails'];
+  outpointBlindingData: LiquidWallet['outpointBlindingData'];
+  scriptsDetails: LiquidWallet['scriptsDetails'];
+};
+
 export interface IBackgroundCaller {
   getAddress(network: Networks, accountNumber: number): Promise<string>;
   acceptTermsOfService(): Promise<void>;
@@ -106,7 +129,7 @@ export interface IBackgroundCaller {
   saveMnemonic(mnemonic: string): Promise<SaveMnemonicResponse>;
   createMnemonic(): Promise<CreateMnemonicResponse>;
   encryptMnemonic(password: string): Promise<EncryptMnemonicResponse>;
-  getBtcBalance(accountNumber: number): Promise<getBtcBalanceResponse>;
+  getBtcBalance(accountNumber: number): Promise<GetBtcBalanceResponse>;
   whitelistDapp(dapp: string): Promise<void>;
   unwhitelistDapp(dapp: string): Promise<void>;
   getWhitelist(): Promise<string[]>;
@@ -115,4 +138,6 @@ export interface IBackgroundCaller {
   signTypedData(message: any, accountNumber: number, password: string): Promise<SignTypedDataResponse>;
   openPopup(method: string, params: any, id: number, from: string): Promise<void>;
   getBtcSendData(accountNumber: number): Promise<GetBtcSendDataResponse>;
+  getLiquidBalance(accountNumber: number): Promise<GetLiquidBalanceResponse>;
+  getLiquidSendData(accountNumber: number): Promise<GetLiquidSendDataResponse>;
 }

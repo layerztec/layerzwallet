@@ -1,28 +1,31 @@
-import { LayerzStorage } from '../class/layerz-storage';
-import { Networks } from '@shared/types/networks';
 import { Messenger } from '@shared/modules/messenger';
-import { SecureStorage } from '../class/secure-storage';
 import {
-  IBackgroundCaller,
-  MessageType,
-  SaveMnemonicResponse,
   CreateMnemonicResponse,
-  EncryptMnemonicResponse,
-  getBtcBalanceResponse,
-  SignPersonalMessageResponse,
-  SignTypedDataResponse,
-  GetBtcSendDataResponse,
-  GetAddressRequest,
-  SaveMnemonicRequest,
   EncryptMnemonicRequest,
+  EncryptMnemonicResponse,
+  GetAddressRequest,
   GetBtcBalanceRequest,
-  ProcessRPCRequest,
+  GetBtcBalanceResponse,
   GetBtcSendDataRequest,
+  GetBtcSendDataResponse,
+  GetLiquidBalanceResponse,
+  GetLiquidSendDataRequest,
+  GetLiquidSendDataResponse,
+  IBackgroundCaller,
   LogRequest,
-  SignTypedDataRequest,
+  MessageType,
+  ProcessRPCRequest,
+  SaveMnemonicRequest,
+  SaveMnemonicResponse,
   SignPersonalMessageRequest,
+  SignPersonalMessageResponse,
+  SignTypedDataRequest,
+  SignTypedDataResponse,
 } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { Networks } from '@shared/types/networks';
+import { LayerzStorage } from '../class/layerz-storage';
+import { SecureStorage } from '../class/secure-storage';
 
 const STORAGE_KEY_WHITELIST = 'STORAGE_KEY_WHITELIST';
 const STORAGE_KEY_ACCEPTED_TOS = 'STORAGE_KEY_ACCEPTED_TOS';
@@ -78,7 +81,7 @@ export const BackgroundCaller: IBackgroundCaller = {
     } as EncryptMnemonicRequest);
   },
 
-  async getBtcBalance(accountNumber: number): Promise<getBtcBalanceResponse> {
+  async getBtcBalance(accountNumber: number): Promise<GetBtcBalanceResponse> {
     return await Messenger.sendGenericMessageToBackground({
       type: MessageType.GET_BTC_BALANCE,
       accountNumber,
@@ -150,5 +153,19 @@ export const BackgroundCaller: IBackgroundCaller = {
       type: MessageType.GET_BTC_SEND_DATA,
       accountNumber,
     } as GetBtcSendDataRequest);
+  },
+
+  async getLiquidBalance(accountNumber: number): Promise<GetLiquidBalanceResponse> {
+    return await Messenger.sendGenericMessageToBackground({
+      type: MessageType.GET_LIQUID_BALANCE,
+      accountNumber,
+    } as GetBtcBalanceRequest);
+  },
+
+  async getLiquidSendData(accountNumber: number): Promise<GetLiquidSendDataResponse> {
+    return await Messenger.sendGenericMessageToBackground({
+      type: MessageType.GET_LIQUID_SEND_DATA,
+      accountNumber,
+    } as GetLiquidSendDataRequest);
   },
 };

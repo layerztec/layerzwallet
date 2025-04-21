@@ -1,11 +1,12 @@
 import BigNumber from 'bignumber.js';
 import useSWR from 'swr';
 
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, Networks } from '../types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { getRpcProvider } from '../models/network-getters';
 import { ArkWallet } from '../class/wallets/ark-wallet';
+import { lbtcAssetId } from '../class/wallets/liquid-wallet';
 
 interface balanceFetcherArg {
   cacheKey: string;
@@ -25,6 +26,18 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
   if (network === NETWORK_BITCOIN) {
     const balance = await backgroundCaller.getBtcBalance(accountNumber);
     return (balance.confirmed + balance.unconfirmed).toString(10);
+  }
+
+  if (network === NETWORK_LIQUIDTESTNET) {
+    // for Liquid, we only show balance of LBTC token
+    const balances = await backgroundCaller.getLiquidBalance(accountNumber);
+    let balance = 0;
+    for (const [k, v] of Object.entries(balances)) {
+      if (Object.values(lbtcAssetId).includes(k)) {
+        balance += v;
+      }
+    }
+    return balance.toString(10);
   }
 
   if (network === NETWORK_ARKMUTINYNET) {
@@ -47,6 +60,7 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
 
   switch (network) {
     case NETWORK_BITCOIN:
+    case NETWORK_LIQUIDTESTNET:
       refreshInterval = 60_000; // 1 min for btc
   }
   const { data, error, isLoading } = useSWR({ cacheKey: 'balanceFetcher', accountNumber, network, backgroundCaller } as balanceFetcherArg, balanceFetcher, {

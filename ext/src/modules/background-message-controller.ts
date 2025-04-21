@@ -5,9 +5,13 @@ import {
   GetAddressRequest,
   GetAddressResponse,
   GetBtcBalanceRequest,
-  getBtcBalanceResponse,
+  GetBtcBalanceResponse,
   GetBtcSendDataRequest,
   GetBtcSendDataResponse,
+  GetLiquidBalanceRequest,
+  GetLiquidBalanceResponse,
+  GetLiquidSendDataRequest,
+  GetLiquidSendDataResponse,
   LogRequest,
   MessageType,
   ProcessRPCRequest,
@@ -26,15 +30,17 @@ import { LayerzStorage } from '../class/layerz-storage';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
+import { LiquidWallet } from '@shared/class/wallets/liquid-wallet';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN } from '@shared/types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { SecureStorage } from '../class/secure-storage';
 import { Csprng } from '../../src/class/rng';
-import { STORAGE_KEY_BTC_XPUB, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_ARK_ADDRESS, ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { STORAGE_KEY_BTC_XPUB, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_ARK_ADDRESS, ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC, STORAGE_KEY_LIQUID_XPUB, STORAGE_KEY_LIQUID_MBK } from '@shared/types/IStorage';
 
-// Cache of bitcoin wallets keyed by account number
+// Cache of wallets keyed by account number
 const bitcoinWallets: Record<number, WatchOnlyWallet> = {};
+const liquidWallets: Record<number, LiquidWallet> = {};
 
 async function lazyInitBitcoinWallet(accountNumber: number): Promise<WatchOnlyWallet> {
   if (bitcoinWallets[accountNumber]) {
@@ -52,9 +58,30 @@ async function lazyInitBitcoinWallet(accountNumber: number): Promise<WatchOnlyWa
   return wallet;
 }
 
+async function lazyInitLiquidWallet(accountNumber: number): Promise<LiquidWallet> {
+  if (liquidWallets[accountNumber]) {
+    return liquidWallets[accountNumber];
+  }
+
+  const xpub = await LayerzStorage.getItem(STORAGE_KEY_LIQUID_XPUB + accountNumber);
+  if (!xpub) throw new Error('No xpub for this account number');
+  const masterBlindingKey = await LayerzStorage.getItem(STORAGE_KEY_LIQUID_MBK);
+  if (!masterBlindingKey) throw new Error('No Master Blind Key for this account number');
+
+  const wallet = new LiquidWallet('testnet');
+  await wallet.init({ xpub, masterBlindingKey });
+  liquidWallets[accountNumber] = wallet;
+
+  return wallet;
+}
+
 async function handleGetAddress(request: GetAddressRequest, sendResponse: (response: GetAddressResponse) => void) {
   if (request.network === NETWORK_BITCOIN) {
     const wallet = await lazyInitBitcoinWallet(request.accountNumber);
+    const address = await wallet.getAddressAsync();
+    sendResponse(address);
+  } else if (request.network === NETWORK_LIQUIDTESTNET) {
+    const wallet = await lazyInitLiquidWallet(request.accountNumber);
     const address = await wallet.getAddressAsync();
     sendResponse(address);
   } else if (request.network === NETWORK_ARKMUTINYNET) {
@@ -73,6 +100,18 @@ async function saveBitcoinXpubs(mnemonic: string) {
     btcWallet.setDerivationPath(`m/84'/0'/${accountNum}'`); // BIP84
     const btcXpub = btcWallet.getXpub();
     await LayerzStorage.setItem(STORAGE_KEY_BTC_XPUB + accountNum, btcXpub);
+  }
+}
+
+async function saveLiquidXpubs(mnemonic: string) {
+  for (let accountNum = 0; accountNum <= 5; accountNum++) {
+    const wallet = new LiquidWallet('testnet');
+    wallet.setDerivationPath(`m/84'/1'/${accountNum}'`); // BIP84
+    const { xpub, masterBlindingKey } = wallet.generateXpubAndMasterBlindingKey(mnemonic);
+    await LayerzStorage.setItem(STORAGE_KEY_LIQUID_XPUB + accountNum, xpub);
+    if (accountNum === 0) {
+      await LayerzStorage.setItem(STORAGE_KEY_LIQUID_MBK, masterBlindingKey);
+    }
   }
 }
 
@@ -102,6 +141,7 @@ async function handleSaveMnemonic(request: SaveMnemonicRequest, sendResponse: (r
   await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
   await saveBitcoinXpubs(mnemonic);
   await saveArkAddresses(mnemonic);
+  await saveLiquidXpubs(mnemonic);
 
   sendResponse({ success: true });
 }
@@ -114,11 +154,12 @@ async function handleCreateMnemonic(sendResponse: (response: CreateMnemonicRespo
   await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
   await saveBitcoinXpubs(mnemonic);
   await saveArkAddresses(mnemonic);
+  await saveLiquidXpubs(mnemonic);
 
   sendResponse({ mnemonic });
 }
 
-async function handleGetBtcBalance(request: GetBtcBalanceRequest, sendResponse: (response: getBtcBalanceResponse) => void) {
+async function handleGetBtcBalance(request: GetBtcBalanceRequest, sendResponse: (response: GetBtcBalanceResponse) => void) {
   if (!BlueElectrum.mainConnected) {
     await BlueElectrum.connectMain();
   }
@@ -129,6 +170,41 @@ async function handleGetBtcBalance(request: GetBtcBalanceRequest, sendResponse: 
   sendResponse({
     confirmed: wallet.getBalance(),
     unconfirmed: wallet.getUnconfirmedBalance(),
+  });
+}
+
+async function handleGetBtcSendData(request: GetBtcSendDataRequest, sendResponse: (response: GetBtcSendDataResponse) => void) {
+  if (!BlueElectrum.mainConnected) {
+    await BlueElectrum.connectMain();
+  }
+  const wallet = await lazyInitBitcoinWallet(request.accountNumber);
+  await wallet.fetchBalance();
+  await wallet.fetchUtxo();
+  const changeAddress = await wallet.getChangeAddressAsync();
+  const utxos = wallet.getUtxo();
+  sendResponse({
+    utxos,
+    changeAddress,
+  });
+}
+
+async function handleGetLiquidBalance(request: GetLiquidBalanceRequest, sendResponse: (response: GetLiquidBalanceResponse) => void) {
+  const wallet = await lazyInitLiquidWallet(request.accountNumber);
+  await wallet.fetchTransactions();
+  const balances = wallet.getBalances();
+  sendResponse(balances);
+}
+
+async function handleGetLiquidSendData(request: GetLiquidSendDataRequest, sendResponse: (response: GetLiquidSendDataResponse) => void) {
+  const wallet = await lazyInitLiquidWallet(request.accountNumber);
+  await wallet.fetchTransactions();
+  const utxos = wallet.getUtxos();
+
+  sendResponse({
+    utxos,
+    txDetails: wallet.txDetails,
+    outpointBlindingData: wallet.outpointBlindingData,
+    scriptsDetails: wallet.scriptsDetails,
   });
 }
 
@@ -235,21 +311,6 @@ function openPopupWindow(request: ProcessRPCRequest, sendResponse: (response?: a
   });
 }
 
-async function handleGetBtcSendData(request: GetBtcSendDataRequest, sendResponse: (response: GetBtcSendDataResponse) => void) {
-  if (!BlueElectrum.mainConnected) {
-    await BlueElectrum.connectMain();
-  }
-  const wallet = await lazyInitBitcoinWallet(request.accountNumber);
-  await wallet.fetchBalance();
-  await wallet.fetchUtxo();
-  const changeAddress = await wallet.getChangeAddressAsync();
-  const utxos = wallet.getUtxo();
-  sendResponse({
-    utxos,
-    changeAddress,
-  });
-}
-
 export function handleMessage(msg: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) {
   switch (msg.type) {
     case MessageType.GET_ADDRESS:
@@ -291,6 +352,14 @@ export function handleMessage(msg: any, sender: chrome.runtime.MessageSender, se
 
     case MessageType.GET_BTC_SEND_DATA:
       setTimeout(() => handleGetBtcSendData(msg as GetBtcSendDataRequest, sendResponse), 0);
+      return true;
+
+    case MessageType.GET_LIQUID_BALANCE:
+      setTimeout(() => handleGetLiquidBalance(msg as GetLiquidBalanceRequest, sendResponse), 1);
+      return true;
+
+    case MessageType.GET_LIQUID_SEND_DATA:
+      setTimeout(() => handleGetLiquidSendData(msg as GetLiquidSendDataRequest, sendResponse), 1);
       return true;
 
     default:

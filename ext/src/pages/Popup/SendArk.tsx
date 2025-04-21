@@ -14,7 +14,7 @@ import { decrypt } from '../../modules/encryption';
 import { getDeviceID } from '@shared/modules/device-id';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { formatBalance } from '@shared/modules/string-utils';
-import { ScanQrContext } from '../../hooks/ScanQrContext';
+import { useScanQR } from '../../hooks/ScanQrContext';
 import { SecureStorage } from '../../class/secure-storage';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { BackgroundCaller } from '../../modules/background-caller';
@@ -22,7 +22,7 @@ import { LayerzStorage } from '../../class/layerz-storage';
 import { Csprng } from '../../class/rng';
 
 const SendArk: React.FC = () => {
-  const { scanQr } = useContext(ScanQrContext);
+  const scanQr = useScanQR();
   const navigate = useNavigate();
   const [toAddress, setToAddress] = useState<string>('');
   const [amount, setAmount] = useState<string>('');

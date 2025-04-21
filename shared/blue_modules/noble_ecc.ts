@@ -28,6 +28,9 @@ export interface TinySecp256k1InterfaceExtended {
   xOnlyPointAddTweak(p: Uint8Array, tweak: Uint8Array): XOnlyPointAddTweakResult | null;
 
   privateNegate(d: Uint8Array): Uint8Array;
+
+  // enforce signSchnorr to always exists
+  signSchnorr(h: Uint8Array | string, d: Uint8Array, e?: Uint8Array): Uint8Array;
 }
 
 necc.utils.sha256Sync = (...messages: Uint8Array[]): Uint8Array => {

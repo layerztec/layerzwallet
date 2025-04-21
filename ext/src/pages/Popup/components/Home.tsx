@@ -8,7 +8,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { Button, Switch } from '../DesignSystem';
-import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, Networks } from '@shared/types/networks';
+import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, Networks } from '@shared/types/networks';
 import TokensView from './TokensView';
 import PartnersView from './PartnersView';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
@@ -76,6 +76,9 @@ const Home: React.FC = () => {
               break;
             case NETWORK_ARKMUTINYNET:
               navigate('/send-ark');
+              break;
+            case NETWORK_LIQUIDTESTNET:
+              navigate('/send-liquid');
               break;
             default:
               navigate('/send-evm');

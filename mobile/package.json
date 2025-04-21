@@ -34,6 +34,7 @@
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
     "@spsina/bip47": "github:BlueWallet/bip47#df823454092a9993edeea11d663f8eb9a522a174",
+    "@vulpemventures/secp256k1-zkp": "3.1.0",
     "assert": "^2.1.0",
     "bignumber.js": "9.1.1",
     "bip21": "^3.0.0",
@@ -66,6 +67,7 @@
     "expo-system-ui": "4.0.9",
     "expo-web-browser": "~14.0.2",
     "https-browserify": "^1.0.0",
+    "liquidjs-lib": "6.0.2-liquid.36",
     "patch-package": "^8.0.0",
     "process": "^0.11.10",
     "react": "18.3.1",
@@ -79,12 +81,14 @@
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
     "silent-payments": "github:BlueWallet/SilentPayments#7ac4d17b85dc875a3ebb072883dd1d92ac286d98",
+    "slip77": "0.2.0",
     "stream-browserify": "^3.0.0",
     "stream-http": "^3.2.0",
     "swr": "^2.3.2",
     "timers-browserify": "^2.0.12",
     "uint8array-extras": "^1.4.0",
-    "url": "^0.11.4"
+    "url": "^0.11.4",
+    "ws-electrumx-client": "1.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

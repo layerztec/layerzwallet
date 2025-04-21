@@ -1,8 +1,13 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
+const ALIASES = {
+  // we are not actually using this package in mobile yet, so we can just alias it to anything
+  '@vulpemventures/secp256k1-zkp': 'timers-browserify',
+};
+
 module.exports = (async () => {
-  const defaultConfig = await getDefaultConfig(__dirname);
+  const defaultConfig = getDefaultConfig(__dirname);
   defaultConfig.resolver.extraNodeModules = {
     http: require.resolve('stream-http'),
     https: require.resolve('https-browserify'),
@@ -19,6 +24,12 @@ module.exports = (async () => {
   defaultConfig.resolver.nodeModulesPaths = [path.resolve(path.join(__dirname, './node_modules'))];
 
   defaultConfig.watchFolders = [path.resolve(path.join(__dirname, '../shared'))];
+
+  // this is needed to make ALIASES work for @vulpemventures/secp256k1-zkp package
+  // @see https://docs.expo.dev/guides/customizing-metro/#aliases
+  defaultConfig.resolver.resolveRequest = (context, moduleName, platform) => {
+    return context.resolveRequest(context, ALIASES[moduleName] ?? moduleName, platform);
+  };
 
   return defaultConfig;
 })();

@@ -24,6 +24,7 @@ import Receive from './Receive';
 import SendArk from './SendArk';
 import SendBtc from './SendBtc';
 import SendEvm from './SendEvm';
+import SendLiquid from './SendLiquid';
 import SendTokenEvm from './SendTokenEvm';
 import SettingsPage from './SettingsPage';
 import TestPage from './TestPage';
@@ -74,6 +75,7 @@ const AppContent: React.FC = () => {
             <Route path="/send-ark" element={<SendArk />} />
             <Route path="/send-token-evm" element={<SendTokenEvm />} />
             <Route path="/send-btc" element={<SendBtc />} />
+            <Route path="/send-liquid" element={<SendLiquid />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/transaction-success" element={<TransactionSuccessEvm />} />
             <Route path="/action" element={<Action />} />

@@ -12,7 +12,7 @@ import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { AskPasswordContext } from '../../hooks/AskPasswordContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { ScanQrContext } from '../../hooks/ScanQrContext';
+import { useScanQR } from '../../hooks/ScanQrContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { BackgroundCaller } from '../../modules/background-caller';
@@ -21,6 +21,7 @@ import { decrypt } from '../../modules/encryption';
 import { Button, HodlButton, Input, Modal, RadioButton, WideButton } from './DesignSystem';
 import ClipboardBackdoor from './components/ClipboardBackdoor';
 import { formatBalance } from '@shared/modules/string-utils';
+import { withRetry } from '@shared/modules/tenacity';
 import { SecureStorage } from '../../class/secure-storage';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { LayerzStorage } from '../../class/layerz-storage';
@@ -28,27 +29,13 @@ import { Csprng } from '../../class/rng';
 
 type TFeeRateOptions = { [rate: number]: number };
 
-const withRetry = async <T,>(fn: () => Promise<T>, maxAttempts: number = 10, backoffMs: number = 1000): Promise<T> => {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (attempt === maxAttempts) throw error;
-      await new Promise((resolve) => setTimeout(resolve, backoffMs * attempt)); // Exponential backoff
-    }
-  }
-  throw new Error('Should not reach here');
-};
-
 const SendBtc: React.FC = () => {
-  const { scanQr } = useContext(ScanQrContext);
+  const scanQr = useScanQR();
   const navigate = useNavigate();
   const [toAddress, setToAddress] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const [isPreparing, setIsPreparing] = useState<boolean>(false);
-  const [isPrepared, setIsPrepared] = useState<boolean>(false);
-  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [sendState, setSendState] = useState<'idle' | 'preparing' | 'prepared' | 'success'>('idle');
   const [customFeeRate, setCustomFeeRate] = useState<number | undefined>(); // fee rate that user selected
   const [estimateFees, setEstimateFees] = useState<undefined | TFeeEstimate>(); // estimated fees that we are loading from electrum
   const [sendData, setSendData] = useState<undefined | { utxos: CreateTransactionUtxo[]; changeAddress: string }>(undefined);
@@ -155,8 +142,7 @@ const SendBtc: React.FC = () => {
       if (!result) {
         throw new Error('Transaction failed');
       }
-
-      setIsSuccess(true);
+      setSendState('success');
     } catch (error: any) {
       setError(error.message);
     }
@@ -164,7 +150,7 @@ const SendBtc: React.FC = () => {
 
   const prepareTransaction = async () => {
     const w = new HDSegwitBech32Wallet();
-    setIsPreparing(true);
+    setSendState('preparing');
     setError('');
     try {
       // check amount
@@ -210,12 +196,11 @@ const SendBtc: React.FC = () => {
       assert(tx, 'Internal error: Wallet.createTransaction failed');
       setTxhex(tx.toHex());
       setActualFee(fee);
-      setIsPrepared(true);
+      setSendState('prepared');
     } catch (error: any) {
       console.error(error.message);
       setError(error.message);
-    } finally {
-      setIsPreparing(false);
+      setSendState('idle');
     }
   };
 
@@ -223,7 +208,7 @@ const SendBtc: React.FC = () => {
     setCustomFeeRate(Number(e.target.value));
   };
 
-  if (isSuccess) {
+  if (sendState === 'success') {
     return (
       <div style={{ textAlign: 'center', padding: '20px' }}>
         <div style={{ color: '#4CAF50', fontSize: '48px', marginBottom: '20px' }}>✓</div>
@@ -303,9 +288,9 @@ const SendBtc: React.FC = () => {
           </div>
         ) : null}
 
-        {isPreparing ? <span>loading...</span> : null}
+        {sendState === 'preparing' ? <span>loading...</span> : null}
 
-        {!isPreparing && !isPrepared ? (
+        {sendState === 'idle' ? (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
             <span style={{ color: 'gray', fontSize: '16px' }}>
               Network Fee: {feeRate} sats/vbyte{feeRateOptions[feeRate] && <span> ({feeRateOptions[feeRate]} sats)</span>}
@@ -365,14 +350,14 @@ const SendBtc: React.FC = () => {
           </Modal>
         )}
 
-        {!isPreparing && !isPrepared ? (
+        {sendState === 'idle' ? (
           <WideButton data-testid="send-screen-send-button" onClick={prepareTransaction} disabled={!sendData}>
             <SendIcon />
             Send
           </WideButton>
         ) : null}
 
-        {isPrepared ? (
+        {sendState === 'prepared' ? (
           <div>
             <span style={{ color: 'gray', fontSize: '16px' }}>
               Actual fee for this transaction: {formatBalance(String(actualFee), getDecimalsByNetwork(network), 8)} {getTickerByNetwork(network)}
@@ -384,8 +369,7 @@ const SendBtc: React.FC = () => {
 
             <button
               onClick={() => {
-                setIsPreparing(false);
-                setIsPrepared(false);
+                setSendState('idle');
                 setTxhex('');
               }}
               style={{

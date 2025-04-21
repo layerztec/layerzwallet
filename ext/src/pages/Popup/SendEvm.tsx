@@ -17,14 +17,14 @@ import { TransactionSuccessProps } from './TransactionSuccessEvm';
 import { decrypt } from '../../modules/encryption';
 import { getDeviceID } from '@shared/modules/device-id';
 import { formatBalance } from '@shared/modules/string-utils';
-import { ScanQrContext } from '../../hooks/ScanQrContext';
+import { useScanQR } from '../../hooks/ScanQrContext';
 import { SecureStorage } from '../../class/secure-storage';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { LayerzStorage } from '../../class/layerz-storage';
 import { Csprng } from '../../class/rng';
 
 const SendEvm: React.FC = () => {
-  const { scanQr } = useContext(ScanQrContext);
+  const scanQr = useScanQR();
   const navigate = useNavigate();
   const [address, setAddress] = useState<string>(''); // our address
   const [toAddress, setToAddress] = useState<string>('');

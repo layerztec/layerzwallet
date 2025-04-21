@@ -1,17 +1,18 @@
 import { SecureStorage } from '@/src/class/secure-storage';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, Networks } from '@shared//types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, Networks } from '@shared/types/networks';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { encrypt } from '../modules/encryption';
 import {
   CreateMnemonicResponse,
   EncryptMnemonicResponse,
-  getBtcBalanceResponse,
+  GetBtcBalanceResponse,
   GetBtcSendDataResponse,
+  GetLiquidBalanceResponse,
+  GetLiquidSendDataResponse,
   IBackgroundCaller,
   SaveMnemonicResponse,
   SignPersonalMessageResponse,
@@ -20,6 +21,7 @@ import {
 import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_BTC_XPUB, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_WHITELIST } from '@shared/types/IStorage';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
+import { encrypt } from '../modules/encryption';
 
 // TODO: unify lazyInitBitcoinWallet, saveArkAddresses & saveBitcoinXpubs in SHARED
 
@@ -150,7 +152,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
     }
   },
 
-  async getBtcBalance(accountNumber: number): Promise<getBtcBalanceResponse> {
+  async getBtcBalance(accountNumber: number): Promise<GetBtcBalanceResponse> {
     if (!BlueElectrum.mainConnected) {
       await BlueElectrum.connectMain();
     }
@@ -218,5 +220,12 @@ export const BackgroundExecutor: IBackgroundCaller = {
       utxos,
       changeAddress,
     };
+  },
+
+  async getLiquidBalance(accountNumber: number): Promise<GetLiquidBalanceResponse> {
+    throw new Error('Function not implemented.');
+  },
+  async getLiquidSendData(accountNumber: number): Promise<GetLiquidSendDataResponse> {
+    throw new Error('Function not implemented.');
   },
 };
