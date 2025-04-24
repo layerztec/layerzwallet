@@ -25,6 +25,7 @@ test('BackgroundMessageController can handle messages SAVE_MNEMONIC', async () =
 
   // now, saving mnemonics
 
+  let handleMessageDone = false;
   const response2 = handleMessage(
     {
       type: MessageType.SAVE_MNEMONIC,
@@ -33,18 +34,21 @@ test('BackgroundMessageController can handle messages SAVE_MNEMONIC', async () =
     {},
     (response: SaveMnemonicResponse) => {
       assert.strictEqual(response.success, true);
+      handleMessageDone = true;
     }
   );
 
-  await new Promise((resolve) => setTimeout(resolve, 100)); // sleep to allow callback to fire
+  while (!handleMessageDone) {
+    await new Promise((resolve) => setTimeout(resolve, 500)); // sleep to allow callback to fire
+  }
 
   assert.deepStrictEqual(staticCache, {
-    STORAGE_KEY_ARK_ADDRESS0: 'tark1630ud8207869eward2csxunpsc7r5jwyjy9urqawjafywdvfyzmygkx7p6u8rupsz83dry3hg65s0wtdgxgp8l09x7jq2am0fp9dxdgn0l4tq',
-    STORAGE_KEY_ARK_ADDRESS1: 'tark1630ud8207869eward2csxunpsc7r5jwyjy9urqawjafywdvfyzm8cuuczkmmdcuptglazwxud5n86cgnv6s003qex2jnqcjjeptf27gw7mddm',
-    STORAGE_KEY_ARK_ADDRESS2: 'tark1630ud8207869eward2csxunpsc7r5jwyjy9urqawjafywdvfyzmv6mfraxqn7s55tns6ln56hhtqkk0d46z6dvwp5l7s8xpn7zgtysg4nddf6',
-    STORAGE_KEY_ARK_ADDRESS3: 'tark1630ud8207869eward2csxunpsc7r5jwyjy9urqawjafywdvfyzmg9g5u355vpslrs4256lsnldujs9xh879d7e0gxvufxq2mpne9muqkdcxur',
-    STORAGE_KEY_ARK_ADDRESS4: 'tark1630ud8207869eward2csxunpsc7r5jwyjy9urqawjafywdvfyzmfdklwhhm9gky7fv7yzc2dtcvqje5lx8pwl3euk7ej9ltmtjkplgq7t0u2m',
-    STORAGE_KEY_ARK_ADDRESS5: 'tark1630ud8207869eward2csxunpsc7r5jwyjy9urqawjafywdvfyzmxs8cm68ketsh7due3k6suwp6ek0u0favrlyx2hektm8cjngs37gsz9vhz9',
+    STORAGE_KEY_ARK_ADDRESS0: 'tark1lfeudey8dlajmlykr4mrej56h3eafwywlju0telljtw9t6d2257sa5gmmhg8e654m2rvjtgcj2pd8n078n5vf5706qknqamhwckal6g2euerj',
+    STORAGE_KEY_ARK_ADDRESS1: 'tark1lfeudey8dlajmlykr4mrej56h3eafwywlju0telljtw9t6d22576z0zufgkpqprdp6pyr8r33wd9t2rtkzr7sum0xqlu7u59k6nz4jsz3avar',
+    STORAGE_KEY_ARK_ADDRESS2: 'tark1lfeudey8dlajmlykr4mrej56h3eafwywlju0telljtw9t6d2257ssrlm57sa9qhe9wgsjhldg88fkaec5mmrm95nazrtuvm3w2pcsaqx9nt8p',
+    STORAGE_KEY_ARK_ADDRESS3: 'tark1lfeudey8dlajmlykr4mrej56h3eafwywlju0telljtw9t6d2257uh4f6hp9rkqx8x7krzzqwnt9rddck83pk2gexpud9kdee5aefgfqezryr8',
+    STORAGE_KEY_ARK_ADDRESS4: 'tark1lfeudey8dlajmlykr4mrej56h3eafwywlju0telljtw9t6d22577694x3wjwldv07x36aaxysnlgc2te4en0vp0cnh3vd8c2st67e4sw7rdl8',
+    STORAGE_KEY_ARK_ADDRESS5: 'tark1lfeudey8dlajmlykr4mrej56h3eafwywlju0telljtw9t6d2257ux2fvshjrr4u403378qusn8nkc9dmakf6p2m4wxlhhr8ga92kpyc9798n9',
     STORAGE_KEY_BTC_XPUB0: 'zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs',
     STORAGE_KEY_BTC_XPUB1: 'zpub6rFR7y4Q2AijF6Gk1bofHLs1d66hKFamhXWdWBup1Em25wfabZqkDqvaieV63fDQFaYmaatCG7jVNUpUiM2hAMo6SAVHcrUpSnHDpNzucB7',
     STORAGE_KEY_BTC_XPUB2: 'zpub6rFR7y4Q2AijHxf5H8YD9SZ1S1hrLi3PmbR9iJeVVZSJmK8R86EPCwBhyTaycoeXEVqLigViktQUy2tt3yLnvcZ7BcXz9QxHrLjaTeJn3xL',
