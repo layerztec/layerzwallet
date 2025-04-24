@@ -38,10 +38,11 @@ appId: com.layerzwallet.mobile
 
 # Navigate to Settings
 - tapOn:
-    point: 88%,12% # TODO: FIXME: This is a hack to get the settings button. probably needa test id
+    id: "SettingsButton"
 
 # Navigate to Self Test
-- tapOn: "Self Test"
+- tapOn:
+    id: "SelftestButton"
 - waitForAnimationToEnd
 
 # Run the self test
