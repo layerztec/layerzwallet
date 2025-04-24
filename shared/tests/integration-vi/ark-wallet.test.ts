@@ -10,8 +10,8 @@ test('ark', async (context) => {
 
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
-  w.init();
+  await w.init();
 
   assert.strictEqual(await w.getOffchainBalance(), 666);
-  assert.strictEqual(await w.getOffchainBalanceForAddress(w.getOffchainReceiveAddress()!), 666);
+  assert.strictEqual(await w.getOffchainBalanceForAddress((await w.getOffchainReceiveAddress())!), 666);
 });

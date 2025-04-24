@@ -5,14 +5,14 @@ import assert from 'assert';
 
 import { AbstractHDElectrumWallet } from './abstract-hd-electrum-wallet';
 import ecc from '../../blue_modules/noble_ecc';
-import { NetworkName } from '@arklabs/wallet-sdk/dist/types/types/networks';
+import { NetworkName } from '@arklabs/wallet-sdk/dist/types/networks';
 
 const bip32 = BIP32Factory(ecc);
 
 export class ArkWallet extends AbstractHDElectrumWallet {
   private _wallet: Wallet | undefined = undefined;
-  private _arkServerUrl: string = 'https://master.mutinynet.arklabs.to';
-  private _arkServerPublicKey: string = 'd45fc69d4ff1f45cbba36ab1037261863c3a49c4910bc183ae975247358920b6';
+  private _arkServerUrl: string = 'https://mutinynet.arkade.sh';
+  private _arkServerPublicKey: string = '03fa73c6e4876ffb2dfc961d763cca9abc73d4b88efcb8f5e7ff92dc55e9aa553d';
   private _network: NetworkName = 'mutinynet';
   private _accountNumber: number = 0;
 
@@ -32,7 +32,7 @@ export class ArkWallet extends AbstractHDElectrumWallet {
     this._network = network;
   }
 
-  init() {
+  async init() {
     const mnemonic = this.secret;
     const passphrase = this.passphrase;
     const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase);
@@ -48,7 +48,7 @@ export class ArkWallet extends AbstractHDElectrumWallet {
 
     const identity = InMemoryKey.fromHex(hex);
 
-    this._wallet = new Wallet({
+    this._wallet = await Wallet.create({
       network: this._network, // 'bitcoin', 'testnet', 'regtest', 'signet' or 'mutinynet'
       identity: identity,
       arkServerUrl: this._arkServerUrl,
@@ -67,7 +67,7 @@ export class ArkWallet extends AbstractHDElectrumWallet {
     if (!this._wallet) throw new Error('Ark wallet not initialized');
 
     console.log(`paying ${amount} sat...`);
-    return await this._wallet.sendOffchain(
+    return await this._wallet.sendBitcoin(
       {
         address,
         amount,
@@ -77,10 +77,10 @@ export class ArkWallet extends AbstractHDElectrumWallet {
     );
   }
 
-  getOffchainReceiveAddress(): string | undefined {
+  async getOffchainReceiveAddress(): Promise<string | undefined> {
     if (!this._wallet) throw new Error('Ark wallet not initialized');
 
-    const { offchain } = this._wallet.getAddress();
+    const { offchain } = await this._wallet.getAddress();
     return offchain?.address;
   }
 

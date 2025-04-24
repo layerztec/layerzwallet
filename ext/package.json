@@ -20,7 +20,7 @@
     "prepare": "cd .. && husky ext/.husky"
   },
   "dependencies": {
-    "@arklabs/wallet-sdk": "0.0.7",
+    "@arklabs/wallet-sdk": "0.0.13",
     "@metamask/eth-sig-util": "4.0.1",
     "@noble/hashes": "1.7.1",
     "@noble/secp256k1": "1.6.3",

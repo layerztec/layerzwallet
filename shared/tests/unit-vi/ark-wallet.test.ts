@@ -6,18 +6,18 @@ test('ArkWallet', async () => {
   const w = new ArkWallet();
   w.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
   // acc number 0
-  w.init();
+  await w.init();
 
-  const receive0 = w.getOffchainReceiveAddress();
+  const receive0 = await w.getOffchainReceiveAddress();
   assert.ok(receive0);
 
   w.setAccountNumber(1);
-  w.init();
-  assert.ok(w.getOffchainReceiveAddress());
-  assert.ok(receive0 !== w.getOffchainReceiveAddress());
+  await w.init();
+  assert.ok(await w.getOffchainReceiveAddress());
+  assert.ok(receive0 !== (await w.getOffchainReceiveAddress()));
 
   w.setAccountNumber(0);
-  w.init();
+  await w.init();
 
-  assert.ok(receive0 === w.getOffchainReceiveAddress());
+  assert.ok(receive0 === (await w.getOffchainReceiveAddress()));
 });

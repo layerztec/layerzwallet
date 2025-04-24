@@ -49,8 +49,8 @@ async function saveArkAddresses(mnemonic: string) {
     const ark = new ArkWallet();
     ark.setSecret(mnemonic);
     ark.setAccountNumber(accountNum);
-    ark.init();
-    const address = ark.getOffchainReceiveAddress();
+    await ark.init();
+    const address = await ark.getOffchainReceiveAddress();
     if (address) {
       await LayerzStorage.setItem(STORAGE_KEY_ARK_ADDRESS + accountNum, address);
     }
