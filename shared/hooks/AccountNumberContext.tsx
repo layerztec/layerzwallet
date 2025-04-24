@@ -18,7 +18,9 @@ interface IAccountNumberContext {
 
 export const AccountNumberContext = createContext<IAccountNumberContext>({
   accountNumber: 0,
-  setAccountNumber: () => {},
+  setAccountNumber: () => {
+    throw new Error('AccountNumberContext.setAccountNumber(): This should never happen');
+  },
 });
 
 export const STORAGE_SELECTED_ACCOUNT_NUMBER = 'STORAGE_SELECTED_ACCOUNT_NUMBER';
@@ -45,6 +47,10 @@ export const AccountNumberContextProvider: React.FC<AccountNumberContextProvider
     if (value instanceof Function) {
       setAccountNumber(value(accountNumber)); // unsure
     } else {
+      // -1 is triggered in settings when data is removed
+      if (value === -1) {
+        value = 0;
+      }
       props.backgroundCaller.log('changing selected account to: ' + value);
       props.storage.setItem(STORAGE_SELECTED_ACCOUNT_NUMBER, String(value));
       setAccountNumber(value);

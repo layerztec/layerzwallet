@@ -1,6 +1,5 @@
 import { AddressRecipient, UnblindedOutput } from '@shared/class/wallets/liquid-deps/types';
 import { LiquidWallet } from '@shared/class/wallets/liquid-wallet';
-import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
@@ -48,7 +47,7 @@ const SendLiquid: React.FC = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { askPassword } = useContext(AskPasswordContext);
-  const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundCaller);
+  const { balance } = useBalance(network, accountNumber, BackgroundCaller);
 
   useEffect(() => {
     (async () => {
@@ -68,7 +67,7 @@ const SendLiquid: React.FC = () => {
       try {
         await withRetry(async () => {
           console.log('fetching getLiquidSendData...');
-          const r = await BackgroundCaller.getLiquidSendData(accountNumber);
+          const r = await BackgroundCaller.getLiquidSendData(network, accountNumber);
           console.log('...done fetching getLiquidSendData!');
           setSendData(r);
           if (!walletRef.current) {
@@ -83,14 +82,14 @@ const SendLiquid: React.FC = () => {
         setError('Failed to load UTXOs');
       }
     })();
-  }, [accountNumber]);
+  }, [accountNumber, network]);
 
   const actualSend = async () => {
     try {
       if (!walletRef.current) {
         throw new Error('Wallet not initialized');
       }
-      const result = await walletRef.current.chainSource.broadcastTransaction(txhex);
+      const result = await walletRef.current.chainSource!.broadcastTransaction(txhex);
       if (!result) {
         throw new Error('Transaction failed');
       }
@@ -139,7 +138,7 @@ const SendLiquid: React.FC = () => {
       assert(sendData?.utxos, 'internal error: utxo not loaded');
 
       // construct transaction
-      const relayFee = (await w.chainSource.getRelayFee()) * 1.1;
+      const relayFee = (await w.chainSource!.getRelayFee()) * 1.1;
       assert(relayFee, 'internal error: relay fee not loaded');
 
       const targets: AddressRecipient[] = [
