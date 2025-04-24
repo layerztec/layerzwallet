@@ -1,0 +1,69 @@
+appId: com.layerzwallet.mobile
+
+---
+# Ensure we start with a completely fresh app state
+- launchApp:
+    clearState: true
+    clearKeychain: true
+
+- waitForAnimationToEnd
+
+# Rest of the test flow
+- runFlow:
+    file: wallet-creation.yml
+
+# Verify Bitcoin is selected by default
+- assertVisible: "BITCOIN"
+- assertVisible:
+    id: "selectedNetwork-BITCOIN"
+    optional: true
+
+- tapOn: "Receive"
+
+- extendedWaitUntil:
+    notVisible: "Loading address..."
+    timeout: 30000
+    optional: true
+
+# Verify all basic UI components rendered successfully with an actual address.
+- assertVisible:
+    id: "network-address-header"
+- assertVisible:
+    id: "qr-container" # This will fail if the address was not obtained
+- assertVisible:
+    id: "address-label"
+
+- assertVisible:
+    id: "copy-address-button" # expand later with ui feedback
+
+- assertVisible:
+    id: "share-button"
+
+# Press back button
+- tapOn:
+    point: "10%,10%"
+
+# Verify we're back on the home screen
+- assertVisible: "Send"
+- assertVisible: "Receive"
+
+- tapOn: "ROOTSTOCK"
+
+- tapOn: "Receive"
+
+- assertVisible:
+    id: "network-address-header"
+- assertVisible:
+    id: "qr-container"
+- assertVisible:
+    id: "address-label"
+
+- extendedWaitUntil:
+    notVisible: "Loading address..."
+    timeout: 30000
+    optional: true
+
+- assertVisible:
+    id: "address-text"
+- assertVisible:
+    id: "copy-address-button"

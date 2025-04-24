@@ -59,16 +59,18 @@ export default function ReceiveScreen() {
       />
 
       <ThemedView style={styles.contentContainer}>
-        <ThemedText style={styles.subtitle}>Your {capitalizeFirstLetter(network)} Address</ThemedText>
+        <ThemedText testID="network-address-header" style={styles.subtitle}>
+          Your {capitalizeFirstLetter(network)} Address
+        </ThemedText>
 
-        <ThemedView style={styles.qrContainer}>
+        <ThemedView style={styles.qrContainer} testID="qr-container">
           {isLoading ? (
-            <ThemedView style={styles.qrPlaceholder}>
+            <ThemedView style={styles.qrPlaceholder} testID="loading-placeholder">
               <ActivityIndicator size="large" color="#007AFF" />
               <ThemedText style={styles.loadingText}>Loading address...</ThemedText>
             </ThemedView>
           ) : address ? (
-            <QRCode value={address} size={200} backgroundColor="white" color="black" />
+            <QRCode testID="address-qr-code" value={address} size={200} backgroundColor="white" color="black" />
           ) : (
             <ThemedView style={styles.qrPlaceholder}>
               <ThemedText>No address available</ThemedText>
@@ -77,15 +79,23 @@ export default function ReceiveScreen() {
         </ThemedView>
 
         <ThemedView style={styles.addressContainer}>
-          <ThemedText style={styles.addressLabel}>Address:</ThemedText>
-          <TouchableOpacity onPress={handleCopyAddress} style={styles.addressTextContainer} disabled={!address}>
-            {isLoading ? <ThemedText style={styles.addressText}>Loading...</ThemedText> : <ThemedText style={styles.addressText}>{address ? address : 'No address available'}</ThemedText>}
-            {address && <Ionicons name="copy-outline" size={20} color="#007AFF" style={styles.copyIcon} />}
+          <ThemedText testID="address-label" style={styles.addressLabel}>
+            Address:
+          </ThemedText>
+          <TouchableOpacity testID="copy-address-button" onPress={handleCopyAddress} style={styles.addressTextContainer} disabled={!address}>
+            {isLoading ? (
+              <ThemedText style={styles.addressText}>Loading...</ThemedText>
+            ) : (
+              <ThemedText testID="address-text" style={styles.addressText}>
+                {address ? address : 'No address available'}
+              </ThemedText>
+            )}
+            {address && <Ionicons testID="copy-icon" name="copy-outline" size={20} color="#007AFF" style={styles.copyIcon} />}
           </TouchableOpacity>
         </ThemedView>
 
-        <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
-          <Ionicons name="share-outline" size={24} color="#007AFF" />
+        <TouchableOpacity testID="share-button" onPress={handleShare} style={styles.shareButton}>
+          <Ionicons testID="share-icon" name="share-outline" size={24} color="#007AFF" />
         </TouchableOpacity>
       </ThemedView>
     </SafeAreaView>

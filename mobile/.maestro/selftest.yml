@@ -1,0 +1,39 @@
+appId: com.layerzwallet.mobile
+
+---
+- runFlow:
+    file: wallet-creation.yml
+
+- tapOn:
+    id: "settings-button"
+
+# Scroll to find the Self Test button
+- scroll
+
+- scroll
+
+# Look for the Self Test button in the Developer Options section
+- extendedWaitUntil:
+    visible: "Developer Options"
+    timeout: 5000
+    optional: true
+
+- tapOn:
+    id: "self-test-button"
+    
+- waitForAnimationToEnd
+
+- tapOn: 
+    text: "Run Self Test!"
+    retryTapIfNoChange: true
+
+- extendedWaitUntil:
+    visible: "running"
+    timeout: 10000
+    optional: true
+    
+- extendedWaitUntil:
+    visible: "ok!"
+    timeout: 180000
+
+- assertVisible: "ok!"

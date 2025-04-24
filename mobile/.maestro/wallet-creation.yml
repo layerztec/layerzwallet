@@ -1,0 +1,52 @@
+appId: com.layerzwallet.mobile
+
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible: "Create New Wallet"
+    timeout: 15000
+
+- tapOn: "Create New Wallet"
+
+- extendedWaitUntil:
+    visible: "Write down these 12 words in numerical order and keep them in a secure place. Never share them with anyone."
+    timeout: 150000
+
+# First wait for the loading to complete
+- extendedWaitUntil:
+    notVisible: "Creating your wallet..."
+    timeout: 60000
+
+# Then verify the Continue button is available and enabled
+- assertVisible:
+    text: "Continue"
+    enabled: true
+
+# Now proceed with tapping Continue
+- tapOn: "Continue"
+
+- extendedWaitUntil:
+    visible: "Enter password"
+    timeout: 10000
+- tapOn: "Enter password"
+- inputText: "123456"
+- tapOn: "Repeat password"
+- inputText: "123456"
+- tapOn:
+    point: 10%,10%
+- tapOn: 
+    text: Create Password
+    index: 1
+
+- tapOn: "I Agree"
+
+- extendedWaitUntil:
+    visible: "Send"
+    timeout: 10000
+- assertVisible: "Send"
+- assertVisible: "Receive"

@@ -5,7 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, LogBox } from 'react-native';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
@@ -19,7 +19,7 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
-
+LogBox.ignoreLogs(['Open debugger to view warnings.']);
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({

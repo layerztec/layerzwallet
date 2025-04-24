@@ -83,14 +83,19 @@ export default function IndexScreen() {
           <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
           <ThemedText style={styles.subtitle}>Explore Bitcoin Layer 2</ThemedText>
         </ThemedView>
-        <TouchableOpacity style={styles.settingsButton} onPress={goToSettings}>
+        <TouchableOpacity testID="settings-button" style={styles.settingsButton} onPress={goToSettings}>
           <Ionicons name="settings-outline" size={24} color="#007AFF" />
         </TouchableOpacity>
       </ThemedView>
 
       <ThemedView style={styles.networkContainer}>
         {networks.map((availableNetwork) => (
-          <TouchableOpacity key={availableNetwork} style={[styles.networkButton, network === availableNetwork && styles.selectedNetworkButton]} onPress={() => setNetwork(availableNetwork)}>
+          <TouchableOpacity
+            key={availableNetwork}
+            testID={network === availableNetwork ? `selectedNetwork-${availableNetwork}` : `network-${availableNetwork}`}
+            style={[styles.networkButton, network === availableNetwork && styles.selectedNetworkButton]}
+            onPress={() => setNetwork(availableNetwork)}
+          >
             <ThemedText style={[styles.networkButtonText, network === availableNetwork && styles.selectedNetworkButtonText]}>{availableNetwork.toUpperCase()}</ThemedText>
           </TouchableOpacity>
         ))}

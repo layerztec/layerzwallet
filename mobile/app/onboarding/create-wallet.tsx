@@ -55,9 +55,11 @@ export default function CreateWalletScreen() {
       </View>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={[styles.button, styles.primaryButton, isLoading && styles.disabledButton]} onPress={handleContinue} disabled={isLoading}>
-          <Text style={styles.buttonText}>Continue</Text>
-        </TouchableOpacity>
+        {!isLoading && (
+          <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={handleContinue}>
+            <Text style={styles.buttonText}>Continue</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
