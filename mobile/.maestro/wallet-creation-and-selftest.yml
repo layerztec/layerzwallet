@@ -14,17 +14,18 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 
 # Create password
-- tapOn: "Enter password"
+- tapOn:
+    id: "EnterPasswordInput"
 - inputText:  
     text: "123456" # Password
-- tapOn: "Repeat password"
+- tapOn:
+    id: "RepeatPasswordInput"
 - inputText: 
     text: "123456" # Confirm password
 - tapOn:
     point: 10%,10%        # to remove focus from the keyboard
 - tapOn: 
-    text: Create Password
-    index: 1
+    id: "CreatePasswordButton"
 - waitForAnimationToEnd
 
 # Accept terms of service
