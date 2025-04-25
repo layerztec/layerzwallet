@@ -10,8 +10,15 @@ appId: com.layerzwallet.mobile
 # Complete onboarding steps
 - waitForAnimationToEnd:
       timeout: 30000
-- tapOn: "Continue"
-- waitForAnimationToEnd
+
+# Complete onboarding steps
+- repeat:
+      while:
+          notVisible:
+              id: "EnterPasswordInput"
+      commands:
+          - tapOn: "Continue"
+          - waitForAnimationToEnd
 
 # Create password
 - tapOn:
