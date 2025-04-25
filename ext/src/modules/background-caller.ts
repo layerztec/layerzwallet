@@ -1,28 +1,6 @@
 import { Messenger } from '@shared/modules/messenger';
-import {
-  CreateMnemonicResponse,
-  EncryptMnemonicRequest,
-  EncryptMnemonicResponse,
-  GetBtcBalanceRequest,
-  GetBtcBalanceResponse,
-  GetBtcSendDataRequest,
-  GetBtcSendDataResponse,
-  GetLiquidBalanceResponse,
-  GetLiquidSendDataRequest,
-  GetLiquidSendDataResponse,
-  IBackgroundCaller,
-  LogRequest,
-  MessageType,
-  ProcessRPCRequest,
-  SaveMnemonicRequest,
-  SaveMnemonicResponse,
-  SignPersonalMessageRequest,
-  SignPersonalMessageResponse,
-  SignTypedDataRequest,
-  SignTypedDataResponse,
-} from '@shared/types/IBackgroundCaller';
+import { GetBtcSendDataResponse, GetLiquidSendDataResponse, IBackgroundCaller, MessageType } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
-import { Networks } from '@shared/types/networks';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
 
@@ -34,60 +12,45 @@ const STORAGE_KEY_ACCEPTED_TOS = 'STORAGE_KEY_ACCEPTED_TOS';
  * in an isolated context for security. Communication is handled via the `Messenger` service
  */
 export const BackgroundCaller: IBackgroundCaller = {
-  async getAddress(network: Networks, accountNumber: number): Promise<string> {
-    return await Messenger.sendGenericMessageToBackground({
-      type: MessageType.GET_ADDRESS,
-      network,
-      accountNumber,
-    });
+  async getAddress(...params) {
+    return await Messenger.sendGenericMessageToBackground(MessageType.GET_ADDRESS, params);
   },
 
-  async acceptTermsOfService(): Promise<void> {
+  async acceptTermsOfService() {
     await LayerzStorage.setItem(STORAGE_KEY_ACCEPTED_TOS, 'true');
   },
 
-  async hasAcceptedTermsOfService(): Promise<boolean> {
+  async hasAcceptedTermsOfService() {
     return !!(await LayerzStorage.getItem(STORAGE_KEY_ACCEPTED_TOS));
   },
 
-  async hasMnemonic(): Promise<boolean> {
+  async hasMnemonic() {
     const mnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
     return !!mnemonic;
   },
 
-  async hasEncryptedMnemonic(): Promise<boolean> {
+  async hasEncryptedMnemonic() {
     const mnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
     return !!mnemonic && mnemonic.startsWith(ENCRYPTED_PREFIX);
   },
 
-  async saveMnemonic(mnemonic: string): Promise<SaveMnemonicResponse> {
-    return await Messenger.sendGenericMessageToBackground({
-      type: MessageType.SAVE_MNEMONIC,
-      mnemonic,
-    } as SaveMnemonicRequest);
+  async saveMnemonic(...params) {
+    return await Messenger.sendGenericMessageToBackground(MessageType.SAVE_MNEMONIC, params);
   },
 
-  async createMnemonic(): Promise<CreateMnemonicResponse> {
-    return await Messenger.sendGenericMessageToBackground({
-      type: MessageType.CREATE_MNEMONIC,
-    });
+  async createMnemonic(...params) {
+    return await Messenger.sendGenericMessageToBackground(MessageType.CREATE_MNEMONIC, params);
   },
 
-  async encryptMnemonic(password: string): Promise<EncryptMnemonicResponse> {
-    return await Messenger.sendGenericMessageToBackground({
-      type: MessageType.ENCRYPT_MNEMONIC,
-      password,
-    } as EncryptMnemonicRequest);
+  async encryptMnemonic(...params) {
+    return await Messenger.sendGenericMessageToBackground(MessageType.ENCRYPT_MNEMONIC, params);
   },
 
-  async getBtcBalance(accountNumber: number): Promise<GetBtcBalanceResponse> {
-    return await Messenger.sendGenericMessageToBackground({
-      type: MessageType.GET_BTC_BALANCE,
-      accountNumber,
-    } as GetBtcBalanceRequest);
+  async getBtcBalance(...params) {
+    return await Messenger.sendGenericMessageToBackground(MessageType.GET_BTC_BALANCE, params);
   },
 
-  async whitelistDapp(dapp: string): Promise<void> {
+  async whitelistDapp(dapp) {
     let whitelist: string[] = [];
     try {
       whitelist = JSON.parse(await LayerzStorage.getItem(STORAGE_KEY_WHITELIST));
@@ -100,11 +63,11 @@ export const BackgroundCaller: IBackgroundCaller = {
     } catch (_) {}
   },
 
-  async unwhitelistDapp(dapp: string): Promise<void> {
+  async unwhitelistDapp(dapp: string) {
     alert('Implement me'); // todo
   },
 
-  async getWhitelist(): Promise<string[]> {
+  async getWhitelist() {
     try {
       return JSON.parse(await LayerzStorage.getItem(STORAGE_KEY_WHITELIST)) || [];
     } catch (_) {
@@ -112,61 +75,31 @@ export const BackgroundCaller: IBackgroundCaller = {
     }
   },
 
-  async log(data: string): Promise<void> {
-    return await Messenger.sendGenericMessageToBackground({
-      type: MessageType.LOG,
-      data,
-    } as LogRequest);
+  async log(...params) {
+    return await Messenger.sendGenericMessageToBackground(MessageType.LOG, params);
   },
 
-  async signPersonalMessage(message: string | Uint8Array, accountNumber: number, password: string): Promise<SignPersonalMessageResponse> {
-    return await Messenger.sendGenericMessageToBackground({
-      type: MessageType.SIGN_PERSONAL_MESSAGE,
-      accountNumber,
-      message,
-      password,
-    } as SignPersonalMessageRequest);
+  async signPersonalMessage(...params) {
+    return await Messenger.sendGenericMessageToBackground(MessageType.SIGN_PERSONAL_MESSAGE, params);
   },
 
-  async signTypedData(message: any, accountNumber: number, password: string): Promise<SignTypedDataResponse> {
-    return await Messenger.sendGenericMessageToBackground({
-      type: MessageType.SIGN_TYPED_DATA,
-      accountNumber,
-      message,
-      password,
-    } as SignTypedDataRequest);
+  async signTypedData(...params) {
+    return await Messenger.sendGenericMessageToBackground(MessageType.SIGN_TYPED_DATA, params);
   },
 
-  async openPopup(method: string, params: any, id: number, from: string): Promise<void> {
-    return await Messenger.sendGenericMessageToBackground({
-      type: MessageType.OPEN_POPUP,
-      method,
-      params,
-      id,
-      from,
-    } as ProcessRPCRequest);
+  async openPopup(...params) {
+    return await Messenger.sendGenericMessageToBackground(MessageType.OPEN_POPUP, params);
   },
 
-  async getBtcSendData(accountNumber: number): Promise<GetBtcSendDataResponse> {
-    return await Messenger.sendGenericMessageToBackground({
-      type: MessageType.GET_BTC_SEND_DATA,
-      accountNumber,
-    } as GetBtcSendDataRequest);
+  async getBtcSendData(...params): Promise<GetBtcSendDataResponse> {
+    return await Messenger.sendGenericMessageToBackground(MessageType.GET_BTC_SEND_DATA, params);
   },
 
-  async getLiquidBalance(network: Networks, accountNumber: number): Promise<GetLiquidBalanceResponse> {
-    return await Messenger.sendGenericMessageToBackground({
-      type: MessageType.GET_LIQUID_BALANCE,
-      network,
-      accountNumber,
-    } as GetBtcBalanceRequest);
+  async getLiquidBalance(...params) {
+    return await Messenger.sendGenericMessageToBackground(MessageType.GET_LIQUID_BALANCE, params);
   },
 
-  async getLiquidSendData(network: Networks, accountNumber: number): Promise<GetLiquidSendDataResponse> {
-    return await Messenger.sendGenericMessageToBackground({
-      type: MessageType.GET_LIQUID_SEND_DATA,
-      network,
-      accountNumber,
-    } as GetLiquidSendDataRequest);
+  async getLiquidSendData(...params): Promise<GetLiquidSendDataResponse> {
+    return await Messenger.sendGenericMessageToBackground(MessageType.GET_LIQUID_SEND_DATA, params);
   },
 };

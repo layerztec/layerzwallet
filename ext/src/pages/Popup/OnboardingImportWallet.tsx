@@ -16,7 +16,7 @@ export default function OnboardingImport() {
   const handleSaveMnemonicSeed = async () => {
     const response = await BackgroundCaller.saveMnemonic(value);
 
-    if (!response.success) {
+    if (!response) {
       setError('Invalid mnemonic seed');
       return;
     } else {

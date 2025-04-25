@@ -1,4 +1,5 @@
 import { Eip1193CustomEventCallback, Eip1193CustomEventResponse } from '../types/eip1193-custom-event';
+import { MessageTypeMap } from '../types/IBackgroundCaller';
 
 /**
  * Simple wrapper around few methods that shoot events. Mostly related to EIP-1193 and integrationwith EVM Dapps.
@@ -43,10 +44,11 @@ export const Messenger = {
     );
   },
 
-  async sendGenericMessageToBackground(message: any): Promise<any> {
+  sendGenericMessageToBackground<T extends keyof MessageTypeMap>(type: T, params: MessageTypeMap[T]['params']): Promise<MessageTypeMap[T]['response']> {
     return new Promise((resolve, reject) => {
       try {
-        chrome.runtime.sendMessage(message, async function (response) {
+        const message = { type, params };
+        chrome.runtime.sendMessage(message, (response) => {
           if (response?.error) {
             reject(new Error(response.message));
           } else {

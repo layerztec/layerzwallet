@@ -23,7 +23,7 @@ export default function ImportWalletScreen() {
       await new Promise((resolve) => setTimeout(resolve, 200)); // propagate ui
       const response = await BackgroundExecutor.saveMnemonic(mnemonic.trim());
 
-      if (!response.success) {
+      if (!response) {
         setError('Invalid mnemonic seed');
       } else {
         router.replace('/onboarding/create-password');

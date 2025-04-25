@@ -1,9 +1,9 @@
 import assert from 'assert';
-import { vi, afterEach, test, expect } from 'vitest';
-
+import { afterEach, expect, test, vi } from 'vitest';
+import { MessageType } from '@shared/types/IBackgroundCaller';
 import { BackgroundCaller } from '../../modules/background-caller';
-import { MessageType, ProcessRPCRequest, SaveMnemonicRequest, SaveMnemonicResponse } from '@shared/types/IBackgroundCaller';
 import { handleMessage } from '../../modules/background-message-controller';
+
 import CreateData = chrome.windows.CreateData;
 
 vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -29,16 +29,17 @@ test('BackgroundMessageController can handle messages SAVE_MNEMONIC', async () =
   const response2 = handleMessage(
     {
       type: MessageType.SAVE_MNEMONIC,
-      mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-    } as SaveMnemonicRequest,
+      params: ['abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'],
+    },
     {},
-    (response: SaveMnemonicResponse) => {
-      assert.strictEqual(response.success, true);
+    (response) => {
+      assert.strictEqual(response, true);
       handleMessageDone = true;
     }
   );
 
   while (!handleMessageDone) {
+    console.info('checking', handleMessageDone);
     await new Promise((resolve) => setTimeout(resolve, 500)); // sleep to allow callback to fire
   }
 
@@ -111,14 +112,20 @@ test('BackgroundMessageController can handle message OPEN_POPUP', async () => {
   handleMessage(
     {
       type: MessageType.OPEN_POPUP,
-      method: 'personal_sign',
-      params: ['0x4578616d706c652060706572736f6e616c5f7369676e60206d657373616765', '0xF5e61719675B46848572249b65DC6d9D83E7180A', 'Example password'],
-      id: 111,
-      from: 'metamask.github.io',
-    } as ProcessRPCRequest,
+      params: [
+        // method
+        'personal_sign',
+        // params
+        ['0x4578616d706c652060706572736f6e616c5f7369676e60206d657373616765', '0xF5e61719675B46848572249b65DC6d9D83E7180A', 'Example password'],
+        // id
+        111,
+        // from
+        'metamask.github.io',
+      ],
+    },
     // @ts-ignore not implementing full `Tab` type spec, need only `id`
     { tab: { id: 666 } },
-    (response) => {
+    () => {
       callbackCalled = true;
     }
   );

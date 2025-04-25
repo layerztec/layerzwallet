@@ -4,20 +4,9 @@ import { EvmWallet } from '@shared/class/evm-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
 import { lazyInitWallet as lazyInitWalletOrig, saveArkAddresses, saveBitcoinXpubs, saveWalletState } from '@shared/modules/wallet-utils';
-import {
-  CreateMnemonicResponse,
-  EncryptMnemonicResponse,
-  GetBtcBalanceResponse,
-  GetBtcSendDataResponse,
-  GetLiquidBalanceResponse,
-  GetLiquidSendDataResponse,
-  IBackgroundCaller,
-  SaveMnemonicResponse,
-  SignPersonalMessageResponse,
-  SignTypedDataResponse,
-} from '@shared/types/IBackgroundCaller';
+import { IBackgroundCaller } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_WHITELIST } from '@shared/types/IStorage';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, Networks } from '@shared/types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN } from '@shared/types/networks';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
 import { encrypt } from '../modules/encryption';
@@ -41,7 +30,7 @@ const lazyInitWallet = async (...args: Parameters<typeof lazyInitWalletOrig>) =>
  * no need to handle calls via messages, we can just execute them on the spot
  */
 export const BackgroundExecutor: IBackgroundCaller = {
-  async getAddress(network: Networks, accountNumber: number): Promise<string> {
+  async getAddress(network, accountNumber) {
     if (network === NETWORK_BITCOIN) {
       const wallet = await lazyInitWallet(network, accountNumber, cachedWallets, LayerzStorage);
       const address = await wallet.getAddressAsync();
@@ -56,27 +45,27 @@ export const BackgroundExecutor: IBackgroundCaller = {
     }
   },
 
-  async acceptTermsOfService(): Promise<void> {
+  async acceptTermsOfService() {
     await LayerzStorage.setItem(STORAGE_KEY_ACCEPTED_TOS, 'true');
   },
 
-  async hasAcceptedTermsOfService(): Promise<boolean> {
+  async hasAcceptedTermsOfService() {
     return !!(await LayerzStorage.getItem(STORAGE_KEY_ACCEPTED_TOS));
   },
 
-  async hasMnemonic(): Promise<boolean> {
+  async hasMnemonic() {
     const mnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
     return !!mnemonic;
   },
 
-  async hasEncryptedMnemonic(): Promise<boolean> {
+  async hasEncryptedMnemonic() {
     const mnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
     return !!mnemonic && mnemonic.startsWith(ENCRYPTED_PREFIX);
   },
 
-  async saveMnemonic(mnemonic: string): Promise<SaveMnemonicResponse> {
+  async saveMnemonic(mnemonic) {
     if (!EvmWallet.isMnemonicValid(mnemonic)) {
-      return { success: false };
+      return false;
     }
 
     const xpub = EvmWallet.mnemonicToXpub(mnemonic);
@@ -85,11 +74,11 @@ export const BackgroundExecutor: IBackgroundCaller = {
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
     await saveArkAddresses(LayerzStorage, mnemonic);
 
-    return { success: true };
+    return true;
   },
 
   // onboarding - create
-  async createMnemonic(): Promise<CreateMnemonicResponse> {
+  async createMnemonic() {
     const mnemonic = await EvmWallet.generateMnemonic(Csprng);
     const xpub = EvmWallet.mnemonicToXpub(mnemonic);
     await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, mnemonic);
@@ -101,7 +90,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
     return { mnemonic };
   },
 
-  async encryptMnemonic(password: string): Promise<EncryptMnemonicResponse> {
+  async encryptMnemonic(password) {
     const mnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
 
     if (mnemonic.startsWith(ENCRYPTED_PREFIX)) {
@@ -122,7 +111,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
     }
   },
 
-  async getBtcBalance(accountNumber: number): Promise<GetBtcBalanceResponse> {
+  async getBtcBalance(accountNumber) {
     if (!BlueElectrum.mainConnected) {
       await BlueElectrum.connectMain();
     }
@@ -135,7 +124,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
     };
   },
 
-  async whitelistDapp(dapp: string): Promise<void> {
+  async whitelistDapp(dapp) {
     let whitelist: string[] = [];
     try {
       whitelist = JSON.parse(await LayerzStorage.getItem(STORAGE_KEY_WHITELIST));
@@ -148,11 +137,11 @@ export const BackgroundExecutor: IBackgroundCaller = {
     } catch {}
   },
 
-  async unwhitelistDapp(dapp: string): Promise<void> {
+  async unwhitelistDapp(dapp) {
     alert('Implement me'); // todo
   },
 
-  async getWhitelist(): Promise<string[]> {
+  async getWhitelist() {
     try {
       return JSON.parse(await LayerzStorage.getItem(STORAGE_KEY_WHITELIST)) || [];
     } catch {
@@ -160,23 +149,23 @@ export const BackgroundExecutor: IBackgroundCaller = {
     }
   },
 
-  async log(data: string): Promise<void> {
+  async log(data) {
     console.log(data);
   },
 
-  async signPersonalMessage(message: string | Uint8Array, accountNumber: number, password: string): Promise<SignPersonalMessageResponse> {
+  async signPersonalMessage() {
     throw new Error('Implement me'); // TODO
   },
 
-  async signTypedData(message: any, accountNumber: number, password: string): Promise<SignTypedDataResponse> {
+  async signTypedData() {
     throw new Error('Implement me'); // TODO
   },
 
-  async openPopup(method: string, params: any, id: number, from: string): Promise<void> {
+  async openPopup() {
     throw new Error('Implement me'); // TODO
   },
 
-  async getBtcSendData(accountNumber: number): Promise<GetBtcSendDataResponse> {
+  async getBtcSendData(accountNumber) {
     if (!BlueElectrum.mainConnected) {
       await BlueElectrum.connectMain();
     }
@@ -192,10 +181,10 @@ export const BackgroundExecutor: IBackgroundCaller = {
     };
   },
 
-  async getLiquidBalance(network: Networks, accountNumber: number): Promise<GetLiquidBalanceResponse> {
+  async getLiquidBalance() {
     throw new Error('Function not implemented.');
   },
-  async getLiquidSendData(network: Networks, accountNumber: number): Promise<GetLiquidSendDataResponse> {
+  async getLiquidSendData() {
     throw new Error('Function not implemented.');
   },
 };
