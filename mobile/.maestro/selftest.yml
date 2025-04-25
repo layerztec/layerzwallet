@@ -8,14 +8,12 @@ appId: com.layerzwallet.mobile
     id: "SettingsButton"
 
 # Scroll to the bottom to find the Self Test button as emu screen can be small
-- scroll:
+- scrollUntilVisible:
+    element: "Developer Options"
     direction: DOWN
     timeout: 5000
-    waitForAnimationToEnd: true
-    untilVisible: "Developer Options"
-    optional: true
     maxSwipes: 3
-
+    
 - tapOn:
     id: "SelfTestButton"
     
