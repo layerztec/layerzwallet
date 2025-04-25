@@ -7,7 +7,6 @@ appId: com.layerzwallet.mobile
 # Wait for the initial screen and click Create New Wallet
 - tapOn: "Create New Wallet"
 
-# Complete onboarding steps
 - waitForAnimationToEnd:
       timeout: 30000
 
@@ -47,6 +46,12 @@ appId: com.layerzwallet.mobile
 # Navigate to Settings
 - tapOn:
     id: "SettingsButton"
+
+# Scroll to the bottom to find the Self Test button as emu screen can be small
+- scrollUntilVisible:
+      element: "Developer Options"
+      direction: DOWN
+      timeout: 5000
 
 # Navigate to Self Test
 - tapOn:
