@@ -49,9 +49,9 @@ appId: com.layerzwallet.mobile
 
 # Scroll to the bottom to find the Self Test button as emu screen can be small
 - scrollUntilVisible:
-      element: "Developer Options"
+      element:
+        id: "SelftestButton"
       direction: DOWN
-      timeout: 5000
 
 # Navigate to Self Test
 - tapOn:
