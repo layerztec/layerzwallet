@@ -83,7 +83,7 @@ export default function IndexScreen() {
           <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
           <ThemedText style={styles.subtitle}>Explore Bitcoin Layer 2</ThemedText>
         </ThemedView>
-        <TouchableOpacity testID="settings-button" style={styles.settingsButton} onPress={goToSettings}>
+        <TouchableOpacity testID="SettingsButton" style={styles.settingsButton} onPress={goToSettings}>
           <Ionicons name="settings-outline" size={24} color="#007AFF" />
         </TouchableOpacity>
       </ThemedView>
