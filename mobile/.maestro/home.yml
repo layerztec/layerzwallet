@@ -2,4 +2,6 @@ appId: com.layerzwallet.mobile
 ---
 - launchApp:
     clearState: true
+    clearKeychain: true
+
 - assertVisible: 'Welcome to LZW'

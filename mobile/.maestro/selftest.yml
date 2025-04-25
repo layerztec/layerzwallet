@@ -7,9 +7,8 @@ appId: com.layerzwallet.mobile
 - tapOn:
     id: "settings-button"
 
-# Scroll to find the Self Test button
+# Scroll to the bottom to find the Self Test button as emu screen can be small
 - scroll
-
 - scroll
 
 # Look for the Self Test button in the Developer Options section
@@ -21,8 +20,6 @@ appId: com.layerzwallet.mobile
 - tapOn:
     id: "self-test-button"
     
-- waitForAnimationToEnd
-
 - tapOn: 
     text: "Run Self Test!"
     retryTapIfNoChange: true

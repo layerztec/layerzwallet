@@ -27,7 +27,7 @@ appId: com.layerzwallet.mobile
     text: "Continue"
     enabled: true
 
-# Now proceed with tapping Continue
+# Now proceed to the enter password screen
 - tapOn: "Continue"
 
 - extendedWaitUntil:
@@ -45,6 +45,7 @@ appId: com.layerzwallet.mobile
 
 - tapOn: "I Agree"
 
+# Lets confirm we can see both send and receive.
 - extendedWaitUntil:
     visible: "Send"
     timeout: 10000

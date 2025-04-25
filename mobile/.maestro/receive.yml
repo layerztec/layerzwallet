@@ -1,14 +1,10 @@
 appId: com.layerzwallet.mobile
 
 ---
-# Ensure we start with a completely fresh app state
 - launchApp:
     clearState: true
     clearKeychain: true
 
-- waitForAnimationToEnd
-
-# Rest of the test flow
 - runFlow:
     file: wallet-creation.yml
 
@@ -47,6 +43,7 @@ appId: com.layerzwallet.mobile
 - assertVisible: "Send"
 - assertVisible: "Receive"
 
+# Lets run the same tests with a different chain
 - tapOn: "ROOTSTOCK"
 
 - tapOn: "Receive"
