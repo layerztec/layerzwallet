@@ -1,11 +1,9 @@
 import { SecureStorage } from '@/src/class/secure-storage';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, Networks } from '@shared/types/networks';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
-import { ArkWallet } from '@shared/class/wallets/ark-wallet';
-import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
+import { lazyInitWallet as lazyInitWalletOrig, saveArkAddresses, saveBitcoinXpubs, saveWalletState } from '@shared/modules/wallet-utils';
 import {
   CreateMnemonicResponse,
   EncryptMnemonicResponse,
@@ -18,54 +16,25 @@ import {
   SignPersonalMessageResponse,
   SignTypedDataResponse,
 } from '@shared/types/IBackgroundCaller';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_BTC_XPUB, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_WHITELIST } from '@shared/types/IStorage';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_WHITELIST } from '@shared/types/IStorage';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, Networks } from '@shared/types/networks';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
 import { encrypt } from '../modules/encryption';
 
-// TODO: unify lazyInitBitcoinWallet, saveArkAddresses & saveBitcoinXpubs in SHARED
+// Cache of wallets by network and account number (currently only bitcoin)
+const cachedWallets: Record<string, Record<number, WatchOnlyWallet>> = {
+  [NETWORK_BITCOIN]: {},
+  // [NETWORK_LIQUID]: {},
+  // [NETWORK_LIQUIDTESTNET]: {},
+};
 
-// Cache of bitcoin wallets keyed by account number
-const bitcoinWallets: Record<number, WatchOnlyWallet> = {};
-
-async function lazyInitBitcoinWallet(accountNumber: number): Promise<WatchOnlyWallet> {
-  if (bitcoinWallets[accountNumber]) {
-    return bitcoinWallets[accountNumber];
+const lazyInitWallet = async (...args: Parameters<typeof lazyInitWalletOrig>) => {
+  if (args[0] !== NETWORK_BITCOIN) {
+    throw new Error('lazyInitWallet only supports NETWORK_BITCOIN');
   }
-
-  const xpub = await LayerzStorage.getItem(STORAGE_KEY_BTC_XPUB + accountNumber);
-  if (!xpub) throw new Error('No xpub for this account number');
-
-  const wallet = new WatchOnlyWallet();
-  wallet.setSecret(xpub);
-  wallet.init();
-  bitcoinWallets[accountNumber] = wallet;
-
-  return wallet;
-}
-
-async function saveArkAddresses(mnemonic: string) {
-  for (let accountNum = 0; accountNum <= 5; accountNum++) {
-    const ark = new ArkWallet();
-    ark.setSecret(mnemonic);
-    ark.setAccountNumber(accountNum);
-    await ark.init();
-    const address = await ark.getOffchainReceiveAddress();
-    if (address) {
-      await LayerzStorage.setItem(STORAGE_KEY_ARK_ADDRESS + accountNum, address);
-    }
-  }
-}
-
-async function saveBitcoinXpubs(mnemonic: string) {
-  for (let accountNum = 0; accountNum <= 5; accountNum++) {
-    const btcWallet = new HDSegwitBech32Wallet();
-    btcWallet.setSecret(mnemonic);
-    btcWallet.setDerivationPath(`m/84'/0'/${accountNum}'`); // BIP84
-    const btcXpub = btcWallet.getXpub();
-    await LayerzStorage.setItem(STORAGE_KEY_BTC_XPUB + accountNum, btcXpub);
-  }
-}
+  return lazyInitWalletOrig(...args) as unknown as WatchOnlyWallet;
+};
 
 /**
  * A drop-in replacement for BackgroundCaller in `ext` project. Since we have only one js context on mobile,
@@ -74,8 +43,9 @@ async function saveBitcoinXpubs(mnemonic: string) {
 export const BackgroundExecutor: IBackgroundCaller = {
   async getAddress(network: Networks, accountNumber: number): Promise<string> {
     if (network === NETWORK_BITCOIN) {
-      const wallet = await lazyInitBitcoinWallet(accountNumber);
+      const wallet = await lazyInitWallet(network, accountNumber, cachedWallets, LayerzStorage);
       const address = await wallet.getAddressAsync();
+      await saveWalletState(LayerzStorage, wallet, network, accountNumber);
       return address;
     } else if (network === NETWORK_ARKMUTINYNET) {
       const address = await LayerzStorage.getItem(STORAGE_KEY_ARK_ADDRESS + accountNumber);
@@ -112,8 +82,8 @@ export const BackgroundExecutor: IBackgroundCaller = {
     const xpub = EvmWallet.mnemonicToXpub(mnemonic);
     await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, mnemonic);
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
-    await saveBitcoinXpubs(mnemonic);
-    await saveArkAddresses(mnemonic);
+    await saveBitcoinXpubs(LayerzStorage, mnemonic);
+    await saveArkAddresses(LayerzStorage, mnemonic);
 
     return { success: true };
   },
@@ -125,8 +95,8 @@ export const BackgroundExecutor: IBackgroundCaller = {
     await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, mnemonic);
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
-    await saveBitcoinXpubs(mnemonic);
-    await saveArkAddresses(mnemonic);
+    await saveBitcoinXpubs(LayerzStorage, mnemonic);
+    await saveArkAddresses(LayerzStorage, mnemonic);
 
     return { mnemonic };
   },
@@ -156,10 +126,9 @@ export const BackgroundExecutor: IBackgroundCaller = {
     if (!BlueElectrum.mainConnected) {
       await BlueElectrum.connectMain();
     }
-
-    const wallet = await lazyInitBitcoinWallet(accountNumber);
+    const wallet = await lazyInitWallet(NETWORK_BITCOIN, accountNumber, cachedWallets, LayerzStorage);
     await wallet.fetchBalance();
-
+    await saveWalletState(LayerzStorage, wallet, NETWORK_BITCOIN, accountNumber);
     return {
       confirmed: wallet.getBalance(),
       unconfirmed: wallet.getUnconfirmedBalance(),
@@ -174,7 +143,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
 
     try {
       whitelist.push(dapp);
-      const unique = [...new Set(whitelist)];
+      const unique = Array.from(new Set(whitelist));
       await LayerzStorage.setItem(STORAGE_KEY_WHITELIST, JSON.stringify(unique));
     } catch {}
   },
@@ -211,21 +180,22 @@ export const BackgroundExecutor: IBackgroundCaller = {
     if (!BlueElectrum.mainConnected) {
       await BlueElectrum.connectMain();
     }
-    const wallet = await lazyInitBitcoinWallet(accountNumber);
+    const wallet = await lazyInitWallet(NETWORK_BITCOIN, accountNumber, cachedWallets, LayerzStorage);
     await wallet.fetchBalance();
     await wallet.fetchUtxo();
     const changeAddress = await wallet.getChangeAddressAsync();
     const utxos = wallet.getUtxo();
+    await saveWalletState(LayerzStorage, wallet, NETWORK_BITCOIN, accountNumber);
     return {
       utxos,
       changeAddress,
     };
   },
 
-  async getLiquidBalance(accountNumber: number): Promise<GetLiquidBalanceResponse> {
+  async getLiquidBalance(network: Networks, accountNumber: number): Promise<GetLiquidBalanceResponse> {
     throw new Error('Function not implemented.');
   },
-  async getLiquidSendData(accountNumber: number): Promise<GetLiquidSendDataResponse> {
+  async getLiquidSendData(network: Networks, accountNumber: number): Promise<GetLiquidSendDataResponse> {
     throw new Error('Function not implemented.');
   },
 };

@@ -30,6 +30,7 @@ import { confidentialValueToSatoshi } from 'liquidjs-lib/src/confidential';
 import { SLIP77Factory, Slip77Interface } from 'slip77';
 import { ElectrumWS } from 'ws-electrumx-client';
 import ecc from '../../blue_modules/noble_ecc';
+import { Networks } from '../../types/networks';
 import { AbstractHDElectrumWallet } from './abstract-hd-electrum-wallet';
 import { DefaultAssetRegistry, WsElectrumChainSource, estimateVirtualSize, extractScriptFromBIP32Derivation, h2b, isConfidentialOutput, scriptDetailsWithKeyToAddress } from './liquid-deps/helpers';
 import type {
@@ -51,10 +52,9 @@ import { AccountType, CoinSelectionError } from './liquid-deps/types';
 const bip32 = BIP32Factory(ecc);
 const slip77 = SLIP77Factory(ecc);
 
-export const lbtcAssetId: Record<NetworkString, string> = {
+export const lbtcAssetId: Partial<Record<Networks, string>> = {
   liquid: '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d',
-  testnet: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49',
-  regtest: 'XXX', // fixme
+  liquidtest: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49',
 };
 
 export class LiquidWallet extends AbstractHDElectrumWallet {
@@ -70,15 +70,16 @@ export class LiquidWallet extends AbstractHDElectrumWallet {
   static readonly derivationPath = "m/84'/1776'/0'"; // mainnet
 
   public network: networks.Network = networks.liquid;
-  private networkString: NetworkString = 'liquid';
-  private masterBlindingKey?: string;
+  public networkString: NetworkString = 'liquid';
+  public masterBlindingKey?: string;
   private zkpLib?: Secp256k1Interface;
   private liquidAccoutType = AccountType.P2WPKH;
   public blindingKeyNode?: Slip77Interface;
   public confidentialLib?: confidential.Confidential;
-  public readonly wsclient: ElectrumWS;
-  public readonly chainSource: WsElectrumChainSource;
-  public readonly name: string;
+  public wsURL: string;
+  public wsclient?: ElectrumWS;
+  public chainSource?: WsElectrumChainSource;
+  public name: string;
   public scripts: string[] = [];
   public scriptsDetails: Record<string, ScriptDetails> = {};
   public txIDs: string[] = [];
@@ -86,7 +87,7 @@ export class LiquidWallet extends AbstractHDElectrumWallet {
   public outpointBlindingData: Record<string, UnblindingData> = {};
   public assetRegistry: Record<string, Asset> = {};
 
-  constructor(networkString: NetworkString = 'liquid') {
+  constructor(networkString: NetworkString = 'liquid', connect: boolean = true) {
     super();
     this.networkString = networkString;
     this.network = networks[networkString];
@@ -95,11 +96,17 @@ export class LiquidWallet extends AbstractHDElectrumWallet {
     } else {
       this._derivationPath = "m/84'/1776'/0'";
     }
-    const wsURL = networkString === 'liquid' ? 'wss://blockstream.info/liquid/electrum-websocket/api' : 'wss://blockstream.info/liquidtestnet/electrum-websocket/api';
-    this.wsclient = new ElectrumWS(wsURL, { reconnect: true });
-    this.chainSource = new WsElectrumChainSource(this.wsclient);
     this._enable_BIP47 = false;
     this.name = 'mainAccountTest';
+    this.wsURL = networkString === 'liquid' ? 'wss://blockstream.info/liquid/electrum-websocket/api' : 'wss://blockstream.info/liquidtestnet/electrum-websocket/api';
+    if (connect) {
+      this.connect();
+    }
+  }
+
+  connect() {
+    this.wsclient = new ElectrumWS(this.wsURL, { reconnect: true });
+    this.chainSource = new WsElectrumChainSource(this.wsclient);
   }
 
   async init(props: { mnemonic: string } | { xpub: string; masterBlindingKey: string }) {
@@ -195,6 +202,10 @@ export class LiquidWallet extends AbstractHDElectrumWallet {
   }
 
   async fetchTransactions() {
+    if (!this.chainSource) {
+      throw new Error('Wallet is not connected');
+    }
+
     const gapLimit = this.gap_limit;
     const indexes = {
       internal: this.next_free_change_address_index,
@@ -807,6 +818,9 @@ export class LiquidWallet extends AbstractHDElectrumWallet {
   }
 
   public async getAddressAsync(): Promise<string> {
+    if (!this.chainSource) {
+      throw new Error('Wallet is not connected');
+    }
     const batchCount = this.next_free_address_index;
     const publicKeys = this.deriveBatchPublicKeys(batchCount, batchCount + this.gap_limit, false);
     const scriptsWithDetails = publicKeys.map((publicKey) => this.createP2PWKHScript(publicKey));

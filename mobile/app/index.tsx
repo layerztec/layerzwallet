@@ -15,7 +15,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
+import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, NETWORK_LIQUID } from '@shared/types/networks';
 
 export default function IndexScreen() {
   const { network, setNetwork } = useContext(NetworkContext);
@@ -24,7 +24,7 @@ export default function IndexScreen() {
   const router = useRouter();
 
   // Liquid is not available on mobile yet
-  const networks = getAvailableNetworks().filter((n) => n !== NETWORK_LIQUIDTESTNET);
+  const networks = getAvailableNetworks().filter((n) => n !== NETWORK_LIQUIDTESTNET && n !== NETWORK_LIQUID);
 
   useEffect(() => {
     const checkMnemonic = async () => {

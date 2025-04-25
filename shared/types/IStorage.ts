@@ -7,8 +7,15 @@ export const STORAGE_KEY_WHITELIST = 'STORAGE_KEY_WHITELIST';
 export const STORAGE_KEY_ACCEPTED_TOS = 'STORAGE_KEY_ACCEPTED_TOS';
 export const STORAGE_KEY_LIQUID_XPUB = 'STORAGE_KEY_LIQUID_XPUB';
 export const STORAGE_KEY_LIQUID_MBK = 'STORAGE_KEY_LIQUID_MBK';
+export const STORAGE_KEY_LIQUIDTESTNET_XPUB = 'STORAGE_KEY_LIQUIDTESTNET_XPUB';
+export const STORAGE_KEY_LIQUIDTESTNET_MBK = 'STORAGE_KEY_LIQUIDTESTNET_MBK';
+export const STORAGE_KEY_SERIALIZED = 'STORAGE_KEY_SERIALIZED';
 
 export interface IStorage {
   setItem(key: string, value: string): Promise<void>;
   getItem(key: string): Promise<string>;
 }
+
+export const getSerializedStorageKey = (network: string, accountNumber: number) => {
+  return `${STORAGE_KEY_SERIALIZED}_${network}_${accountNumber}`;
+};

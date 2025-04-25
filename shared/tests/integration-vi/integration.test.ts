@@ -60,10 +60,10 @@ const backgroundCallerMock2: IBackgroundCaller = {
   getBtcSendData: function (accountNumber: number): Promise<GetBtcSendDataResponse> {
     throw new Error('Function not implemented.');
   },
-  getLiquidBalance(accountNumber: number): Promise<GetLiquidBalanceResponse> {
+  getLiquidBalance(network: Networks, accountNumber: number): Promise<GetLiquidBalanceResponse> {
     throw new Error('Function not implemented.');
   },
-  getLiquidSendData(accountNumber: number): Promise<GetLiquidSendDataResponse> {
+  getLiquidSendData(network: Networks, accountNumber: number): Promise<GetLiquidSendDataResponse> {
     throw new Error('Function not implemented.');
   },
 };
