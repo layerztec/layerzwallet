@@ -12,7 +12,6 @@ appId: com.layerzwallet.mobile
     element: "Developer Options"
     direction: DOWN
     timeout: 5000
-    maxSwipes: 3
     
 - tapOn:
     id: "SelfTestButton"
