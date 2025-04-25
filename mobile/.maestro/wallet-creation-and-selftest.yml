@@ -6,10 +6,10 @@ appId: com.layerzwallet.mobile
 
 # Wait for the initial screen and click Create New Wallet
 - tapOn: "Create New Wallet"
-- waitForAnimationToEnd
 
 # Complete onboarding steps
-- waitForAnimationToEnd
+- waitForAnimationToEnd:
+      timeout: 30000
 - tapOn: "Continue"
 - waitForAnimationToEnd
 
