@@ -10,20 +10,17 @@ appId: com.layerzwallet.mobile
 
 # Verify Bitcoin is selected by default
 - assertVisible: "BITCOIN"
-- assertVisible:
-    id: "SelectedNetworkBITCOIN"
-    optional: true
 
 - tapOn: "Receive"
 
 - extendedWaitUntil:
     notVisible: "Loading address..."
     timeout: 30000
-    optional: true
 
 # Verify all basic UI components rendered successfully with an actual address.
 - assertVisible:
     id: "NetworkAddressHeader"
+- assertVisible: "BITCOIN" # Verify the Bitcoin network indicator is visible
 - assertVisible:
     id: "QrContainer" # This will fail if the address was not obtained
 - assertVisible:
@@ -50,6 +47,7 @@ appId: com.layerzwallet.mobile
 
 - assertVisible:
     id: "NetworkAddressHeader"
+- assertVisible: "ROOTSTOCK" # Verify the Rootstock network indicator is visible
 - assertVisible:
     id: "QrContainer"
 - assertVisible:
@@ -58,7 +56,6 @@ appId: com.layerzwallet.mobile
 - extendedWaitUntil:
     notVisible: "Loading address..."
     timeout: 30000
-    optional: true
 
 - assertVisible:
     id: "AddressText"

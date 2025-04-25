@@ -93,7 +93,7 @@ export default function SettingsScreen() {
           <ThemedView style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Developer Options</ThemedText>
 
-            <TouchableOpacity style={[styles.button, styles.selfTestButton]} onPress={handleNavigateToSelfTest} testID="SelftestButton">
+            <TouchableOpacity style={[styles.button, styles.selfTestButton]} onPress={handleNavigateToSelfTest} testID="SelfTestButton">
               <ThemedText style={styles.selfTestButtonText}>Self Test</ThemedText>
             </TouchableOpacity>
 

@@ -3,28 +3,45 @@ appId: com.layerzwallet.mobile
 ---
 - launchApp:
     clearState: true
+    clearKeychain: true
 
-# Wait for the initial screen and click Create New Wallet
+# Wait for app to fully load with a longer timeout
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Check what's actually on the intro screen (may not be "Welcome to LZW")
+# Could be "Welcome to LZW Mobile" instead 
+- assertVisible: "Welcome to LZW"
+
+# Click Create New Wallet - find the exact text on the button
 - tapOn: "Create New Wallet"
-- waitForAnimationToEnd
+  
+- waitForAnimationToEnd:
+    timeout: 5000
 
 # Complete onboarding steps
-- waitForAnimationToEnd
-- tapOn: "Continue"
-- waitForAnimationToEnd
+- repeat:
+      times: 5
+      commands:
+          - tapOn:
+              text: "Continue"
+              optional: true
+          - waitForAnimationToEnd:
+              timeout: 2000
 
 # Create password
-- tapOn: "Enter password"
+- tapOn:
+    id: "EnterPasswordInput"
 - inputText:  
     text: "123456" # Password
-- tapOn: "Repeat password"
+- tapOn:
+    id: "RepeatPasswordInput"
 - inputText: 
     text: "123456" # Confirm password
 - tapOn:
     point: 10%,10%        # to remove focus from the keyboard
 - tapOn: 
-    text: Create Password
-    index: 1
+    id: "CreatePasswordButton"
 - waitForAnimationToEnd
 
 # Accept terms of service
@@ -35,13 +52,19 @@ appId: com.layerzwallet.mobile
 - assertVisible: "Send"
 - assertVisible: "Receive"
 
-
 # Navigate to Settings
 - tapOn:
-    point: 88%,12% # TODO: FIXME: This is a hack to get the settings button. probably needa test id
+    id: "SettingsButton"
+
+# Scroll to the bottom to find the Self Test button as emu screen can be small
+- scrollUntilVisible:
+      element:
+        id: "SelfTestButton"
+      direction: DOWN
 
 # Navigate to Self Test
-- tapOn: "Self Test"
+- tapOn:
+    id: "SelfTestButton"
 - waitForAnimationToEnd
 
 # Run the self test
@@ -49,4 +72,4 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 
 # Wait for success message
-- assertVisible: "ok!" 
+- assertVisible: "ok!"

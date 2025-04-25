@@ -49,6 +49,11 @@ export default function ReceiveScreen() {
     }
   };
 
+  // Color coding for network verification (matching the index screen's selectedNetworkButton style)
+  const getNetworkColor = () => {
+    return '#007AFF'; // Blue color matching the selectedNetworkButton in index.tsx
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <Stack.Screen
@@ -59,8 +64,13 @@ export default function ReceiveScreen() {
       />
 
       <ThemedView style={styles.contentContainer}>
+        {/* Network indicator bar - visually shows the selected network with color */}
+        <ThemedView style={[styles.networkBar, { backgroundColor: getNetworkColor() }]}>
+          <ThemedText style={styles.networkText}>{network?.toUpperCase()}</ThemedText>
+        </ThemedView>
+
         <ThemedText testID="NetworkAddressHeader" style={styles.subtitle}>
-          Your {capitalizeFirstLetter(network)} Address
+          Your {capitalizeFirstLetter(network || '')} Address
         </ThemedText>
 
         <ThemedView style={styles.qrContainer} testID="QrContainer">
@@ -176,5 +186,17 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
+  },
+  networkBar: {
+    marginBottom: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  networkText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: 'white',
   },
 });
