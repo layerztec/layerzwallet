@@ -70,7 +70,7 @@ export default function TabThreeScreen() {
       {(() => {
         switch (testState) {
           case 'not_started':
-            return <Button title={'Run Self Test!'} onPress={handleSelfTest} />;
+            return <Button title={'Run Self Test!'} onPress={handleSelfTest} testID="SelfTestButton" />;
           case 'running':
             return <ThemedText>running</ThemedText>;
           case 'error':

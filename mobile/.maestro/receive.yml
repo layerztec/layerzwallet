@@ -11,7 +11,7 @@ appId: com.layerzwallet.mobile
 # Verify Bitcoin is selected by default
 - assertVisible: "BITCOIN"
 - assertVisible:
-    id: "selectedNetwork-BITCOIN"
+    id: "SelectedNetworkBITCOIN"
     optional: true
 
 - tapOn: "Receive"
@@ -23,17 +23,17 @@ appId: com.layerzwallet.mobile
 
 # Verify all basic UI components rendered successfully with an actual address.
 - assertVisible:
-    id: "network-address-header"
+    id: "NetworkAddressHeader"
 - assertVisible:
-    id: "qr-container" # This will fail if the address was not obtained
+    id: "QrContainer" # This will fail if the address was not obtained
 - assertVisible:
-    id: "address-label"
+    id: "AddressLabel"
 
 - assertVisible:
-    id: "copy-address-button" # expand later with ui feedback
+    id: "CopyAddressButton" # expand later with ui feedback
 
 - assertVisible:
-    id: "share-button"
+    id: "ShareButton"
 
 # Press back button
 - tapOn:
@@ -49,11 +49,11 @@ appId: com.layerzwallet.mobile
 - tapOn: "Receive"
 
 - assertVisible:
-    id: "network-address-header"
+    id: "NetworkAddressHeader"
 - assertVisible:
-    id: "qr-container"
+    id: "QrContainer"
 - assertVisible:
-    id: "address-label"
+    id: "AddressLabel"
 
 - extendedWaitUntil:
     notVisible: "Loading address..."
@@ -61,6 +61,6 @@ appId: com.layerzwallet.mobile
     optional: true
 
 - assertVisible:
-    id: "address-text"
+    id: "AddressText"
 - assertVisible:
-    id: "copy-address-button"
+    id: "CopyAddressButton"

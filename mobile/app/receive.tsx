@@ -59,18 +59,18 @@ export default function ReceiveScreen() {
       />
 
       <ThemedView style={styles.contentContainer}>
-        <ThemedText testID="network-address-header" style={styles.subtitle}>
+        <ThemedText testID="NetworkAddressHeader" style={styles.subtitle}>
           Your {capitalizeFirstLetter(network)} Address
         </ThemedText>
 
-        <ThemedView style={styles.qrContainer} testID="qr-container">
+        <ThemedView style={styles.qrContainer} testID="QrContainer">
           {isLoading ? (
-            <ThemedView style={styles.qrPlaceholder} testID="loading-placeholder">
+            <ThemedView style={styles.qrPlaceholder} testID="LoadingPlaceholder">
               <ActivityIndicator size="large" color="#007AFF" />
               <ThemedText style={styles.loadingText}>Loading address...</ThemedText>
             </ThemedView>
           ) : address ? (
-            <QRCode testID="address-qr-code" value={address} size={200} backgroundColor="white" color="black" />
+            <QRCode testID="AddressQrCode" value={address} size={200} backgroundColor="white" color="black" />
           ) : (
             <ThemedView style={styles.qrPlaceholder}>
               <ThemedText>No address available</ThemedText>
@@ -79,23 +79,23 @@ export default function ReceiveScreen() {
         </ThemedView>
 
         <ThemedView style={styles.addressContainer}>
-          <ThemedText testID="address-label" style={styles.addressLabel}>
+          <ThemedText testID="AddressLabel" style={styles.addressLabel}>
             Address:
           </ThemedText>
-          <TouchableOpacity testID="copy-address-button" onPress={handleCopyAddress} style={styles.addressTextContainer} disabled={!address}>
+          <TouchableOpacity testID="CopyAddressButton" onPress={handleCopyAddress} style={styles.addressTextContainer} disabled={!address}>
             {isLoading ? (
               <ThemedText style={styles.addressText}>Loading...</ThemedText>
             ) : (
-              <ThemedText testID="address-text" style={styles.addressText}>
+              <ThemedText testID="AddressText" style={styles.addressText}>
                 {address ? address : 'No address available'}
               </ThemedText>
             )}
-            {address && <Ionicons testID="copy-icon" name="copy-outline" size={20} color="#007AFF" style={styles.copyIcon} />}
+            {address && <Ionicons testID="CopyIcon" name="copy-outline" size={20} color="#007AFF" style={styles.copyIcon} />}
           </TouchableOpacity>
         </ThemedView>
 
-        <TouchableOpacity testID="share-button" onPress={handleShare} style={styles.shareButton}>
-          <Ionicons testID="share-icon" name="share-outline" size={24} color="#007AFF" />
+        <TouchableOpacity testID="ShareButton" onPress={handleShare} style={styles.shareButton}>
+          <Ionicons testID="ShareIcon" name="share-outline" size={24} color="#007AFF" />
         </TouchableOpacity>
       </ThemedView>
     </SafeAreaView>
