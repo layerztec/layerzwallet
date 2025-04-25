@@ -17,5 +17,5 @@ jobs:
       build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
       flow_path:
         - .maestro/home.yml
-        - .maestro/selftest.yml
+        - .maestro/wallet-creation-and-selftest.yml
         - .maestro/receive.yml

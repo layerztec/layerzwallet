@@ -3,7 +3,6 @@ import {
   CreateMnemonicResponse,
   EncryptMnemonicRequest,
   EncryptMnemonicResponse,
-  GetAddressRequest,
   GetBtcBalanceRequest,
   GetBtcBalanceResponse,
   GetBtcSendDataRequest,
@@ -40,7 +39,7 @@ export const BackgroundCaller: IBackgroundCaller = {
       type: MessageType.GET_ADDRESS,
       network,
       accountNumber,
-    } as GetAddressRequest);
+    });
   },
 
   async acceptTermsOfService(): Promise<void> {
@@ -155,16 +154,18 @@ export const BackgroundCaller: IBackgroundCaller = {
     } as GetBtcSendDataRequest);
   },
 
-  async getLiquidBalance(accountNumber: number): Promise<GetLiquidBalanceResponse> {
+  async getLiquidBalance(network: Networks, accountNumber: number): Promise<GetLiquidBalanceResponse> {
     return await Messenger.sendGenericMessageToBackground({
       type: MessageType.GET_LIQUID_BALANCE,
+      network,
       accountNumber,
     } as GetBtcBalanceRequest);
   },
 
-  async getLiquidSendData(accountNumber: number): Promise<GetLiquidSendDataResponse> {
+  async getLiquidSendData(network: Networks, accountNumber: number): Promise<GetLiquidSendDataResponse> {
     return await Messenger.sendGenericMessageToBackground({
       type: MessageType.GET_LIQUID_SEND_DATA,
+      network,
       accountNumber,
     } as GetLiquidSendDataRequest);
   },

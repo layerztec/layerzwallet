@@ -1,7 +1,7 @@
 import BigNumber from 'bignumber.js';
 import useSWR from 'swr';
 
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, Networks } from '../types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { getRpcProvider } from '../models/network-getters';
@@ -28,12 +28,12 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
     return (balance.confirmed + balance.unconfirmed).toString(10);
   }
 
-  if (network === NETWORK_LIQUIDTESTNET) {
+  if (network === NETWORK_LIQUIDTESTNET || network === NETWORK_LIQUID) {
     // for Liquid, we only show balance of LBTC token
-    const balances = await backgroundCaller.getLiquidBalance(accountNumber);
+    const balances = await backgroundCaller.getLiquidBalance(network, accountNumber);
     let balance = 0;
     for (const [k, v] of Object.entries(balances)) {
-      if (Object.values(lbtcAssetId).includes(k)) {
+      if (k === lbtcAssetId[network]) {
         balance += v;
       }
     }

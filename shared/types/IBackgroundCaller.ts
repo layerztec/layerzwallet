@@ -102,6 +102,7 @@ export type GetBtcSendDataResponse = {
 };
 
 export interface GetLiquidBalanceRequest {
+  network: Networks;
   accountNumber: number;
 }
 
@@ -110,6 +111,7 @@ export interface GetLiquidBalanceResponse {
 }
 
 export interface GetLiquidSendDataRequest {
+  network: Networks;
   accountNumber: number;
 }
 
@@ -138,6 +140,6 @@ export interface IBackgroundCaller {
   signTypedData(message: any, accountNumber: number, password: string): Promise<SignTypedDataResponse>;
   openPopup(method: string, params: any, id: number, from: string): Promise<void>;
   getBtcSendData(accountNumber: number): Promise<GetBtcSendDataResponse>;
-  getLiquidBalance(accountNumber: number): Promise<GetLiquidBalanceResponse>;
-  getLiquidSendData(accountNumber: number): Promise<GetLiquidSendDataResponse>;
+  getLiquidBalance(network: Networks, accountNumber: number): Promise<GetLiquidBalanceResponse>;
+  getLiquidSendData(network: Networks, accountNumber: number): Promise<GetLiquidSendDataResponse>;
 }

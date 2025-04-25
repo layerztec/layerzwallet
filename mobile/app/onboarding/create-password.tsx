@@ -67,14 +67,22 @@ export default function CreatePasswordScreen() {
             <ThemedText style={styles.subtitle}>Create a password to encrypt your wallet</ThemedText>
 
             <ThemedView style={styles.inputContainer}>
-              <TextInput style={styles.input} placeholder="Enter password" placeholderTextColor="#999" secureTextEntry value={password} onChangeText={setPassword} />
+              <TextInput style={styles.input} placeholder="Enter password" placeholderTextColor="#999" secureTextEntry value={password} onChangeText={setPassword} testID="EnterPasswordInput" />
 
-              <TextInput style={styles.input} placeholder="Repeat password" placeholderTextColor="#999" secureTextEntry value={repeatPassword} onChangeText={setRepeatPassword} />
+              <TextInput
+                style={styles.input}
+                placeholder="Repeat password"
+                placeholderTextColor="#999"
+                secureTextEntry
+                value={repeatPassword}
+                onChangeText={setRepeatPassword}
+                testID="RepeatPasswordInput"
+              />
 
               {errorMessage ? <ThemedText style={styles.errorText}>{errorMessage}</ThemedText> : null}
             </ThemedView>
 
-            <TouchableOpacity style={[styles.button, isLoading ? styles.buttonDisabled : null]} onPress={handleCreatePassword} disabled={isLoading}>
+            <TouchableOpacity style={[styles.button, isLoading ? styles.buttonDisabled : null]} onPress={handleCreatePassword} disabled={isLoading} testID="CreatePasswordButton">
               <ThemedText style={styles.buttonText}>{isLoading ? 'Creating...' : 'Create Password'}</ThemedText>
             </TouchableOpacity>
           </ThemedView>

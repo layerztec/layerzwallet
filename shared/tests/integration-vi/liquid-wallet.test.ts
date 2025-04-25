@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { LiquidWallet } from '../../class/wallets/liquid-wallet';
 
 describe('Liquid wallet', () => {
-  it('can fetch transactions and balances and sign the transaction', async () => {
+  it('can fetch transactions and balances and sign the transaction', async (context) => {
     if (!process.env.TEST_MNEMONIC) {
-      console.warn('skipped because TEST_MNEMONIC env var is not set');
+      context.skip();
       return;
     }
 
@@ -24,6 +24,9 @@ describe('Liquid wallet', () => {
     assert.strictEqual(w._getExternalAddressByIndex(1), 'tex1q0ewpz77x9et7eah3awlsrgy822nl2tx4dwxsc5');
     assert.strictEqual(w.getChangeConfidentialAddress(), 'tlq1qqw98w9cty40vuqna8s0pquxtzfu6ltpavy5d32hr9qj3vhazz30q65e2mnfjx9y90nx47nxamlj6phnej2le5lx8jv5d6yehr');
     assert.strictEqual(w.getMasterBlindingKey(), pub.masterBlindingKey);
+    assert.strictEqual(w.getDerivationPath(), "m/84'/1'/0'");
+
+    assert(w.wsclient, 'wsclient should be initialized');
 
     const ping = await w.wsclient.batchRequest({ method: 'server.ping', params: [] });
     assert.strictEqual(ping[0], null);

@@ -3,7 +3,6 @@ import writeQR from '@paulmillr/qr';
 import { AddressBubble, WideButton } from './DesignSystem';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { BackgroundCaller } from '../../modules/background-caller';
-import { DEFAULT_NETWORK } from '@shared/config';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getDecimalsByNetwork, getExplorerUrlByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { useBalance } from '@shared/hooks/useBalance';
@@ -19,7 +18,7 @@ const Receive: React.FC = () => {
   const { accountNumber } = useContext(AccountNumberContext);
   const [imgSrc, setImgSrc] = useState('');
   const [oldBalance, setOldBalance] = useState<StringNumber>('');
-  const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundCaller);
+  const { balance } = useBalance(network, accountNumber, BackgroundCaller);
 
   /**
    * returns false if new balance is NOT greater than old one, otherwise it returns the precise difference between
@@ -50,7 +49,7 @@ const Receive: React.FC = () => {
   };
 
   useEffect(() => {
-    BackgroundCaller.getAddress(network || DEFAULT_NETWORK, accountNumber).then((addressResponse) => {
+    BackgroundCaller.getAddress(network, accountNumber).then((addressResponse) => {
       setAddress(addressResponse);
       setImgSrc(qrGifDataUrl(addressResponse));
     });
