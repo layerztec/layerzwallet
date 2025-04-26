@@ -1,8 +1,7 @@
 appId: com.layerzwallet.mobile
 
 ---
-- runFlow:
-    file: wallet-creation.yml
+- runFlow: wallet-creation.yml
 
 # Verify Bitcoin is selected by default
 - assertVisible:

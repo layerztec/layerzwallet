@@ -1,48 +1,7 @@
 appId: com.layerzwallet.mobile
 
 ---
-- launchApp:
-    clearState: true
-    clearKeychain: true
-
-# Wait for the initial screen and click Create New Wallet
-- tapOn: "Create New Wallet"
-
-- waitForAnimationToEnd:
-      timeout: 30000
-
-# Complete onboarding steps
-- repeat:
-      while:
-          notVisible:
-              id: "EnterPasswordInput"
-      commands:
-          - tapOn: "Continue"
-          - waitForAnimationToEnd
-
-# Create password
-- tapOn:
-    id: "EnterPasswordInput"
-- inputText:  
-    text: "123456" # Password
-- tapOn:
-    id: "RepeatPasswordInput"
-- inputText: 
-    text: "123456" # Confirm password
-- tapOn:
-    point: 10%,10%        # to remove focus from the keyboard
-- tapOn: 
-    id: "CreatePasswordButton"
-- waitForAnimationToEnd
-
-# Accept terms of service
-- tapOn: "I Agree"
-- waitForAnimationToEnd
-
-# Wait for home screen with Send & Receive buttons
-- assertVisible: "Send"
-- assertVisible: "Receive"
-
+- runFlow: wallet-creation.yml
 
 # Navigate to Settings
 - tapOn:

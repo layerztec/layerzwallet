@@ -4,6 +4,5 @@ appId: com.layerzwallet.mobile
     clearState: true
     clearKeychain: true
 
-# Local iOS test fails without this. Race condition?
 - waitForAnimationToEnd
 - assertVisible: 'Welcome to LZW'

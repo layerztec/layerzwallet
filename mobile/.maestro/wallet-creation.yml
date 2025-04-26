@@ -28,26 +28,33 @@ appId: com.layerzwallet.mobile
     enabled: true
 
 # Now proceed to the enter password screen
-- tapOn: "Continue"
+- repeat:
+      while:
+          notVisible:
+              id: "EnterPasswordInput"
+      commands:
+          - tapOn: "Continue"
+          - waitForAnimationToEnd
 
-- extendedWaitUntil:
-    visible: "Enter password"
-    timeout: 10000
-- tapOn: "Enter password"
-- inputText: "123456"
-- tapOn: "Repeat password"
-- inputText: "123456"
+# Create password
 - tapOn:
-    point: 10%,10%
+    id: "EnterPasswordInput"
+- inputText:
+    text: "123456" # Password
+- tapOn:
+    id: "RepeatPasswordInput"
+- inputText:
+    text: "123456" # Confirm password
+- tapOn:
+    point: 10%,10%        # to remove focus from the keyboard
 - tapOn: 
-    text: Create Password
-    index: 1
+    id: "CreatePasswordButton"
+- waitForAnimationToEnd
 
+# Accept terms of service
 - tapOn: "I Agree"
+- waitForAnimationToEnd
 
-# Lets confirm we can see both send and receive.
-- extendedWaitUntil:
-    visible: "Send"
-    timeout: 10000
+# Wait for home screen with Send & Receive buttons
 - assertVisible: "Send"
 - assertVisible: "Receive"
