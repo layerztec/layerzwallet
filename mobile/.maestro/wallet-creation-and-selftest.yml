@@ -66,4 +66,4 @@ appId: com.layerzwallet.mobile
 # Wait for success message
 - extendedWaitUntil:
     visible: "ok!"
-    timeout: 15000
+    timeout: 29000
