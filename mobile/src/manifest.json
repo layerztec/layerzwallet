@@ -44,12 +44,7 @@
   "devtools_page": "devtools.html",
   "web_accessible_resources": [
     {
-      "resources": [
-        "../assets/images/android_128x128.png",
-        "contentScript.bundle.js",
-        "contentScript.bundle.js.map",
-        "contentScriptLoader.bundle.js.map"
-      ],
+      "resources": ["../assets/images/android_128x128.png", "contentScript.bundle.js", "contentScript.bundle.js.map", "contentScriptLoader.bundle.js.map"],
       "matches": ["<all_urls>"]
     }
   ]
