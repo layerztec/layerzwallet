@@ -40,16 +40,7 @@
   "devtools_page": "devtools.html",
   "web_accessible_resources": [
     {
-      "resources": [
-        "icon-16.png",
-        "icon-32.png",
-        "icon-48.png",
-        "icon-64.png",
-        "icon-128.png",
-        "contentScript.bundle.js",
-        "contentScript.bundle.js.map",
-        "contentScriptLoader.bundle.js.map"
-      ],
+      "resources": ["icon-16.png", "icon-32.png", "icon-48.png", "icon-64.png", "icon-128.png", "contentScript.bundle.js", "contentScript.bundle.js.map", "contentScriptLoader.bundle.js.map"],
       "matches": ["<all_urls>"]
     }
   ]
