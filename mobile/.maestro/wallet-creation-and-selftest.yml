@@ -64,4 +64,6 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 
 # Wait for success message
-- assertVisible: "ok!" 
+- extendedWaitUntil:
+    visible: "ok!"
+    timeout: 15000

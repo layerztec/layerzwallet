@@ -1,15 +1,14 @@
 appId: com.layerzwallet.mobile
 
 ---
-- launchApp:
-    clearState: true
-    clearKeychain: true
-
 - runFlow:
     file: wallet-creation.yml
 
 # Verify Bitcoin is selected by default
-- assertVisible: "BITCOIN"
+- assertVisible:
+    id: "selectedNetwork-bitcoin"
+- assertNotVisible:
+    id: "selectedNetwork-rootstock"
 
 - tapOn: "Receive"
 
@@ -42,6 +41,12 @@ appId: com.layerzwallet.mobile
 
 # Lets run the same tests with a different chain
 - tapOn: "ROOTSTOCK"
+
+# Verify Rootstock is selected
+- assertNotVisible:
+    id: "selectedNetwork-bitcoin"
+- assertVisible:
+    id: "selectedNetwork-rootstock"
 
 - tapOn: "Receive"
 
