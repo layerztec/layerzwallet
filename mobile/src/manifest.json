@@ -6,14 +6,33 @@
   "homepage_url": "https://layerzwallet.com",
   "options_page": "options.html",
   "permissions": ["activeTab", "storage"],
-  "background": { "service_worker": "background.bundle.js" },
+  "background": {
+    "service_worker": "background.bundle.js"
+  },
   "action": {
     "default_title": "Layerz Wallet",
     "default_popup": "popup.html",
-    "default_icon": "icon-34.png"
+    "default_icon": {
+      "16": "../assets/images/android_48x48.png",
+      "32": "../assets/images/android_72x72.png",
+      "48": "../assets/images/android_96x96.png",
+      "128": "../assets/images/android_192x192.png"
+    }
   },
   "icons": {
-    "128": "icon-128.png"
+    "16": "../assets/images/android_48x48.png",
+    "32": "../assets/images/android_72x72.png",
+    "48": "../assets/images/android_96x96.png",
+    "128": "../assets/images/android_192x192.png"
+  },
+  "icons_android": {
+    "48": "../assets/images/android_48x48.png",
+    "72": "../assets/images/android_72x72.png",
+    "96": "../assets/images/android_96x96.png",
+    "128": "../assets/images/android_128x128.png",
+    "144": "../assets/images/android_144x144.png",
+    "192": "../assets/images/android_192x192.png",
+    "512": "../assets/images/android_512x512.png"
   },
   "content_scripts": [
     {
@@ -25,7 +44,12 @@
   "devtools_page": "devtools.html",
   "web_accessible_resources": [
     {
-      "resources": ["icon-128.png", "icon-34.png", "contentScript.bundle.js", "contentScript.bundle.js.map", "contentScriptLoader.bundle.js.map"],
+      "resources": [
+        "../assets/images/android_128x128.png",
+        "contentScript.bundle.js",
+        "contentScript.bundle.js.map",
+        "contentScriptLoader.bundle.js.map"
+      ],
       "matches": ["<all_urls>"]
     }
   ]
