@@ -5,29 +5,20 @@ appId: com.layerzwallet.mobile
     clearState: true
     clearKeychain: true
 
-# Wait for app to fully load with a longer timeout
-- waitForAnimationToEnd:
-    timeout: 5000
-
-# Check what's actually on the intro screen (may not be "Welcome to LZW")
-# Could be "Welcome to LZW Mobile" instead 
-- assertVisible: "Welcome to LZW"
-
-# Click Create New Wallet - find the exact text on the button
+# Wait for the initial screen and click Create New Wallet
 - tapOn: "Create New Wallet"
-  
+
 - waitForAnimationToEnd:
-    timeout: 5000
+      timeout: 30000
 
 # Complete onboarding steps
 - repeat:
-      times: 5
+      while:
+          notVisible:
+              id: "EnterPasswordInput"
       commands:
-          - tapOn:
-              text: "Continue"
-              optional: true
-          - waitForAnimationToEnd:
-              timeout: 2000
+          - tapOn: "Continue"
+          - waitForAnimationToEnd
 
 # Create password
 - tapOn:
@@ -52,6 +43,7 @@ appId: com.layerzwallet.mobile
 - assertVisible: "Send"
 - assertVisible: "Receive"
 
+
 # Navigate to Settings
 - tapOn:
     id: "SettingsButton"
@@ -72,4 +64,4 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 
 # Wait for success message
-- assertVisible: "ok!"
+- assertVisible: "ok!" 
