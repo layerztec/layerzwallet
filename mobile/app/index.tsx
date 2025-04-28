@@ -16,11 +16,13 @@ import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, NETWORK_LIQUID } from '@shared/types/networks';
+import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 
 export default function IndexScreen() {
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundExecutor);
+  const { exchangeRate } = useExchangeRate(network ?? DEFAULT_NETWORK, 'USD');
   const router = useRouter();
 
   // Liquid is not available on mobile yet
@@ -127,6 +129,9 @@ export default function IndexScreen() {
       <ThemedView style={styles.balanceContainer}>
         <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
           {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
+        </ThemedText>
+        <ThemedText adjustsFontSizeToFit numberOfLines={1}>
+          {balance && +balance > 0 && exchangeRate ? '$' + (+formatBalance(balance, getDecimalsByNetwork(network), 8) * exchangeRate).toPrecision(2) : ''}
         </ThemedText>
       </ThemedView>
 

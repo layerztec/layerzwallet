@@ -18,7 +18,8 @@ import {
   SignPersonalMessageResponse,
   SignTypedDataResponse,
 } from '../../types/IBackgroundCaller';
-import { NETWORK_ROOTSTOCK, NETWORK_SEPOLIA, NETWORK_STRATADEVNET, Networks } from '../../types/networks';
+import { NETWORK_BOTANIXTESTNET, NETWORK_ROOTSTOCK, NETWORK_SEPOLIA, NETWORK_STRATADEVNET, Networks } from '../../types/networks';
+import { exchangeRateFetcher } from '../../hooks/useExchangeRate';
 
 const backgroundCallerMock2: IBackgroundCaller = {
   log: () => Promise.resolve(),
@@ -121,6 +122,25 @@ test('can fetch token balance', async (context) => {
 
   assert.ok(balance);
   assert.ok(+balance / 1e18 >= 1);
+});
+
+test('can fetch exchange rate', async (context) => {
+  const rate = await exchangeRateFetcher({
+    cacheKey: 'exchangeRateFetcher',
+    network: NETWORK_ROOTSTOCK,
+    fiat: 'USD',
+  });
+
+  assert.ok(rate);
+  assert.ok(rate >= 50_000);
+
+  const rate2 = await exchangeRateFetcher({
+    cacheKey: 'exchangeRateFetcher',
+    network: NETWORK_BOTANIXTESTNET,
+    fiat: 'USD',
+  });
+
+  assert.strictEqual(rate2, 0);
 });
 
 test('can send ETH', async (context) => {

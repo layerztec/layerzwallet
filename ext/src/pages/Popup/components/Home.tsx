@@ -12,6 +12,7 @@ import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LI
 import TokensView from './TokensView';
 import PartnersView from './PartnersView';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
+import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const Home: React.FC = () => {
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundCaller);
   const [isTestnet, setIsTestnet] = useState<boolean>(false);
+  const { exchangeRate } = useExchangeRate(network ?? DEFAULT_NETWORK, 'USD');
 
   useEffect(() => {
     setIsTestnet(getIsTestnet(network));
@@ -63,6 +65,9 @@ const Home: React.FC = () => {
       ) : null}
       <h1>
         <span id="home-balance">{balance ? formatBalance(balance, getDecimalsByNetwork(network), 8) : ''}</span> {getTickerByNetwork(network)}
+        <div style={{ width: '100%', marginBottom: '15px' }}>
+          <span style={{ fontSize: 14 }}>{balance && +balance > 0 && exchangeRate ? '$' + (+formatBalance(balance, getDecimalsByNetwork(network), 8) * exchangeRate).toPrecision(2) : ''}</span>
+        </div>
       </h1>
       <PartnersView />
       <TokensView />
