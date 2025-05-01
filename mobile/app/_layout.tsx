@@ -16,6 +16,7 @@ import { SwrCacheProvider } from '@/src/class/swr-cache-provider';
 import { ScanQrContextProvider } from '@/src/hooks/ScanQrContext';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { LayerzDarkTheme, LayerzLightTheme } from '@shared/theme';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -71,7 +72,7 @@ export default function RootLayout() {
         <AskPasswordContextProvider>
           <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
             <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
-              <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <ThemeProvider value={colorScheme === 'dark' ? LayerzDarkTheme : LayerzLightTheme}>
                 <Stack>
                   <Stack.Screen name="index" options={{ headerShown: false, title: 'Home' }} />
                   <Stack.Screen name="receive" />
