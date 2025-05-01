@@ -21,19 +21,23 @@ const StyledButton = styled.button<{
   font-weight: 600;
   cursor: pointer;
   text-align: center;
+  transition:
+    opacity 0.2s ease,
+    background-color 0.2s ease;
   border: ${(props) => (props.isOutline ? `1px solid ${props.btnColor}` : 'none')};
   background-color: ${(props) => (props.isOutline ? 'transparent' : props.btnColor)};
   color: ${(props) => props.textColor};
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
   /* Size variations */
   padding: ${(props) => {
     switch (props.btnSize) {
       case 'small':
-        return '6px 12px';
+        return '8px 16px';
       case 'large':
-        return '14px 20px';
+        return '16px 24px';
       default:
-        return '10px 16px'; // medium
+        return '12px 20px'; // medium
     }
   }};
 

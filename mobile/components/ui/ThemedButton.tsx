@@ -70,20 +70,25 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   smallButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  mediumButton: {
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 16,
   },
-  largeButton: {
-    paddingVertical: 14,
+  mediumButton: {
+    paddingVertical: 12,
     paddingHorizontal: 20,
+  },
+  largeButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
   },
   text: {
     fontWeight: '600',
+    fontSize: 16,
   },
 });

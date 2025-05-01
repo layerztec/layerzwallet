@@ -20,6 +20,9 @@ const CardContainer = styled.div<{
   padding: 16px;
   margin: 8px 0;
   background-color: ${(props) => props.backgroundColor};
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 
   ${(props) =>
     props.variant === 'outlined' &&
@@ -31,6 +34,10 @@ const CardContainer = styled.div<{
     props.variant === 'elevated' &&
     `
     box-shadow: 0 2px 4px ${props.shadowColor};
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px ${props.shadowColor};
+    }
   `}
 `;
 

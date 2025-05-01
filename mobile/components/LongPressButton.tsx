@@ -1,77 +1,114 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, TouchableOpacity, View, Animated, Text, Easing, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Animated, ActivityIndicator, TextStyle, ViewStyle } from 'react-native';
 
 interface LongPressButtonProps {
+  /**
+   * Function to execute when long press is completed
+   */
   onLongPressComplete: () => void;
+
+  /**
+   * Time in ms to hold for completion (default: 1500ms)
+   */
+  duration?: number;
+
+  /**
+   * Button text
+   */
   title: string;
-  duration?: number; // in milliseconds
-  disabled?: boolean;
-  isLoading?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
-  progressColor?: string;
+
+  /**
+   * Background color of the button
+   */
   backgroundColor?: string;
+
+  /**
+   * Color of the progress bar
+   */
+  progressColor?: string;
+
+  /**
+   * Custom styles for the button
+   */
+  style?: ViewStyle;
+
+  /**
+   * Custom styles for the button text
+   */
+  textStyle?: TextStyle;
+
+  /**
+   * Disabled state
+   */
+  disabled?: boolean;
+
+  /**
+   * Loading state
+   */
+  isLoading?: boolean;
 }
 
+/**
+ * A button that requires a long press to activate, with visual progress feedback
+ */
 const LongPressButton: React.FC<LongPressButtonProps> = ({
   onLongPressComplete,
+  duration = 1500,
   title,
-  duration = 2_000,
-  disabled = false,
-  isLoading = false,
+  backgroundColor = '#007AFF',
+  progressColor = '#005BB5',
   style,
   textStyle,
-  progressColor = '#007AFF',
-  backgroundColor = '#2C2C2E',
+  disabled = false,
+  isLoading = false,
 }) => {
   const [pressing, setPressing] = useState(false);
-  const progressAnim = useRef(new Animated.Value(0)).current;
-  const progressAnimation = useRef<Animated.CompositeAnimation | null>(null);
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const progress = useRef(new Animated.Value(0)).current;
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Reset animation when disabled changes
   useEffect(() => {
-    if (disabled) {
-      resetProgress();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [disabled]);
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   const startProgress = () => {
     setPressing(true);
-    progressAnim.setValue(0);
+    progress.setValue(0);
 
-    progressAnimation.current = Animated.timing(progressAnim, {
-      toValue: 1,
-      duration: duration,
-      easing: Easing.linear,
+    Animated.timing(progress, {
+      toValue: 100,
+      duration,
       useNativeDriver: false,
+    }).start(({ finished }) => {
+      if (finished && pressing) {
+        onLongPressComplete();
+        resetProgress();
+      }
     });
 
-    progressAnimation.current.start();
-
-    longPressTimer.current = setTimeout(() => {
-      if (!disabled) {
+    // Safety timeout in case the animation callback doesn't fire
+    timerRef.current = setTimeout(() => {
+      if (pressing) {
         onLongPressComplete();
+        resetProgress();
       }
-      resetProgress();
-    }, duration);
+    }, duration + 50);
   };
 
   const resetProgress = () => {
     setPressing(false);
-    if (progressAnimation.current) {
-      progressAnimation.current.stop();
-    }
-    progressAnim.setValue(0);
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
+    progress.setValue(0);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
   };
 
-  const progressWidth = progressAnim.interpolate({
-    inputRange: [0, 1],
+  const progressWidth = progress.interpolate({
+    inputRange: [0, 100],
     outputRange: ['0%', '100%'],
   });
 
@@ -100,6 +137,11 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
     marginVertical: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   contentContainer: {
     zIndex: 2,
@@ -111,10 +153,9 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     position: 'absolute',
-    left: 0,
-    top: 0,
     bottom: 0,
-    opacity: 0.5,
+    left: 0,
+    height: 5,
     zIndex: 1,
   },
   disabled: {

@@ -220,10 +220,15 @@ const styles = StyleSheet.create({
   addressText: {
     maxWidth: '60%',
     textAlign: 'right',
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
   txIdContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    maxWidth: '60%',
   },
   txIdText: {
     fontSize: 14,

@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   errorText: {
-    color: 'red',
+    color: '#FF3B30',
     marginBottom: 16,
     fontSize: 14,
     textAlign: 'center',
@@ -354,6 +354,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#E1E3E5',
   },
   qrButton: {
     backgroundColor: '#007AFF',
@@ -375,6 +377,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 8,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E1E3E5',
   },
   amountInput: {
     flex: 1,
@@ -388,7 +392,7 @@ const styles = StyleSheet.create({
   },
   availableBalance: {
     fontSize: 12,
-    color: '#666',
+    color: '#687076',
     marginBottom: 24,
     marginLeft: 4,
   },
@@ -409,6 +413,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 'auto',
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   sendButtonText: {
     color: 'white',

@@ -17,6 +17,7 @@ import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/
 import { formatBalance } from '@shared/modules/string-utils';
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, NETWORK_LIQUID } from '@shared/types/networks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function IndexScreen() {
   const { network, setNetwork } = useContext(NetworkContext);
@@ -77,6 +78,21 @@ export default function IndexScreen() {
     }
   };
 
+  const accent = useThemeColor({}, 'accent');
+  const buttonBackground = useThemeColor({}, 'buttonBackground');
+  const buttonText = useThemeColor({}, 'buttonText');
+  const white = useThemeColor({}, 'white');
+  const bitcoinColor = useThemeColor({}, 'bitcoin');
+  const ethereumColor = useThemeColor({}, 'ethereum');
+  const layer2Color = useThemeColor({}, 'layer2');
+
+  // Helper function to determine network color
+  const getNetworkColor = (networkType: string) => {
+    if (networkType === NETWORK_BITCOIN) return bitcoinColor;
+    if (networkType.startsWith('evm')) return ethereumColor;
+    return layer2Color;
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.headerContainer}>
@@ -86,7 +102,7 @@ export default function IndexScreen() {
           <ThemedText style={styles.subtitle}>Explore Bitcoin Layer 2</ThemedText>
         </ThemedView>
         <TouchableOpacity style={styles.settingsButton} onPress={goToSettings} testID="SettingsButton">
-          <Ionicons name="settings-outline" size={24} color="#007AFF" />
+          <Ionicons name="settings-outline" size={24} color={accent} />
         </TouchableOpacity>
       </ThemedView>
 
@@ -95,10 +111,10 @@ export default function IndexScreen() {
           <TouchableOpacity
             key={availableNetwork}
             testID={network === availableNetwork ? `selectedNetwork-${availableNetwork}` : `network-${availableNetwork}`}
-            style={[styles.networkButton, network === availableNetwork && styles.selectedNetworkButton]}
+            style={[styles.networkButton, { backgroundColor: buttonBackground }, network === availableNetwork && { backgroundColor: getNetworkColor(availableNetwork) }]}
             onPress={() => setNetwork(availableNetwork)}
           >
-            <ThemedText style={[styles.networkButtonText, network === availableNetwork && styles.selectedNetworkButtonText]}>{availableNetwork.toUpperCase()}</ThemedText>
+            <ThemedText style={[styles.networkButtonText, { color: buttonText }, network === availableNetwork && { color: white }]}>{availableNetwork.toUpperCase()}</ThemedText>
           </TouchableOpacity>
         ))}
       </ThemedView>
@@ -127,10 +143,10 @@ export default function IndexScreen() {
       )}
 
       <ThemedView style={styles.balanceContainer}>
-        <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
+        <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.7}>
           {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
         </ThemedText>
-        <ThemedText adjustsFontSizeToFit numberOfLines={1}>
+        <ThemedText adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.7}>
           {balance && +balance > 0 && exchangeRate ? '$' + (+formatBalance(balance, getDecimalsByNetwork(network), 8) * exchangeRate).toPrecision(2) : ''}
         </ThemedText>
       </ThemedView>
@@ -174,64 +190,17 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     padding: 10,
+    borderRadius: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     opacity: 0.7,
-  },
-  balanceContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 30,
-    marginTop: 0,
-    marginBottom: 0,
-    paddingHorizontal: 20,
-  },
-  balanceText: {
-    fontSize: 25,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    width: '100%',
-  },
-  contentContainer: {
-    flex: 1,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonContainer: {
-    marginTop: 20,
-    width: '100%',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    gap: 12,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flex: 1,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  receiveButton: {
-    backgroundColor: '#34C759',
-  },
-  sendButton: {
-    backgroundColor: '#FF3B30',
+    marginBottom: 8,
   },
   networkContainer: {
     flexDirection: 'row',
@@ -241,21 +210,78 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   networkButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
     marginHorizontal: 4,
     marginVertical: 4,
-  },
-  selectedNetworkButton: {
-    backgroundColor: '#007AFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   networkButtonText: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
   },
-  selectedNetworkButtonText: {
+  balanceContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 30,
+    marginTop: 10, // Add top margin to prevent clipping
+    marginBottom: 0,
+    paddingHorizontal: 24,
+  },
+  balanceText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    width: '100%',
+    letterSpacing: 0.25,
+    paddingHorizontal: 5,
+    paddingVertical: 5, // Add vertical padding to prevent clipping
+    lineHeight: 40, // Add line height to improve vertical spacing
+  },
+  contentContainer: {
+    flex: 1,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 30,
+  },
+  buttonContainer: {
+    marginTop: 20,
+    width: '100%',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 16,
+  },
+  button: {
+    borderRadius: 12,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  buttonText: {
     color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  receiveButton: {
+    backgroundColor: '#34C759',
+  },
+  sendButton: {
+    backgroundColor: '#007AFF',
   },
 });
