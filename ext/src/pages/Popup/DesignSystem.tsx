@@ -154,6 +154,80 @@ export const LongPressButton: React.FC<{ onComplete: () => void; disabled?: bool
   );
 };
 
+// IconButton Component
+export const IconButton: React.FC<
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    icon: React.ReactNode;
+    label?: string;
+    variant?: 'primary' | 'secondary' | 'danger' | 'outline';
+    size?: 'small' | 'medium' | 'large';
+  }
+> = ({ icon, label, variant = 'primary', size = 'medium', ...props }) => {
+  const { getColor } = useTheme();
+
+  let backgroundColor;
+  let textColor = 'white';
+  let borderStyle = {};
+
+  switch (variant) {
+    case 'secondary':
+      backgroundColor = getColor('secondary');
+      break;
+    case 'danger':
+      backgroundColor = getColor('danger');
+      break;
+    case 'outline':
+      backgroundColor = 'transparent';
+      textColor = getColor('primary');
+      borderStyle = {
+        border: `1px solid ${getColor('primary')}`,
+      };
+      break;
+    default:
+      backgroundColor = getColor('primary');
+  }
+
+  const sizeStyles = {
+    small: {
+      padding: '8px',
+      fontSize: '14px',
+    },
+    medium: {
+      padding: '10px',
+      fontSize: '16px',
+    },
+    large: {
+      padding: '12px',
+      fontSize: '18px',
+    },
+  };
+
+  return (
+    <button
+      {...props}
+      style={{
+        backgroundColor,
+        color: textColor,
+        display: 'inline-flex',
+        flexDirection: label ? 'column' : 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: '8px',
+        cursor: props.disabled ? 'not-allowed' : 'pointer',
+        opacity: props.disabled ? 0.5 : 1,
+        transition: 'opacity 0.2s ease',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        ...borderStyle,
+        ...sizeStyles[size],
+        ...(props.style || {}),
+      }}
+    >
+      <div>{icon}</div>
+      {label && <div style={{ marginTop: '4px', fontSize: sizeStyles[size].fontSize }}>{label}</div>}
+    </button>
+  );
+};
+
 // Input Component
 export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => {
   const { getColor } = useTheme();
@@ -563,6 +637,165 @@ export const Modal: React.FC<{ children: React.ReactNode; isOpen: boolean; onClo
   );
 };
 
+// AddressBubble Component
+export const AddressBubble: React.FC<{ address: string; showCopyButton?: boolean }> = ({ address, showCopyButton = true }) => {
+  const { getColor } = useTheme();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Format address to show first and last few characters
+  const formatAddress = (addr: string) => {
+    if (!addr) return '';
+    return `${addr.substring(0, 8)}...${addr.substring(addr.length - 8)}`;
+  };
+
+  return (
+    <div
+      style={{
+        backgroundColor: getColor('buttonBackground'),
+        borderRadius: '8px',
+        padding: '10px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '16px',
+        wordBreak: 'break-all',
+        fontSize: '14px',
+        color: getColor('text'),
+      }}
+    >
+      <span>{formatAddress(address)}</span>
+      {showCopyButton && (
+        <button
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            marginLeft: '8px',
+            color: getColor('primary'),
+            fontSize: '14px',
+          }}
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      )}
+    </div>
+  );
+};
+
+// SelectFeeSlider Component
+export const SelectFeeSlider: React.FC<{
+  defaultValue?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  onChange: (value: number) => void;
+}> = ({ defaultValue = 1, min = 1, max = 3, step = 0.5, onChange }) => {
+  const { getColor } = useTheme();
+  const [value, setValue] = useState(defaultValue);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseFloat(e.target.value);
+    setValue(newValue);
+    onChange(newValue);
+  };
+
+  const getSliderBackground = () => {
+    const percentage = ((value - min) / (max - min)) * 100;
+    return `linear-gradient(to right, ${getColor('primary')} 0%, ${getColor('primary')} ${percentage}%, ${getColor('buttonBackground')} ${percentage}%, ${getColor('buttonBackground')} 100%)`;
+  };
+
+  return (
+    <div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={handleChange}
+        style={{
+          width: '100%',
+          height: '6px',
+          appearance: 'none',
+          background: getSliderBackground(),
+          outline: 'none',
+          borderRadius: '3px',
+          cursor: 'pointer',
+        }}
+      />
+      <style jsx>{`
+        input[type='range']::-webkit-slider-thumb {
+          appearance: none;
+          width: 18px;
+          height: 18px;
+          background-color: ${getColor('primary')};
+          border-radius: 50%;
+          cursor: pointer;
+        }
+        input[type='range']::-moz-range-thumb {
+          width: 18px;
+          height: 18px;
+          background-color: ${getColor('primary')};
+          border-radius: 50%;
+          cursor: pointer;
+          border: none;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// HodlButton Component - Alias for LongPressButton for backward compatibility
+export const HodlButton: React.FC<Parameters<typeof LongPressButton>[0]> = LongPressButton;
+
+// Switch Component (for network switching)
+export const Switch: React.FC<{
+  items: string[];
+  activeItem?: string;
+  onItemClick: (item: string) => void;
+}> = ({ items, activeItem, onItemClick }) => {
+  const { getColor } = useTheme();
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '8px',
+        marginBottom: '16px',
+      }}
+    >
+      {items.map((item) => (
+        <div
+          key={item}
+          onClick={() => onItemClick(item)}
+          style={{
+            backgroundColor: item === activeItem ? getColor('primary') : getColor('buttonBackground'),
+            color: item === activeItem ? 'white' : getColor('text'),
+            padding: '8px 16px',
+            borderRadius: '20px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: item === activeItem ? 'bold' : 'normal',
+            transition: 'background-color 0.2s, transform 0.1s',
+            userSelect: 'none',
+            transform: item === activeItem ? 'scale(1.05)' : 'scale(1)',
+          }}
+        >
+          {item.charAt(0).toUpperCase() + item.slice(1)}
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // Main Component to showcase all elements
 export default function DesignSystem() {
   const [radioValue, setRadioValue] = useState('');
@@ -587,6 +820,13 @@ export default function DesignSystem() {
           <Button>Primary Button</Button>
           <Button style={{ backgroundColor: getColor('secondary') }}>Secondary Button</Button>
           <Button style={{ backgroundColor: getColor('danger') }}>Danger Button</Button>
+        </div>
+
+        <h3>Icon Buttons</h3>
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <IconButton icon={<span style={{ fontSize: '18px' }}>📤</span>} label="Send" />
+          <IconButton icon={<span style={{ fontSize: '18px' }}>📥</span>} label="Receive" variant="secondary" />
+          <IconButton icon={<span style={{ fontSize: '18px' }}>⚙️</span>} variant="outline" />
         </div>
 
         <h3>Wide Button</h3>
