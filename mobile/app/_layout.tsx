@@ -83,6 +83,7 @@ export default function RootLayout() {
                   <Stack.Screen name="onboarding/create-wallet" options={{ headerShown: false }} />
                   <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
                   <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
+                  <Stack.Screen name="Onramp" options={{ headerShown: true }} />
                   <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
                 </Stack>
                 <StatusBar style="auto" />

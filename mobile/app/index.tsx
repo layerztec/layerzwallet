@@ -17,6 +17,7 @@ import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/
 import { formatBalance } from '@shared/modules/string-utils';
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, NETWORK_LIQUID } from '@shared/types/networks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
+import { OnrampProps } from '@/app/Onramp';
 
 export default function IndexScreen() {
   const { network, setNetwork } = useContext(NetworkContext);
@@ -75,6 +76,19 @@ export default function IndexScreen() {
       default:
         router.push('/SendEvm');
     }
+  };
+
+  const goToBuyBitcoin = () => {
+    BackgroundExecutor.getAddress(network, accountNumber).then((address) => {
+      router.push('/Onramp');
+
+      router.replace({
+        pathname: '/Onramp',
+        params: {
+          address,
+        } as OnrampProps,
+      });
+    });
   };
 
   return (
@@ -147,6 +161,12 @@ export default function IndexScreen() {
             <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
               <ThemedText style={styles.buttonText}>Send</ThemedText>
             </TouchableOpacity>
+
+            {network === NETWORK_BITCOIN ? (
+              <TouchableOpacity style={[styles.button]} onPress={goToBuyBitcoin}>
+                <ThemedText style={styles.buttonText}> $ Buy </ThemedText>
+              </TouchableOpacity>
+            ) : null}
           </ThemedView>
         </ThemedView>
       </ThemedView>

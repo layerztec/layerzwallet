@@ -1,4 +1,4 @@
-import { ArrowDownRightIcon, SendIcon, Info } from 'lucide-react';
+import { ArrowDownRightIcon, SendIcon, Info, ShoppingCartIcon } from 'lucide-react';
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DEFAULT_NETWORK } from '@shared/config';
@@ -65,6 +65,21 @@ const Home: React.FC = () => {
       ) : null}
       <h1>
         <span id="home-balance">{balance ? formatBalance(balance, getDecimalsByNetwork(network), 8) : ''}</span> {getTickerByNetwork(network)}
+        {network === NETWORK_BITCOIN ? (
+          <span style={{ paddingLeft: '15px' }}>
+            <Button
+              onClick={() => {
+                BackgroundCaller.getAddress(network, accountNumber).then((addressResponse) => {
+                  if (addressResponse) {
+                    window.open(`https://layerztec.github.io/website/onramp/?address=${addressResponse}`, '_blank');
+                  }
+                });
+              }}
+            >
+              <ShoppingCartIcon /> Buy
+            </Button>
+          </span>
+        ) : null}
         <div style={{ width: '100%', marginBottom: '15px' }}>
           <span style={{ fontSize: 14 }}>{balance && +balance > 0 && exchangeRate ? '$' + (+formatBalance(balance, getDecimalsByNetwork(network), 8) * exchangeRate).toPrecision(2) : ''}</span>
         </div>
