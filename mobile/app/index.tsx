@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useContext, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useContext, useEffect, useState } from 'react';
+import { StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import Button from '@/components/ui/Button';
 import TokensView from '@/components/tokens-view';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Hello } from '@shared/class/hello';
@@ -16,13 +17,14 @@ import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, NETWORK_LIQUID } from '@shared/types/networks';
-import { useExchangeRate } from '@shared/hooks/useExchangeRate';
+import { useTheme } from '@/hooks/ThemeContext';
 
 export default function IndexScreen() {
+  const { getColor } = useTheme();
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundExecutor);
-  const { exchangeRate } = useExchangeRate(network ?? DEFAULT_NETWORK, 'USD');
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
   const router = useRouter();
 
   // Liquid is not available on mobile yet
@@ -56,6 +58,18 @@ export default function IndexScreen() {
     checkMnemonic();
   }, [router]);
 
+  useEffect(() => {
+    const getExchangeRate = async () => {
+      try {
+        const rate = await BackgroundExecutor.getExchangeRate(network || DEFAULT_NETWORK);
+        setExchangeRate(rate);
+      } catch (error) {
+        console.log('Error getting exchange rate:', error);
+      }
+    };
+    getExchangeRate();
+  }, [network]);
+
   const goToSettings = () => {
     router.push('/settings');
   };
@@ -85,28 +99,35 @@ export default function IndexScreen() {
           <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
           <ThemedText style={styles.subtitle}>Explore Bitcoin Layer 2</ThemedText>
         </ThemedView>
-        <TouchableOpacity style={styles.settingsButton} onPress={goToSettings} testID="SettingsButton">
-          <Ionicons name="settings-outline" size={24} color="#007AFF" />
-        </TouchableOpacity>
+        <Pressable style={styles.settingsButton} onPress={goToSettings} testID="SettingsButton">
+          <Ionicons name="settings-outline" size={24} color={getColor('settingsIcon')} />
+        </Pressable>
       </ThemedView>
 
       <ThemedView style={styles.networkContainer}>
         {networks.map((availableNetwork) => (
-          <TouchableOpacity
+          <Pressable
             key={availableNetwork}
             testID={network === availableNetwork ? `selectedNetwork-${availableNetwork}` : `network-${availableNetwork}`}
-            style={[styles.networkButton, network === availableNetwork && styles.selectedNetworkButton]}
+            style={({ pressed }) => [
+              styles.networkButton,
+              { backgroundColor: getColor('surfaceBackground') },
+              network === availableNetwork && { backgroundColor: getColor('selectedNetworkBackground') },
+              pressed && { opacity: 0.8 },
+            ]}
             onPress={() => setNetwork(availableNetwork)}
           >
-            <ThemedText style={[styles.networkButtonText, network === availableNetwork && styles.selectedNetworkButtonText]}>{availableNetwork.toUpperCase()}</ThemedText>
-          </TouchableOpacity>
+            <ThemedText style={[styles.networkButtonText, { color: getColor('networkButtonText') }, network === availableNetwork && { color: getColor('selectedNetworkText') }]}>
+              {availableNetwork.toUpperCase()}
+            </ThemedText>
+          </Pressable>
         ))}
       </ThemedView>
 
       {getIsTestnet(network) && (
         <ThemedView
           style={{
-            backgroundColor: 'rgba(255, 0, 0, 0.1)',
+            backgroundColor: getColor({ lightColor: 'rgba(255, 0, 0, 0.1)', darkColor: 'rgba(255, 0, 0, 0.2)' }),
             padding: 10,
             borderRadius: 5,
             marginHorizontal: 20,
@@ -115,7 +136,7 @@ export default function IndexScreen() {
         >
           <ThemedText
             style={{
-              color: 'red',
+              color: getColor('error'),
               fontSize: 10,
               textAlign: 'center',
               fontWeight: 'bold',
@@ -140,13 +161,9 @@ export default function IndexScreen() {
       <ThemedView style={styles.contentContainer}>
         <ThemedView style={styles.buttonContainer}>
           <ThemedView style={styles.buttonRow}>
-            <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive}>
-              <ThemedText style={styles.buttonText}>Receive</ThemedText>
-            </TouchableOpacity>
+            <Button variant="receive" onPress={goToReceive} title="Receive" testID="ReceiveButton" size="large" />
 
-            <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
-              <ThemedText style={styles.buttonText}>Send</ThemedText>
-            </TouchableOpacity>
+            <Button variant="send" onPress={goToSend} title="Send" testID="SendButton" size="large" />
           </ThemedView>
         </ThemedView>
       </ThemedView>
@@ -214,25 +231,6 @@ const styles = StyleSheet.create({
     width: '100%',
     gap: 12,
   },
-  button: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flex: 1,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  receiveButton: {
-    backgroundColor: '#34C759',
-  },
-  sendButton: {
-    backgroundColor: '#FF3B30',
-  },
   networkContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -244,18 +242,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: '#f0f0f0',
     marginHorizontal: 4,
     marginVertical: 4,
-  },
-  selectedNetworkButton: {
-    backgroundColor: '#007AFF',
   },
   networkButtonText: {
     fontSize: 12,
     fontWeight: '500',
-  },
-  selectedNetworkButtonText: {
-    color: 'white',
   },
 });

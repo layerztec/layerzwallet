@@ -216,7 +216,6 @@ const SendBtc: React.FC = () => {
       <Stack.Screen
         options={{
           title: `Send ${getTickerByNetwork(network)}`,
-          headerShown: true,
         }}
       />
       <View style={styles.section}>

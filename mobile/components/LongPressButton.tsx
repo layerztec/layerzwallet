@@ -1,91 +1,80 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, TouchableOpacity, View, Animated, Text, Easing, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { TouchableOpacity, Text, StyleSheet, Animated, View, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import { useTheme } from '@/hooks/ThemeContext';
 
 interface LongPressButtonProps {
   onLongPressComplete: () => void;
   title: string;
-  duration?: number; // in milliseconds
-  disabled?: boolean;
-  isLoading?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
   progressColor?: string;
   backgroundColor?: string;
+  disabled?: boolean;
+  duration?: number;
+  isLoading?: boolean;
 }
 
-const LongPressButton: React.FC<LongPressButtonProps> = ({
-  onLongPressComplete,
-  title,
-  duration = 2_000,
-  disabled = false,
-  isLoading = false,
-  style,
-  textStyle,
-  progressColor = '#007AFF',
-  backgroundColor = '#2C2C2E',
-}) => {
+const LongPressButton: React.FC<LongPressButtonProps> = ({ onLongPressComplete, title, style, textStyle, progressColor, backgroundColor, disabled = false, duration = 1500, isLoading = false }) => {
+  const { getColor } = useTheme();
   const [pressing, setPressing] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
-  const progressAnimation = useRef<Animated.CompositeAnimation | null>(null);
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 100],
+    outputRange: ['0%', '100%'],
+  });
 
-  // Reset animation when disabled changes
+  // Reset progress when pressing state changes to false
   useEffect(() => {
-    if (disabled) {
-      resetProgress();
+    if (!pressing) {
+      progressAnim.setValue(0);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [disabled]);
+  }, [pressing, progressAnim]);
 
   const startProgress = () => {
     setPressing(true);
-    progressAnim.setValue(0);
-
-    progressAnimation.current = Animated.timing(progressAnim, {
-      toValue: 1,
+    Animated.timing(progressAnim, {
+      toValue: 100,
       duration: duration,
-      easing: Easing.linear,
       useNativeDriver: false,
-    });
-
-    progressAnimation.current.start();
-
-    longPressTimer.current = setTimeout(() => {
-      if (!disabled) {
+    }).start(({ finished }) => {
+      if (finished && pressing) {
         onLongPressComplete();
+        resetProgress();
       }
-      resetProgress();
-    }, duration);
+    });
   };
 
   const resetProgress = () => {
     setPressing(false);
-    if (progressAnimation.current) {
-      progressAnimation.current.stop();
-    }
-    progressAnim.setValue(0);
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
   };
 
-  const progressWidth = progressAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
-  });
+  // Use theme colors if custom colors are not provided
+  const bgColor = backgroundColor || getColor('primary');
+  const prgColor = progressColor || getColor('primaryLight');
 
   return (
     <TouchableOpacity
       activeOpacity={0.8}
-      style={[styles.button, { backgroundColor }, disabled ? styles.disabled : null, style]}
+      style={[styles.button, { backgroundColor: bgColor }, disabled ? styles.disabled : null, style]}
       onPressIn={disabled || isLoading ? undefined : startProgress}
       onPressOut={resetProgress}
       disabled={disabled || isLoading}
     >
-      <View style={styles.contentContainer}>{isLoading ? <ActivityIndicator color="white" /> : <Text style={[styles.buttonText, textStyle]}>{title}</Text>}</View>
+      <View style={styles.contentContainer}>
+        {isLoading ? <ActivityIndicator color={getColor('white')} /> : <Text style={[styles.buttonText, { color: getColor('white') }, textStyle]}>{title}</Text>}
+      </View>
 
-      {pressing && <Animated.View style={[styles.progressBar, { width: progressWidth, backgroundColor: progressColor }]} />}
+      {pressing && (
+        <Animated.View
+          style={[
+            styles.progressBar,
+            {
+              width: progressWidth,
+              backgroundColor: prgColor,
+            },
+          ]}
+        />
+      )}
     </TouchableOpacity>
   );
 };
@@ -105,7 +94,6 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   buttonText: {
-    color: 'white',
     fontWeight: '600',
     fontSize: 16,
   },
@@ -114,7 +102,6 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    opacity: 0.5,
     zIndex: 1,
   },
   disabled: {

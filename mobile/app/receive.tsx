@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { useTheme } from '@/hooks/ThemeContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -15,43 +16,50 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 
 export default function ReceiveScreen() {
+  const { getColor } = useTheme();
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const [address, setAddress] = useState('');
+
+  const [address, setAddress] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setIsLoading(true);
-    BackgroundExecutor.getAddress(network || DEFAULT_NETWORK, accountNumber)
-      .then((addressResponse) => {
-        setAddress(addressResponse);
+    const fetchAddress = async () => {
+      setIsLoading(true);
+      try {
+        const address = await BackgroundExecutor.getAddress(network ?? DEFAULT_NETWORK, accountNumber);
+        setAddress(address);
+      } catch (error) {
+        console.log('Error fetching address:', error);
+      } finally {
         setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error fetching address:', error);
-        setIsLoading(false);
-      });
-  }, [accountNumber, network]);
-
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `My ${capitalizeFirstLetter(network)} address: ${address}`,
-      });
-    } catch {
-      Alert.alert('Error', 'Failed to share address');
-    }
-  };
+      }
+    };
+    fetchAddress();
+  }, [network, accountNumber]);
 
   const handleCopyAddress = async () => {
     if (address) {
       await Clipboard.setStringAsync(address);
+      Alert.alert('Address Copied', 'The address has been copied to your clipboard.');
     }
   };
 
-  // Color coding for network verification (matching the index screen's selectedNetworkButton style)
+  const handleShare = async () => {
+    if (address) {
+      try {
+        await Share.share({
+          message: address,
+        });
+      } catch (error) {
+        console.log('Error sharing address:', error);
+      }
+    }
+  };
+
+  // Use our theme system for the network color
   const getNetworkColor = () => {
-    return '#007AFF'; // Blue color matching the selectedNetworkButton in index.tsx
+    return getColor('selectedNetworkBackground');
   };
 
   return (
@@ -59,14 +67,17 @@ export default function ReceiveScreen() {
       <Stack.Screen
         options={{
           title: 'Receive',
-          headerShown: true,
+          headerStyle: {
+            backgroundColor: getColor('background'),
+          },
+          headerTintColor: getColor('text'),
         }}
       />
 
       <ThemedView style={styles.contentContainer}>
         {/* Network indicator bar - visually shows the selected network with color */}
         <ThemedView style={[styles.networkBar, { backgroundColor: getNetworkColor() }]}>
-          <ThemedText style={styles.networkText}>{network?.toUpperCase()}</ThemedText>
+          <ThemedText style={[styles.networkText, { color: getColor('selectedNetworkText') }]}>{network?.toUpperCase()}</ThemedText>
         </ThemedView>
 
         <ThemedText testID="NetworkAddressHeader" style={styles.subtitle}>
@@ -76,11 +87,11 @@ export default function ReceiveScreen() {
         <ThemedView style={styles.qrContainer} testID="QrContainer">
           {isLoading ? (
             <ThemedView style={styles.qrPlaceholder} testID="LoadingPlaceholder">
-              <ActivityIndicator size="large" color="#007AFF" />
+              <ActivityIndicator size="large" color={getColor('primary')} />
               <ThemedText style={styles.loadingText}>Loading address...</ThemedText>
             </ThemedView>
           ) : address ? (
-            <QRCode testID="AddressQrCode" value={address} size={200} backgroundColor="white" color="black" />
+            <QRCode testID="AddressQrCode" value={address} size={200} backgroundColor={getColor('white')} color={getColor('black')} />
           ) : (
             <ThemedView style={styles.qrPlaceholder}>
               <ThemedText>No address available</ThemedText>
@@ -92,7 +103,7 @@ export default function ReceiveScreen() {
           <ThemedText testID="AddressLabel" style={styles.addressLabel}>
             Address:
           </ThemedText>
-          <TouchableOpacity testID="CopyAddressButton" onPress={handleCopyAddress} style={styles.addressTextContainer} disabled={!address}>
+          <TouchableOpacity testID="CopyAddressButton" onPress={handleCopyAddress} style={[styles.addressTextContainer, { backgroundColor: getColor('surfaceBackground') }]} disabled={!address}>
             {isLoading ? (
               <ThemedText style={styles.addressText}>Loading...</ThemedText>
             ) : (
@@ -100,12 +111,12 @@ export default function ReceiveScreen() {
                 {address ? address : 'No address available'}
               </ThemedText>
             )}
-            {address && <Ionicons testID="CopyIcon" name="copy-outline" size={20} color="#007AFF" style={styles.copyIcon} />}
+            {address && <Ionicons testID="CopyIcon" name="copy-outline" size={20} color={getColor('primary')} style={styles.copyIcon} />}
           </TouchableOpacity>
         </ThemedView>
 
-        <TouchableOpacity testID="ShareButton" onPress={handleShare} style={styles.shareButton}>
-          <Ionicons testID="ShareIcon" name="share-outline" size={24} color="#007AFF" />
+        <TouchableOpacity testID="ShareButton" onPress={handleShare} style={styles.shareButton} disabled={!address}>
+          <Ionicons testID="ShareIcon" name="share-outline" size={24} color={getColor('primary')} />
         </TouchableOpacity>
       </ThemedView>
     </SafeAreaView>
@@ -125,9 +136,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
-
   shareButton: {
     padding: 8,
   },
@@ -157,9 +166,7 @@ const styles = StyleSheet.create({
     height: 200,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
     borderRadius: 8,
   },
   addressContainer: {
@@ -173,7 +180,6 @@ const styles = StyleSheet.create({
   addressTextContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
     borderRadius: 8,
     padding: 12,
   },
@@ -197,6 +203,5 @@ const styles = StyleSheet.create({
   networkText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: 'white',
   },
 });

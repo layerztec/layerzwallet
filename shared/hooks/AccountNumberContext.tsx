@@ -28,7 +28,7 @@ export const STORAGE_SELECTED_ACCOUNT_NUMBER = 'STORAGE_SELECTED_ACCOUNT_NUMBER'
 interface AccountNumberContextProviderProps {
   children: ReactNode;
   storage: IStorage;
-  backgroundCaller: IBackgroundCaller;
+  backgroundCaller?: IBackgroundCaller; // Make backgroundCaller optional
 }
 
 export const AccountNumberContextProvider: React.FC<AccountNumberContextProviderProps> = (props) => {
@@ -37,9 +37,18 @@ export const AccountNumberContextProvider: React.FC<AccountNumberContextProvider
   // initial load:
   useEffect(() => {
     (async () => {
-      await props.backgroundCaller.log('loading selected account...');
-      const response = await props.storage.getItem(STORAGE_SELECTED_ACCOUNT_NUMBER);
-      setAccountNumber(Number(response) || 0);
+      try {
+        // Check if backgroundCaller exists before using it
+        if (props.backgroundCaller) {
+          await props.backgroundCaller.log('loading selected account...');
+        }
+        const response = await props.storage.getItem(STORAGE_SELECTED_ACCOUNT_NUMBER);
+        setAccountNumber(Number(response) || 0);
+      } catch (error) {
+        console.error('Error loading account number:', error);
+        // Default to account 0 if there's an error
+        setAccountNumber(0);
+      }
     })();
   }, [props.storage, props.backgroundCaller]);
 
@@ -51,7 +60,12 @@ export const AccountNumberContextProvider: React.FC<AccountNumberContextProvider
       if (value === -1) {
         value = 0;
       }
-      props.backgroundCaller.log('changing selected account to: ' + value);
+
+      // Check if backgroundCaller exists before using it
+      if (props.backgroundCaller) {
+        props.backgroundCaller.log('changing selected account to: ' + value);
+      }
+
       props.storage.setItem(STORAGE_SELECTED_ACCOUNT_NUMBER, String(value));
       setAccountNumber(value);
 
@@ -59,13 +73,17 @@ export const AccountNumberContextProvider: React.FC<AccountNumberContextProvider
       (async () => {
         try {
           const response = (await props.storage.getItem(STORAGE_SELECTED_NETWORK)) as Networks;
-          const addressResponse = await props.backgroundCaller.getAddress(response || DEFAULT_NETWORK, accountNumber);
-          await Messenger.sendEventCallbackFromPopupToContentScript({
-            for: 'webpage',
-            event: 'accountsChanged',
-            type: 'eventCallback',
-            arg: [addressResponse] as string[],
-          });
+
+          // Check if backgroundCaller exists before using it
+          if (props.backgroundCaller) {
+            const addressResponse = await props.backgroundCaller.getAddress(response || DEFAULT_NETWORK, accountNumber);
+            await Messenger.sendEventCallbackFromPopupToContentScript({
+              for: 'webpage',
+              event: 'accountsChanged',
+              type: 'eventCallback',
+              arg: [addressResponse] as string[],
+            });
+          }
         } catch (error: any) {
           console.error(error.message);
         }

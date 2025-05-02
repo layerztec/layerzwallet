@@ -77,7 +77,6 @@ const TransactionSuccessEvm: React.FC = () => {
       <Stack.Screen
         options={{
           title: 'Your transaction',
-          headerShown: true,
         }}
       />
 

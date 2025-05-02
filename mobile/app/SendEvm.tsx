@@ -244,7 +244,6 @@ export default function SendScreen() {
       <Stack.Screen
         options={{
           title: 'Send',
-          headerShown: true,
         }}
       />
 

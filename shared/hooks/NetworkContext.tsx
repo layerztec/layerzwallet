@@ -23,7 +23,7 @@ export const STORAGE_SELECTED_NETWORK = 'STORAGE_SELECTED_NETWORK';
 interface NetworkContextProviderProps {
   children: ReactNode;
   storage: IStorage;
-  backgroundCaller: IBackgroundCaller;
+  backgroundCaller?: IBackgroundCaller; // Make backgroundCaller optional
 }
 
 export const NetworkContextProvider: React.FC<NetworkContextProviderProps> = (props) => {
@@ -32,13 +32,24 @@ export const NetworkContextProvider: React.FC<NetworkContextProviderProps> = (pr
   // initial load:
   useEffect(() => {
     (async () => {
-      await props.backgroundCaller.log('loading selected network...');
-      const response = await props.storage.getItem(STORAGE_SELECTED_NETWORK);
+      try {
+        // Check if backgroundCaller exists before using it
+        if (props.backgroundCaller) {
+          await props.backgroundCaller.log('loading selected network...');
+        }
 
-      // checking types manually, in runtime:
-      if (getAvailableNetworks().includes(response as Networks)) {
-        await props.backgroundCaller.log('loaded ' + response);
-        setNetwork(response as Networks);
+        const response = await props.storage.getItem(STORAGE_SELECTED_NETWORK);
+
+        // checking types manually, in runtime:
+        if (getAvailableNetworks().includes(response as Networks)) {
+          // Check if backgroundCaller exists before using it
+          if (props.backgroundCaller) {
+            await props.backgroundCaller.log('loaded ' + response);
+          }
+          setNetwork(response as Networks);
+        }
+      } catch (error) {
+        console.error('Error loading network:', error);
       }
     })();
   }, [props.storage, props.backgroundCaller]);
@@ -47,7 +58,11 @@ export const NetworkContextProvider: React.FC<NetworkContextProviderProps> = (pr
     if (value instanceof Function) {
       setNetwork(value(network)); // unsure
     } else {
-      props.backgroundCaller.log('changing selected network to: ' + value);
+      // Check if backgroundCaller exists before using it
+      if (props.backgroundCaller) {
+        props.backgroundCaller.log('changing selected network to: ' + value);
+      }
+
       props.storage.setItem(STORAGE_SELECTED_NETWORK, value);
       setNetwork(value);
 

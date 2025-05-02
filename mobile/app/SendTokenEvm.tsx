@@ -31,6 +31,7 @@ import { StringNumber } from '@shared/types/string-number';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { useTheme } from '@/hooks/ThemeContext';
 
 export type SendTokenEvmProps = {
   contractAddress: string;
@@ -39,6 +40,8 @@ export type SendTokenEvmProps = {
 const SendTokenEvm: React.FC = () => {
   const params = useLocalSearchParams<SendTokenEvmProps>();
   const { contractAddress } = params;
+
+  const { getColor, brandColors } = useTheme();
 
   const router = useRouter();
   const { network } = useContext(NetworkContext);
@@ -189,11 +192,15 @@ const SendTokenEvm: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: getColor('background') }]}>
       <Stack.Screen
         options={{
           title: `Send ${token?.name}`,
-          headerShown: true,
+          headerStyle: {
+            backgroundColor: getColor('background'),
+          },
+          headerTintColor: getColor('text'),
+          headerShadowVisible: false,
         }}
       />
 
@@ -202,19 +209,46 @@ const SendTokenEvm: React.FC = () => {
           <ScrollView contentContainerStyle={styles.scrollContainer}>
             <ThemedText style={styles.networkText}>on {getTickerByNetwork(network)}</ThemedText>
 
-            <ThemedView style={styles.inputContainer}>
+            <ThemedView style={styles.inputContainer} lightColor={getColor('cardBackground')} darkColor={getColor('cardBackground')}>
               <ThemedText style={styles.label}>Recipient</ThemedText>
               <View style={styles.addressInputContainer}>
-                <TextInput style={styles.input} placeholder="Enter the recipient's address" value={toAddress} onChangeText={setToAddress} placeholderTextColor="#888" />
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      borderColor: getColor('border'),
+                      color: getColor('text'),
+                      backgroundColor: getColor('surfaceBackground'),
+                    },
+                  ]}
+                  placeholder="Enter the recipient's address"
+                  value={toAddress}
+                  onChangeText={setToAddress}
+                  placeholderTextColor={getColor('textTertiary')}
+                />
                 <TouchableOpacity style={styles.scanButton} onPress={handleScanQr}>
-                  <Ionicons name="qr-code-outline" size={24} color="#2f95dc" />
+                  <Ionicons name="qr-code-outline" size={24} color={getColor('primary')} />
                 </TouchableOpacity>
               </View>
             </ThemedView>
 
-            <ThemedView style={styles.inputContainer}>
+            <ThemedView style={styles.inputContainer} lightColor={getColor('cardBackground')} darkColor={getColor('cardBackground')}>
               <ThemedText style={styles.label}>Amount</ThemedText>
-              <TextInput style={styles.input} placeholder="0.00" value={amountToSend} onChangeText={setAmountToSend} keyboardType="decimal-pad" placeholderTextColor="#888" />
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    borderColor: getColor('border'),
+                    color: getColor('text'),
+                    backgroundColor: getColor('surfaceBackground'),
+                  },
+                ]}
+                placeholder="0.00"
+                value={amountToSend}
+                onChangeText={setAmountToSend}
+                keyboardType="decimal-pad"
+                placeholderTextColor={getColor('textTertiary')}
+              />
               <ThemedText style={styles.balanceText}>
                 Available balance: {token?.symbol} {balance ? formatBalance(balance, token?.decimals ?? 1, 2) : ''}
               </ThemedText>
@@ -226,7 +260,7 @@ const SendTokenEvm: React.FC = () => {
               </ThemedText>
             )}
 
-            {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
+            {error ? <ThemedText style={[styles.errorText, { color: getColor('error') }]}>{error}</ThemedText> : null}
 
             {screenState === 'preparing' && <ThemedText style={styles.loadingText}>Preparing transaction...</ThemedText>}
 
@@ -240,14 +274,15 @@ const SendTokenEvm: React.FC = () => {
                   step={1}
                   value={feeMultiplier}
                   onValueChange={setFeeMultiplier}
-                  minimumTrackTintColor="#2f95dc"
-                  maximumTrackTintColor="#d3d3d3"
+                  minimumTrackTintColor={getColor('primary')}
+                  maximumTrackTintColor={getColor('border')}
+                  thumbTintColor={getColor('primary')}
                 />
               </View>
             )}
 
             {screenState === 'init' && (
-              <TouchableOpacity style={styles.sendButton} onPress={prepareTransaction}>
+              <TouchableOpacity style={[styles.sendButton, { backgroundColor: getColor('primary') }]} onPress={prepareTransaction}>
                 <Ionicons name="send" size={20} color="white" style={styles.sendIcon} />
                 <Text style={styles.sendButtonText}>Send</Text>
               </TouchableOpacity>
@@ -255,7 +290,7 @@ const SendTokenEvm: React.FC = () => {
 
             {screenState === 'prepared' && (
               <View style={styles.confirmContainer}>
-                <LongPressButton onLongPressComplete={broadcastTransaction} style={styles.confirmButton} title="Hold to confirm send" />
+                <LongPressButton onLongPressComplete={broadcastTransaction} style={[styles.confirmButton, { backgroundColor: getColor('primary') }]} title="Hold to confirm send" />
 
                 <TouchableOpacity
                   style={styles.cancelButton}
@@ -289,11 +324,12 @@ const styles = StyleSheet.create({
   },
   networkText: {
     fontSize: 16,
-    color: 'gray',
     marginBottom: 20,
   },
   inputContainer: {
     marginBottom: 20,
+    padding: 16,
+    borderRadius: 12,
   },
   label: {
     fontWeight: 'bold',
@@ -307,7 +343,6 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ccc',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
@@ -317,17 +352,14 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   balanceText: {
-    color: 'gray',
     marginTop: 8,
     fontSize: 14,
   },
   feesText: {
-    color: 'gray',
     marginBottom: 16,
     fontSize: 14,
   },
   errorText: {
-    color: 'red',
     marginBottom: 16,
     fontSize: 14,
   },
@@ -340,7 +372,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   feeLabel: {
-    color: 'gray',
     fontSize: 14,
     marginBottom: 8,
   },
@@ -349,7 +380,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   sendButton: {
-    backgroundColor: '#2f95dc',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -368,7 +398,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   confirmButton: {
-    backgroundColor: '#2f95dc',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -381,7 +410,6 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   cancelText: {
-    color: 'gray',
     textDecorationLine: 'underline',
     fontSize: 16,
   },

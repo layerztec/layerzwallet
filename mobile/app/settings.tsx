@@ -6,19 +6,29 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { useTheme } from '@/hooks/ThemeContext';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { SecureStorage } from '@/src/class/secure-storage';
 import { STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 
 export default function SettingsScreen() {
+  const { getColor } = useTheme();
+  const router = useRouter();
   const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
   const [isClearing, setIsClearing] = useState(false);
   const { scanQr } = useContext(ScanQrContext);
-  const router = useRouter();
+
+  const handleGoBack = () => {
+    router.back();
+  };
+
+  const handleNavigateToSelfTest = () => {
+    router.push('/selftest');
+  };
 
   const handleClearStorage = async () => {
-    Alert.alert('Clear Storage', 'Are you sure you want to clear all app data? This action cannot be undone.', [
+    Alert.alert('Clear App Data', 'Are you sure you want to clear all app data? This action cannot be undone.', [
       {
         text: 'Cancel',
         style: 'cancel',
@@ -30,19 +40,15 @@ export default function SettingsScreen() {
           setIsClearing(true);
           try {
             await AsyncStorage.clear();
-            await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, '');
-            Alert.alert('Storage Cleared', 'All app data has been cleared successfully. The app will now restart.', [
+            await SecureStorage.remove(STORAGE_KEY_MNEMONIC);
+            Alert.alert('Success', 'All app data has been cleared. The app will restart.', [
               {
                 text: 'OK',
-                onPress: () => {
-                  // Navigate back to the index screen which will handle redirection to onboarding
-                  router.replace('/');
-                },
+                onPress: () => router.replace('/onboarding/intro'),
               },
             ]);
           } catch (error) {
-            console.error('Error clearing storage:', error);
-            Alert.alert('Error', 'Failed to clear storage. Please try again.');
+            Alert.alert('Error', 'Failed to clear app data.');
           } finally {
             setIsClearing(false);
           }
@@ -51,12 +57,8 @@ export default function SettingsScreen() {
     ]);
   };
 
-  const handleAccountChange = (newAccountNumber: number) => {
-    setAccountNumber(newAccountNumber);
-  };
-
-  const handleNavigateToSelfTest = () => {
-    router.push('/selftest');
+  const handleAccountChange = (num: number) => {
+    setAccountNumber(num);
   };
 
   return (
@@ -66,46 +68,66 @@ export default function SettingsScreen() {
           <ThemedText style={styles.title}>Settings</ThemedText>
         </ThemedView>
 
-        <ScrollView style={styles.scrollContainer}>
-          <ThemedView style={styles.section}>
+        <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+          <ThemedView style={[styles.section, { borderColor: getColor('border') }]}>
             <ThemedText style={styles.sectionTitle}>Data Management</ThemedText>
 
-            <TouchableOpacity style={[styles.button, styles.dangerButton, isClearing && styles.buttonDisabled]} onPress={handleClearStorage} disabled={isClearing}>
-              <ThemedText style={styles.dangerButtonText}>{isClearing ? 'Clearing...' : 'Clear All App Data'}</ThemedText>
+            <TouchableOpacity style={[styles.button, { backgroundColor: getColor('error') }, isClearing && styles.buttonDisabled]} onPress={handleClearStorage} disabled={isClearing}>
+              <ThemedText style={[styles.dangerButtonText, { color: getColor('white') }]}>{isClearing ? 'Clearing...' : 'Clear All App Data'}</ThemedText>
             </TouchableOpacity>
 
-            <ThemedText style={styles.warningText}>Warning: This will erase all app data including your wallet. You will need to restore your wallet using your seed phrase.</ThemedText>
+            <ThemedText style={[styles.warningText, { color: getColor('error') }]}>
+              Warning: This will erase all app data including your wallet. You will need to restore your wallet using your seed phrase.
+            </ThemedText>
           </ThemedView>
 
-          <ThemedView style={styles.section}>
+          <ThemedView style={[styles.section, { borderColor: getColor('border') }]}>
             <ThemedText style={styles.sectionTitle}>Account Number</ThemedText>
             <ThemedText style={styles.accountText}>Current Account: {accountNumber}</ThemedText>
 
             <View style={styles.accountSelectorContainer}>
               {[0, 1, 2, 3, 4].map((num) => (
-                <TouchableOpacity key={num} style={[styles.accountButton, accountNumber === num && styles.accountButtonActive]} onPress={() => handleAccountChange(num)}>
-                  <ThemedText style={[styles.accountButtonText, accountNumber === num && styles.accountButtonTextActive]}>{num}</ThemedText>
+                <TouchableOpacity
+                  key={num}
+                  style={[
+                    styles.accountButton,
+                    {
+                      backgroundColor: getColor('surfaceBackground'),
+                      borderColor: getColor('border'),
+                    },
+                    accountNumber === num && {
+                      backgroundColor: getColor('primary'),
+                      borderColor: getColor('primary'),
+                    },
+                  ]}
+                  onPress={() => handleAccountChange(num)}
+                >
+                  <ThemedText style={[styles.accountButtonText, accountNumber === num && { color: getColor('white') }]}>{num}</ThemedText>
                 </TouchableOpacity>
               ))}
             </View>
           </ThemedView>
 
-          <ThemedView style={styles.section}>
+          <ThemedView style={[styles.section, { borderColor: getColor('border') }]}>
             <ThemedText style={styles.sectionTitle}>Developer Options</ThemedText>
 
-            <TouchableOpacity style={[styles.button, styles.selfTestButton]} onPress={handleNavigateToSelfTest} testID="SelfTestButton">
-              <ThemedText style={styles.selfTestButtonText}>Self Test</ThemedText>
+            <TouchableOpacity style={[styles.button, { backgroundColor: getColor('receive') }]} onPress={handleNavigateToSelfTest} testID="SelfTestButton">
+              <ThemedText style={[styles.selfTestButtonText, { color: getColor('white') }]}>Self Test</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, styles.selfTestButton]}
+              style={[styles.button, { backgroundColor: getColor('receive') }]}
               onPress={() => {
                 scanQr().then(Alert.alert);
               }}
             >
-              <ThemedText style={styles.selfTestButtonText}>ScanQr</ThemedText>
+              <ThemedText style={[styles.selfTestButtonText, { color: getColor('white') }]}>ScanQr</ThemedText>
             </TouchableOpacity>
           </ThemedView>
+
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: getColor('primary') }]} onPress={handleGoBack}>
+            <ThemedText style={[styles.backButtonText, { color: getColor('white') }]}>Back</ThemedText>
+          </TouchableOpacity>
         </ScrollView>
       </ThemedView>
     </SafeAreaView>
@@ -135,7 +157,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ccc',
   },
   sectionTitle: {
     fontSize: 18,
@@ -149,18 +170,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  dangerButton: {
-    backgroundColor: '#FF3B30',
-  },
   dangerButtonText: {
-    color: 'white',
     fontWeight: 'bold',
   },
-  selfTestButton: {
-    backgroundColor: '#34C759',
-  },
   selfTestButtonText: {
-    color: 'white',
     fontWeight: 'bold',
   },
   buttonDisabled: {
@@ -168,7 +181,6 @@ const styles = StyleSheet.create({
   },
   warningText: {
     fontSize: 12,
-    color: '#FF3B30',
     marginTop: 8,
   },
   backButton: {
@@ -176,11 +188,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#007AFF',
     marginTop: 16,
   },
   backButtonText: {
-    color: 'white',
     fontWeight: 'bold',
   },
   accountText: {
@@ -198,19 +208,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
     borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  accountButtonActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
   },
   accountButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  accountButtonTextActive: {
-    color: 'white',
   },
 });
