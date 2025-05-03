@@ -1,12 +1,15 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { ClipboardCopy } from 'lucide-react';
+import { useLayerzTheme, spacing, borderRadius, typography } from './theme';
 
 export const SelectFeeSlider: React.FC<
   {
     onChange: (value: number) => void;
   } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'>
 > = ({ onChange, ...props }) => {
+  const theme = useLayerzTheme();
+
   return (
     <input
       type="range"
@@ -15,6 +18,10 @@ export const SelectFeeSlider: React.FC<
       max={props.max ?? 5}
       onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
         onChange(+event.target.value);
+      }}
+      style={{
+        // Add styles using theme tokens
+        accentColor: theme.primary,
       }}
     />
   );
@@ -26,13 +33,15 @@ export const Switch: React.FC<{
   activeItem: string;
   onItemClick: (item: string) => void;
 }> = ({ items, activeItem, onItemClick }) => {
+  const theme = useLayerzTheme();
+
   return (
     <div
       style={{
         display: 'flex',
-        backgroundColor: '#f0f0f0',
-        borderRadius: '8px',
-        padding: '4px',
+        backgroundColor: theme.surfaceBackground,
+        borderRadius: borderRadius.lg,
+        padding: spacing.xs,
         width: '100%',
       }}
     >
@@ -42,15 +51,16 @@ export const Switch: React.FC<{
           onClick={() => onItemClick(item)}
           style={{
             flex: 1,
-            padding: '8px 16px',
+            padding: `${spacing.sm}px ${spacing.md}px`,
             border: 'none',
-            borderRadius: '6px',
-            backgroundColor: item === activeItem ? '#282c34' : 'transparent',
-            color: item === activeItem ? 'white' : '#666',
-            fontWeight: item === activeItem ? 'bold' : 'normal',
+            borderRadius: borderRadius.md,
+            backgroundColor: item === activeItem ? theme.primary : 'transparent',
+            color: item === activeItem ? theme.white : theme.textSecondary,
+            fontWeight: item === activeItem ? typography.fontWeights.bold : typography.fontWeights.regular,
             cursor: 'pointer',
             transition: 'all 0.3s ease',
             outline: 'none',
+            fontSize: typography.fontSizes.md,
           }}
         >
           {capitalizeFirstLetter(item)}
@@ -61,61 +71,70 @@ export const Switch: React.FC<{
 };
 
 // Button Component
-export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { disabled?: boolean }> = ({ children, disabled, style, ...props }) => (
-  <button
-    {...props}
-    disabled={disabled}
-    style={{
-      backgroundColor: '#282c34',
-      color: 'white',
-      border: '1px solid white',
-      padding: '10px 20px',
-      borderRadius: '5px',
-      cursor: disabled ? 'not-allowed' : 'pointer',
-      fontSize: '20px',
-      transition: 'background-color 0.3s',
-      opacity: disabled ? 0.5 : 1,
-      display: 'inline-flex',
-      alignItems: 'center',
-      whiteSpace: 'nowrap',
-      margin: '0 5px 5px 0',
-      ...style, // Merge any custom styles passed as props
-    }}
-  >
-    {React.Children.map(children, (child) => (
-      <span style={{ display: 'flex', alignItems: 'center', marginRight: '5px' }}>{child}</span>
-    ))}
-  </button>
-);
+export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { disabled?: boolean }> = ({ children, disabled, style, ...props }) => {
+  const theme = useLayerzTheme();
+
+  return (
+    <button
+      {...props}
+      disabled={disabled}
+      style={{
+        backgroundColor: theme.primary,
+        color: theme.white,
+        border: `1px solid ${theme.border}`,
+        padding: `${spacing.sm}px ${spacing.md}px`,
+        borderRadius: borderRadius.md,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        fontSize: typography.fontSizes.md,
+        transition: 'background-color 0.3s',
+        opacity: disabled ? 0.5 : 1,
+        display: 'inline-flex',
+        alignItems: 'center',
+        whiteSpace: 'nowrap',
+        margin: `0 ${spacing.xs}px ${spacing.xs}px 0`,
+        ...style, // Merge any custom styles passed as props
+      }}
+    >
+      {React.Children.map(children, (child) => (
+        <span style={{ display: 'flex', alignItems: 'center', marginRight: spacing.xs }}>{child}</span>
+      ))}
+    </button>
+  );
+};
 
 // WideButton Component
-export const WideButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { disabled?: boolean }> = ({ children, disabled, ...props }) => (
-  <button
-    {...props}
-    disabled={disabled}
-    style={{
-      backgroundColor: '#282c34',
-      color: 'white',
-      border: '1px solid white',
-      padding: '10px 20px',
-      borderRadius: '5px',
-      cursor: disabled ? 'not-allowed' : 'pointer',
-      fontSize: '20px',
-      transition: 'background-color 0.3s',
-      opacity: disabled ? 0.5 : 1,
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      width: '100%',
-      margin: '0 5px 5px 0',
-    }}
-  >
-    {React.Children.map(children, (child) => (
-      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 5px' }}>{child}</span>
-    ))}
-  </button>
-);
+export const WideButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { disabled?: boolean }> = ({ children, disabled, ...props }) => {
+  const theme = useLayerzTheme();
 
+  return (
+    <button
+      {...props}
+      disabled={disabled}
+      style={{
+        backgroundColor: theme.primary,
+        color: theme.white,
+        border: `1px solid ${theme.border}`,
+        padding: `${spacing.sm}px ${spacing.md}px`,
+        borderRadius: borderRadius.md,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        fontSize: typography.fontSizes.md,
+        transition: 'background-color 0.3s',
+        opacity: disabled ? 0.5 : 1,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: '100%',
+        margin: `0 ${spacing.xs}px ${spacing.xs}px 0`,
+      }}
+    >
+      {React.Children.map(children, (child) => (
+        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: `0 ${spacing.xs}px` }}>{child}</span>
+      ))}
+    </button>
+  );
+};
+
+// HodlButton Component
 export const HodlButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { disabled?: boolean; holdTime?: number; onHold?: () => void }> = ({
   children,
   disabled,
@@ -126,6 +145,7 @@ export const HodlButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> 
   const [progress, setProgress] = useState(0);
   const [holding, setHolding] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const theme = useLayerzTheme();
 
   const startProgress = () => {
     if (disabled) return;
@@ -161,20 +181,20 @@ export const HodlButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> 
       onTouchStart={startProgress}
       onTouchEnd={stopProgress}
       style={{
-        backgroundColor: '#282c34',
-        color: 'white',
-        border: '1px solid white',
-        padding: '10px 20px',
-        borderRadius: '5px',
+        backgroundColor: theme.primary,
+        color: theme.white,
+        border: `1px solid ${theme.border}`,
+        padding: `${spacing.sm}px ${spacing.md}px`,
+        borderRadius: borderRadius.md,
         cursor: disabled ? 'not-allowed' : 'pointer',
-        fontSize: '20px',
+        fontSize: typography.fontSizes.md,
         transition: 'background-color 0.3s',
         opacity: disabled ? 0.5 : 1,
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
         width: '100%',
-        margin: '0 5px 5px 0',
+        margin: `0 ${spacing.xs}px ${spacing.xs}px 0`,
         position: 'relative',
       }}
     >
@@ -186,237 +206,281 @@ export const HodlButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> 
             left: 0,
             width: `${progress}%`,
             height: '5px',
-            backgroundColor: 'white',
+            backgroundColor: theme.white,
             transition: 'width 0.1s linear',
           }}
         />
       )}
       {React.Children.map(children, (child) => (
-        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 5px', zIndex: 1 }}>{child}</span>
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: `0 ${spacing.xs}px`,
+            zIndex: 1,
+          }}
+        >
+          {child}
+        </span>
       ))}
     </button>
   );
 };
 
 // Input Component
-export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
-  <input
-    {...props}
-    style={{
-      width: '95%',
-      padding: '10px',
-      marginBottom: '10px',
-      border: '1px solid #282c34',
-      borderRadius: '5px',
-      fontSize: '16px',
-      color: '#282c34',
-      backgroundColor: 'white',
-    }}
-  />
-);
+export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => {
+  const theme = useLayerzTheme();
+
+  return (
+    <input
+      {...props}
+      style={{
+        width: '95%',
+        padding: spacing.sm,
+        marginBottom: spacing.sm,
+        border: `1px solid ${theme.border}`,
+        borderRadius: borderRadius.sm,
+        fontSize: typography.fontSizes.md,
+        color: theme.text,
+        backgroundColor: theme.white,
+      }}
+    />
+  );
+};
 
 // TextArea Component
-export const TextArea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = (props) => (
-  <textarea
-    {...props}
-    style={{
-      width: '95%',
-      padding: '10px',
-      border: '1px solid #282c34',
-      borderRadius: '5px',
-      fontSize: '16px',
-      minHeight: '100px',
-      color: '#282c34',
-      backgroundColor: 'white',
-    }}
-  />
-);
+export const TextArea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = (props) => {
+  const theme = useLayerzTheme();
+
+  return (
+    <textarea
+      {...props}
+      style={{
+        width: '95%',
+        padding: spacing.sm,
+        border: `1px solid ${theme.border}`,
+        borderRadius: borderRadius.sm,
+        fontSize: typography.fontSizes.md,
+        minHeight: '100px',
+        color: theme.text,
+        backgroundColor: theme.white,
+      }}
+    />
+  );
+};
 
 // Bubble Component
-export const Bubble: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div
-    style={{
-      backgroundColor: '#ebebeb',
-      borderRadius: '20px',
-      padding: '10px 20px',
-      marginBottom: '5px',
-      marginRight: '5px',
-      display: 'inline-block',
-    }}
-  >
-    {children}
-  </div>
-);
+export const Bubble: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const theme = useLayerzTheme();
+
+  return (
+    <div
+      style={{
+        backgroundColor: theme.surfaceBackground,
+        borderRadius: borderRadius.xl,
+        padding: `${spacing.sm}px ${spacing.md}px`,
+        marginBottom: spacing.xs,
+        marginRight: spacing.xs,
+        display: 'inline-block',
+      }}
+    >
+      {children}
+    </div>
+  );
+};
 
 // Radio Button Component
-export const RadioButton: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, ...props }) => (
-  <label
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      cursor: 'pointer',
-      color: '#282c34',
-    }}
-  >
-    <input
-      type="radio"
-      {...props}
+export const RadioButton: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, ...props }) => {
+  const theme = useLayerzTheme();
+
+  return (
+    <label
       style={{
-        appearance: 'none',
-        width: '20px',
-        height: '20px',
-        border: '2px solid #282c34',
-        borderRadius: '50%',
-        marginRight: '10px',
-        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        cursor: 'pointer',
+        color: theme.text,
       }}
-    />
-    <span>{label}</span>
-    <style>{`
-      input[type="radio"]:checked::before {
-        content: '';
-        display: block;
-        width: 12px;
-        height: 12px;
-        background-color: #282c34;
-        border-radius: 50%;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-      }
-    `}</style>
-  </label>
-);
+    >
+      <input
+        type="radio"
+        {...props}
+        style={{
+          appearance: 'none',
+          width: '20px',
+          height: '20px',
+          border: `2px solid ${theme.primary}`,
+          borderRadius: '50%',
+          marginRight: spacing.sm,
+          position: 'relative',
+        }}
+      />
+      <span>{label}</span>
+      <style>{`
+        input[type="radio"]:checked::before {
+          content: '';
+          display: block;
+          width: 12px;
+          height: 12px;
+          background-color: ${theme.primary};
+          border-radius: 50%;
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+        }
+      `}</style>
+    </label>
+  );
+};
 
 // Checkbox Component
-export const Checkbox: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, ...props }) => (
-  <label
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      cursor: 'pointer',
-      color: '#282c34',
-    }}
-  >
-    <input
-      type="checkbox"
-      {...props}
+export const Checkbox: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, ...props }) => {
+  const theme = useLayerzTheme();
+
+  return (
+    <label
       style={{
-        appearance: 'none',
-        width: '20px',
-        height: '20px',
-        border: '2px solid #282c34',
-        borderRadius: '3px',
-        marginRight: '10px',
-        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        cursor: 'pointer',
+        color: theme.text,
       }}
-    />
-    <span>{label}</span>
-    <style>{`
-      input[type="checkbox"]:checked::before {
-        content: '✓';
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 100%;
-        height: 100%;
-        color: #282c34;
-        font-size: 16px;
-        font-weight: bold;
-      }
-    `}</style>
-  </label>
-);
+    >
+      <input
+        type="checkbox"
+        {...props}
+        style={{
+          appearance: 'none',
+          width: '20px',
+          height: '20px',
+          border: `2px solid ${theme.primary}`,
+          borderRadius: borderRadius.xs,
+          marginRight: spacing.sm,
+          position: 'relative',
+        }}
+      />
+      <span>{label}</span>
+      <style>{`
+        input[type="checkbox"]:checked::before {
+          content: '✓';
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+          height: 100%;
+          color: ${theme.primary};
+          font-size: 16px;
+          font-weight: bold;
+        }
+      `}</style>
+    </label>
+  );
+};
 
 // Select Component
-export const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (props) => (
-  <select
-    {...props}
-    style={{
-      width: '100%',
-      padding: '10px',
-      border: '1px solid #282c34',
-      borderRadius: '5px',
-      fontSize: '16px',
-      backgroundColor: 'white',
-      color: '#282c34',
-    }}
-  />
-);
+export const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (props) => {
+  const theme = useLayerzTheme();
 
-// Card Component
-export const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div
-    style={{
-      width: '95%',
-      backgroundColor: 'white',
-      border: '1px solid #ebebeb',
-      borderRadius: '10px',
-      padding: '20px',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-    }}
-  >
-    {children}
-  </div>
-);
-
-// Toggle Switch Component
-export const ToggleSwitch: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
-  <label
-    style={{
-      display: 'inline-block',
-      width: '60px',
-      height: '34px',
-      position: 'relative',
-    }}
-  >
-    <input
-      type="checkbox"
+  return (
+    <select
       {...props}
       style={{
-        opacity: 0,
-        width: 0,
-        height: 0,
+        width: '100%',
+        padding: spacing.sm,
+        border: `1px solid ${theme.border}`,
+        borderRadius: borderRadius.sm,
+        fontSize: typography.fontSizes.md,
+        backgroundColor: theme.white,
+        color: theme.text,
       }}
     />
-    <span
-      style={{
-        position: 'absolute',
-        cursor: 'pointer',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: '#ccc',
-        transition: '.4s',
-        borderRadius: '34px',
-      }}
-    />
-    <style>{`
-      input:checked + span {
-        background-color: #282c34;
-      }
-      input:checked + span:before {
-        transform: translateX(26px);
-      }
-      span:before {
-        position: absolute;
-        content: "";
-        height: 26px;
-        width: 26px;
-        left: 4px;
-        bottom: 4px;
-        background-color: white;
-        transition: .4s;
-        border-radius: 50%;
-      }
-    `}</style>
-  </label>
-);
+  );
+};
 
+// Card Component
+export const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const theme = useLayerzTheme();
+
+  return (
+    <div
+      style={{
+        width: '95%',
+        backgroundColor: theme.cardBackground,
+        border: `1px solid ${theme.border}`,
+        borderRadius: borderRadius.lg,
+        padding: spacing.md,
+        boxShadow: `0 ${spacing.xs}px ${spacing.md}px ${theme.shadow}`,
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
+// Toggle Switch Component
+export const ToggleSwitch: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => {
+  const theme = useLayerzTheme();
+
+  return (
+    <label
+      style={{
+        display: 'inline-block',
+        width: '60px',
+        height: '34px',
+        position: 'relative',
+      }}
+    >
+      <input
+        type="checkbox"
+        {...props}
+        style={{
+          opacity: 0,
+          width: 0,
+          height: 0,
+        }}
+      />
+      <span
+        style={{
+          position: 'absolute',
+          cursor: 'pointer',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: theme.textTertiary,
+          transition: '.4s',
+          borderRadius: '34px',
+        }}
+      />
+      <style>{`
+        input:checked + span {
+          background-color: ${theme.primary};
+        }
+        input:checked + span:before {
+          transform: translateX(26px);
+        }
+        span:before {
+          position: absolute;
+          content: "";
+          height: 26px;
+          width: 26px;
+          left: 4px;
+          bottom: 4px;
+          background-color: white;
+          transition: .4s;
+          border-radius: 50%;
+        }
+      `}</style>
+    </label>
+  );
+};
+
+// Address Bubble Component
 export const AddressBubble: React.FC<{ address: string; showCopyButton: boolean }> = ({ address, showCopyButton }) => {
   const [copied, setCopied] = useState(false);
+  const theme = useLayerzTheme();
 
   const formatAddress = (address: string) => {
     const firstPart = address.slice(0, 6);
@@ -431,12 +495,12 @@ export const AddressBubble: React.FC<{ address: string; showCopyButton: boolean 
     return (
       <>
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-          <span style={{ fontWeight: 'bold', marginRight: '1ch' }}>{firstPart}</span>
+          <span style={{ fontWeight: typography.fontWeights.bold, marginRight: '1ch' }}>{firstPart}</span>
           <span>{middlePart1}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
           <span>{middlePart2}</span>
-          <span style={{ fontWeight: 'bold', marginLeft: '1ch' }}>{lastPart}</span>
+          <span style={{ fontWeight: typography.fontWeights.bold, marginLeft: '1ch' }}>{lastPart}</span>
         </div>
       </>
     );
@@ -455,8 +519,8 @@ export const AddressBubble: React.FC<{ address: string; showCopyButton: boolean 
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: '20px',
-        marginBottom: '20px',
+        margin: `${spacing.md}px 0`,
+        position: 'relative',
       }}
     >
       <Bubble>
@@ -464,7 +528,7 @@ export const AddressBubble: React.FC<{ address: string; showCopyButton: boolean 
           style={{
             wordBreak: 'break-word',
             textAlign: 'left',
-            padding: '10px',
+            padding: spacing.sm,
             width: '100%',
             boxSizing: 'border-box',
           }}
@@ -473,7 +537,7 @@ export const AddressBubble: React.FC<{ address: string; showCopyButton: boolean 
         </div>
       </Bubble>
       {showCopyButton ? (
-        <Button onClick={handleCopyToClipboard} data-testid="copy-to-clipboard" style={{ marginLeft: '10px' }}>
+        <Button onClick={handleCopyToClipboard} data-testid="copy-to-clipboard" style={{ marginLeft: spacing.sm }}>
           <ClipboardCopy /> Copy
         </Button>
       ) : null}
@@ -485,17 +549,17 @@ export const AddressBubble: React.FC<{ address: string; showCopyButton: boolean 
             position: 'absolute',
             top: '-20px',
             right: '50%',
-            backgroundColor: '#333',
-            color: '#fff',
-            padding: '10px 20px',
-            borderRadius: '8px',
-            fontSize: '16px',
+            backgroundColor: theme.text,
+            color: theme.white,
+            padding: `${spacing.sm}px ${spacing.md}px`,
+            borderRadius: borderRadius.lg,
+            fontSize: typography.fontSizes.md,
+            transformOrigin: 'center',
             transform: 'translateX(50%)',
-            boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)',
+            boxShadow: `0px ${spacing.xs}px ${spacing.sm}px ${theme.shadow}`,
             opacity: 1,
             animation: 'fadeInOut 4s ease forwards',
             transition: 'all 0.5s ease',
-            transformOrigin: 'center',
           }}
         >
           Copied!
@@ -513,6 +577,7 @@ export const Modal: React.FC<{
   closable?: boolean;
 }> = ({ children, width = '400px', onClose, closable = true }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const theme = useLayerzTheme();
 
   useEffect(() => {
     requestAnimationFrame(() => {
@@ -557,15 +622,15 @@ export const Modal: React.FC<{
           top: '50%',
           left: '50%',
           transform: `translate(-50%, ${isVisible ? '-50%' : '-45%'})`,
-          border: '1px solid gray',
-          backgroundColor: 'white',
+          border: `1px solid ${theme.border}`,
+          backgroundColor: theme.cardBackground,
           opacity: isVisible ? 1 : 0,
           transition: 'all 0.3s ease-in-out',
           zIndex: 1000,
           width: width,
-          padding: '20px',
-          borderRadius: '8px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          padding: spacing.md,
+          borderRadius: borderRadius.lg,
+          boxShadow: `0 ${spacing.xs}px ${spacing.md}px ${theme.shadow}`,
         }}
       >
         {children}
@@ -574,60 +639,138 @@ export const Modal: React.FC<{
   );
 };
 
+// Text Component
+export const Text: React.FC<{
+  children: React.ReactNode;
+  variant?: 'body' | 'caption' | 'heading' | 'title' | 'subtitle';
+  style?: React.CSSProperties;
+}> = ({ children, variant = 'body', style }) => {
+  const theme = useLayerzTheme();
+
+  let textStyle: React.CSSProperties = {
+    color: theme.text,
+    margin: 0,
+  };
+
+  switch (variant) {
+    case 'title':
+      textStyle = {
+        ...textStyle,
+        fontSize: typography.fontSizes.xxl,
+        fontWeight: typography.fontWeights.bold,
+        marginBottom: spacing.sm,
+      };
+      break;
+    case 'subtitle':
+      textStyle = {
+        ...textStyle,
+        fontSize: typography.fontSizes.lg,
+        fontWeight: typography.fontWeights.medium,
+        marginBottom: spacing.sm,
+      };
+      break;
+    case 'heading':
+      textStyle = {
+        ...textStyle,
+        fontSize: typography.fontSizes.xl,
+        fontWeight: typography.fontWeights.semiBold,
+        marginBottom: spacing.sm,
+      };
+      break;
+    case 'caption':
+      textStyle = {
+        ...textStyle,
+        fontSize: typography.fontSizes.xs,
+        color: theme.textSecondary,
+      };
+      break;
+    case 'body':
+    default:
+      textStyle = {
+        ...textStyle,
+        fontSize: typography.fontSizes.md,
+      };
+  }
+
+  return <div style={{ ...textStyle, ...style }}>{children}</div>;
+};
+
+// Container Component
+export const Container: React.FC<{
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}> = ({ children, style }) => {
+  const theme = useLayerzTheme();
+
+  return (
+    <div
+      style={{
+        padding: spacing.md,
+        width: '100%',
+        boxSizing: 'border-box',
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
 // Main Component to showcase all elements
 export default function DesignSystem() {
   const [radioValue, setRadioValue] = useState('');
   const [checkboxValue, setCheckboxValue] = useState(false);
   const [toggleValue, setToggleValue] = useState(false);
+  const theme = useLayerzTheme();
 
   return (
     <div
       style={{
         minHeight: '100vh',
-        padding: '20px',
-        backgroundColor: 'white',
-        color: '#282c34',
+        padding: spacing.md,
+        backgroundColor: theme.background,
+        color: theme.text,
         fontFamily: 'Arial, sans-serif',
       }}
     >
-      <h1 style={{ textAlign: 'center', marginBottom: '40px' }}>Design System</h1>
+      <h1 style={{ textAlign: 'center', marginBottom: spacing.xxl, fontSize: typography.fontSizes.xxxl }}>Design System</h1>
 
       <Card>
-        <h2>Buttons</h2>
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+        <h2 style={{ fontSize: typography.fontSizes.xl, marginBottom: spacing.md }}>Buttons</h2>
+        <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.md }}>
           <Button>Primary Button</Button>
-          <Button style={{ backgroundColor: 'transparent', border: '2px solid #282c34' }}>Secondary Button</Button>
+          <Button style={{ backgroundColor: 'transparent', border: `2px solid ${theme.primary}`, color: theme.primary }}>Secondary Button</Button>
         </div>
 
-        <h2>Inputs</h2>
-        <div style={{ marginBottom: '20px' }}>
+        <h2 style={{ fontSize: typography.fontSizes.xl, marginBottom: spacing.sm }}>Inputs</h2>
+        <div style={{ marginBottom: spacing.md }}>
           <Input placeholder="Enter text here" />
         </div>
 
-        <h2>TextArea</h2>
-        <div style={{ marginBottom: '20px' }}>
+        <h2 style={{ fontSize: typography.fontSizes.xl, marginBottom: spacing.sm }}>TextArea</h2>
+        <div style={{ marginBottom: spacing.md }}>
           <TextArea placeholder="Enter longer text here" />
         </div>
 
-        <h2>Bubbles</h2>
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+        <h2 style={{ fontSize: typography.fontSizes.xl, marginBottom: spacing.sm }}>Bubbles</h2>
+        <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.md }}>
           <Bubble>Bubble 1</Bubble>
           <Bubble>Bubble 2</Bubble>
         </div>
 
-        <h2>Radio Buttons</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+        <h2 style={{ fontSize: typography.fontSizes.xl, marginBottom: spacing.sm }}>Radio Buttons</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm, marginBottom: spacing.md }}>
           <RadioButton label="Option 1" name="radioGroup" value="1" checked={radioValue === '1'} onChange={(e) => setRadioValue(e.target.value)} />
           <RadioButton label="Option 2" name="radioGroup" value="2" checked={radioValue === '2'} onChange={(e) => setRadioValue(e.target.value)} />
         </div>
 
-        <h2>Checkboxes</h2>
-        <div style={{ marginBottom: '20px' }}>
+        <h2 style={{ fontSize: typography.fontSizes.xl, marginBottom: spacing.sm }}>Checkboxes</h2>
+        <div style={{ marginBottom: spacing.md }}>
           <Checkbox label="Check me" checked={checkboxValue} onChange={(e) => setCheckboxValue(e.target.checked)} />
         </div>
 
-        <h2>Select</h2>
-        <div style={{ marginBottom: '20px' }}>
+        <h2 style={{ fontSize: typography.fontSizes.xl, marginBottom: spacing.sm }}>Select</h2>
+        <div style={{ marginBottom: spacing.md }}>
           <Select>
             <option value="">Select an option</option>
             <option value="1">Option 1</option>
@@ -635,9 +778,14 @@ export default function DesignSystem() {
           </Select>
         </div>
 
-        <h2>Toggle Switch</h2>
-        <div style={{ marginBottom: '20px' }}>
+        <h2 style={{ fontSize: typography.fontSizes.xl, marginBottom: spacing.sm }}>Toggle Switch</h2>
+        <div style={{ marginBottom: spacing.md }}>
           <ToggleSwitch checked={toggleValue} onChange={(e) => setToggleValue(e.target.checked)} />
+        </div>
+
+        <h2 style={{ fontSize: typography.fontSizes.xl, marginBottom: spacing.sm }}>Address Bubble</h2>
+        <div style={{ marginBottom: spacing.md }}>
+          <AddressBubble address="0x1234567890abcdef1234567890abcdef12345678" showCopyButton={true} />
         </div>
       </Card>
     </div>

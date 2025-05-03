@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 import { AppState, AppStateStatus, LogBox } from 'react-native';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { ThemeProvider } from '@/hooks/ThemeContext';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
 import { AskPasswordContextProvider } from '@/src/hooks/AskPasswordContext';
@@ -17,17 +18,45 @@ import { ScanQrContextProvider } from '@/src/hooks/ScanQrContext';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
+// Prevent the splash screen from automatically hiding
 SplashScreen.preventAutoHideAsync();
-LogBox.ignoreLogs(['Open debugger to view warnings.']);
+
+// Ignore specific warnings
+LogBox.ignoreLogs(['Warning: ...']); // Specific warning messages to ignore
+
+// Create a static instance of the cache provider
+const cacheProvider = new SwrCacheProvider();
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+
+  const [loaded, error] = useFonts({
+    // Add any custom fonts here
   });
+
+  // Subscribe to app state changes to refresh SWR cache when app comes to foreground
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  // Handle app state changes
+  const handleAppStateChange = (nextAppState: AppStateStatus) => {
+    if (nextAppState === 'active') {
+      // Perform actions when app comes to foreground
+    }
+  };
+
+  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
+  useEffect(() => {
+    if (error) throw error;
+  }, [error]);
 
   useEffect(() => {
     if (loaded) {
+      // Hide the splash screen once the fonts are loaded and the UI is ready
       SplashScreen.hideAsync();
     }
   }, [loaded]);
@@ -39,58 +68,25 @@ export default function RootLayout() {
   return (
     <SWRConfig
       value={{
-        provider: () => new SwrCacheProvider(),
-        isVisible: () => {
-          return true;
-        },
-        // @see https://swr.vercel.app/docs/advanced/react-native.en-US
-        initFocus(callback) {
-          let appState: AppStateStatus = AppState.currentState;
-
-          const onAppStateChange = (nextAppState: AppStateStatus) => {
-            /* If it's resuming from background or inactive mode to active one */
-            if (appState.match(/inactive|background/) && nextAppState === 'active') {
-              callback();
-            }
-            appState = nextAppState;
-          };
-
-          // Subscribe to the app state change events
-          const subscription = AppState.addEventListener('change', onAppStateChange);
-
-          return () => {
-            subscription.remove();
-          };
-        },
-        // TODO: do we even need this? we would need to use `NetInfo` package. need to make sure if implementing this
-        // really makes a difference (e.g. users return from airplane mode)
-        // initReconnect(callback) {}
+        provider: () => cacheProvider,
+        refreshInterval: 30000,
+        revalidateOnFocus: false,
       }}
     >
-      <ScanQrContextProvider>
-        <AskPasswordContextProvider>
-          <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
+      <ThemeProvider>
+        <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <AskPasswordContextProvider BackgroundExecutorRef={BackgroundExecutor}>
             <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
-              <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                <Stack>
-                  <Stack.Screen name="index" options={{ headerShown: false, title: 'Home' }} />
-                  <Stack.Screen name="receive" />
-                  <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
-                  <Stack.Screen name="onboarding/intro" options={{ headerShown: false }} />
-                  <Stack.Screen name="onboarding/create-password" options={{ headerShown: false }} />
-                  <Stack.Screen name="onboarding/tos" options={{ headerShown: false }} />
-                  <Stack.Screen name="onboarding/import-wallet" options={{ headerShown: false }} />
-                  <Stack.Screen name="onboarding/create-wallet" options={{ headerShown: false }} />
-                  <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
-                  <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
-                  <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
-                </Stack>
-                <StatusBar style="auto" />
-              </ThemeProvider>
+              <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
+                <ScanQrContextProvider>
+                  <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+                  <Stack />
+                </ScanQrContextProvider>
+              </AccountNumberContextProvider>
             </NetworkContextProvider>
-          </AccountNumberContextProvider>
-        </AskPasswordContextProvider>
-      </ScanQrContextProvider>
+          </AskPasswordContextProvider>
+        </NavigationThemeProvider>
+      </ThemeProvider>
     </SWRConfig>
   );
 }

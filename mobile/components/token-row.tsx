@@ -1,7 +1,8 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { useTheme } from '@/hooks/ThemeContext';
+import Button from '@/components/ui/Button';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { Ionicons } from '@expo/vector-icons';
 import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -10,51 +11,58 @@ import { getTokenList } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 import { useRouter } from 'expo-router';
 import React, { useContext } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
+  const { getColor } = useTheme();
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const router = useRouter();
   const list = getTokenList(network);
   const token = list.find((token) => token.address === tokenAddress);
 
-  const { balance } = useTokenBalance(network ?? DEFAULT_NETWORK, accountNumber, tokenAddress, BackgroundExecutor);
+  const { balance } = useTokenBalance(
+    {
+      executor: BackgroundExecutor,
+      token: token?.address || '',
+      network: network || DEFAULT_NETWORK,
+      accountNumber,
+    },
+    {
+      refreshInterval: 30000,
+    }
+  );
 
-  if (!balance) return null;
+  if (!token) {
+    return null;
+  }
 
-  const formattedBalance = formatBalance(balance, token?.decimals ?? 1, 2);
+  const handleSend = () => {
+    router.push({
+      pathname: '/SendTokenEvm',
+      params: { contractAddress: token?.address },
+    });
+  };
 
-  // displaying token only if its balance is above the threshold. Threshold is arbitrary atm, probably
-  // should be configurable per token
-  if (+formattedBalance === 0) return null;
+  const handleReceive = () => {
+    router.push('/receive');
+  };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { borderColor: getColor('border') }]}>
       <View style={styles.tokenInfo}>
         <ThemedText style={styles.tokenName}>{token?.name}</ThemedText>
         <ThemedText style={styles.networkName}>({capitalizeFirstLetter(network)})</ThemedText>
       </View>
 
-      <ThemedText style={styles.balance}>
-        <ThemedText style={styles.symbol}>{token?.symbol}</ThemedText> {balance ? formattedBalance : ''}
-      </ThemedText>
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          onPress={() => {
-            router.push({
-              pathname: '/SendTokenEvm',
-              params: { contractAddress: token?.address },
-            });
-          }}
-          style={styles.button}
-        >
-          <Ionicons name="send" size={16} color="#666" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/receive')} style={styles.button}>
-          <Ionicons name="arrow-down" size={16} color="#666" />
-        </TouchableOpacity>
+      <View style={styles.balanceSection}>
+        <ThemedText style={styles.balance}>
+          <ThemedText style={styles.symbol}>{token?.symbol}</ThemedText> {balance ? formatBalance(balance, token?.decimals ?? 1, 2) : '0'}
+        </ThemedText>
+        <View style={styles.buttonContainer}>
+          <Button variant="send" onPress={handleSend} size="small" style={styles.actionButton} title="" iconOnly />
+          <Button variant="receive" onPress={handleReceive} size="small" style={styles.actionButton} title="" iconOnly />
+        </View>
       </View>
     </ThemedView>
   );
@@ -67,7 +75,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
     borderRadius: 8,
     marginVertical: 4,
     marginHorizontal: 8,
@@ -82,8 +89,11 @@ const styles = StyleSheet.create({
   },
   networkName: {
     marginLeft: 5,
-    color: '#888',
-    fontSize: 14,
+    fontSize: 12,
+  },
+  balanceSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   balance: {
     fontSize: 14,
@@ -97,10 +107,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
   },
-  button: {
-    backgroundColor: 'white',
-    padding: 8,
-    borderRadius: 4,
+  actionButton: {
+    minWidth: 32,
+    height: 32,
+    paddingHorizontal: 8,
   },
 });
 
