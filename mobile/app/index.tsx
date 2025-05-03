@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import Button from '@/components/ui/Button';
+import { NetworkSelector } from '@/components/ui/NetworkSelector';
 import TokensView from '@/components/tokens-view';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Hello } from '@shared/class/hello';
@@ -42,40 +43,41 @@ export default function IndexScreen() {
         }
 
         if (!hasEncryptedMnemonic) {
-          router.replace('/onboarding/create-password');
+          router.replace('/onboarding/encrypt-key');
           return;
         }
 
         if (!hasAcceptedTermsOfService) {
           router.replace('/onboarding/tos');
-          return;
         }
-      } catch (error) {
-        console.error('Error:', error);
+      } catch (e) {
+        console.log('Error checking mnemonic:', e);
       }
     };
 
     checkMnemonic();
-  }, [router]);
 
-  useEffect(() => {
     const getExchangeRate = async () => {
       try {
-        const rate = await BackgroundExecutor.getExchangeRate(network || DEFAULT_NETWORK);
+        const rate = await BackgroundExecutor.getExchangeRate(network === NETWORK_BITCOIN ? 'bitcoin' : network === NETWORK_ARKMUTINYNET ? 'bitcoin' : 'ethereum');
         setExchangeRate(rate);
-      } catch (error) {
-        console.log('Error getting exchange rate:', error);
+      } catch (e) {
+        console.log('Error getting exchange rate:', e);
       }
     };
-    getExchangeRate();
-  }, [network]);
 
-  const goToSettings = () => {
-    router.push('/settings');
-  };
+    getExchangeRate();
+
+    const interval = setInterval(getExchangeRate, 60000);
+    return () => clearInterval(interval);
+  }, [network]);
 
   const goToReceive = () => {
     router.push('/receive');
+  };
+
+  const goToSettings = () => {
+    router.push('/settings');
   };
 
   const goToSend = () => {
@@ -93,77 +95,62 @@ export default function IndexScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ThemedView style={styles.headerContainer}>
-        <ThemedView style={styles.header}>
-          <ThemedText style={styles.title}>Welcome to LZW Mobile</ThemedText>
-          <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
-          <ThemedText style={styles.subtitle}>Explore Bitcoin Layer 2</ThemedText>
-        </ThemedView>
-        <Pressable style={styles.settingsButton} onPress={goToSettings} testID="SettingsButton">
-          <Ionicons name="settings-outline" size={24} color={getColor('settingsIcon')} />
-        </Pressable>
-      </ThemedView>
-
-      <ThemedView style={styles.networkContainer}>
-        {networks.map((availableNetwork) => (
-          <Pressable
-            key={availableNetwork}
-            testID={network === availableNetwork ? `selectedNetwork-${availableNetwork}` : `network-${availableNetwork}`}
-            style={({ pressed }) => [
-              styles.networkButton,
-              { backgroundColor: getColor('surfaceBackground') },
-              network === availableNetwork && { backgroundColor: getColor('selectedNetworkBackground') },
-              pressed && { opacity: 0.8 },
-            ]}
-            onPress={() => setNetwork(availableNetwork)}
-          >
-            <ThemedText style={[styles.networkButtonText, { color: getColor('networkButtonText') }, network === availableNetwork && { color: getColor('selectedNetworkText') }]}>
-              {availableNetwork.toUpperCase()}
-            </ThemedText>
+      <ThemedView style={styles.container}>
+        <ThemedView style={styles.headerContainer}>
+          <ThemedView style={styles.header}>
+            <ThemedText style={styles.title}>Welcome to LZW Mobile</ThemedText>
+            <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
+            <ThemedText style={styles.subtitle}>Explore Bitcoin Layer 2</ThemedText>
+          </ThemedView>
+          <Pressable style={styles.settingsButton} onPress={goToSettings} testID="SettingsButton">
+            <Ionicons name="settings-outline" size={24} color={getColor('settingsIcon')} />
           </Pressable>
-        ))}
-      </ThemedView>
+        </ThemedView>
 
-      {getIsTestnet(network) && (
-        <ThemedView
-          style={{
-            backgroundColor: getColor({ lightColor: 'rgba(255, 0, 0, 0.1)', darkColor: 'rgba(255, 0, 0, 0.2)' }),
-            padding: 10,
-            borderRadius: 5,
-            marginHorizontal: 20,
-            marginVertical: 10,
-          }}
-        >
-          <ThemedText
+        <NetworkSelector selectedNetwork={network} onNetworkChange={setNetwork} filterLiquid={true} />
+
+        {getIsTestnet(network) && (
+          <ThemedView
             style={{
-              color: getColor('error'),
-              fontSize: 10,
-              textAlign: 'center',
-              fontWeight: 'bold',
+              backgroundColor: getColor({ lightColor: 'rgba(255, 0, 0, 0.1)', darkColor: 'rgba(255, 0, 0, 0.2)' }),
+              padding: 10,
+              borderRadius: 5,
+              marginHorizontal: 20,
+              marginVertical: 10,
             }}
           >
-            Warning: You are using a testnet, coins have no value
+            <ThemedText
+              style={{
+                color: getColor('error'),
+                fontSize: 10,
+                textAlign: 'center',
+                fontWeight: 'bold',
+              }}
+            >
+              Warning: You are using a testnet, coins have no value
+            </ThemedText>
+          </ThemedView>
+        )}
+
+        <ThemedView style={styles.balanceContainer}>
+          <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
+            {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
+          </ThemedText>
+
+          <ThemedText adjustsFontSizeToFit numberOfLines={1}>
+            {balance && +balance > 0 && exchangeRate ? '$' + (+formatBalance(balance, getDecimalsByNetwork(network), 8) * exchangeRate).toPrecision(2) : ''}
           </ThemedText>
         </ThemedView>
-      )}
 
-      <ThemedView style={styles.balanceContainer}>
-        <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
-          {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
-        </ThemedText>
-        <ThemedText adjustsFontSizeToFit numberOfLines={1}>
-          {balance && +balance > 0 && exchangeRate ? '$' + (+formatBalance(balance, getDecimalsByNetwork(network), 8) * exchangeRate).toPrecision(2) : ''}
-        </ThemedText>
-      </ThemedView>
+        <TokensView />
 
-      <TokensView />
+        <ThemedView style={styles.contentContainer}>
+          <ThemedView style={styles.buttonContainer}>
+            <ThemedView style={styles.buttonRow}>
+              <Button variant="receive" onPress={goToReceive} title="Receive" testID="ReceiveButton" size="large" />
 
-      <ThemedView style={styles.contentContainer}>
-        <ThemedView style={styles.buttonContainer}>
-          <ThemedView style={styles.buttonRow}>
-            <Button variant="receive" onPress={goToReceive} title="Receive" testID="ReceiveButton" size="large" />
-
-            <Button variant="send" onPress={goToSend} title="Send" testID="SendButton" size="large" />
+              <Button variant="send" onPress={goToSend} title="Send" testID="SendButton" size="large" />
+            </ThemedView>
           </ThemedView>
         </ThemedView>
       </ThemedView>
@@ -230,20 +217,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '100%',
     gap: 12,
-  },
-  networkContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    padding: 10,
-    gap: 8,
-  },
-  networkButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    marginHorizontal: 4,
-    marginVertical: 4,
   },
   networkButtonText: {
     fontSize: 12,

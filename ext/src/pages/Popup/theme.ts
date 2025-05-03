@@ -1,265 +1,169 @@
-// Layerz Brand Colors - identical to mobile for consistency
-const LAYERZ_PRIMARY = '#3F51B5'; // Main brand color
-const LAYERZ_SECONDARY = '#00ACC1'; // Secondary brand color
-const LAYERZ_ACCENT = '#FF4081'; // Accent color for CTAs
-const LAYERZ_SUCCESS = '#4CAF50'; // Success green
-const LAYERZ_WARNING = '#FFC107'; // Warning yellow
-const LAYERZ_ERROR = '#F44336'; // Error/danger red
-const LAYERZ_NEUTRAL = '#9E9E9E'; // Neutral gray
+import { brandColors, grayScale, lightTheme, darkTheme } from '@shared/themes/colors';
 
-// Color palette that mirrors mobile's theme
+// Use the shared theme colors directly from shared library
 export const LayerzColors = {
   light: {
     // Base colors
-    primary: LAYERZ_PRIMARY,
-    primaryLight: '#7986CB',
-    primaryDark: '#303F9F',
-    secondary: LAYERZ_SECONDARY,
-    secondaryLight: '#4DD0E1',
-    secondaryDark: '#0097A7',
-    accent: LAYERZ_ACCENT,
-    accentLight: '#FF80AB',
-    accentDark: '#F50057',
+    primary: brandColors.primary,
+    primaryLight: brandColors.primaryLight,
+    primaryDark: brandColors.primaryDark,
+    secondary: brandColors.accent,
+    secondaryLight: brandColors.accent,
+    secondaryDark: brandColors.accent,
+    accent: brandColors.accent,
 
     // Status colors
-    success: LAYERZ_SUCCESS,
-    warning: LAYERZ_WARNING,
-    error: LAYERZ_ERROR,
-    info: '#2196F3',
+    success: brandColors.success,
+    warning: brandColors.warning,
+    error: brandColors.error,
+    info: brandColors.info,
 
     // UI colors
-    text: '#212121',
-    textSecondary: '#757575',
-    textTertiary: '#9E9E9E',
-    textInverted: '#FFFFFF',
-    background: '#FFFFFF',
-    surfaceBackground: '#F5F5F5',
-    cardBackground: '#FFFFFF',
-    border: '#E0E0E0',
-    divider: '#EEEEEE',
-    shadow: 'rgba(0, 0, 0, 0.1)',
+    text: lightTheme.text,
+    textSecondary: lightTheme.textSecondary,
+    textTertiary: lightTheme.textTertiary,
+    background: lightTheme.background,
+    surfaceBackground: lightTheme.surfaceBackground,
+    cardBackground: lightTheme.cardBackground,
+    border: lightTheme.border,
+    borderLight: lightTheme.borderLight,
 
     // Network colors
-    selectedNetworkBackground: '#3F51B5',
-    selectedNetworkText: '#FFFFFF',
-    networkButtonText: '#212121',
+    selectedNetworkBackground: lightTheme.selectedNetworkBackground,
+    selectedNetworkText: grayScale.white,
+    networkButtonText: lightTheme.networkButtonText,
 
-    // Action colors
-    send: '#F44336',
-    receive: '#4CAF50',
-    settingsIcon: '#757575',
+    // Actions
+    send: brandColors.send,
+    receive: brandColors.receive,
 
     // Essentials
-    white: '#FFFFFF',
-    black: '#000000',
+    white: grayScale.white,
+    black: grayScale.black,
+
+    // Legacy compatibility
+    icon: lightTheme.icon,
+    tint: lightTheme.tint,
+    tabIconDefault: lightTheme.tabIconDefault,
+    tabIconSelected: lightTheme.tabIconSelected,
   },
   dark: {
     // Base colors
-    primary: '#7986CB',
-    primaryLight: '#9FA8DA',
-    primaryDark: '#3F51B5',
-    secondary: '#4DD0E1',
-    secondaryLight: '#80DEEA',
-    secondaryDark: '#00ACC1',
-    accent: '#FF80AB',
-    accentLight: '#FF99B9',
-    accentDark: '#FF4081',
+    primary: brandColors.primaryLight,
+    primaryLight: brandColors.primary,
+    primaryDark: brandColors.primaryDark,
+    secondary: brandColors.accent,
+    secondaryLight: brandColors.accent,
+    secondaryDark: brandColors.accent,
+    accent: brandColors.accent,
 
     // Status colors
-    success: '#66BB6A',
-    warning: '#FFD54F',
-    error: '#EF5350',
-    info: '#42A5F5',
+    success: brandColors.success,
+    warning: brandColors.warning,
+    error: brandColors.error,
+    info: brandColors.info,
 
     // UI colors
-    text: '#EEEEEE',
-    textSecondary: '#BDBDBD',
-    textTertiary: '#9E9E9E',
-    textInverted: '#212121',
-    background: '#121212',
-    surfaceBackground: '#1E1E1E',
-    cardBackground: '#2D2D2D',
-    border: '#424242',
-    divider: '#323232',
-    shadow: 'rgba(0, 0, 0, 0.2)',
+    text: darkTheme.text,
+    textSecondary: darkTheme.textSecondary,
+    textTertiary: darkTheme.textTertiary,
+    background: darkTheme.background,
+    surfaceBackground: darkTheme.surfaceBackground,
+    cardBackground: darkTheme.cardBackground,
+    border: darkTheme.border,
+    borderLight: darkTheme.borderLight,
 
     // Network colors
-    selectedNetworkBackground: '#7986CB',
-    selectedNetworkText: '#FFFFFF',
-    networkButtonText: '#EEEEEE',
+    selectedNetworkBackground: darkTheme.selectedNetworkBackground,
+    selectedNetworkText: grayScale.white,
+    networkButtonText: darkTheme.networkButtonText,
 
-    // Action colors
-    send: '#EF5350',
-    receive: '#66BB6A',
-    settingsIcon: '#BDBDBD',
+    // Actions
+    send: brandColors.send,
+    receive: brandColors.receive,
 
     // Essentials
-    white: '#FFFFFF',
-    black: '#000000',
+    white: grayScale.white,
+    black: grayScale.black,
+
+    // Legacy compatibility
+    icon: darkTheme.icon,
+    tint: darkTheme.tint,
+    tabIconDefault: darkTheme.tabIconDefault,
+    tabIconSelected: darkTheme.tabIconSelected,
   },
 };
 
-// Typography system for consistent text styling
-export const fontFamilies = {
-  primary: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
-  mono: '"JetBrains Mono", "Roboto Mono", Menlo, Monaco, Consolas, "Courier New", monospace',
-};
+// Hook to get theme colors from current color scheme
+export function useLayerzTheme() {
+  // Use browser's matchMedia instead of react-native-web
+  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return LayerzColors[isDarkMode ? 'dark' : 'light'];
+}
 
-export const fontWeights = {
-  regular: 400,
-  medium: 500,
-  semiBold: 600,
-  bold: 700,
-};
+// Function to get current theme and listen for system changes
+export function getThemeWithListener(callback: (theme: 'light' | 'dark') => void) {
+  // Check initial theme
+  const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const initialTheme = darkModeQuery.matches ? 'dark' : 'light';
 
-// Text styles that mirror the mobile app
-export const textStyles = {
-  // Display styles - for very large headers
-  displayLarge: {
-    fontSize: '36px',
-    lineHeight: '44px',
-    fontWeight: fontWeights.bold,
-    letterSpacing: '-0.5px',
-  },
-  displayMedium: {
-    fontSize: '32px',
-    lineHeight: '40px',
-    fontWeight: fontWeights.bold,
-    letterSpacing: '-0.5px',
-  },
-  displaySmall: {
-    fontSize: '28px',
-    lineHeight: '36px',
-    fontWeight: fontWeights.bold,
-    letterSpacing: '-0.25px',
-  },
+  // Set up listener for theme changes
+  darkModeQuery.addEventListener('change', (e) => {
+    callback(e.matches ? 'dark' : 'light');
+  });
 
-  // Heading styles - for section headers
-  headingLarge: {
-    fontSize: '24px',
-    lineHeight: '32px',
-    fontWeight: fontWeights.bold,
-  },
-  headingMedium: {
-    fontSize: '20px',
-    lineHeight: '28px',
-    fontWeight: fontWeights.bold,
-  },
-  headingSmall: {
-    fontSize: '18px',
-    lineHeight: '26px',
-    fontWeight: fontWeights.semiBold,
-  },
+  return initialTheme;
+}
 
-  // Subtitle styles - for section subheadings
-  subtitleLarge: {
-    fontSize: '16px',
-    lineHeight: '24px',
-    fontWeight: fontWeights.semiBold,
-  },
-  subtitleMedium: {
-    fontSize: '14px',
-    lineHeight: '22px',
-    fontWeight: fontWeights.semiBold,
-  },
+// Added function to get current theme without setting up a listener
+export function getCurrentTheme(): 'light' | 'dark' {
+  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return isDarkMode ? 'dark' : 'light';
+}
 
-  // Body styles - for paragraphs and main content
-  bodyLarge: {
-    fontSize: '16px',
-    lineHeight: '24px',
-    fontWeight: fontWeights.regular,
-  },
-  bodyMedium: {
-    fontSize: '14px',
-    lineHeight: '22px',
-    fontWeight: fontWeights.regular,
-  },
-  bodySmall: {
-    fontSize: '12px',
-    lineHeight: '20px',
-    fontWeight: fontWeights.regular,
-  },
-
-  // Label styles - for buttons and form components
-  labelLarge: {
-    fontSize: '16px',
-    lineHeight: '20px',
-    fontWeight: fontWeights.medium,
-    letterSpacing: '0.1px',
-  },
-  labelMedium: {
-    fontSize: '14px',
-    lineHeight: '18px',
-    fontWeight: fontWeights.medium,
-    letterSpacing: '0.1px',
-  },
-  labelSmall: {
-    fontSize: '12px',
-    lineHeight: '16px',
-    fontWeight: fontWeights.medium,
-    letterSpacing: '0.1px',
-  },
-
-  // Special styles
-  button: {
-    fontSize: '16px',
-    lineHeight: '20px',
-    fontWeight: fontWeights.semiBold,
-    letterSpacing: '0.25px',
-  },
-  link: {
-    fontSize: '16px',
-    lineHeight: '24px',
-    fontWeight: fontWeights.medium,
-    textDecoration: 'underline',
-  },
-  caption: {
-    fontSize: '12px',
-    lineHeight: '16px',
-    fontWeight: fontWeights.regular,
-    letterSpacing: '0.4px',
-  },
-  overline: {
-    fontSize: '10px',
-    lineHeight: '16px',
-    fontWeight: fontWeights.medium,
-    letterSpacing: '1.5px',
-    textTransform: 'uppercase',
-  },
-};
-
-// Spacing system for consistent layout
+// Spacing units for consistent layout
 export const spacing = {
-  xxs: '2px',
-  xs: '4px',
-  s: '8px',
-  m: '16px',
-  l: '24px',
-  xl: '32px',
-  xxl: '48px',
-  xxxl: '64px',
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
 };
 
-// Border radius system
+// Border radius tokens
 export const borderRadius = {
-  xs: '2px',
-  s: '4px',
-  m: '8px',
-  l: '12px',
-  xl: '16px',
-  xxl: '24px',
-  round: '50%',
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  round: 9999,
 };
 
-// Function to get current theme
-export const getCurrentTheme = () => {
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  // You can extend this to use stored preferences
-  return prefersDark ? 'dark' : 'light';
-};
-
-// Helper function to get color value
-export const getLayerzColor = (colorKey: string) => {
-  const theme = getCurrentTheme();
-  return LayerzColors[theme][colorKey] || LayerzColors[theme].text;
+// Typography
+export const typography = {
+  fontSizes: {
+    xs: 12,
+    sm: 14,
+    md: 16,
+    lg: 18,
+    xl: 20,
+    xxl: 24,
+    xxxl: 32,
+  },
+  fontWeights: {
+    regular: '400',
+    medium: '500',
+    semiBold: '600',
+    bold: '700',
+  },
+  lineHeights: {
+    xs: 16,
+    sm: 20,
+    md: 24,
+    lg: 28,
+    xl: 32,
+    xxl: 36,
+  },
 };
