@@ -1,6 +1,7 @@
 import React from 'react';
 import { getAvailableNetworks, Networks } from '@shared/types/networks';
 import { getCurrentTheme, LayerzColors } from '../theme';
+import { componentColors } from '@shared/themes/colors';
 
 interface NetworkSelectorProps {
   selectedNetwork: Networks;
@@ -28,8 +29,8 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ selectedNetwor
         <button
           key={network}
           style={{
-            backgroundColor: network === selectedNetwork ? LayerzColors[theme].selectedNetworkBackground : LayerzColors[theme].surfaceBackground,
-            color: network === selectedNetwork ? LayerzColors[theme].selectedNetworkText : LayerzColors[theme].networkButtonText,
+            backgroundColor: network === selectedNetwork ? componentColors.selectedNetworkBackground : LayerzColors[theme].surfaceBackground,
+            color: network === selectedNetwork ? componentColors.selectedNetworkText : componentColors.networkButtonText,
             padding: '8px 12px',
             borderRadius: '16px',
             margin: '4px',

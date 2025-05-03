@@ -1,7 +1,12 @@
+:root {
+  --panel-background-color: var(--layerz-background, #242424);
+  --panel-text-color: var(--layerz-text, #ffffff);
+}
+
 body {
-  background-color: #242424;
+  background-color: var(--panel-background-color);
 }
 
 .container {
-  color: #ffffff;
+  color: var(--panel-text-color);
 }

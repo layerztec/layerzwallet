@@ -1,4 +1,5 @@
 import { brandColors, grayScale, lightTheme, darkTheme } from '@shared/themes/colors';
+import { fontSizes, fontWeights, lineHeights, textVariants } from '@shared/themes/typography';
 
 // Use the shared theme colors directly from shared library
 export const LayerzColors = {
@@ -49,8 +50,8 @@ export const LayerzColors = {
   },
   dark: {
     // Base colors
-    primary: brandColors.primaryLight,
-    primaryLight: brandColors.primary,
+    primary: brandColors.primary, // Changed from primaryLight to match mobile
+    primaryLight: brandColors.primaryLight,
     primaryDark: brandColors.primaryDark,
     secondary: brandColors.accent,
     secondaryLight: brandColors.accent,
@@ -141,29 +142,10 @@ export const borderRadius = {
   round: 9999,
 };
 
-// Typography
+// Typography - Import directly from shared system
 export const typography = {
-  fontSizes: {
-    xs: 12,
-    sm: 14,
-    md: 16,
-    lg: 18,
-    xl: 20,
-    xxl: 24,
-    xxxl: 32,
-  },
-  fontWeights: {
-    regular: '400',
-    medium: '500',
-    semiBold: '600',
-    bold: '700',
-  },
-  lineHeights: {
-    xs: 16,
-    sm: 20,
-    md: 24,
-    lg: 28,
-    xl: 32,
-    xxl: 36,
-  },
+  fontSizes,
+  fontWeights,
+  lineHeights,
+  textVariants,
 };

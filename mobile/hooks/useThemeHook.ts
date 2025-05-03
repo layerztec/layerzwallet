@@ -4,6 +4,7 @@
 import { createTheme, ThemeMode } from '@shared/hooks/useThemeHook';
 import { useColorScheme } from './useColorScheme';
 import { StyleSheet } from 'react-native';
+import { fontWeights as sharedFontWeights, fontSizes, textVariants as sharedTextVariants } from '@shared/themes/typography';
 
 export interface ThemeOverrideProps {
   lightColor?: string;
@@ -17,127 +18,144 @@ export const fontFamilies = {
   mono: 'monospace',
 };
 
-// Define font weights
-export const fontWeights = {
-  regular: '400',
-  medium: '500',
-  semiBold: '600',
-  bold: '700',
-};
+// Use shared font weights
+export const fontWeights = sharedFontWeights;
 
-// Define text styles for consistent typography
+// Convert the shared text variants to React Native StyleSheet
+// This creates a matching typography system for the mobile app
 export const textStyles = StyleSheet.create({
-  // Display styles - for very large headers
   displayLarge: {
-    fontSize: 36,
-    lineHeight: 44,
-    fontWeight: fontWeights.bold,
-    letterSpacing: -0.5,
+    fontSize: sharedTextVariants.displayLarge.fontSize,
+    lineHeight: sharedTextVariants.displayLarge.lineHeight,
+    fontWeight: sharedTextVariants.displayLarge.fontWeight,
+    letterSpacing: sharedTextVariants.displayLarge.letterSpacing,
   },
   displayMedium: {
-    fontSize: 32,
-    lineHeight: 40,
-    fontWeight: fontWeights.bold,
-    letterSpacing: -0.5,
+    fontSize: sharedTextVariants.displayMedium.fontSize,
+    lineHeight: sharedTextVariants.displayMedium.lineHeight,
+    fontWeight: sharedTextVariants.displayMedium.fontWeight,
+    letterSpacing: sharedTextVariants.displayMedium.letterSpacing,
   },
   displaySmall: {
-    fontSize: 28,
-    lineHeight: 36,
-    fontWeight: fontWeights.bold,
-    letterSpacing: -0.25,
+    fontSize: sharedTextVariants.displaySmall.fontSize,
+    lineHeight: sharedTextVariants.displaySmall.lineHeight,
+    fontWeight: sharedTextVariants.displaySmall.fontWeight,
+    letterSpacing: sharedTextVariants.displaySmall.letterSpacing,
   },
 
-  // Heading styles - for section headers
+  // Heading styles
   headingLarge: {
-    fontSize: 24,
-    lineHeight: 32,
-    fontWeight: fontWeights.bold,
+    fontSize: sharedTextVariants.headingLarge.fontSize,
+    lineHeight: sharedTextVariants.headingLarge.lineHeight,
+    fontWeight: sharedTextVariants.headingLarge.fontWeight,
   },
   headingMedium: {
-    fontSize: 20,
-    lineHeight: 28,
-    fontWeight: fontWeights.bold,
+    fontSize: sharedTextVariants.headingMedium.fontSize,
+    lineHeight: sharedTextVariants.headingMedium.lineHeight,
+    fontWeight: sharedTextVariants.headingMedium.fontWeight,
   },
   headingSmall: {
-    fontSize: 18,
-    lineHeight: 26,
-    fontWeight: fontWeights.semiBold,
+    fontSize: sharedTextVariants.headingSmall.fontSize,
+    lineHeight: sharedTextVariants.headingSmall.lineHeight,
+    fontWeight: sharedTextVariants.headingSmall.fontWeight,
   },
 
-  // Subtitle styles - for section subheadings
+  // Subtitle styles
   subtitleLarge: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: fontWeights.semiBold,
+    fontSize: sharedTextVariants.subtitleLarge.fontSize,
+    lineHeight: sharedTextVariants.subtitleLarge.lineHeight,
+    fontWeight: sharedTextVariants.subtitleLarge.fontWeight,
   },
   subtitleMedium: {
-    fontSize: 14,
-    lineHeight: 22,
-    fontWeight: fontWeights.semiBold,
+    fontSize: sharedTextVariants.subtitleMedium.fontSize,
+    lineHeight: sharedTextVariants.subtitleMedium.lineHeight,
+    fontWeight: sharedTextVariants.subtitleMedium.fontWeight,
   },
 
-  // Body styles - for paragraphs and main content
+  // Body styles
   bodyLarge: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: fontWeights.regular,
+    fontSize: sharedTextVariants.bodyLarge.fontSize,
+    lineHeight: sharedTextVariants.bodyLarge.lineHeight,
+    fontWeight: sharedTextVariants.bodyLarge.fontWeight,
   },
   bodyMedium: {
-    fontSize: 14,
-    lineHeight: 22,
-    fontWeight: fontWeights.regular,
+    fontSize: sharedTextVariants.bodyMedium.fontSize,
+    lineHeight: sharedTextVariants.bodyMedium.lineHeight,
+    fontWeight: sharedTextVariants.bodyMedium.fontWeight,
   },
   bodySmall: {
-    fontSize: 12,
-    lineHeight: 20,
-    fontWeight: fontWeights.regular,
+    fontSize: sharedTextVariants.bodySmall.fontSize,
+    lineHeight: sharedTextVariants.bodySmall.lineHeight,
+    fontWeight: sharedTextVariants.bodySmall.fontWeight,
   },
 
-  // Label styles - for buttons and form components
+  // Label styles
   labelLarge: {
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: fontWeights.medium,
-    letterSpacing: 0.1,
+    fontSize: sharedTextVariants.labelLarge.fontSize,
+    lineHeight: sharedTextVariants.labelLarge.lineHeight,
+    fontWeight: sharedTextVariants.labelLarge.fontWeight,
+    letterSpacing: sharedTextVariants.labelLarge.letterSpacing,
   },
   labelMedium: {
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: fontWeights.medium,
-    letterSpacing: 0.1,
+    fontSize: sharedTextVariants.labelMedium.fontSize,
+    lineHeight: sharedTextVariants.labelMedium.lineHeight,
+    fontWeight: sharedTextVariants.labelMedium.fontWeight,
+    letterSpacing: sharedTextVariants.labelMedium.letterSpacing,
   },
   labelSmall: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: fontWeights.medium,
-    letterSpacing: 0.1,
+    fontSize: sharedTextVariants.labelSmall.fontSize,
+    lineHeight: sharedTextVariants.labelSmall.lineHeight,
+    fontWeight: sharedTextVariants.labelSmall.fontWeight,
+    letterSpacing: sharedTextVariants.labelSmall.letterSpacing,
   },
 
   // Special styles
   button: {
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: fontWeights.semiBold,
-    letterSpacing: 0.25,
+    fontSize: sharedTextVariants.button.fontSize,
+    lineHeight: sharedTextVariants.button.lineHeight,
+    fontWeight: sharedTextVariants.button.fontWeight,
+    letterSpacing: sharedTextVariants.button.letterSpacing,
   },
   link: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: fontWeights.medium,
+    fontSize: sharedTextVariants.link.fontSize,
+    lineHeight: sharedTextVariants.link.lineHeight,
+    fontWeight: sharedTextVariants.link.fontWeight,
     textDecorationLine: 'underline',
   },
   caption: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: fontWeights.regular,
-    letterSpacing: 0.4,
+    fontSize: sharedTextVariants.caption.fontSize,
+    lineHeight: sharedTextVariants.caption.lineHeight,
+    fontWeight: sharedTextVariants.caption.fontWeight,
+    letterSpacing: sharedTextVariants.caption.letterSpacing,
   },
   overline: {
-    fontSize: 10,
-    lineHeight: 16,
-    fontWeight: fontWeights.medium,
-    letterSpacing: 1.5,
+    fontSize: sharedTextVariants.overline.fontSize,
+    lineHeight: sharedTextVariants.overline.lineHeight,
+    fontWeight: sharedTextVariants.overline.fontWeight,
+    letterSpacing: sharedTextVariants.overline.letterSpacing,
     textTransform: 'uppercase',
+  },
+
+  // Legacy variants for backward compatibility
+  default: {
+    fontSize: sharedTextVariants.bodyLarge.fontSize,
+    lineHeight: sharedTextVariants.bodyLarge.lineHeight,
+    fontWeight: sharedTextVariants.bodyLarge.fontWeight,
+  },
+  title: {
+    fontSize: sharedTextVariants.headingLarge.fontSize,
+    lineHeight: sharedTextVariants.headingLarge.lineHeight,
+    fontWeight: sharedTextVariants.headingLarge.fontWeight,
+  },
+  subtitle: {
+    fontSize: sharedTextVariants.subtitleLarge.fontSize,
+    lineHeight: sharedTextVariants.subtitleLarge.lineHeight,
+    fontWeight: sharedTextVariants.subtitleLarge.fontWeight,
+  },
+  defaultSemiBold: {
+    fontSize: sharedTextVariants.bodyLarge.fontSize,
+    lineHeight: sharedTextVariants.bodyLarge.lineHeight,
+    fontWeight: sharedTextVariants.semiBold,
   },
 });
 
@@ -156,10 +174,10 @@ export const spacing = {
 /**
  * Detect color scheme for mobile app
  */
-function getMobileColorScheme(): ThemeMode {
+function useMobileColorScheme(): ThemeMode {
   const colorScheme = useColorScheme();
   return colorScheme === 'dark' ? 'dark' : 'light';
 }
 
 // Create theme hook using the platform-specific color scheme detector
-export const useTheme = createTheme(getMobileColorScheme);
+export const useTheme = createTheme(useMobileColorScheme);

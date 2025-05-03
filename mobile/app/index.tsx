@@ -70,7 +70,7 @@ export default function IndexScreen() {
 
     const interval = setInterval(getExchangeRate, 60000);
     return () => clearInterval(interval);
-  }, [network]);
+  }, [network, router]);
 
   const goToReceive = () => {
     router.push('/receive');

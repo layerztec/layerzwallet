@@ -1,16 +1,23 @@
+:root {
+  /* These variables will be set by the theme system */
+  --background-color: var(--layerz-background, white);
+  --text-color: var(--layerz-text, black);
+  --surface-background: var(--layerz-surface-background, #f3f4f6);
+  --link-color: var(--layerz-primary, #61dafb);
+  --header-color: var(--layerz-text-secondary, #282c34);
+}
+
 .App {
   padding: 20px;
-  background-image: linear-gradient(to bottom, #f3f4f6, #f3f4f6);
-  /* color: #282c34; */
-  color: red;
+  background-image: linear-gradient(to bottom, var(--surface-background), var(--surface-background));
+  color: var(--text-color);
   position: absolute;
   top: 0px;
   bottom: 0px;
   left: 0px;
   right: 0px;
   text-align: center;
-
-  background-color: white;
+  background-color: var(--background-color);
 }
 
 .App-logo {
@@ -31,11 +38,11 @@
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-  color: #282c34;
+  color: var(--header-color);
 }
 
 .App-link {
-  color: #61dafb;
+  color: var(--link-color);
 }
 
 @keyframes App-logo-spin {

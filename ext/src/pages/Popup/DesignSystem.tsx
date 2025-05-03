@@ -71,32 +71,137 @@ export const Switch: React.FC<{
 };
 
 // Button Component
-export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { disabled?: boolean }> = ({ children, disabled, style, ...props }) => {
+export const Button: React.FC<
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'outline' | 'send' | 'receive';
+    size?: 'small' | 'medium' | 'large';
+    disabled?: boolean;
+    iconName?: string;
+  }
+> = ({ children, variant = 'primary', size = 'medium', disabled, style, iconName, ...props }) => {
   const theme = useLayerzTheme();
+  const [pressed, setPressed] = useState(false);
+
+  // Define styles based on variant
+  const getVariantStyles = (): { backgroundColor: string; textColor: string; borderColor?: string } => {
+    switch (variant) {
+      case 'primary':
+        return {
+          backgroundColor: theme.primary,
+          textColor: theme.white,
+        };
+      case 'secondary':
+        return {
+          backgroundColor: theme.secondary,
+          textColor: theme.white,
+        };
+      case 'danger':
+        return {
+          backgroundColor: theme.error,
+          textColor: theme.white,
+        };
+      case 'success':
+        return {
+          backgroundColor: theme.success,
+          textColor: theme.white,
+        };
+      case 'outline':
+        return {
+          backgroundColor: 'transparent',
+          textColor: theme.primary,
+          borderColor: theme.primary,
+        };
+      case 'send':
+        return {
+          backgroundColor: theme.send,
+          textColor: theme.white,
+        };
+      case 'receive':
+        return {
+          backgroundColor: theme.receive,
+          textColor: theme.white,
+        };
+      default:
+        return {
+          backgroundColor: theme.primary,
+          textColor: theme.white,
+        };
+    }
+  };
+
+  // Define styles based on size
+  const getSizeStyles = (): { height: string; padding: string; fontSize: string; iconSize: number } => {
+    switch (size) {
+      case 'small':
+        return {
+          height: '36px',
+          padding: `${spacing.xs}px ${spacing.sm}px`,
+          fontSize: `${typography.fontSizes.sm}px`,
+          iconSize: 16,
+        };
+      case 'medium':
+        return {
+          height: '48px',
+          padding: `${spacing.sm}px ${spacing.md}px`,
+          fontSize: `${typography.fontSizes.md}px`,
+          iconSize: 18,
+        };
+      case 'large':
+        return {
+          height: '56px',
+          padding: `${spacing.sm}px ${spacing.lg}px`,
+          fontSize: `${typography.fontSizes.lg}px`,
+          iconSize: 22,
+        };
+      default:
+        return {
+          height: '48px',
+          padding: `${spacing.sm}px ${spacing.md}px`,
+          fontSize: `${typography.fontSizes.md}px`,
+          iconSize: 18,
+        };
+    }
+  };
+
+  const variantStyles = getVariantStyles();
+  const sizeStyles = getSizeStyles();
 
   return (
     <button
       {...props}
       disabled={disabled}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onMouseLeave={() => setPressed(false)}
       style={{
-        backgroundColor: theme.primary,
-        color: theme.white,
-        border: `1px solid ${theme.border}`,
-        padding: `${spacing.sm}px ${spacing.md}px`,
+        backgroundColor: variantStyles.backgroundColor,
+        color: variantStyles.textColor,
+        border: variantStyles.borderColor ? `1px solid ${variantStyles.borderColor}` : 'none',
         borderRadius: borderRadius.md,
+        height: sizeStyles.height,
+        padding: sizeStyles.padding,
+        fontSize: sizeStyles.fontSize,
         cursor: disabled ? 'not-allowed' : 'pointer',
-        fontSize: typography.fontSizes.md,
-        transition: 'background-color 0.3s',
-        opacity: disabled ? 0.5 : 1,
+        transition: 'opacity 0.2s',
+        opacity: disabled ? 0.5 : pressed ? 0.8 : 1,
         display: 'inline-flex',
         alignItems: 'center',
+        justifyContent: 'center',
         whiteSpace: 'nowrap',
-        margin: `0 ${spacing.xs}px ${spacing.xs}px 0`,
         ...style, // Merge any custom styles passed as props
       }}
     >
       {React.Children.map(children, (child) => (
-        <span style={{ display: 'flex', alignItems: 'center', marginRight: spacing.xs }}>{child}</span>
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: `0 ${spacing.xs}px`,
+          }}
+        >
+          {child}
+        </span>
       ))}
     </button>
   );
@@ -243,7 +348,7 @@ export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (pro
         borderRadius: borderRadius.sm,
         fontSize: typography.fontSizes.md,
         color: theme.text,
-        backgroundColor: theme.white,
+        backgroundColor: theme.background,
       }}
     />
   );
@@ -721,15 +826,15 @@ export default function DesignSystem() {
   const [radioValue, setRadioValue] = useState('');
   const [checkboxValue, setCheckboxValue] = useState(false);
   const [toggleValue, setToggleValue] = useState(false);
-  const theme = useLayerzTheme();
+  const { background, text, primary } = useLayerzTheme();
 
   return (
     <div
       style={{
         minHeight: '100vh',
         padding: spacing.md,
-        backgroundColor: theme.background,
-        color: theme.text,
+        backgroundColor: background,
+        color: text,
         fontFamily: 'Arial, sans-serif',
       }}
     >
@@ -739,7 +844,7 @@ export default function DesignSystem() {
         <h2 style={{ fontSize: typography.fontSizes.xl, marginBottom: spacing.md }}>Buttons</h2>
         <div style={{ display: 'flex', gap: spacing.sm, marginBottom: spacing.md }}>
           <Button>Primary Button</Button>
-          <Button style={{ backgroundColor: 'transparent', border: `2px solid ${theme.primary}`, color: theme.primary }}>Secondary Button</Button>
+          <Button style={{ backgroundColor: 'transparent', border: `2px solid ${primary}`, color: primary }}>Secondary Button</Button>
         </div>
 
         <h2 style={{ fontSize: typography.fontSizes.xl, marginBottom: spacing.sm }}>Inputs</h2>

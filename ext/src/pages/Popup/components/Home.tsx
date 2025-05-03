@@ -7,7 +7,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { BackgroundCaller } from '../../../modules/background-caller';
-import { Button, Card, Text } from '../DesignSystem';
+import { Button } from '../DesignSystem';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, Networks } from '@shared/types/networks';
 import TokensView from './TokensView';
 import PartnersView from './PartnersView';
@@ -69,38 +69,30 @@ const Home: React.FC = () => {
 
       <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
         <Button
+          variant="receive"
+          size="large"
           onClick={() => navigate('/receive')}
+          data-testid="ReceiveButton"
           style={{
-            height: '56px',
-            fontSize: '18px',
-            fontWeight: 600,
             width: '100%',
-            backgroundColor: LayerzColors[theme].receive,
-            borderRadius: '8px',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
+            fontWeight: 600,
           }}
         >
-          <ArrowDownIcon size={22} style={{ marginRight: '8px' }} />
+          <ArrowDownIcon size={22} />
           Receive
         </Button>
 
         <Button
+          variant="send"
+          size="large"
           onClick={handleSend}
+          data-testid="SendButton"
           style={{
-            height: '56px',
-            fontSize: '18px',
-            fontWeight: 600,
             width: '100%',
-            backgroundColor: LayerzColors[theme].send,
-            borderRadius: '8px',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
+            fontWeight: 600,
           }}
         >
-          <ArrowUpIcon size={22} style={{ marginRight: '8px' }} />
+          <ArrowUpIcon size={22} />
           Send
         </Button>
       </div>
