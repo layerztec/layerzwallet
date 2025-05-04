@@ -4,94 +4,83 @@ import { fontSizes, fontWeights, lineHeights, textVariants } from '@shared/theme
 // Use the shared theme colors directly from shared library
 export const LayerzColors = {
   light: {
-    // Base colors
     primary: brandColors.primary,
     primaryLight: brandColors.primaryLight,
     primaryDark: brandColors.primaryDark,
     secondary: brandColors.accent,
-    secondaryLight: brandColors.accent,
-    secondaryDark: brandColors.accent,
+    secondaryLight: grayScale.gray300,
+    secondaryDark: grayScale.gray600,
     accent: brandColors.accent,
-
-    // Status colors
+    accentLight: grayScale.gray200,
+    accentDark: brandColors.accent,
     success: brandColors.success,
     warning: brandColors.warning,
     error: brandColors.error,
     info: brandColors.info,
-
-    // UI colors
     text: lightTheme.text,
     textSecondary: lightTheme.textSecondary,
     textTertiary: lightTheme.textTertiary,
+    textInverted: grayScale.white,
     background: lightTheme.background,
     surfaceBackground: lightTheme.surfaceBackground,
     cardBackground: lightTheme.cardBackground,
     border: lightTheme.border,
-    borderLight: lightTheme.borderLight,
-
-    // Network colors
-    selectedNetworkBackground: lightTheme.selectedNetworkBackground,
+    divider: lightTheme.borderLight,
+    shadow: lightTheme.shadowColor,
+    selectedNetworkBackground: brandColors.primary,
     selectedNetworkText: grayScale.white,
-    networkButtonText: lightTheme.networkButtonText,
-
-    // Actions
+    networkButtonText: lightTheme.text,
     send: brandColors.send,
     receive: brandColors.receive,
-
-    // Essentials
+    settingsIcon: lightTheme.icon,
     white: grayScale.white,
     black: grayScale.black,
-
-    // Legacy compatibility
-    icon: lightTheme.icon,
     tint: lightTheme.tint,
+    icon: lightTheme.icon,
     tabIconDefault: lightTheme.tabIconDefault,
     tabIconSelected: lightTheme.tabIconSelected,
+    sendButton: brandColors.send,
+    receiveButton: brandColors.receive,
   },
   dark: {
-    // Base colors
-    primary: brandColors.primary, // Changed from primaryLight to match mobile
+    // Use the exact same values as light
+    primary: brandColors.primary,
     primaryLight: brandColors.primaryLight,
     primaryDark: brandColors.primaryDark,
     secondary: brandColors.accent,
-    secondaryLight: brandColors.accent,
-    secondaryDark: brandColors.accent,
+    secondaryLight: grayScale.gray300,
+    secondaryDark: grayScale.gray600,
     accent: brandColors.accent,
-
-    // Status colors
+    accentLight: grayScale.gray200,
+    accentDark: brandColors.accent,
     success: brandColors.success,
     warning: brandColors.warning,
     error: brandColors.error,
     info: brandColors.info,
-
-    // UI colors
-    text: darkTheme.text,
-    textSecondary: darkTheme.textSecondary,
-    textTertiary: darkTheme.textTertiary,
-    background: darkTheme.background,
-    surfaceBackground: darkTheme.surfaceBackground,
-    cardBackground: darkTheme.cardBackground,
-    border: darkTheme.border,
-    borderLight: darkTheme.borderLight,
-
-    // Network colors
-    selectedNetworkBackground: darkTheme.selectedNetworkBackground,
+    text: lightTheme.text,
+    textSecondary: lightTheme.textSecondary,
+    textTertiary: lightTheme.textTertiary,
+    textInverted: grayScale.white,
+    background: lightTheme.background,
+    surfaceBackground: lightTheme.surfaceBackground,
+    cardBackground: lightTheme.cardBackground,
+    border: lightTheme.border,
+    divider: lightTheme.borderLight,
+    shadow: lightTheme.shadowColor,
+    selectedNetworkBackground: brandColors.primary,
     selectedNetworkText: grayScale.white,
-    networkButtonText: darkTheme.networkButtonText,
-
-    // Actions
+    networkButtonText: lightTheme.text,
     send: brandColors.send,
     receive: brandColors.receive,
-
-    // Essentials
+    settingsIcon: lightTheme.icon,
     white: grayScale.white,
     black: grayScale.black,
-
-    // Legacy compatibility
-    icon: darkTheme.icon,
-    tint: darkTheme.tint,
-    tabIconDefault: darkTheme.tabIconDefault,
-    tabIconSelected: darkTheme.tabIconSelected,
+    tint: lightTheme.tint,
+    icon: lightTheme.icon,
+    tabIconDefault: lightTheme.tabIconDefault,
+    tabIconSelected: lightTheme.tabIconSelected,
+    sendButton: brandColors.send,
+    receiveButton: brandColors.receive,
   },
 };
 

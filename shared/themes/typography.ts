@@ -65,110 +65,110 @@ export const textVariants = {
   // Display styles - for very large headers
   displayLarge: {
     fontSize: fontSizes.xxxl + 4, // 36px
-    lineHeight: lineHeights.xxxl,
+    lineHeight: 47, // 36 * 1.3
     fontWeight: fontWeights.bold,
     letterSpacing: letterSpacing.tight,
   },
   displayMedium: {
     fontSize: fontSizes.xxxl, // 32px
-    lineHeight: lineHeights.xxxl - 4, // 40px
+    lineHeight: 42, // 32 * 1.31
     fontWeight: fontWeights.bold,
     letterSpacing: letterSpacing.tight,
   },
   displaySmall: {
     fontSize: fontSizes.xxl + 4, // 28px
-    lineHeight: lineHeights.xxxl - 8, // 36px
+    lineHeight: 37, // 28 * 1.32
     fontWeight: fontWeights.bold,
     letterSpacing: letterSpacing.tight,
   },
 
   // Heading styles - for section headers
   headingLarge: {
-    fontSize: fontSizes.xxl,
-    lineHeight: lineHeights.xxl,
+    fontSize: fontSizes.xxl, // 24px
+    lineHeight: 32, // 24 * 1.33
     fontWeight: fontWeights.bold,
   },
   headingMedium: {
-    fontSize: fontSizes.xl,
-    lineHeight: lineHeights.xl,
+    fontSize: fontSizes.xl, // 20px
+    lineHeight: 26, // 20 * 1.3
     fontWeight: fontWeights.bold,
   },
   headingSmall: {
-    fontSize: fontSizes.lg,
-    lineHeight: lineHeights.lg,
+    fontSize: fontSizes.lg, // 18px
+    lineHeight: 24, // 18 * 1.33
     fontWeight: fontWeights.semiBold,
   },
 
   // Subtitle styles - for section subheadings
   subtitleLarge: {
-    fontSize: fontSizes.md,
-    lineHeight: lineHeights.md,
+    fontSize: fontSizes.md, // 16px
+    lineHeight: 21, // 16 * 1.31
     fontWeight: fontWeights.semiBold,
   },
   subtitleMedium: {
-    fontSize: fontSizes.sm,
-    lineHeight: lineHeights.sm + 2, // 22px
+    fontSize: fontSizes.sm, // 14px
+    lineHeight: 18, // 14 * 1.28
     fontWeight: fontWeights.semiBold,
   },
 
   // Body styles - for paragraphs and main content
   bodyLarge: {
-    fontSize: fontSizes.md,
-    lineHeight: lineHeights.md,
+    fontSize: fontSizes.md, // 16px
+    lineHeight: 21, // 16 * 1.31
     fontWeight: fontWeights.regular,
   },
   bodyMedium: {
-    fontSize: fontSizes.sm,
-    lineHeight: lineHeights.sm + 2, // 22px
+    fontSize: fontSizes.sm, // 14px
+    lineHeight: 18, // 14 * 1.28
     fontWeight: fontWeights.regular,
   },
   bodySmall: {
-    fontSize: fontSizes.xs,
-    lineHeight: lineHeights.sm,
+    fontSize: fontSizes.xs, // 12px
+    lineHeight: 16, // 12 * 1.33
     fontWeight: fontWeights.regular,
   },
 
   // Label styles - for buttons and form components
   labelLarge: {
-    fontSize: fontSizes.md,
-    lineHeight: lineHeights.sm,
+    fontSize: fontSizes.md, // 16px
+    lineHeight: 21, // 16 * 1.31
     fontWeight: fontWeights.medium,
     letterSpacing: letterSpacing.normal,
   },
   labelMedium: {
-    fontSize: fontSizes.sm,
-    lineHeight: lineHeights.xs + 2, // 18px
+    fontSize: fontSizes.sm, // 14px
+    lineHeight: 18, // 14 * 1.28
     fontWeight: fontWeights.medium,
     letterSpacing: letterSpacing.normal,
   },
   labelSmall: {
-    fontSize: fontSizes.xs,
-    lineHeight: lineHeights.xs,
+    fontSize: fontSizes.xs, // 12px
+    lineHeight: 16, // 12 * 1.33
     fontWeight: fontWeights.medium,
     letterSpacing: letterSpacing.normal,
   },
 
   // Special styles
   button: {
-    fontSize: fontSizes.md,
-    lineHeight: lineHeights.sm,
+    fontSize: fontSizes.md, // 16px
+    lineHeight: 21, // 16 * 1.31
     fontWeight: fontWeights.semiBold,
     letterSpacing: letterSpacing.normal,
   },
   link: {
-    fontSize: fontSizes.md,
-    lineHeight: lineHeights.md,
+    fontSize: fontSizes.md, // 16px
+    lineHeight: 21, // 16 * 1.31
     fontWeight: fontWeights.medium,
   },
   caption: {
-    fontSize: fontSizes.xs,
-    lineHeight: lineHeights.xs,
+    fontSize: fontSizes.xs, // 12px
+    lineHeight: 16, // 12 * 1.33
     fontWeight: fontWeights.regular,
     letterSpacing: letterSpacing.normal,
   },
   overline: {
     fontSize: 10,
-    lineHeight: lineHeights.xs,
+    lineHeight: 14, // 10 * 1.4
     fontWeight: fontWeights.medium,
     letterSpacing: letterSpacing.wider,
   },

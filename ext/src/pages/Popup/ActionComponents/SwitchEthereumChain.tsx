@@ -6,7 +6,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 
 import { Messenger } from '@shared/modules/messenger';
 import { getAvailableNetworks, Networks } from '@shared/types/networks';
-import { Button } from '../DesignSystem';
+import { Button } from '../../../../shared/ui';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 
 interface SwitchEthereumChainArgs {

@@ -6,7 +6,7 @@ import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Csprng } from '../../class/rng';
 import { decrypt, encrypt } from '../../modules/encryption';
-import { Button, Select, Card, Text, Container } from './DesignSystem';
+import { Button, Select, Card, Text, Container } from '../../../../shared/ui';
 import { getCurrentTheme, LayerzColors } from './theme';
 
 const pck = require('../../../package.json');
@@ -44,7 +44,7 @@ const SettingsPage: React.FC = () => {
   return (
     <Container
       style={{
-        padding: '20px',
+        padding: '32px', // increased from 20px
         backgroundColor: LayerzColors[theme].background,
         height: '100%',
       }}
@@ -52,7 +52,7 @@ const SettingsPage: React.FC = () => {
       <Text
         variant="heading"
         style={{
-          marginBottom: '24px',
+          marginBottom: '32px', // increased from 24px
         }}
       >
         Settings
@@ -60,14 +60,14 @@ const SettingsPage: React.FC = () => {
 
       <Card
         style={{
-          marginBottom: '20px',
+          marginBottom: '32px', // increased from 20px
           width: '100%',
         }}
       >
         <Text
           variant="subtitle"
           style={{
-            marginBottom: '16px',
+            marginBottom: '24px', // increased from 16px
           }}
         >
           Account Settings
@@ -78,20 +78,20 @@ const SettingsPage: React.FC = () => {
 
       <Card
         style={{
-          marginBottom: '20px',
+          marginBottom: '32px', // increased from 20px
           width: '100%',
         }}
       >
         <Text
           variant="subtitle"
           style={{
-            marginBottom: '16px',
+            marginBottom: '24px', // increased from 16px
           }}
         >
           Developer Options
         </Text>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
           <Button
             style={{ backgroundColor: LayerzColors[theme].secondary }}
             onClick={async () => {
@@ -168,20 +168,20 @@ const SettingsPage: React.FC = () => {
           style={{
             maxHeight: '150px',
             overflow: 'auto',
-            padding: '8px',
+            padding: '12px', // increased from 8px
             backgroundColor: LayerzColors[theme].surfaceBackground,
             borderRadius: '4px',
             fontSize: '12px',
-            marginTop: '16px',
+            marginTop: '24px', // increased from 16px
           }}
         ></div>
       </Card>
 
-      <div style={{ marginTop: '20px', textAlign: 'center' }}>
+      <div style={{ marginTop: '32px', textAlign: 'center' }}>
         <Text variant="caption" style={{ color: LayerzColors[theme].textSecondary }}>
           {pck.name + ' v' + pck.version}
         </Text>
-        <div style={{ marginTop: '8px' }}>
+        <div style={{ marginTop: '16px' }}>
           <a
             href="https://github.com/layerztec/bugtracker/issues"
             target="_blank"
@@ -197,7 +197,9 @@ const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      <Button style={{ marginTop: '24px', width: '100%' }} onClick={() => navigate('/')}>
+      <Button style={{ marginTop: '32px', width: '100%' }} onClick={() => navigate('/')}>
+        {' '}
+        {/* increased from 24px */}
         Back to Home
       </Button>
     </Container>

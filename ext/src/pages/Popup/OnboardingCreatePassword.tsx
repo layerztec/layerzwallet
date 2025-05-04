@@ -2,7 +2,7 @@ import { EStep, InitializationContext } from '@shared/hooks/InitializationContex
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BackgroundCaller } from '../../modules/background-caller';
-import { Button, Input } from './DesignSystem';
+import { Button, Input } from '../../../../shared/ui';
 
 export default function OnboardingCreatePassword() {
   const navigate = useNavigate();

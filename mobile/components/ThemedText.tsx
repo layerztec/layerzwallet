@@ -72,7 +72,7 @@ export function ThemedText({
   return (
     <Text
       style={[
-        { color },
+        { color, overflow: 'visible' },
         // Apply typography style based on variant
         textStyles[variant] || textStyles.bodyMedium,
         style,

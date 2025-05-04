@@ -6,7 +6,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { Messenger } from '@shared/modules/messenger';
-import { AddressBubble, Button } from '../DesignSystem';
+import { AddressBubble, Button } from '../../../../shared/ui';
 
 interface EthRequestAccountsArgs {
   params: any[];

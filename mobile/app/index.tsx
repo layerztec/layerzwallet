@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { StyleSheet, Pressable } from 'react-native';
+import { StyleSheet, Pressable, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -19,6 +19,7 @@ import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/
 import { formatBalance } from '@shared/modules/string-utils';
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, NETWORK_LIQUID } from '@shared/types/networks';
 import { useTheme } from '@/hooks/ThemeContext';
+import PartnersView from '@/components/PartnersView';
 
 export default function IndexScreen() {
   const { getColor } = useTheme();
@@ -133,23 +134,20 @@ export default function IndexScreen() {
         )}
 
         <ThemedView style={styles.balanceContainer}>
-          <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
-            {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
-          </ThemedText>
-
-          <ThemedText adjustsFontSizeToFit numberOfLines={1}>
+          <ThemedText style={styles.balanceText}>{balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}</ThemedText>
+          <ThemedText style={{ fontSize: 16, lineHeight: 22 }}>
             {balance && +balance > 0 && exchangeRate ? '$' + (+formatBalance(balance, getDecimalsByNetwork(network), 8) * exchangeRate).toPrecision(2) : ''}
           </ThemedText>
         </ThemedView>
 
         <TokensView />
+        <PartnersView />
 
         <ThemedView style={styles.contentContainer}>
           <ThemedView style={styles.buttonContainer}>
             <ThemedView style={styles.buttonRow}>
-              <Button variant="receive" onPress={goToReceive} title="Receive" testID="ReceiveButton" size="large" />
-
-              <Button variant="send" onPress={goToSend} title="Send" testID="SendButton" size="large" />
+              <Button variant="primary" onPress={goToReceive} title="Receive" testID="ReceiveButton" size="large" iconName="arrow-down-outline" style={{ flex: 1 }} />
+              <Button variant="primary" onPress={goToSend} title="Send" testID="SendButton" size="large" iconName="arrow-up-outline" style={{ flex: 1 }} />
             </ThemedView>
           </ThemedView>
         </ThemedView>
@@ -191,16 +189,18 @@ const styles = StyleSheet.create({
   balanceContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 30,
-    marginTop: 0,
-    marginBottom: 0,
-    paddingHorizontal: 20,
+    padding: 0,
+    margin: 0,
   },
   balanceText: {
     fontSize: 25,
     fontWeight: 'bold',
     textAlign: 'center',
     width: '100%',
+    minHeight: 40,
+    paddingVertical: 4,
+    lineHeight: 36,
+    paddingBottom: 4,
   },
   contentContainer: {
     flex: 1,
@@ -216,6 +216,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
+    gap: 12,
+  },
+  buttonStack: {
+    flexDirection: 'row',
     gap: 12,
   },
   networkButtonText: {

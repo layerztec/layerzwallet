@@ -1,7 +1,7 @@
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 import React, { useContext, useState } from 'react';
 import { BackgroundCaller } from '../../modules/background-caller';
-import { Button, TextArea } from './DesignSystem';
+import { Button, TextArea } from '../../../../shared/ui';
 
 export default function OnboardingImport() {
   const [value, setValue] = useState<string>('');

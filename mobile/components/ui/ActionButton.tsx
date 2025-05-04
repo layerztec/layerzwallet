@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/ThemeContext';
-import Button from './Button';
+import Button from '../../../shared/ui/Button';
 
 export type ActionType = 'send' | 'receive' | 'swap' | 'buy' | 'sell';
 
