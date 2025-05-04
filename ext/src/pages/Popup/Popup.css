@@ -1,16 +1,14 @@
 .App {
   padding: 20px;
-  background-image: linear-gradient(to bottom, #f3f4f6, #f3f4f6);
-  /* color: #282c34; */
-  color: red;
+  background-image: linear-gradient(to bottom, #FD5D2B, #9DF9EC);
+  color: #011474;
   position: absolute;
   top: 0px;
   bottom: 0px;
   left: 0px;
   right: 0px;
   text-align: center;
-
-  background-color: white;
+  background-color: #fff;
 }
 
 .App-logo {
