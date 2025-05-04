@@ -16,7 +16,7 @@
     "jsx": "react",
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["./src/shared-link/*"],
+      "@shared/*": ["../shared/*"],
       "@/*": ["./src/*"]
     },
     "typeRoots": ["./node_modules/@types"],
