@@ -4,29 +4,32 @@
  */
 
 const primaryColor = '#011474';
-const accentGradient1 = ['#FD5D2B', '#9DF9EC'];
-const accentGradient2 = ['#D9FD5F', '#F5B9CD'];
+const accent1 = '#FD5D2B';
+const accent2 = '#9DF9EC';
+const accent3 = '#D9FD5F';
+const accent4 = '#F5B9CD';
 const neutral = '#CECDCD';
+
+export const gradients = {
+  gradient1: [accent1, accent2],
+  gradient2: [accent3, accent4],
+};
 
 export const Colors = {
   light: {
     text: primaryColor,
     background: '#fff',
     tint: primaryColor,
-    icon: accentGradient1[0],
+    icon: accent1,
     tabIconDefault: neutral,
-    tabIconSelected: accentGradient1[0],
-    accentGradient1,
-    accentGradient2,
+    tabIconSelected: accent1,
   },
   dark: {
     text: '#fff',
     background: primaryColor,
     tint: '#fff',
-    icon: accentGradient1[1],
+    icon: accent2,
     tabIconDefault: neutral,
-    tabIconSelected: accentGradient1[1],
-    accentGradient1,
-    accentGradient2,
+    tabIconSelected: accent2,
   },
 };
