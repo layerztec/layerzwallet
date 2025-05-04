@@ -4,7 +4,7 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["../shared/*"],
+      "@shared/*": ["./src/shared-link/*"],
       "@/*": ["./*"]
     },
     "typeRoots": ["./node_modules/@types"]
