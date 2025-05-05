@@ -1,57 +1,61 @@
 import React, { useContext } from 'react';
 import { View, TouchableOpacity, Image, Linking, StyleSheet } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
-import { PartnersView as SharedPartnersView } from '@shared/ui/PartnersView';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { PartnerInfo } from '@shared/types/partner-info';
+import { NetworkContext } from '../../shared/hooks/NetworkContext';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
+import { usePartnersViewModel } from '../../shared/hooks/usePartnersViewModel';
 
 const PartnersView: React.FC = () => {
   const { network } = useContext(NetworkContext);
+  const { getCurrentPagePartners } = usePartnersViewModel(network);
 
-  const renderContainer = (children: React.ReactNode) => <ThemedView style={{ marginBottom: 24, position: 'relative' }}>{children}</ThemedView>;
+  // Get all partners instead of paginated partners
+  const allPartners = getCurrentPagePartners();
 
-  const renderGrid = (children: React.ReactNode) => <View style={styles.gridContainer}>{children}</View>;
+  const handleOpenUrl = (url: string) => {
+    Linking.openURL(url);
+  };
 
-  const renderNavigationButton = (direction: 'left' | 'right', onClick: () => void, disabled: boolean) => (
-    <TouchableOpacity
-      onPress={onClick}
-      disabled={disabled}
-      style={[
-        styles.navigationButton,
-        {
-          left: direction === 'left' ? -15 : undefined,
-          right: direction === 'right' ? -15 : undefined,
-          opacity: disabled ? 0.5 : 1,
-        },
-      ]}
-    >
-      <AntDesign name={direction === 'left' ? 'left' : 'right'} size={24} color="#007AFF" />
-    </TouchableOpacity>
-  );
-
-  const renderPartnerCard = (partner: PartnerInfo, index: number, onCardPress: (url: string) => void) => (
-    <TouchableOpacity key={index} style={styles.partnerCard} onPress={() => Linking.openURL(partner.url)} activeOpacity={0.7}>
-      <View style={styles.partnerCardHeader}>
-        {partner.imgUrl && <Image source={{ uri: partner.imgUrl }} style={styles.partnerLogo} resizeMode="contain" />}
-        <ThemedText style={styles.partnerName}>{partner.name}</ThemedText>
-        <AntDesign
-          name="export"
-          size={18}
-          color="#5a5a5a"
-          onPress={(e) => {
-            // Stop propagation to parent TouchableOpacity
-            e.stopPropagation?.();
-            onCardPress(partner.url);
-          }}
-        />
+  return (
+    <ThemedView style={{ marginBottom: 24, position: 'relative' }} testID="PartnersView">
+      <View style={styles.gridContainer} testID="partners-grid">
+        {allPartners.length === 0 ? (
+          <TouchableOpacity style={styles.partnerCard} testID="PartnerCard-0">
+            <View style={styles.partnerCardHeader}>
+              <ThemedText style={styles.partnerName}>No partners available</ThemedText>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          allPartners.map((partner, index) => (
+            <TouchableOpacity
+              key={`partner-card-${index}`}
+              style={styles.partnerCard}
+              onPress={() => Linking.openURL(partner.url)}
+              activeOpacity={0.7}
+              testID={`PartnerCard-${index}`}
+              accessibilityLabel={`Partner ${partner.name}`}
+            >
+              <View style={styles.partnerCardHeader}>
+                {partner.imgUrl && <Image source={{ uri: partner.imgUrl }} style={styles.partnerLogo} resizeMode="contain" />}
+                <ThemedText style={styles.partnerName}>{partner.name}</ThemedText>
+                <AntDesign
+                  name="export"
+                  size={18}
+                  color="#5a5a5a"
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    handleOpenUrl(partner.url);
+                  }}
+                />
+              </View>
+              {partner.description && <ThemedText style={styles.partnerDescription}>{partner.description}</ThemedText>}
+            </TouchableOpacity>
+          ))
+        )}
       </View>
-      {partner.description && <ThemedText style={styles.partnerDescription}>{partner.description}</ThemedText>}
-    </TouchableOpacity>
+    </ThemedView>
   );
-
-  return <SharedPartnersView network={network} renderContainer={renderContainer} renderGrid={renderGrid} renderNavigationButton={renderNavigationButton} renderPartnerCard={renderPartnerCard} />;
 };
 
 const styles = StyleSheet.create({
@@ -61,16 +65,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: 16,
-  },
-  navigationButton: {
-    position: 'absolute',
-    top: '50%',
-    transform: [{ translateY: -12 }],
-    backgroundColor: 'transparent',
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   partnerCard: {
     width: '48%', // To match the 2-column grid of the extension

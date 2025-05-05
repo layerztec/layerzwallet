@@ -3,15 +3,18 @@ appId: com.layerzwallet.mobile
 ---
 - runFlow: subflows/wallet-creation.yml
 
+- waitForAnimationToEnd
+
+- runFlow: subflows/partners-view-test.yml
+
 # Navigate to Settings
 - tapOn:
     id: "SettingsButton"
 
 # Scroll to the bottom to find the Self Test button as emu screen can be small
 - scrollUntilVisible:
-      element:
-        id: "SelfTestButton"
-      direction: DOWN
+    element: "SelfTestButton"
+    direction: DOWN
 
 # Navigate to Self Test
 - tapOn:

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -94,89 +94,87 @@ export default function IndexScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <ThemedView style={styles.headerContainer}>
-          <ThemedView style={styles.header}>
-            <ThemedText style={styles.title}>Welcome to LZW Mobile</ThemedText>
-            <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
-            <ThemedText style={styles.subtitle}>Explore Bitcoin Layer 2</ThemedText>
-          </ThemedView>
-          <TouchableOpacity style={styles.settingsButton} onPress={goToSettings} testID="SettingsButton">
-            <Ionicons name="settings-outline" size={24} color="#007AFF" />
+      <ThemedView style={styles.headerContainer}>
+        <ThemedView style={styles.header}>
+          <ThemedText style={styles.title}>Welcome to LZW Mobile</ThemedText>
+          <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
+          <ThemedText style={styles.subtitle}>Explore Bitcoin Layer 2</ThemedText>
+        </ThemedView>
+        <TouchableOpacity style={styles.settingsButton} onPress={goToSettings} testID="SettingsButton">
+          <Ionicons name="settings-outline" size={24} color="#007AFF" />
+        </TouchableOpacity>
+      </ThemedView>
+
+      <ThemedView style={styles.networkContainer}>
+        {networks.map((availableNetwork) => (
+          <TouchableOpacity
+            key={availableNetwork}
+            testID={network === availableNetwork ? `selectedNetwork-${availableNetwork}` : `network-${availableNetwork}`}
+            style={[styles.networkButton, network === availableNetwork && styles.selectedNetworkButton]}
+            onPress={() => setNetwork(availableNetwork)}
+          >
+            <ThemedText style={[styles.networkButtonText, network === availableNetwork && styles.selectedNetworkButtonText]}>{availableNetwork.toUpperCase()}</ThemedText>
           </TouchableOpacity>
-        </ThemedView>
+        ))}
+      </ThemedView>
 
-        <ThemedView style={styles.networkContainer}>
-          {networks.map((availableNetwork) => (
-            <TouchableOpacity
-              key={availableNetwork}
-              testID={network === availableNetwork ? `selectedNetwork-${availableNetwork}` : `network-${availableNetwork}`}
-              style={[styles.networkButton, network === availableNetwork && styles.selectedNetworkButton]}
-              onPress={() => setNetwork(availableNetwork)}
-            >
-              <ThemedText style={[styles.networkButtonText, network === availableNetwork && styles.selectedNetworkButtonText]}>{availableNetwork.toUpperCase()}</ThemedText>
-            </TouchableOpacity>
-          ))}
-        </ThemedView>
-
-        {getIsTestnet(network) && (
-          <ThemedView
+      {getIsTestnet(network) && (
+        <ThemedView
+          style={{
+            backgroundColor: 'rgba(255, 0, 0, 0.1)',
+            padding: 10,
+            borderRadius: 5,
+            marginHorizontal: 20,
+            marginVertical: 10,
+          }}
+        >
+          <ThemedText
             style={{
-              backgroundColor: 'rgba(255, 0, 0, 0.1)',
-              padding: 10,
-              borderRadius: 5,
-              marginHorizontal: 20,
-              marginVertical: 10,
+              color: 'red',
+              fontSize: 10,
+              textAlign: 'center',
+              fontWeight: 'bold',
             }}
           >
-            <ThemedText
-              style={{
-                color: 'red',
-                fontSize: 10,
-                textAlign: 'center',
-                fontWeight: 'bold',
-              }}
-            >
-              Warning: You are using a testnet, coins have no value
-            </ThemedText>
-          </ThemedView>
-        )}
-
-        <ThemedView style={styles.balanceContainer}>
-          <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
-            {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
-          </ThemedText>
-          <ThemedText adjustsFontSizeToFit numberOfLines={1}>
-            {balance && +balance > 0 && exchangeRate ? '$' + (+formatBalance(balance, getDecimalsByNetwork(network), 8) * exchangeRate).toPrecision(2) : ''}
+            Warning: You are using a testnet, coins have no value
           </ThemedText>
         </ThemedView>
+      )}
 
-        <TokensView />
+      <ThemedView style={styles.balanceContainer}>
+        <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
+          {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
+        </ThemedText>
+        <ThemedText adjustsFontSizeToFit numberOfLines={1}>
+          {balance && +balance > 0 && exchangeRate ? '$' + (+formatBalance(balance, getDecimalsByNetwork(network), 8) * exchangeRate).toPrecision(2) : ''}
+        </ThemedText>
+      </ThemedView>
 
-        <ThemedView style={styles.partnersSection}>
-          <PartnersView />
-        </ThemedView>
+      <TokensView />
 
-        <ThemedView style={styles.contentContainer}>
-          <ThemedView style={styles.buttonContainer}>
-            <ThemedView style={styles.buttonRow}>
-              <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive}>
-                <ThemedText style={styles.buttonText}>Receive</ThemedText>
+      <ThemedView style={styles.partnersSection} testID="PartnersView">
+        <PartnersView />
+      </ThemedView>
+
+      <ThemedView style={styles.contentContainer}>
+        <ThemedView style={styles.buttonContainer}>
+          <ThemedView style={styles.buttonRow}>
+            <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive}>
+              <ThemedText style={styles.buttonText}>Receive</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
+              <ThemedText style={styles.buttonText}>Send</ThemedText>
+            </TouchableOpacity>
+
+            {network === NETWORK_BITCOIN ? (
+              <TouchableOpacity style={[styles.button]} onPress={goToBuyBitcoin}>
+                <ThemedText style={styles.buttonText}> $ Buy </ThemedText>
               </TouchableOpacity>
-
-              <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
-                <ThemedText style={styles.buttonText}>Send</ThemedText>
-              </TouchableOpacity>
-
-              {network === NETWORK_BITCOIN ? (
-                <TouchableOpacity style={[styles.button]} onPress={goToBuyBitcoin}>
-                  <ThemedText style={styles.buttonText}> $ Buy </ThemedText>
-                </TouchableOpacity>
-              ) : null}
-            </ThemedView>
+            ) : null}
           </ThemedView>
         </ThemedView>
-      </ScrollView>
+      </ThemedView>
     </SafeAreaView>
   );
 }
@@ -184,9 +182,6 @@ export default function IndexScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-  },
-  container: {
-    flexGrow: 1,
   },
   headerContainer: {
     flexDirection: 'row',

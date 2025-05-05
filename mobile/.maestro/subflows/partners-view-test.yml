@@ -1,0 +1,19 @@
+appId: com.layerzwallet.mobile
+
+---
+# This simplified subflow tests just confirms that the partners view container is visible
+# Usage: include this in your test with `- runFlow: subflows/partners-view-test.yml`
+- launchApp:
+    clearState: false
+    clearKeychain: false
+
+- waitForAnimationToEnd
+# Scroll down to find the partners view container
+- scrollUntilVisible:
+    element: "PartnersView"
+    direction: DOWN
+    timeout: 5000
+
+# Verify the partners view container is visible
+- assertVisible:
+    id: "PartnersView"

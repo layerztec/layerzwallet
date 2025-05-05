@@ -5,7 +5,6 @@ import { getPartnersList } from '../models/partners-list';
 
 export interface PartnersViewProps {
   network: Networks;
-  // Platform-specific rendering functions
   renderContainer: (children: React.ReactNode) => React.ReactElement;
   renderGrid: (children: React.ReactNode) => React.ReactElement;
   renderNavigationButton: (direction: 'left' | 'right', onClick: () => void, disabled: boolean) => React.ReactElement;
@@ -42,9 +41,16 @@ export const PartnersView: React.FC<PartnersViewProps> = ({ network, renderConta
   const { getCurrentPagePartners, goToPreviousPage, goToNextPage, currentPage, totalPages, showPagination } = usePartnersViewModel(network);
 
   const handleOpenUrl = (url: string) => {
-    // This will be implemented differently on mobile vs extension
     window.open(url, '_blank');
   };
+
+  const partnerCards = getCurrentPagePartners().map((partner, index) =>
+    React.cloneElement(renderPartnerCard(partner, index, handleOpenUrl), {
+      key: `partner-card-${index}`,
+      testID: `PartnerCard-${index}`,
+      accessibilityLabel: `Partner ${partner.name}`,
+    })
+  );
 
   return renderContainer(
     <>
@@ -54,7 +60,7 @@ export const PartnersView: React.FC<PartnersViewProps> = ({ network, renderConta
           {renderNavigationButton('right', goToNextPage, currentPage === totalPages - 1)}
         </>
       )}
-      {renderGrid(getCurrentPagePartners().map((partner, index) => renderPartnerCard(partner, index, handleOpenUrl)))}
+      {renderGrid(partnerCards)}
     </>
   );
 };
