@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
-    fontWeight: 'bold',
+    fontWeight: 700,
     marginBottom: 8,
     fontSize: 16,
   },
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
   },
   sendButtonText: {
     color: 'white',
-    fontWeight: 'bold',
+    fontWeight: 700,
     fontSize: 16,
   },
   sendIcon: {

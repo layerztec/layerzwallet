@@ -121,7 +121,7 @@ const TransactionSuccessEvm: React.FC = () => {
         {+amount ? (
           <View style={styles.summaryRow}>
             <ThemedText type="paragraph">Amount</ThemedText>
-            <ThemedText type="paragraph" style={{ fontWeight: 'bold' }}>
+            <ThemedText type="paragraph" style={{ fontWeight: '700' }}>
               {formatBalance(amount, getDecimalsByNetwork(network))} {getTickerByNetwork(network)}
             </ThemedText>
           </View>
@@ -130,7 +130,7 @@ const TransactionSuccessEvm: React.FC = () => {
         {amountToken && tokenInfo ? (
           <View style={styles.summaryRow}>
             <ThemedText type="paragraph">Amount</ThemedText>
-            <ThemedText type="paragraph" style={{ fontWeight: 'bold' }}>
+            <ThemedText type="paragraph" style={{ fontWeight: '700' }}>
               {formatBalance(amountToken, tokenInfo.decimals, 2)} {tokenInfo.symbol}
             </ThemedText>
           </View>
@@ -139,7 +139,7 @@ const TransactionSuccessEvm: React.FC = () => {
         {receipt ? (
           <View style={styles.summaryRow}>
             <ThemedText type="paragraph">Fee paid</ThemedText>
-            <ThemedText type="paragraph" style={{ fontWeight: 'bold' }}>
+            <ThemedText type="paragraph" style={{ fontWeight: '700' }}>
               {calculateFees()}
             </ThemedText>
           </View>
@@ -147,14 +147,14 @@ const TransactionSuccessEvm: React.FC = () => {
 
         <View style={styles.summaryRow}>
           <ThemedText type="paragraph">Recipient</ThemedText>
-          <ThemedText type="paragraph" style={[styles.addressText, { fontWeight: 'bold' }]}>
+          <ThemedText type="paragraph" style={[styles.addressText, { fontWeight: '700' }]}>
             {recipient}
           </ThemedText>
         </View>
 
         <View style={styles.summaryRow}>
           <ThemedText type="paragraph">Network</ThemedText>
-          <ThemedText type="paragraph" style={{ fontWeight: 'bold' }}>
+          <ThemedText type="paragraph" style={{ fontWeight: '700' }}>
             {capitalizeFirstLetter(network)}
           </ThemedText>
         </View>
@@ -162,7 +162,7 @@ const TransactionSuccessEvm: React.FC = () => {
         <View style={styles.summaryRow}>
           <ThemedText type="paragraph">Transaction ID</ThemedText>
           <View style={styles.txIdContainer}>
-            <ThemedText type="paragraph" style={{ fontWeight: 'bold', marginRight: 5 }}>
+            <ThemedText type="paragraph" style={{ fontWeight: '700', marginRight: 5 }}>
               {transactionId.replace('0x', '').substring(0, 16)}...
             </ThemedText>
             <TouchableOpacity onPress={() => copyToClipboard(transactionId)}>
@@ -173,7 +173,7 @@ const TransactionSuccessEvm: React.FC = () => {
       </ThemedView>
 
       <TouchableOpacity style={styles.explorerButton} onPress={openInExplorer}>
-        <ThemedText type="paragraph" style={{ color: 'white', fontWeight: 'bold' }}>
+        <ThemedText type="paragraph" style={{ color: 'white', fontWeight: '700' }}>
           View in Explorer
         </ThemedText>
       </TouchableOpacity>

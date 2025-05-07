@@ -32,7 +32,7 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.tokenInfo}>
-        <ThemedText type="paragraph" style={{ fontWeight: 'bold' }}>
+        <ThemedText type="paragraph" style={{ fontWeight: '700' }}>
           {token?.name}
         </ThemedText>
         <ThemedText type="paragraph" style={{ marginLeft: 5, color: '#888' }}>
@@ -41,7 +41,7 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
       </View>
 
       <ThemedText type="paragraph" style={{ marginLeft: 'auto', marginRight: 16 }}>
-        <ThemedText type="paragraph" style={{ fontWeight: 'bold' }}>
+        <ThemedText type="paragraph" style={{ fontWeight: '700' }}>
           {token?.symbol}
         </ThemedText>{' '}
         {balance ? formattedBalance : ''}

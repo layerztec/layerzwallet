@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   contentContainer: {
     flex: 1,
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   networkText: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: 'white',
   },
 });

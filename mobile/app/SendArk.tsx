@@ -215,14 +215,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 20,
   },
   inputSection: {
     marginBottom: 20,
   },
   inputLabel: {
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 10,
   },
   addressInputContainer: {
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   sendButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   confirmContainer: {
     marginTop: 20,
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   cancelButton: {
     marginTop: 15,
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   successTitle: {
     color: '#4CAF50',
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 15,
   },
   successMessage: {
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 });
 

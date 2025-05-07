@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 20,
   },
   section: {
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 8,
   },
   inputContainer: {
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 20,
   },
   feeOption: {
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
   doneButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   sendButton: {
     backgroundColor: '#007AFF',
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
   sendButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginLeft: 8,
   },
   preparedContainer: {
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginLeft: 8,
   },
   cancelButton: {
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     fontSize: 24,
-    color: '#4CAF50',
+    fontWeight: '700',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 });
 

@@ -129,7 +129,7 @@ export default function IndexScreen() {
             marginVertical: 10,
           }}
         >
-          <ThemedText type="paragraph" style={{ color: 'red', fontSize: 10, textAlign: 'center', fontWeight: 'bold' }}>
+          <ThemedText type="paragraph" style={{ color: 'red', fontSize: 10, textAlign: 'center', fontWeight: '700' }}>
             Warning: You are using a testnet, coins have no value
           </ThemedText>
         </ThemedView>
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 8,
   },
   subtitle: {
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
   balanceText: {
     fontSize: 25,
-    fontWeight: 'bold',
+    fontWeight: '700',
     textAlign: 'center',
     width: '100%',
   },
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   receiveButton: {
     backgroundColor: '#34C759',
@@ -279,5 +279,6 @@ const styles = StyleSheet.create({
   },
   selectedNetworkButtonText: {
     color: 'white',
+    fontWeight: '700',
   },
 });
