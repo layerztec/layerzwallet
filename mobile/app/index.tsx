@@ -95,9 +95,9 @@ export default function IndexScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.headerContainer}>
         <ThemedView style={styles.header}>
-          <ThemedText style={styles.title}>Welcome to LZW Mobile</ThemedText>
-          <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
-          <ThemedText style={styles.subtitle}>Explore Bitcoin Layer 2</ThemedText>
+          <ThemedText type="headline">Welcome to LZW Mobile</ThemedText>
+          <ThemedText type="headline">{Hello.world()}</ThemedText>
+          <ThemedText type="subHeadline">Explore Bitcoin Layer 2</ThemedText>
         </ThemedView>
         <TouchableOpacity style={styles.settingsButton} onPress={goToSettings} testID="SettingsButton">
           <Ionicons name="settings-outline" size={24} color="#007AFF" />
@@ -112,7 +112,9 @@ export default function IndexScreen() {
             style={[styles.networkButton, network === availableNetwork && styles.selectedNetworkButton]}
             onPress={() => setNetwork(availableNetwork)}
           >
-            <ThemedText style={[styles.networkButtonText, network === availableNetwork && styles.selectedNetworkButtonText]}>{availableNetwork.toUpperCase()}</ThemedText>
+            <ThemedText type="paragraph" style={[styles.networkButtonText, network === availableNetwork && styles.selectedNetworkButtonText]}>
+              {availableNetwork.toUpperCase()}
+            </ThemedText>
           </TouchableOpacity>
         ))}
       </ThemedView>
@@ -127,24 +129,17 @@ export default function IndexScreen() {
             marginVertical: 10,
           }}
         >
-          <ThemedText
-            style={{
-              color: 'red',
-              fontSize: 10,
-              textAlign: 'center',
-              fontWeight: 'bold',
-            }}
-          >
+          <ThemedText type="paragraph" style={{ color: 'red', fontSize: 10, textAlign: 'center', fontWeight: 'bold' }}>
             Warning: You are using a testnet, coins have no value
           </ThemedText>
         </ThemedView>
       )}
 
       <ThemedView style={styles.balanceContainer}>
-        <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
+        <ThemedText type="headline" style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
           {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
         </ThemedText>
-        <ThemedText adjustsFontSizeToFit numberOfLines={1}>
+        <ThemedText type="paragraph" adjustsFontSizeToFit numberOfLines={1}>
           {balance && +balance > 0 && exchangeRate ? '$' + (+formatBalance(balance, getDecimalsByNetwork(network), 8) * exchangeRate).toPrecision(2) : ''}
         </ThemedText>
       </ThemedView>
@@ -155,16 +150,23 @@ export default function IndexScreen() {
         <ThemedView style={styles.buttonContainer}>
           <ThemedView style={styles.buttonRow}>
             <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive}>
-              <ThemedText style={styles.buttonText}>Receive</ThemedText>
+              <ThemedText type="paragraph" style={styles.buttonText}>
+                Receive
+              </ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
-              <ThemedText style={styles.buttonText}>Send</ThemedText>
+              <ThemedText type="paragraph" style={styles.buttonText}>
+                Send
+              </ThemedText>
             </TouchableOpacity>
 
             {network === NETWORK_BITCOIN ? (
               <TouchableOpacity style={[styles.button]} onPress={goToBuyBitcoin}>
-                <ThemedText style={styles.buttonText}> $ Buy </ThemedText>
+                <ThemedText type="paragraph" style={styles.buttonText}>
+                  {' '}
+                  $ Buy{' '}
+                </ThemedText>
               </TouchableOpacity>
             ) : null}
           </ThemedView>
