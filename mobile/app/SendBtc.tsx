@@ -25,7 +25,7 @@ import * as bip21 from 'bip21';
 import { Stack } from 'expo-router';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
-import ThemedText from '@/components/ThemedText';
+import { ThemedText } from '@/components/ThemedText';
 type TFeeRateOptions = { [rate: number]: number };
 
 const SendBtc: React.FC = () => {
