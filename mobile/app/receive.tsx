@@ -66,10 +66,12 @@ export default function ReceiveScreen() {
       <ThemedView style={styles.contentContainer}>
         {/* Network indicator bar - visually shows the selected network with color */}
         <ThemedView style={[styles.networkBar, { backgroundColor: getNetworkColor() }]}>
-          <ThemedText style={styles.networkText}>{network?.toUpperCase()}</ThemedText>
+          <ThemedText type="paragraph" style={styles.networkText}>
+            {network?.toUpperCase()}
+          </ThemedText>
         </ThemedView>
 
-        <ThemedText testID="NetworkAddressHeader" style={styles.subtitle}>
+        <ThemedText type="subHeadline" testID="NetworkAddressHeader" style={styles.subtitle}>
           Your {capitalizeFirstLetter(network || '')} Address
         </ThemedText>
 
@@ -77,26 +79,30 @@ export default function ReceiveScreen() {
           {isLoading ? (
             <ThemedView style={styles.qrPlaceholder} testID="LoadingPlaceholder">
               <ActivityIndicator size="large" color="#007AFF" />
-              <ThemedText style={styles.loadingText}>Loading address...</ThemedText>
+              <ThemedText type="paragraph" style={styles.loadingText}>
+                Loading address...
+              </ThemedText>
             </ThemedView>
           ) : address ? (
             <QRCode testID="AddressQrCode" value={address} size={200} backgroundColor="white" color="black" />
           ) : (
             <ThemedView style={styles.qrPlaceholder}>
-              <ThemedText>No address available</ThemedText>
+              <ThemedText type="paragraph">No address available</ThemedText>
             </ThemedView>
           )}
         </ThemedView>
 
         <ThemedView style={styles.addressContainer}>
-          <ThemedText testID="AddressLabel" style={styles.addressLabel}>
+          <ThemedText type="paragraph" testID="AddressLabel" style={styles.addressLabel}>
             Address:
           </ThemedText>
           <TouchableOpacity testID="CopyAddressButton" onPress={handleCopyAddress} style={styles.addressTextContainer} disabled={!address}>
             {isLoading ? (
-              <ThemedText style={styles.addressText}>Loading...</ThemedText>
+              <ThemedText type="paragraph" style={styles.addressText}>
+                Loading...
+              </ThemedText>
             ) : (
-              <ThemedText testID="AddressText" style={styles.addressText}>
+              <ThemedText type="paragraph" testID="AddressText" style={styles.addressText}>
                 {address ? address : 'No address available'}
               </ThemedText>
             )}
@@ -133,7 +139,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   contentContainer: {
     flex: 1,
@@ -196,7 +202,7 @@ const styles = StyleSheet.create({
   },
   networkText: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: 'white',
   },
 });

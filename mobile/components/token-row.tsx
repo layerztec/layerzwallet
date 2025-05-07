@@ -32,12 +32,19 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.tokenInfo}>
-        <ThemedText style={styles.tokenName}>{token?.name}</ThemedText>
-        <ThemedText style={styles.networkName}>({capitalizeFirstLetter(network)})</ThemedText>
+        <ThemedText type="paragraph" style={{ fontWeight: '700' }}>
+          {token?.name}
+        </ThemedText>
+        <ThemedText type="paragraph" style={{ marginLeft: 5, color: '#888' }}>
+          ({capitalizeFirstLetter(network)})
+        </ThemedText>
       </View>
 
-      <ThemedText style={styles.balance}>
-        <ThemedText style={styles.symbol}>{token?.symbol}</ThemedText> {balance ? formattedBalance : ''}
+      <ThemedText type="paragraph" style={{ marginLeft: 'auto', marginRight: 16 }}>
+        <ThemedText type="paragraph" style={{ fontWeight: '700' }}>
+          {token?.symbol}
+        </ThemedText>{' '}
+        {balance ? formattedBalance : ''}
       </ThemedText>
 
       <View style={styles.buttonContainer}>
@@ -76,23 +83,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  tokenName: {
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
+  tokenName: {},
   networkName: {
     marginLeft: 5,
     color: '#888',
-    fontSize: 14,
   },
   balance: {
-    fontSize: 14,
     marginLeft: 'auto',
     marginRight: 16,
   },
-  symbol: {
-    fontWeight: 'bold',
-  },
+  symbol: {},
   buttonContainer: {
     flexDirection: 'row',
     gap: 6,

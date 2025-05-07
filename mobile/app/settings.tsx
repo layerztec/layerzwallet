@@ -63,38 +63,54 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.container}>
         <ThemedView style={styles.header}>
-          <ThemedText style={styles.title}>Settings</ThemedText>
+          <ThemedText type="headline">Settings</ThemedText>
         </ThemedView>
 
         <ScrollView style={styles.scrollContainer}>
           <ThemedView style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Data Management</ThemedText>
+            <ThemedText type="subHeadline" style={styles.sectionTitle}>
+              Data Management
+            </ThemedText>
 
             <TouchableOpacity style={[styles.button, styles.dangerButton, isClearing && styles.buttonDisabled]} onPress={handleClearStorage} disabled={isClearing}>
-              <ThemedText style={styles.dangerButtonText}>{isClearing ? 'Clearing...' : 'Clear All App Data'}</ThemedText>
+              <ThemedText type="paragraph" style={styles.dangerButtonText}>
+                {isClearing ? 'Clearing...' : 'Clear All App Data'}
+              </ThemedText>
             </TouchableOpacity>
 
-            <ThemedText style={styles.warningText}>Warning: This will erase all app data including your wallet. You will need to restore your wallet using your seed phrase.</ThemedText>
+            <ThemedText type="paragraph" style={styles.warningText}>
+              Warning: This will erase all app data including your wallet. You will need to restore your wallet using your seed phrase.
+            </ThemedText>
           </ThemedView>
 
           <ThemedView style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Account Number</ThemedText>
-            <ThemedText style={styles.accountText}>Current Account: {accountNumber}</ThemedText>
+            <ThemedText type="subHeadline" style={styles.sectionTitle}>
+              Account Number
+            </ThemedText>
+            <ThemedText type="paragraph" style={styles.accountText}>
+              Current Account: {accountNumber}
+            </ThemedText>
 
             <View style={styles.accountSelectorContainer}>
               {[0, 1, 2, 3, 4].map((num) => (
                 <TouchableOpacity key={num} style={[styles.accountButton, accountNumber === num && styles.accountButtonActive]} onPress={() => handleAccountChange(num)}>
-                  <ThemedText style={[styles.accountButtonText, accountNumber === num && styles.accountButtonTextActive]}>{num}</ThemedText>
+                  <ThemedText type="paragraph" style={[styles.accountButtonText, accountNumber === num && styles.accountButtonTextActive]}>
+                    {num}
+                  </ThemedText>
                 </TouchableOpacity>
               ))}
             </View>
           </ThemedView>
 
           <ThemedView style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Developer Options</ThemedText>
+            <ThemedText type="subHeadline" style={styles.sectionTitle}>
+              Developer Options
+            </ThemedText>
 
             <TouchableOpacity style={[styles.button, styles.selfTestButton]} onPress={handleNavigateToSelfTest} testID="SelfTestButton">
-              <ThemedText style={styles.selfTestButtonText}>Self Test</ThemedText>
+              <ThemedText type="paragraph" style={styles.selfTestButtonText}>
+                Self Test
+              </ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -103,7 +119,9 @@ export default function SettingsScreen() {
                 scanQr().then(Alert.alert);
               }}
             >
-              <ThemedText style={styles.selfTestButtonText}>ScanQr</ThemedText>
+              <ThemedText type="paragraph" style={styles.selfTestButtonText}>
+                ScanQr
+              </ThemedText>
             </TouchableOpacity>
           </ThemedView>
         </ScrollView>
@@ -125,7 +143,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   scrollContainer: {
     flex: 1,
@@ -139,7 +157,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 16,
   },
   button: {
@@ -154,14 +172,14 @@ const styles = StyleSheet.create({
   },
   dangerButtonText: {
     color: 'white',
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   selfTestButton: {
     backgroundColor: '#34C759',
   },
   selfTestButtonText: {
     color: 'white',
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -181,7 +199,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     color: 'white',
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   accountText: {
     fontSize: 16,
@@ -208,7 +226,7 @@ const styles = StyleSheet.create({
   },
   accountButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   accountButtonTextActive: {
     color: 'white',

@@ -99,9 +99,13 @@ const SendArk = () => {
       <SafeAreaView style={styles.container}>
         <ThemedView style={styles.successContainer}>
           <Ionicons name="checkmark-circle" size={48} color="#4CAF50" style={styles.successIcon} />
-          <ThemedText style={styles.successTitle}>Sent!</ThemedText>
+          <ThemedText type="headline" style={styles.successTitle}>
+            Sent!
+          </ThemedText>
           <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/')}>
-            <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
+            <ThemedText type="paragraph" style={styles.backButtonText}>
+              Back to Wallet
+            </ThemedText>
           </TouchableOpacity>
         </ThemedView>
       </SafeAreaView>
@@ -111,10 +115,14 @@ const SendArk = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ThemedView style={styles.content}>
-        <ThemedText style={styles.title}>Send {getTickerByNetwork(network)}</ThemedText>
+        <ThemedText type="headline" style={styles.title}>
+          Send {getTickerByNetwork(network)}
+        </ThemedText>
 
         <ThemedView style={styles.inputSection}>
-          <ThemedText style={styles.inputLabel}>Recipient</ThemedText>
+          <ThemedText type="subHeadline" style={styles.inputLabel}>
+            Recipient
+          </ThemedText>
           <ThemedView style={styles.addressInputContainer}>
             <TextInput style={styles.input} testID="recipient-address-input" placeholder="Enter the recipient's address" placeholderTextColor="#999" onChangeText={setToAddress} value={toAddress} />
             <TouchableOpacity
@@ -135,30 +143,38 @@ const SendArk = () => {
         <ThemedView style={styles.divider} />
 
         <ThemedView style={styles.inputSection}>
-          <ThemedText style={styles.inputLabel}>Amount</ThemedText>
+          <ThemedText type="subHeadline" style={styles.inputLabel}>
+            Amount
+          </ThemedText>
           <TextInput style={styles.input2} testID="amount-input" placeholder="0.00" placeholderTextColor="#999" keyboardType="numeric" onChangeText={setAmount} value={amount} />
-          <ThemedText style={styles.balanceText}>
+          <ThemedText type="paragraph" style={styles.balanceText}>
             Available balance: {balance ? formatBalance(balance, getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
           </ThemedText>
         </ThemedView>
 
         {error ? (
           <ThemedView style={styles.errorContainer}>
-            <ThemedText style={styles.errorText}>{error}</ThemedText>
+            <ThemedText type="paragraph" style={styles.errorText}>
+              {error}
+            </ThemedText>
           </ThemedView>
         ) : null}
 
         {isPreparing ? (
           <ThemedView style={styles.loadingContainer}>
             <ActivityIndicator size="small" color="#007AFF" />
-            <ThemedText style={styles.loadingText}>Preparing transaction...</ThemedText>
+            <ThemedText type="paragraph" style={styles.loadingText}>
+              Preparing transaction...
+            </ThemedText>
           </ThemedView>
         ) : null}
 
         {!isPreparing && !isPrepared ? (
           <TouchableOpacity style={styles.sendButton} testID="send-screen-send-button" onPress={prepareTransaction}>
             <Ionicons name="send" size={20} color="white" style={styles.sendIcon} />
-            <ThemedText style={styles.sendButtonText}>Send</ThemedText>
+            <ThemedText type="paragraph" style={styles.sendButtonText}>
+              Send
+            </ThemedText>
           </TouchableOpacity>
         ) : null}
 
@@ -199,14 +215,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 20,
   },
   inputSection: {
     marginBottom: 20,
   },
   inputLabel: {
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 10,
   },
   addressInputContainer: {
@@ -282,7 +298,7 @@ const styles = StyleSheet.create({
   sendButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   confirmContainer: {
     marginTop: 20,
@@ -298,7 +314,7 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   cancelButton: {
     marginTop: 15,
@@ -321,7 +337,7 @@ const styles = StyleSheet.create({
   successTitle: {
     color: '#4CAF50',
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 15,
   },
   successMessage: {
@@ -340,7 +356,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 });
 

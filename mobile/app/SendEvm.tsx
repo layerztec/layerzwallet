@@ -252,9 +252,15 @@ export default function SendScreen() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ThemedView style={styles.container}>
             <ThemedView style={styles.formContainer}>
-              {errorMessage ? <ThemedText style={styles.errorText}>{errorMessage}</ThemedText> : null}
+              {errorMessage ? (
+                <ThemedText type="paragraph" style={styles.errorText}>
+                  {errorMessage}
+                </ThemedText>
+              ) : null}
 
-              <ThemedText style={styles.label}>Recipient Address</ThemedText>
+              <ThemedText type="subHeadline" style={styles.label}>
+                Recipient Address
+              </ThemedText>
               <View style={styles.addressInputContainer}>
                 <TextInput style={styles.addressInput} placeholder="Enter recipient address" value={recipientAddress} onChangeText={handleAddressChange} autoCapitalize="none" autoCorrect={false} />
                 <TouchableOpacity style={styles.qrButton} onPress={handleScanQr}>
@@ -262,16 +268,22 @@ export default function SendScreen() {
                 </TouchableOpacity>
               </View>
 
-              <ThemedText style={styles.label}>Amount</ThemedText>
+              <ThemedText type="subHeadline" style={styles.label}>
+                Amount
+              </ThemedText>
               <View style={styles.amountInputContainer}>
                 <TextInput style={styles.amountInput} placeholder="0.0" value={amount} onChangeText={handleAmountChange} keyboardType="decimal-pad" />
-                <ThemedText style={styles.ticker}>{getTickerByNetwork(network)}</ThemedText>
+                <ThemedText type="paragraph" style={styles.ticker}>
+                  {getTickerByNetwork(network)}
+                </ThemedText>
               </View>
-              <ThemedText style={styles.availableBalance}>
+              <ThemedText type="paragraph" style={styles.availableBalance}>
                 Available balance: {balance ? `${formatBalance(balance, getDecimalsByNetwork(network))} ${getTickerByNetwork(network)}` : 'Loading...'}
               </ThemedText>
 
-              <ThemedText style={styles.label}>Fee Multiplier: {feeMultiplier.toFixed(0)}x</ThemedText>
+              <ThemedText type="subHeadline" style={styles.label}>
+                Fee Multiplier: {feeMultiplier.toFixed(0)}x
+              </ThemedText>
               <Slider
                 style={styles.slider}
                 minimumValue={1}
@@ -284,21 +296,23 @@ export default function SendScreen() {
                 thumbTintColor="#007AFF"
               />
               <View style={styles.sliderLabels}>
-                <ThemedText>Slower</ThemedText>
-                <ThemedText>Faster</ThemedText>
+                <ThemedText type="paragraph">Slower</ThemedText>
+                <ThemedText type="paragraph">Faster</ThemedText>
               </View>
 
-              {screenState === 'preparing' ? <ThemedText>Preparing...</ThemedText> : null}
+              {screenState === 'preparing' ? <ThemedText type="paragraph">Preparing...</ThemedText> : null}
 
               {screenState === 'init' ? (
                 <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-                  <ThemedText style={styles.sendButtonText}>Send</ThemedText>
+                  <ThemedText type="paragraph" style={styles.sendButtonText}>
+                    Send
+                  </ThemedText>
                 </TouchableOpacity>
               ) : null}
 
               {screenState === 'prepared' && fees && maxFees ? (
                 <View>
-                  <ThemedText style={{ fontSize: 14 }}>
+                  <ThemedText type="paragraph" style={{ fontSize: 14 }}>
                     Fees between {formatBalance(fees, getDecimalsByNetwork(network))} {getTickerByNetwork(network)} and {formatBalance(maxFees, getDecimalsByNetwork(network))}{' '}
                     {getTickerByNetwork(network)}
                   </ThemedText>
@@ -413,6 +427,6 @@ const styles = StyleSheet.create({
   sendButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 });

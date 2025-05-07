@@ -24,7 +24,8 @@ import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
 import { Stack } from 'expo-router';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ThemedText } from '@/components/ThemedText';
 type TFeeRateOptions = { [rate: number]: number };
 
 const SendBtc: React.FC = () => {
@@ -201,11 +202,19 @@ const SendBtc: React.FC = () => {
   if (isSuccess) {
     return (
       <View style={styles.container}>
-        <Text style={styles.successIcon}>✓</Text>
-        <Text style={styles.successTitle}>Sent!</Text>
-        <Text style={styles.successSubtitle}>Your {getTickerByNetwork(network)} are on their way</Text>
+        <ThemedText type="headline" style={styles.successIcon}>
+          ✓
+        </ThemedText>
+        <ThemedText type="headline" style={styles.successTitle}>
+          Sent!
+        </ThemedText>
+        <ThemedText type="paragraph" style={styles.successSubtitle}>
+          Your {getTickerByNetwork(network)} are on their way
+        </ThemedText>
         <TouchableOpacity style={styles.button} onPress={() => navigation.goBack()}>
-          <Text style={styles.buttonText}>Back to Wallet</Text>
+          <ThemedText type="paragraph" style={styles.buttonText}>
+            Back to Wallet
+          </ThemedText>
         </TouchableOpacity>
       </View>
     );
@@ -220,7 +229,9 @@ const SendBtc: React.FC = () => {
         }}
       />
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recipient</Text>
+        <ThemedText type="subHeadline" style={styles.sectionTitle}>
+          Recipient
+        </ThemedText>
         <View style={styles.inputContainer}>
           <TextInput style={styles.input} placeholder="Enter the recipient's address" onChangeText={setToAddress} value={toAddress} />
           <TouchableOpacity
@@ -244,23 +255,35 @@ const SendBtc: React.FC = () => {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Amount</Text>
+        <ThemedText type="subHeadline" style={styles.sectionTitle}>
+          Amount
+        </ThemedText>
         <TextInput style={styles.input} placeholder="0.00" onChangeText={setAmount} value={amount} keyboardType="numeric" />
-        <Text style={styles.balanceText}>
+        <ThemedText type="paragraph" style={styles.balanceText}>
           Available balance: {balance ? formatBalance(balance, getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
-        </Text>
+        </ThemedText>
       </View>
 
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      {isPreparing ? <Text style={styles.loadingText}>loading...</Text> : null}
+      {error ? (
+        <ThemedText type="paragraph" style={styles.errorText}>
+          {error}
+        </ThemedText>
+      ) : null}
+      {isPreparing ? (
+        <ThemedText type="paragraph" style={styles.loadingText}>
+          loading...
+        </ThemedText>
+      ) : null}
 
       {!isPreparing && !isPrepared && (
         <View style={styles.feeSection}>
-          <Text style={styles.feeText}>
+          <ThemedText type="paragraph" style={styles.feeText}>
             Network Fee: {feeRate} sats/vbyte{feeRateOptions[feeRate] && ` (${feeRateOptions[feeRate]} sats)`}
-          </Text>
+          </ThemedText>
           <TouchableOpacity style={styles.changeFeeButton} onPress={() => setShowFeeModal(true)}>
-            <Text style={styles.changeFeeButtonText}>Change Fee</Text>
+            <ThemedText type="paragraph" style={styles.changeFeeButtonText}>
+              Change Fee
+            </ThemedText>
           </TouchableOpacity>
         </View>
       )}
@@ -268,40 +291,46 @@ const SendBtc: React.FC = () => {
       <Modal visible={showFeeModal} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Network Fee</Text>
+            <ThemedText type="headline" style={styles.modalTitle}>
+              Select Network Fee
+            </ThemedText>
 
             {estimateFees && (
               <>
                 <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.slow && styles.selectedFeeOption]} onPress={() => setCustomFeeRate(estimateFees.slow)}>
-                  <Text style={styles.feeOptionText}>
+                  <ThemedText type="paragraph" style={styles.feeOptionText}>
                     Economy ({estimateFees.slow} sat/vbyte)
                     {feeRateOptions[estimateFees.slow] ? ` ≈ ${feeRateOptions[estimateFees.slow]} sats` : ''}
-                  </Text>
+                  </ThemedText>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.medium && styles.selectedFeeOption]} onPress={() => setCustomFeeRate(estimateFees.medium)}>
-                  <Text style={styles.feeOptionText}>
+                  <ThemedText type="paragraph" style={styles.feeOptionText}>
                     Standard ({estimateFees.medium} sat/vbyte)
                     {feeRateOptions[estimateFees.medium] ? ` ≈ ${feeRateOptions[estimateFees.medium]} sats` : ''}
-                  </Text>
+                  </ThemedText>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.fast && styles.selectedFeeOption]} onPress={() => setCustomFeeRate(estimateFees.fast)}>
-                  <Text style={styles.feeOptionText}>
+                  <ThemedText type="paragraph" style={styles.feeOptionText}>
                     Priority ({estimateFees.fast} sat/vbyte)
                     {feeRateOptions[estimateFees.fast] ? ` ≈ ${feeRateOptions[estimateFees.fast]} sats` : ''}
-                  </Text>
+                  </ThemedText>
                 </TouchableOpacity>
               </>
             )}
 
             <View style={styles.customFeeContainer}>
-              <Text style={styles.customFeeLabel}>Custom (sat/vbyte)</Text>
+              <ThemedText type="paragraph" style={styles.customFeeLabel}>
+                Custom (sat/vbyte)
+              </ThemedText>
               <TextInput style={styles.customFeeInput} keyboardType="numeric" value={String(feeRate)} onChangeText={handleChangeCustom} />
             </View>
 
             <TouchableOpacity style={[styles.doneButton, !customFeeRate && styles.disabledButton]} onPress={() => setShowFeeModal(false)} disabled={!customFeeRate}>
-              <Text style={styles.doneButtonText}>Done</Text>
+              <ThemedText type="paragraph" style={styles.doneButtonText}>
+                Done
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -310,15 +339,17 @@ const SendBtc: React.FC = () => {
       {!isPreparing && !isPrepared ? (
         <TouchableOpacity style={[styles.sendButton, !sendData && styles.disabledButton]} onPress={prepareTransaction} disabled={!sendData}>
           <MaterialCommunityIcons name="send" size={24} color="#fff" />
-          <Text style={styles.sendButtonText}>Send</Text>
+          <ThemedText type="paragraph" style={styles.sendButtonText}>
+            Send
+          </ThemedText>
         </TouchableOpacity>
       ) : null}
 
       {isPrepared ? (
         <View style={styles.preparedContainer}>
-          <Text style={styles.feeText}>
+          <ThemedText type="paragraph" style={styles.feeText}>
             Actual fee for this transaction: {formatBalance(String(actualFee), getDecimalsByNetwork(network), 8)} {getTickerByNetwork(network)}
-          </Text>
+          </ThemedText>
 
           <LongPressButton style={styles.sendButton} textStyle={styles.sendButtonText} onLongPressComplete={broadcast} title="Hold to confirm send" progressColor="#FFFFFF" backgroundColor="#007AFF" />
 
@@ -329,7 +360,9 @@ const SendBtc: React.FC = () => {
             }}
             style={styles.cancelButton}
           >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
+            <ThemedText type="paragraph" style={styles.cancelButtonText}>
+              Cancel
+            </ThemedText>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -345,7 +378,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 20,
   },
   section: {
@@ -353,7 +386,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 8,
   },
   inputContainer: {
@@ -414,7 +447,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 20,
   },
   feeOption: {
@@ -453,7 +486,7 @@ const styles = StyleSheet.create({
   doneButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   sendButton: {
     backgroundColor: '#007AFF',
@@ -467,7 +500,7 @@ const styles = StyleSheet.create({
   sendButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginLeft: 8,
   },
   preparedContainer: {
@@ -485,7 +518,7 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginLeft: 8,
   },
   cancelButton: {
@@ -504,7 +537,7 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     fontSize: 24,
-    color: '#4CAF50',
+    fontWeight: '700',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -522,7 +555,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 });
 
