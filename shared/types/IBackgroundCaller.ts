@@ -17,6 +17,7 @@ export enum MessageType {
   GET_BTC_SEND_DATA,
   GET_LIQUID_BALANCE,
   GET_LIQUID_SEND_DATA,
+  GET_BREEZ_MNEMONIC,
 }
 
 // Message types for background script communication
@@ -69,6 +70,10 @@ export type MessageTypeMap = {
     params: GetLiquidSendDataRequest;
     response: GetLiquidSendDataResponse;
   };
+  [MessageType.GET_BREEZ_MNEMONIC]: {
+    params: GetBreezMnemonicRequest;
+    response: GetBreezMnemonicResponse;
+  };
 };
 
 export type GetAddressParams = [network: Networks, accountNumber: number];
@@ -109,6 +114,9 @@ export type GetLiquidSendDataResponse = {
   scriptsDetails: LiquidWallet['scriptsDetails'];
 };
 
+export type GetBreezMnemonicRequest = [network: Networks, accountNumber: number];
+export type GetBreezMnemonicResponse = string;
+
 export interface ProcessRPCRequest {
   method: string;
   params: any;
@@ -136,4 +144,5 @@ export interface IBackgroundCaller {
   getBtcSendData(...params: GetBtcSendDataRequest): Promise<GetBtcSendDataResponse>;
   getLiquidBalance(...params: GetLiquidBalanceRequest): Promise<GetLiquidBalanceResponse>;
   getLiquidSendData(...params: GetLiquidSendDataRequest): Promise<GetLiquidSendDataResponse>;
+  getBreezMnemonic(...params: GetBreezMnemonicRequest): Promise<GetBreezMnemonicResponse>;
 }

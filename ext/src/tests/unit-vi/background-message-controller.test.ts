@@ -72,13 +72,25 @@ test('BackgroundMessageController can handle messages SAVE_MNEMONIC', async () =
     STORAGE_KEY_LIQUID_XPUB4: 'xpub6CRFzUgHFDaiNRZH6FCxAFP6KyV3RJ8LUi2PAQ8YgNxR2KnYZwbEp8ckQaj9KtnviGSiGV6er9pjEg8f686f3CxvvSM7YrwonVKUXe4EJWz',
     STORAGE_KEY_LIQUID_XPUB5: 'xpub6CRFzUgHFDaiSR9Tzr5rvKZ7HSKVwW1dbH5ZDErimAwgNgFv8oJwMSGkt1dQpv2Sx4yM2vamf7pDh3vW8fDG9MB1TXHCkYGQsKKYsMyFu4w',
     STORAGE_KEY_MNEMONIC: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+    STORAGE_KEY_BREEZ_MNEMONIC0: 'prosper short ramp prepare exchange stove life snack client enough purpose fold',
+    STORAGE_KEY_BREEZ_MNEMONIC1: 'sing slogan bar group gauge sphere rescue fossil loyal vital model desert',
+    STORAGE_KEY_BREEZ_MNEMONIC2: 'comfort onion auto dizzy upgrade mutual banner announce section poet point pudding',
+    STORAGE_KEY_BREEZ_MNEMONIC3: 'tuna mention protect shrimp mushroom access cat cattle license bind equip trial',
+    STORAGE_KEY_BREEZ_MNEMONIC4: 'soon catalog dragon burger veteran fish pair grass prefer shallow power smart',
+    STORAGE_KEY_BREEZ_MNEMONIC5: 'ceiling fringe unknown start royal quarter segment wet glide fiscal behind scheme',
+    STORAGE_KEY_BREEZ_TESTNET_MNEMONIC0: 'cross sponsor response pony dice robot come cycle spawn crunch cluster retreat',
+    STORAGE_KEY_BREEZ_TESTNET_MNEMONIC1: 'desert gate hour father story quick cigar consider nerve accuse future foam',
+    STORAGE_KEY_BREEZ_TESTNET_MNEMONIC2: 'island canal fence kidney sentence foot purse nation lesson defy display sad',
+    STORAGE_KEY_BREEZ_TESTNET_MNEMONIC3: 'begin mule galaxy put inside weapon slim bone warfare sibling slot rotate',
+    STORAGE_KEY_BREEZ_TESTNET_MNEMONIC4: 'update fatal crazy adjust dune try clinic soft fee scene eye dad',
+    STORAGE_KEY_BREEZ_TESTNET_MNEMONIC5: 'recycle coast weasel relief galaxy fault city enemy give awkward find lady',
   });
   assert.strictEqual(response2, true);
 
   // checking that it was saved:
 
   await new Promise((resolve) => setTimeout(resolve, 100)); // sleep to allow callback to fire
-  expect(setMockedMethod2).toHaveBeenCalledTimes(28);
+  expect(setMockedMethod2).toHaveBeenCalledTimes(40);
   expect(getMockedMethod).toHaveBeenCalledTimes(0);
 
   // confirm mnemonic not encrypted though present
