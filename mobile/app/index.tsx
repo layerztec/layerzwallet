@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import TokensView from '@/components/tokens-view';
+import PartnersView from '@/components/partners-view';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Hello } from '@shared/class/hello';
 import { DEFAULT_NETWORK } from '@shared/config';
@@ -151,6 +152,10 @@ export default function IndexScreen() {
 
       <TokensView />
 
+      <ThemedView style={styles.partnersSection} testID="PartnersView">
+        <PartnersView />
+      </ThemedView>
+
       <ThemedView style={styles.contentContainer}>
         <ThemedView style={styles.buttonContainer}>
           <ThemedView style={styles.buttonRow}>
@@ -177,9 +182,6 @@ export default function IndexScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-  },
-  container: {
-    flexGrow: 1,
   },
   headerContainer: {
     flexDirection: 'row',
@@ -219,7 +221,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   contentContainer: {
-    flex: 1,
     padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -277,5 +278,10 @@ const styles = StyleSheet.create({
   },
   selectedNetworkButtonText: {
     color: 'white',
+  },
+  partnersSection: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
 });

@@ -56,5 +56,14 @@ const partnersList: PartnerInfo[] = [
 ];
 
 export function getPartnersList(network: Networks): PartnerInfo[] {
-  return partnersList.filter((dapp) => dapp.chainId === hexToDec(getChainIdByNetwork(network)));
+  const networkChainId = hexToDec(getChainIdByNetwork(network));
+
+  // Get network-specific partners
+  const networkPartners = partnersList.filter((dapp) => dapp.chainId === networkChainId);
+
+  // Always include Bitcoin partners (chainId: 0) for all networks to ensure we have something to display
+  const universalPartners = partnersList.filter((dapp) => dapp.chainId === 0);
+
+  // Combine specific network partners with Bitcoin partners
+  return [...networkPartners, ...universalPartners];
 }

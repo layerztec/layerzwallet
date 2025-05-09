@@ -9,6 +9,11 @@ appId: com.layerzwallet.mobile
 - assertNotVisible:
     id: "selectedNetwork-rootstock"
 
+# Scroll until the Receive button is visible
+- scrollUntilVisible:
+    element: "Receive"
+    direction: DOWN
+
 - tapOn: "Receive"
 
 - extendedWaitUntil:
@@ -34,7 +39,10 @@ appId: com.layerzwallet.mobile
 - tapOn:
     point: "10%,10%"
 
-# Verify we're back on the home screen
+# Verify we're back on the home screen and scroll to see buttons
+- scrollUntilVisible:
+    element: "Send"
+    direction: DOWN
 - assertVisible: "Send"
 - assertVisible: "Receive"
 
@@ -46,6 +54,11 @@ appId: com.layerzwallet.mobile
     id: "selectedNetwork-bitcoin"
 - assertVisible:
     id: "selectedNetwork-rootstock"
+
+# Scroll until the Receive button is visible
+- scrollUntilVisible:
+    element: "Receive"
+    direction: DOWN
 
 - tapOn: "Receive"
 
