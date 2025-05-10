@@ -1,5 +1,6 @@
 # Layerz Wallet
 
+
 Experience the future of Bitcoin with Layer2-focused wallet. Bitcoin-only, non-custodial, opensource.
 
 * Mobile apps (iOS/Android)
