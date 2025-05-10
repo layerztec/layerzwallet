@@ -3,10 +3,10 @@ import { EvmWallet } from '@shared/class/evm-wallet';
 import { LiquidWallet } from '@shared/class/wallets/liquid-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { lazyInitWallet, saveArkAddresses, saveBitcoinXpubs, saveLiquidXpubs, saveWalletState } from '@shared/modules/wallet-utils';
+import { lazyInitWallet, saveArkAddresses, saveBitcoinXpubs, saveBreezMnemonics, saveLiquidXpubs, saveWalletState } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, MessageType, MessageTypeMap, OpenPopupRequest, ProcessRPCRequest } from '@shared/types/IBackgroundCaller';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_BREEZ_MNEMONIC, STORAGE_KEY_BREEZ_TESTNET_MNEMONIC, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
 import { Csprng } from '../../src/class/rng';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
@@ -31,7 +31,8 @@ type TMethods =
   | 'signTypedData'
   | 'getBtcSendData'
   | 'getLiquidBalance'
-  | 'getLiquidSendData';
+  | 'getLiquidSendData'
+  | 'getBreezMnemonic';
 
 const cachedWallets: Record<TBackgroundNetworks, Record<number, TBackgroundWallets>> = {
   [NETWORK_BITCOIN]: {},
@@ -102,6 +103,7 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
     await saveArkAddresses(LayerzStorage, mnemonic);
     await saveLiquidXpubs(LayerzStorage, mnemonic);
+    await saveBreezMnemonics(LayerzStorage, mnemonic);
 
     return true;
   },
@@ -115,6 +117,7 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
     await saveArkAddresses(LayerzStorage, mnemonic);
     await saveLiquidXpubs(LayerzStorage, mnemonic);
+    await saveBreezMnemonics(LayerzStorage, mnemonic);
 
     return { mnemonic };
   },
@@ -241,6 +244,18 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
       scriptsDetails: wallet.scriptsDetails,
     };
   },
+
+  async getBreezMnemonic(network, accountNumber) {
+    if (network !== NETWORK_BREEZ && network !== NETWORK_BREEZTESTNET) {
+      throw new Error(`Unsupported network: ${network}`);
+    }
+    const key = network === NETWORK_BREEZ ? STORAGE_KEY_BREEZ_MNEMONIC : STORAGE_KEY_BREEZ_TESTNET_MNEMONIC;
+    const mnemonic = await LayerzStorage.getItem(key + accountNumber);
+    if (!mnemonic) {
+      throw new Error(`Breez mnemonic not found for account number: ${accountNumber}`);
+    }
+    return mnemonic;
+  },
 };
 
 const callBackgroundMethod = async (method: Function, params: any, sendResponse: Function) => {
@@ -265,6 +280,7 @@ const MessageHandlerMap = {
   [MessageType.GET_BTC_SEND_DATA]: BackgroundExtensionExecutor.getBtcSendData,
   [MessageType.GET_LIQUID_BALANCE]: BackgroundExtensionExecutor.getLiquidBalance,
   [MessageType.GET_LIQUID_SEND_DATA]: BackgroundExtensionExecutor.getLiquidSendData,
+  [MessageType.GET_BREEZ_MNEMONIC]: BackgroundExtensionExecutor.getBreezMnemonic,
 };
 
 export function handleMessage(msg: TBackgroundMessage, sender: chrome.runtime.MessageSender, sendResponse: TSendResponse) {

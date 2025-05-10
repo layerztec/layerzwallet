@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useContext, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import '../src/modules/breeze-adapter';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -18,6 +19,7 @@ import { formatBalance } from '@shared/modules/string-utils';
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, NETWORK_LIQUID } from '@shared/types/networks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { OnrampProps } from '@/app/Onramp';
+import { initBreez } from './breez';
 
 export default function IndexScreen() {
   const { network, setNetwork } = useContext(NetworkContext);
@@ -91,6 +93,11 @@ export default function IndexScreen() {
     });
   };
 
+  const handleKek = () => {
+    console.info('initBreez', initBreez);
+    initBreez();
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.headerContainer}>
@@ -153,6 +160,12 @@ export default function IndexScreen() {
 
       <ThemedView style={styles.contentContainer}>
         <ThemedView style={styles.buttonContainer}>
+          <ThemedView style={styles.buttonRow}>
+            <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={handleKek}>
+              <ThemedText style={styles.buttonText}>kek</ThemedText>
+            </TouchableOpacity>
+          </ThemedView>
+
           <ThemedView style={styles.buttonRow}>
             <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive}>
               <ThemedText style={styles.buttonText}>Receive</ThemedText>

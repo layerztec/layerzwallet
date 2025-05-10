@@ -6,6 +6,7 @@ import { SettingsIcon } from 'lucide-react';
 import React, { useCallback, useContext } from 'react';
 import { Navigate, Route, HashRouter as Router, Routes, useNavigate } from 'react-router-dom';
 import { SWRConfig } from 'swr';
+import '../../modules/breeze-adapter';
 import { LayerzStorage } from '../../class/layerz-storage';
 import { SwrCacheProvider } from '../../class/swr-cache-provider';
 import { AskPasswordContextProvider } from '../../hooks/AskPasswordContext';
@@ -21,6 +22,7 @@ import OnboardingIntro from './OnboardingIntro';
 import OnboardingTos from './OnboardingTos';
 import './Popup.css';
 import Receive from './Receive';
+import ReceiveLightning from './ReceiveLightning';
 import SendArk from './SendArk';
 import SendBtc from './SendBtc';
 import SendEvm from './SendEvm';
@@ -71,6 +73,7 @@ const AppContent: React.FC = () => {
             <Route path="/test" element={<TestPage />} />
             <Route path="/home" element={<Home />} />
             <Route path="/receive" element={<Receive />} />
+            <Route path="/receive-lightning" element={<ReceiveLightning />} />
             <Route path="/send-evm" element={<SendEvm />} />
             <Route path="/send-ark" element={<SendArk />} />
             <Route path="/send-token-evm" element={<SendTokenEvm />} />
