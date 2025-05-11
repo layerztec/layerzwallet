@@ -1,6 +1,6 @@
-import { Text, type TextProps } from 'react-native';
+import { TextProps } from 'react-native';
 import { useThemeColor } from '../hooks/useThemeColor';
-import { Typography } from '@shared/constants/Typography';
+import { ThemedText as SharedThemedText, ThemedTextProps as SharedThemedTextProps } from '../../shared/components/ThemedText';
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
@@ -11,15 +11,14 @@ export type ThemedTextProps = TextProps & {
 export function ThemedText({ style, lightColor, darkColor, type = 'default', ...rest }: ThemedTextProps) {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
 
-  let typographyStyle: any[] = [];
-  if (type === 'defaultSemiBold') {
-    typographyStyle = [Typography.paragraph, { fontWeight: '700' }];
-  } else if (type === 'link') {
-    typographyStyle = [Typography.paragraph, { color: '#0a7ea4', lineHeight: 30 }];
-  } else {
-    const typographyKey = type === 'default' ? 'paragraph' : type === 'title' ? 'headline' : type === 'subtitle' ? 'subHeadline' : type;
-    typographyStyle = [Typography[typographyKey] || Typography.paragraph];
-  }
+  // Convert React Native style prop to Tamagui compatible props
+  const tamaguiProps: SharedThemedTextProps = {
+    ...rest,
+    type,
+    lightColor,
+    darkColor,
+    color,
+  };
 
-  return <Text style={[{ color }, ...typographyStyle, style]} {...rest} />;
+  return <SharedThemedText {...tamaguiProps} />;
 }

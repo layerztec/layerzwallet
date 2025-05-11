@@ -56,6 +56,7 @@
     "slip77": "0.2.0",
     "stream-browserify": "3.0.0",
     "swr": "2.2.5",
+    "tamagui": "^1.126.12",
     "timers-browserify": "2.0.12",
     "vm-browserify": "1.1.2",
     "ws-electrumx-client": "1.0.5"

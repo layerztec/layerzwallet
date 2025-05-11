@@ -4,6 +4,7 @@ import { EStep, InitializationContext, InitializationContextProvider } from '@sh
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsIcon } from 'lucide-react';
 import React, { useCallback, useContext } from 'react';
+import { TamaguiProviderWrapper } from '../../components/TamaguiProvider';
 import { Navigate, Route, HashRouter as Router, Routes, useNavigate } from 'react-router-dom';
 import { SWRConfig } from 'swr';
 import { LayerzStorage } from '../../class/layerz-storage';
@@ -114,7 +115,9 @@ const Popup: React.FC = () => {
             <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
               <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
                 <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
-                  <AppContent />
+                  <TamaguiProviderWrapper>
+                    <AppContent />
+                  </TamaguiProviderWrapper>
                 </NetworkContextProvider>
               </AccountNumberContextProvider>
             </InitializationContextProvider>

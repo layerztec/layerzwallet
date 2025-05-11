@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import TokensView from '@/components/tokens-view';
+import { ExampleTamaguiComponent } from '@/components/ExampleTamaguiComponent';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Hello } from '@shared/class/hello';
 import { DEFAULT_NETWORK } from '@shared/config';

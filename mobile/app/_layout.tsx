@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { AppState, AppStateStatus, LogBox } from 'react-native';
+import { TamaguiProviderWrapper } from '../components/TamaguiProvider';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
@@ -24,6 +25,11 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    'Inter-Light': require('../../shared/assets/fonts/Inter-Light.ttf'),
+    'Inter-Regular': require('../../shared/assets/fonts/Inter-Regular.ttf'),
+    'Inter-Medium': require('../../shared/assets/fonts/Inter-Medium.ttf'),
+    'Inter-Bold': require('../../shared/assets/fonts/Inter-Bold.ttf'),
+    'Inter-Black': require('../../shared/assets/fonts/Inter-Black.ttf'),
   });
 
   useEffect(() => {
@@ -72,21 +78,23 @@ export default function RootLayout() {
           <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
             <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
               <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                <Stack>
-                  <Stack.Screen name="index" options={{ headerShown: false, title: 'Home' }} />
-                  <Stack.Screen name="receive" />
-                  <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
-                  <Stack.Screen name="onboarding/intro" options={{ headerShown: false }} />
-                  <Stack.Screen name="onboarding/create-password" options={{ headerShown: false }} />
-                  <Stack.Screen name="onboarding/tos" options={{ headerShown: false }} />
-                  <Stack.Screen name="onboarding/import-wallet" options={{ headerShown: false }} />
-                  <Stack.Screen name="onboarding/create-wallet" options={{ headerShown: false }} />
-                  <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
-                  <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
-                  <Stack.Screen name="Onramp" options={{ headerShown: true }} />
-                  <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
-                </Stack>
-                <StatusBar style="auto" />
+                <TamaguiProviderWrapper>
+                  <Stack>
+                    <Stack.Screen name="index" options={{ headerShown: false, title: 'Home' }} />
+                    <Stack.Screen name="receive" />
+                    <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
+                    <Stack.Screen name="onboarding/intro" options={{ headerShown: false }} />
+                    <Stack.Screen name="onboarding/create-password" options={{ headerShown: false }} />
+                    <Stack.Screen name="onboarding/tos" options={{ headerShown: false }} />
+                    <Stack.Screen name="onboarding/import-wallet" options={{ headerShown: false }} />
+                    <Stack.Screen name="onboarding/create-wallet" options={{ headerShown: false }} />
+                    <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
+                    <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
+                    <Stack.Screen name="Onramp" options={{ headerShown: true }} />
+                    <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
+                  </Stack>
+                  <StatusBar style="auto" />
+                </TamaguiProviderWrapper>
               </ThemeProvider>
             </NetworkContextProvider>
           </AccountNumberContextProvider>
