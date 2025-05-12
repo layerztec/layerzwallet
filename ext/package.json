@@ -51,6 +51,7 @@
     "process": "0.11.10",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-native-web": "^0.20.0",
     "react-router-dom": "6.26.1",
     "silent-payments": "github:BlueWallet/SilentPayments#7ac4d17",
     "slip77": "0.2.0",

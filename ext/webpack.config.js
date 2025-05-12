@@ -19,6 +19,9 @@ var secretsPath = path.join(__dirname, 'secrets.' + env.NODE_ENV + '.js');
 // Add the @shared alias pointing to the parent directory's shared folder
 alias['@shared'] = path.join(__dirname, 'src', 'shared-link');
 
+// Add react-native-web alias for Tamagui support
+alias['react-native'] = 'react-native-web';
+
 var fileExtensions = ['jpg', 'jpeg', 'png', 'gif', 'eot', 'otf', 'svg', 'ttf', 'woff', 'woff2'];
 
 if (fileSystem.existsSync(secretsPath)) {
@@ -163,6 +166,12 @@ var options = {
   plugins: [
     new webpack.DefinePlugin({
       'process.env': JSON.stringify(process.env),
+      // Tamagui required environment variables
+      'process.env.TAMAGUI_TARGET': JSON.stringify('web'),
+      'process.env.TAMAGUI_CSS_VARIABLE_PREFIX': JSON.stringify(''),
+      'process.env.TAMAGUI_REACT_19': 'false',
+      'process.env.TAMAGUI_DISABLE_WARN_DYNAMIC_LOAD': JSON.stringify('1'),
+      'process.env.IS_STATIC': JSON.stringify(''),
       'process.browser': true,
       'process.version': JSON.stringify(process.version),
     }),

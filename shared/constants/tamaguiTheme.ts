@@ -41,8 +41,9 @@ const interFont = createFont({
   },
 });
 
-// Define color tokens based on your current color scheme
+// Define a simpler token set following Tamagui's structure
 const tokens = createTokens({
+  // Simplified color tokens
   color: {
     primary: '#011474',
     accent1: '#FD5D2B',
@@ -50,15 +51,15 @@ const tokens = createTokens({
     accent3: '#D9FD5F',
     accent4: '#F5B9CD',
     neutral: '#CECDCD',
-    background: {
-      light: '#FFFFFF',
-      dark: '#011474',
-    },
-    text: {
-      light: '#011474',
-      dark: '#FFFFFF',
-    },
+
+    // Define text and background directly, not in nested objects
+    background: '#FFFFFF',
+    backgroundDark: '#011474',
+    text: '#011474',
+    textDark: '#FFFFFF',
   },
+
+  // Standard size and space scales - using numbers instead of named tokens
   space: {
     0: 0,
     1: 4,
@@ -68,6 +69,19 @@ const tokens = createTokens({
     5: 32,
     6: 40,
   },
+
+  // Size tokens - these must match space tokens
+  size: {
+    0: 0,
+    1: 4,
+    2: 8,
+    3: 16,
+    4: 24,
+    5: 32,
+    6: 40,
+  },
+
+  // Border radius tokens
   radius: {
     0: 0,
     1: 4,
@@ -76,6 +90,8 @@ const tokens = createTokens({
     4: 24,
     5: 32,
   },
+
+  // Z-index tokens
   zIndex: {
     0: 0,
     1: 100,
@@ -88,6 +104,7 @@ const tokens = createTokens({
 
 // Create the Tamagui config
 export const tamaguiConfig = createTamagui({
+  defaultFont: 'body',
   fonts: {
     heading: interFont,
     body: interFont,
@@ -95,18 +112,49 @@ export const tamaguiConfig = createTamagui({
   tokens,
   themes: {
     light: {
-      background: tokens.color.background.light,
-      text: tokens.color.text.light,
+      background: tokens.color.background,
+      text: tokens.color.text,
+      color: tokens.color.text,
+      borderColor: tokens.color.neutral,
+      shadowColor: tokens.color.neutral,
     },
     dark: {
-      background: tokens.color.background.dark,
-      text: tokens.color.text.dark,
+      background: tokens.color.backgroundDark,
+      text: tokens.color.textDark,
+      color: tokens.color.textDark,
+      borderColor: tokens.color.neutral,
+      shadowColor: tokens.color.neutral,
     },
+  },
+  // Add shorthands for size and space
+  shorthands: {
+    p: 'padding',
+    pt: 'paddingTop',
+    pr: 'paddingRight',
+    pb: 'paddingBottom',
+    pl: 'paddingLeft',
+    px: 'paddingHorizontal',
+    py: 'paddingVertical',
+    m: 'margin',
+    mt: 'marginTop',
+    mr: 'marginRight',
+    mb: 'marginBottom',
+    ml: 'marginLeft',
+    mx: 'marginHorizontal',
+    my: 'marginVertical',
+    w: 'width',
+    h: 'height',
+    bg: 'background',
   },
 });
 
 // Export types
 export type AppConfig = typeof tamaguiConfig;
 declare module 'tamagui' {
-  interface TamaguiCustomConfig extends AppConfig {}
+  // Add a dummy property to avoid the empty interface warning
+  interface TamaguiCustomConfig extends AppConfig {
+    // This property is added to fix the TypeScript ESLint "no-empty-interface" warning
+    // by ensuring the interface isn't empty
+    __layerzWalletCustomConfig: true;
+  }
 }

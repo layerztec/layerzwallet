@@ -1,24 +1,37 @@
-import { TextProps } from 'react-native';
+import React from 'react';
+import { Text, TextProps } from 'react-native';
 import { useThemeColor } from '../hooks/useThemeColor';
-import { ThemedText as SharedThemedText, ThemedTextProps as SharedThemedTextProps } from '../../shared/components/ThemedText';
+import { ThemedTextProps as SharedThemedTextProps, typography } from '../../shared/components/ThemedText';
 
-export type ThemedTextProps = TextProps & {
-  lightColor?: string;
-  darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'headline' | 'subHeadline' | 'paragraph';
-};
+export type ThemedTextProps = TextProps & SharedThemedTextProps;
 
-export function ThemedText({ style, lightColor, darkColor, type = 'default', ...rest }: ThemedTextProps) {
+export function ThemedText({ style, lightColor, darkColor, type = 'default', children, ...rest }: ThemedTextProps) {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
 
-  // Convert React Native style prop to Tamagui compatible props
-  const tamaguiProps: SharedThemedTextProps = {
-    ...rest,
-    type,
-    lightColor,
-    darkColor,
-    color,
-  };
+  // Map 'default' to 'paragraph' for typography
+  const textType = type === 'default' ? 'paragraph' : type;
 
-  return <SharedThemedText {...tamaguiProps} />;
+  // Get style properties based on text type
+  const typographyStyle = typography[textType];
+
+  // Check if the current text type is 'link' to use its special color
+  const linkColor = textType === 'link' ? typography.link.color : undefined;
+
+  return (
+    <Text
+      style={[
+        {
+          color: linkColor || color,
+          fontSize: typographyStyle.fontSize,
+          fontWeight: typographyStyle.fontWeight,
+          lineHeight: typographyStyle.lineHeight,
+          letterSpacing: typographyStyle.letterSpacing,
+        },
+        style,
+      ]}
+      {...rest}
+    >
+      {children}
+    </Text>
+  );
 }

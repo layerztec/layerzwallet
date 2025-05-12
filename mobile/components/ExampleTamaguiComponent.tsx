@@ -1,18 +1,16 @@
 import React from 'react';
-import { View } from 'tamagui';
-import { ThemedText } from '../../components/ThemedText';
+import { Text as TamaguiText, YStack } from 'tamagui';
+import { Text as RNText, View } from 'react-native';
 
 /**
- * An example component demonstrating the use of the Tamagui-based ThemedText component
+ * A minimal Tamagui component with fallback for any Tamagui errors
  */
 export const ExampleTamaguiComponent = () => {
   return (
-    <View padding="$3">
-      <ThemedText type="headline">This is a headline with Tamagui</ThemedText>
-      <ThemedText type="subHeadline">This is a sub-headline with Tamagui</ThemedText>
-      <ThemedText type="paragraph">This is a paragraph with Tamagui</ThemedText>
-      <ThemedText type="defaultSemiBold">This is bold text with Tamagui</ThemedText>
-      <ThemedText type="link">This is a link with Tamagui</ThemedText>
-    </View>
+    <YStack padding="$3" backgroundColor="$background">
+      <TamaguiText fontSize={16} fontWeight={600} color="$color">
+        Tamagui Text Component
+      </TamaguiText>
+    </YStack>
   );
 };

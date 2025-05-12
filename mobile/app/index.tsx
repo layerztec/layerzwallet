@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import TokensView from '@/components/tokens-view';
-import { ExampleTamaguiComponent } from '@/components/ExampleTamaguiComponent';
+// Temporarily comment out Tamagui components to diagnose splash screen issues
+import { SimpleExample } from '../components/SimpleExample';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Hello } from '@shared/class/hello';
 import { DEFAULT_NETWORK } from '@shared/config';
@@ -99,6 +100,9 @@ export default function IndexScreen() {
           <ThemedText style={styles.title}>Welcome to LZW Mobile</ThemedText>
           <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
           <ThemedText style={styles.subtitle}>Explore Bitcoin Layer 2</ThemedText>
+
+          {/* Using only standard React Native components, no Tamagui */}
+          <Text style={{ marginTop: 10, fontSize: 16, color: 'blue' }}>Simple Text Component (No Tamagui)</Text>
         </ThemedView>
         <TouchableOpacity style={styles.settingsButton} onPress={goToSettings} testID="SettingsButton">
           <Ionicons name="settings-outline" size={24} color="#007AFF" />
