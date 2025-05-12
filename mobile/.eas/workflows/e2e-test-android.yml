@@ -14,6 +14,7 @@ jobs:
     needs: [build_android_for_e2e]
     type: maestro
     params:
+      retries: 3
       build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
       flow_path:
         - .maestro/home.yml
