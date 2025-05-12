@@ -25,7 +25,8 @@
     "unit": "vitest run ../shared/tests/unit-vi/",
     "integration": "vitest run ../shared/tests/integration-vi/",
     "lint": "prettier '**/*.{js,jsx,ts,tsx,json,css,scss,md}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md}' --config ./.prettierrc --check && tsc --noEmit && eslint ./",
-    "lint:write": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md}' --config ./.prettierrc; eslint ./ --fix"
+    "lint:write": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md}' --config ./.prettierrc; eslint ./ --fix",
+    "clean:start": "watchman watch-del-all && rm -rf node_modules/.cache && npm start -- --reset-cache"
   },
   "jest": {
     "preset": "jest-expo"
@@ -41,6 +42,9 @@
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
     "@spsina/bip47": "github:BlueWallet/bip47#df823454092a9993edeea11d663f8eb9a522a174",
+    "@tamagui/font-inter": "^1.126.12",
+    "@tamagui/shorthands": "^1.126.12",
+    "@tamagui/themes": "^1.126.12",
     "@vulpemventures/secp256k1-zkp": "3.1.0",
     "assert": "^2.1.0",
     "bignumber.js": "9.1.1",
