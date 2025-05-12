@@ -13,6 +13,7 @@ import TokensView from './TokensView';
 import PartnersView from './PartnersView';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
+import { ExampleTamaguiComponent } from './ExampleTamaguiComponent';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -29,6 +30,9 @@ const Home: React.FC = () => {
 
   return (
     <div>
+      {/* Example Tamagui Component */}
+      <ExampleTamaguiComponent />
+
       <Switch
         items={getAvailableNetworks()}
         activeItem={network}
