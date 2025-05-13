@@ -1,11 +1,13 @@
-import { InMemoryKey, Wallet } from '@arklabs/wallet-sdk';
+import { InMemoryKey, Wallet, WalletConfig } from '@arklabs/wallet-sdk';
 import BIP32Factory from 'bip32';
 import * as bip39 from 'bip39';
 import assert from 'assert';
 
 import { AbstractHDElectrumWallet } from './abstract-hd-electrum-wallet';
 import ecc from '../../blue_modules/noble_ecc';
-import { NetworkName } from '@arklabs/wallet-sdk/dist/types/networks';
+
+// NetworkName is not directly exported from the SDK
+type NetworkName = WalletConfig['network'];
 
 const bip32 = BIP32Factory(ecc);
 
