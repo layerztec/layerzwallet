@@ -1,3 +1,4 @@
+import { Typography as SharedTypography } from '@shared/constants/Typography';
 import { Platform } from 'react-native';
 
 const fontFamily = {
@@ -9,25 +10,17 @@ const fontFamily = {
 };
 
 export const Typography = {
+  ...SharedTypography,
   headline: {
+    ...SharedTypography.headline,
     fontFamily: fontFamily.light,
-    fontSize: 32,
-    fontWeight: '300',
-    lineHeight: 40,
-    letterSpacing: 0.2,
   },
   subHeadline: {
+    ...SharedTypography.subHeadline,
     fontFamily: fontFamily.regular,
-    fontSize: 20,
-    fontWeight: '400',
-    lineHeight: 28,
-    letterSpacing: 0.1,
   },
   paragraph: {
+    ...SharedTypography.paragraph,
     fontFamily: fontFamily.regular,
-    fontSize: 16,
-    fontWeight: '400',
-    lineHeight: 24,
-    letterSpacing: 0.05,
   },
 };
