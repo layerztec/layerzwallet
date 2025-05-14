@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './DesignSystem';
+import { Import, PlusCircle } from 'lucide-react';
 
 const OnboardingIntro: React.FC = () => {
   const navigate = useNavigate();
@@ -13,6 +14,8 @@ const OnboardingIntro: React.FC = () => {
         onClick={() => {
           navigate('/onboarding-import-wallet');
         }}
+        icon={<Import size={16} />}
+        iconPosition="left"
       >
         Import wallet
       </Button>
@@ -21,6 +24,8 @@ const OnboardingIntro: React.FC = () => {
         onClick={() => {
           navigate('/onboarding-create-wallet');
         }}
+        icon={<PlusCircle size={16} />}
+        iconPosition="left"
       >
         Create wallet
       </Button>

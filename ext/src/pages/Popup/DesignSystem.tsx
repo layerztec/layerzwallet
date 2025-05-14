@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { ClipboardCopy } from 'lucide-react';
+import { ThemedButton as SharedThemedButton } from '@shared/ui/components/ThemedButton';
 
 export const SelectFeeSlider: React.FC<
   {
@@ -61,59 +62,29 @@ export const Switch: React.FC<{
 };
 
 // Button Component
-export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { disabled?: boolean }> = ({ children, disabled, style, ...props }) => (
-  <button
-    {...props}
-    disabled={disabled}
-    style={{
-      backgroundColor: '#282c34',
-      color: 'white',
-      border: '1px solid white',
-      padding: '10px 20px',
-      borderRadius: '5px',
-      cursor: disabled ? 'not-allowed' : 'pointer',
-      fontSize: '20px',
-      transition: 'background-color 0.3s',
-      opacity: disabled ? 0.5 : 1,
-      display: 'inline-flex',
-      alignItems: 'center',
-      whiteSpace: 'nowrap',
-      margin: '0 5px 5px 0',
-      ...style, // Merge any custom styles passed as props
-    }}
-  >
-    {React.Children.map(children, (child) => (
-      <span style={{ display: 'flex', alignItems: 'center', marginRight: '5px' }}>{child}</span>
-    ))}
-  </button>
+export const Button: React.FC<
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    disabled?: boolean;
+    color?: string;
+    textColor?: string;
+  }
+> = ({ children, disabled, style, color = '#282c34', textColor = 'white', ...props }) => (
+  <SharedThemedButton {...props} disabled={disabled} style={style} color={color} textColor={textColor}>
+    {children}
+  </SharedThemedButton>
 );
 
 // WideButton Component
-export const WideButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { disabled?: boolean }> = ({ children, disabled, ...props }) => (
-  <button
-    {...props}
-    disabled={disabled}
-    style={{
-      backgroundColor: '#282c34',
-      color: 'white',
-      border: '1px solid white',
-      padding: '10px 20px',
-      borderRadius: '5px',
-      cursor: disabled ? 'not-allowed' : 'pointer',
-      fontSize: '20px',
-      transition: 'background-color 0.3s',
-      opacity: disabled ? 0.5 : 1,
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      width: '100%',
-      margin: '0 5px 5px 0',
-    }}
-  >
-    {React.Children.map(children, (child) => (
-      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 5px' }}>{child}</span>
-    ))}
-  </button>
+export const WideButton: React.FC<
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    disabled?: boolean;
+    color?: string;
+    textColor?: string;
+  }
+> = ({ children, disabled, color = '#282c34', textColor = 'white', ...props }) => (
+  <SharedThemedButton {...props} disabled={disabled} color={color} textColor={textColor} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+    {children}
+  </SharedThemedButton>
 );
 
 export const HodlButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { disabled?: boolean; holdTime?: number; onHold?: () => void }> = ({
