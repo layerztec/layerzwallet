@@ -79,7 +79,7 @@ export const ThemedButton: React.FC<ReactNativeThemedButtonProps> = ({
         {iconPosition === 'left' && icon}
 
         {typeof children === 'string' ? (
-          <Text style={[textStyle, icon && iconPosition === 'left' && { marginLeft: 8 }, icon && iconPosition === 'right' && { marginRight: 8 }]}>{children}</Text>
+          <Text style={[textStyle, icon && iconPosition === 'left' ? { marginLeft: 8 } : null, icon && iconPosition === 'right' ? { marginRight: 8 } : null]}>{children}</Text>
         ) : (
           children
         )}
