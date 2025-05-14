@@ -31,6 +31,7 @@
       }
     },
     "android": {
+      "edgeToEdgeEnabled": true,
       "permissions": ["android.permission.CAMERA"],
       "package": "com.layerzwallet.mobile",
       "icon": "./assets/images/android_512x512.png",
@@ -87,7 +88,9 @@
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to scan QR codes with addresses"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

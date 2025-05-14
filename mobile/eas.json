@@ -28,6 +28,11 @@
         "simulator": true
       }
     },
+    "development-simulator": {
+      "extends": "simulator",
+      "developmentClient": true,
+      "distribution": "internal"
+    },
     "production": {
       "extends": "base",
       "autoIncrement": true
