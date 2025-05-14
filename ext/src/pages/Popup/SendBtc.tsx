@@ -3,7 +3,7 @@ import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
 import { Scan, SendIcon } from 'lucide-react';
 import { default as React, useContext, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { TFeeEstimate } from '@shared/blue_modules/BlueElectrum';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';

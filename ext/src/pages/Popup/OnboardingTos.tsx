@@ -1,7 +1,7 @@
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 import React, { useContext, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { Button } from './DesignSystem';
 

@@ -12,7 +12,7 @@ import { BackgroundCaller } from '../../modules/background-caller';
 import assert from 'assert';
 import { StringNumber } from '@shared/types/string-number';
 import { AskPasswordContext } from '../../hooks/AskPasswordContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { TransactionSuccessProps } from './TransactionSuccessEvm';
 import { decrypt } from '../../modules/encryption';
 import { getDeviceID } from '@shared/modules/device-id';

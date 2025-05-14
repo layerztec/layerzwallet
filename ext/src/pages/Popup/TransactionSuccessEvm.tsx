@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { WideButton } from './DesignSystem';
 import { CheckCircle2, Loader, XCircle } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { Networks } from '@shared/types/networks';
 import { getDecimalsByNetwork, getExplorerUrlByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import BigNumber from 'bignumber.js';

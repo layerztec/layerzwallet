@@ -8,7 +8,7 @@ import { getDecimalsByNetwork, getExplorerUrlByNetwork, getTickerByNetwork } fro
 import { useBalance } from '@shared/hooks/useBalance';
 import { StringNumber } from '@shared/types/string-number';
 import BigNumber from 'bignumber.js';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { formatBalance } from '@shared/modules/string-utils';
 
 const Receive: React.FC = () => {

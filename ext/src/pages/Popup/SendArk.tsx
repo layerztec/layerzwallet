@@ -9,7 +9,7 @@ import { useBalance } from '@shared/hooks/useBalance';
 import BigNumber from 'bignumber.js';
 import assert from 'assert';
 import { AskPasswordContext } from '../../hooks/AskPasswordContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { decrypt } from '../../modules/encryption';
 import { getDeviceID } from '@shared/modules/device-id';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';

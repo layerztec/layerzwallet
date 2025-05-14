@@ -13,7 +13,7 @@ import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
 import { Scan, SendIcon } from 'lucide-react';
 import { default as React, useContext, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { LayerzStorage } from '../../class/layerz-storage';
 import { Csprng } from '../../class/rng';
 import { SecureStorage } from '../../class/secure-storage';
@@ -36,7 +36,7 @@ type TDataState =
 const SendLiquid: React.FC = () => {
   const scanQr = useScanQR();
   const navigate = useNavigate();
-  const walletRef = useRef<LiquidWallet | undefined>();
+  const walletRef = useRef<LiquidWallet | undefined>(undefined);
   const [toAddress, setToAddress] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [error, setError] = useState<string>('');

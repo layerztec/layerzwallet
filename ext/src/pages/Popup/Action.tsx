@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { Messenger } from '@shared/modules/messenger';

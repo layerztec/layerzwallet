@@ -1,6 +1,6 @@
 import { ArrowDownRightIcon, SendIcon, Info, ShoppingCartIcon } from 'lucide-react';
 import React, { useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { DEFAULT_NETWORK } from '@shared/config';
 import { getDecimalsByNetwork, getIsTestnet, getKnowMoreUrl, getTickerByNetwork } from '@shared/models/network-getters';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';

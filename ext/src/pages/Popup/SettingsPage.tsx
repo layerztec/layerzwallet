@@ -3,7 +3,7 @@ import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wal
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 import React, { useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Csprng } from '../../class/rng';
 import { decrypt, encrypt } from '../../modules/encryption';
 import { Button, Select } from './DesignSystem';

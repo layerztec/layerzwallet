@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Button } from './DesignSystem';
 
 const OnboardingIntro: React.FC = () => {

@@ -4,7 +4,7 @@ import { EStep, InitializationContext, InitializationContextProvider } from '@sh
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsIcon } from 'lucide-react';
 import React, { useCallback, useContext } from 'react';
-import { Navigate, Route, HashRouter as Router, Routes, useNavigate } from 'react-router-dom';
+import { Navigate, Route, HashRouter as Router, Routes, useNavigate } from 'react-router';
 import { SWRConfig } from 'swr';
 import { LayerzStorage } from '../../class/layerz-storage';
 import { SwrCacheProvider } from '../../class/swr-cache-provider';
