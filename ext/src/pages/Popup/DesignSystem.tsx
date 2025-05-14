@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { ClipboardCopy } from 'lucide-react';
-import { ThemedButton as SharedThemedButton } from '@shared/ui/components/ThemedButton';
+import { ThemedButton as SharedThemedButton } from '../../shared-link/ui/components/ThemedButton';
 
 export const SelectFeeSlider: React.FC<
   {
@@ -67,9 +67,14 @@ export const Button: React.FC<
     disabled?: boolean;
     color?: string;
     textColor?: string;
+    icon?: React.ReactNode;
+    iconPosition?: 'left' | 'right';
+    size?: 'small' | 'medium' | 'large';
+    variant?: 'solid' | 'outline' | 'ghost';
+    fullWidth?: boolean;
   }
-> = ({ children, disabled, style, color = '#282c34', textColor = 'white', ...props }) => (
-  <SharedThemedButton {...props} disabled={disabled} style={style} color={color} textColor={textColor}>
+> = ({ children, disabled, style, color = '#282c34', textColor = 'white', icon, iconPosition, size, variant, fullWidth, ...props }) => (
+  <SharedThemedButton {...props} disabled={disabled} style={style} color={color} textColor={textColor} icon={icon} iconPosition={iconPosition} size={size} variant={variant} fullWidth={fullWidth}>
     {children}
   </SharedThemedButton>
 );
@@ -80,9 +85,24 @@ export const WideButton: React.FC<
     disabled?: boolean;
     color?: string;
     textColor?: string;
+    icon?: React.ReactNode;
+    iconPosition?: 'left' | 'right';
+    size?: 'small' | 'medium' | 'large';
+    variant?: 'solid' | 'outline' | 'ghost';
   }
-> = ({ children, disabled, color = '#282c34', textColor = 'white', ...props }) => (
-  <SharedThemedButton {...props} disabled={disabled} color={color} textColor={textColor} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+> = ({ children, disabled, color = '#282c34', textColor = 'white', icon, iconPosition, size, variant, style, ...props }) => (
+  <SharedThemedButton
+    {...props}
+    disabled={disabled}
+    color={color}
+    textColor={textColor}
+    icon={icon}
+    iconPosition={iconPosition}
+    size={size}
+    variant={variant}
+    fullWidth={true}
+    style={{ ...style, width: '100%', display: 'flex', justifyContent: 'center' }}
+  >
     {children}
   </SharedThemedButton>
 );
