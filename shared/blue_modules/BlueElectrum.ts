@@ -743,7 +743,7 @@ export async function multiGetTransactionByTxid<T extends boolean>(txids: string
  * it Electrum was connected in other function), or timeout 30 sec.
  */
 export const waitTillConnected = async function (): Promise<boolean> {
-  let waitTillConnectedInterval: NodeJS.Timeout | undefined;
+  let waitTillConnectedInterval: ReturnType<typeof setInterval> | undefined;
   let retriesCounter = 0;
 
   return new Promise(function (resolve, reject) {
@@ -923,7 +923,7 @@ export const calculateBlockTime = function (height: number): number {
   const client = new ElectrumClient(net, tls, sslPort || tcpPort, host, sslPort ? 'tls' : 'tcp');
 
   client.onError = () => {}; // mute
-  let timeoutId: NodeJS.Timeout | undefined;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
     const rez = await Promise.race([
       new Promise(resolve => {

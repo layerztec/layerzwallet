@@ -27,7 +27,7 @@ const LongPressButton: React.FC<LongPressButtonProps> = ({
   const [pressing, setPressing] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const progressAnimation = useRef<Animated.CompositeAnimation | null>(null);
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reset animation when disabled changes
   useEffect(() => {

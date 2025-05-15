@@ -32,7 +32,7 @@ export class WsElectrumClient {
 
   private socket: WebSocket;
   private requestId: number = 0;
-  private callbackMessageQueue: Record<any, [(result: any) => void, (error: any) => void, NodeJS.Timeout]> = {}; // element 0 - success callback, element 1 - error callback
+  private callbackMessageQueue: Record<any, [(result: any) => void, (error: any) => void, ReturnType<typeof setTimeout>]> = {}; // element 0 - success callback, element 1 - error callback
   private buffer: string = '';
 
   /**

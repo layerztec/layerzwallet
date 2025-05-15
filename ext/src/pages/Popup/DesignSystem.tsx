@@ -125,7 +125,7 @@ export const HodlButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> 
 }) => {
   const [progress, setProgress] = useState(0);
   const [holding, setHolding] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startProgress = () => {
     if (disabled) return;
