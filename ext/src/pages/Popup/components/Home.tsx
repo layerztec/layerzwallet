@@ -1,4 +1,4 @@
-import { ArrowDownRightIcon, SendIcon, Info, DollarSign } from 'lucide-react';
+import { ArrowDownRightIcon, SendIcon, Info, ShoppingCartIcon } from 'lucide-react';
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DEFAULT_NETWORK } from '@shared/config';
@@ -76,7 +76,7 @@ const Home: React.FC = () => {
                 });
               }}
             >
-              <DollarSign /> Buy
+              <ShoppingCartIcon /> Buy
             </Button>
           </span>
         ) : null}
@@ -134,7 +134,7 @@ const Home: React.FC = () => {
             }}
             color="#007AFF"
             textColor="white"
-            icon={<DollarSign size={18} />}
+            icon={<ShoppingCartIcon size={18} />}
             iconPosition="left"
             size="medium"
             variant="solid"
