@@ -73,11 +73,7 @@ export const Button: React.FC<
     variant?: 'solid' | 'outline' | 'ghost';
     fullWidth?: boolean;
   }
-> = ({ children, disabled, style, color = '#282c34', textColor = 'white', icon, iconPosition, size, variant, fullWidth, ...props }) => (
-  <SharedThemedButton {...props} disabled={disabled} style={style} color={color} textColor={textColor} icon={icon} iconPosition={iconPosition} size={size} variant={variant} fullWidth={fullWidth}>
-    {children}
-  </SharedThemedButton>
-);
+> = ({ children, disabled, style, color = '#282c34', textColor = 'white', icon, iconPosition, size, variant, fullWidth, ...props }) => <SharedThemedButton {...props}>{children}</SharedThemedButton>;
 
 // WideButton Component
 export const WideButton: React.FC<

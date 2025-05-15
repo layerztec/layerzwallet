@@ -177,7 +177,7 @@ export default function IndexScreen() {
               style={styles.actionButton}
               icon={<Ionicons name="send-outline" size={18} color="white" />}
               iconPosition="left"
-              accessibilityLabel="Send cryptocurrency"
+              accessibilityLabel="Send"
               activeOpacity={0.6}
               size="medium"
               variant="solid"

@@ -126,22 +126,6 @@ const Home: React.FC = () => {
         >
           Send
         </Button>
-
-        {network === NETWORK_BITCOIN && (
-          <Button
-            onClick={() => {
-              window.open('https://onramper.com', '_blank');
-            }}
-            color="#007AFF"
-            textColor="white"
-            icon={<ShoppingCartIcon size={18} />}
-            iconPosition="left"
-            size="medium"
-            variant="solid"
-          >
-            Buy
-          </Button>
-        )}
       </div>
     </div>
   );
