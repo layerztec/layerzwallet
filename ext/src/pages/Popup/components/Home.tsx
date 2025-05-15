@@ -1,4 +1,4 @@
-import { ArrowDown, SendIcon, Info, DollarSign } from 'lucide-react';
+import { ArrowDownRightIcon, SendIcon, Info, DollarSign } from 'lucide-react';
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DEFAULT_NETWORK } from '@shared/config';
@@ -96,7 +96,7 @@ const Home: React.FC = () => {
           marginTop: '20px',
         }}
       >
-        <Button onClick={() => navigate('/receive')} color="#34C759" textColor="white" icon={<ArrowDown size={18} />} iconPosition="left" size="medium" variant="solid" fullWidth>
+        <Button onClick={() => navigate('/receive')} color="#34C759" textColor="white" icon={<ArrowDownRightIcon size={18} />} iconPosition="left" size="medium" variant="solid" fullWidth>
           Receive
         </Button>
 

@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { ClipboardCopy } from 'lucide-react';
-import { ThemedButton as SharedThemedButton } from '../../shared-link/ui/components/ThemedButton';
+import { ThemedButton as SharedThemedButton } from '@shared/ui/components/ThemedButton';
 
 export const SelectFeeSlider: React.FC<
   {

@@ -6,7 +6,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { getTokenList } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
-import { ArrowDown, SendIcon } from 'lucide-react';
+import { ArrowDownRightIcon, SendIcon } from 'lucide-react';
 import { SendTokenEvmProps } from '../SendTokenEvm';
 import { BackgroundCaller } from '../../../modules/background-caller';
 
@@ -66,7 +66,7 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
             borderRadius: '4px',
           }}
         >
-          <ArrowDown size={16} />
+          <ArrowDownRightIcon size={16} />
         </button>
       </div>
     </div>
