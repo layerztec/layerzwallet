@@ -6,8 +6,7 @@ import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Csprng } from '../../class/rng';
 import { decrypt, encrypt } from '../../modules/encryption';
-import { Select } from './DesignSystem';
-import { ThemedButton } from '@shared/ui/components/ThemedButton';
+import { Button, Select } from './DesignSystem';
 
 const pck = require('../../../package.json');
 
@@ -58,7 +57,7 @@ const SettingsPage: React.FC = () => {
       <hr />
       <br />
 
-      <ThemedButton
+      <Button
         onClick={async () => {
           await log('starting...');
           try {
@@ -84,9 +83,9 @@ const SettingsPage: React.FC = () => {
         }}
       >
         test
-      </ThemedButton>
+      </Button>
       <span> </span>
-      <ThemedButton
+      <Button
         onClick={async () => {
           await log('starting...');
           try {
@@ -109,10 +108,10 @@ const SettingsPage: React.FC = () => {
         }}
       >
         check HD wallet
-      </ThemedButton>
+      </Button>
       <span> </span>
 
-      <ThemedButton
+      <Button
         onClick={async () => {
           chrome.storage.local.clear();
           localStorage.clear();
@@ -123,7 +122,7 @@ const SettingsPage: React.FC = () => {
         }}
       >
         Clear storage
-      </ThemedButton>
+      </Button>
 
       <div id="messages" data-testid="messages"></div>
     </div>
