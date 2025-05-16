@@ -1,16 +1,19 @@
+import { BIP85 } from 'bip85';
+
 import { ArkWallet } from '../class/wallets/ark-wallet';
 import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
 import { LiquidWallet } from '../class/wallets/liquid-wallet';
 import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
 import {
-  getSerializedStorageKey,
   IStorage,
   STORAGE_KEY_ARK_ADDRESS,
+  STORAGE_KEY_SUB_MNEMONIC,
   STORAGE_KEY_BTC_XPUB,
-  STORAGE_KEY_LIQUID_MBK,
-  STORAGE_KEY_LIQUID_XPUB,
   STORAGE_KEY_LIQUIDTESTNET_MBK,
   STORAGE_KEY_LIQUIDTESTNET_XPUB,
+  STORAGE_KEY_LIQUID_MBK,
+  STORAGE_KEY_LIQUID_XPUB,
+  getSerializedStorageKey,
 } from '../types/IStorage';
 import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, Networks } from '../types/networks';
 import { WalletSerializer } from './wallet-serializer';
@@ -71,6 +74,20 @@ export async function saveArkAddresses(storage: IStorage, mnemonic: string) {
     if (address) {
       await storage.setItem(STORAGE_KEY_ARK_ADDRESS + accountNum, address);
     }
+  }
+}
+
+/**
+ * Generate and save sub mnemonics using bip85 for accounts 0-5 to storage.
+ * @param storage Storage instance (LayerzStorage or compatible)
+ * @param mnemonic The mnemonic to derive sub mnemonics from
+ */
+export async function saveSubMnemonics(storage: IStorage, mnemonic: string) {
+  const masterSeed = BIP85.fromMnemonic(mnemonic);
+  for (let accountNum = 0; accountNum <= 5; accountNum++) {
+    const child = masterSeed.deriveBIP39(0, 12, accountNum); // 0 is English, 12 is 12 words
+    const newMnemonic = child.toMnemonic();
+    await storage.setItem(STORAGE_KEY_SUB_MNEMONIC + accountNum, newMnemonic);
   }
 }
 

@@ -3,9 +3,9 @@ import { EvmWallet } from '@shared/class/evm-wallet';
 import { LiquidWallet } from '@shared/class/wallets/liquid-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { lazyInitWallet, saveArkAddresses, saveBitcoinXpubs, saveLiquidXpubs, saveWalletState } from '@shared/modules/wallet-utils';
+import { lazyInitWallet, saveArkAddresses, saveBitcoinXpubs, saveSubMnemonics, saveLiquidXpubs, saveWalletState } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, MessageType, MessageTypeMap, OpenPopupRequest, ProcessRPCRequest } from '@shared/types/IBackgroundCaller';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC } from '@shared/types/IStorage';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
 import { Csprng } from '../../src/class/rng';
 import { LayerzStorage } from '../class/layerz-storage';
@@ -31,7 +31,8 @@ type TMethods =
   | 'signTypedData'
   | 'getBtcSendData'
   | 'getLiquidBalance'
-  | 'getLiquidSendData';
+  | 'getLiquidSendData'
+  | 'getSubMnemonic';
 
 const cachedWallets: Record<TBackgroundNetworks, Record<number, TBackgroundWallets>> = {
   [NETWORK_BITCOIN]: {},
@@ -102,6 +103,7 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
     await saveArkAddresses(LayerzStorage, mnemonic);
     await saveLiquidXpubs(LayerzStorage, mnemonic);
+    await saveSubMnemonics(LayerzStorage, mnemonic);
 
     return true;
   },
@@ -115,6 +117,7 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
     await saveArkAddresses(LayerzStorage, mnemonic);
     await saveLiquidXpubs(LayerzStorage, mnemonic);
+    await saveSubMnemonics(LayerzStorage, mnemonic);
 
     return { mnemonic };
   },
@@ -241,6 +244,16 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
       scriptsDetails: wallet.scriptsDetails,
     };
   },
+
+  // not all libraries we are using support Account Number, so we are using BIP84 to derive differnt mnemonics
+  // for each account number.
+  async getSubMnemonic(accountNumber) {
+    const mnemonic = await LayerzStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
+    if (!mnemonic) {
+      throw new Error(`Sub mnemonic not found for account number: ${accountNumber}`);
+    }
+    return mnemonic;
+  },
 };
 
 const callBackgroundMethod = async (method: Function, params: any, sendResponse: Function) => {
@@ -265,6 +278,7 @@ const MessageHandlerMap = {
   [MessageType.GET_BTC_SEND_DATA]: BackgroundExtensionExecutor.getBtcSendData,
   [MessageType.GET_LIQUID_BALANCE]: BackgroundExtensionExecutor.getLiquidBalance,
   [MessageType.GET_LIQUID_SEND_DATA]: BackgroundExtensionExecutor.getLiquidSendData,
+  [MessageType.GET_SUB_MNEMONIC]: BackgroundExtensionExecutor.getSubMnemonic,
 };
 
 export function handleMessage(msg: TBackgroundMessage, sender: chrome.runtime.MessageSender, sendResponse: TSendResponse) {

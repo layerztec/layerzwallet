@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useContext, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import '../src/modules/breeze-adapter';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -15,7 +16,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, NETWORK_LIQUID } from '@shared/types/networks';
+import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, NETWORK_LIQUID, NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { OnrampProps } from '@/app/Onramp';
 
@@ -62,6 +63,11 @@ export default function IndexScreen() {
   };
 
   const goToReceive = () => {
+    if (network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET) {
+      router.push('/ReceiveLightning');
+      return;
+    }
+
     router.push('/receive');
   };
 
@@ -72,6 +78,10 @@ export default function IndexScreen() {
         break;
       case NETWORK_ARKMUTINYNET:
         router.push('/SendArk');
+        break;
+      case NETWORK_BREEZ:
+      case NETWORK_BREEZTESTNET:
+        router.push('/SendLightning');
         break;
       default:
         router.push('/SendEvm');

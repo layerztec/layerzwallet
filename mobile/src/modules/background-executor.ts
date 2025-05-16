@@ -3,9 +3,17 @@ import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { lazyInitWallet as lazyInitWalletOrig, saveArkAddresses, saveBitcoinXpubs, saveWalletState } from '@shared/modules/wallet-utils';
+import { lazyInitWallet as lazyInitWalletOrig, saveArkAddresses, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller } from '@shared/types/IBackgroundCaller';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_WHITELIST } from '@shared/types/IStorage';
+import {
+  ENCRYPTED_PREFIX,
+  STORAGE_KEY_ACCEPTED_TOS,
+  STORAGE_KEY_ARK_ADDRESS,
+  STORAGE_KEY_EVM_XPUB,
+  STORAGE_KEY_MNEMONIC,
+  STORAGE_KEY_SUB_MNEMONIC,
+  STORAGE_KEY_WHITELIST,
+} from '@shared/types/IStorage';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN } from '@shared/types/networks';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
@@ -73,6 +81,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
     await saveArkAddresses(LayerzStorage, mnemonic);
+    await saveSubMnemonics(LayerzStorage, mnemonic);
 
     return true;
   },
@@ -86,6 +95,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
     await saveArkAddresses(LayerzStorage, mnemonic);
+    await saveSubMnemonics(LayerzStorage, mnemonic);
 
     return { mnemonic };
   },
@@ -179,6 +189,10 @@ export const BackgroundExecutor: IBackgroundCaller = {
       utxos,
       changeAddress,
     };
+  },
+
+  async getSubMnemonic(accountNumber) {
+    return await LayerzStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
   },
 
   async getLiquidBalance() {
