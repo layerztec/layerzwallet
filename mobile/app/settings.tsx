@@ -3,9 +3,11 @@ import { StyleSheet, ScrollView, TouchableOpacity, Alert, View } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import ThemedButton from '@/components/ThemedButton';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { SecureStorage } from '@/src/class/secure-storage';
@@ -70,9 +72,18 @@ export default function SettingsScreen() {
           <ThemedView style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Data Management</ThemedText>
 
-            <TouchableOpacity style={[styles.button, styles.dangerButton, isClearing && styles.buttonDisabled]} onPress={handleClearStorage} disabled={isClearing}>
-              <ThemedText style={styles.dangerButtonText}>{isClearing ? 'Clearing...' : 'Clear All App Data'}</ThemedText>
-            </TouchableOpacity>
+            <ThemedButton
+              onPress={handleClearStorage}
+              disabled={isClearing}
+              color="#FF3B30"
+              variant="solid"
+              size="medium"
+              fullWidth
+              icon={<Ionicons name="trash-outline" size={18} color="white" />}
+              iconPosition="left"
+            >
+              {isClearing ? 'Clearing...' : 'Clear All App Data'}
+            </ThemedButton>
 
             <ThemedText style={styles.warningText}>Warning: This will erase all app data including your wallet. You will need to restore your wallet using your seed phrase.</ThemedText>
           </ThemedView>
@@ -83,9 +94,17 @@ export default function SettingsScreen() {
 
             <View style={styles.accountSelectorContainer}>
               {[0, 1, 2, 3, 4].map((num) => (
-                <TouchableOpacity key={num} style={[styles.accountButton, accountNumber === num && styles.accountButtonActive]} onPress={() => handleAccountChange(num)}>
-                  <ThemedText style={[styles.accountButtonText, accountNumber === num && styles.accountButtonTextActive]}>{num}</ThemedText>
-                </TouchableOpacity>
+                <ThemedButton
+                  key={num}
+                  onPress={() => handleAccountChange(num)}
+                  color={accountNumber === num ? '#007AFF' : 'transparent'}
+                  textColor={accountNumber === num ? 'white' : '#000'}
+                  variant={accountNumber === num ? 'solid' : 'outline'}
+                  size="small"
+                  style={[styles.accountButton, accountNumber === num ? { backgroundColor: '#007AFF' } : { backgroundColor: 'transparent', borderColor: '#ccc' }]}
+                >
+                  {num.toString()}
+                </ThemedButton>
               ))}
             </View>
           </ThemedView>
@@ -93,18 +112,33 @@ export default function SettingsScreen() {
           <ThemedView style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Developer Options</ThemedText>
 
-            <TouchableOpacity style={[styles.button, styles.selfTestButton]} onPress={handleNavigateToSelfTest} testID="SelfTestButton">
-              <ThemedText style={styles.selfTestButtonText}>Self Test</ThemedText>
-            </TouchableOpacity>
+            <ThemedButton
+              onPress={handleNavigateToSelfTest}
+              testID="SelfTestButton"
+              color="#34C759"
+              variant="solid"
+              size="medium"
+              fullWidth
+              icon={<Ionicons name="code-outline" size={18} color="white" />}
+              iconPosition="left"
+              style={{ marginBottom: 12 }}
+            >
+              Self Test
+            </ThemedButton>
 
-            <TouchableOpacity
-              style={[styles.button, styles.selfTestButton]}
+            <ThemedButton
               onPress={() => {
                 scanQr().then(Alert.alert);
               }}
+              color="#34C759"
+              variant="solid"
+              size="medium"
+              fullWidth
+              icon={<Ionicons name="qr-code-outline" size={18} color="white" />}
+              iconPosition="left"
             >
-              <ThemedText style={styles.selfTestButtonText}>ScanQr</ThemedText>
-            </TouchableOpacity>
+              ScanQr
+            </ThemedButton>
           </ThemedView>
         </ScrollView>
       </ThemedView>
@@ -142,30 +176,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 16,
   },
-  button: {
-    height: 50,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  dangerButton: {
-    backgroundColor: '#FF3B30',
-  },
-  dangerButtonText: {
-    color: 'white',
-    fontWeight: '700',
-  },
-  selfTestButton: {
-    backgroundColor: '#34C759',
-  },
-  selfTestButtonText: {
-    color: 'white',
-    fontWeight: '700',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
   warningText: {
     fontSize: 12,
     color: '#FF3B30',
@@ -196,19 +206,17 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+    padding: 0,
+    margin: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    borderWidth: 1,
-    borderColor: '#ccc',
   },
   accountButtonActive: {
     backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
   },
   accountButtonText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '500',
   },
   accountButtonTextActive: {
     color: 'white',

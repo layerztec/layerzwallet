@@ -88,30 +88,45 @@ const Home: React.FC = () => {
       <TokensView />
       <br />
       <br />
-      <Button
-        onClick={() => {
-          switch (network) {
-            case NETWORK_BITCOIN:
-              navigate('/send-btc');
-              break;
-            case NETWORK_ARKMUTINYNET:
-              navigate('/send-ark');
-              break;
-            case NETWORK_LIQUIDTESTNET:
-              navigate('/send-liquid');
-              break;
-            default:
-              navigate('/send-evm');
-          }
+      <div
+        style={{
+          display: 'flex',
+          gap: '12px',
+          width: '100%',
+          marginTop: '20px',
         }}
       >
-        <SendIcon />
-        Send
-      </Button>
-      <Button onClick={() => navigate('/receive')}>
-        <ArrowDownRightIcon />
-        Receive
-      </Button>
+        <Button onClick={() => navigate('/receive')} color="#34C759" textColor="white" icon={<ArrowDownRightIcon size={18} />} iconPosition="left" size="medium" variant="solid" fullWidth>
+          Receive
+        </Button>
+
+        <Button
+          onClick={() => {
+            switch (network) {
+              case NETWORK_BITCOIN:
+                navigate('/send-btc');
+                break;
+              case NETWORK_ARKMUTINYNET:
+                navigate('/send-ark');
+                break;
+              case NETWORK_LIQUIDTESTNET:
+                navigate('/send-liquid');
+                break;
+              default:
+                navigate('/send-evm');
+            }
+          }}
+          color="#FF3B30"
+          textColor="white"
+          icon={<SendIcon size={18} />}
+          iconPosition="left"
+          size="medium"
+          variant="solid"
+          fullWidth
+        >
+          Send
+        </Button>
+      </div>
     </div>
   );
 };

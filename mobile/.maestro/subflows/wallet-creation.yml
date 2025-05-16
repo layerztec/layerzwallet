@@ -56,5 +56,7 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 
 # Wait for home screen with Send & Receive buttons
-- assertVisible: "Send"
-- assertVisible: "Receive"
+- assertVisible: 
+    id: "SendButton"
+- assertVisible:
+    id: "ReceiveButton"

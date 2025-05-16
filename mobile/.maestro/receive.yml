@@ -9,7 +9,8 @@ appId: com.layerzwallet.mobile
 - assertNotVisible:
     id: "selectedNetwork-rootstock"
 
-- tapOn: "Receive"
+- tapOn: 
+    id: "ReceiveButton"
 
 - extendedWaitUntil:
     notVisible: "Loading address..."
@@ -35,8 +36,10 @@ appId: com.layerzwallet.mobile
     point: "10%,10%"
 
 # Verify we're back on the home screen
-- assertVisible: "Send"
-- assertVisible: "Receive"
+- assertVisible:
+    id: "SendButton"
+- assertVisible:
+    id: "ReceiveButton"
 
 # Lets run the same tests with a different chain
 - tapOn: "ROOTSTOCK"
@@ -47,7 +50,8 @@ appId: com.layerzwallet.mobile
 - assertVisible:
     id: "selectedNetwork-rootstock"
 
-- tapOn: "Receive"
+- tapOn:
+    id: "ReceiveButton"
 
 - assertVisible:
     id: "NetworkAddressHeader"

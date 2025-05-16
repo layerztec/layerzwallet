@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import ThemedButton from '@/components/ThemedButton';
 import TokensView from '@/components/tokens-view';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Hello } from '@shared/class/hello';
@@ -154,18 +155,51 @@ export default function IndexScreen() {
       <ThemedView style={styles.contentContainer}>
         <ThemedView style={styles.buttonContainer}>
           <ThemedView style={styles.buttonRow}>
-            <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive}>
-              <ThemedText style={styles.buttonText}>Receive</ThemedText>
-            </TouchableOpacity>
+            <ThemedButton
+              onPress={goToReceive}
+              color="#34C759"
+              testID="ReceiveButton"
+              style={styles.actionButton}
+              icon={<Ionicons name="arrow-down-outline" size={18} color="white" />}
+              iconPosition="left"
+              accessibilityLabel="Receive cryptocurrency"
+              activeOpacity={0.6}
+              size="medium"
+              variant="solid"
+            >
+              Receive
+            </ThemedButton>
 
-            <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
-              <ThemedText style={styles.buttonText}>Send</ThemedText>
-            </TouchableOpacity>
+            <ThemedButton
+              onPress={goToSend}
+              color="#FF3B30"
+              testID="SendButton"
+              style={styles.actionButton}
+              icon={<Ionicons name="send-outline" size={18} color="white" />}
+              iconPosition="left"
+              accessibilityLabel="Send"
+              activeOpacity={0.6}
+              size="medium"
+              variant="solid"
+            >
+              Send
+            </ThemedButton>
 
             {network === NETWORK_BITCOIN ? (
-              <TouchableOpacity style={[styles.button]} onPress={goToBuyBitcoin}>
-                <ThemedText style={styles.buttonText}> $ Buy </ThemedText>
-              </TouchableOpacity>
+              <ThemedButton
+                onPress={goToBuyBitcoin}
+                color="#007AFF"
+                testID="BuyButton"
+                style={styles.actionButton}
+                icon={<Ionicons name="cash-outline" size={18} color="white" />}
+                iconPosition="left"
+                accessibilityLabel="Buy Bitcoin"
+                activeOpacity={0.6}
+                size="medium"
+                variant="solid"
+              >
+                Buy
+              </ThemedButton>
             ) : null}
           </ThemedView>
         </ThemedView>
@@ -277,5 +311,8 @@ const styles = StyleSheet.create({
   },
   selectedNetworkButtonText: {
     color: 'white',
+  },
+  actionButton: {
+    flex: 1,
   },
 });
