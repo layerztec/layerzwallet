@@ -245,7 +245,7 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     };
   },
 
-  // not all libraries we are using support Account Number, so we are using BIP84 to derive differnt mnemonics
+  // not all libraries we are using support Account Number, so we are using BIP85 to derive differnt mnemonics
   // for each account number.
   async getSubMnemonic(accountNumber) {
     const mnemonic = await LayerzStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);

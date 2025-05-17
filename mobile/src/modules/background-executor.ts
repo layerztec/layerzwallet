@@ -81,7 +81,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
     await saveArkAddresses(LayerzStorage, mnemonic);
-    await saveSubMnemonics(LayerzStorage, mnemonic);
+    await saveSubMnemonics(SecureStorage, mnemonic);
 
     return true;
   },
@@ -95,7 +95,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
     await saveArkAddresses(LayerzStorage, mnemonic);
-    await saveSubMnemonics(LayerzStorage, mnemonic);
+    await saveSubMnemonics(SecureStorage, mnemonic);
 
     return { mnemonic };
   },
@@ -192,7 +192,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
   },
 
   async getSubMnemonic(accountNumber) {
-    return await LayerzStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
+    return await SecureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
   },
 
   async getLiquidBalance() {
