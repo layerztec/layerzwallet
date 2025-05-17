@@ -1,12 +1,13 @@
 import BigNumber from 'bignumber.js';
 import useSWR from 'swr';
 
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, Networks } from '../types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { getRpcProvider } from '../models/network-getters';
 import { ArkWallet } from '../class/wallets/ark-wallet';
 import { lbtcAssetId } from '../class/wallets/liquid-wallet';
+import { BreezWallet } from '../class/wallets/breez-wallet';
 
 interface balanceFetcherArg {
   cacheKey: string;
@@ -37,6 +38,14 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
         balance += v;
       }
     }
+    return balance.toString(10);
+  }
+
+  if (network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET) {
+    const mnemonic = await backgroundCaller.getSubMnemonic(accountNumber);
+    const bNetwork = network === NETWORK_BREEZ ? 'mainnet' : 'testnet';
+    const bw = new BreezWallet(mnemonic, bNetwork);
+    const balance = await bw.getBalance();
     return balance.toString(10);
   }
 

@@ -8,6 +8,8 @@ on:
 
 jobs:
   ext-build:
+    env:
+      EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project

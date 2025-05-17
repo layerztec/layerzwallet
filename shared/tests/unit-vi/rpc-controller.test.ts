@@ -97,6 +97,9 @@ const backgroundCallerMock2: IBackgroundCaller = {
   getLiquidSendData(network: Networks, accountNumber: number): Promise<GetLiquidSendDataResponse> {
     throw new Error('Function not implemented.');
   },
+  getSubMnemonic() {
+    throw new Error('Function not implemented.');
+  },
 };
 
 beforeEach(() => {

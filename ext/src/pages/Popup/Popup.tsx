@@ -6,6 +6,7 @@ import { SettingsIcon } from 'lucide-react';
 import React, { useCallback, useContext } from 'react';
 import { Navigate, Route, HashRouter as Router, Routes, useNavigate } from 'react-router';
 import { SWRConfig } from 'swr';
+import '../../modules/breeze-adapter';
 import { LayerzStorage } from '../../class/layerz-storage';
 import { SwrCacheProvider } from '../../class/swr-cache-provider';
 import { AskPasswordContextProvider } from '../../hooks/AskPasswordContext';
@@ -21,9 +22,11 @@ import OnboardingIntro from './OnboardingIntro';
 import OnboardingTos from './OnboardingTos';
 import './Popup.css';
 import Receive from './Receive';
+import ReceiveLightning from './ReceiveLightning';
 import SendArk from './SendArk';
 import SendBtc from './SendBtc';
 import SendEvm from './SendEvm';
+import SendLightning from './SendLightning';
 import SendLiquid from './SendLiquid';
 import SendTokenEvm from './SendTokenEvm';
 import SettingsPage from './SettingsPage';
@@ -71,11 +74,13 @@ const AppContent: React.FC = () => {
             <Route path="/test" element={<TestPage />} />
             <Route path="/home" element={<Home />} />
             <Route path="/receive" element={<Receive />} />
+            <Route path="/receive-lightning" element={<ReceiveLightning />} />
             <Route path="/send-evm" element={<SendEvm />} />
             <Route path="/send-ark" element={<SendArk />} />
             <Route path="/send-token-evm" element={<SendTokenEvm />} />
             <Route path="/send-btc" element={<SendBtc />} />
             <Route path="/send-liquid" element={<SendLiquid />} />
+            <Route path="/send-lightning" element={<SendLightning />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/transaction-success" element={<TransactionSuccessEvm />} />
             <Route path="/action" element={<Action />} />

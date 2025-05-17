@@ -8,7 +8,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { Button, Switch } from '../DesignSystem';
-import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, Networks } from '@shared/types/networks';
+import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, NETWORK_LIQUIDTESTNET, Networks } from '@shared/types/networks';
 import TokensView from './TokensView';
 import PartnersView from './PartnersView';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
@@ -26,6 +26,17 @@ const Home: React.FC = () => {
   useEffect(() => {
     setIsTestnet(getIsTestnet(network));
   }, [network]);
+
+  const handleReceive = () => {
+    switch (network) {
+      case NETWORK_BREEZ:
+      case NETWORK_BREEZTESTNET:
+        navigate('/receive-lightning');
+        break;
+      default:
+        navigate('/receive');
+    }
+  };
 
   return (
     <div>
@@ -100,6 +111,10 @@ const Home: React.FC = () => {
             case NETWORK_LIQUIDTESTNET:
               navigate('/send-liquid');
               break;
+            case NETWORK_BREEZ:
+            case NETWORK_BREEZTESTNET:
+              navigate('/send-lightning');
+              break;
             default:
               navigate('/send-evm');
           }
@@ -108,7 +123,7 @@ const Home: React.FC = () => {
         <SendIcon />
         Send
       </Button>
-      <Button onClick={() => navigate('/receive')}>
+      <Button onClick={handleReceive}>
         <ArrowDownRightIcon />
         Receive
       </Button>
