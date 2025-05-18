@@ -8,6 +8,7 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const ReactRefreshTypeScript = require('react-refresh-typescript').default;
 const env = require('./utils/env');
+const tamaguiConfig = require('./webpack.config.tamagui');
 
 const ASSET_PATH = process.env.ASSET_PATH || '/';
 
@@ -52,6 +53,7 @@ var options = {
   },
   module: {
     rules: [
+      ...(tamaguiConfig.module?.rules || []),
       {
         test: /\.m?js$/, // target JavaScript/ES module files
         // limit this rule to the problematic package: (TODO: remove once fixed on their side)
@@ -146,7 +148,10 @@ var options = {
     ],
   },
   resolve: {
-    alias: alias,
+    alias: {
+      ...alias,
+      ...tamaguiConfig.resolve.alias,
+    },
     extensions: fileExtensions.map((extension) => '.' + extension).concat(['.js', '.jsx', '.ts', '.tsx', '.css']),
     fallback: {
       assert: require.resolve('assert'),
@@ -162,7 +167,11 @@ var options = {
   },
   plugins: [
     new webpack.DefinePlugin({
-      'process.env': JSON.stringify(process.env),
+      // Only pass through specific environment variables, not the entire env object
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+      'process.env.BABEL_ENV': JSON.stringify(process.env.BABEL_ENV),
+      'process.env.ASSET_PATH': JSON.stringify(process.env.ASSET_PATH),
+      'process.env.TAMAGUI_IGNORE_BUNDLE_ERRORS': JSON.stringify('true'),
       'process.browser': true,
       'process.version': JSON.stringify(process.version),
     }),
@@ -175,6 +184,7 @@ var options = {
     new webpack.ProgressPlugin(),
     // expose and write the allowed env vars on the compiled bundle
     new webpack.EnvironmentPlugin(['NODE_ENV']),
+    ...tamaguiConfig.plugins,
     new CopyWebpackPlugin({
       patterns: [
         {

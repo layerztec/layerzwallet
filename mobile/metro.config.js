@@ -1,5 +1,6 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
+const { withTamagui } = require('@tamagui/metro-plugin');
 
 const ALIASES = {
   // we are not actually using this package in mobile yet, so we can just alias it to anything
@@ -31,5 +32,13 @@ module.exports = (async () => {
     return context.resolveRequest(context, ALIASES[moduleName] ?? moduleName, platform);
   };
 
-  return defaultConfig;
+  // Apply Tamagui configuration
+  const tamaguiConfig = withTamagui(defaultConfig, {
+    components: ['tamagui'],
+    config: './tamagui.config.ts',
+    disableExtractFoundComponents: true, // For better performance in development
+    ignoreBundleWarnings: ['true'], // Silence Warning 001
+  });
+
+  return tamaguiConfig;
 })();

@@ -112,6 +112,10 @@ const Home: React.FC = () => {
         <ArrowDownRightIcon />
         Receive
       </Button>
+      <Button onClick={() => navigate('/button-demo')}>
+        <Info />
+        Button Demo
+      </Button>
     </div>
   );
 };
