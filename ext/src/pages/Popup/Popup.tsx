@@ -29,6 +29,7 @@ import SendTokenEvm from './SendTokenEvm';
 import SettingsPage from './SettingsPage';
 import TestPage from './TestPage';
 import TransactionSuccessEvm from './TransactionSuccessEvm';
+import ButtonDemoPage from './ButtonDemoPage';
 
 const AppContent: React.FC = () => {
   const navigate = useNavigate();
@@ -79,6 +80,7 @@ const AppContent: React.FC = () => {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/transaction-success" element={<TransactionSuccessEvm />} />
             <Route path="/action" element={<Action />} />
+            <Route path="/button-demo" element={<ButtonDemoPage />} />
             <Route path="/" element={<Navigate to="/home" replace />} />
           </Routes>
         );

@@ -91,6 +91,10 @@ export default function IndexScreen() {
     });
   };
 
+  const goToButtonDemo = () => {
+    router.push('/button-demo');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.headerContainer}>
@@ -167,6 +171,10 @@ export default function IndexScreen() {
                 <ThemedText style={styles.buttonText}> $ Buy </ThemedText>
               </TouchableOpacity>
             ) : null}
+
+            <TouchableOpacity style={[styles.button, styles.demoButton]} onPress={goToButtonDemo}>
+              <ThemedText style={styles.buttonText}>UI Demo</ThemedText>
+            </TouchableOpacity>
           </ThemedView>
         </ThemedView>
       </ThemedView>
@@ -252,6 +260,9 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     backgroundColor: '#FF3B30',
+  },
+  demoButton: {
+    backgroundColor: '#8E44AD', // Purple color for the demo button
   },
   networkContainer: {
     flexDirection: 'row',
