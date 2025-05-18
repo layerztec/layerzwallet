@@ -1,13 +1,10 @@
 import type * as JSAPI from '@breeztech/breez-sdk-liquid';
 import * as RNAPI from '@breeztech/react-native-breez-sdk-liquid';
-import BIP32Factory from 'bip32';
-import * as bip39 from 'bip39';
+import * as Crypto from 'expo-crypto';
 
-import ecc from '@shared/blue_modules/noble_ecc';
 import { BreezConnection, IBreezAdapter } from '@shared/class/wallets/breez-wallet';
 import { NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
 
-const bip32 = BIP32Factory(ecc);
 const API_KEY = process.env.EXPO_PUBLIC_BREEZ_API_KEY;
 
 /**
@@ -87,17 +84,8 @@ const convertPrepareResponse = (response: JSAPI.PrepareReceiveResponse): RNAPI.P
   };
 };
 
-const seedToFingerprintCache: { [key: string]: string } = {};
-const seedToFingerprint = (mnemonic: string): string => {
-  if (seedToFingerprintCache[mnemonic]) {
-    return seedToFingerprintCache[mnemonic];
-  }
-  const seed = bip39.mnemonicToSeedSync(mnemonic);
-  const root = bip32.fromSeed(seed);
-  let hex = root.fingerprint.toString('hex');
-  while (hex.length < 8) hex = '0' + hex; // leading zeroes
-  seedToFingerprintCache[mnemonic] = hex;
-  return hex;
+const sha256 = async (mnemonic: string): Promise<string> => {
+  return await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, mnemonic);
 };
 
 class BreezAdapter implements IBreezAdapter {
@@ -118,7 +106,7 @@ class BreezAdapter implements IBreezAdapter {
     const newNetwork = convertNetwork(connection.network);
     const config = await RNAPI.defaultConfig(newNetwork, API_KEY);
     // set the working directory to a unique path based on the mnemonic
-    config.workingDir = `${config.workingDir}/${seedToFingerprint(connection.mnemonic)}`;
+    config.workingDir = `${config.workingDir}/${sha256(connection.mnemonic)}`;
     await RNAPI.connect({ mnemonic: connection.mnemonic, config });
     this.cc = connection;
     this.initialized = true;
