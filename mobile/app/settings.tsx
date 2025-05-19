@@ -3,6 +3,7 @@ import { StyleSheet, ScrollView, TouchableOpacity, Alert, View } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Application from 'expo-application';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -106,6 +107,10 @@ export default function SettingsScreen() {
               <ThemedText style={styles.selfTestButtonText}>ScanQr</ThemedText>
             </TouchableOpacity>
           </ThemedView>
+
+          <ThemedText style={{ textAlign: 'center' }}>
+            {Application.applicationName} v{Application.nativeApplicationVersion} (build {Application.nativeBuildVersion})
+          </ThemedText>
         </ScrollView>
       </ThemedView>
     </SafeAreaView>

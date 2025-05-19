@@ -99,7 +99,8 @@
     "timers-browserify": "^2.0.12",
     "uint8array-extras": "^1.4.0",
     "url": "^0.11.4",
-    "ws-electrumx-client": "1.0.5"
+    "ws-electrumx-client": "1.0.5",
+    "expo-application": "~6.1.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
