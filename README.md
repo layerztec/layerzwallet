@@ -50,6 +50,8 @@ Shared code (anything thah can be reused, cryptography, network fetchers, react 
 - Run `npm start`
 - Use Expo Go to scan QR code from terminal
 
+Development build for android (produces apk that has to load bundle remotely): `eas build --platform android --profile development-simulator --local`
+
 ## Tests
 
 TBD

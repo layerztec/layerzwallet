@@ -1,5 +1,5 @@
 export class Hello {
   static world(): string {
-    return 'hello world from shared! 5 ';
+    return 'LZ Bitcoin Wallet';
   }
 }

@@ -105,9 +105,7 @@ export default function IndexScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.headerContainer}>
         <ThemedView style={styles.header}>
-          <ThemedText style={styles.title}>Welcome to LZW Mobile</ThemedText>
           <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
-          <ThemedText style={styles.subtitle}>Explore Bitcoin Layer 2</ThemedText>
         </ThemedView>
         <TouchableOpacity style={styles.settingsButton} onPress={goToSettings} testID="SettingsButton">
           <Ionicons name="settings-outline" size={24} color="#007AFF" />

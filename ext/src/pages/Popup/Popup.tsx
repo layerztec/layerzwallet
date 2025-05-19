@@ -95,12 +95,9 @@ const AppContent: React.FC = () => {
       <header className="App-header">
         <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1 onClick={() => navigate('/')} style={{ margin: 0, cursor: 'pointer' }}>
-            LZ Bitcoin Wallet
+            {Hello.world()}
           </h1>
           <SettingsIcon onClick={() => navigate('/settings')} data-testid="settings-button" />
-        </div>
-        <div style={{ color: 'gray', textAlign: 'left', width: '100%', marginBottom: '15px' }}>
-          <b style={{ fontSize: 18 }}>Developer preview release {Hello.world()}</b>
         </div>
         <Card>
           <Content />
