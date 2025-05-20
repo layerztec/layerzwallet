@@ -1,7 +1,7 @@
 import BigNumber from 'bignumber.js';
 import { StringNumber } from '../types/string-number';
 import { ICsprng } from '../types/ICsprng';
-import { uint8ArrayToHex } from '../modules/uint8array-extras';
+import { uint8ArrayToHex } from './uint8array-extras';
 
 export function capitalizeFirstLetter(input: string): string {
   return input.replace(/^./, (match) => match.toUpperCase());
@@ -60,4 +60,8 @@ export function formatBalance(balance: StringNumber, decimals: number, decimalPl
     .dividedBy(new BigNumber(10).pow(decimals))
     .toFixed(decimalPlaces)
     .replace(/\.?0+$/, '');
+}
+
+export function formatFiatBalance(balance: StringNumber, decimals: number, exchangeRate: number): string {
+  return new BigNumber(balance).dividedBy(new BigNumber(10).pow(decimals)).multipliedBy(exchangeRate).toFixed(2);
 }

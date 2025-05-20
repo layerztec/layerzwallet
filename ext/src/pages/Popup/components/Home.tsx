@@ -11,7 +11,7 @@ import { Button, Switch } from '../DesignSystem';
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, NETWORK_LIQUIDTESTNET, Networks } from '@shared/types/networks';
 import TokensView from './TokensView';
 import PartnersView from './PartnersView';
-import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
+import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 
 const Home: React.FC = () => {
@@ -92,7 +92,7 @@ const Home: React.FC = () => {
           </span>
         ) : null}
         <div style={{ width: '100%', marginBottom: '15px' }}>
-          <span style={{ fontSize: 14 }}>{balance && +balance > 0 && exchangeRate ? '$' + (+formatBalance(balance, getDecimalsByNetwork(network), 8) * exchangeRate).toPrecision(2) : ''}</span>
+          <span style={{ fontSize: 14 }}>{balance && +balance > 0 && exchangeRate ? '$' + formatFiatBalance(balance, getDecimalsByNetwork(network), exchangeRate) : ''}</span>
         </div>
       </h1>
       <PartnersView />
