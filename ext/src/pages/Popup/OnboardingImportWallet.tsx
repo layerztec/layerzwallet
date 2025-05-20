@@ -1,9 +1,12 @@
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 import React, { useContext, useState } from 'react';
 import { BackgroundCaller } from '../../modules/background-caller';
+import { useScanQR } from '../../hooks/ScanQrContext';
 import { Button, TextArea } from './DesignSystem';
+import { Scan } from 'lucide-react';
 
 export default function OnboardingImport() {
+  const scanQr = useScanQR();
   const [value, setValue] = useState<string>('');
   const [error, setError] = useState<string>('');
   const { setStep } = useContext(InitializationContext);
@@ -43,6 +46,33 @@ export default function OnboardingImport() {
           <br />
         </span>
       ) : null}
+
+      <Button
+        style={{
+          marginBottom: '10px',
+          marginLeft: '5px',
+          border: '1px solid #282c34',
+          borderRadius: '5px',
+          width: '50px',
+          height: '40px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'white',
+          color: 'black',
+          cursor: 'pointer',
+          paddingLeft: '25px',
+        }}
+        onClick={async () => {
+          const scanned = await scanQr();
+          if (scanned) {
+            setValue(scanned);
+          }
+        }}
+      >
+        <Scan />
+      </Button>
+      <br />
 
       <Button onClick={handleSaveMnemonicSeed}>Import</Button>
     </>

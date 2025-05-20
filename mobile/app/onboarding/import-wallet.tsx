@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { ThemedText } from '@/components/ThemedText';
+import { ScanQrContext } from '@/src/hooks/ScanQrContext';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ImportWalletScreen() {
+  const { scanQr } = useContext(ScanQrContext);
   const router = useRouter();
-  const [mnemonic, setMnemonic] = useState('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
+  const [mnemonic, setMnemonic] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -63,6 +66,20 @@ export default function ImportWalletScreen() {
         </View>
 
         <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.scanButton, isLoading && styles.disabledButton]}
+            onPress={async () => {
+              const scanned = await scanQr();
+              if (scanned) {
+                setMnemonic(scanned);
+              }
+            }}
+          >
+            <MaterialCommunityIcons name="qrcode-scan" size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.buttonContainer}>
           <TouchableOpacity style={[styles.button, styles.secondaryButton, isLoading && styles.disabledButton]} onPress={handleImportWallet} disabled={isLoading}>
             {isLoading ? <ActivityIndicator color="white" size="small" /> : <ThemedText style={styles.buttonText}>Import</ThemedText>}
           </TouchableOpacity>
@@ -73,6 +90,15 @@ export default function ImportWalletScreen() {
 }
 
 const styles = StyleSheet.create({
+  scanButton: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    flex: 1,
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',
