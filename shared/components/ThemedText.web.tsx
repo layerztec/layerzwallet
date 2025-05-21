@@ -31,7 +31,6 @@ export function ThemedText({ style, lightColor, darkColor, type = 'default', chi
     };
   }
 
-  // Convert any RN-style numbering to CSS style (for font sizes, etc.)
   const cssStyle: CSSProperties = {
     color,
     fontSize: typographyStyle.fontSize ? `${typographyStyle.fontSize}px` : undefined,
