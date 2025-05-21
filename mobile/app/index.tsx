@@ -68,7 +68,7 @@ export default function IndexScreen() {
       return;
     }
 
-    router.push('/receive');
+    router.push('/Receive');
   };
 
   const goToSend = () => {
