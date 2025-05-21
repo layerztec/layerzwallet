@@ -61,6 +61,7 @@ export function useTokenBalance(network: Networks, accountNumber: number, tokenC
   const { data, error, isLoading } = useSWR(arg, tokenBalanceFetcher, {
     refreshInterval,
     refreshWhenHidden: false,
+    keepPreviousData: true,
   });
 
   return {
