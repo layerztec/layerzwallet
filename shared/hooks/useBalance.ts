@@ -68,6 +68,10 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
   let refreshInterval = 12_000; // ETH block time
 
   switch (network) {
+    case NETWORK_ARKMUTINYNET:
+      refreshInterval = 3_000; // transfers are just server interactions, should be fast
+      break;
+
     case NETWORK_BITCOIN:
     case NETWORK_LIQUIDTESTNET:
       refreshInterval = 60_000; // 1 min for btc
@@ -75,6 +79,7 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
   const { data, error, isLoading } = useSWR({ cacheKey: 'balanceFetcher', accountNumber, network, backgroundCaller } as balanceFetcherArg, balanceFetcher, {
     refreshInterval,
     refreshWhenHidden: false,
+    keepPreviousData: true,
   });
 
   return {

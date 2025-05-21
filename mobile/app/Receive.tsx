@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { Stack } from 'expo-router';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Share, StyleSheet, TouchableOpacity } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,13 +12,39 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { capitalizeFirstLetter } from '@shared/modules/string-utils';
+import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
+import { StringNumber } from '@shared/types/string-number';
+import { useBalance } from '@shared/hooks/useBalance';
+import BigNumber from 'bignumber.js';
+import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 
 export default function ReceiveScreen() {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const [address, setAddress] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [oldBalance, setOldBalance] = useState<StringNumber>('');
+  const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
+
+  /**
+   * returns false if new balance is NOT greater than old one, otherwise it returns the precise difference between
+   * balances
+   */
+  const isNewBalanceGT = useCallback((): false | StringNumber => {
+    if (Boolean(balance && oldBalance && new BigNumber(balance).gt(oldBalance))) {
+      return new BigNumber(balance ?? '0').minus(oldBalance).toString(10);
+    }
+
+    return false;
+  }, [balance, oldBalance]);
+
+  useEffect(() => {
+    if (!oldBalance && balance) {
+      // initial update
+      setOldBalance(balance);
+      return;
+    }
+  }, [balance, isNewBalanceGT, oldBalance]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -53,6 +79,18 @@ export default function ReceiveScreen() {
   const getNetworkColor = () => {
     return '#007AFF'; // Blue color matching the selectedNetworkButton in index.tsx
   };
+
+  if (isNewBalanceGT()) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ThemedView style={styles.contentContainer}>
+          <ThemedText testID="NetworkAddressHeader" style={styles.subtitle}>
+            Received: +{isNewBalanceGT() ? formatBalance(String(isNewBalanceGT()), getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
+          </ThemedText>
+        </ThemedView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>

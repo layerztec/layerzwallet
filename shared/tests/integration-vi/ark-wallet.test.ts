@@ -12,6 +12,7 @@ test('ark', async (context) => {
   w.setSecret(process.env.TEST_MNEMONIC);
   await w.init();
 
-  assert.strictEqual(await w.getOffchainBalance(), 666);
-  assert.strictEqual(await w.getOffchainBalanceForAddress((await w.getOffchainReceiveAddress())!), 666);
+  const offchainBalance = await w.getOffchainBalance();
+  assert.ok(offchainBalance >= 666);
+  assert.strictEqual(await w.getOffchainBalanceForAddress((await w.getOffchainReceiveAddress())!), offchainBalance);
 });

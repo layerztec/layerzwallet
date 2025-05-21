@@ -28,6 +28,7 @@ export function useExchangeRate(network: Networks, fiat: TFiat) {
   const { data, error, isLoading } = useSWR(arg, exchangeRateFetcher, {
     refreshInterval,
     refreshWhenHidden: false,
+    keepPreviousData: true,
   });
 
   return {
