@@ -1,13 +1,18 @@
 import { Colors } from '../constants/Colors';
-import { useColorScheme } from 'react-native';
+// Import from the local shared-link directory
+import { useColorScheme } from './useColorScheme';
 
-export function useThemeColor(props: { light?: string; dark?: string }, colorName: keyof typeof Colors.light & keyof typeof Colors.dark) {
-  const theme = useColorScheme() ?? 'light';
-  const colorFromProps = props[theme];
+type ThemeType = 'light' | 'dark';
+type ThemeProps = { light?: string; dark?: string };
+
+export function useThemeColor(props: ThemeProps, colorName: keyof typeof Colors.light & keyof typeof Colors.dark) {
+  const theme = (useColorScheme() ?? 'light') as ThemeType;
+  const colorFromProps = theme === 'light' ? props.light : props.dark;
 
   if (colorFromProps) {
     return colorFromProps;
   } else {
+    // Type-safe indexing
     return Colors[theme][colorName];
   }
 }
