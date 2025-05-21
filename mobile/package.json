@@ -32,9 +32,9 @@
   },
   "dependencies": {
     "@arklabs/wallet-sdk": "0.0.13",
-    "@expo/vector-icons": "^14.1.0",
     "@breeztech/breez-sdk-liquid": "0.8.3",
     "@breeztech/react-native-breez-sdk-liquid": "0.8.3",
+    "@expo/vector-icons": "^14.1.0",
     "@metamask/eth-sig-util": "8.2.0",
     "@noble/hashes": "^1.7.1",
     "@noble/secp256k1": "1.6.3",
@@ -61,6 +61,7 @@
     "ecpair": "2.0.1",
     "ethers": "^6.13.4",
     "expo": "53.0.9",
+    "expo-application": "~6.1.4",
     "expo-blur": "~14.1.4",
     "expo-camera": "~16.1.6",
     "expo-clipboard": "~7.1.4",
@@ -99,8 +100,7 @@
     "timers-browserify": "^2.0.12",
     "uint8array-extras": "^1.4.0",
     "url": "^0.11.4",
-    "ws-electrumx-client": "1.0.5",
-    "expo-application": "~6.1.4"
+    "ws-electrumx-client": "1.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
