@@ -147,7 +147,7 @@ var options = {
   },
   resolve: {
     alias: alias,
-    extensions: fileExtensions.map((extension) => '.' + extension).concat(['.js', '.jsx', '.ts', '.tsx', '.css']),
+    extensions: ['.web.tsx', '.web.ts', '.tsx', '.ts', '.jsx', '.js', '.json'],
     fallback: {
       assert: require.resolve('assert'),
       crypto: require.resolve('crypto-browserify'),
