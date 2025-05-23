@@ -5,6 +5,7 @@ import { useThemeColor } from '../hooks/useThemeColor';
 export type ThemedTextProps = React.HTMLAttributes<HTMLSpanElement> & {
   lightColor?: string;
   darkColor?: string;
+  id?: string;
   type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'headline' | 'subHeadline' | 'paragraph';
 };
 
