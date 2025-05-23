@@ -33,8 +33,8 @@
   "dependencies": {
     "@arklabs/wallet-sdk": "0.0.13",
     "@expo/vector-icons": "^14.1.0",
-    "@breeztech/breez-sdk-liquid": "0.8.3",
-    "@breeztech/react-native-breez-sdk-liquid": "0.8.3",
+    "@breeztech/breez-sdk-liquid": "0.9.1",
+    "@breeztech/react-native-breez-sdk-liquid": "0.9.1",
     "@metamask/eth-sig-util": "8.2.0",
     "@noble/hashes": "^1.7.1",
     "@noble/secp256k1": "1.6.3",

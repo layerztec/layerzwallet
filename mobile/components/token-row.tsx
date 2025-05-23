@@ -52,7 +52,7 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
         >
           <Ionicons name="send" size={16} color="#666" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/receive')} style={styles.button}>
+        <TouchableOpacity onPress={() => router.push('/Receive')} style={styles.button}>
           <Ionicons name="arrow-down" size={16} color="#666" />
         </TouchableOpacity>
       </View>

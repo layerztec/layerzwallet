@@ -42,3 +42,6 @@ app-example
 .idea/
 
 layerzwalletproject-*.json
+
+LayerzWallet.app/
+build-*.tar.gz

@@ -2,7 +2,7 @@ import type * as JSAPI from '@breeztech/breez-sdk-liquid';
 import * as RNAPI from '@breeztech/react-native-breez-sdk-liquid';
 import * as Crypto from 'expo-crypto';
 
-import { BreezConnection, IBreezAdapter } from '@shared/class/wallets/breez-wallet';
+import { BreezConnection, IBreezAdapter, assetMetadata } from '@shared/class/wallets/breez-wallet';
 import { NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
 
 const API_KEY = process.env.EXPO_PUBLIC_BREEZ_API_KEY;
@@ -91,9 +91,24 @@ const sha256 = async (mnemonic: string): Promise<string> => {
 class BreezAdapter implements IBreezAdapter {
   private initialized: boolean = false;
   private cc: BreezConnection | undefined;
+  private sdkLock: Promise<void> = Promise.resolve();
 
-  get activeconnection() {
-    return this.cc;
+  // This function is used to ensure that the SDK is initialized before calling the function
+  // It also ensures that the SDK is not initialized multiple times at the same times
+  private withLockAndSdk<T, Args extends any[]>(fn: (...args: Args) => Promise<T>): (connection: BreezConnection, ...args: Args) => Promise<T> {
+    return async (connection: BreezConnection, ...args: Args): Promise<T> => {
+      let releaseLock: () => void = () => {};
+      const lockPromise = new Promise<void>((resolve) => (releaseLock = resolve));
+      await this.sdkLock; // Wait for any ongoing SDK initialization to complete
+      this.sdkLock = lockPromise; // Set new lock
+
+      try {
+        await this.getSdk(connection);
+        return await fn(...args);
+      } finally {
+        releaseLock();
+      }
+    };
   }
 
   private async getSdk(connection: BreezConnection) {
@@ -107,62 +122,78 @@ class BreezAdapter implements IBreezAdapter {
     const config = await RNAPI.defaultConfig(newNetwork, API_KEY);
     // set the working directory to a unique path based on the mnemonic
     config.workingDir = `${config.workingDir}/${sha256(connection.mnemonic)}`;
-    await RNAPI.connect({ mnemonic: connection.mnemonic, config });
+    // set the asset metadata
+    // filter out Bitcoin testnet here, it is only needed in Extension
+    config.assetMetadata = assetMetadata.filter(({ assetId }) => assetId !== '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49');
+    try {
+      await RNAPI.connect({ mnemonic: connection.mnemonic, config });
+    } catch (e: any) {
+      // because of the RN hot reload we might sometimes lose this.initialized state
+      // in this case, we need to disconnect and try again
+      if (e?.message?.includes('Already initialized')) {
+        await RNAPI.disconnect();
+        await RNAPI.connect({ mnemonic: connection.mnemonic, config });
+      } else {
+        throw e;
+      }
+    }
+
     this.cc = connection;
     this.initialized = true;
   }
 
-  private async getInfo(connection: BreezConnection) {
-    await this.getSdk(connection);
+  private async getInfo() {
     return await RNAPI.getInfo();
   }
 
-  private async fetchLightningLimits(connection: BreezConnection) {
-    await this.getSdk(connection);
+  private async fetchLightningLimits() {
     return await RNAPI.fetchLightningLimits();
   }
 
-  private async prepareReceivePayment(connection: BreezConnection, args: JSAPI.PrepareReceiveRequest) {
+  private async prepareReceivePayment(args: JSAPI.PrepareReceiveRequest) {
     const newArgs: RNAPI.PrepareReceiveRequest = {
       amount: convertReceiveAmount(args.amount),
       paymentMethod: convertPaymentMethod(args.paymentMethod),
     };
-    await this.getSdk(connection);
     return await RNAPI.prepareReceivePayment(newArgs);
   }
 
-  private async receivePayment(connection: BreezConnection, args: JSAPI.ReceivePaymentRequest) {
+  private async receivePayment(args: JSAPI.ReceivePaymentRequest) {
     const newArgs: RNAPI.ReceivePaymentRequest = {
       prepareResponse: convertPrepareResponse(args.prepareResponse),
       description: args.description,
       // useDescriptionHash: args.useDescriptionHash,
     };
-    await this.getSdk(connection);
     return await RNAPI.receivePayment(newArgs);
   }
 
-  private async prepareSendPayment(connection: BreezConnection, args: JSAPI.PrepareSendRequest) {
+  private async prepareSendPayment(args: JSAPI.PrepareSendRequest) {
     const newArgs: RNAPI.PrepareSendRequest = {
       ...args,
       amount: convertPayAmount(args.amount),
     };
-    await this.getSdk(connection);
     return await RNAPI.prepareSendPayment(newArgs);
   }
 
-  private async sendPayment(connection: BreezConnection, args: JSAPI.SendPaymentRequest) {
-    await this.getSdk(connection);
+  private async sendPayment(args: JSAPI.SendPaymentRequest) {
     return await RNAPI.sendPayment(args as RNAPI.SendPaymentRequest); // type is too complex to convert
   }
 
   get api() {
+    const getInfo = this.withLockAndSdk(this.getInfo.bind(this));
+    const prepareReceivePayment = this.withLockAndSdk(this.prepareReceivePayment.bind(this));
+    const fetchLightningLimits = this.withLockAndSdk(this.fetchLightningLimits.bind(this));
+    const receivePayment = this.withLockAndSdk(this.receivePayment.bind(this));
+    const prepareSendPayment = this.withLockAndSdk(this.prepareSendPayment.bind(this));
+    const sendPayment = this.withLockAndSdk(this.sendPayment.bind(this));
+
     return {
-      getInfo: (connection: BreezConnection) => this.getInfo(connection),
-      fetchLightningLimits: (connection: BreezConnection) => this.fetchLightningLimits(connection),
-      prepareReceivePayment: (connection: BreezConnection, args: JSAPI.PrepareReceiveRequest) => this.prepareReceivePayment(connection, args),
-      receivePayment: (connection: BreezConnection, args: JSAPI.ReceivePaymentRequest) => this.receivePayment(connection, args),
-      prepareSendPayment: (connection: BreezConnection, args: JSAPI.PrepareSendRequest) => this.prepareSendPayment(connection, args),
-      sendPayment: (connection: BreezConnection, args: JSAPI.SendPaymentRequest) => this.sendPayment(connection, args),
+      getInfo,
+      prepareReceivePayment,
+      fetchLightningLimits,
+      receivePayment,
+      prepareSendPayment,
+      sendPayment,
     };
   }
 

@@ -1,13 +1,14 @@
 import type {
+  AssetMetadata,
   GetInfoResponse,
   LightningPaymentLimitsResponse,
   LiquidNetwork,
   PrepareReceiveRequest,
   PrepareReceiveResponse,
-  ReceivePaymentRequest,
-  ReceivePaymentResponse,
   PrepareSendRequest,
   PrepareSendResponse,
+  ReceivePaymentRequest,
+  ReceivePaymentResponse,
   SendPaymentRequest,
   SendPaymentResponse,
 } from '@breeztech/breez-sdk-liquid';
@@ -52,6 +53,11 @@ export class BreezWallet {
     return info.walletInfo.balanceSat + info.walletInfo.pendingReceiveSat;
   }
 
+  public async getAssetBalances() {
+    const info = await this.getInfo();
+    return info.walletInfo.assetBalances;
+  }
+
   public async fetchLightningLimits() {
     return await this.adapter.api.fetchLightningLimits(this.connection);
   }
@@ -71,4 +77,45 @@ export class BreezWallet {
   public async sendPayment(args: SendPaymentRequest) {
     return await this.adapter.api.sendPayment(this.connection, args);
   }
+
+  public async getAddressLiquid() {
+    const prepareResponse = await this.prepareReceivePayment({
+      paymentMethod: 'liquidAddress',
+    });
+    const receiveResponse = await this.receivePayment({
+      prepareResponse,
+    });
+    if (!receiveResponse.destination) {
+      throw new Error('Failed to generate Liquid address');
+    }
+    return receiveResponse.destination;
+  }
 }
+
+// Additional assets
+export const assetMetadata: AssetMetadata[] = [
+  {
+    assetId: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49',
+    name: 'Testnet Bitcoin',
+    ticker: 'tBTC',
+    precision: 8,
+  },
+  {
+    assetId: 'ec24f3e4a4993802f901d881ea1bbfc642dfbc25d5fe82af256',
+    name: 'KEK LOL',
+    ticker: 'LOLx',
+    precision: 7,
+  },
+  {
+    assetId: 'ec24f3e4a4993802f901d881ea1bbfc642dfbc25d5fe82af2564ddc59dc025a9',
+    name: 'KEK LOL2',
+    ticker: 'LOLx2',
+    precision: 7,
+  },
+  {
+    assetId: '139768b54fb12cdb732d02d12aba8abb7de8f8f5ae776ca13e2ba10cbf306aa9',
+    name: 'KEK LOL3',
+    ticker: 'LOLx3',
+    precision: 7,
+  },
+];
