@@ -35,7 +35,10 @@ var options = {
   entry: {
     options: path.join(__dirname, 'src', 'pages', 'Options', 'index.jsx'),
     popup: path.join(__dirname, 'src', 'pages', 'Popup', 'index.jsx'),
-    background: path.join(__dirname, 'src', 'pages', 'Background', 'index.js'),
+    background: {
+      import: path.join(__dirname, 'src', 'pages', 'Background', 'index.js'),
+      baseUri: 'background:index.js', // Needed for service worker context - prevents webpack from expecting 'document' to be available (see https://stackoverflow.com/a/74921498/1231070)
+    },
     contentScript: path.join(__dirname, 'src', 'pages', 'Content', 'index.ts'),
     contentScriptLoader: path.join(__dirname, 'src', 'pages', 'Content', 'loader.ts'),
     devtools: path.join(__dirname, 'src', 'pages', 'Devtools', 'index.js'),

@@ -61,9 +61,7 @@ describe('BreezWallet', () => {
     const w2 = new BreezWallet(mnemonic2, 'mainnet', breezAdapter);
 
     const info1 = await w1.getInfo();
-    console.info('info1', info1.walletInfo);
     const info2 = await w2.getInfo();
-    console.info('info2', info2.walletInfo);
     expect(info1.walletInfo.fingerprint).not.toEqual(info2.walletInfo.fingerprint);
   });
 });

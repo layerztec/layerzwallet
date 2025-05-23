@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import '../src/modules/breeze-adapter';
 
+import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import TokensView from '@/components/tokens-view';
@@ -19,6 +19,7 @@ import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, NETWORK_LIQUID, NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { OnrampProps } from '@/app/Onramp';
+import BreezTokensView from '@/components/breez-tokens-view';
 
 export default function IndexScreen() {
   const { network, setNetwork } = useContext(NetworkContext);
@@ -64,7 +65,7 @@ export default function IndexScreen() {
 
   const goToReceive = () => {
     if (network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET) {
-      router.push('/ReceiveLightning');
+      router.push('/ReceiveBreez');
       return;
     }
 
@@ -81,7 +82,7 @@ export default function IndexScreen() {
         break;
       case NETWORK_BREEZ:
       case NETWORK_BREEZTESTNET:
-        router.push('/SendLightning');
+        router.push('/SendBreez');
         break;
       default:
         router.push('/SendEvm');
@@ -103,81 +104,83 @@ export default function IndexScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ThemedView style={styles.headerContainer}>
-        <ThemedView style={styles.header}>
-          <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
-        </ThemedView>
-        <TouchableOpacity style={styles.settingsButton} onPress={goToSettings} testID="SettingsButton">
-          <Ionicons name="settings-outline" size={24} color="#007AFF" />
-        </TouchableOpacity>
-      </ThemedView>
-
-      <ThemedView style={styles.networkContainer}>
-        {networks.map((availableNetwork) => (
-          <TouchableOpacity
-            key={availableNetwork}
-            testID={network === availableNetwork ? `selectedNetwork-${availableNetwork}` : `network-${availableNetwork}`}
-            style={[styles.networkButton, network === availableNetwork && styles.selectedNetworkButton]}
-            onPress={() => setNetwork(availableNetwork)}
-          >
-            <ThemedText style={[styles.networkButtonText, network === availableNetwork && styles.selectedNetworkButtonText]}>{availableNetwork.toUpperCase()}</ThemedText>
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        <ThemedView style={styles.headerContainer}>
+          <ThemedView style={styles.header}>
+            <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
+          </ThemedView>
+          <TouchableOpacity style={styles.settingsButton} onPress={goToSettings} testID="SettingsButton">
+            <Ionicons name="settings-outline" size={24} color="#007AFF" />
           </TouchableOpacity>
-        ))}
-      </ThemedView>
+        </ThemedView>
 
-      {getIsTestnet(network) && (
-        <ThemedView
-          style={{
-            backgroundColor: 'rgba(255, 0, 0, 0.1)',
-            padding: 10,
-            borderRadius: 5,
-            marginHorizontal: 20,
-            marginVertical: 10,
-          }}
-        >
-          <ThemedText
+        <ThemedView style={styles.networkContainer}>
+          {networks.map((availableNetwork) => (
+            <TouchableOpacity
+              key={availableNetwork}
+              testID={network === availableNetwork ? `selectedNetwork-${availableNetwork}` : `network-${availableNetwork}`}
+              style={[styles.networkButton, network === availableNetwork && styles.selectedNetworkButton]}
+              onPress={() => setNetwork(availableNetwork)}
+            >
+              <ThemedText style={[styles.networkButtonText, network === availableNetwork && styles.selectedNetworkButtonText]}>{availableNetwork.toUpperCase()}</ThemedText>
+            </TouchableOpacity>
+          ))}
+        </ThemedView>
+
+        {getIsTestnet(network) && (
+          <ThemedView
             style={{
-              color: 'red',
-              fontSize: 10,
-              textAlign: 'center',
-              fontWeight: 'bold',
+              backgroundColor: 'rgba(255, 0, 0, 0.1)',
+              padding: 10,
+              borderRadius: 5,
+              marginHorizontal: 20,
+              marginVertical: 10,
             }}
           >
-            Warning: You are using a testnet, coins have no value
+            <ThemedText
+              style={{
+                color: 'red',
+                fontSize: 10,
+                textAlign: 'center',
+                fontWeight: 'bold',
+              }}
+            >
+              Warning: You are using a testnet, coins have no value
+            </ThemedText>
+          </ThemedView>
+        )}
+
+        <ThemedView style={styles.balanceContainer}>
+          <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
+            {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
+          </ThemedText>
+          <ThemedText adjustsFontSizeToFit numberOfLines={1}>
+            {balance && +balance > 0 && exchangeRate ? '$' + formatFiatBalance(balance, getDecimalsByNetwork(network), exchangeRate) : ''}
           </ThemedText>
         </ThemedView>
-      )}
 
-      <ThemedView style={styles.balanceContainer}>
-        <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
-          {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
-        </ThemedText>
-        <ThemedText adjustsFontSizeToFit numberOfLines={1}>
-          {balance && +balance > 0 && exchangeRate ? '$' + formatFiatBalance(balance, getDecimalsByNetwork(network), exchangeRate) : ''}
-        </ThemedText>
-      </ThemedView>
+        {network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET ? <BreezTokensView /> : <TokensView />}
 
-      <TokensView />
-
-      <ThemedView style={styles.contentContainer}>
-        <ThemedView style={styles.buttonContainer}>
-          <ThemedView style={styles.buttonRow}>
-            <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive}>
-              <ThemedText style={styles.buttonText}>Receive</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
-              <ThemedText style={styles.buttonText}>Send</ThemedText>
-            </TouchableOpacity>
-
-            {network === NETWORK_BITCOIN ? (
-              <TouchableOpacity style={[styles.button]} onPress={goToBuyBitcoin}>
-                <ThemedText style={styles.buttonText}> $ Buy </ThemedText>
+        <ThemedView style={styles.contentContainer}>
+          <ThemedView style={styles.buttonContainer}>
+            <ThemedView style={styles.buttonRow}>
+              <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive}>
+                <ThemedText style={styles.buttonText}>Receive</ThemedText>
               </TouchableOpacity>
-            ) : null}
+
+              <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
+                <ThemedText style={styles.buttonText}>Send</ThemedText>
+              </TouchableOpacity>
+
+              {network === NETWORK_BITCOIN ? (
+                <TouchableOpacity style={[styles.button]} onPress={goToBuyBitcoin}>
+                  <ThemedText style={styles.buttonText}> $ Buy </ThemedText>
+                </TouchableOpacity>
+              ) : null}
+            </ThemedView>
           </ThemedView>
         </ThemedView>
-      </ThemedView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -285,5 +288,8 @@ const styles = StyleSheet.create({
   },
   selectedNetworkButtonText: {
     color: 'white',
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
 });

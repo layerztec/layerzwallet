@@ -1,18 +1,20 @@
-import { ArrowDownRightIcon, SendIcon, Info, ShoppingCartIcon } from 'lucide-react';
+import { ArrowDownRightIcon, Info, SendIcon, ShoppingCartIcon } from 'lucide-react';
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
+
 import { DEFAULT_NETWORK } from '@shared/config';
-import { getDecimalsByNetwork, getIsTestnet, getKnowMoreUrl, getTickerByNetwork } from '@shared/models/network-getters';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
+import { useExchangeRate } from '@shared/hooks/useExchangeRate';
+import { getDecimalsByNetwork, getIsTestnet, getKnowMoreUrl, getTickerByNetwork } from '@shared/models/network-getters';
+import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
+import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, NETWORK_LIQUIDTESTNET, Networks } from '@shared/types/networks';
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { Button, Switch } from '../DesignSystem';
-import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, NETWORK_LIQUIDTESTNET, Networks } from '@shared/types/networks';
-import TokensView from './TokensView';
+import BreezTokensView from './breez-tokens-view';
 import PartnersView from './PartnersView';
-import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { useExchangeRate } from '@shared/hooks/useExchangeRate';
+import TokensView from './TokensView';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -31,10 +33,30 @@ const Home: React.FC = () => {
     switch (network) {
       case NETWORK_BREEZ:
       case NETWORK_BREEZTESTNET:
-        navigate('/receive-lightning');
+        navigate('/receive-breez');
         break;
       default:
         navigate('/receive');
+    }
+  };
+
+  const handleSend = () => {
+    switch (network) {
+      case NETWORK_BITCOIN:
+        navigate('/send-btc');
+        break;
+      case NETWORK_ARKMUTINYNET:
+        navigate('/send-ark');
+        break;
+      case NETWORK_LIQUIDTESTNET:
+        navigate('/send-liquid');
+        break;
+      case NETWORK_BREEZ:
+      case NETWORK_BREEZTESTNET:
+        navigate('/send-breez');
+        break;
+      default:
+        navigate('/send-evm');
     }
   };
 
@@ -96,30 +118,12 @@ const Home: React.FC = () => {
         </div>
       </h1>
       <PartnersView />
-      <TokensView />
+
+      {network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET ? <BreezTokensView /> : <TokensView />}
+
       <br />
       <br />
-      <Button
-        onClick={() => {
-          switch (network) {
-            case NETWORK_BITCOIN:
-              navigate('/send-btc');
-              break;
-            case NETWORK_ARKMUTINYNET:
-              navigate('/send-ark');
-              break;
-            case NETWORK_LIQUIDTESTNET:
-              navigate('/send-liquid');
-              break;
-            case NETWORK_BREEZ:
-            case NETWORK_BREEZTESTNET:
-              navigate('/send-lightning');
-              break;
-            default:
-              navigate('/send-evm');
-          }
-        }}
-      >
+      <Button onClick={handleSend}>
         <SendIcon />
         Send
       </Button>

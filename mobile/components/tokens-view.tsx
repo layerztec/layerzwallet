@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { View, FlatList } from 'react-native';
+import { View } from 'react-native';
 import { DEFAULT_NETWORK } from '@shared/config';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getTokenList } from '@shared/models/token-list';
@@ -12,7 +12,9 @@ const TokensView: React.FC = () => {
 
   return (
     <View>
-      <FlatList data={tokenList} keyExtractor={(item) => item.address} renderItem={({ item }) => <TokenRow tokenAddress={item.address} />} />
+      {tokenList.map((token) => (
+        <TokenRow key={token.address} tokenAddress={token.address} />
+      ))}
     </View>
   );
 };

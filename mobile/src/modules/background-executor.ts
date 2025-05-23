@@ -1,6 +1,7 @@
 import { SecureStorage } from '@/src/class/secure-storage';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
+import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
 import { lazyInitWallet as lazyInitWalletOrig, saveArkAddresses, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
@@ -14,10 +15,11 @@ import {
   STORAGE_KEY_SUB_MNEMONIC,
   STORAGE_KEY_WHITELIST,
 } from '@shared/types/IStorage';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN } from '@shared/types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
 import { encrypt } from '../modules/encryption';
+import { getBreezNetwork } from './breeze-adapter';
 
 // Cache of wallets by network and account number (currently only bitcoin)
 const cachedWallets: Record<string, Record<number, WatchOnlyWallet>> = {
@@ -46,7 +48,12 @@ export const BackgroundExecutor: IBackgroundCaller = {
       return address;
     } else if (network === NETWORK_ARKMUTINYNET) {
       const address = await LayerzStorage.getItem(STORAGE_KEY_ARK_ADDRESS + accountNumber);
-      return address ?? '';
+      return address;
+    } else if (network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET) {
+      const mnemonic = await SecureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
+      const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
+      const address = wallet.getAddressLiquid();
+      return address;
     } else {
       const xpub = await LayerzStorage.getItem(STORAGE_KEY_EVM_XPUB);
       return EvmWallet.xpubToAddress(xpub, accountNumber);
