@@ -1,24 +1,5 @@
-import * as React from 'react';
-import { Text, type TextProps } from 'react-native';
-import { useThemeColor } from '@shared/hooks/useThemeColor';
-import { Typography } from '@shared/constants/Typography';
-
-export type ThemedTextProps = TextProps & {
-  lightColor?: string;
-  darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'headline' | 'subHeadline' | 'paragraph';
-};
-
-export function ThemedText({ style, lightColor, darkColor, type = 'default', ...rest }: ThemedTextProps) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
-  let typographyStyle: any[] = [];
-  if (type === 'defaultSemiBold') {
-    typographyStyle = [Typography.paragraph, { fontWeight: '700' }];
-  } else if (type === 'link') {
-    typographyStyle = [Typography.paragraph, { color: '#0a7ea4', lineHeight: 30 }];
-  } else {
-    const typographyKey = type === 'default' ? 'paragraph' : type === 'title' ? 'headline' : type === 'subtitle' ? 'subHeadline' : type;
-    typographyStyle = [Typography[typographyKey as keyof typeof Typography] || Typography.paragraph];
-  }
-  return <Text style={[{ color }, ...typographyStyle, style]} {...rest} />;
-}
+// This file is only for mobile/native. For web/ext, use ThemedText.web.tsx.
+// To avoid module resolution errors in web/ext, export an empty object.
+export {};
+// For web/ext, re-export the web implementation so imports work without .web extension
+export * from './ThemedText.web';

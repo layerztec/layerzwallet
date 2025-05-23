@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { useThemeColor } from '@shared/hooks/platform-specific';
 import { Typography } from '@shared/constants/Typography';
+import { useThemeColor } from '../hooks/useThemeColor';
 
 export type ThemedTextProps = React.HTMLAttributes<HTMLSpanElement> & {
   lightColor?: string;
