@@ -5,7 +5,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacit
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import LongPressButton from '@/components/LongPressButton';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedText } from '@shared/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import Slider from '@react-native-community/slider';
 import { TextInput } from 'react-native';

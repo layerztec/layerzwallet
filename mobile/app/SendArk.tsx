@@ -1,5 +1,5 @@
 import LongPressButton from '@/components/LongPressButton';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedText } from '@shared/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Csprng } from '@/src/class/rng';
 import { SecureStorage } from '@/src/class/secure-storage';

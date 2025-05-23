@@ -6,7 +6,7 @@ import { ActivityIndicator, Alert, Share, StyleSheet, TouchableOpacity } from 'r
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedText } from '@shared/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { DEFAULT_NETWORK } from '@shared/config';
