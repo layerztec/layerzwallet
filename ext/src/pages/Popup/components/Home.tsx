@@ -13,7 +13,7 @@ import TokensView from './TokensView';
 import PartnersView from './PartnersView';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
-import { ThemedText } from '@shared/components/ThemedText';
+import { ThemedText } from '@shared/components/ThemedText.web';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();

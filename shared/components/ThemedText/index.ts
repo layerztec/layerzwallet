@@ -1,1 +1,1 @@
-export * from './ThemedText';
+export * from './ThemedText.web';
