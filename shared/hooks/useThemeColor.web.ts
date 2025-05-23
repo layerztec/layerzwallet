@@ -1,22 +1,11 @@
-import { Colors } from '@shared/constants/Colors';
-import { useEffect, useState } from 'react';
+import { Colors } from '../constants/Colors';
 
+/**
+ * Hook to get theme-specific colors for web
+ * Always returns light theme
+ */
 export function useThemeColor(props: { light?: string; dark?: string }, colorName: keyof typeof Colors.light & keyof typeof Colors.dark) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
-
-  useEffect(() => {
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setTheme('dark');
-    }
-
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
-      setTheme(e.matches ? 'dark' : 'light');
-    };
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
+  const theme = 'light';
 
   const colorFromProps = props[theme];
   if (colorFromProps) {
