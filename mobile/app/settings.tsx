@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Application from 'expo-application';
 
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedText } from '@shared/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
@@ -85,7 +85,7 @@ export default function SettingsScreen() {
             <View style={styles.accountSelectorContainer}>
               {[0, 1, 2, 3, 4].map((num) => (
                 <TouchableOpacity key={num} style={[styles.accountButton, accountNumber === num && styles.accountButtonActive]} onPress={() => handleAccountChange(num)}>
-                  <ThemedText style={[styles.accountButtonText, accountNumber === num && styles.accountButtonTextActive]}>{num}</ThemedText>
+                  <ThemedText style={[styles.accountButtonText, accountNumber === num && styles.accountButtonTextActive] as any}>{num}</ThemedText>
                 </TouchableOpacity>
               ))}
             </View>

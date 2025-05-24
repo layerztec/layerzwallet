@@ -6,7 +6,7 @@ import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity } from 'reac
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import LongPressButton from '@/components/LongPressButton';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedText } from '@shared/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';

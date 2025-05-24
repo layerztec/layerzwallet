@@ -8,7 +8,7 @@ import { Alert, ScrollView, Share, StyleSheet, TextInput, TouchableOpacity } fro
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedText } from '@shared/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getBreezNetwork } from '@/src/modules/breeze-adapter';
@@ -282,11 +282,11 @@ export default function ReceiveLightningScreen() {
               </ThemedView>
 
               <ThemedView style={styles.addressContainer}>
-                <ThemedText testID="InvoiceLabel" style={styles.addressLabel}>
+                <ThemedText testID="InvoiceLabel" style={styles.addressLabel} {...({} as any)}>
                   Invoice:
                 </ThemedText>
                 <TouchableOpacity testID="CopyInvoiceButton" onPress={handleCopyInvoice} style={styles.addressTextContainer}>
-                  <ThemedText testID="InvoiceText" style={styles.addressText} numberOfLines={2} ellipsizeMode="middle">
+                  <ThemedText testID="InvoiceText" style={styles.addressText} numberOfLines={2} ellipsizeMode="middle" {...({} as any)}>
                     {invoice}
                   </ThemedText>
                   <Ionicons testID="CopyIcon" name="copy-outline" size={20} color="#007AFF" style={styles.copyIcon} />

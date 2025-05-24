@@ -1,4 +1,4 @@
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedText } from '@shared/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Ionicons } from '@expo/vector-icons';
 import { useTransactionReceipt } from '@shared/hooks/useTransactionReceipt';
@@ -141,7 +141,7 @@ const TransactionSuccessEvm: React.FC = () => {
 
         <View style={styles.summaryRow}>
           <ThemedText style={styles.summaryLabel}>Recipient</ThemedText>
-          <ThemedText style={[styles.summaryValue, styles.addressText]}>{recipient}</ThemedText>
+          <ThemedText style={[styles.summaryValue, styles.addressText] as any}>{recipient}</ThemedText>
         </View>
 
         <View style={styles.summaryRow}>

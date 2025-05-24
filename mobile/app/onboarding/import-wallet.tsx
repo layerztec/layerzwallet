@@ -3,7 +3,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedText } from '@shared/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 

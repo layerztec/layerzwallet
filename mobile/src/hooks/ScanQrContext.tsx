@@ -1,7 +1,7 @@
 import { BarcodeScanningResult, CameraType, CameraView, useCameraPermissions } from 'expo-camera';
 import React, { createContext, ReactNode, useState } from 'react';
 import { Button, Dimensions, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedText } from '@shared/components/ThemedText';
 
 interface IScanQrContext {
   scanQr: () => Promise<string>;

@@ -3,9 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useContext, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedText } from '../components/TypedThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import TokensView from '@/components/tokens-view';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -122,7 +120,7 @@ export default function IndexScreen() {
               style={[styles.networkButton, network === availableNetwork && styles.selectedNetworkButton]}
               onPress={() => setNetwork(availableNetwork)}
             >
-              <ThemedText style={[styles.networkButtonText, network === availableNetwork && styles.selectedNetworkButtonText]}>{availableNetwork.toUpperCase()}</ThemedText>
+              <ThemedText style={[styles.networkButtonText, network === availableNetwork && styles.selectedNetworkButtonText] as any}>{availableNetwork.toUpperCase()}</ThemedText>
             </TouchableOpacity>
           ))}
         </ThemedView>
@@ -151,10 +149,10 @@ export default function IndexScreen() {
         )}
 
         <ThemedView style={styles.balanceContainer}>
-          <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
+          <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1} {...({} as any)}>
             {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
           </ThemedText>
-          <ThemedText adjustsFontSizeToFit numberOfLines={1}>
+          <ThemedText adjustsFontSizeToFit numberOfLines={1} {...({} as any)}>
             {balance && +balance > 0 && exchangeRate ? '$' + formatFiatBalance(balance, getDecimalsByNetwork(network), exchangeRate) : ''}
           </ThemedText>
         </ThemedView>
