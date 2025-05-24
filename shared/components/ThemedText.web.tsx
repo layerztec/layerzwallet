@@ -1,11 +1,10 @@
 import * as React from 'react';
 import { Typography } from '@shared/constants/Typography';
-import { useThemeColor } from '../hooks/useThemeColor';
+import { useThemeColor } from '@shared/hooks/useThemeColor';
 
 export type ThemedTextProps = React.HTMLAttributes<HTMLSpanElement> & {
   lightColor?: string;
   darkColor?: string;
-  id?: string;
   type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'headline' | 'subHeadline' | 'paragraph';
 };
 

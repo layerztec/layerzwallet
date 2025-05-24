@@ -85,7 +85,7 @@ export default function SettingsScreen() {
             <View style={styles.accountSelectorContainer}>
               {[0, 1, 2, 3, 4].map((num) => (
                 <TouchableOpacity key={num} style={[styles.accountButton, accountNumber === num && styles.accountButtonActive]} onPress={() => handleAccountChange(num)}>
-                  <ThemedText style={[styles.accountButtonText, accountNumber === num && styles.accountButtonTextActive]}>{num}</ThemedText>
+                  <ThemedText style={[styles.accountButtonText, accountNumber === num && styles.accountButtonTextActive] as any}>{num}</ThemedText>
                 </TouchableOpacity>
               ))}
             </View>

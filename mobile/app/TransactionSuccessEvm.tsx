@@ -141,7 +141,7 @@ const TransactionSuccessEvm: React.FC = () => {
 
         <View style={styles.summaryRow}>
           <ThemedText style={styles.summaryLabel}>Recipient</ThemedText>
-          <ThemedText style={[styles.summaryValue, styles.addressText]}>{recipient}</ThemedText>
+          <ThemedText style={[styles.summaryValue, styles.addressText] as any}>{recipient}</ThemedText>
         </View>
 
         <View style={styles.summaryRow}>

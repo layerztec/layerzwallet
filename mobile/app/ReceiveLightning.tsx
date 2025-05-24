@@ -282,11 +282,11 @@ export default function ReceiveLightningScreen() {
               </ThemedView>
 
               <ThemedView style={styles.addressContainer}>
-                <ThemedText testID="InvoiceLabel" style={styles.addressLabel}>
+                <ThemedText testID="InvoiceLabel" style={styles.addressLabel} {...({} as any)}>
                   Invoice:
                 </ThemedText>
                 <TouchableOpacity testID="CopyInvoiceButton" onPress={handleCopyInvoice} style={styles.addressTextContainer}>
-                  <ThemedText testID="InvoiceText" style={styles.addressText} numberOfLines={2} ellipsizeMode="middle">
+                  <ThemedText testID="InvoiceText" style={styles.addressText} numberOfLines={2} ellipsizeMode="middle" {...({} as any)}>
                     {invoice}
                   </ThemedText>
                   <Ionicons testID="CopyIcon" name="copy-outline" size={20} color="#007AFF" style={styles.copyIcon} />

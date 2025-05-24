@@ -84,7 +84,7 @@ export default function ReceiveScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <ThemedView style={styles.contentContainer}>
-          <ThemedText testID="NetworkAddressHeader" style={styles.subtitle}>
+          <ThemedText testID="NetworkAddressHeader" style={styles.subtitle} {...({} as any)}>
             Received: +{isNewBalanceGT() ? formatBalance(String(isNewBalanceGT()), getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
           </ThemedText>
         </ThemedView>
@@ -107,7 +107,7 @@ export default function ReceiveScreen() {
           <ThemedText style={styles.networkText}>{network?.toUpperCase()}</ThemedText>
         </ThemedView>
 
-        <ThemedText testID="NetworkAddressHeader" style={styles.subtitle}>
+        <ThemedText testID="NetworkAddressHeader" style={styles.subtitle} {...({} as any)}>
           Your {capitalizeFirstLetter(network || '')} Address
         </ThemedText>
 
@@ -127,14 +127,14 @@ export default function ReceiveScreen() {
         </ThemedView>
 
         <ThemedView style={styles.addressContainer}>
-          <ThemedText testID="AddressLabel" style={styles.addressLabel}>
+          <ThemedText testID="AddressLabel" style={styles.addressLabel} {...({} as any)}>
             Address:
           </ThemedText>
           <TouchableOpacity testID="CopyAddressButton" onPress={handleCopyAddress} style={styles.addressTextContainer} disabled={!address}>
             {isLoading ? (
               <ThemedText style={styles.addressText}>Loading...</ThemedText>
             ) : (
-              <ThemedText testID="AddressText" style={styles.addressText}>
+              <ThemedText testID="AddressText" style={styles.addressText} {...({} as any)}>
                 {address ? address : 'No address available'}
               </ThemedText>
             )}

@@ -130,11 +130,11 @@ const ReceiveLiquid = () => {
               </ThemedView>
 
               <ThemedView style={styles.addressContainer}>
-                <ThemedText testID="AddressLabel" style={styles.addressLabel}>
+                <ThemedText testID="AddressLabel" style={styles.addressLabel} {...({} as any)}>
                   Address:
                 </ThemedText>
                 <TouchableOpacity testID="CopyAddressButton" onPress={handleCopyAddress} style={styles.addressTextContainer}>
-                  <ThemedText testID="AddressText" style={styles.addressText} numberOfLines={2} ellipsizeMode="middle">
+                  <ThemedText testID="AddressText" style={styles.addressText} numberOfLines={2} ellipsizeMode="middle" {...({} as any)}>
                     {address}
                   </ThemedText>
                   <Ionicons testID="CopyIcon" name="copy-outline" size={20} color="#007AFF" style={styles.copyIcon} />

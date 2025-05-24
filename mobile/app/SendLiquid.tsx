@@ -217,7 +217,7 @@ const SendLiquid = () => {
 
             <ThemedView>
               <ThemedText style={styles.detailLabel}>To Address:</ThemedText>
-              <ThemedText style={styles.detailValue} numberOfLines={3}>
+              <ThemedText style={styles.detailValue} numberOfLines={3} {...({} as any)}>
                 {prepareResult.destination.addressData.address}
               </ThemedText>
             </ThemedView>
