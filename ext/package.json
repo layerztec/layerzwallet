@@ -28,7 +28,6 @@
     "@paulmillr/qr": "0.3.0",
     "@playwright/test": "1.47.2",
     "@spsina/bip47": "github:BlueWallet/bip47#df82345",
-    "@vulpemventures/secp256k1-zkp": "3.1.0",
     "assert": "2.1.0",
     "bignumber.js": "9.1.1",
     "bip21": "3.0.0",
@@ -46,7 +45,6 @@
     "crypto-browserify": "3.12.0",
     "ecpair": "2.0.1",
     "ethers": "6.13.4",
-    "liquidjs-lib": "6.0.2-liquid.36",
     "lucide-react": "0.510.0",
     "path-browserify": "1.0.1",
     "pbkdf2": "3.1.2",
@@ -55,12 +53,10 @@
     "react-dom": "19.0.0",
     "react-router": "7.6.0",
     "silent-payments": "github:BlueWallet/SilentPayments#7ac4d17",
-    "slip77": "0.2.0",
     "stream-browserify": "3.0.0",
     "swr": "2.3.3",
     "timers-browserify": "2.0.12",
-    "vm-browserify": "1.1.2",
-    "ws-electrumx-client": "1.0.5"
+    "vm-browserify": "1.1.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

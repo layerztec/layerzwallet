@@ -1,45 +1,31 @@
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
-import { LiquidWallet } from '@shared/class/wallets/liquid-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { lazyInitWallet, saveArkAddresses, saveBitcoinXpubs, saveLiquidXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
+import { lazyInitWallet, saveArkAddresses, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, MessageType, MessageTypeMap, OpenPopupRequest, ProcessRPCRequest } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC } from '@shared/types/IStorage';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
 import { Csprng } from '../../src/class/rng';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
 import { decrypt, encrypt } from '../modules/encryption';
 import { getBreezNetwork } from './breeze-adapter';
 
-// we only keep bitcoin and liquid wallets in the background for now
-type TBackgroundWallets = WatchOnlyWallet | LiquidWallet;
-type TBackgroundNetworks = typeof NETWORK_BITCOIN | typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET;
+// we only keep bitcoin wallets in the background for now
+type TBackgroundWallets = WatchOnlyWallet;
+type TBackgroundNetworks = typeof NETWORK_BITCOIN;
 
 // All possible background messages with their params
 type TBackgroundMessage = { [K in keyof MessageTypeMap]: { type: K; params: MessageTypeMap[K]['params'] } }[keyof MessageTypeMap];
 // Function type for sending a response from background
 type TSendResponse = (response: MessageTypeMap[keyof MessageTypeMap]['response'] | { error: true; message: string }) => void;
 // Allowed method names for background executor
-type TMethods =
-  | 'getAddress'
-  | 'saveMnemonic'
-  | 'createMnemonic'
-  | 'getBtcBalance'
-  | 'encryptMnemonic'
-  | 'signPersonalMessage'
-  | 'signTypedData'
-  | 'getBtcSendData'
-  | 'getLiquidBalance'
-  | 'getLiquidSendData'
-  | 'getSubMnemonic';
+type TMethods = 'getAddress' | 'saveMnemonic' | 'createMnemonic' | 'getBtcBalance' | 'encryptMnemonic' | 'signPersonalMessage' | 'signTypedData' | 'getBtcSendData' | 'getSubMnemonic';
 
 const cachedWallets: Record<TBackgroundNetworks, Record<number, TBackgroundWallets>> = {
   [NETWORK_BITCOIN]: {},
-  [NETWORK_LIQUID]: {},
-  [NETWORK_LIQUIDTESTNET]: {},
 };
 
 async function handleOpenPopup([method, params, id, from]: OpenPopupRequest, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) {
@@ -80,7 +66,7 @@ function openPopupWindow(request: ProcessRPCRequest, sendResponse: (response?: a
 
 export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
   async getAddress(network, accountNumber) {
-    if (network === NETWORK_BITCOIN || network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
+    if (network === NETWORK_BITCOIN) {
       const wallet = await lazyInitWallet(network, accountNumber, cachedWallets, LayerzStorage);
       const address = await wallet.getAddressAsync();
       await saveWalletState(LayerzStorage, wallet, network, accountNumber);
@@ -109,7 +95,6 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
     await saveArkAddresses(LayerzStorage, mnemonic);
-    await saveLiquidXpubs(LayerzStorage, mnemonic);
     await saveSubMnemonics(LayerzStorage, mnemonic);
 
     return true;
@@ -123,7 +108,6 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
     await saveArkAddresses(LayerzStorage, mnemonic);
-    await saveLiquidXpubs(LayerzStorage, mnemonic);
     await saveSubMnemonics(LayerzStorage, mnemonic);
 
     return { mnemonic };
@@ -223,35 +207,6 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     return { utxos, changeAddress };
   },
 
-  async getLiquidBalance(network, accountNumber) {
-    if (network !== NETWORK_LIQUID && network !== NETWORK_LIQUIDTESTNET) {
-      throw new Error(`Unsupported network: ${network}`);
-    }
-    const wallet = (await lazyInitWallet(network, accountNumber, cachedWallets, LayerzStorage)) as LiquidWallet;
-    await wallet.fetchTransactions();
-    const balances = wallet.getBalances();
-    await saveWalletState(LayerzStorage, wallet, network, accountNumber);
-
-    return balances;
-  },
-
-  async getLiquidSendData(network, accountNumber) {
-    if (network !== NETWORK_LIQUID && network !== NETWORK_LIQUIDTESTNET) {
-      throw new Error(`Unsupported network: ${network}`);
-    }
-    const wallet = (await lazyInitWallet(network, accountNumber, cachedWallets, LayerzStorage)) as LiquidWallet;
-    await wallet.fetchTransactions();
-    const utxos = wallet.getUtxos();
-    await saveWalletState(LayerzStorage, wallet, network, accountNumber);
-
-    return {
-      utxos,
-      txDetails: wallet.txDetails,
-      outpointBlindingData: wallet.outpointBlindingData,
-      scriptsDetails: wallet.scriptsDetails,
-    };
-  },
-
   // not all libraries we are using support Account Number, so we are using BIP85 to derive differnt mnemonics
   // for each account number.
   async getSubMnemonic(accountNumber) {
@@ -283,8 +238,6 @@ const MessageHandlerMap = {
   [MessageType.SIGN_PERSONAL_MESSAGE]: BackgroundExtensionExecutor.signPersonalMessage,
   [MessageType.SIGN_TYPED_DATA]: BackgroundExtensionExecutor.signTypedData,
   [MessageType.GET_BTC_SEND_DATA]: BackgroundExtensionExecutor.getBtcSendData,
-  [MessageType.GET_LIQUID_BALANCE]: BackgroundExtensionExecutor.getLiquidBalance,
-  [MessageType.GET_LIQUID_SEND_DATA]: BackgroundExtensionExecutor.getLiquidSendData,
   [MessageType.GET_SUB_MNEMONIC]: BackgroundExtensionExecutor.getSubMnemonic,
 };
 

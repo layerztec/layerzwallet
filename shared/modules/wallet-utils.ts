@@ -2,20 +2,9 @@ import { BIP85 } from 'bip85';
 
 import { ArkWallet } from '../class/wallets/ark-wallet';
 import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
-import { LiquidWallet } from '../class/wallets/liquid-wallet';
 import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
-import {
-  IStorage,
-  STORAGE_KEY_ARK_ADDRESS,
-  STORAGE_KEY_SUB_MNEMONIC,
-  STORAGE_KEY_BTC_XPUB,
-  STORAGE_KEY_LIQUIDTESTNET_MBK,
-  STORAGE_KEY_LIQUIDTESTNET_XPUB,
-  STORAGE_KEY_LIQUID_MBK,
-  STORAGE_KEY_LIQUID_XPUB,
-  getSerializedStorageKey,
-} from '../types/IStorage';
-import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, Networks } from '../types/networks';
+import { IStorage, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_BTC_XPUB, getSerializedStorageKey } from '../types/IStorage';
+import { NETWORK_BITCOIN, Networks } from '../types/networks';
 import { WalletSerializer } from './wallet-serializer';
 
 /**
@@ -30,32 +19,6 @@ export async function saveBitcoinXpubs(storage: IStorage, mnemonic: string) {
     btcWallet.setDerivationPath(`m/84'/0'/${accountNum}'`); // BIP84
     const btcXpub = btcWallet.getXpub();
     await storage.setItem(STORAGE_KEY_BTC_XPUB + accountNum, btcXpub);
-  }
-}
-
-/**
- * Save Liquid XPUBs and master blinding keys for accounts 0-5 to storage (mainnet and testnet).
- * @param storage Storage instance (LayerzStorage or compatible)
- * @param mnemonic The mnemonic to derive XPUBs and blinding keys from
- */
-export async function saveLiquidXpubs(storage: IStorage, mnemonic: string) {
-  for (let accountNum = 0; accountNum <= 5; accountNum++) {
-    // mainnet
-    const main = new LiquidWallet(undefined, false);
-    main.setDerivationPath(`m/84'/1776'/${accountNum}'`); // BIP84
-    const mainData = main.generateXpubAndMasterBlindingKey(mnemonic);
-    await storage.setItem(STORAGE_KEY_LIQUID_XPUB + accountNum, mainData.xpub);
-    if (accountNum === 0) {
-      await storage.setItem(STORAGE_KEY_LIQUID_MBK, mainData.masterBlindingKey);
-    }
-    // testnet
-    const test = new LiquidWallet('testnet', false);
-    test.setDerivationPath(`m/84'/1'/${accountNum}'`); // BIP84
-    const testData = test.generateXpubAndMasterBlindingKey(mnemonic);
-    await storage.setItem(STORAGE_KEY_LIQUIDTESTNET_XPUB + accountNum, testData.xpub);
-    if (accountNum === 0) {
-      await storage.setItem(STORAGE_KEY_LIQUIDTESTNET_MBK, testData.masterBlindingKey);
-    }
   }
 }
 
@@ -91,7 +54,7 @@ export async function saveSubMnemonics(storage: IStorage, mnemonic: string) {
   }
 }
 
-export async function saveWalletState(storage: IStorage, wallet: WatchOnlyWallet | LiquidWallet, network: Networks, accountNumber: number) {
+export async function saveWalletState(storage: IStorage, wallet: WatchOnlyWallet, network: Networks, accountNumber: number) {
   try {
     const serialized = await WalletSerializer.serialize(wallet);
     const storageKey = getSerializedStorageKey(network, accountNumber);
@@ -101,25 +64,20 @@ export async function saveWalletState(storage: IStorage, wallet: WatchOnlyWallet
   }
 }
 
-type SupportedWalletNetworks = typeof NETWORK_BITCOIN | typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET;
+type SupportedWalletNetworks = typeof NETWORK_BITCOIN;
 
 /**
  * Initialize and cache a wallet for the given network/account, using serialization if available.
- * Supports Bitcoin (WatchOnlyWallet) and Liquid (LiquidWallet) networks.
+ * Supports Bitcoin (WatchOnlyWallet) networks.
  *
- * @param network Network type ("bitcoin", "liquid", or "liquidtest")
+ * @param network Network type ("bitcoin")
  * @param accountNumber Account index
  * @param cachedWallets Cache object to store/retrieve wallets
  * @param storage Storage instance (LayerzStorage or compatible)
  * @returns The initialized wallet instance
  */
-export async function lazyInitWallet(
-  network: SupportedWalletNetworks,
-  accountNumber: number,
-  cachedWallets: Record<string, Record<number, any>>,
-  storage: IStorage
-): Promise<WatchOnlyWallet | LiquidWallet> {
-  if (![NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET].includes(network)) {
+export async function lazyInitWallet(network: SupportedWalletNetworks, accountNumber: number, cachedWallets: Record<string, Record<number, any>>, storage: IStorage): Promise<WatchOnlyWallet> {
+  if (![NETWORK_BITCOIN].includes(network)) {
     throw new Error(`Unsupported network for lazyInitWallet: ${network}`);
   }
   // cache hit
@@ -139,7 +97,7 @@ export async function lazyInitWallet(
     console.error(`Failed to deserialize wallet for ${network} account ${accountNumber}:`, e);
   }
   // create brand new wallet instance
-  let wallet: WatchOnlyWallet | LiquidWallet;
+  let wallet: WatchOnlyWallet;
   switch (network) {
     case NETWORK_BITCOIN: {
       const xpub = await storage.getItem(STORAGE_KEY_BTC_XPUB + accountNumber);
@@ -147,24 +105,6 @@ export async function lazyInitWallet(
       wallet = new WatchOnlyWallet();
       wallet.setSecret(xpub);
       wallet.init();
-      break;
-    }
-    case NETWORK_LIQUID: {
-      const xpub = await storage.getItem(STORAGE_KEY_LIQUID_XPUB + accountNumber);
-      if (!xpub) throw new Error('No xpub for this account. Key: ' + STORAGE_KEY_BTC_XPUB + accountNumber);
-      const masterBlindingKey = await storage.getItem(STORAGE_KEY_LIQUID_MBK);
-      if (!masterBlindingKey) throw new Error('No Master Blind Key for this account number. Key: ' + STORAGE_KEY_LIQUID_MBK);
-      wallet = new LiquidWallet();
-      await wallet.init({ xpub, masterBlindingKey });
-      break;
-    }
-    case NETWORK_LIQUIDTESTNET: {
-      const xpub = await storage.getItem(STORAGE_KEY_LIQUIDTESTNET_XPUB + accountNumber);
-      if (!xpub) throw new Error('No xpub for this account.');
-      const masterBlindingKey = await storage.getItem(STORAGE_KEY_LIQUIDTESTNET_MBK);
-      if (!masterBlindingKey) throw new Error('No Master Blind Key for this account number. Key: ' + STORAGE_KEY_LIQUIDTESTNET_MBK);
-      wallet = new LiquidWallet('testnet');
-      await wallet.init({ xpub, masterBlindingKey });
       break;
     }
     default:

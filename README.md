@@ -15,7 +15,7 @@ Experience the future of Bitcoin with Layer2-focused wallet. Bitcoin-only, non-c
 - [x] Botanix (testnet)
 - [x] Citrea (testnet)
 - [x] Strata (testnet)
-- [ ] Liquid & Liquid assets
+- [x] Liquid & Liquid assets
 - [x] Ark (by ArkLabs) (testnet)
 - [ ] RGB
 - [ ] Lightning & Taproot assets

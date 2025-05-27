@@ -1,5 +1,5 @@
 import { Messenger } from '@shared/modules/messenger';
-import { GetSubMnemonicResponse, GetBtcSendDataResponse, GetLiquidSendDataResponse, IBackgroundCaller, MessageType } from '@shared/types/IBackgroundCaller';
+import { GetSubMnemonicResponse, GetBtcSendDataResponse, IBackgroundCaller, MessageType } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
@@ -93,14 +93,6 @@ export const BackgroundCaller: IBackgroundCaller = {
 
   async getBtcSendData(...params): Promise<GetBtcSendDataResponse> {
     return await Messenger.sendGenericMessageToBackground(MessageType.GET_BTC_SEND_DATA, params);
-  },
-
-  async getLiquidBalance(...params) {
-    return await Messenger.sendGenericMessageToBackground(MessageType.GET_LIQUID_BALANCE, params);
-  },
-
-  async getLiquidSendData(...params): Promise<GetLiquidSendDataResponse> {
-    return await Messenger.sendGenericMessageToBackground(MessageType.GET_LIQUID_SEND_DATA, params);
   },
 
   async getSubMnemonic(...params): Promise<GetSubMnemonicResponse> {

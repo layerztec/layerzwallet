@@ -201,11 +201,4 @@ export const BackgroundExecutor: IBackgroundCaller = {
   async getSubMnemonic(accountNumber) {
     return await SecureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
   },
-
-  async getLiquidBalance() {
-    throw new Error('Function not implemented.');
-  },
-  async getLiquidSendData() {
-    throw new Error('Function not implemented.');
-  },
 };

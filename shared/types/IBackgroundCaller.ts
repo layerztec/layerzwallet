@@ -1,5 +1,3 @@
-import { UnblindedOutput } from '@shared/class/wallets/liquid-deps/types';
-import { LiquidWallet } from '@shared/class/wallets/liquid-wallet';
 import { CreateTransactionUtxo } from '../class/wallets/types';
 import { Networks } from '../types/networks';
 
@@ -15,8 +13,6 @@ export enum MessageType {
   OPEN_POPUP,
   GET_ADDRESS,
   GET_BTC_SEND_DATA,
-  GET_LIQUID_BALANCE,
-  GET_LIQUID_SEND_DATA,
   GET_SUB_MNEMONIC,
 }
 
@@ -62,14 +58,6 @@ export type MessageTypeMap = {
     params: GetBtcSendDataRequest;
     response: GetBtcSendDataResponse;
   };
-  [MessageType.GET_LIQUID_BALANCE]: {
-    params: GetLiquidBalanceRequest;
-    response: GetLiquidBalanceResponse;
-  };
-  [MessageType.GET_LIQUID_SEND_DATA]: {
-    params: GetLiquidSendDataRequest;
-    response: GetLiquidSendDataResponse;
-  };
   [MessageType.GET_SUB_MNEMONIC]: {
     params: GetSubMnemonicRequest;
     response: GetSubMnemonicResponse;
@@ -103,17 +91,6 @@ export type OpenPopupRequest = [method: string, params: any, id: number, from: s
 export type GetBtcSendDataRequest = [accountNumber: number];
 export type GetBtcSendDataResponse = { utxos: CreateTransactionUtxo[]; changeAddress: string };
 
-export type GetLiquidBalanceRequest = [network: Networks, accountNumber: number];
-export type GetLiquidBalanceResponse = { [key: string]: number };
-
-export type GetLiquidSendDataRequest = [network: Networks, accountNumber: number];
-export type GetLiquidSendDataResponse = {
-  utxos: UnblindedOutput[];
-  txDetails: LiquidWallet['txDetails'];
-  outpointBlindingData: LiquidWallet['outpointBlindingData'];
-  scriptsDetails: LiquidWallet['scriptsDetails'];
-};
-
 export type GetSubMnemonicRequest = [accountNumber: number];
 export type GetSubMnemonicResponse = string;
 
@@ -142,7 +119,5 @@ export interface IBackgroundCaller {
   signTypedData(...params: SignTypedDataRequest): Promise<SignTypedDataResponse>;
   openPopup(...params: OpenPopupRequest): Promise<void>;
   getBtcSendData(...params: GetBtcSendDataRequest): Promise<GetBtcSendDataResponse>;
-  getLiquidBalance(...params: GetLiquidBalanceRequest): Promise<GetLiquidBalanceResponse>;
-  getLiquidSendData(...params: GetLiquidSendDataRequest): Promise<GetLiquidSendDataResponse>;
   getSubMnemonic(...params: GetSubMnemonicRequest): Promise<GetSubMnemonicResponse>;
 }

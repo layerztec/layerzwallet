@@ -57,20 +57,7 @@ test('BackgroundMessageController can handle messages SAVE_MNEMONIC', async () =
     STORAGE_KEY_BTC_XPUB4: 'zpub6rFR7y4Q2AijM8GBWicX3FmPEK8juiGC1TueN7qQzGFLTKQbFrQsgBwrco3DgKidS4DwYUC12UULUux5XvPtgzmy1HoDpDhGABnnEyBQzsL',
     STORAGE_KEY_BTC_XPUB5: 'zpub6rFR7y4Q2AijQjSx77gqZXw7AaQbpFuyD1YAZVjGDyWv4cPPMDQL5S2VbzHXp6wC5jLgawPtSMg5cRoC6UncmteTRF6PxeUemGdRm9fxuQM',
     STORAGE_KEY_EVM_XPUB: 'xpub6EF8jXqFeFEW5bwMU7RpQtHkzE4KJxcqJtvkCjJumzW8CPpacXkb92ek4WzLQXjL93HycJwTPUAcuNxCqFPKKU5m5Z2Vq4nCyh5CyPeBFFr',
-    STORAGE_KEY_LIQUIDTESTNET_MBK: '9c8e4f05c7711a98c838be228bcb84924d4570ca53f35fa1c793e58841d47023',
-    STORAGE_KEY_LIQUIDTESTNET_XPUB0: 'xpub6Bm9M1SxZdzL3TxdNV8897FgtTLBgehR1wVNnMyJ5VLRK5n3tFqXxrCVnVQj4zooN4eFSkf6Sma84reWc5ZCXMxPbLXQs3BcaBdTd4YQa3B',
-    STORAGE_KEY_LIQUIDTESTNET_XPUB1: 'xpub6Bm9M1SxZdzL7En61NC6MXPGg4F2RnFFA4QWtzQVUMvfdi2CTBrH53qysjDokoXVcWPaRCTTw3oiFucxidKEuZ5purNVFAdVXJ62JpitXgS',
-    STORAGE_KEY_LIQUIDTESTNET_XPUB2: 'xpub6Bm9M1SxZdzL8LJiEdgyQSM5hsuovuVFucFXL3PUDmdbknLbiETfxBieFS23Zpkwate52JNFvvRHckYnseggzo1teeAgUqFf7YXUVDLAimS',
-    STORAGE_KEY_LIQUIDTESTNET_XPUB3: 'xpub6Bm9M1SxZdzLB5XNMSQEFAHdQnvAt4phdAEwnLijnhYESNDGuoU9SzXuv3GFS8yFmm5YuEfwAsWwdBziJMZn6S5g5z4FfyCCV97KVN3KJXD',
-    STORAGE_KEY_LIQUIDTESTNET_XPUB4: 'xpub6Bm9M1SxZdzLE3xBMJ334AnGD9J5fcasJc3HmWLmHjYeNCqkLEVGWrbYZABNcg3kXQm83nTaDh1igsD3yu2f2NHTdrAkuAtTMcMtkEtJNsE',
-    STORAGE_KEY_LIQUIDTESTNET_XPUB5: 'xpub6Bm9M1SxZdzLHSaNd3baNXCamzfBC7ZBLHQuEtZi9FfY3tGaUniY3xxqu9mHQ87CSYxcdo3gts2HyybLUGYJyaNJy3ctq97WwBHpM2r6q4o',
-    STORAGE_KEY_LIQUID_MBK: '9c8e4f05c7711a98c838be228bcb84924d4570ca53f35fa1c793e58841d47023',
-    STORAGE_KEY_LIQUID_XPUB0: 'xpub6CRFzUgHFDaiDAQFNX7VeV9JNPDRabq6NYSpzVZ8zW8ANUCiDdenkb1gBoEZuXNZb3wPc1SVcDXgD2ww5UBtTb8s8ArAbTkoRQ8qn34KgcY',
-    STORAGE_KEY_LIQUID_XPUB1: 'xpub6CRFzUgHFDaiGBmAUFj8xLie8XMZj82bsP1x6j2EviBpCh7d7F2jjcjZcQiXotD2RhuJ7eUvNpftTro96kfbHBHba5T4z4oQvcxmJGyX6M2',
-    STORAGE_KEY_LIQUID_XPUB2: 'xpub6CRFzUgHFDaiGvYGty8tP8yV9okQw7dvSEiHyDANx8kuwUeAahBWnHNphWQCjDcu1Vz5EeC2mYu9q4LULesawHg6bJzUawm5QnEW6EK5Lfj',
-    STORAGE_KEY_LIQUID_XPUB3: 'xpub6CRFzUgHFDaiM1LyduaS5DKxJCeM7Pj5UFHcPQ1quSsindB4c82fHzt5kEbAt9kBoN8eo3u8EDwNdfP6BRvQZtVYBJLhRePJ4EXsxnrK37d',
-    STORAGE_KEY_LIQUID_XPUB4: 'xpub6CRFzUgHFDaiNRZH6FCxAFP6KyV3RJ8LUi2PAQ8YgNxR2KnYZwbEp8ckQaj9KtnviGSiGV6er9pjEg8f686f3CxvvSM7YrwonVKUXe4EJWz',
-    STORAGE_KEY_LIQUID_XPUB5: 'xpub6CRFzUgHFDaiSR9Tzr5rvKZ7HSKVwW1dbH5ZDErimAwgNgFv8oJwMSGkt1dQpv2Sx4yM2vamf7pDh3vW8fDG9MB1TXHCkYGQsKKYsMyFu4w',
+
     STORAGE_KEY_MNEMONIC: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
     STORAGE_KEY_SUB_MNEMONIC0: 'prosper short ramp prepare exchange stove life snack client enough purpose fold',
     STORAGE_KEY_SUB_MNEMONIC1: 'sing slogan bar group gauge sphere rescue fossil loyal vital model desert',
@@ -84,7 +71,7 @@ test('BackgroundMessageController can handle messages SAVE_MNEMONIC', async () =
   // checking that it was saved:
 
   await new Promise((resolve) => setTimeout(resolve, 100)); // sleep to allow callback to fire
-  expect(setMockedMethod2).toHaveBeenCalledTimes(34);
+  expect(setMockedMethod2).toHaveBeenCalledTimes(20);
   expect(getMockedMethod).toHaveBeenCalledTimes(0);
 
   // confirm mnemonic not encrypted though present

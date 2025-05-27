@@ -6,18 +6,7 @@ import { EvmWallet } from '../../class/evm-wallet';
 import { balanceFetcher } from '../../hooks/useBalance';
 import { tokenBalanceFetcher } from '../../hooks/useTokenBalance';
 import { getTokenList } from '../../models/token-list';
-import {
-  GetLiquidBalanceResponse,
-  GetLiquidSendDataResponse,
-  CreateMnemonicResponse,
-  EncryptMnemonicResponse,
-  GetBtcBalanceResponse,
-  GetBtcSendDataResponse,
-  IBackgroundCaller,
-  SaveMnemonicResponse,
-  SignPersonalMessageResponse,
-  SignTypedDataResponse,
-} from '../../types/IBackgroundCaller';
+import { IBackgroundCaller } from '../../types/IBackgroundCaller';
 import { NETWORK_BOTANIXTESTNET, NETWORK_ROOTSTOCK, NETWORK_SEPOLIA, NETWORK_STRATADEVNET, Networks } from '../../types/networks';
 import { exchangeRateFetcher } from '../../hooks/useExchangeRate';
 
@@ -28,43 +17,37 @@ const backgroundCallerMock2: IBackgroundCaller = {
   hasMnemonic: async () => Promise.resolve(false),
   hasEncryptedMnemonic: async () => Promise.resolve(false),
   openPopup: () => Promise.resolve(),
-  getAddress: function (network: Networks, accountNumber: number): Promise<string> {
+  getAddress() {
     return Promise.resolve('');
   },
-  acceptTermsOfService: function (): Promise<void> {
+  acceptTermsOfService() {
     return Promise.resolve();
   },
-  saveMnemonic: function (mnemonic: string): Promise<SaveMnemonicResponse> {
+  saveMnemonic() {
     throw new Error('Function not implemented.');
   },
-  createMnemonic: function (): Promise<CreateMnemonicResponse> {
+  createMnemonic() {
     throw new Error('Function not implemented.');
   },
-  encryptMnemonic: function (password: string): Promise<EncryptMnemonicResponse> {
+  encryptMnemonic() {
     throw new Error('Function not implemented.');
   },
-  getBtcBalance: function (accountNumber: number): Promise<GetBtcBalanceResponse> {
+  getBtcBalance() {
     throw new Error('Function not implemented.');
   },
-  whitelistDapp: function (dapp: string): Promise<void> {
+  whitelistDapp() {
     throw new Error('Function not implemented.');
   },
-  unwhitelistDapp: function (dapp: string): Promise<void> {
+  unwhitelistDapp() {
     throw new Error('Function not implemented.');
   },
-  signPersonalMessage: function (message: string | Uint8Array, accountNumber: number, password: string): Promise<SignPersonalMessageResponse> {
+  signPersonalMessage() {
     throw new Error('Function not implemented.');
   },
-  signTypedData: function (message: any, accountNumber: number, password: string): Promise<SignTypedDataResponse> {
+  signTypedData() {
     throw new Error('Function not implemented.');
   },
-  getBtcSendData: function (accountNumber: number): Promise<GetBtcSendDataResponse> {
-    throw new Error('Function not implemented.');
-  },
-  getLiquidBalance(network: Networks, accountNumber: number): Promise<GetLiquidBalanceResponse> {
-    throw new Error('Function not implemented.');
-  },
-  getLiquidSendData(network: Networks, accountNumber: number): Promise<GetLiquidSendDataResponse> {
+  getBtcSendData() {
     throw new Error('Function not implemented.');
   },
   getSubMnemonic() {

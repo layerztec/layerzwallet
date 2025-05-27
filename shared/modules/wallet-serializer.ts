@@ -1,5 +1,4 @@
 import { AbstractHDElectrumWallet } from '../class/wallets/abstract-hd-electrum-wallet';
-import { LiquidWallet } from '../class/wallets/liquid-wallet';
 import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
 import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
 
@@ -10,7 +9,7 @@ export interface ISerializedWallet {
 }
 
 type TWatchOnlyProperties = keyof WatchOnlyWallet | `_hdWalletInstance.${keyof HDSegwitBech32Wallet}`;
-type TAllProperties = (keyof AbstractHDElectrumWallet | keyof LiquidWallet | keyof WatchOnlyWallet | TWatchOnlyProperties)[];
+type TAllProperties = (keyof AbstractHDElectrumWallet | keyof WatchOnlyWallet | TWatchOnlyProperties)[];
 
 export class WalletSerializer {
   private static CURRENT_VERSION = 1;
@@ -33,22 +32,6 @@ export class WalletSerializer {
     'secret',
     'type',
     'userHasSavedExport',
-  ];
-
-  // Properties specific to LiquidWallet
-  public static readonly LIQUID_WALLET_PROPERTIES: (keyof LiquidWallet)[] = [
-    '_derivationPath',
-    '_xpub',
-    'assetRegistry',
-    'masterBlindingKey',
-    'networkString',
-    'next_free_address_index',
-    'next_free_change_address_index',
-    'outpointBlindingData',
-    'scripts',
-    'scriptsDetails',
-    'txDetails',
-    'txIDs',
   ];
 
   public static readonly HD_WALLET_PROPERTIES: (keyof HDSegwitBech32Wallet)[] = [
@@ -114,13 +97,11 @@ export class WalletSerializer {
     target[lastKey] = value;
   }
 
-  static async serializeToObject(wallet: LiquidWallet | WatchOnlyWallet): Promise<ISerializedWallet> {
+  static async serializeToObject(wallet: WatchOnlyWallet): Promise<ISerializedWallet> {
     const data: any = {};
 
     const properties: TAllProperties = [...this.COMMON_PROPERTIES];
-    if (wallet instanceof LiquidWallet) {
-      properties.push(...this.LIQUID_WALLET_PROPERTIES);
-    } else if (wallet instanceof WatchOnlyWallet) {
+    if (wallet instanceof WatchOnlyWallet) {
       properties.push(...this.WATCH_ONLY_WALLET_PROPERTIES);
     } else {
       throw new Error(`Unknown wallet type: ${(wallet as any).type}`);
@@ -138,7 +119,7 @@ export class WalletSerializer {
     };
   }
 
-  static async serialize(wallet: LiquidWallet | WatchOnlyWallet): Promise<string> {
+  static async serialize(wallet: WatchOnlyWallet): Promise<string> {
     const serialized = await this.serializeToObject(wallet);
     return JSON.stringify(serialized);
   }
@@ -146,20 +127,11 @@ export class WalletSerializer {
   /**
    * Deserialize a wallet from structured object
    */
-  static async deserializeFromObject(serialized: ISerializedWallet): Promise<LiquidWallet | WatchOnlyWallet> {
+  static async deserializeFromObject(serialized: ISerializedWallet): Promise<WatchOnlyWallet> {
     const { type, data } = this.migrate(serialized);
-    let wallet: LiquidWallet | WatchOnlyWallet;
+    let wallet: WatchOnlyWallet;
 
     switch (type) {
-      case LiquidWallet.type:
-        wallet = new LiquidWallet(data.networkString);
-        if (data.secret) {
-          await wallet.init({ mnemonic: data.secret });
-        } else if (data._xpub && data.masterBlindingKey) {
-          await wallet.init({ xpub: data._xpub, masterBlindingKey: data.masterBlindingKey });
-        }
-        break;
-
       case WatchOnlyWallet.type:
         wallet = new WatchOnlyWallet();
         wallet.setSecret(data.secret);
@@ -171,9 +143,7 @@ export class WalletSerializer {
     }
 
     const properties: TAllProperties = [...this.COMMON_PROPERTIES];
-    if (type === LiquidWallet.type) {
-      properties.push(...this.LIQUID_WALLET_PROPERTIES);
-    } else if (type === WatchOnlyWallet.type) {
+    if (type === WatchOnlyWallet.type) {
       if (!(wallet as WatchOnlyWallet)._hdWalletInstance) {
         throw new Error('WatchOnlyWallet instance not initialized');
       }
@@ -188,7 +158,7 @@ export class WalletSerializer {
     return wallet;
   }
 
-  static async deserialize(json: string): Promise<LiquidWallet | WatchOnlyWallet> {
+  static async deserialize(json: string): Promise<WatchOnlyWallet> {
     const serialized = JSON.parse(json) as ISerializedWallet;
     return this.deserializeFromObject(serialized);
   }

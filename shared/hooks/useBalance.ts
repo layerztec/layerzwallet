@@ -1,12 +1,11 @@
 import BigNumber from 'bignumber.js';
 import useSWR from 'swr';
 
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, Networks } from '../types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { getRpcProvider } from '../models/network-getters';
 import { ArkWallet } from '../class/wallets/ark-wallet';
-import { lbtcAssetId } from '../class/wallets/liquid-wallet';
 import { BreezWallet } from '../class/wallets/breez-wallet';
 
 interface balanceFetcherArg {
@@ -27,18 +26,6 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
   if (network === NETWORK_BITCOIN) {
     const balance = await backgroundCaller.getBtcBalance(accountNumber);
     return (balance.confirmed + balance.unconfirmed).toString(10);
-  }
-
-  if (network === NETWORK_LIQUIDTESTNET || network === NETWORK_LIQUID) {
-    // for Liquid, we only show balance of LBTC token
-    const balances = await backgroundCaller.getLiquidBalance(network, accountNumber);
-    let balance = 0;
-    for (const [k, v] of Object.entries(balances)) {
-      if (k === lbtcAssetId[network]) {
-        balance += v;
-      }
-    }
-    return balance.toString(10);
   }
 
   if (network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET) {
@@ -73,7 +60,6 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
       break;
 
     case NETWORK_BITCOIN:
-    case NETWORK_LIQUIDTESTNET:
       refreshInterval = 60_000; // 1 min for btc
   }
   const { data, error, isLoading } = useSWR({ cacheKey: 'balanceFetcher', accountNumber, network, backgroundCaller } as balanceFetcherArg, balanceFetcher, {

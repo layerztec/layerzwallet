@@ -16,7 +16,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUIDTESTNET, NETWORK_LIQUID, NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
+import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { OnrampProps } from '@/app/Onramp';
 import BreezTokensView from '@/components/breez-tokens-view';
@@ -28,8 +28,7 @@ export default function IndexScreen() {
   const { exchangeRate } = useExchangeRate(network ?? DEFAULT_NETWORK, 'USD');
   const router = useRouter();
 
-  // Liquid is not available on mobile yet
-  const networks = getAvailableNetworks().filter((n) => n !== NETWORK_LIQUIDTESTNET && n !== NETWORK_LIQUID);
+  const networks = getAvailableNetworks();
 
   useEffect(() => {
     const checkMnemonic = async () => {

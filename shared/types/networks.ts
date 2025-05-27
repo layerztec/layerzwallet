@@ -5,8 +5,6 @@ export const NETWORK_BOTANIXTESTNET = 'botanix' as const;
 export const NETWORK_STRATADEVNET = 'strata' as const;
 export const NETWORK_CITREATESTNET = 'citrea' as const;
 export const NETWORK_ARKMUTINYNET = 'ark' as const;
-export const NETWORK_LIQUID = 'liquid' as const;
-export const NETWORK_LIQUIDTESTNET = 'liquidtest' as const;
 export const NETWORK_BREEZ = 'breez' as const;
 export const NETWORK_BREEZTESTNET = 'breeztest' as const;
 
@@ -18,8 +16,6 @@ const NetworksIterator = {
   STRATADEVNET: NETWORK_STRATADEVNET,
   CITREATESTNET: NETWORK_CITREATESTNET,
   ARKMUTINYNET: NETWORK_ARKMUTINYNET,
-  LIQUID: NETWORK_LIQUID,
-  LIQUIDTESTNET: NETWORK_LIQUIDTESTNET,
   BREEZ: NETWORK_BREEZ,
   BREEZTESTNET: NETWORK_BREEZTESTNET,
 } as const;
