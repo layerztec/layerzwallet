@@ -2,7 +2,6 @@ import { ArrowDownRightIcon, Info, SendIcon, ShoppingCartIcon } from 'lucide-rea
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
@@ -10,20 +9,20 @@ import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { getDecimalsByNetwork, getIsTestnet, getKnowMoreUrl, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, Networks } from '@shared/types/networks';
-import { BackgroundCaller } from '../../../modules/background-caller';
-import { Button, Switch } from '../DesignSystem';
-import BreezTokensView from './breez-tokens-view';
-import PartnersView from './PartnersView';
-import TokensView from './TokensView';
+import { BackgroundCaller } from '../../modules/background-caller';
+import BreezTokensView from './components/breez-tokens-view';
+import PartnersView from './components/PartnersView';
+import TokensView from './components/TokensView';
+import { Button, Switch } from './DesignSystem';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
 
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundCaller);
+  const { balance } = useBalance(network, accountNumber, BackgroundCaller);
   const [isTestnet, setIsTestnet] = useState<boolean>(false);
-  const { exchangeRate } = useExchangeRate(network ?? DEFAULT_NETWORK, 'USD');
+  const { exchangeRate } = useExchangeRate(network, 'USD');
 
   useEffect(() => {
     setIsTestnet(getIsTestnet(network));

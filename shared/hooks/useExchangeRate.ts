@@ -1,4 +1,5 @@
 import useSWR from 'swr';
+import { useMemo } from 'react';
 import { Networks } from '../types/networks';
 import { getFiatRate } from '../models/fiatUnit';
 import { getIsTestnet } from '../models/network-getters';
@@ -24,11 +25,18 @@ export const exchangeRateFetcher = async (arg: exchangeRateFetcherArg): Promise<
 export function useExchangeRate(network: Networks, fiat: TFiat) {
   let refreshInterval = 60_000;
 
-  const arg: exchangeRateFetcherArg = { cacheKey: 'exchangeRateFetcher', network, fiat };
+  const arg: exchangeRateFetcherArg = useMemo(
+    () => ({
+      cacheKey: 'exchangeRateFetcher',
+      network,
+      fiat,
+    }),
+    [network, fiat]
+  );
+
   const { data, error, isLoading } = useSWR(arg, exchangeRateFetcher, {
     refreshInterval,
     refreshWhenHidden: false,
-    keepPreviousData: true,
   });
 
   return {

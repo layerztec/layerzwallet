@@ -202,4 +202,9 @@ jobs:
         run: cd mobile && npm ci
 
       - name: Run lint
-        run: cd mobile && npm run lint
+        run: |
+          cd mobile
+          # force expo to re-generate typed routes file (.expo/types/router.d.ts)
+          npx expo customize tsconfig.json
+          ls .expo/types/router.d.ts
+          npm run lint

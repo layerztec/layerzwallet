@@ -95,12 +95,6 @@ export class BreezWallet {
 // Additional assets
 export const assetMetadata: AssetMetadata[] = [
   {
-    assetId: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49',
-    name: 'Testnet Bitcoin',
-    ticker: 'tBTC',
-    precision: 8,
-  },
-  {
     assetId: 'ec24f3e4a4993802f901d881ea1bbfc642dfbc25d5fe82af256',
     name: 'KEK LOL',
     ticker: 'LOLx',

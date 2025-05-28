@@ -27,6 +27,7 @@ interface NetworkContextProviderProps {
 }
 
 export const NetworkContextProvider: React.FC<NetworkContextProviderProps> = (props) => {
+  const [isLoaded, setIsLoaded] = useState(false);
   const [network, setNetwork] = useState<Networks>(DEFAULT_NETWORK);
 
   // initial load:
@@ -40,6 +41,7 @@ export const NetworkContextProvider: React.FC<NetworkContextProviderProps> = (pr
         await props.backgroundCaller.log('loaded ' + response);
         setNetwork(response as Networks);
       }
+      setIsLoaded(true);
     })();
   }, [props.storage, props.backgroundCaller]);
 
@@ -60,6 +62,10 @@ export const NetworkContextProvider: React.FC<NetworkContextProviderProps> = (pr
       });
     }
   };
+
+  if (!isLoaded) {
+    return null;
+  }
 
   return <NetworkContext.Provider value={{ network, setNetwork: setNetworkOverload }}>{props.children}</NetworkContext.Provider>;
 };

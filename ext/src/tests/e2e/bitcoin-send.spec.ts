@@ -10,6 +10,9 @@ test('can prepare BTC transaction', async ({ page, extensionId }) => {
   await page.getByText(/Send/).click();
   await expect(page).toHaveURL(new RegExp(`${extensionId}/popup.html#/send-btc`));
 
+  // Test if we have any funds
+  await expect(page.getByText(/Available balance: 0 BTC/)).toBeHidden();
+
   await page.getByTestId('recipient-address-input').fill('bc1qxdckp0adp8r8dka9mj03yf8xe0euss0ry3mq7a');
   await page.getByTestId('amount-input').fill('0.0001');
 
@@ -43,6 +46,6 @@ test('can prepare BTC transaction', async ({ page, extensionId }) => {
 
   const txhex = await page.evaluate(() => navigator.clipboard.readText());
   expect(txhex).toEqual(
-    '02000000000101dde5dc7aeff35833c8ab820e0252d7e634c1e7e1a082e652991b0bbe76827c7b010000000000000080021027000000000000160014337160bfad09c676dba5dc9f1224e6cbf3c841e38e4d000000000000160014f12242f1c87064bfdda3b87461e19b2d6b3a780d024730440220235a8d87eb6d8728dd4a6c6ff340d7a6474fa636f2a0f7c13569b498af786dfa02203d23459396112d4e5584dc3f1d0c854cfa6ba25983a864c6253e942052be7d6b01210288c6fff2d453f7c54785a2bf652b3b70571ebc1dd539ba9aa8031cca0b18abe600000000'
+    '02000000000101d31c29292582831fa674b6747fc211e94abb56a7637e2a4b7589df6e9c2d177c010000000000000080021027000000000000160014337160bfad09c676dba5dc9f1224e6cbf3c841e3224a000000000000160014f12242f1c87064bfdda3b87461e19b2d6b3a780d02473044022012ca2322dee5a1e75b49a1f03ece5f658a064eaac2f7c640aa2435cdb0b23e7002201ca91d1a2d951d70a7b38c0b1a09cff2677b4dcd2f261414cf156d3c6ee39dee01210243b2ebd9ffb32cd52ca9ac02655bb140bd3d9fb9406b837e12e233f7768094d500000000'
   );
 });

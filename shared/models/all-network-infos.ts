@@ -74,7 +74,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_BREEZ]: {
     chainId: 11,
-    ticker: 'BZ',
+    ticker: 'lBTC',
     rpcUrl: '',
     explorerUrl: '',
     decimals: 8,
@@ -82,7 +82,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_BREEZTESTNET]: {
     chainId: 12,
-    ticker: 'tBZ',
+    ticker: 'tlBTC',
     rpcUrl: '',
     explorerUrl: '',
     decimals: 8,

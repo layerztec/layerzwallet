@@ -17,7 +17,7 @@ const ReceiveBreez = () => {
   };
 
   const handleLiquidPress = () => {
-    router.push('/ReceiveLiquid');
+    router.push('/Receive');
   };
 
   return (

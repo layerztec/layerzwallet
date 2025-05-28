@@ -123,8 +123,7 @@ class BreezAdapter implements IBreezAdapter {
     // set the working directory to a unique path based on the mnemonic
     config.workingDir = `${config.workingDir}/${sha256(connection.mnemonic)}`;
     // set the asset metadata
-    // filter out Bitcoin testnet here, it is only needed in Extension
-    config.assetMetadata = assetMetadata.filter(({ assetId }) => assetId !== '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49');
+    config.assetMetadata = assetMetadata;
     try {
       await RNAPI.connect({ mnemonic: connection.mnemonic, config });
     } catch (e: any) {
