@@ -16,7 +16,7 @@ import { ECPairInterface } from 'ecpair/src/ecpair';
 
 import * as BlueElectrum from '../../blue_modules/BlueElectrum';
 import { ElectrumHistory } from '../../blue_modules/BlueElectrum';
-import ecc from '../../blue_modules/noble_ecc';
+import ecc from '@bitcoinerlab/secp256k1';
 
 import { AbstractHDWallet } from './abstract-hd-wallet';
 import { CreateTransactionResult, CreateTransactionTarget, CreateTransactionUtxo, Transaction, Utxo } from './types';

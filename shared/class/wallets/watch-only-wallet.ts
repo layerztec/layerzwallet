@@ -5,7 +5,7 @@
 import BIP32Factory from 'bip32';
 import * as bitcoin from 'bitcoinjs-lib';
 
-import ecc from '../../blue_modules/noble_ecc';
+import ecc from '@bitcoinerlab/secp256k1';
 import { AbstractWallet } from './abstract-wallet';
 import { HDSegwitBech32Wallet } from './hd-segwit-bech32-wallet';
 import { LegacyWallet } from './legacy-wallet';

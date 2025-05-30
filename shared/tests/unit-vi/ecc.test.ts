@@ -2,7 +2,7 @@ import assert from 'assert';
 import { ECPairFactory } from 'ecpair';
 import { beforeEach, describe, it, vi as jest } from 'vitest';
 
-import ecc from '../../blue_modules/noble_ecc';
+import ecc from '@bitcoinerlab/secp256k1';
 
 const h = (hex: string) => Buffer.from(hex, 'hex');
 

@@ -6,7 +6,7 @@ import BIP47Factory from '@spsina/bip47';
 
 import { SilentPayment } from 'silent-payments';
 
-import ecc from '../blue_modules/noble_ecc';
+import ecc from '@bitcoinerlab/secp256k1';
 import * as bitcoin from 'bitcoinjs-lib';
 
 export class ContactList {

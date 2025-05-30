@@ -4,7 +4,7 @@ import * as bip39 from 'bip39';
 import assert from 'assert';
 
 import { AbstractHDElectrumWallet } from './abstract-hd-electrum-wallet';
-import ecc from '../../blue_modules/noble_ecc';
+import ecc from '@bitcoinerlab/secp256k1';
 
 // NetworkName is not directly exported from the SDK
 type NetworkName = WalletConfig['network'];

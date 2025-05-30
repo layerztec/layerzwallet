@@ -10,7 +10,7 @@ import coinSelectSplit from 'coinselect/split';
 import { ECPairAPI, ECPairFactory, Signer } from 'ecpair';
 
 import * as BlueElectrum from '../../blue_modules/BlueElectrum';
-import ecc from '../../blue_modules/noble_ecc';
+import ecc from '@bitcoinerlab/secp256k1';
 import { AbstractWallet } from './abstract-wallet';
 import { CreateTransactionResult, CreateTransactionTarget, CreateTransactionUtxo, Transaction, Utxo } from './types';
 import { ICsprng } from '../../types/ICsprng';
