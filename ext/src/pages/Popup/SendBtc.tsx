@@ -4,28 +4,28 @@ import * as bip21 from 'bip21';
 import { Scan, SendIcon } from 'lucide-react';
 import { default as React, useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
+
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { TFeeEstimate } from '@shared/blue_modules/BlueElectrum';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 import { CreateTransactionTarget, CreateTransactionUtxo } from '@shared/class/wallets/types';
-import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { AskPasswordContext } from '../../hooks/AskPasswordContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { useScanQR } from '../../hooks/ScanQrContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { BackgroundCaller } from '../../modules/background-caller';
 import { getDeviceID } from '@shared/modules/device-id';
-import { decrypt } from '../../modules/encryption';
-import { Button, HodlButton, Input, Modal, RadioButton, WideButton } from './DesignSystem';
-import ClipboardBackdoor from './components/ClipboardBackdoor';
 import { formatBalance } from '@shared/modules/string-utils';
 import { withRetry } from '@shared/modules/tenacity';
-import { SecureStorage } from '../../class/secure-storage';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { LayerzStorage } from '../../class/layerz-storage';
 import { Csprng } from '../../class/rng';
+import { SecureStorage } from '../../class/secure-storage';
+import { AskPasswordContext } from '../../hooks/AskPasswordContext';
+import { useScanQR } from '../../hooks/ScanQrContext';
+import { BackgroundCaller } from '../../modules/background-caller';
+import { decrypt } from '../../modules/encryption';
+import { Button, HodlButton, Input, Modal, RadioButton, WideButton } from './DesignSystem';
+import ClipboardBackdoor from './components/ClipboardBackdoor';
 
 type TFeeRateOptions = { [rate: number]: number };
 
@@ -44,7 +44,7 @@ const SendBtc: React.FC = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { askPassword } = useContext(AskPasswordContext);
-  const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundCaller);
+  const { balance } = useBalance(network, accountNumber, BackgroundCaller);
   const [showFeeModal, setShowFeeModal] = useState(false);
 
   const feeRate = useMemo(() => {

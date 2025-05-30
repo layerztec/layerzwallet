@@ -16,7 +16,6 @@ import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { EvmWallet } from '@shared/class/evm-wallet';
-import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
@@ -48,7 +47,7 @@ const SendTokenEvm: React.FC = () => {
   const list = getTokenList(network);
   const token = list.find((token) => token.address === contractAddress);
 
-  const { balance } = useTokenBalance(network ?? DEFAULT_NETWORK, accountNumber, contractAddress, BackgroundExecutor);
+  const { balance } = useTokenBalance(network, accountNumber, contractAddress, BackgroundExecutor);
 
   const [address, setAddress] = useState<string>(''); // our address
   const [toAddress, setToAddress] = useState<string>('');
@@ -70,7 +69,7 @@ const SendTokenEvm: React.FC = () => {
   };
 
   useEffect(() => {
-    BackgroundExecutor.getAddress(network || DEFAULT_NETWORK, accountNumber).then((addressResponse) => {
+    BackgroundExecutor.getAddress(network, accountNumber).then((addressResponse) => {
       setAddress(addressResponse);
     });
   }, [accountNumber, network]);

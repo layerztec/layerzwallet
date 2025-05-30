@@ -36,7 +36,7 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
       const responseForEthAccounts: string[] = [];
       if (whitelist.includes(from)) {
         // Dapp is already whitelisted, so we can return addresses without showing approval screen
-        const addressResponse = await BackgroundCaller.getAddress(network ?? DEFAULT_NETWORK, accountNumber);
+        const addressResponse = await BackgroundCaller.getAddress(network, accountNumber);
         responseForEthAccounts.push(addressResponse);
       }
       await Messenger.sendResponseFromContentScriptToContentScript({
@@ -49,7 +49,7 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
     case 'eth_requestAccounts':
       if (whitelist.includes(from)) {
         // Dapp is whitelisted, so we can respond immediately without showing approval screen
-        const addressResponse = await BackgroundCaller.getAddress(network ?? DEFAULT_NETWORK, accountNumber);
+        const addressResponse = await BackgroundCaller.getAddress(network, accountNumber);
         await Messenger.sendResponseFromContentScriptToContentScript({
           for: 'webpage',
           id: id,

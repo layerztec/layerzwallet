@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import BigNumber from 'bignumber.js';
 import * as Clipboard from 'expo-clipboard';
 import { Stack } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useState } from 'react';
@@ -9,14 +10,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { useBalance } from '@shared/hooks/useBalance';
+import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 import { StringNumber } from '@shared/types/string-number';
-import { useBalance } from '@shared/hooks/useBalance';
-import BigNumber from 'bignumber.js';
-import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 
 export default function ReceiveScreen() {
   const { network } = useContext(NetworkContext);
@@ -48,7 +47,7 @@ export default function ReceiveScreen() {
 
   useEffect(() => {
     setIsLoading(true);
-    BackgroundExecutor.getAddress(network || DEFAULT_NETWORK, accountNumber)
+    BackgroundExecutor.getAddress(network, accountNumber)
       .then((addressResponse) => {
         setAddress(addressResponse);
         setIsLoading(false);

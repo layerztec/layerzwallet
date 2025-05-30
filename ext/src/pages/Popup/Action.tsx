@@ -1,16 +1,16 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
-import { BackgroundCaller } from '../../modules/background-caller';
+
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { Messenger } from '@shared/modules/messenger';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { DEFAULT_NETWORK } from '@shared/config';
-import { SwitchEthereumChain } from './ActionComponents/SwitchEthereumChain';
+import { Messenger } from '@shared/modules/messenger';
+import { BackgroundCaller } from '../../modules/background-caller';
 import { EthRequestAccounts } from './ActionComponents/EthRequestAccounts';
-import { PersonalSign } from './ActionComponents/PersonalSign';
 import { EthSignTypedData } from './ActionComponents/EthSignTypedData';
-import { WalletRequestPermissions } from './ActionComponents/WalletRequestPermissions';
+import { PersonalSign } from './ActionComponents/PersonalSign';
 import { SendTransaction } from './ActionComponents/SendTransaction';
+import { SwitchEthereumChain } from './ActionComponents/SwitchEthereumChain';
+import { WalletRequestPermissions } from './ActionComponents/WalletRequestPermissions';
 
 // actual evm rpc methods, plus our own custom `Loading` to render the loading state
 type EvmRpcMethod = 'wallet_switchEthereumChain' | 'personal_sign' | 'eth_signTypedData_v4' | 'wallet_requestPermissions' | 'eth_sendTransaction' | 'eth_requestAccounts' | 'eth_accounts' | 'Loading';
@@ -53,7 +53,7 @@ const Action: React.FC = () => {
       if (methodFromParams === 'eth_requestAccounts' || methodFromParams === 'eth_accounts') {
         if (fromFromState && whitelist.includes(fromFromState)) {
           // no need to ask for an approval in a dedicated screen, approval is already granted, we just need to reply
-          const addressResponse = await BackgroundCaller.getAddress(network ?? DEFAULT_NETWORK, accountNumber);
+          const addressResponse = await BackgroundCaller.getAddress(network, accountNumber);
           await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id: Number(idFromState), response: [addressResponse] });
           await new Promise((resolve) => setTimeout(resolve, 100)); // propagate
           window.close();

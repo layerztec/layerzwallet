@@ -1,28 +1,28 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { HodlButton, Input, SelectFeeSlider, WideButton } from './DesignSystem';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { DEFAULT_NETWORK } from '@shared/config';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { SendIcon } from 'lucide-react';
-import BigNumber from 'bignumber.js';
-import { Networks } from '@shared/types/networks';
-import { EvmWallet } from '@shared/class/evm-wallet';
-import { BackgroundCaller } from '../../modules/background-caller';
 import assert from 'assert';
-import { StringNumber } from '@shared/types/string-number';
-import { AskPasswordContext } from '../../hooks/AskPasswordContext';
+import BigNumber from 'bignumber.js';
+import { SendIcon } from 'lucide-react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import { TransactionSuccessProps } from './TransactionSuccessEvm';
-import { decrypt } from '../../modules/encryption';
-import { getDeviceID } from '@shared/modules/device-id';
-import { getTokenList } from '@shared/models/token-list';
+
+import { EvmWallet } from '@shared/class/evm-wallet';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
+import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { getTokenList } from '@shared/models/token-list';
+import { getDeviceID } from '@shared/modules/device-id';
 import { formatBalance } from '@shared/modules/string-utils';
-import { SecureStorage } from '../../class/secure-storage';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { Networks } from '@shared/types/networks';
+import { StringNumber } from '@shared/types/string-number';
 import { LayerzStorage } from '../../class/layerz-storage';
 import { Csprng } from '../../class/rng';
+import { SecureStorage } from '../../class/secure-storage';
+import { AskPasswordContext } from '../../hooks/AskPasswordContext';
+import { BackgroundCaller } from '../../modules/background-caller';
+import { decrypt } from '../../modules/encryption';
+import { HodlButton, Input, SelectFeeSlider, WideButton } from './DesignSystem';
+import { TransactionSuccessProps } from './TransactionSuccessEvm';
 
 export interface SendTokenEvmProps {
   contractAddress: string;
@@ -36,8 +36,7 @@ const SendTokenEvm: React.FC = () => {
   const { contractAddress } = location.state as SendTokenEvmProps;
   const list = getTokenList(network);
   const token = list.find((token) => token.address === contractAddress);
-
-  const { balance } = useTokenBalance(network ?? DEFAULT_NETWORK, accountNumber, contractAddress, BackgroundCaller);
+  const { balance } = useTokenBalance(network, accountNumber, contractAddress, BackgroundCaller);
 
   const [address, setAddress] = useState<string>(''); // our address
   const [toAddress, setToAddress] = useState<string>('');
@@ -59,7 +58,7 @@ const SendTokenEvm: React.FC = () => {
   };
 
   useEffect(() => {
-    BackgroundCaller.getAddress(network || DEFAULT_NETWORK, accountNumber).then((addressResponse) => {
+    BackgroundCaller.getAddress(network, accountNumber).then((addressResponse) => {
       setAddress(addressResponse);
     });
   }, [accountNumber, network]);

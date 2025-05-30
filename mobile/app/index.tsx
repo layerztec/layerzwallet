@@ -10,7 +10,6 @@ import { ThemedView } from '@/components/ThemedView';
 import TokensView from '@/components/TokensView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Hello } from '@shared/class/hello';
-import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
@@ -24,8 +23,8 @@ import BreezTokensView from '@/components/BreezTokensView';
 export default function IndexScreen() {
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundExecutor);
-  const { exchangeRate } = useExchangeRate(network ?? DEFAULT_NETWORK, 'USD');
+  const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
+  const { exchangeRate } = useExchangeRate(network, 'USD');
   const router = useRouter();
 
   const networks = getAvailableNetworks();

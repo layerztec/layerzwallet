@@ -1,25 +1,25 @@
-import React, { useContext, useRef, useState } from 'react';
-import { Button, HodlButton, Input, WideButton } from './DesignSystem';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { DEFAULT_NETWORK } from '@shared/config';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { Scan, SendIcon } from 'lucide-react';
-import { useBalance } from '@shared/hooks/useBalance';
-import BigNumber from 'bignumber.js';
 import assert from 'assert';
-import { AskPasswordContext } from '../../hooks/AskPasswordContext';
+import BigNumber from 'bignumber.js';
+import { Scan, SendIcon } from 'lucide-react';
+import React, { useContext, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { decrypt } from '../../modules/encryption';
-import { getDeviceID } from '@shared/modules/device-id';
+
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { useBalance } from '@shared/hooks/useBalance';
+import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { getDeviceID } from '@shared/modules/device-id';
 import { formatBalance } from '@shared/modules/string-utils';
-import { useScanQR } from '../../hooks/ScanQrContext';
-import { SecureStorage } from '../../class/secure-storage';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
-import { BackgroundCaller } from '../../modules/background-caller';
 import { LayerzStorage } from '../../class/layerz-storage';
 import { Csprng } from '../../class/rng';
+import { SecureStorage } from '../../class/secure-storage';
+import { AskPasswordContext } from '../../hooks/AskPasswordContext';
+import { useScanQR } from '../../hooks/ScanQrContext';
+import { BackgroundCaller } from '../../modules/background-caller';
+import { decrypt } from '../../modules/encryption';
+import { Button, HodlButton, Input, WideButton } from './DesignSystem';
 
 const SendArk: React.FC = () => {
   const scanQr = useScanQR();
@@ -33,7 +33,7 @@ const SendArk: React.FC = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { askPassword } = useContext(AskPasswordContext);
-  const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundCaller);
+  const { balance } = useBalance(network, accountNumber, BackgroundCaller);
   const arkWallet = useRef<ArkWallet | undefined>(undefined);
 
   const actualSend = async () => {

@@ -1,3 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
+import assert from 'assert';
+import BigNumber from 'bignumber.js';
+import { router } from 'expo-router';
+import React, { useContext, useRef, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -6,23 +13,16 @@ import { SecureStorage } from '@/src/class/secure-storage';
 import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { Ionicons } from '@expo/vector-icons';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
-import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { getDeviceID } from '@shared/modules/device-id';
-import { decrypt } from '../src/modules/encryption';
 import { formatBalance } from '@shared/modules/string-utils';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
-import assert from 'assert';
-import BigNumber from 'bignumber.js';
-import { router } from 'expo-router';
-import React, { useContext, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { decrypt } from '../src/modules/encryption';
 
 const SendArk = () => {
   const { scanQr } = useContext(ScanQrContext);
@@ -35,7 +35,7 @@ const SendArk = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { askPassword } = useContext(AskPasswordContext);
-  const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundExecutor);
+  const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const arkWallet = useRef<ArkWallet | undefined>(undefined);
 
   const actualSend = async () => {

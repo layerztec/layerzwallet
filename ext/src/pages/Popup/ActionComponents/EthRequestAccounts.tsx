@@ -1,9 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 
-import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { Messenger } from '@shared/modules/messenger';
 import { AddressBubble, Button } from '../DesignSystem';
@@ -25,7 +23,7 @@ export function EthRequestAccounts(args: EthRequestAccountsArgs) {
 
   useEffect(() => {
     (async () => {
-      const addressResponse = await BackgroundCaller.getAddress(network ?? DEFAULT_NETWORK, accountNumber);
+      const addressResponse = await BackgroundCaller.getAddress(network, accountNumber);
       if (addressResponse) setAddress(addressResponse);
     })();
   }, [accountNumber, network]);

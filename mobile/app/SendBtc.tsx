@@ -1,3 +1,11 @@
+import { useNavigation } from '@react-navigation/native';
+import assert from 'assert';
+import BigNumber from 'bignumber.js';
+import * as bip21 from 'bip21';
+import { Stack } from 'expo-router';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { Csprng } from '@/src/class/rng';
@@ -6,26 +14,19 @@ import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { TFeeEstimate } from '@shared/blue_modules/BlueElectrum';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 import { CreateTransactionTarget, CreateTransactionUtxo } from '@shared/class/wallets/types';
-import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { getDeviceID } from '@shared/modules/device-id';
-import { decrypt } from '../src/modules/encryption';
 import { formatBalance } from '@shared/modules/string-utils';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
-import assert from 'assert';
-import BigNumber from 'bignumber.js';
-import * as bip21 from 'bip21';
-import { Stack } from 'expo-router';
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { decrypt } from '../src/modules/encryption';
+
 type TFeeRateOptions = { [rate: number]: number };
 
 const SendBtc: React.FC = () => {
@@ -45,7 +46,7 @@ const SendBtc: React.FC = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { askPassword } = useContext(AskPasswordContext);
-  const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundExecutor);
+  const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const [showFeeModal, setShowFeeModal] = useState(false);
   const wallet = useRef(new HDSegwitBech32Wallet());
 

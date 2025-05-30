@@ -1,27 +1,27 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { Button, HodlButton, Input, SelectFeeSlider, WideButton } from './DesignSystem';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { DEFAULT_NETWORK } from '@shared/config';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { Scan, SendIcon } from 'lucide-react';
-import { useBalance } from '@shared/hooks/useBalance';
-import BigNumber from 'bignumber.js';
-import { EvmWallet } from '@shared/class/evm-wallet';
-import { BackgroundCaller } from '../../modules/background-caller';
 import assert from 'assert';
-import { StringNumber } from '@shared/types/string-number';
-import { AskPasswordContext } from '../../hooks/AskPasswordContext';
+import BigNumber from 'bignumber.js';
+import { Scan, SendIcon } from 'lucide-react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { TransactionSuccessProps } from './TransactionSuccessEvm';
-import { decrypt } from '../../modules/encryption';
+
+import { EvmWallet } from '@shared/class/evm-wallet';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { useBalance } from '@shared/hooks/useBalance';
+import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { getDeviceID } from '@shared/modules/device-id';
 import { formatBalance } from '@shared/modules/string-utils';
-import { useScanQR } from '../../hooks/ScanQrContext';
-import { SecureStorage } from '../../class/secure-storage';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { StringNumber } from '@shared/types/string-number';
 import { LayerzStorage } from '../../class/layerz-storage';
 import { Csprng } from '../../class/rng';
+import { SecureStorage } from '../../class/secure-storage';
+import { AskPasswordContext } from '../../hooks/AskPasswordContext';
+import { useScanQR } from '../../hooks/ScanQrContext';
+import { BackgroundCaller } from '../../modules/background-caller';
+import { decrypt } from '../../modules/encryption';
+import { Button, HodlButton, Input, SelectFeeSlider, WideButton } from './DesignSystem';
+import { TransactionSuccessProps } from './TransactionSuccessEvm';
 
 const SendEvm: React.FC = () => {
   const scanQr = useScanQR();
@@ -37,11 +37,11 @@ const SendEvm: React.FC = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { askPassword } = useContext(AskPasswordContext);
-  const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundCaller);
+  const { balance } = useBalance(network, accountNumber, BackgroundCaller);
   const [overpayMultiplier, setOverpayMultiplier] = useState<number>(1);
 
   useEffect(() => {
-    BackgroundCaller.getAddress(network || DEFAULT_NETWORK, accountNumber).then((addressResponse) => {
+    BackgroundCaller.getAddress(network, accountNumber).then((addressResponse) => {
       setAddress(addressResponse);
     });
   }, [accountNumber, network]);

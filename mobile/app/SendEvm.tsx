@@ -1,5 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
+import assert from 'assert';
+import BigNumber from 'bignumber.js';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
@@ -14,20 +16,18 @@ import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { EvmWallet } from '@shared/class/evm-wallet';
-import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { getDeviceID } from '@shared/modules/device-id';
-import { decrypt } from '../src/modules/encryption';
 import { formatBalance } from '@shared/modules/string-utils';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
-import assert from 'assert';
-import BigNumber from 'bignumber.js';
+import { decrypt } from '../src/modules/encryption';
 import { TransactionSuccessProps } from './TransactionSuccessEvm';
+
 export default function SendScreen() {
   const [screenState, setScreenState] = useState<'init' | 'preparing' | 'prepared' | 'broadcasting'>('init');
   const { network } = useContext(NetworkContext);
@@ -39,7 +39,7 @@ export default function SendScreen() {
   const [feeMultiplier, setFeeMultiplier] = useState(1);
   const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
-  const { balance } = useBalance(network ?? DEFAULT_NETWORK, accountNumber, BackgroundExecutor);
+  const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const [bytes, setBytes] = useState('');
   const [fees, setFees] = useState<StringNumber>(); // min fees user will have to pay for the transaction
   const [maxFees, setMaxFees] = useState<StringNumber>(); // max fees user will have to pay for the transaction
@@ -47,7 +47,7 @@ export default function SendScreen() {
 
   // loading OUR address
   useEffect(() => {
-    BackgroundExecutor.getAddress(network || DEFAULT_NETWORK, accountNumber)
+    BackgroundExecutor.getAddress(network, accountNumber)
       .then((addressResponse) => {
         setAddress(addressResponse);
       })
@@ -134,7 +134,7 @@ export default function SendScreen() {
     setScreenState('broadcasting');
     const e = new EvmWallet();
     try {
-      const txid = await e.broadcastTransaction(network || DEFAULT_NETWORK, bytes);
+      const txid = await e.broadcastTransaction(network, bytes);
 
       // Navigate to TransactionSuccessEvm with all required parameters
       router.replace({
