@@ -122,11 +122,16 @@ describe('BlueElectrum', () => {
   });
 
   it('ElectrumClient can estimate fees', async () => {
-    assert.ok((await BlueElectrum.estimateFee(1)) > 1);
     const fees = await BlueElectrum.estimateFees();
     assert.ok(fees.fast > 0);
     assert.ok(fees.medium > 0);
     assert.ok(fees.slow > 0);
+    // mempool is not empty
+    if (fees.fast === 2) {
+      assert.ok((await BlueElectrum.estimateFee(1)) >= 1);
+    } else {
+      assert.ok((await BlueElectrum.estimateFee(1)) > 1);
+    }
   });
 
   it('ElectrumClient can request server features', async () => {
