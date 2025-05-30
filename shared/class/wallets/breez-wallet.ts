@@ -95,6 +95,12 @@ export class BreezWallet {
 // Additional assets
 export const assetMetadata: AssetMetadata[] = [
   {
+    assetId: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49',
+    name: 'Testnet Bitcoin',
+    ticker: 'tBTC',
+    precision: 8,
+  },
+  {
     assetId: 'ec24f3e4a4993802f901d881ea1bbfc642dfbc25d5fe82af256',
     name: 'KEK LOL',
     ticker: 'LOLx',
@@ -113,3 +119,9 @@ export const assetMetadata: AssetMetadata[] = [
     precision: 7,
   },
 ];
+
+// L-BTC asset IDs for mainnet and testnet
+export const LBTC_ASSET_IDS = {
+  mainnet: '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d',
+  testnet: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49',
+};

@@ -17,7 +17,7 @@ const SendBreez: React.FC = () => {
       <WideButton onClick={() => navigate('/send-lightning')} style={{ marginBottom: 20 }}>
         ⚡ Lightning
       </WideButton>
-      <WideButton onClick={() => navigate('/send-liquid-breez')} style={{ background: '#3498db' }}>
+      <WideButton onClick={() => navigate('/send-liquid')} style={{ background: '#3498db' }}>
         💧 Liquid
       </WideButton>
     </div>

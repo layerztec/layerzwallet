@@ -30,7 +30,7 @@ import SendBreez from './SendBreez';
 import SendBtc from './SendBtc';
 import SendEvm from './SendEvm';
 import SendLightning from './SendLightning';
-import SendLiquidBreez from './SendLiquidBreez';
+import SendLiquid from './SendLiquid';
 import SendTokenEvm from './SendTokenEvm';
 import SettingsPage from './SettingsPage';
 import TestPage from './TestPage';
@@ -80,7 +80,7 @@ const AppContent: React.FC = () => {
             <Route path="/receive-breez" element={<ReceiveBreez />} />
             <Route path="/receive-lightning" element={<ReceiveLightning />} />
             <Route path="/send-breez" element={<SendBreez />} />
-            <Route path="/send-liquid-breez" element={<SendLiquidBreez />} />
+            <Route path="/send-liquid" element={<SendLiquid />} />
             <Route path="/send-evm" element={<SendEvm />} />
             <Route path="/send-ark" element={<SendArk />} />
             <Route path="/send-token-evm" element={<SendTokenEvm />} />

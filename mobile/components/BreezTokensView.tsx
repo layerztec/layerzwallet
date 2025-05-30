@@ -1,7 +1,8 @@
 import type { AssetBalance } from '@breeztech/breez-sdk-liquid';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -55,12 +56,16 @@ const BreezTokensView: React.FC = () => {
     return null;
   }
 
-  const goToSend = () => {
-    router.push('/SendLightning');
-  };
-
   const getAssetName = (asset: AssetBalance): string => {
     return asset.ticker || asset.assetId.substring(0, 8) + '...';
+  };
+
+  const goToSend = (assetId: string) => {
+    router.push(`/SendLiquid?assetId=${assetId}`);
+  };
+
+  const goToReceive = () => {
+    router.push('/Receive');
   };
 
   return (
@@ -75,6 +80,15 @@ const BreezTokensView: React.FC = () => {
             </View>
 
             <ThemedText style={styles.balance}>{item.balance ? item.balance : item.balanceSat}</ThemedText>
+
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity onPress={() => goToSend(item.assetId)} style={styles.button}>
+                <Ionicons name="send" size={16} color="#666" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={goToReceive} style={styles.button}>
+                <Ionicons name="arrow-down" size={16} color="#666" />
+              </TouchableOpacity>
+            </View>
           </ThemedView>
         ))}
       </View>
@@ -126,5 +140,15 @@ const styles = StyleSheet.create({
   balance: {
     fontSize: 14,
     marginLeft: 'auto',
+    marginRight: 16,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  button: {
+    backgroundColor: 'white',
+    padding: 8,
+    borderRadius: 4,
   },
 });

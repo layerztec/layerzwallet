@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import TokensView from '@/components/tokens-view';
+import TokensView from '@/components/TokensView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Hello } from '@shared/class/hello';
 import { DEFAULT_NETWORK } from '@shared/config';
@@ -19,7 +19,7 @@ import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { OnrampProps } from '@/app/Onramp';
-import BreezTokensView from '@/components/breez-tokens-view';
+import BreezTokensView from '@/components/BreezTokensView';
 
 export default function IndexScreen() {
   const { network, setNetwork } = useContext(NetworkContext);

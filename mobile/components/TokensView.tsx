@@ -1,16 +1,16 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useContext } from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { Ionicons } from '@expo/vector-icons';
-import { DEFAULT_NETWORK } from '@shared/config';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { getTokenList } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
-import { useRouter } from 'expo-router';
-import React, { useContext } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
   const { network } = useContext(NetworkContext);
@@ -19,7 +19,7 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
   const list = getTokenList(network);
   const token = list.find((token) => token.address === tokenAddress);
 
-  const { balance } = useTokenBalance(network ?? DEFAULT_NETWORK, accountNumber, tokenAddress, BackgroundExecutor);
+  const { balance } = useTokenBalance(network, accountNumber, tokenAddress, BackgroundExecutor);
 
   if (!balance) return null;
 
@@ -30,10 +30,10 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
   if (+formattedBalance === 0) return null;
 
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.tokenInfo}>
-        <ThemedText style={styles.tokenName}>{token?.name}</ThemedText>
-        <ThemedText style={styles.networkName}>({capitalizeFirstLetter(network)})</ThemedText>
+    <ThemedView style={styles.assetContainer}>
+      <View style={styles.assetInfo}>
+        <ThemedText style={styles.assetName}>{token?.name}</ThemedText>
+        <ThemedText style={styles.assetFullName}>({capitalizeFirstLetter(network)})</ThemedText>
       </View>
 
       <ThemedText style={styles.balance}>
@@ -60,8 +60,38 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
   );
 };
 
+const TokensView: React.FC = () => {
+  const { network } = useContext(NetworkContext);
+  const tokenList = getTokenList(network);
+
+  if (tokenList.length === 0) {
+    return null;
+  }
+
+  return (
+    <ThemedView style={styles.container}>
+      <ThemedText style={styles.title}>Tokens</ThemedText>
+      <View>
+        {tokenList.map((token) => (
+          <TokenRow key={token.address} tokenAddress={token.address} />
+        ))}
+      </View>
+    </ThemedView>
+  );
+};
+
 const styles = StyleSheet.create({
   container: {
+    padding: 10,
+    marginTop: 10,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  assetContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -72,15 +102,15 @@ const styles = StyleSheet.create({
     marginVertical: 4,
     marginHorizontal: 8,
   },
-  tokenInfo: {
+  assetInfo: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  tokenName: {
+  assetName: {
     fontWeight: '700',
     fontSize: 14,
   },
-  networkName: {
+  assetFullName: {
     marginLeft: 5,
     color: '#888',
     fontSize: 14,
@@ -104,4 +134,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TokenRow;
+export default TokensView;

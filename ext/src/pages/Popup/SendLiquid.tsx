@@ -1,9 +1,9 @@
 import { AssetBalance, PrepareSendRequest, PrepareSendResponse } from '@breeztech/breez-sdk-liquid';
 import { Scan, SendIcon } from 'lucide-react';
-import React, { useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 
-import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { BreezWallet, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { formatBalance } from '@shared/modules/string-utils';
@@ -13,22 +13,33 @@ import { BackgroundCaller } from '../../modules/background-caller';
 import { getBreezNetwork } from '../../modules/breeze-adapter';
 import { Button, HodlButton, Input, WideButton } from './DesignSystem';
 
-const SendLiquidBreez: React.FC = () => {
+const SendLiquid: React.FC = () => {
   const scanQr = useScanQR();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const network = useContext(NetworkContext).network as typeof NETWORK_BREEZ | typeof NETWORK_BREEZTESTNET;
   const { accountNumber } = useContext(AccountNumberContext);
 
   const [address, setAddress] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [selectedAsset, setSelectedAsset] = useState<AssetBalance | null>(null);
-  const [assets, setAssets] = useState<AssetBalance[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [isSending, setIsSending] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [prepareResult, setPrepareResult] = useState<PrepareSendResponse | null>(null);
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
+
+  const assetId = useMemo(() => {
+    const paramAssetId = searchParams.get('assetId');
+    if (paramAssetId) {
+      return paramAssetId;
+    } else if (network === NETWORK_BREEZ) {
+      return LBTC_ASSET_IDS.mainnet;
+    } else {
+      return LBTC_ASSET_IDS.testnet;
+    }
+  }, [searchParams, network]);
 
   const getAssetName = (asset: AssetBalance): string => {
     return asset.ticker || asset.assetId.substring(0, 8) + '...';
@@ -40,9 +51,11 @@ const SendLiquidBreez: React.FC = () => {
         const mnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
         const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
         const balances = await wallet.getAssetBalances();
-        setAssets(balances);
-        if (balances.length > 0) {
-          setSelectedAsset(balances[0]);
+        const asset = balances.find((asset) => asset.assetId === assetId);
+        if (asset) {
+          setSelectedAsset(asset);
+        } else {
+          setError(`Asset not found: ${assetId}`);
         }
       } catch (err: any) {
         console.error('Failed to load assets:', err);
@@ -53,7 +66,7 @@ const SendLiquidBreez: React.FC = () => {
     };
 
     loadAssets();
-  }, [accountNumber, network]);
+  }, [accountNumber, network, assetId]);
 
   const handleAmountChange = (text: string) => {
     // Only allow numbers and decimal point
@@ -80,7 +93,7 @@ const SendLiquidBreez: React.FC = () => {
     }
 
     if (!selectedAsset) {
-      setError('Please select an asset');
+      setError('Asset not available');
       return false;
     }
 
@@ -175,7 +188,7 @@ const SendLiquidBreez: React.FC = () => {
   if (isLoading) {
     return (
       <div style={{ textAlign: 'center', padding: '20px' }}>
-        <div>Loading assets...</div>
+        <div>Loading asset...</div>
       </div>
     );
   }
@@ -232,31 +245,23 @@ const SendLiquidBreez: React.FC = () => {
   return (
     <div>
       <h2>Send Liquid</h2>
-      <div style={{ textAlign: 'left' }}>
-        <b>Select Asset</b>
-        <div style={{ marginBottom: '10px' }}></div>
-        <div style={{ display: 'flex', overflowX: 'auto', gap: '10px', paddingBottom: '10px' }}>
-          {assets.map((asset) => (
-            <div
-              key={asset.assetId}
-              onClick={() => setSelectedAsset(asset)}
-              style={{
-                padding: '15px',
-                borderRadius: '10px',
-                backgroundColor: selectedAsset?.assetId === asset.assetId ? '#3498db' : '#f0f0f0',
-                minWidth: '120px',
-                cursor: 'pointer',
-              }}
-            >
-              <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '5px', color: selectedAsset?.assetId === asset.assetId ? 'white' : 'black' }}>{getAssetName(asset)}</div>
-              {asset.name && <div style={{ fontSize: '14px', color: selectedAsset?.assetId === asset.assetId ? '#e0e0e0' : '#888', marginBottom: '5px' }}>({asset.name})</div>}
-              <div style={{ fontSize: '14px', color: selectedAsset?.assetId === asset.assetId ? '#e0e0e0' : '#666' }}>
-                {formatBalance(asset.balanceSat.toString(), 8, 8)} {asset.ticker}
-              </div>
-            </div>
-          ))}
+
+      {selectedAsset && (
+        <div
+          style={{
+            backgroundColor: '#f8f9fa',
+            borderRadius: '8px',
+            padding: '15px',
+            marginBottom: '20px',
+          }}
+        >
+          <h3 style={{ margin: '0 0 10px 0' }}>Sending {getAssetName(selectedAsset)}</h3>
+          {selectedAsset.name && <div style={{ fontSize: '14px', color: '#888', marginBottom: '5px' }}>({selectedAsset.name})</div>}
+          <div style={{ fontSize: '14px', color: '#666' }}>
+            Available: {formatBalance(selectedAsset.balanceSat.toString(), 8, 8)} {selectedAsset.ticker}
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={{ textAlign: 'left', marginTop: '20px' }}>
         <b>Recipient Address</b>
@@ -264,6 +269,7 @@ const SendLiquidBreez: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <Input type="text" placeholder="Enter Liquid address" value={address} onChange={(event) => handleAddressChange(event.target.value)} style={{ flexGrow: 1, marginRight: '10px' }} />
           <Button
+            onClick={handleScanQR}
             style={{
               marginBottom: '10px',
               marginLeft: '5px',
@@ -279,7 +285,6 @@ const SendLiquidBreez: React.FC = () => {
               cursor: 'pointer',
               paddingLeft: '25px',
             }}
-            onClick={handleScanQR}
           >
             <Scan />
           </Button>
@@ -301,11 +306,11 @@ const SendLiquidBreez: React.FC = () => {
       <div style={{ marginTop: '20px' }}>
         <WideButton onClick={handleSend} disabled={isSending}>
           <SendIcon />
-          {isSending ? 'Sending...' : 'Send'}
+          {isSending ? 'Preparing...' : 'Prepare'}
         </WideButton>
       </div>
     </div>
   );
 };
 
-export default SendLiquidBreez;
+export default SendLiquid;

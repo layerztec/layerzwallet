@@ -1,7 +1,7 @@
 import type { AssetBalance, PrepareSendRequest, PrepareSendResponse } from '@breeztech/breez-sdk-liquid';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
-import React, { useContext, useEffect, useState } from 'react';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,21 +10,27 @@ import { ThemedView } from '@/components/ThemedView';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getBreezNetwork } from '@/src/modules/breeze-adapter';
-import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { BreezWallet, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
 
+export type SendLiquidParams = {
+  assetId?: string; // Optional asset ID - if not provided, use L-BTC
+};
+
 const SendLiquid = () => {
   const router = useRouter();
+  const params = useLocalSearchParams<SendLiquidParams>();
+
   const network = useContext(NetworkContext).network as typeof NETWORK_BREEZ | typeof NETWORK_BREEZTESTNET;
   const { accountNumber } = useContext(AccountNumberContext);
   const { scanQr } = useContext(ScanQrContext);
+
   const [address, setAddress] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [selectedAsset, setSelectedAsset] = useState<AssetBalance | null>(null);
-  const [assets, setAssets] = useState<AssetBalance[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [isSending, setIsSending] = useState<boolean>(false);
@@ -36,15 +42,27 @@ const SendLiquid = () => {
     return asset.ticker || asset.assetId.substring(0, 8) + '...';
   };
 
+  const assetId = useMemo(() => {
+    if (params.assetId) {
+      return params.assetId;
+    } else if (network === NETWORK_BREEZ) {
+      return LBTC_ASSET_IDS.mainnet;
+    } else {
+      return LBTC_ASSET_IDS.testnet;
+    }
+  }, [params.assetId, network]);
+
   useEffect(() => {
     const loadAssets = async () => {
       try {
         const mnemonic = await BackgroundExecutor.getSubMnemonic(accountNumber);
         const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
         const balances = await wallet.getAssetBalances();
-        setAssets(balances);
-        if (balances.length > 0) {
-          setSelectedAsset(balances[0]);
+        const asset = balances.find((asset) => asset.assetId === assetId);
+        if (asset) {
+          setSelectedAsset(asset);
+        } else {
+          setError(`Asset not found: ${assetId}`);
         }
       } catch (err: any) {
         console.error('Failed to load assets:', err);
@@ -55,7 +73,7 @@ const SendLiquid = () => {
     };
 
     loadAssets();
-  }, [network, accountNumber]);
+  }, [network, accountNumber, assetId]);
 
   const handleAmountChange = (text: string) => {
     // Only allow numbers and decimal point
@@ -89,7 +107,7 @@ const SendLiquid = () => {
     }
 
     if (!selectedAsset) {
-      setError('Please select an asset');
+      setError('Asset not available');
       return false;
     }
 
@@ -184,7 +202,7 @@ const SendLiquid = () => {
         <Stack.Screen options={{ title: 'Send Liquid', headerShown: true }} />
         <ThemedView style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
-          <ThemedText style={styles.loadingText}>Loading assets...</ThemedText>
+          <ThemedText style={styles.loadingText}>Loading asset...</ThemedText>
         </ThemedView>
       </SafeAreaView>
     );
@@ -244,18 +262,15 @@ const SendLiquid = () => {
             <ThemedText style={styles.networkText}>{network?.toUpperCase()} LIQUID</ThemedText>
           </ThemedView>
 
-          <ThemedText style={styles.subtitle}>Select Asset</ThemedText>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.assetsContainer}>
-            {assets.map((asset) => (
-              <TouchableOpacity key={asset.assetId} onPress={() => setSelectedAsset(asset)} style={[styles.assetButton, selectedAsset?.assetId === asset.assetId && styles.selectedAssetButton]}>
-                <ThemedText style={styles.assetTicker}>{getAssetName(asset)}</ThemedText>
-                {asset.name && <ThemedText style={styles.assetFullName}>({asset.name})</ThemedText>}
-                <ThemedText style={styles.assetBalance}>
-                  {formatBalance(asset.balanceSat.toString(), 8, 8)} {asset.ticker}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          {selectedAsset && (
+            <ThemedView style={styles.assetInfo}>
+              <ThemedText style={styles.subtitle}>Sending {getAssetName(selectedAsset)}</ThemedText>
+              {selectedAsset.name && <ThemedText style={styles.assetFullName}>({selectedAsset.name})</ThemedText>}
+              <ThemedText style={styles.assetBalance}>
+                Available: {formatBalance(selectedAsset.balanceSat.toString(), 8, 8)} {selectedAsset.ticker}
+              </ThemedText>
+            </ThemedView>
+          )}
 
           <ThemedText style={styles.inputLabel}>Recipient Address</ThemedText>
           <ThemedView style={styles.addressInputContainer}>
@@ -286,7 +301,7 @@ const SendLiquid = () => {
           {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
 
           <TouchableOpacity style={[styles.button, isSending && styles.disabledButton]} onPress={handleSend} disabled={isSending}>
-            <ThemedText style={styles.buttonText}>{isSending ? 'Sending...' : 'Send'}</ThemedText>
+            <ThemedText style={styles.buttonText}>{isSending ? 'Preparing...' : 'Prepare'}</ThemedText>
           </TouchableOpacity>
         </ThemedView>
       </ScrollView>
@@ -323,23 +338,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 15,
   },
-  assetsContainer: {
+  assetInfo: {
     marginBottom: 20,
-  },
-  assetButton: {
     padding: 15,
     borderRadius: 10,
-    backgroundColor: '#f0f0f0',
-    marginRight: 10,
-    minWidth: 120,
-  },
-  selectedAssetButton: {
-    backgroundColor: '#3498db',
-  },
-  assetTicker: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 5,
+    backgroundColor: '#f8f9fa',
   },
   assetFullName: {
     fontSize: 14,
