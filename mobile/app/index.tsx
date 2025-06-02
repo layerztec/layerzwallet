@@ -19,6 +19,7 @@ import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BR
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { OnrampProps } from '@/app/Onramp';
 import BreezTokensView from '@/components/BreezTokensView';
+import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 
 export default function IndexScreen() {
   const { network, setNetwork } = useContext(NetworkContext);
@@ -95,6 +96,7 @@ export default function IndexScreen() {
         pathname: '/Onramp',
         params: {
           address,
+          network,
         } as OnrampProps,
       });
     });
@@ -170,7 +172,7 @@ export default function IndexScreen() {
                 <ThemedText style={styles.buttonText}>Send</ThemedText>
               </TouchableOpacity>
 
-              {network === NETWORK_BITCOIN ? (
+              {fiatOnRamp?.[network]?.canBuyWithFiat ? (
                 <TouchableOpacity style={[styles.button]} onPress={goToBuyBitcoin}>
                   <ThemedText style={styles.buttonText}> $ Buy </ThemedText>
                 </TouchableOpacity>

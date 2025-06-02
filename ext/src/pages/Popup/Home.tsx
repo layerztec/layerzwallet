@@ -6,6 +6,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
+import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getDecimalsByNetwork, getIsTestnet, getKnowMoreUrl, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, Networks } from '@shared/types/networks';
@@ -94,13 +95,13 @@ const Home: React.FC = () => {
       ) : null}
       <h1>
         <span id="home-balance">{balance ? formatBalance(balance, getDecimalsByNetwork(network), 8) : ''}</span> {getTickerByNetwork(network)}
-        {network === NETWORK_BITCOIN ? (
+        {fiatOnRamp?.[network]?.canBuyWithFiat ? (
           <span style={{ paddingLeft: '15px' }}>
             <Button
               onClick={() => {
                 BackgroundCaller.getAddress(network, accountNumber).then((addressResponse) => {
                   if (addressResponse) {
-                    window.open(`https://layerztec.github.io/website/onramp/?address=${addressResponse}`, '_blank');
+                    window.open(`https://layerztec.github.io/website/onramp/?address=${addressResponse}&network=${network}`, '_blank');
                   }
                 });
               }}
