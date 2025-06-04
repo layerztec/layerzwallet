@@ -34,6 +34,16 @@ export const Messenger = {
     });
   },
 
+  documentDispatchEvent(message: Eip1193CustomEventCallback) {
+    console.log('Dispatching event to the Dapp:', message);
+    document.dispatchEvent(
+      new CustomEvent('LayerzWalletExtension', {
+        // Serialize message to JSON string to prevent Firefox security violations when passing complex objects
+        detail: JSON.stringify(message),
+      })
+    );
+  },
+
   async sendResponseFromContentScriptToContentScript(message: Eip1193CustomEventResponse) {
     document.dispatchEvent(
       new CustomEvent('LayerzWalletExtension', {

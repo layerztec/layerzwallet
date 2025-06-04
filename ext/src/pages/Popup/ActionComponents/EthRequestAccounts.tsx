@@ -1,10 +1,10 @@
 import React, { useContext, useEffect, useState } from 'react';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { Messenger } from '@shared/modules/messenger';
 import { AddressBubble, Button } from '../DesignSystem';
+import { NETWORK_ROOTSTOCK } from '@shared/types/networks';
 
 interface EthRequestAccountsArgs {
   params: any[];
@@ -18,15 +18,14 @@ interface EthRequestAccountsArgs {
  */
 export function EthRequestAccounts(args: EthRequestAccountsArgs) {
   const [address, setAddress] = useState<string>('');
-  const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
 
   useEffect(() => {
     (async () => {
-      const addressResponse = await BackgroundCaller.getAddress(network, accountNumber);
+      const addressResponse = await BackgroundCaller.getAddress(NETWORK_ROOTSTOCK, accountNumber); // dapp is interested in EVM address specifically, NOT of currently-selected network
       if (addressResponse) setAddress(addressResponse);
     })();
-  }, [accountNumber, network]);
+  }, [accountNumber]);
 
   const onAllowClick = async () => {
     const id = args.id;

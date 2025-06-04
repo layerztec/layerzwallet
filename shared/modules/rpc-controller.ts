@@ -6,7 +6,7 @@ import { STORAGE_SELECTED_ACCOUNT_NUMBER } from '../hooks/AccountNumberContext';
 import { STORAGE_SELECTED_NETWORK } from '../hooks/NetworkContext';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { Messenger } from './messenger';
-import { Networks } from '../types/networks';
+import { NETWORK_ROOTSTOCK, Networks } from '../types/networks';
 
 import { IStorage } from '../types/IStorage';
 import { DappPermissions } from '../class/dapp-permissions';
@@ -36,7 +36,7 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
       const responseForEthAccounts: string[] = [];
       if (whitelist.includes(from)) {
         // Dapp is already whitelisted, so we can return addresses without showing approval screen
-        const addressResponse = await BackgroundCaller.getAddress(network, accountNumber);
+        const addressResponse = await BackgroundCaller.getAddress(NETWORK_ROOTSTOCK, accountNumber); // most likely dapp is interested in EVM address specifically, NOT of currently-selected network
         responseForEthAccounts.push(addressResponse);
       }
       await Messenger.sendResponseFromContentScriptToContentScript({
@@ -49,7 +49,7 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
     case 'eth_requestAccounts':
       if (whitelist.includes(from)) {
         // Dapp is whitelisted, so we can respond immediately without showing approval screen
-        const addressResponse = await BackgroundCaller.getAddress(network, accountNumber);
+        const addressResponse = await BackgroundCaller.getAddress(NETWORK_ROOTSTOCK, accountNumber); // most likely dapp is interested in EVM address specifically, NOT of currently-selected network
         await Messenger.sendResponseFromContentScriptToContentScript({
           for: 'webpage',
           id: id,
@@ -76,6 +76,16 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
             id: id,
             response: null,
           });
+
+          // triggering event for any connected Dapp:
+          await new Promise((resolve) => setTimeout(resolve, 500)); // sleep to propagate
+          Messenger.documentDispatchEvent({
+            for: 'webpage',
+            type: 'eventCallback',
+            event: 'chainChanged',
+            arg: getChainIdByNetwork(net) as string,
+          });
+
           return { success: true };
         }
       }
@@ -111,6 +121,7 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
       return { success: true };
 
     // Forward these RPC calls directly to the provider without user confirmation
+    case 'eth_maxPriorityFeePerGas':
     case 'eth_getBalance':
     case 'eth_getLogs':
     case 'eth_getTransactionCount':
@@ -143,9 +154,15 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
     case 'eth_getTransactionByHash':
     case 'eth_call':
     case 'eth_getBlockByNumber':
-      const rpc = getRpcProvider(network);
-      const response = await rpc.send(method, params);
-      await Messenger.sendResponseFromContentScriptToContentScript({ for: 'webpage', id: id, response });
+      try {
+        const rpc = getRpcProvider(network);
+        const response = await rpc.send(method, params);
+        await Messenger.sendResponseFromContentScriptToContentScript({ for: 'webpage', id: id, response });
+      } catch (e: any) {
+        console.warn('rpc error for', method, ':', e);
+        await Messenger.sendResponseFromContentScriptToContentScript({ for: 'webpage', id: id, error: e.error });
+      }
+
       return { success: true };
 
     case 'eth_sendTransaction':

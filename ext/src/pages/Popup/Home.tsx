@@ -1,4 +1,4 @@
-import { ArrowDownRightIcon, Info, SendIcon, ShoppingCartIcon } from 'lucide-react';
+import { ArrowDownRightIcon, Info, SendIcon, ShoppingCartIcon, RefreshCwIcon } from 'lucide-react';
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -7,14 +7,18 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
+import { getSwapProvidersList } from '@shared/models/swap-providers-list';
 import { getDecimalsByNetwork, getIsTestnet, getKnowMoreUrl, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
+
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, Networks } from '@shared/types/networks';
 import { BackgroundCaller } from '../../modules/background-caller';
 import PartnersView from './components/PartnersView';
 import TokensView from './components/TokensView';
 import { Button, Switch } from './DesignSystem';
 import BreezTokensView from './components/BreezTokensView';
+import { SwapProvider } from '@shared/types/swap';
+import SwapInterfaceView from './components/SwapInterfaceView';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -24,9 +28,16 @@ const Home: React.FC = () => {
   const { balance } = useBalance(network, accountNumber, BackgroundCaller);
   const [isTestnet, setIsTestnet] = useState<boolean>(false);
   const { exchangeRate } = useExchangeRate(network, 'USD');
+  const [swapProviders, setSwapProviders] = useState<SwapProvider[]>([]);
+  const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
 
   useEffect(() => {
     setIsTestnet(getIsTestnet(network));
+    setShowSwapInterface(false);
+  }, [network]);
+
+  useEffect(() => {
+    setSwapProviders(getSwapProvidersList(network));
   }, [network]);
 
   const handleReceive = () => {
@@ -114,9 +125,15 @@ const Home: React.FC = () => {
           <span style={{ fontSize: 14 }}>{balance && +balance > 0 && exchangeRate ? '$' + formatFiatBalance(balance, getDecimalsByNetwork(network), exchangeRate) : ''}</span>
         </div>
       </h1>
-      <PartnersView />
 
-      {network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET ? <BreezTokensView /> : <TokensView />}
+      {showSwapInterface ? (
+        <SwapInterfaceView swapProviders={swapProviders} />
+      ) : (
+        <div>
+          <PartnersView />
+          {network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET ? <BreezTokensView /> : <TokensView />}
+        </div>
+      )}
 
       <br />
       <br />
@@ -128,6 +145,16 @@ const Home: React.FC = () => {
         <ArrowDownRightIcon />
         Receive
       </Button>
+
+      {swapProviders.length > 0 ? (
+        <Button
+          onClick={() => {
+            setShowSwapInterface(true);
+          }}
+        >
+          <RefreshCwIcon /> Swap
+        </Button>
+      ) : null}
     </div>
   );
 };

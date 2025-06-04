@@ -199,21 +199,25 @@ export const HodlButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> 
 };
 
 // Input Component
-export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
-  <input
-    {...props}
-    style={{
-      width: '95%',
-      padding: '10px',
-      marginBottom: '10px',
-      border: '1px solid #282c34',
-      borderRadius: '5px',
-      fontSize: '16px',
-      color: '#282c34',
-      backgroundColor: 'white',
-    }}
-  />
-);
+export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => {
+  const defaultStyle = {
+    width: '95%',
+    padding: '10px',
+    marginBottom: '10px',
+    border: '1px solid #282c34',
+    borderRadius: '5px',
+    fontSize: '16px',
+    color: '#282c34',
+    backgroundColor: 'white',
+  };
+
+  const combinedStyle = {
+    ...defaultStyle,
+    ...props.style,
+  };
+
+  return <input {...props} style={combinedStyle} />;
+};
 
 // TextArea Component
 export const TextArea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = (props) => (

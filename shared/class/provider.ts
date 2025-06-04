@@ -24,9 +24,10 @@ interface CallbacksHashmap {
 export class Provider implements MetaMaskProvider {
   private _chainId = '0x1';
   private _eventSubscriptions: CallbacksHashmap = {};
+  private _requestId = 0;
 
   private async backgroundRPC(args: RequestArguments): Promise<unknown> {
-    const id = +new Date();
+    const id = this._requestId++;
     return new Promise((resolve, reject) => {
       // setting up a listener for events and waiting for a response for OUR event from content script
       document.addEventListener('LayerzWalletExtension', function (e) {

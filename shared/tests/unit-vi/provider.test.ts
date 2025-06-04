@@ -48,7 +48,7 @@ test('Provider can request `eth_chainId` and get a response', async () => {
     assert.strictEqual(detail.method, 'eth_chainId');
     assert.strictEqual(detail.for, 'contentScript');
     assert.strictEqual(detail.from, 'localhost'); // supposed to be parsed from hostname of open browser tab but okay
-    assert.ok(detail.id); // random each time, just check its present
+    assert.ok(Number.isInteger(detail.id)); // random each time, just check its present
 
     // ok we checked that the event with a request was sent to OUTER content script. lets pretend it was processed and
     // the event with a response was emitted - it should land in `listenerRegistered` we saved previously

@@ -1,8 +1,7 @@
 import { Networks } from './networks';
 
-export interface CoinBuySupport {
+export interface NetworkBuySupport {
   canBuyWithFiat: boolean;
-  // partner: FiatOnRampPartner;
 }
 
-export type BuySupportMap = Record<Networks, CoinBuySupport>;
+export type BuySupportMap = Record<Networks, NetworkBuySupport>;

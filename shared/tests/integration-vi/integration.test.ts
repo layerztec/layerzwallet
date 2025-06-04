@@ -7,7 +7,7 @@ import { balanceFetcher } from '../../hooks/useBalance';
 import { tokenBalanceFetcher } from '../../hooks/useTokenBalance';
 import { getTokenList } from '../../models/token-list';
 import { IBackgroundCaller } from '../../types/IBackgroundCaller';
-import { NETWORK_BOTANIXTESTNET, NETWORK_ROOTSTOCK, NETWORK_SEPOLIA, NETWORK_STRATADEVNET, Networks } from '../../types/networks';
+import { NETWORK_BOTANIXTESTNET, NETWORK_ROOTSTOCK, NETWORK_SEPOLIA, NETWORK_STRATADEVNET } from '../../types/networks';
 import { exchangeRateFetcher } from '../../hooks/useExchangeRate';
 
 const backgroundCallerMock2: IBackgroundCaller = {
