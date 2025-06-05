@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { SwapPair, SwapProvider } from '../types/swap';
-import { NETWORK_BITCOIN, NETWORK_ROOTSTOCK, Networks } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_ROOTSTOCK, Networks } from '@shared/types/networks';
 import BigNumber from 'bignumber.js';
 
 /**
@@ -13,6 +13,9 @@ export class SwapProviderBoltz implements SwapProvider {
     return [
       { from: NETWORK_BITCOIN, to: NETWORK_ROOTSTOCK },
       { from: NETWORK_ROOTSTOCK, to: NETWORK_BITCOIN },
+      { from: NETWORK_BITCOIN, to: NETWORK_BREEZ },
+      { from: NETWORK_BREEZ, to: NETWORK_BITCOIN },
+      { from: NETWORK_BITCOIN, to: NETWORK_BREEZ },
     ];
   }
 
@@ -25,6 +28,9 @@ export class SwapProviderBoltz implements SwapProvider {
     switch (from) {
       case NETWORK_BITCOIN:
         sendAsset = 'BTC';
+        break;
+      case NETWORK_BREEZ:
+        sendAsset = 'L-BTC';
         break;
       case NETWORK_ROOTSTOCK:
         sendAsset = 'RBTC';
@@ -44,6 +50,10 @@ export class SwapProviderBoltz implements SwapProvider {
         receiveAsset = 'RBTC';
         setNetwork(NETWORK_ROOTSTOCK); // switching network, otherwise boltz web app will ask it anyway and will lose data
         await new Promise((resolve) => setTimeout(resolve, 500)); // sleep to propagate
+        break;
+
+      case NETWORK_BREEZ:
+        receiveAsset = 'L-BTC';
         break;
       default:
         throw new Error(`Swap to ${to} not supported by ${this.name}`);

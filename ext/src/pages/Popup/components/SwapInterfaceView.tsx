@@ -13,6 +13,22 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { Loader2 } from 'lucide-react';
 
+const getAvailableTargetNetworks = (swapProviders: SwapProvider[], currentNetwork: Networks): Networks[] => {
+  // Get all supported pairs from each provider
+  const allPairs = swapProviders.flatMap((provider) => provider.getSupportedPairs());
+
+  // Filter pairs where source network matches current network
+  const validPairs = allPairs.filter((pair) => pair.from === currentNetwork);
+
+  // Extract just the destination networks
+  const destinationNetworks = validPairs.map((pair) => pair.to);
+
+  // Remove duplicates using Set
+  const uniqueNetworks = new Set(destinationNetworks);
+
+  return Array.from(uniqueNetworks);
+};
+
 const SwapInterfaceView: React.FC<{ swapProviders: SwapProvider[] }> = ({ swapProviders }) => {
   const [amount, setAmount] = useState<string>('');
   const [targetNetwork, setTargetNetwork] = useState<Networks>();
@@ -72,16 +88,7 @@ const SwapInterfaceView: React.FC<{ swapProviders: SwapProvider[] }> = ({ swapPr
             }}
           >
             <option value="">Select target network</option>
-            {Array.from(
-              new Set(
-                swapProviders.flatMap((provider) =>
-                  provider
-                    .getSupportedPairs()
-                    .filter((pair) => pair.to !== network)
-                    .map((pair) => pair.to)
-                )
-              )
-            ).map((network) => (
+            {getAvailableTargetNetworks(swapProviders, network).map((network) => (
               <option key={`to-${network}`} value={network}>
                 {capitalizeFirstLetter(network)}
               </option>
