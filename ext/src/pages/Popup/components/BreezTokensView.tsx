@@ -3,7 +3,7 @@ import { ArrowDownRightIcon, SendIcon } from 'lucide-react';
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { BreezWallet, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
@@ -25,7 +25,8 @@ const BreezTokensView: React.FC = () => {
         const mnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
         const bw = new BreezWallet(mnemonic, getBreezNetwork(network));
         const balances = await bw.getAssetBalances();
-        setAssetBalances(balances);
+        const filteredBalances = balances.filter((asset) => !Object.values(LBTC_ASSET_IDS).includes(asset.assetId));
+        setAssetBalances(filteredBalances);
       } catch (error) {
         console.error('Error fetching Breez asset balances:', error);
       } finally {
