@@ -1,35 +1,20 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 
-import { Networks } from '@shared/types/networks';
-import { Input, Button } from '../DesignSystem';
-import { capitalizeFirstLetter } from '@shared/modules/string-utils';
-import { SwapProvider } from '@shared/types/swap';
-import assert from 'assert';
-import BigNumber from 'bignumber.js';
-import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { useBalance } from '@shared/hooks/useBalance';
-import { BackgroundCaller } from '../../../modules/background-caller';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { useBalance } from '@shared/hooks/useBalance';
+import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { getSwapPairs, getSwapProvidersList } from '@shared/models/swap-providers-list';
+import { capitalizeFirstLetter } from '@shared/modules/string-utils';
+import { Networks } from '@shared/types/networks';
+import { SwapPair } from '@shared/types/swap';
+import assert from 'assert';
+import BigNumber from 'bignumber.js';
 import { Loader2 } from 'lucide-react';
+import { BackgroundCaller } from '../../../modules/background-caller';
+import { Button, Input } from '../DesignSystem';
 
-const getAvailableTargetNetworks = (swapProviders: SwapProvider[], currentNetwork: Networks): Networks[] => {
-  // Get all supported pairs from each provider
-  const allPairs = swapProviders.flatMap((provider) => provider.getSupportedPairs());
-
-  // Filter pairs where source network matches current network
-  const validPairs = allPairs.filter((pair) => pair.from === currentNetwork);
-
-  // Extract just the destination networks
-  const destinationNetworks = validPairs.map((pair) => pair.to);
-
-  // Remove duplicates using Set
-  const uniqueNetworks = new Set(destinationNetworks);
-
-  return Array.from(uniqueNetworks);
-};
-
-const SwapInterfaceView: React.FC<{ swapProviders: SwapProvider[] }> = ({ swapProviders }) => {
+const SwapInterfaceView: React.FC = () => {
   const [amount, setAmount] = useState<string>('');
   const [targetNetwork, setTargetNetwork] = useState<Networks>();
   const { network, setNetwork } = useContext(NetworkContext);
@@ -37,6 +22,11 @@ const SwapInterfaceView: React.FC<{ swapProviders: SwapProvider[] }> = ({ swapPr
   const { balance } = useBalance(network, accountNumber, BackgroundCaller);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
+
+  useEffect(() => {
+    setSwapPairs(getSwapPairs(network));
+  }, [network]);
 
   const handleSwap = async (): Promise<string> => {
     setError('');
@@ -49,6 +39,7 @@ const SwapInterfaceView: React.FC<{ swapProviders: SwapProvider[] }> = ({ swapPr
     const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString(10);
     assert(new BigNumber(balance).gte(satValue), 'Not enough balance');
 
+    const swapProviders = getSwapProvidersList(network);
     const provider = swapProviders.find((p) => p.getSupportedPairs().some((pair) => pair.from === network && pair.to === targetNetwork));
 
     assert(provider, 'No provider found for the selected networks');
@@ -88,11 +79,13 @@ const SwapInterfaceView: React.FC<{ swapProviders: SwapProvider[] }> = ({ swapPr
             }}
           >
             <option value="">Select target network</option>
-            {getAvailableTargetNetworks(swapProviders, network).map((network) => (
-              <option key={`to-${network}`} value={network}>
-                {capitalizeFirstLetter(network)}
-              </option>
-            ))}
+            {swapPairs
+              .map((pair) => pair.to)
+              .map((network) => (
+                <option key={`to-${network}`} value={network}>
+                  {capitalizeFirstLetter(network)}
+                </option>
+              ))}
           </select>
         </div>
 

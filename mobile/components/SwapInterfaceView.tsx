@@ -1,10 +1,10 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, FlatList } from 'react-native';
 import * as Linking from 'expo-linking';
 
 import { Networks } from '@shared/types/networks';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
-import { SwapProvider } from '@shared/types/swap';
+import { SwapPair, SwapProvider } from '@shared/types/swap';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
@@ -12,8 +12,9 @@ import { useBalance } from '@shared/hooks/useBalance';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { getSwapPairs, getSwapProvidersList } from '@shared/models/swap-providers-list';
 
-const SwapInterfaceView: React.FC<{ swapProviders: SwapProvider[] }> = ({ swapProviders }) => {
+const SwapInterfaceView: React.FC = () => {
   const [amount, setAmount] = useState<string>('');
   const [targetNetwork, setTargetNetwork] = useState<Networks>();
   const { network, setNetwork } = useContext(NetworkContext);
@@ -22,6 +23,11 @@ const SwapInterfaceView: React.FC<{ swapProviders: SwapProvider[] }> = ({ swapPr
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [showNetworkPicker, setShowNetworkPicker] = useState(false);
+  const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
+
+  useEffect(() => {
+    setSwapPairs(getSwapPairs(network));
+  }, [network]);
 
   const handleSwap = async (): Promise<string> => {
     setError('');
@@ -34,32 +40,22 @@ const SwapInterfaceView: React.FC<{ swapProviders: SwapProvider[] }> = ({ swapPr
     const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString(10);
     assert(new BigNumber(balance).gte(satValue), 'Not enough balance');
 
-    const provider = swapProviders.find((p) => p.getSupportedPairs().some((pair) => pair.from === network && pair.to === targetNetwork));
+    const providers = getSwapProvidersList(network);
+    const provider = providers.find((p) => p.getSupportedPairs().some((pair) => pair.from === network && pair.to === targetNetwork));
 
-    assert(provider, 'No provider found for the selected networks');
+    assert(provider, 'internal error: no provider found for the selected networks');
 
     if (!amount || isNaN(parseFloat(amount))) {
       throw new Error('Invalid amount');
     }
 
-    console.log('getting destinationAddress...', { targetNetwork, accountNumber });
     const destinationAddress = await BackgroundExecutor.getAddress(targetNetwork, accountNumber);
-    console.log('got destinationAddress', destinationAddress);
     assert(destinationAddress, 'internal error: no destination address');
 
     return provider.swap(network, setNetwork, targetNetwork, parseInt(satValue), destinationAddress);
   };
 
-  const supportedNetworks = Array.from(
-    new Set(
-      swapProviders.flatMap((provider) =>
-        provider
-          .getSupportedPairs()
-          .filter((pair) => pair.to !== network)
-          .map((pair) => pair.to)
-      )
-    )
-  );
+  const supportedNetworks = swapPairs.map((pair) => pair.to);
 
   return (
     <View style={styles.container}>
@@ -91,11 +87,11 @@ const SwapInterfaceView: React.FC<{ swapProviders: SwapProvider[] }> = ({ swapPr
                   <TouchableOpacity
                     style={styles.networkOption}
                     onPress={() => {
-                      setTargetNetwork(item);
+                      setTargetNetwork(item as Networks);
                       setShowNetworkPicker(false);
                     }}
                   >
-                    <Text style={styles.networkOptionText}>{capitalizeFirstLetter(item)}</Text>
+                    <Text style={styles.networkOptionText}>{capitalizeFirstLetter(item as string)}</Text>
                   </TouchableOpacity>
                 )}
               />

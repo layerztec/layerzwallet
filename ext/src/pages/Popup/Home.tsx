@@ -7,9 +7,10 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
-import { getSwapProvidersList } from '@shared/models/swap-providers-list';
+import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { getDecimalsByNetwork, getIsTestnet, getKnowMoreUrl, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
+import { SwapPair } from '@shared/types/swap';
 
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, Networks } from '@shared/types/networks';
 import { BackgroundCaller } from '../../modules/background-caller';
@@ -17,7 +18,6 @@ import PartnersView from './components/PartnersView';
 import TokensView from './components/TokensView';
 import { Button, Switch } from './DesignSystem';
 import BreezTokensView from './components/BreezTokensView';
-import { SwapProvider } from '@shared/types/swap';
 import SwapInterfaceView from './components/SwapInterfaceView';
 
 const Home: React.FC = () => {
@@ -28,7 +28,7 @@ const Home: React.FC = () => {
   const { balance } = useBalance(network, accountNumber, BackgroundCaller);
   const [isTestnet, setIsTestnet] = useState<boolean>(false);
   const { exchangeRate } = useExchangeRate(network, 'USD');
-  const [swapProviders, setSwapProviders] = useState<SwapProvider[]>([]);
+  const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
   const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
 
   useEffect(() => {
@@ -37,7 +37,8 @@ const Home: React.FC = () => {
   }, [network]);
 
   useEffect(() => {
-    setSwapProviders(getSwapProvidersList(network));
+    setSwapPairs(getSwapPairs(network));
+    setShowSwapInterface(false);
   }, [network]);
 
   const handleReceive = () => {
@@ -127,7 +128,7 @@ const Home: React.FC = () => {
       </h1>
 
       {showSwapInterface ? (
-        <SwapInterfaceView swapProviders={swapProviders} />
+        <SwapInterfaceView />
       ) : (
         <div>
           <PartnersView />
@@ -146,7 +147,7 @@ const Home: React.FC = () => {
         Receive
       </Button>
 
-      {swapProviders.length > 0 ? (
+      {swapPairs.length > 0 ? (
         <Button
           onClick={() => {
             setShowSwapInterface(true);
