@@ -15,7 +15,6 @@ export class SwapProviderBoltz implements SwapProvider {
       { from: NETWORK_ROOTSTOCK, to: NETWORK_BITCOIN },
       { from: NETWORK_BITCOIN, to: NETWORK_BREEZ },
       { from: NETWORK_BREEZ, to: NETWORK_BITCOIN },
-      { from: NETWORK_BITCOIN, to: NETWORK_BREEZ },
     ];
   }
 

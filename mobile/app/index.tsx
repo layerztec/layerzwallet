@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,14 +8,17 @@ import '../src/modules/breeze-adapter'; // needed to be imported before we can u
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import TokensView from '@/components/TokensView';
+import SwapInterfaceView from '@/components/SwapInterfaceView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Hello } from '@shared/class/hello';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
+import { getSwapProvidersList } from '@shared/models/swap-providers-list';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
+import { SwapProvider } from '@shared/types/swap';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { OnrampProps } from '@/app/Onramp';
 import BreezTokensView from '@/components/BreezTokensView';
@@ -27,8 +30,15 @@ export default function IndexScreen() {
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const { exchangeRate } = useExchangeRate(network, 'USD');
   const router = useRouter();
+  const [swapProviders, setSwapProviders] = useState<SwapProvider[]>([]);
+  const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
 
   const networks = getAvailableNetworks();
+
+  useEffect(() => {
+    setSwapProviders(getSwapProvidersList(network));
+    setShowSwapInterface(false);
+  }, [network]);
 
   useEffect(() => {
     const checkMnemonic = async () => {
@@ -159,7 +169,11 @@ export default function IndexScreen() {
           </ThemedText>
         </ThemedView>
 
-        {network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET ? <BreezTokensView /> : <TokensView />}
+        {showSwapInterface ? (
+          <SwapInterfaceView swapProviders={swapProviders} />
+        ) : (
+          <ThemedView>{network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET ? <BreezTokensView /> : <TokensView />}</ThemedView>
+        )}
 
         <ThemedView style={styles.contentContainer}>
           <ThemedView style={styles.buttonContainer}>
@@ -175,6 +189,14 @@ export default function IndexScreen() {
               {fiatOnRamp?.[network]?.canBuyWithFiat ? (
                 <TouchableOpacity style={[styles.button]} onPress={goToBuyBitcoin}>
                   <ThemedText style={styles.buttonText}> $ Buy </ThemedText>
+                </TouchableOpacity>
+              ) : null}
+
+              {swapProviders.length > 0 ? (
+                <TouchableOpacity style={[styles.button]} onPress={() => setShowSwapInterface(true)}>
+                  <ThemedText style={styles.buttonText}>
+                    <Ionicons name="refresh" size={16} color="white" /> Swap
+                  </ThemedText>
                 </TouchableOpacity>
               ) : null}
             </ThemedView>
