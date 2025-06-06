@@ -6,11 +6,18 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { BreezWallet, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { getDeviceID } from '@shared/modules/device-id';
 import { formatBalance } from '@shared/modules/string-utils';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
+import { LayerzStorage } from '../../class/layerz-storage';
+import { Csprng } from '../../class/rng';
+import { SecureStorage } from '../../class/secure-storage';
+import { AskPasswordContext } from '../../hooks/AskPasswordContext';
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { getBreezNetwork } from '../../modules/breeze-adapter';
+import { decrypt } from '../../modules/encryption';
 import { Button, HodlButton, Input, WideButton } from './DesignSystem';
 
 const SendLiquid: React.FC = () => {
@@ -19,6 +26,7 @@ const SendLiquid: React.FC = () => {
   const [searchParams] = useSearchParams();
   const network = useContext(NetworkContext).network as typeof NETWORK_BREEZ | typeof NETWORK_BREEZTESTNET;
   const { accountNumber } = useContext(AccountNumberContext);
+  const { askPassword } = useContext(AskPasswordContext);
 
   const [address, setAddress] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
@@ -154,6 +162,17 @@ const SendLiquid: React.FC = () => {
     setError('');
 
     try {
+      const password = await askPassword();
+      const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
+      if (!encryptedMnemonic.startsWith(ENCRYPTED_PREFIX)) {
+        throw new Error('Mnemonic not encrypted, reinstall the extension');
+      }
+      try {
+        await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, await getDeviceID(LayerzStorage, Csprng));
+      } catch (_) {
+        throw new Error('Incorrect password');
+      }
+
       const mnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
       const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
       await wallet.sendPayment({ prepareResponse: prepareResult });
@@ -219,19 +238,20 @@ const SendLiquid: React.FC = () => {
           </div>
         </div>
 
-        <HodlButton onHold={handleConfirmSend} style={{ backgroundColor: '#FF9500' }}>
+        <HodlButton onHold={handleConfirmSend} style={{ backgroundColor: '#FF9500' }} disabled={isSending}>
           <SendIcon />
-          Hold to send payment
+          {isSending ? 'Sending...' : 'Hold to send payment'}
         </HodlButton>
 
         <button
           onClick={() => setShowConfirm(false)}
+          disabled={isSending}
           style={{
             background: 'none',
             border: 'none',
-            color: 'gray',
+            color: isSending ? '#ccc' : 'gray',
             textDecoration: 'underline',
-            cursor: 'pointer',
+            cursor: isSending ? 'not-allowed' : 'pointer',
             fontSize: '16px',
             marginTop: '10px',
           }}

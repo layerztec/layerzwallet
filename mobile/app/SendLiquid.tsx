@@ -5,15 +5,22 @@ import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Csprng } from '@/src/class/rng';
+import { SecureStorage } from '@/src/class/secure-storage';
+import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getBreezNetwork } from '@/src/modules/breeze-adapter';
+import { decrypt } from '@/src/modules/encryption';
 import { BreezWallet, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { getDeviceID } from '@shared/modules/device-id';
 import { formatBalance } from '@shared/modules/string-utils';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
 
 export type SendLiquidParams = {
@@ -27,6 +34,7 @@ const SendLiquid = () => {
   const network = useContext(NetworkContext).network as typeof NETWORK_BREEZ | typeof NETWORK_BREEZTESTNET;
   const { accountNumber } = useContext(AccountNumberContext);
   const { scanQr } = useContext(ScanQrContext);
+  const { askPassword } = useContext(AskPasswordContext);
 
   const [address, setAddress] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
@@ -168,6 +176,19 @@ const SendLiquid = () => {
     setError('');
 
     try {
+      // Verify password first
+      const password = await askPassword();
+      const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
+      if (!encryptedMnemonic.startsWith(ENCRYPTED_PREFIX)) {
+        throw new Error('Mnemonic not encrypted, reinstall the extension');
+      }
+
+      try {
+        await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, await getDeviceID(SecureStorage, Csprng));
+      } catch (_) {
+        throw new Error('Incorrect password');
+      }
+
       const mnemonic = await BackgroundExecutor.getSubMnemonic(accountNumber);
       const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
       await wallet.sendPayment({ prepareResponse: prepareResult });
@@ -240,11 +261,17 @@ const SendLiquid = () => {
               </ThemedText>
             </ThemedView>
 
-            <TouchableOpacity style={[styles.button, isSending && styles.disabledButton]} onPress={handleConfirmSend} disabled={isSending}>
-              <ThemedText style={styles.buttonText}>{isSending ? 'Sending...' : 'Confirm & Send'}</ThemedText>
-            </TouchableOpacity>
+            <LongPressButton
+              style={styles.sendButton}
+              textStyle={styles.sendButtonText}
+              onLongPressComplete={handleConfirmSend}
+              title={isSending ? 'Sending...' : 'Hold to confirm send'}
+              progressColor="#FFFFFF"
+              backgroundColor="#007AFF"
+              disabled={isSending}
+            />
 
-            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setShowConfirm(false)}>
+            <TouchableOpacity style={[styles.button, styles.cancelButton, isSending && styles.disabledButton]} onPress={() => setShowConfirm(false)} disabled={isSending}>
               <ThemedText style={styles.buttonText}>Cancel</ThemedText>
             </TouchableOpacity>
           </ThemedView>
@@ -441,5 +468,17 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     borderRadius: 8,
     marginTop: -20,
+  },
+  sendButton: {
+    backgroundColor: '#007AFF',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  sendButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
