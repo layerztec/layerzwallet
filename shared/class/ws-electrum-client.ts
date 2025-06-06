@@ -75,7 +75,7 @@ export class WsElectrumClient {
             if (parsed.error && parsed.id && this.callbackMessageQueue[+parsed.id]) {
               // error
               const [, reject, timeout] = this.callbackMessageQueue[+parsed.id];
-              reject(new Error(parsed.error));
+              reject(new Error(parsed.error?.message ?? parsed.error));
               clearTimeout(timeout);
               delete this.callbackMessageQueue[+parsed.id];
             }

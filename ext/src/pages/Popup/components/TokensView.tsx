@@ -87,8 +87,11 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
 
 const TokensView: React.FC = () => {
   const { network } = useContext(NetworkContext);
-
   const tokenList = getTokenList(network);
+
+  if (tokenList.length === 0) {
+    return null;
+  }
 
   return (
     <div style={{ padding: 10, marginTop: 10 }}>
