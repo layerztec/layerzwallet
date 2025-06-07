@@ -1,6 +1,6 @@
 {
   "name": "layerzwallet",
-  "main": "expo-router/entry",
+  "main": "./entry.js",
   "version": "1.1.0",
   "description": "Manage your Bitcoin across multiple Layer 2 solutions",
   "repository": {
@@ -15,7 +15,6 @@
     }
   },
   "scripts": {
-    "postinstall": "patch-package",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
@@ -78,7 +77,6 @@
     "expo-system-ui": "~5.0.7",
     "expo-web-browser": "~14.1.6",
     "https-browserify": "^1.0.0",
-    "patch-package": "^8.0.0",
     "process": "^0.11.10",
     "react": "19.0.0",
     "react-dom": "19.0.0",
