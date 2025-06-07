@@ -6,8 +6,6 @@ appId: com.layerzwallet.mobile
 # Verify Bitcoin is selected by default
 - assertVisible:
     id: "selectedNetwork-bitcoin"
-- assertNotVisible:
-    id: "selectedNetwork-rootstock"
 
 - tapOn: "Receive"
 
@@ -38,12 +36,17 @@ appId: com.layerzwallet.mobile
 - assertVisible: "Send"
 - assertVisible: "Receive"
 
-# Lets run the same tests with a different chain
-- tapOn: "ROOTSTOCK"
+# Open network switcher modal to change to Rootstock
+- tapOn:
+    id: "NetworkSwitcherTrigger"
+- waitForAnimationToEnd
 
-# Verify Rootstock is selected
-- assertNotVisible:
-    id: "selectedNetwork-bitcoin"
+# Select Rootstock network from the modal
+- tapOn:
+    id: "network-rootstock"
+- waitForAnimationToEnd
+
+# Verify Rootstock is now selected
 - assertVisible:
     id: "selectedNetwork-rootstock"
 

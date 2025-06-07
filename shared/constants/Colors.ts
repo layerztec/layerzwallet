@@ -20,11 +20,11 @@ export const Colors = {
     tabIconSelected: accent1,
   },
   dark: {
-    text: '#fff',
-    background: primaryColor,
-    tint: '#fff',
-    icon: accent2,
+    text: primaryColor,
+    background: '#fff',
+    tint: primaryColor,
+    icon: accent1,
     tabIconDefault: neutral,
-    tabIconSelected: accent2,
+    tabIconSelected: accent1,
   },
 };

@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated from 'react-native-reanimated';
 
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import { ThemedText } from '@/components/ThemedText';
@@ -23,17 +24,16 @@ import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { OnrampProps } from '@/app/Onramp';
 import BreezTokensView from '@/components/BreezTokensView';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
+import { getNetworkGradient, getNetworkIcon } from '@/constants/Colors';
 
 export default function IndexScreen() {
-  const { network, setNetwork } = useContext(NetworkContext);
+  const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const { exchangeRate } = useExchangeRate(network, 'USD');
   const router = useRouter();
   const [swapProviders, setSwapProviders] = useState<SwapProvider[]>([]);
   const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
-
-  const networks = getAvailableNetworks();
 
   useEffect(() => {
     setSwapProviders(getSwapProvidersList(network));
@@ -125,16 +125,41 @@ export default function IndexScreen() {
         </ThemedView>
 
         <ThemedView style={styles.networkContainer}>
-          {networks.map((availableNetwork) => (
-            <TouchableOpacity
-              key={availableNetwork}
-              testID={network === availableNetwork ? `selectedNetwork-${availableNetwork}` : `network-${availableNetwork}`}
-              style={[styles.networkButton, network === availableNetwork && styles.selectedNetworkButton]}
-              onPress={() => setNetwork(availableNetwork)}
-            >
-              <ThemedText style={[styles.networkButtonText, network === availableNetwork && styles.selectedNetworkButtonText]}>{availableNetwork.toUpperCase()}</ThemedText>
-            </TouchableOpacity>
-          ))}
+          <TouchableOpacity onPress={() => router.push('/network-selector')} testID="NetworkSwitcherTrigger" activeOpacity={0.6}>
+            <Animated.View style={styles.networkCard} testID={`selectedNetwork-${network}`}>
+              <ThemedView style={styles.networkCardTouchable}>
+                <ThemedView
+                  style={[
+                    styles.networkIconContainer,
+                    {
+                      backgroundColor: getNetworkGradient(network)[0],
+                    },
+                  ]}
+                >
+                  <Ionicons name={getNetworkIcon(network)} size={24} color="white" />
+                </ThemedView>
+
+                <ThemedView style={styles.networkInfo}>
+                  <ThemedText style={styles.networkCardTitle}>{network.charAt(0).toUpperCase() + network.slice(1)}</ThemedText>
+                  <ThemedView style={styles.networkStatus}>
+                    <ThemedView
+                      style={[
+                        styles.statusIndicator,
+                        {
+                          backgroundColor: getIsTestnet(network) ? '#F59E0B' : '#059669',
+                        },
+                      ]}
+                    />
+                    <ThemedText style={styles.networkCardSubtitle}>{getIsTestnet(network) ? 'Testnet' : 'Mainnet'}</ThemedText>
+                  </ThemedView>
+                </ThemedView>
+
+                <ThemedView style={styles.actionButton}>
+                  <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+                </ThemedView>
+              </ThemedView>
+            </Animated.View>
+          </TouchableOpacity>
         </ThemedView>
 
         {getIsTestnet(network) && (
@@ -161,9 +186,20 @@ export default function IndexScreen() {
         )}
 
         <ThemedView style={styles.balanceContainer}>
+          <ThemedText style={styles.balanceLabel}>Pocket Balance:</ThemedText>
           <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
             {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
           </ThemedText>
+          <ThemedText style={styles.balanceLabel}>Layer Balance:</ThemedText>
+          <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
+            {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
+          </ThemedText>
+          {(network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET) && (
+            <>
+              <ThemedText style={styles.balanceLabel}>Active Tokens:</ThemedText>
+              <ThemedText style={styles.balanceText}>0</ThemedText>
+            </>
+          )}
           <ThemedText adjustsFontSizeToFit numberOfLines={1}>
             {balance && +balance > 0 && exchangeRate ? '$' + formatFiatBalance(balance, getDecimalsByNetwork(network), exchangeRate) : ''}
           </ThemedText>
@@ -240,16 +276,23 @@ const styles = StyleSheet.create({
   balanceContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 30,
+    paddingVertical: 20,
     marginTop: 0,
-    marginBottom: 0,
+    marginBottom: 10,
     paddingHorizontal: 20,
   },
+  balanceLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+    opacity: 0.8,
+  },
   balanceText: {
-    fontSize: 25,
+    fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
     width: '100%',
+    marginBottom: 4,
   },
   contentContainer: {
     flex: 1,
@@ -287,11 +330,69 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF3B30',
   },
   networkContainer: {
+    marginHorizontal: 20,
+    marginVertical: 10,
+  },
+  networkCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  networkCardTouchable: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    padding: 20,
+    gap: 16,
+  },
+  networkIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
     justifyContent: 'center',
-    padding: 10,
-    gap: 8,
+  },
+  networkInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  networkCardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  networkStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  networkCardSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  actionButton: {
+    padding: 4,
+  },
+  currentNetworkText: {
+    fontSize: 16,
+    color: '#374151',
+    fontWeight: '600',
+    flex: 1,
   },
   networkButton: {
     paddingHorizontal: 12,

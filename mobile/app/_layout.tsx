@@ -84,6 +84,14 @@ export default function RootLayout() {
                   <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
                   <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
                   <Stack.Screen name="Onramp" options={{ headerShown: true }} />
+                  <Stack.Screen
+                    name="network-selector"
+                    options={{
+                      presentation: 'transparentModal',
+                      animation: 'none',
+                      headerShown: false,
+                    }}
+                  />
                   <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
                 </Stack>
                 <StatusBar style="auto" />
