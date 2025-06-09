@@ -9,9 +9,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import Slider from '@react-native-community/slider';
 
-import { Csprng } from '@/src/class/rng';
-import { SecureStorage } from '@/src/class/secure-storage';
-import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
+import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { EvmWallet } from '@shared/class/evm-wallet';
@@ -20,10 +18,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { getTokenList } from '@shared/models/token-list';
-import { getDeviceID } from '@shared/modules/device-id';
-import { decrypt } from '../src/modules/encryption';
 import { formatBalance } from '@shared/modules/string-utils';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { Networks } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
 import assert from 'assert';
@@ -55,7 +50,7 @@ const SendTokenEvm: React.FC = () => {
   const [screenState, setScreenState] = useState<'init' | 'preparing' | 'prepared'>('init');
   const [fees, setFees] = useState<StringNumber>(); // min fees user will have to pay for the transaction
   const [maxFees, setMaxFees] = useState<StringNumber>(); // max fees user will have to pay for the transaction
-  const { askPassword } = useContext(AskPasswordContext);
+  const { askMnemonic } = useContext(AskMnemonicContext);
   const [feeMultiplier, setFeeMultiplier] = useState<number>(1);
 
   const formatBalanceNativeCoin = (balance: StringNumber, network: Networks): string => {
@@ -159,23 +154,8 @@ const SendTokenEvm: React.FC = () => {
       console.log('calculatedFee=', calculatedMinFee);
       console.log('calculatedMaxFee=', calculatedMaxFee);
 
-      const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
-      let decrypted: string = encryptedMnemonic;
-      if (encryptedMnemonic.startsWith(ENCRYPTED_PREFIX)) {
-        const password = await askPassword();
-        if (!password) {
-          setScreenState('init');
-          return; // User cancelled the password prompt
-        }
-
-        try {
-          decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, await getDeviceID(SecureStorage, Csprng));
-        } catch {
-          throw new Error('Incorrect password');
-        }
-      }
-
-      const bytes = await e.signTransaction(prepared, decrypted, accountNumber);
+      const mnemonic = await askMnemonic();
+      const bytes = await e.signTransaction(prepared, mnemonic, accountNumber);
       setBytes(bytes);
       setScreenState('prepared');
     } catch (error: any) {

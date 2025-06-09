@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getBreezNetwork } from '@/src/modules/breeze-adapter';
@@ -21,6 +22,7 @@ import { NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
 
 const SendLightning = () => {
   const { scanQr } = useContext(ScanQrContext);
+  const { askMnemonic } = useContext(AskMnemonicContext);
   const navigation = useNavigation();
   const [invoice, setInvoice] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -86,6 +88,7 @@ const SendLightning = () => {
         throw new Error('Transaction not properly prepared');
       }
 
+      await askMnemonic(); // verify password
       const sendRequest: SendPaymentRequest = {
         prepareResponse: preparedResponse,
       };

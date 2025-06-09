@@ -96,8 +96,12 @@ test('can send coins to second account, and verify balance', async ({ page, exte
   await page.getByTestId('recipient-address-input').fill(await page.evaluate(() => navigator.clipboard.readText())); // paste
   await page.getByTestId('send-screen-send-button').click();
 
-  await page.getByTestId('password-provider-input').fill('qwerty');
-  await page.getByText(/OK/).click();
+  await page.getByTestId('password-provider-input2').fill('wrong'); // wrong password
+  await page.keyboard.press('Enter');
+  await expect(page.locator('body')).toHaveText(/Incorrect password/, { timeout: 10000 });
+
+  await page.getByTestId('password-provider-input2').fill('qwerty'); // correct password
+  await page.getByTestId('unlock-wallet-button').click();
 
   // hodl button:
   const hodlButton = page.locator('text=Hold to confirm send');

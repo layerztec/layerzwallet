@@ -10,17 +10,11 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { getTokenList } from '@shared/models/token-list';
-import { getDeviceID } from '@shared/modules/device-id';
 import { formatBalance } from '@shared/modules/string-utils';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { Networks } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
-import { LayerzStorage } from '../../class/layerz-storage';
-import { Csprng } from '../../class/rng';
-import { SecureStorage } from '../../class/secure-storage';
-import { AskPasswordContext } from '../../hooks/AskPasswordContext';
+import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { BackgroundCaller } from '../../modules/background-caller';
-import { decrypt } from '../../modules/encryption';
 import { HodlButton, Input, SelectFeeSlider, WideButton } from './DesignSystem';
 import { TransactionSuccessProps } from './TransactionSuccessEvm';
 
@@ -46,7 +40,7 @@ const SendTokenEvm: React.FC = () => {
   const [isPreparing, setIsPreparing] = useState<boolean>(false);
   const [fees, setFees] = useState<StringNumber>(); // min fees user will have to pay for the transaction
   const [maxFees, setMaxFees] = useState<StringNumber>(); // max fees user will have to pay for the transaction
-  const { askPassword } = useContext(AskPasswordContext);
+  const { askMnemonic } = useContext(AskMnemonicContext);
   const [overpayMultiplier, setOverpayMultiplier] = useState<number>(1);
 
   const formatBalanceNativeCoin = (balance: StringNumber, network: Networks): string => {
@@ -129,18 +123,8 @@ const SendTokenEvm: React.FC = () => {
       console.log('calculatedFee=', calculatedMinFee);
       console.log('calculatedMaxFee=', calculatedMaxFee);
 
-      const password = await askPassword();
-      const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
-      assert(encryptedMnemonic.startsWith(ENCRYPTED_PREFIX), 'Mnemonic not encrypted, reinstall the extension');
-      let decrypted: string;
-      try {
-        decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, await getDeviceID(LayerzStorage, Csprng));
-      } catch (_) {
-        // only catching and re-throwing to change the error message. probably would be better to
-        // make a separate place to interpret errors and display the appropriate ones
-        throw new Error('Incorrect password');
-      }
-      const bytes = await e.signTransaction(prepared, decrypted, accountNumber);
+      const mnemonic = await askMnemonic();
+      const bytes = await e.signTransaction(prepared, mnemonic, accountNumber);
       setBytes(bytes);
     } catch (error: any) {
       console.error(error.message);

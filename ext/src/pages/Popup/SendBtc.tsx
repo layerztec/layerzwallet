@@ -13,18 +13,12 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { getDeviceID } from '@shared/modules/device-id';
 import { formatBalance } from '@shared/modules/string-utils';
 import { withRetry } from '@shared/modules/tenacity';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
-import { LayerzStorage } from '../../class/layerz-storage';
 import { ThemedText } from '../../components/ThemedText';
-import { Csprng } from '../../class/rng';
-import { SecureStorage } from '../../class/secure-storage';
-import { AskPasswordContext } from '../../hooks/AskPasswordContext';
+import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
-import { decrypt } from '../../modules/encryption';
 import { Button, HodlButton, Input, Modal, RadioButton, WideButton } from './DesignSystem';
 import ClipboardBackdoor from './components/ClipboardBackdoor';
 
@@ -44,7 +38,7 @@ const SendBtc: React.FC = () => {
   const [actualFee, setActualFee] = useState<number>();
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { askPassword } = useContext(AskPasswordContext);
+  const { askMnemonic } = useContext(AskMnemonicContext);
   const { balance } = useBalance(network, accountNumber, BackgroundCaller);
   const [showFeeModal, setShowFeeModal] = useState(false);
 
@@ -169,22 +163,14 @@ const SendBtc: React.FC = () => {
         throw new Error('recipient address is not valid');
       }
 
-      const password = await askPassword();
-      const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
-      assert(encryptedMnemonic.startsWith(ENCRYPTED_PREFIX), 'Mnemonic not encrypted, reinstall the extension');
-      let decrypted: string;
-      try {
-        decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, await getDeviceID(LayerzStorage, Csprng));
-        w.setSecret(decrypted);
-        w.setDerivationPath(`m/84'/0'/${accountNumber}'`);
-      } catch (_) {
-        // only catching and re-throwing to change the error message. probably would be better to
-        // make a separate place to interpret errors and display the appropriate ones
-        throw new Error('Incorrect password');
-      }
-
+      // check that we have utxos and change address
       assert(sendData?.utxos, 'internal error: utxo not loaded');
       assert(sendData?.changeAddress, 'internal error: change address not loaded');
+
+      // ask for password to verify user can unlock the wallet
+      const mnemonic = await askMnemonic();
+      w.setSecret(mnemonic);
+      w.setDerivationPath(`m/84'/0'/${accountNumber}'`);
 
       // construct transaction
       const targets: CreateTransactionTarget[] = [

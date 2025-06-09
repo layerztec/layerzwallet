@@ -2,23 +2,17 @@ import React, { useContext, useState } from 'react';
 
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { AskPasswordContext } from '../../../hooks/AskPasswordContext';
+import { AskMnemonicContext } from '../../../hooks/AskMnemonicContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { Messenger } from '@shared/modules/messenger';
 import { Button, HodlButton, SelectFeeSlider } from '../DesignSystem';
 import assert from 'assert';
-import { decrypt } from '../../../modules/encryption';
-import { getDeviceID } from '@shared/modules/device-id';
 import { StringNumber } from '@shared/types/string-number';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { SendIcon } from 'lucide-react';
 import { formatBalance, hexToDec } from '@shared/modules/string-utils';
-import { SecureStorage } from '../../../class/secure-storage';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
-import { LayerzStorage } from '../../../class/layerz-storage';
-import { Csprng } from '../../../class/rng';
 
 interface SendTransactionArgs {
   params: any[];
@@ -33,7 +27,7 @@ interface SendTransactionArgs {
 export function SendTransaction(args: SendTransactionArgs) {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { askPassword } = useContext(AskPasswordContext);
+  const { askMnemonic } = useContext(AskMnemonicContext);
   const [minFees, setMinFees] = useState<StringNumber>(); // min fees user will have to pay for the transaction
   const [maxFees, setMaxFees] = useState<StringNumber>(); // max fees user will have to pay for the transaction
   const [bytes, setBytes] = useState<string>(''); // txhex ready to broadcast
@@ -78,18 +72,8 @@ export function SendTransaction(args: SendTransactionArgs) {
         setMinFees(calculatedMinFee);
         setMaxFees(calculatedMaxFee);
 
-        const password = await askPassword();
-        const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
-        assert(encryptedMnemonic.startsWith(ENCRYPTED_PREFIX), 'Mnemonic not encrypted, reinstall the extension');
-        let decrypted: string;
-        try {
-          decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, await getDeviceID(LayerzStorage, Csprng));
-        } catch (_) {
-          // only catching and re-throwing to change the error message. probably would be better to
-          // make a separate place to interpret errors and display the appropriate ones
-          throw new Error('Incorrect password');
-        }
-        const bytes = await e.signTransaction(prepared, decrypted, accountNumber);
+        const mnemonic = await askMnemonic();
+        const bytes = await e.signTransaction(prepared, mnemonic, accountNumber);
         setBytes(bytes);
         BackgroundCaller.log('signed tx: ' + bytes);
 

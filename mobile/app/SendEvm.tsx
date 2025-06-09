@@ -10,9 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { Csprng } from '@/src/class/rng';
-import { SecureStorage } from '@/src/class/secure-storage';
-import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
+import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { EvmWallet } from '@shared/class/evm-wallet';
@@ -20,12 +18,9 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { getDeviceID } from '@shared/modules/device-id';
 import { formatBalance } from '@shared/modules/string-utils';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
-import { decrypt } from '../src/modules/encryption';
 import { TransactionSuccessProps } from './TransactionSuccessEvm';
 
 export default function SendScreen() {
@@ -43,7 +38,7 @@ export default function SendScreen() {
   const [bytes, setBytes] = useState('');
   const [fees, setFees] = useState<StringNumber>(); // min fees user will have to pay for the transaction
   const [maxFees, setMaxFees] = useState<StringNumber>(); // max fees user will have to pay for the transaction
-  const { askPassword } = useContext(AskPasswordContext);
+  const { askMnemonic } = useContext(AskMnemonicContext);
 
   // loading OUR address
   useEffect(() => {
@@ -198,25 +193,8 @@ export default function SendScreen() {
       console.log('calculatedFee=', calculatedMinFee);
       console.log('calculatedMaxFee=', calculatedMaxFee);
 
-      const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
-      let decrypted: string = encryptedMnemonic;
-      if (encryptedMnemonic.startsWith(ENCRYPTED_PREFIX)) {
-        const password = await askPassword();
-        if (!password) {
-          setScreenState('init');
-          return; // User cancelled the password prompt
-        }
-
-        try {
-          decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, await getDeviceID(SecureStorage, Csprng));
-        } catch {
-          // only catching and re-throwing to change the error message. probably would be better to
-          // make a separate place to interpret errors and display the appropriate ones
-          throw new Error('Incorrect password');
-        }
-      }
-
-      const bytes = await e.signTransaction(prepared, decrypted, accountNumber);
+      const mnemonic = await askMnemonic();
+      const bytes = await e.signTransaction(prepared, mnemonic, accountNumber);
       setBytes(bytes);
       setScreenState('prepared');
       console.log('bytes=', bytes);

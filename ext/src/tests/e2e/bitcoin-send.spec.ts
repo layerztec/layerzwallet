@@ -32,8 +32,12 @@ test('can prepare BTC transaction', async ({ page, extensionId }) => {
   await page.getByTestId('fee-done-button').click();
 
   await page.getByTestId('send-screen-send-button').click();
-  await page.getByTestId('password-provider-input').fill('qwerty');
-  await page.getByText(/OK/).click();
+  await page.getByTestId('password-provider-input2').fill('wrong'); // wrong password
+  await page.keyboard.press('Enter');
+  await expect(page.locator('body')).toHaveText(/Incorrect password/, { timeout: 10000 });
+
+  await page.getByTestId('password-provider-input2').fill('qwerty'); // correct password
+  await page.getByTestId('unlock-wallet-button').click();
 
   // wait for tx to be prepared
   await new Promise((resolve) => setTimeout(resolve, 1000));

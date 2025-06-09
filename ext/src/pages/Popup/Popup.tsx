@@ -10,6 +10,7 @@ import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { LayerzStorage } from '../../class/layerz-storage';
 import { SwrCacheProvider } from '../../class/swr-cache-provider';
 import { AskPasswordContextProvider } from '../../hooks/AskPasswordContext';
+import { AskMnemonicContextProvider } from '../../hooks/AskMnemonicContext';
 import { ScanQrContextProvider } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
 import Action from './Action';
@@ -116,15 +117,17 @@ const Popup: React.FC = () => {
     <Router>
       <SWRConfig value={{ provider: () => new SwrCacheProvider() }}>
         <AskPasswordContextProvider>
-          <ScanQrContextProvider>
-            <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
-              <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
-                <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
-                  <AppContent />
-                </NetworkContextProvider>
-              </AccountNumberContextProvider>
-            </InitializationContextProvider>
-          </ScanQrContextProvider>
+          <AskMnemonicContextProvider>
+            <ScanQrContextProvider>
+              <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
+                <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
+                  <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
+                    <AppContent />
+                  </NetworkContextProvider>
+                </AccountNumberContextProvider>
+              </InitializationContextProvider>
+            </ScanQrContextProvider>
+          </AskMnemonicContextProvider>
         </AskPasswordContextProvider>
       </SWRConfig>
     </Router>

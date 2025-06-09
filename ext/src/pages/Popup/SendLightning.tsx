@@ -10,6 +10,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
+import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { getBreezNetwork } from '../../modules/breeze-adapter';
@@ -18,6 +19,7 @@ import { Button, HodlButton, Input, WideButton } from './DesignSystem';
 const SendLightning: React.FC = () => {
   const scanQr = useScanQR();
   const navigate = useNavigate();
+  const { askMnemonic } = useContext(AskMnemonicContext);
   const [invoice, setInvoice] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [sendState, setSendState] = useState<'idle' | 'preparing' | 'prepared' | 'success'>('idle');
@@ -80,6 +82,7 @@ const SendLightning: React.FC = () => {
         throw new Error('Transaction not properly prepared');
       }
 
+      await askMnemonic(); // verify password
       const sendRequest: SendPaymentRequest = {
         prepareResponse: preparedResponse,
       };
