@@ -20,7 +20,7 @@
     "prepare": "cd .. && husky ext/.husky"
   },
   "dependencies": {
-    "@arklabs/wallet-sdk": "0.0.13",
+    "@arklabs/wallet-sdk": "0.0.15",
     "@bitcoinerlab/secp256k1": "1.2.0",
     "@breeztech/breez-sdk-liquid": "0.9.1",
     "@metamask/eth-sig-util": "4.0.1",

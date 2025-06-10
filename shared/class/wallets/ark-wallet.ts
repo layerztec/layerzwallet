@@ -83,7 +83,7 @@ export class ArkWallet extends AbstractHDElectrumWallet {
     if (!this._wallet) throw new Error('Ark wallet not initialized');
 
     const { offchain } = await this._wallet.getAddress();
-    return offchain?.address;
+    return offchain;
   }
 
   async getOffchainBalanceForAddress(address: string) {
