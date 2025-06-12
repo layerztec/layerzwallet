@@ -48,7 +48,8 @@ var options = {
     notHotReload: ['background', 'contentScript', 'contentScriptLoader', 'devtools'],
   },
   output: {
-    filename: '[name].bundle.js',
+    // mandatory prefix so there wont be a situation when [name] randomly starts with "_" and breaks the build
+    filename: 'lz.[name].bundle.js',
     path: path.resolve(__dirname, 'build'),
     clean: true,
     publicPath: ASSET_PATH,

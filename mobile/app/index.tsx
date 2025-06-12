@@ -5,6 +5,7 @@ import { StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
+import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import TokensView from '@/components/TokensView';
@@ -17,7 +18,7 @@ import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
+import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SwapPair } from '@shared/types/swap';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { OnrampProps } from '@/app/Onramp';
@@ -85,6 +86,7 @@ export default function IndexScreen() {
       case NETWORK_BITCOIN:
         router.push('/SendBtc');
         break;
+      case NETWORK_SPARK:
       case NETWORK_ARKMUTINYNET:
         router.push('/SendArk');
         break;

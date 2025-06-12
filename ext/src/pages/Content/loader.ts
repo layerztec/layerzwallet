@@ -14,8 +14,8 @@ import { BackgroundCaller } from '../../modules/background-caller';
 console.log('Injecting LZ...');
 
 var s = document.createElement('script');
-s.src = chrome.runtime.getURL('contentScript.bundle.js');
-// Note: contentScript.bundle.js must be listed in manifest.json's web_accessible_resources
+s.src = chrome.runtime.getURL('lz.contentScript.bundle.js');
+// Note: lz.contentScript.bundle.js must be listed in manifest.json's web_accessible_resources
 // to allow the webpage to load it as a script
 s.onload = function () {
   // @ts-ignore

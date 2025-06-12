@@ -1,7 +1,9 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
-const ALIASES = {};
+const ALIASES = {
+  ws: path.resolve(__dirname, './dummy-ws.js'),
+};
 
 module.exports = (async () => {
   const defaultConfig = getDefaultConfig(__dirname);

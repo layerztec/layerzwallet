@@ -3,6 +3,7 @@ import React, { useCallback, useContext } from 'react';
 import { Navigate, Route, HashRouter as Router, Routes, useNavigate } from 'react-router';
 import { SWRConfig } from 'swr';
 import '../../modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
+import '../../modules/spark-adapter'; // needed to be imported before we can use SparkWallet
 import { Hello } from '@shared/class/hello';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
 import { EStep, InitializationContext, InitializationContextProvider } from '@shared/hooks/InitializationContext';

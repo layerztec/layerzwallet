@@ -4,7 +4,7 @@ import fs from 'fs';
 
 export default defineConfig({
   test: {
-    setupFiles: ['../shared/tests/setup-vi.js'],
+    setupFiles: ['../shared/tests/setup-vi.js', '../ext/src/modules/spark-adapter.ts'],
     testTimeout: 60_000,
     include: [
       '**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',

@@ -12,7 +12,7 @@ import { getDecimalsByNetwork, getIsTestnet, getKnowMoreUrl, getTickerByNetwork 
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { SwapPair } from '@shared/types/swap';
 
-import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, Networks } from '@shared/types/networks';
+import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { BackgroundCaller } from '../../modules/background-caller';
 import PartnersView from './components/PartnersView';
 import TokensView from './components/TokensView';
@@ -57,6 +57,7 @@ const Home: React.FC = () => {
       case NETWORK_BITCOIN:
         navigate('/send-btc');
         break;
+      case NETWORK_SPARK:
       case NETWORK_ARKMUTINYNET:
         navigate('/send-ark');
         break;

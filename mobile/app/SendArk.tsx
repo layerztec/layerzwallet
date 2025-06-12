@@ -18,6 +18,8 @@ import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
 import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { NETWORK_SPARK } from '@shared/types/networks';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 const SendArk = () => {
   const { scanQr } = useContext(ScanQrContext);
@@ -27,6 +29,7 @@ const SendArk = () => {
   const [isPreparing, setIsPreparing] = useState<boolean>(false);
   const [isPrepared, setIsPrepared] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [isSending, setIsSending] = useState<boolean>(false);
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
@@ -34,16 +37,19 @@ const SendArk = () => {
   const arkWallet = useRef<ArkWallet | undefined>(undefined);
 
   const actualSend = async () => {
+    let startTs = Date.now();
     try {
+      setIsSending(true);
+      await new Promise((resolve) => setTimeout(resolve, 100)); // sleep to propagate
       const satValueBN = new BigNumber(amount);
       const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString(10);
 
       if (!arkWallet) {
         throw new Error('Internal error: ArkWallet is not set');
       }
-
       console.log('actual value to send:', +satValue);
 
+      startTs = Date.now();
       const transactionId = await arkWallet.current?.pay(toAddress, +satValue);
       assert(transactionId, 'Internal error: ArkWallet.pay() failed');
       console.log('submitted txid:', transactionId);
@@ -51,6 +57,9 @@ const SendArk = () => {
       setIsSuccess(true);
     } catch (error: any) {
       setError(error.message);
+    } finally {
+      console.log('actualSend took', (Date.now() - startTs) / 1000, 'sec');
+      setIsSending(false);
     }
   };
 
@@ -61,12 +70,19 @@ const SendArk = () => {
       // TODO: validate the address
       // TODO: validate the amount
 
-      const mnemonic = await askMnemonic();
+      let mnemonic = await askMnemonic();
+      let w: ArkWallet | SparkWallet = new ArkWallet();
 
-      const w = new ArkWallet();
-      w.setSecret(mnemonic);
-      w.setAccountNumber(accountNumber);
-      w.init();
+      if (network === NETWORK_SPARK) {
+        w = new SparkWallet();
+        mnemonic = await BackgroundExecutor.getSubMnemonic(accountNumber);
+        w.setSecret(mnemonic);
+        await w.init();
+      } else {
+        w.setSecret(mnemonic);
+        w.setAccountNumber(accountNumber);
+        await w.init();
+      }
       arkWallet.current = w;
 
       setIsPrepared(true);
@@ -147,26 +163,33 @@ const SendArk = () => {
         ) : null}
 
         {isPrepared ? (
-          <ThemedView style={styles.confirmContainer}>
-            <LongPressButton
-              style={styles.sendButton}
-              textStyle={styles.sendButtonText}
-              onLongPressComplete={actualSend}
-              title="Hold to confirm send"
-              progressColor="#FFFFFF"
-              backgroundColor="#007AFF"
-            />
+          isSending ? (
+            <ThemedView style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#007AFF" />
+              <ThemedText style={styles.loadingText}>Sending...</ThemedText>
+            </ThemedView>
+          ) : (
+            <ThemedView style={styles.confirmContainer}>
+              <LongPressButton
+                style={styles.sendButton}
+                textStyle={styles.sendButtonText}
+                onLongPressComplete={actualSend}
+                title="Hold to confirm send"
+                progressColor="#FFFFFF"
+                backgroundColor="#007AFF"
+              />
 
-            <TouchableOpacity
-              onPress={() => {
-                setIsPreparing(false);
-                setIsPrepared(false);
-              }}
-              style={styles.cancelButton}
-            >
-              <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
-            </TouchableOpacity>
-          </ThemedView>
+              <TouchableOpacity
+                onPress={() => {
+                  setIsPreparing(false);
+                  setIsPrepared(false);
+                }}
+                style={styles.cancelButton}
+              >
+                <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
+              </TouchableOpacity>
+            </ThemedView>
+          )
         ) : null}
       </ThemedView>
     </SafeAreaView>

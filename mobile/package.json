@@ -21,8 +21,8 @@
     "web": "expo start --web",
     "test": "jest --watchAll",
     "e2e": "maestro test .maestro/*",
-    "unit": "vitest run ../shared/tests/unit-vi/",
-    "integration": "vitest run ../shared/tests/integration-vi/",
+    "unit": "vitest run ../shared/tests/unit-vi/ --silent",
+    "integration": "vitest run ../shared/tests/integration-vi/ --silent",
     "lint": "prettier '**/*.{js,jsx,ts,tsx,json,css,scss,md}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md}' --config ./.prettierrc --check && tsc --noEmit && expo lint",
     "lint:write": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md}' --config ./.prettierrc; expo lint --fix"
   },
@@ -34,6 +34,7 @@
     "@bitcoinerlab/secp256k1": "1.2.0",
     "@breeztech/breez-sdk-liquid": "0.9.1",
     "@breeztech/react-native-breez-sdk-liquid": "0.9.1",
+    "@buildonspark/spark-sdk": "^0.1.37",
     "@expo/vector-icons": "^14.1.0",
     "@metamask/eth-sig-util": "8.2.0",
     "@noble/hashes": "^1.7.1",

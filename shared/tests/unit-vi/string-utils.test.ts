@@ -16,6 +16,7 @@ test('formatBalance', () => {
   assert.strictEqual(formatBalance('123456789', getDecimalsByNetwork(NETWORK_BITCOIN), 8), '1.23456789');
   assert.strictEqual(formatBalance('123456789', getDecimalsByNetwork(NETWORK_BITCOIN), 2), '1.23');
   assert.strictEqual(formatBalance('123456789', getDecimalsByNetwork(NETWORK_BITCOIN), 4), '1.2346'); // rounding up
+  assert.strictEqual(formatBalance('1', getDecimalsByNetwork(NETWORK_BITCOIN)), '0.00000001'); // 1 sat should be displayed properly for btc
 });
 
 test('formatFiatBalance', () => {

@@ -9,6 +9,7 @@ import { useState } from 'react';
 
 import { Csprng } from '@/src/class/rng';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 export default function TabThreeScreen() {
   const [testState, setTestState] = useState<'not_started' | 'running' | 'ok' | 'error'>('not_started');
@@ -18,6 +19,15 @@ export default function TabThreeScreen() {
     try {
       setTestState('running');
       await new Promise((resolve) => setTimeout(resolve, 200)); // propagate
+
+      // testing spark:
+      const w = new SparkWallet();
+      w.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
+      await w.init();
+      assert(
+        (await w.getOffchainReceiveAddress()) === 'sp1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym094800574233rzd',
+        'unexpected spark wallet getOffchainReceiveAddress(): ' + (await w.getOffchainReceiveAddress())
+      );
 
       // testing evm:
       const xpub = EvmWallet.mnemonicToXpub('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');

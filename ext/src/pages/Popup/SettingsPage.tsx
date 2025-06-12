@@ -8,6 +8,7 @@ import { Csprng } from '../../class/rng';
 import { decrypt, encrypt } from '../../modules/encryption';
 import { Button, Select } from './DesignSystem';
 import { ThemedText } from '../../components/ThemedText';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 const pck = require('../../../package.json');
 
@@ -64,6 +65,14 @@ const SettingsPage: React.FC = () => {
         onClick={async () => {
           await log('starting...');
           try {
+            const w = new SparkWallet();
+            w.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
+            await w.init();
+            assert(
+              (await w.getOffchainReceiveAddress()) === 'sp1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym094800574233rzd',
+              'unexpected spark wallet getOffchainReceiveAddress(): ' + (await w.getOffchainReceiveAddress())
+            );
+
             const data2encrypt = 'really long data string bla bla really long data string bla bla really long data string bla bla';
             const start = +new Date();
             const crypted = await encrypt(Csprng, data2encrypt, 'password', '53B63311-D2D5-4C62-9F7F-28F25447B825');

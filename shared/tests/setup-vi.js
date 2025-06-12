@@ -1,3 +1,5 @@
+import nodeCrypto from 'crypto';
+
 const mockStorage = {};
 global.chrome = {
   storage: {
@@ -34,4 +36,6 @@ global.window = {
   location: {
     hostname: 'localhost',
   },
+  crypto: nodeCrypto,
+  fetch,
 };

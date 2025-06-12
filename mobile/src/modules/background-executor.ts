@@ -15,11 +15,12 @@ import {
   STORAGE_KEY_SUB_MNEMONIC,
   STORAGE_KEY_WHITELIST,
 } from '@shared/types/IStorage';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
 import { encrypt } from '../modules/encryption';
 import { getBreezNetwork } from './breeze-adapter';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 // Cache of wallets by network and account number (currently only bitcoin)
 const cachedWallets: Record<string, Record<number, WatchOnlyWallet>> = {
@@ -49,6 +50,12 @@ export const BackgroundExecutor: IBackgroundCaller = {
     } else if (network === NETWORK_ARKMUTINYNET) {
       const address = await LayerzStorage.getItem(STORAGE_KEY_ARK_ADDRESS + accountNumber);
       return address;
+    } else if (network === NETWORK_SPARK) {
+      const sp = new SparkWallet();
+      const submnemonic = await BackgroundExecutor.getSubMnemonic(accountNumber);
+      sp.setSecret(submnemonic);
+      await sp.init();
+      return String(await sp.getOffchainReceiveAddress());
     } else if (network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET) {
       const mnemonic = await SecureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
       const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));

@@ -45,3 +45,4 @@ layerzwalletproject-*.json
 
 LayerzWallet.app/
 build-*.tar.gz
+build-*.apk

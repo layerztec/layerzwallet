@@ -14,7 +14,12 @@ import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { Button, HodlButton, Input, WideButton } from './DesignSystem';
+import { NETWORK_SPARK } from '@shared/types/networks';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
+/**
+ * This screen is used for both ArkWallet and SparkWallet
+ */
 const SendArk: React.FC = () => {
   const scanQr = useScanQR();
   const navigate = useNavigate();
@@ -24,6 +29,7 @@ const SendArk: React.FC = () => {
   const [isPreparing, setIsPreparing] = useState<boolean>(false);
   const [isPrepared, setIsPrepared] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [isSending, setIsSending] = useState<boolean>(false);
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
@@ -31,7 +37,10 @@ const SendArk: React.FC = () => {
   const arkWallet = useRef<ArkWallet | undefined>(undefined);
 
   const actualSend = async () => {
+    let startTs = Date.now();
     try {
+      setIsSending(true);
+      await new Promise((resolve) => setTimeout(resolve, 100)); // sleep to propagate
       const satValueBN = new BigNumber(amount);
       const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString(10);
 
@@ -41,6 +50,7 @@ const SendArk: React.FC = () => {
 
       console.log('actual value to send:', +satValue);
 
+      startTs = Date.now();
       const transactionId = await arkWallet.current?.pay(toAddress, +satValue);
       assert(transactionId, 'Internal error: ArkWallet.pay() failed');
       console.log('submitted txid:', transactionId);
@@ -48,6 +58,9 @@ const SendArk: React.FC = () => {
       setIsSuccess(true);
     } catch (error: any) {
       setError(error.message);
+    } finally {
+      console.log('actualSend took', (Date.now() - startTs) / 1000, 'sec');
+      setIsSending(false);
     }
   };
 
@@ -58,8 +71,16 @@ const SendArk: React.FC = () => {
       // TODO: validate the address
       // TODO: validate the amount
 
-      const mnemonic = await askMnemonic();
-      const w = new ArkWallet();
+      let w: ArkWallet | SparkWallet = new ArkWallet();
+      let mnemonic = await askMnemonic();
+
+      if (network === NETWORK_SPARK) {
+        w = new SparkWallet();
+        // Ark currently uses main mnemonic (operates without mnemonic to fetch balance), but Spark is
+        // always seeded by submnemonic
+        mnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
+      }
+
       w.setSecret(mnemonic);
       w.setAccountNumber(accountNumber);
       w.init();
@@ -151,28 +172,34 @@ const SendArk: React.FC = () => {
 
         {isPrepared ? (
           <div>
-            <HodlButton onHold={actualSend}>
-              <SendIcon />
-              Hold to confirm send
-            </HodlButton>
+            {isSending ? (
+              <span>Sending...</span>
+            ) : (
+              <>
+                <HodlButton onHold={actualSend}>
+                  <SendIcon />
+                  Hold to confirm send
+                </HodlButton>
 
-            <button
-              onClick={() => {
-                setIsPreparing(false);
-                setIsPrepared(false);
-              }}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'gray',
-                textDecoration: 'underline',
-                cursor: 'pointer',
-                fontSize: '16px',
-                marginTop: '10px',
-              }}
-            >
-              Cancel
-            </button>
+                <button
+                  onClick={() => {
+                    setIsPreparing(false);
+                    setIsPrepared(false);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'gray',
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    marginTop: '10px',
+                  }}
+                >
+                  Cancel
+                </button>
+              </>
+            )}
           </div>
         ) : null}
       </div>

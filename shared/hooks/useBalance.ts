@@ -1,11 +1,12 @@
 import BigNumber from 'bignumber.js';
 import useSWR from 'swr';
 
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, Networks } from '../types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { getRpcProvider } from '../models/network-getters';
 import { ArkWallet } from '../class/wallets/ark-wallet';
+import { SparkWallet } from '../class/wallets/spark-wallet';
 import { BreezWallet } from '../class/wallets/breez-wallet';
 
 interface balanceFetcherArg {
@@ -43,6 +44,15 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
     return virtualBalance.toString(10);
   }
 
+  if (network === NETWORK_SPARK) {
+    const sw = new SparkWallet();
+    const submnemonic = await backgroundCaller.getSubMnemonic(accountNumber);
+    sw.setSecret(submnemonic);
+    await sw.init();
+    const virtualBalance = await sw.getOffchainBalance();
+    return virtualBalance.toString(10);
+  }
+
   const address = await backgroundCaller.getAddress(network, accountNumber);
   const rpc = getRpcProvider(network);
 
@@ -55,6 +65,7 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
   let refreshInterval = 12_000; // ETH block time
 
   switch (network) {
+    case NETWORK_SPARK:
     case NETWORK_ARKMUTINYNET:
       refreshInterval = 3_000; // transfers are just server interactions, should be fast
       break;

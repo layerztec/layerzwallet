@@ -7,7 +7,7 @@
   "options_page": "options.html",
   "permissions": ["activeTab", "storage"],
   "background": {
-    "service_worker": "background.bundle.js"
+    "service_worker": "lz.background.bundle.js"
   },
   "action": {
     "default_title": "Layerz Wallet",
@@ -31,7 +31,7 @@
     {
       "matches": ["<all_urls>"],
       "run_at": "document_start",
-      "js": ["contentScriptLoader.bundle.js"]
+      "js": ["lz.contentScriptLoader.bundle.js"]
     }
   ],
   "content_security_policy": {
@@ -40,7 +40,17 @@
   "devtools_page": "devtools.html",
   "web_accessible_resources": [
     {
-      "resources": ["icon-16.png", "icon-32.png", "icon-48.png", "icon-64.png", "icon-128.png", "contentScript.bundle.js", "contentScript.bundle.js.map", "contentScriptLoader.bundle.js.map"],
+      "resources": [
+        "icon-16.png",
+        "icon-32.png",
+        "icon-48.png",
+        "icon-64.png",
+        "icon-128.png",
+        "lz.contentScript.bundle.js",
+        "lz.contentScript.bundle.js.map",
+        "lz.background.bundle.js.map",
+        "lz.contentScriptLoader.bundle.js.map"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

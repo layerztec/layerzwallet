@@ -8,7 +8,6 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { Messenger } from '@shared/modules/messenger';
 import { Button, HodlButton, SelectFeeSlider } from '../DesignSystem';
-import assert from 'assert';
 import { StringNumber } from '@shared/types/string-number';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { SendIcon } from 'lucide-react';

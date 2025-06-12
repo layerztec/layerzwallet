@@ -7,6 +7,7 @@ export const NETWORK_CITREATESTNET = 'citrea' as const;
 export const NETWORK_ARKMUTINYNET = 'ark' as const;
 export const NETWORK_BREEZ = 'breez' as const;
 export const NETWORK_BREEZTESTNET = 'breeztest' as const;
+export const NETWORK_SPARK = 'spark' as const;
 
 const NetworksIterator = {
   BITCOIN: NETWORK_BITCOIN,
@@ -18,6 +19,7 @@ const NetworksIterator = {
   ARKMUTINYNET: NETWORK_ARKMUTINYNET,
   BREEZ: NETWORK_BREEZ,
   BREEZTESTNET: NETWORK_BREEZTESTNET,
+  SPARK: NETWORK_SPARK,
 } as const;
 
 export type Networks = (typeof NetworksIterator)[keyof typeof NetworksIterator];

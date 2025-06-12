@@ -3,6 +3,8 @@ import { GetSubMnemonicResponse, GetBtcSendDataResponse, IBackgroundCaller, Mess
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
+import { NETWORK_SPARK } from '@shared/types/networks';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 const STORAGE_KEY_WHITELIST = 'STORAGE_KEY_WHITELIST';
 const STORAGE_KEY_ACCEPTED_TOS = 'STORAGE_KEY_ACCEPTED_TOS';
@@ -13,6 +15,17 @@ const STORAGE_KEY_ACCEPTED_TOS = 'STORAGE_KEY_ACCEPTED_TOS';
  */
 export const BackgroundCaller: IBackgroundCaller = {
   async getAddress(...params) {
+    const [network, accountNumber] = params;
+    if (network === NETWORK_SPARK) {
+      // executing in Popup context instead of background script context since spark lib cant work there (expects `window.`)
+      // @see https://github.com/buildonspark/spark/issues/32  // fixme
+      const sp = new SparkWallet();
+      const submnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
+      sp.setSecret(submnemonic);
+      await sp.init();
+      return String(await sp.getOffchainReceiveAddress());
+    }
+
     return await Messenger.sendGenericMessageToBackground(MessageType.GET_ADDRESS, params);
   },
 
