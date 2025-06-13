@@ -5,6 +5,7 @@ import { StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
+import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import TokensView from '@/components/TokensView';
