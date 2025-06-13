@@ -93,12 +93,7 @@ export default function ReceiveScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Stack.Screen
-        options={{
-          title: 'Receive',
-          headerShown: true,
-        }}
-      />
+      <Stack.Screen options={{ title: 'Receive', headerShown: true }} />
 
       <ThemedView style={styles.contentContainer}>
         {/* Network indicator bar - visually shows the selected network with color */}
