@@ -17,6 +17,7 @@ import { SwrCacheProvider } from '@/src/class/swr-cache-provider';
 import { ScanQrContextProvider } from '@/src/hooks/ScanQrContext';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { Header } from './NetworkSelector';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -86,6 +87,15 @@ export default function RootLayout() {
                     <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
                     <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
                     <Stack.Screen name="Onramp" options={{ headerShown: true }} />
+                    <Stack.Screen
+                      name="NetworkSelector"
+                      options={{
+                        presentation: 'formSheet',
+                        sheetAllowedDetents: [0.66, 1.0],
+                        header: () => <Header />,
+                        sheetGrabberVisible: true,
+                      }}
+                    />
                     <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
                   </Stack>
                   <StatusBar style="auto" />

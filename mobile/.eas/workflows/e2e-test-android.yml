@@ -19,4 +19,5 @@ jobs:
       flow_path:
         - .maestro/home.yml
         - .maestro/wallet-creation-and-selftest.yml
+        - .maestro/network-switching.yml
         - .maestro/receive.yml

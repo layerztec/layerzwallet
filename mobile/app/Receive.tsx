@@ -217,6 +217,7 @@ const styles = StyleSheet.create({
   addressText: {
     fontSize: 12,
     flex: 1,
+    color: '#333',
   },
   copyIcon: {
     marginLeft: 8,

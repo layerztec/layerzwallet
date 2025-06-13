@@ -1,0 +1,55 @@
+appId: com.layerzwallet.mobile
+
+---
+- runFlow: subflows/wallet-creation.yml
+
+# Test NetworkOverlay functionality
+# Verify Bitcoin is selected by default
+- waitForAnimationToEnd
+- assertVisible:
+    id: "selectedNetwork-bitcoin"
+
+# Open the network switcher
+- tapOn:
+    id: "NetworkSwitcherTrigger"
+- waitForAnimationToEnd
+
+# Verify the network modal is displayed
+- assertVisible: "Select Network"
+
+# Test selecting different networks
+# Select Rootstock
+- tapOn:
+    id: "network-rootstock"
+- waitForAnimationToEnd
+
+# Verify Rootstock is now selected
+- assertVisible:
+    id: "selectedNetwork-rootstock"
+
+# Open network switcher again
+- tapOn:
+    id: "NetworkSwitcherTrigger"
+- waitForAnimationToEnd
+
+# Switch to Botanix
+- tapOn:
+    id: "network-botanix"
+- waitForAnimationToEnd
+
+# Verify Botanix is selected again
+- assertVisible:
+    id: "selectedNetwork-botanix"
+
+# Test closing modal without selection
+- tapOn:
+    id: "NetworkSwitcherTrigger"
+- waitForAnimationToEnd
+
+- tapOn:
+    point: "50%,20%"  # Tap on background
+- waitForAnimationToEnd
+
+# Verify we're still on Botanix
+- assertVisible:
+    id: "selectedNetwork-botanix"
