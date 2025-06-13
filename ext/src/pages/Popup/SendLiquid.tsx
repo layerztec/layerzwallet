@@ -71,9 +71,9 @@ const SendLiquid: React.FC = () => {
   }, [accountNumber, network, assetId]);
 
   const handleAmountChange = (text: string) => {
-    // Only allow numbers and decimal point
-    if (text === '' || /^\d*\.?\d*$/.test(text)) {
-      setAmount(text);
+    const normalizedText = text.replace(',', '.');
+    if (normalizedText === '' || /^\d*\.?\d*$/.test(normalizedText)) {
+      setAmount(normalizedText);
       setError('');
     }
   };

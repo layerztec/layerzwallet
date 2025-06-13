@@ -33,6 +33,14 @@ const SendArk = () => {
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const arkWallet = useRef<ArkWallet | undefined>(undefined);
 
+  const handleAmountChange = (text: string) => {
+    const normalizedText = text.replace(',', '.');
+    if (normalizedText === '' || /^\d*\.?\d*$/.test(normalizedText)) {
+      setAmount(normalizedText);
+      setError('');
+    }
+  };
+
   const actualSend = async () => {
     try {
       const satValueBN = new BigNumber(amount);
@@ -120,7 +128,7 @@ const SendArk = () => {
 
         <ThemedView style={styles.inputSection}>
           <ThemedText style={styles.inputLabel}>Amount</ThemedText>
-          <TextInput style={styles.input2} testID="amount-input" placeholder="0.00" placeholderTextColor="#999" keyboardType="numeric" onChangeText={setAmount} value={amount} />
+          <TextInput style={styles.input2} testID="amount-input" placeholder="0.00" placeholderTextColor="#999" keyboardType="numeric" onChangeText={handleAmountChange} value={amount} />
           <ThemedText style={styles.balanceText}>
             Available balance: {balance ? formatBalance(balance, getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
           </ThemedText>

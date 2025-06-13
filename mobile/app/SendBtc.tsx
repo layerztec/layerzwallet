@@ -45,6 +45,14 @@ const SendBtc: React.FC = () => {
   const [showFeeModal, setShowFeeModal] = useState(false);
   const wallet = useRef(new HDSegwitBech32Wallet());
 
+  const handleAmountChange = (text: string) => {
+    const normalizedText = text.replace(',', '.');
+    if (normalizedText === '' || /^\d*\.?\d*$/.test(normalizedText)) {
+      setAmount(normalizedText);
+      setError('');
+    }
+  };
+
   const feeRate = useMemo(() => {
     if (customFeeRate !== undefined) return customFeeRate;
     if (estimateFees) return estimateFees.medium;
@@ -232,7 +240,7 @@ const SendBtc: React.FC = () => {
 
       <View style={styles.section}>
         <ThemedText style={styles.sectionTitle}>Amount</ThemedText>
-        <TextInput style={styles.input} placeholder="0.00" onChangeText={setAmount} value={amount} keyboardType="numeric" />
+        <TextInput style={styles.input} placeholder="0.00" onChangeText={handleAmountChange} value={amount} keyboardType="numeric" />
         <ThemedText style={styles.balanceText}>
           Available balance: {balance ? formatBalance(balance, getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
         </ThemedText>
