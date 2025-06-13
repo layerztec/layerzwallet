@@ -15,7 +15,7 @@ import {
   STORAGE_KEY_SUB_MNEMONIC,
   STORAGE_KEY_WHITELIST,
 } from '@shared/types/IStorage';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
 import { encrypt } from '../modules/encryption';
@@ -56,7 +56,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
       sp.setSecret(submnemonic);
       await sp.init();
       return String(await sp.getOffchainReceiveAddress());
-    } else if (network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET) {
+    } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
       const mnemonic = await SecureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
       const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
       const address = wallet.getAddressLiquid();

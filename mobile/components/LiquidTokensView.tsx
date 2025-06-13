@@ -11,9 +11,9 @@ import { getBreezNetwork } from '@/src/modules/breeze-adapter';
 import { BreezWallet, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
 
-const BreezTokensView: React.FC = () => {
+const LiquidTokensView: React.FC = () => {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
@@ -23,7 +23,7 @@ const BreezTokensView: React.FC = () => {
   useEffect(() => {
     const fetchBreezAssetBalances = async () => {
       setAssetBalances([]);
-      if (network !== NETWORK_BREEZ && network !== NETWORK_BREEZTESTNET) {
+      if (network !== NETWORK_LIQUID && network !== NETWORK_LIQUIDTESTNET) {
         setLoading(false);
         return;
       }
@@ -96,7 +96,7 @@ const BreezTokensView: React.FC = () => {
   );
 };
 
-export default BreezTokensView;
+export default LiquidTokensView;
 
 const styles = StyleSheet.create({
   container: {

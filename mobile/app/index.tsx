@@ -5,7 +5,6 @@ import { StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
-import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import TokensView from '@/components/TokensView';
@@ -18,11 +17,11 @@ import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SwapPair } from '@shared/types/swap';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { OnrampProps } from '@/app/Onramp';
-import BreezTokensView from '@/components/BreezTokensView';
+import LiquidTokensView from '@/components/LiquidTokensView';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 
 export default function IndexScreen() {
@@ -73,7 +72,7 @@ export default function IndexScreen() {
   };
 
   const goToReceive = () => {
-    if (network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET) {
+    if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
       router.push('/ReceiveBreez');
       return;
     }
@@ -90,8 +89,8 @@ export default function IndexScreen() {
       case NETWORK_ARKMUTINYNET:
         router.push('/SendArk');
         break;
-      case NETWORK_BREEZ:
-      case NETWORK_BREEZTESTNET:
+      case NETWORK_LIQUID:
+      case NETWORK_LIQUIDTESTNET:
         router.push('/SendBreez');
         break;
       default:
@@ -170,7 +169,7 @@ export default function IndexScreen() {
           </ThemedText>
         </ThemedView>
 
-        {showSwapInterface ? <SwapInterfaceView /> : <ThemedView>{network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET ? <BreezTokensView /> : <TokensView />}</ThemedView>}
+        {showSwapInterface ? <SwapInterfaceView /> : <ThemedView>{network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET ? <LiquidTokensView /> : <TokensView />}</ThemedView>}
 
         <ThemedView style={styles.contentContainer}>
           <ThemedView style={styles.buttonContainer}>

@@ -3,8 +3,8 @@ import {
   NETWORK_ARKMUTINYNET,
   NETWORK_BITCOIN,
   NETWORK_BOTANIXTESTNET,
-  NETWORK_BREEZ,
-  NETWORK_BREEZTESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUIDTESTNET,
   NETWORK_CITREATESTNET,
   NETWORK_ROOTSTOCK,
   NETWORK_SEPOLIA,
@@ -73,7 +73,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://arklabs.to/',
     isTestnet: true,
   },
-  [NETWORK_BREEZ]: {
+  [NETWORK_LIQUID]: {
     chainId: 11,
     ticker: 'L-BTC',
     rpcUrl: '',
@@ -81,7 +81,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 8,
     knowMoreUrl: 'https://breez.technology/',
   },
-  [NETWORK_BREEZTESTNET]: {
+  [NETWORK_LIQUIDTESTNET]: {
     chainId: 12,
     ticker: 'tL-BTC',
     rpcUrl: '',

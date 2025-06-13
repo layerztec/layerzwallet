@@ -6,13 +6,13 @@ import { useNavigate } from 'react-router';
 import { BreezWallet, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { getBreezNetwork } from '../../../modules/breeze-adapter';
 
-const BreezTokensView: React.FC = () => {
+const LiquidTokensView: React.FC = () => {
   const navigate = useNavigate();
-  const network = useContext(NetworkContext).network as typeof NETWORK_BREEZ | typeof NETWORK_BREEZTESTNET;
+  const network = useContext(NetworkContext).network as typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET;
   const { accountNumber } = useContext(AccountNumberContext);
   const [assetBalances, setAssetBalances] = useState<AssetBalance[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -126,4 +126,4 @@ const BreezTokensView: React.FC = () => {
   );
 };
 
-export default BreezTokensView;
+export default LiquidTokensView;

@@ -1,13 +1,13 @@
 import BigNumber from 'bignumber.js';
 import useSWR from 'swr';
 
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { getRpcProvider } from '../models/network-getters';
 import { ArkWallet } from '../class/wallets/ark-wallet';
-import { SparkWallet } from '../class/wallets/spark-wallet';
 import { BreezWallet } from '../class/wallets/breez-wallet';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 interface balanceFetcherArg {
   cacheKey: string;
@@ -29,19 +29,12 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
     return (balance.confirmed + balance.unconfirmed).toString(10);
   }
 
-  if (network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET) {
+  if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
     const mnemonic = await backgroundCaller.getSubMnemonic(accountNumber);
-    const bNetwork = network === NETWORK_BREEZ ? 'mainnet' : 'testnet';
+    const bNetwork = network === NETWORK_LIQUID ? 'mainnet' : 'testnet';
     const bw = new BreezWallet(mnemonic, bNetwork);
     const balance = await bw.getBalance();
     return balance.toString(10);
-  }
-
-  if (network === NETWORK_ARKMUTINYNET) {
-    const address = await backgroundCaller.getAddress(network, accountNumber);
-    const aw = new ArkWallet();
-    const virtualBalance = await aw.getOffchainBalanceForAddress(address);
-    return virtualBalance.toString(10);
   }
 
   if (network === NETWORK_SPARK) {
@@ -50,6 +43,13 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
     sw.setSecret(submnemonic);
     await sw.init();
     const virtualBalance = await sw.getOffchainBalance();
+    return virtualBalance.toString(10);
+  }
+
+  if (network === NETWORK_ARKMUTINYNET) {
+    const address = await backgroundCaller.getAddress(network, accountNumber);
+    const aw = new ArkWallet();
+    const virtualBalance = await aw.getOffchainBalanceForAddress(address);
     return virtualBalance.toString(10);
   }
 
