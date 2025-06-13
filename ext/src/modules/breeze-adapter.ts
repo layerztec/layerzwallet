@@ -1,6 +1,6 @@
 import init, { BindingLiquidSdk, connect, defaultConfig, PrepareReceiveRequest, ReceivePaymentRequest, PrepareSendRequest, SendPaymentRequest } from '@breeztech/breez-sdk-liquid';
 import { BreezConnection, IBreezAdapter, assetMetadata } from '@shared/class/wallets/breez-wallet';
-import { NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
 
 const API_KEY = process.env.EXPO_PUBLIC_BREEZ_API_KEY;
 
@@ -95,10 +95,10 @@ class BreezAdapter implements IBreezAdapter {
 }
 
 // Map our app network to Breez LiquidNetwork type
-export const getBreezNetwork = (network: typeof NETWORK_BREEZ | typeof NETWORK_BREEZTESTNET) => {
-  if (network === NETWORK_BREEZ) {
+export const getBreezNetwork = (network: typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET) => {
+  if (network === NETWORK_LIQUID) {
     return 'mainnet';
-  } else if (network === NETWORK_BREEZTESTNET) {
+  } else if (network === NETWORK_LIQUIDTESTNET) {
     return 'testnet';
   } else {
     throw new Error(`Unsupported Breez network: ${network}`);

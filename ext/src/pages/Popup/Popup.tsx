@@ -77,9 +77,9 @@ const AppContent: React.FC = () => {
             <Route path="/test" element={<TestPage />} />
             <Route path="/home" element={<Home />} />
             <Route path="/receive" element={<Receive />} />
-            <Route path="/receive-breez" element={<ReceiveBreez />} />
+            <Route path="/receive-liquid" element={<ReceiveBreez />} />
             <Route path="/receive-lightning" element={<ReceiveLightning />} />
-            <Route path="/send-breez" element={<SendBreez />} />
+            <Route path="/send-liquid" element={<SendBreez />} />
             <Route path="/send-liquid" element={<SendLiquid />} />
             <Route path="/send-evm" element={<SendEvm />} />
             <Route path="/send-ark" element={<SendArk />} />

@@ -12,12 +12,12 @@ import { getDecimalsByNetwork, getIsTestnet, getKnowMoreUrl, getTickerByNetwork 
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { SwapPair } from '@shared/types/swap';
 
-import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_BREEZ, NETWORK_BREEZTESTNET, Networks } from '@shared/types/networks';
+import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, Networks } from '@shared/types/networks';
 import { BackgroundCaller } from '../../modules/background-caller';
 import PartnersView from './components/PartnersView';
 import TokensView from './components/TokensView';
 import { Button, Switch } from './DesignSystem';
-import BreezTokensView from './components/BreezTokensView';
+import LiquidTokensView from './components/LiquidTokensView';
 import SwapInterfaceView from './components/SwapInterfaceView';
 
 const Home: React.FC = () => {
@@ -43,9 +43,9 @@ const Home: React.FC = () => {
 
   const handleReceive = () => {
     switch (network) {
-      case NETWORK_BREEZ:
-      case NETWORK_BREEZTESTNET:
-        navigate('/receive-breez');
+      case NETWORK_LIQUID:
+      case NETWORK_LIQUIDTESTNET:
+        navigate('/receive-liquid');
         break;
       default:
         navigate('/receive');
@@ -60,9 +60,9 @@ const Home: React.FC = () => {
       case NETWORK_ARKMUTINYNET:
         navigate('/send-ark');
         break;
-      case NETWORK_BREEZ:
-      case NETWORK_BREEZTESTNET:
-        navigate('/send-breez');
+      case NETWORK_LIQUID:
+      case NETWORK_LIQUIDTESTNET:
+        navigate('/send-liquid');
         break;
       default:
         navigate('/send-evm');
@@ -132,7 +132,7 @@ const Home: React.FC = () => {
       ) : (
         <div>
           <PartnersView />
-          {network === NETWORK_BREEZ || network === NETWORK_BREEZTESTNET ? <BreezTokensView /> : <TokensView />}
+          {network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET ? <LiquidTokensView /> : <TokensView />}
         </div>
       )}
 

@@ -16,7 +16,7 @@ import { BreezWallet, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet'
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_BREEZ, NETWORK_BREEZTESTNET } from '@shared/types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
 
 export type SendLiquidParams = {
   assetId?: string; // Optional asset ID - if not provided, use L-BTC
@@ -26,7 +26,7 @@ const SendLiquid = () => {
   const router = useRouter();
   const params = useLocalSearchParams<SendLiquidParams>();
 
-  const network = useContext(NetworkContext).network as typeof NETWORK_BREEZ | typeof NETWORK_BREEZTESTNET;
+  const network = useContext(NetworkContext).network as typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET;
   const { accountNumber } = useContext(AccountNumberContext);
   const { scanQr } = useContext(ScanQrContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
@@ -48,7 +48,7 @@ const SendLiquid = () => {
   const assetId = useMemo(() => {
     if (params.assetId) {
       return params.assetId;
-    } else if (network === NETWORK_BREEZ) {
+    } else if (network === NETWORK_LIQUID) {
       return LBTC_ASSET_IDS.mainnet;
     } else {
       return LBTC_ASSET_IDS.testnet;
