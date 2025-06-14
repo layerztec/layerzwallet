@@ -36,6 +36,15 @@
     "production": {
       "extends": "base",
       "autoIncrement": true
+    },
+    "production-file": {
+      "extends": "production",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      }
     }
   },
   "submit": {

@@ -52,6 +52,8 @@ Shared code (anything thah can be reused, cryptography, network fetchers, react 
 
 Development build for android (produces apk that has to load bundle remotely): `eas build --platform android --profile development-simulator --local`
 
+Signed Release build for android (produces apk with load bundle included): `eas build --platform android --profile production-file --local`
+
 ## Tests
 
 TBD
