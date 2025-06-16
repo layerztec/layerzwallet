@@ -4,7 +4,7 @@ import * as Linking from 'expo-linking';
 
 import { Networks } from '@shared/types/networks';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
-import { SwapPair, SwapProvider } from '@shared/types/swap';
+import { SwapPair, SwapPlatform } from '@shared/types/swap';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
@@ -26,7 +26,7 @@ const SwapInterfaceView: React.FC = () => {
   const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
 
   useEffect(() => {
-    setSwapPairs(getSwapPairs(network));
+    setSwapPairs(getSwapPairs(network, SwapPlatform.MOBILE));
   }, [network]);
 
   const handleSwap = async (): Promise<string> => {

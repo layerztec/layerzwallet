@@ -1,8 +1,14 @@
 import { Networks } from './networks';
 
+export enum SwapPlatform {
+  MOBILE,
+  EXT,
+}
+
 export interface SwapPair {
   from: Networks;
   to: Networks;
+  platform: SwapPlatform;
 }
 
 /**

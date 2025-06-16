@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { SwapPair, SwapProvider } from '../types/swap';
+import { SwapPair, SwapPlatform, SwapProvider } from '../types/swap';
 import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_ROOTSTOCK, Networks } from '@shared/types/networks';
 import BigNumber from 'bignumber.js';
 
@@ -11,10 +11,13 @@ export class SwapProviderBoltz implements SwapProvider {
 
   getSupportedPairs(): SwapPair[] {
     return [
-      { from: NETWORK_BITCOIN, to: NETWORK_ROOTSTOCK },
-      { from: NETWORK_ROOTSTOCK, to: NETWORK_BITCOIN },
-      { from: NETWORK_BITCOIN, to: NETWORK_LIQUID },
-      { from: NETWORK_LIQUID, to: NETWORK_BITCOIN },
+      { from: NETWORK_BITCOIN, to: NETWORK_ROOTSTOCK, platform: SwapPlatform.EXT },
+      { from: NETWORK_ROOTSTOCK, to: NETWORK_BITCOIN, platform: SwapPlatform.EXT },
+      //
+      { from: NETWORK_BITCOIN, to: NETWORK_LIQUID, platform: SwapPlatform.EXT },
+      { from: NETWORK_LIQUID, to: NETWORK_BITCOIN, platform: SwapPlatform.EXT },
+      { from: NETWORK_BITCOIN, to: NETWORK_LIQUID, platform: SwapPlatform.MOBILE },
+      { from: NETWORK_LIQUID, to: NETWORK_BITCOIN, platform: SwapPlatform.MOBILE },
     ];
   }
 

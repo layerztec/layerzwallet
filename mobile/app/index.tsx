@@ -19,7 +19,7 @@ import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
-import { SwapPair } from '@shared/types/swap';
+import { SwapPair, SwapPlatform } from '@shared/types/swap';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { OnrampProps } from '@/app/Onramp';
 import LiquidTokensView from '@/components/LiquidTokensView';
@@ -36,7 +36,7 @@ export default function IndexScreen() {
   const networks = getAvailableNetworks();
 
   useEffect(() => {
-    setSwapPairs(getSwapPairs(network));
+    setSwapPairs(getSwapPairs(network, SwapPlatform.MOBILE));
     setShowSwapInterface(false);
   }, [network]);
 

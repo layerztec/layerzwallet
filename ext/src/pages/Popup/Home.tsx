@@ -10,7 +10,7 @@ import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { getDecimalsByNetwork, getIsTestnet, getKnowMoreUrl, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { SwapPair } from '@shared/types/swap';
+import { SwapPair, SwapPlatform } from '@shared/types/swap';
 
 import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { BackgroundCaller } from '../../modules/background-caller';
@@ -37,7 +37,7 @@ const Home: React.FC = () => {
   }, [network]);
 
   useEffect(() => {
-    setSwapPairs(getSwapPairs(network));
+    setSwapPairs(getSwapPairs(network, SwapPlatform.EXT));
     setShowSwapInterface(false);
   }, [network]);
 

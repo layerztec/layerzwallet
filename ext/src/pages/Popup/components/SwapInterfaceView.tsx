@@ -7,7 +7,7 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { getSwapPairs, getSwapProvidersList } from '@shared/models/swap-providers-list';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { Networks } from '@shared/types/networks';
-import { SwapPair } from '@shared/types/swap';
+import { SwapPair, SwapPlatform } from '@shared/types/swap';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { Loader2 } from 'lucide-react';
@@ -25,7 +25,7 @@ const SwapInterfaceView: React.FC = () => {
   const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
 
   useEffect(() => {
-    setSwapPairs(getSwapPairs(network));
+    setSwapPairs(getSwapPairs(network, SwapPlatform.EXT));
   }, [network]);
 
   const handleSwap = async (): Promise<string> => {
