@@ -93,7 +93,7 @@
     "silent-payments": "github:BlueWallet/SilentPayments#7ac4d17b85dc875a3ebb072883dd1d92ac286d98",
     "stream-browserify": "^3.0.0",
     "stream-http": "^3.2.0",
-    "swr": "^2.3.2",
+    "swr": "2.3.3",
     "timers-browserify": "^2.0.12",
     "uint8array-extras": "^1.4.0",
     "url": "^0.11.4"

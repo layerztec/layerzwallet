@@ -1,13 +1,13 @@
 import BigNumber from 'bignumber.js';
 import useSWR from 'swr';
 
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK, Networks } from '../types/networks';
-import { StringNumber } from '../types/string-number';
-import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { getRpcProvider } from '../models/network-getters';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
 import { BreezWallet } from '../class/wallets/breez-wallet';
-import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { getRpcProvider } from '../models/network-getters';
+import { IBackgroundCaller } from '../types/IBackgroundCaller';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { StringNumber } from '../types/string-number';
 
 interface balanceFetcherArg {
   cacheKey: string;
@@ -68,6 +68,11 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
     case NETWORK_SPARK:
     case NETWORK_ARKMUTINYNET:
       refreshInterval = 3_000; // transfers are just server interactions, should be fast
+      break;
+
+    case NETWORK_LIQUID:
+    case NETWORK_LIQUIDTESTNET:
+      refreshInterval = 3_000; // we are just fetching data from the SDK, should be fast
       break;
 
     case NETWORK_BITCOIN:
