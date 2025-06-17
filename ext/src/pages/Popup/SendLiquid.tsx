@@ -3,7 +3,7 @@ import { Scan, SendIcon } from 'lucide-react';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
-import { BreezWallet, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
+import { BreezWallet, getBreezNetwork, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { formatBalance } from '@shared/modules/string-utils';
@@ -11,7 +11,6 @@ import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
 import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
-import { getBreezNetwork } from '../../modules/breeze-adapter';
 import { Button, HodlButton, Input, WideButton } from './DesignSystem';
 
 const SendLiquid: React.FC = () => {

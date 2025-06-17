@@ -5,16 +5,16 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from 'rea
 import { useNavigate } from 'react-router';
 import { ThemedText } from '../../components/ThemedText';
 
-import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
+import { NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
 import { BackgroundCaller } from '../../modules/background-caller';
-import { getBreezNetwork } from '../../modules/breeze-adapter';
+// import { getBreezNetwork } from '../../modules/breeze-adapter';
 import { AddressBubble, Input, WideButton } from './DesignSystem';
 
 const ReceiveLightning: React.FC = () => {
@@ -23,7 +23,7 @@ const ReceiveLightning: React.FC = () => {
   const [invoice, setInvoice] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const network = useContext(NetworkContext).network as typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET;
+  const network = useContext(NetworkContext).network as typeof NETWORK_LIGHTNING | typeof NETWORK_LIGHTNINGTESTNET;
   const { accountNumber } = useContext(AccountNumberContext);
   const [imgSrc, setImgSrc] = useState('');
   const [oldBalance, setOldBalance] = useState<StringNumber>('');

@@ -12,6 +12,7 @@ import type {
   SendPaymentRequest,
   SendPaymentResponse,
 } from '@breeztech/breez-sdk-liquid';
+import { NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '../../types/networks';
 
 export type BreezConnection = {
   mnemonic: string;
@@ -124,4 +125,15 @@ export const assetMetadata: AssetMetadata[] = [
 export const LBTC_ASSET_IDS = {
   mainnet: '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d',
   testnet: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49',
+};
+
+// Map our app network to Breez LiquidNetwork type
+export const getBreezNetwork = (network: typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET | typeof NETWORK_LIGHTNING | typeof NETWORK_LIGHTNINGTESTNET) => {
+  if (network === NETWORK_LIQUID || network === NETWORK_LIGHTNING) {
+    return 'mainnet';
+  } else if (network === NETWORK_LIQUIDTESTNET || network === NETWORK_LIGHTNINGTESTNET) {
+    return 'testnet';
+  } else {
+    throw new Error(`Unsupported Breez network: ${network}`);
+  }
 };

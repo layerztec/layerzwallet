@@ -30,6 +30,7 @@ export const Switch: React.FC<{
     <div
       style={{
         display: 'flex',
+        flexWrap: 'wrap',
         backgroundColor: '#f0f0f0',
         borderRadius: '8px',
         padding: '4px',
@@ -41,7 +42,6 @@ export const Switch: React.FC<{
           key={item}
           onClick={() => onItemClick(item)}
           style={{
-            flex: 1,
             padding: '8px 16px',
             border: 'none',
             borderRadius: '6px',

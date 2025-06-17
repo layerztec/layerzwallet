@@ -8,6 +8,8 @@ export const NETWORK_ARKMUTINYNET = 'ark' as const;
 export const NETWORK_LIQUID = 'liquid' as const;
 export const NETWORK_LIQUIDTESTNET = 'liquidtest' as const;
 export const NETWORK_SPARK = 'spark' as const;
+export const NETWORK_LIGHTNING = 'lightning' as const;
+export const NETWORK_LIGHTNINGTESTNET = 'lightningtest' as const;
 
 const NetworksIterator = {
   BITCOIN: NETWORK_BITCOIN,
@@ -20,6 +22,8 @@ const NetworksIterator = {
   LIQUID: NETWORK_LIQUID,
   LIQIUDTESTNET: NETWORK_LIQUIDTESTNET,
   SPARK: NETWORK_SPARK,
+  LIGHTNING: NETWORK_LIGHTNING,
+  LIGHTNINGTESTNET: NETWORK_LIGHTNINGTESTNET,
 } as const;
 
 export type Networks = (typeof NetworksIterator)[keyof typeof NetworksIterator];

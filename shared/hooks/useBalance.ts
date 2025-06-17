@@ -3,10 +3,10 @@ import useSWR from 'swr';
 
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
-import { BreezWallet } from '../class/wallets/breez-wallet';
+import { BreezWallet, getBreezNetwork } from '../class/wallets/breez-wallet';
 import { getRpcProvider } from '../models/network-getters';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
 
 interface balanceFetcherArg {
@@ -29,9 +29,9 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
     return (balance.confirmed + balance.unconfirmed).toString(10);
   }
 
-  if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
+  if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET || network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET) {
     const mnemonic = await backgroundCaller.getSubMnemonic(accountNumber);
-    const bNetwork = network === NETWORK_LIQUID ? 'mainnet' : 'testnet';
+    const bNetwork = getBreezNetwork(network);
     const bw = new BreezWallet(mnemonic, bNetwork);
     const balance = await bw.getBalance();
     return balance.toString(10);
@@ -70,6 +70,8 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
       refreshInterval = 3_000; // transfers are just server interactions, should be fast
       break;
 
+    case NETWORK_LIGHTNING:
+    case NETWORK_LIGHTNINGTESTNET:
     case NETWORK_LIQUID:
     case NETWORK_LIQUIDTESTNET:
       refreshInterval = 3_000; // we are just fetching data from the SDK, should be fast

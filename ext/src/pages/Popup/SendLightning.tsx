@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router';
 import { ThemedText } from '../../components/ThemedText';
 import { PrepareSendRequest, PrepareSendResponse, SendPaymentRequest } from '@breeztech/breez-sdk-liquid';
 
-import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { formatBalance } from '@shared/modules/string-utils';
@@ -13,7 +13,6 @@ import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
 import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
-import { getBreezNetwork } from '../../modules/breeze-adapter';
 import { Button, HodlButton, Input, WideButton } from './DesignSystem';
 
 const SendLightning: React.FC = () => {

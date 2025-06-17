@@ -11,18 +11,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { getBreezNetwork } from '@/src/modules/breeze-adapter';
-import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
+import { NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
 
 export default function ReceiveLightningScreen() {
   const router = useRouter();
-  const network = useContext(NetworkContext).network as typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET;
+  const network = useContext(NetworkContext).network as typeof NETWORK_LIGHTNING | typeof NETWORK_LIGHTNINGTESTNET;
   const { accountNumber } = useContext(AccountNumberContext);
   const [amount, setAmount] = useState<string>('');
   const [invoice, setInvoice] = useState<string>('');

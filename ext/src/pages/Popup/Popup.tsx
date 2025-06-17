@@ -2,8 +2,10 @@ import { SettingsIcon } from 'lucide-react';
 import React, { useCallback, useContext } from 'react';
 import { Navigate, Route, HashRouter as Router, Routes, useNavigate } from 'react-router';
 import { SWRConfig } from 'swr';
+
 import '../../modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import '../../modules/spark-adapter'; // needed to be imported before we can use SparkWallet
+
 import { Hello } from '@shared/class/hello';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
 import { EStep, InitializationContext, InitializationContextProvider } from '@shared/hooks/InitializationContext';
@@ -27,7 +29,6 @@ import Receive from './Receive';
 import ReceiveBreez from './ReceiveBreez';
 import ReceiveLightning from './ReceiveLightning';
 import SendArk from './SendArk';
-import SendBreez from './SendBreez';
 import SendBtc from './SendBtc';
 import SendEvm from './SendEvm';
 import SendLightning from './SendLightning';
@@ -80,7 +81,6 @@ const AppContent: React.FC = () => {
             <Route path="/receive" element={<Receive />} />
             <Route path="/receive-liquid" element={<ReceiveBreez />} />
             <Route path="/receive-lightning" element={<ReceiveLightning />} />
-            <Route path="/send-liquid" element={<SendBreez />} />
             <Route path="/send-liquid" element={<SendLiquid />} />
             <Route path="/send-evm" element={<SendEvm />} />
             <Route path="/send-ark" element={<SendArk />} />

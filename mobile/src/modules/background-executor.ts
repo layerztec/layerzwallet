@@ -1,7 +1,7 @@
 import { SecureStorage } from '@/src/class/secure-storage';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
-import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
 import { lazyInitWallet as lazyInitWalletOrig, saveArkAddresses, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
@@ -19,7 +19,6 @@ import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTE
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
 import { encrypt } from '../modules/encryption';
-import { getBreezNetwork } from './breeze-adapter';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 // Cache of wallets by network and account number (currently only bitcoin)

@@ -1,6 +1,6 @@
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
-import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
 import { lazyInitWallet, saveArkAddresses, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
@@ -11,7 +11,6 @@ import { Csprng } from '../../src/class/rng';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
 import { decrypt, encrypt } from '../modules/encryption';
-import { getBreezNetwork } from './breeze-adapter';
 
 // we only keep bitcoin wallets in the background for now
 type TBackgroundWallets = WatchOnlyWallet;

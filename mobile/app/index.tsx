@@ -19,7 +19,7 @@ import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SwapPair, SwapPlatform } from '@shared/types/swap';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { OnrampProps } from '@/app/Onramp';
@@ -74,12 +74,14 @@ export default function IndexScreen() {
   };
 
   const goToReceive = () => {
-    if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
-      router.push('/ReceiveBreez');
-      return;
+    switch (network) {
+      case NETWORK_LIGHTNING:
+      case NETWORK_LIGHTNINGTESTNET:
+        router.push('/ReceiveLightning');
+        break;
+      default:
+        router.push('/Receive');
     }
-
-    router.push('/Receive');
   };
 
   const goToSend = () => {
@@ -93,7 +95,11 @@ export default function IndexScreen() {
         break;
       case NETWORK_LIQUID:
       case NETWORK_LIQUIDTESTNET:
-        router.push('/SendBreez');
+        router.push('/SendLiquid');
+        break;
+      case NETWORK_LIGHTNING:
+      case NETWORK_LIGHTNINGTESTNET:
+        router.push('/SendLightning');
         break;
       default:
         router.push('/SendEvm');

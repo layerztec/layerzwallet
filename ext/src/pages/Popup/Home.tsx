@@ -12,7 +12,17 @@ import { getDecimalsByNetwork, getIsTestnet, getKnowMoreUrl, getTickerByNetwork 
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { SwapPair, SwapPlatform } from '@shared/types/swap';
 
-import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import {
+  getAvailableNetworks,
+  NETWORK_ARKMUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_LIGHTNING,
+  NETWORK_LIGHTNINGTESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUIDTESTNET,
+  NETWORK_SPARK,
+  Networks,
+} from '@shared/types/networks';
 import { BackgroundCaller } from '../../modules/background-caller';
 import PartnersView from './components/PartnersView';
 import TokensView from './components/TokensView';
@@ -43,9 +53,9 @@ const Home: React.FC = () => {
 
   const handleReceive = () => {
     switch (network) {
-      case NETWORK_LIQUID:
-      case NETWORK_LIQUIDTESTNET:
-        navigate('/receive-liquid');
+      case NETWORK_LIGHTNING:
+      case NETWORK_LIGHTNINGTESTNET:
+        navigate('/receive-lightning');
         break;
       default:
         navigate('/receive');
@@ -64,6 +74,10 @@ const Home: React.FC = () => {
       case NETWORK_LIQUID:
       case NETWORK_LIQUIDTESTNET:
         navigate('/send-liquid');
+        break;
+      case NETWORK_LIGHTNING:
+      case NETWORK_LIGHTNINGTESTNET:
+        navigate('/send-lightning');
         break;
       default:
         navigate('/send-evm');

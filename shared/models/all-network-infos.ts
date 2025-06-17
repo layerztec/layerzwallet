@@ -10,6 +10,8 @@ import {
   NETWORK_SEPOLIA,
   NETWORK_SPARK,
   NETWORK_STRATADEVNET,
+  NETWORK_LIGHTNING,
+  NETWORK_LIGHTNINGTESTNET,
   Networks,
 } from '../types/networks';
 
@@ -98,5 +100,22 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 8,
     knowMoreUrl: 'https://spark.money',
     isTestnet: false,
+  },
+  [NETWORK_LIGHTNING]: {
+    chainId: 14,
+    ticker: 'BTC',
+    decimals: 8,
+    explorerUrl: 'https://mempool.space/lightning',
+    rpcUrl: '',
+    knowMoreUrl: 'https://lightning.network/',
+  },
+  [NETWORK_LIGHTNINGTESTNET]: {
+    chainId: 15,
+    ticker: 'tBTC',
+    decimals: 8,
+    explorerUrl: 'https://mempool.space/testnet/lightning',
+    rpcUrl: '',
+    knowMoreUrl: 'https://lightning.network/',
+    isTestnet: true,
   },
 };

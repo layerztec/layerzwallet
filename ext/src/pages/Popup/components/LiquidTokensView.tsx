@@ -3,12 +3,11 @@ import { ArrowDownRightIcon, SendIcon } from 'lucide-react';
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { BreezWallet, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
+import { BreezWallet, getBreezNetwork, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
 import { BackgroundCaller } from '../../../modules/background-caller';
-import { getBreezNetwork } from '../../../modules/breeze-adapter';
 
 const LiquidTokensView: React.FC = () => {
   const navigate = useNavigate();
