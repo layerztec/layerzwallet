@@ -30,7 +30,7 @@ Experience the future of Bitcoin with Layer2-focused wallet. Bitcoin-only, non-c
 # Project structure
 
 This is a monorepo with 2 subprojects, `mobile/` & `ext/`. Mobile app is built with React Native (Expo), Extension is built with React.
-Shared code (anything thah can be reused, cryptography, network fetchers, react hooks) are shared in `shared/`
+Shared code (anything that can be reused, cryptography, network fetchers, react hooks) are shared in `shared/`
 
 
 ## Installing and Running (ext)
