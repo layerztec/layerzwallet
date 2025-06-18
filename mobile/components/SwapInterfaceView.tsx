@@ -41,7 +41,7 @@ const SwapInterfaceView: React.FC = () => {
     assert(new BigNumber(balance).gte(satValue), 'Not enough balance');
 
     const providers = getSwapProvidersList(network);
-    const provider = providers.find((p) => p.getSupportedPairs().some((pair) => pair.from === network && pair.to === targetNetwork));
+    const provider = providers.find((p) => p.getSupportedPairs().some((pair) => pair.from === network && pair.to === targetNetwork && pair.platform === SwapPlatform.MOBILE));
 
     assert(provider, 'internal error: no provider found for the selected networks');
 
