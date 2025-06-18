@@ -36,9 +36,13 @@ jobs:
         id: branch_name
         run: echo "BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
 
+      - name: Sanitize branch name
+        id: sanitized_branch_name
+        run: echo "BRANCH=${{ steps.branch_name.outputs.BRANCH }}" | sed 's/\//-/g' >> $GITHUB_OUTPUT
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: layerzwallet-${{ steps.package_version.outputs.VERSION }}-${{ steps.branch_name.outputs.BRANCH }}
+          name: layerzwallet-${{ steps.package_version.outputs.VERSION }}-${{ steps.sanitized_branch_name.outputs.BRANCH }}
           path: ext/build/
           if-no-files-found: error
