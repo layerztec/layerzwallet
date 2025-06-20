@@ -1,70 +1,85 @@
 appId: com.layerzwallet.mobile
-
 ---
 - runFlow: subflows/wallet-creation.yml
 
-# Verify Bitcoin is selected by default
-- assertVisible:
-    id: "selectedNetwork-bitcoin"
+# run for all networks
+- evalScript: ${output.networks = ['bitcoin','rootstock','botanix','strata','citrea','ark','liquid','liquidtest','spark']}
+- repeat:
+    while:
+      true: ${output.networks.length > 0}
+    commands:
+      # switch to the next network
+      - runFlow:
+          file: subflows/network-switch.yml
+          env:
+            NETWORK: ${output.networks.shift()}
+      - assertVisible: 'Receive'
+      - assertVisible: 'Send'
+      - tapOn: 'Receive'
+      - extendedWaitUntil:
+          notVisible: 'Loading address...'
+          timeout: 60000
+      # Verify all basic UI components rendered successfully with an actual address.
+      - assertVisible:
+          id: 'NetworkAddressHeader'
+      - assertVisible:
+          id: 'QrContainer' # This will fail if the address was not obtained
+      - assertVisible:
+          id: 'AddressLabel'
+      - scroll
+      - assertVisible:
+          id: 'CopyAddressButton' # expand later with ui feedback
+      - assertVisible:
+          id: 'ShareButton'
+      - runFlow: subflows/back.yml
 
-- tapOn: "Receive"
+# for Lightning network we need to enter the amount to generate the invoice
+- evalScript: ${output.networks = ['lightning','lightningtest']}
+- repeat:
+    while:
+      true: ${output.networks.length > 0}
+    commands:
+      # switch to the next network
+      - runFlow:
+          file: subflows/network-switch.yml
+          env:
+            NETWORK: ${output.networks.shift()}
+      - assertVisible: 'Receive'
+      - assertVisible: 'Send'
+      - tapOn: 'Receive'
+      - tapOn:
+          id: 'ReceiveLightningAmountInput'
+      - inputText:
+          text: '100000'
+      - tapOn:
+          id: 'GenerateButton'
+      - extendedWaitUntil:
+          notVisible: 'Generating...'
+          timeout: 60000
 
-- extendedWaitUntil:
-    notVisible: "Loading address..."
-    timeout: 30000
+      # WTF. Android shows "Allow Android Keyboard(AOSP) to access your contacts?". We need to close it
+      - runFlow:
+          when:
+            visible:
+              text: 'Allow Android Keyboard.*'
+          commands:
+            - tapOn: 'allow'
+            - tapOn:
+                id: 'GenerateButton'
+            - extendedWaitUntil:
+                notVisible: 'Generating...'
+                timeout: 60000
 
-# Verify all basic UI components rendered successfully with an actual address.
-- assertVisible:
-    id: "NetworkAddressHeader"
-- assertVisible: "BITCOIN" # Verify the Bitcoin network indicator is visible
-- assertVisible:
-    id: "QrContainer" # This will fail if the address was not obtained
-- assertVisible:
-    id: "AddressLabel"
-
-- assertVisible:
-    id: "CopyAddressButton" # expand later with ui feedback
-
-- assertVisible:
-    id: "ShareButton"
-
-# Press back button
-- tapOn:
-    point: "10%,10%"
-
-# Verify we're back on the home screen
-- assertVisible: "Send"
-- assertVisible: "Receive"
-
-# Open network switcher modal to change to Rootstock
-- tapOn:
-    id: "NetworkSwitcherTrigger"
-- waitForAnimationToEnd
-
-# Select Rootstock network from the modal
-- tapOn:
-    id: "network-rootstock"
-- waitForAnimationToEnd
-
-# Verify Rootstock is now selected
-- assertVisible:
-    id: "selectedNetwork-rootstock"
-
-- tapOn: "Receive"
-
-- assertVisible:
-    id: "NetworkAddressHeader"
-- assertVisible: "ROOTSTOCK" # Verify the Rootstock network indicator is visible
-- assertVisible:
-    id: "QrContainer"
-- assertVisible:
-    id: "AddressLabel"
-
-- extendedWaitUntil:
-    notVisible: "Loading address..."
-    timeout: 30000
-
-- assertVisible:
-    id: "AddressText"
-- assertVisible:
-    id: "CopyAddressButton"
+      # Verify all basic UI components rendered successfully with an actual address.
+      - assertVisible:
+          id: 'ReceiveLightningHeader'
+      - assertVisible:
+          id: 'LNQrContainer' # This will fail if the address was not obtained
+      - assertVisible:
+          id: 'InvoiceLabel'
+      - scroll
+      - assertVisible:
+          id: 'CopyInvoiceButton' # expand later with ui feedback
+      - assertVisible:
+          id: 'LNShareButton'
+      - runFlow: subflows/back.yml

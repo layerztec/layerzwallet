@@ -1,28 +1,27 @@
 appId: com.layerzwallet.mobile
-
 ---
 - runFlow: subflows/wallet-creation.yml
 
 # Navigate to Settings
 - tapOn:
-    id: "SettingsButton"
+    id: 'SettingsButton'
 
 # Scroll to the bottom to find the Self Test button as emu screen can be small
 - scrollUntilVisible:
-      element:
-        id: "SelfTestButton"
-      direction: DOWN
+    element:
+      id: 'SelfTestButton'
+    direction: DOWN
 
 # Navigate to Self Test
 - tapOn:
-    id: "SelfTestButton"
+    id: 'SelfTestButton'
 - waitForAnimationToEnd
 
 # Run the self test
-- tapOn: "Run Self Test!"
+- tapOn: 'Run Self Test!'
 - waitForAnimationToEnd
 
 # Wait for success message
 - extendedWaitUntil:
-    visible: "ok!"
+    visible: 'ok!'
     timeout: 29000

@@ -1,0 +1,18 @@
+appId: com.layerzwallet.mobile
+---
+- runFlow:
+    when:
+      visible:
+        text: 'Development Build'
+    commands:
+      - tapOn: 'http://.*'
+      - waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible:
+        text: 'Runtime version:.*'
+    commands:
+      - tapOn:
+          point: 10%,10% # close expo dev client modal
+      - waitForAnimationToEnd

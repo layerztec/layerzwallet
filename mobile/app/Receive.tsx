@@ -3,7 +3,7 @@ import BigNumber from 'bignumber.js';
 import * as Clipboard from 'expo-clipboard';
 import { Stack } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Share, StyleSheet, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, TouchableOpacity } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -82,11 +82,13 @@ export default function ReceiveScreen() {
   if (isNewBalanceGT()) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.contentContainer}>
-          <ThemedText testID="NetworkAddressHeader" style={styles.subtitle}>
-            Received: +{isNewBalanceGT() ? formatBalance(String(isNewBalanceGT()), getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
-          </ThemedText>
-        </ThemedView>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <ThemedView style={styles.contentContainer}>
+            <ThemedText testID="NetworkAddressHeader" style={styles.subtitle}>
+              Received: +{isNewBalanceGT() ? formatBalance(String(isNewBalanceGT()), getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
+            </ThemedText>
+          </ThemedView>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -95,51 +97,53 @@ export default function ReceiveScreen() {
     <SafeAreaView style={styles.safeArea}>
       <Stack.Screen options={{ title: 'Receive', headerShown: true }} />
 
-      <ThemedView style={styles.contentContainer}>
-        {/* Network indicator bar - visually shows the selected network with color */}
-        <ThemedView style={[styles.networkBar, { backgroundColor: getNetworkColor() }]}>
-          <ThemedText style={styles.networkText}>{network?.toUpperCase()}</ThemedText>
-        </ThemedView>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ThemedView style={styles.contentContainer}>
+          {/* Network indicator bar - visually shows the selected network with color */}
+          <ThemedView style={[styles.networkBar, { backgroundColor: getNetworkColor() }]}>
+            <ThemedText style={styles.networkText}>{network?.toUpperCase()}</ThemedText>
+          </ThemedView>
 
-        <ThemedText testID="NetworkAddressHeader" style={styles.subtitle}>
-          Your {capitalizeFirstLetter(network || '')} Address
-        </ThemedText>
-
-        <ThemedView style={styles.qrContainer} testID="QrContainer">
-          {isLoading ? (
-            <ThemedView style={styles.qrPlaceholder} testID="LoadingPlaceholder">
-              <ActivityIndicator size="large" color="#007AFF" />
-              <ThemedText style={styles.loadingText}>Loading address...</ThemedText>
-            </ThemedView>
-          ) : address ? (
-            <QRCode testID="AddressQrCode" value={address} size={200} backgroundColor="white" color="black" />
-          ) : (
-            <ThemedView style={styles.qrPlaceholder}>
-              <ThemedText>No address available</ThemedText>
-            </ThemedView>
-          )}
-        </ThemedView>
-
-        <ThemedView style={styles.addressContainer}>
-          <ThemedText testID="AddressLabel" style={styles.addressLabel}>
-            Address:
+          <ThemedText testID="NetworkAddressHeader" style={styles.subtitle}>
+            Your {capitalizeFirstLetter(network || '')} Address
           </ThemedText>
-          <TouchableOpacity testID="CopyAddressButton" onPress={handleCopyAddress} style={styles.addressTextContainer} disabled={!address}>
+
+          <ThemedView style={styles.qrContainer} testID="QrContainer">
             {isLoading ? (
-              <ThemedText style={styles.addressText}>Loading...</ThemedText>
+              <ThemedView style={styles.qrPlaceholder} testID="LoadingPlaceholder">
+                <ActivityIndicator size="large" color="#007AFF" />
+                <ThemedText style={styles.loadingText}>Loading address...</ThemedText>
+              </ThemedView>
+            ) : address ? (
+              <QRCode testID="AddressQrCode" value={address} size={200} backgroundColor="white" color="black" />
             ) : (
-              <ThemedText testID="AddressText" style={styles.addressText}>
-                {address ? address : 'No address available'}
-              </ThemedText>
+              <ThemedView style={styles.qrPlaceholder}>
+                <ThemedText>No address available</ThemedText>
+              </ThemedView>
             )}
-            {address && <Ionicons testID="CopyIcon" name="copy-outline" size={20} color="#007AFF" style={styles.copyIcon} />}
+          </ThemedView>
+
+          <ThemedView style={styles.addressContainer}>
+            <ThemedText testID="AddressLabel" style={styles.addressLabel}>
+              Address:
+            </ThemedText>
+            <TouchableOpacity testID="CopyAddressButton" onPress={handleCopyAddress} style={styles.addressTextContainer} disabled={!address}>
+              {isLoading ? (
+                <ThemedText style={styles.addressText}>Loading...</ThemedText>
+              ) : (
+                <ThemedText testID="AddressText" style={styles.addressText}>
+                  {address ? address : 'No address available'}
+                </ThemedText>
+              )}
+              {address && <Ionicons testID="CopyIcon" name="copy-outline" size={20} color="#007AFF" style={styles.copyIcon} />}
+            </TouchableOpacity>
+          </ThemedView>
+
+          <TouchableOpacity testID="ShareButton" onPress={handleShare} style={styles.shareButton}>
+            <Ionicons testID="ShareIcon" name="share-outline" size={24} color="#007AFF" />
           </TouchableOpacity>
         </ThemedView>
-
-        <TouchableOpacity testID="ShareButton" onPress={handleShare} style={styles.shareButton}>
-          <Ionicons testID="ShareIcon" name="share-outline" size={24} color="#007AFF" />
-        </TouchableOpacity>
-      </ThemedView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -147,6 +151,9 @@ export default function ReceiveScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   container: {
     flex: 1,

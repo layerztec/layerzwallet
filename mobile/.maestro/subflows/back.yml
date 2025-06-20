@@ -1,0 +1,14 @@
+appId: com.layerzwallet.mobile
+---
+- runFlow:
+    when:
+      platform: 'ios'
+    commands:
+      - tapOn:
+          point: '35,80'
+
+- runFlow:
+    when:
+      platform: 'android'
+    commands:
+      - back

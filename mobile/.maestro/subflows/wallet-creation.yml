@@ -1,60 +1,61 @@
 appId: com.layerzwallet.mobile
-
 ---
 - launchApp:
     clearState: true
     clearKeychain: true
 
+- runFlow: skip-dev-client.yml
+
 - waitForAnimationToEnd
 
 - extendedWaitUntil:
-    visible: "Create New Wallet"
+    visible: 'Create New Wallet'
     timeout: 15000
 
-- tapOn: "Create New Wallet"
+- tapOn: 'Create New Wallet'
 
 - extendedWaitUntil:
-    visible: "Write down these 12 words in numerical order and keep them in a secure place. Never share them with anyone."
+    visible: 'Write down these 12 words in numerical order and keep them in a secure place. Never share them with anyone.'
     timeout: 150000
 
 # First wait for the loading to complete
 - extendedWaitUntil:
-    notVisible: "Creating your wallet..."
+    notVisible: 'Creating your wallet...'
     timeout: 60000
 
 # Then verify the Continue button is available and enabled
 - assertVisible:
-    text: "Continue"
+    text: 'Continue'
     enabled: true
 
 # Now proceed to the enter password screen
 - repeat:
-      while:
-          notVisible:
-              id: "EnterPasswordInput"
-      commands:
-          - tapOn: "Continue"
-          - waitForAnimationToEnd
+    while:
+      notVisible:
+        id: 'EnterPasswordInput'
+    commands:
+      - tapOn: 'Continue'
+      - waitForAnimationToEnd
 
 # Create password
 - tapOn:
-    id: "EnterPasswordInput"
+    id: 'EnterPasswordInput'
 - inputText:
-    text: "123456" # Password
+    text: '123456' # Password
 - tapOn:
-    id: "RepeatPasswordInput"
+    id: 'RepeatPasswordInput'
 - inputText:
-    text: "123456" # Confirm password
+    text: '123456' # Confirm password
 - tapOn:
-    point: 10%,10%        # to remove focus from the keyboard
-- tapOn: 
-    id: "CreatePasswordButton"
+    point: 10%,10% # to remove focus from the keyboard
+- tapOn:
+    id: 'CreatePasswordButton'
 - waitForAnimationToEnd
 
 # Accept terms of service
-- tapOn: "I Agree"
+- tapOn: 'I Agree'
 - waitForAnimationToEnd
 
 # Wait for home screen with Send & Receive buttons
-- assertVisible: "Send"
-- assertVisible: "Receive"
+- assertVisible: 'Send'
+- assertVisible: 'Receive'

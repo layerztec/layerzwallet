@@ -23,8 +23,8 @@
     "e2e": "maestro test .maestro/*",
     "unit": "vitest run ../shared/tests/unit-vi/ --silent",
     "integration": "vitest run ../shared/tests/integration-vi/ --silent",
-    "lint": "prettier '**/*.{js,jsx,ts,tsx,json,css,scss,md}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md}' --config ./.prettierrc --check && tsc --noEmit && expo lint",
-    "lint:write": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md}' --config ./.prettierrc; expo lint --fix"
+    "lint": "prettier '**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' --config ./.prettierrc --check && tsc --noEmit && expo lint",
+    "lint:write": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' --config ./.prettierrc; expo lint --fix"
   },
   "jest": {
     "preset": "jest-expo"

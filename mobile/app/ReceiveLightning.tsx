@@ -231,7 +231,7 @@ export default function ReceiveLightningScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <ThemedView style={styles.contentContainer}>
-          <ThemedView testID="NetworkAddressHeader" style={[styles.networkBar, { backgroundColor: '#FF9500' }]}>
+          <ThemedView testID="ReceiveLightningHeader" style={[styles.networkBar, { backgroundColor: '#FF9500' }]}>
             <ThemedText style={styles.networkText}>{network?.toUpperCase()} LIGHTNING</ThemedText>
           </ThemedView>
 
@@ -252,7 +252,7 @@ export default function ReceiveLightningScreen() {
                 value={amount}
                 onChangeText={handleAmountChange}
                 keyboardType="numeric"
-                testID="AmountInput"
+                testID="ReceiveLightningAmountInput"
               />
 
               {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : <ThemedText style={styles.hintText}>Enter the amount you want to receive</ThemedText>}
@@ -270,7 +270,7 @@ export default function ReceiveLightningScreen() {
             <>
               <ThemedText style={styles.subtitle}>Scan the QR code or copy the invoice</ThemedText>
 
-              <ThemedView style={styles.qrContainer} testID="QrContainer">
+              <ThemedView style={styles.qrContainer} testID="LNQrContainer">
                 <QRCode testID="InvoiceQrCode" value={invoice} size={200} backgroundColor="white" color="black" />
               </ThemedView>
 
@@ -297,7 +297,7 @@ export default function ReceiveLightningScreen() {
                   <ThemedText style={styles.buttonText}>Generate New Invoice</ThemedText>
                 </TouchableOpacity>
 
-                <TouchableOpacity testID="ShareButton" onPress={handleShare} style={styles.shareButton}>
+                <TouchableOpacity testID="LNShareButton" onPress={handleShare} style={styles.shareButton}>
                   <Ionicons name="share-outline" size={24} color="#007AFF" />
                 </TouchableOpacity>
               </ThemedView>

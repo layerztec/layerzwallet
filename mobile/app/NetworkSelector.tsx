@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useContext, useRef, useLayoutEffect } from 'react';
-import { FlatList, StyleSheet, TouchableOpacity, useColorScheme } from 'react-native';
+import { FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { getAvailableNetworks, Networks } from '@shared/types/networks';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -12,7 +12,6 @@ import { Colors, getNetworkGradient, getNetworkIcon } from '@shared/constants/Co
 
 const NetworkSelector: React.FC = () => {
   const router = useRouter();
-  const colorScheme = useColorScheme();
   const { network: currentNetwork, setNetwork } = useContext(NetworkContext);
   const networks = getAvailableNetworks();
   const flatListRef = useRef<FlatList>(null);
@@ -62,9 +61,9 @@ const NetworkSelector: React.FC = () => {
     }));
 
     return (
-      <Animated.View style={[{ marginBottom: 12 }, animatedStyle]}>
+      <Animated.View style={[{ marginBottom: 12 }, animatedStyle]} testID={`network-${availableNetwork}`}>
         <TouchableOpacity
-          testID={isSelected ? `selectedNetwork-${availableNetwork}` : `network-${availableNetwork}`}
+          testID={isSelected ? `selectedNetwork-${availableNetwork}` : undefined}
           style={[styles.networkCard, isSelected && styles.selectedNetworkCard]}
           onPress={handlePress}
           onPressIn={handlePressIn}
@@ -121,7 +120,7 @@ const NetworkSelector: React.FC = () => {
       contentInset={{ top: 0, left: 0, bottom: 100, right: 0 }}
       contentInsetAdjustmentBehavior="automatic"
       data={networks}
-      testID="network-selector-list"
+      testID="NetworkSelectorList"
       renderItem={({ item: availableNetwork }) => <AnimatedNetworkCard key={availableNetwork} network={availableNetwork} />}
       nestedScrollEnabled
       keyExtractor={(item) => item}
@@ -270,7 +269,7 @@ const styles = StyleSheet.create({
 });
 
 const Header = () => (
-  <ThemedView style={styles.header}>
+  <ThemedView testID="NetworkSelectorHeader" style={styles.header}>
     <ThemedView style={styles.headerContent}>
       <Ionicons name="grid" size={24} color={Colors.light.icon} />
       <ThemedText style={styles.title}>Select Network</ThemedText>

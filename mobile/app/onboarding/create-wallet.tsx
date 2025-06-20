@@ -8,11 +8,13 @@ export default function CreateWalletScreen() {
   const router = useRouter();
   const [recoveryPhrase, setRecoveryPhrase] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
 
   useEffect(() => {
     (async () => {
       try {
         setIsLoading(true);
+        setError('');
         const hasMnemonic = await BackgroundExecutor.hasMnemonic();
         console.log('hasMnemonic', hasMnemonic);
         if (!hasMnemonic) {
@@ -20,8 +22,9 @@ export default function CreateWalletScreen() {
           console.log('response', response);
           setRecoveryPhrase(response.mnemonic);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error creating wallet:', error);
+        setError(`Error creating wallet: ${error.message}`);
       } finally {
         setIsLoading(false);
       }
@@ -40,23 +43,31 @@ export default function CreateWalletScreen() {
         <ThemedText type="title">Create wallet</ThemedText>
       </View>
       <View style={styles.content}>
-        <ThemedText>Write down these 12 words in numerical order and keep them in a secure place. Never share them with anyone.</ThemedText>
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
-            <ThemedText style={styles.loadingText}>Creating your wallet...</ThemedText>
+        {error ? (
+          <View style={styles.errorContainer}>
+            <ThemedText style={styles.errorText}>Error: {error}</ThemedText>
           </View>
         ) : (
-          words.map((word, index) => (
-            <ThemedText key={index}>
-              {index + 1}. {word}
-            </ThemedText>
-          ))
+          <>
+            <ThemedText>Write down these 12 words in numerical order and keep them in a secure place. Never share them with anyone.</ThemedText>
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#007AFF" />
+                <ThemedText style={styles.loadingText}>Creating your wallet...</ThemedText>
+              </View>
+            ) : (
+              words.map((word, index) => (
+                <ThemedText key={index}>
+                  {index + 1}. {word}
+                </ThemedText>
+              ))
+            )}
+          </>
         )}
       </View>
 
       <View style={styles.buttonContainer}>
-        {!isLoading && (
+        {!isLoading && !error && recoveryPhrase && (
           <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={handleContinue}>
             <ThemedText style={styles.buttonText}>Continue</ThemedText>
           </TouchableOpacity>
@@ -99,6 +110,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: '#666',
+  },
+  errorContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#FF3B30',
+    textAlign: 'center',
   },
   buttonContainer: {
     marginBottom: 30,

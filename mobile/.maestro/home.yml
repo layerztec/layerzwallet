@@ -4,5 +4,6 @@ appId: com.layerzwallet.mobile
     clearState: true
     clearKeychain: true
 
+- runFlow: subflows/skip-dev-client.yml
 - waitForAnimationToEnd
 - assertVisible: 'Welcome to LZW'
