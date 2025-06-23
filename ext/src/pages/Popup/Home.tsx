@@ -86,13 +86,7 @@ const Home: React.FC = () => {
 
   return (
     <div>
-      <Switch
-        items={getAvailableNetworks()}
-        activeItem={network}
-        onItemClick={(item) => {
-          setNetwork(item as Networks);
-        }}
-      />
+      <Switch items={getAvailableNetworks()} activeItem={network} onItemClick={setNetwork} />
       {getKnowMoreUrl(network) ? (
         <div style={{ textAlign: 'right' }}>
           <a

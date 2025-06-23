@@ -68,8 +68,8 @@ export function SwitchEthereumChain(args: SwitchEthereumChainArgs) {
     console.log('params=', params, params?.[0]?.chainId);
     if (params?.[0]?.chainId) {
       for (const net of getAvailableNetworks()) {
-        console.log(new BigNumber(getChainIdByNetwork(net) ?? -1).toNumber(), '???', new BigNumber(params[0].chainId).toNumber());
-        if (new BigNumber(getChainIdByNetwork(net) ?? -1).toNumber() === new BigNumber(params[0].chainId).toNumber()) {
+        console.log(new BigNumber(getChainIdByNetwork(net)).toNumber(), '???', new BigNumber(params[0].chainId).toNumber());
+        if (new BigNumber(getChainIdByNetwork(net)).toNumber() === new BigNumber(params[0].chainId).toNumber()) {
           return net;
         }
       }

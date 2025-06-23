@@ -39,7 +39,7 @@ export class EvmWallet {
 
     // @ts-ignore `.gas` is not in the type definition, but might be present from real Dapp
     const gasLimit = transaction.gas ?? transaction.gasLimit ?? EvmWallet.DEFAULT_GAS_LIMIT;
-    const chainId = getChainIdByNetwork(network) ?? 1;
+    const chainId = getChainIdByNetwork(network);
     const nonce = transaction.nonce ?? (await this.getNonce(network, transaction.from.toString()));
 
     const txPayload: TransactionRequest = {

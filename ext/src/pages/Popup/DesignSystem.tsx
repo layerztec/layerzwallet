@@ -1,6 +1,8 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { capitalizeFirstLetter } from '@shared/modules/string-utils';
+import React, { useEffect, useRef, useState } from 'react';
 import { ClipboardCopy } from 'lucide-react';
+
+import { capitalizeFirstLetter } from '@shared/modules/string-utils';
+import { Networks } from '@shared/types/networks';
 
 export const SelectFeeSlider: React.FC<
   {
@@ -22,9 +24,9 @@ export const SelectFeeSlider: React.FC<
 
 // Switch Component
 export const Switch: React.FC<{
-  items: string[];
-  activeItem: string;
-  onItemClick: (item: string) => void;
+  items: Networks[];
+  activeItem: Networks;
+  onItemClick: (item: Networks) => void;
 }> = ({ items, activeItem, onItemClick }) => {
   return (
     <div

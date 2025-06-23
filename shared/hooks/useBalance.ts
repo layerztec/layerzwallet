@@ -80,7 +80,9 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
     case NETWORK_BITCOIN:
       refreshInterval = 60_000; // 1 min for btc
   }
-  const { data, error, isLoading } = useSWR({ cacheKey: 'balanceFetcher', accountNumber, network, backgroundCaller } as balanceFetcherArg, balanceFetcher, {
+
+  const arg: balanceFetcherArg = { cacheKey: 'balanceFetcher', accountNumber, network, backgroundCaller };
+  const { data, error, isLoading } = useSWR(arg, balanceFetcher, {
     refreshInterval,
     refreshWhenHidden: false,
     keepPreviousData: true,

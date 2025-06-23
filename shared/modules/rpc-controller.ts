@@ -83,7 +83,7 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
             for: 'webpage',
             type: 'eventCallback',
             event: 'chainChanged',
-            arg: getChainIdByNetwork(net) as string,
+            arg: getChainIdByNetwork(net),
           });
 
           return { success: true };
@@ -106,7 +106,7 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
       await Messenger.sendResponseFromContentScriptToContentScript({
         for: 'webpage',
         id: id,
-        response: new BigNumber(getChainIdByNetwork(network) ?? '0x1').toNumber(),
+        response: new BigNumber(getChainIdByNetwork(network)).toNumber(),
       });
       return { success: true };
 

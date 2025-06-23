@@ -87,11 +87,11 @@ const SwapInterfaceView: React.FC = () => {
                   <TouchableOpacity
                     style={styles.networkOption}
                     onPress={() => {
-                      setTargetNetwork(item as Networks);
+                      setTargetNetwork(item);
                       setShowNetworkPicker(false);
                     }}
                   >
-                    <Text style={styles.networkOptionText}>{capitalizeFirstLetter(item as string)}</Text>
+                    <Text style={styles.networkOptionText}>{capitalizeFirstLetter(item)}</Text>
                   </TouchableOpacity>
                 )}
               />

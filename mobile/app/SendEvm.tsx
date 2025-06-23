@@ -131,16 +131,18 @@ export default function SendScreen() {
     try {
       const txid = await e.broadcastTransaction(network, bytes);
 
+      const params: TransactionSuccessProps = {
+        amount: new BigNumber(amount).multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString(10),
+        recipient: recipientAddress,
+        network: network,
+        transactionId: txid,
+        bytes: bytes,
+      };
+
       // Navigate to TransactionSuccessEvm with all required parameters
       router.replace({
         pathname: '/TransactionSuccessEvm',
-        params: {
-          amount: new BigNumber(amount).multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString(10),
-          recipient: recipientAddress,
-          network: network,
-          transactionId: txid,
-          bytes: bytes,
-        } as TransactionSuccessProps,
+        params,
       });
     } catch (error: any) {
       setScreenState('init');

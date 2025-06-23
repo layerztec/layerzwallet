@@ -56,7 +56,7 @@ export const ThemedText: React.FC<ThemedTextProps> = ({ style, lightColor, darkC
   let customStyles: React.CSSProperties = {
     ...baseStyles,
     color,
-    ...(style as React.CSSProperties),
+    ...style,
   };
 
   if (size !== undefined) {

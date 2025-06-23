@@ -8,13 +8,14 @@ import { AllNetworkInfos } from './all-network-infos';
 /**
  * Returns hex ChainId for the network
  */
-export function getChainIdByNetwork(network: Networks): string | undefined {
+export function getChainIdByNetwork(network: Networks): string {
   if (!AllNetworkInfos[network]) {
     // safeguard
     throw new Error('Network not implemented');
   }
 
-  return hexStr(AllNetworkInfos[network].chainId);
+  // hexStr returns undefined only if input is undefined
+  return hexStr(AllNetworkInfos[network].chainId)!;
 }
 
 export function getNetworkByChainId(chainId: string): Networks | undefined {
@@ -64,7 +65,7 @@ export function getRpcProvider(network: Networks): ethers.JsonRpcProvider {
     throw new Error('Network not implemented');
   }
 
-  return new ethers.JsonRpcProvider(AllNetworkInfos[network].rpcUrl, new BigNumber(getChainIdByNetwork(network) ?? 1).toNumber());
+  return new ethers.JsonRpcProvider(AllNetworkInfos[network].rpcUrl, new BigNumber(getChainIdByNetwork(network)).toNumber());
 }
 
 export function getIsTestnet(network: Networks): boolean {

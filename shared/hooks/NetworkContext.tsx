@@ -34,12 +34,12 @@ export const NetworkContextProvider: React.FC<NetworkContextProviderProps> = (pr
   useEffect(() => {
     (async () => {
       await props.backgroundCaller.log('loading selected network...');
-      const response = await props.storage.getItem(STORAGE_SELECTED_NETWORK);
+      const response = (await props.storage.getItem(STORAGE_SELECTED_NETWORK)) as Networks;
 
       // checking types manually, in runtime:
-      if (getAvailableNetworks().includes(response as Networks)) {
+      if (getAvailableNetworks().includes(response)) {
         await props.backgroundCaller.log('loaded ' + response);
-        setNetwork(response as Networks);
+        setNetwork(response);
       }
       setIsLoaded(true);
     })();
@@ -58,7 +58,7 @@ export const NetworkContextProvider: React.FC<NetworkContextProviderProps> = (pr
         for: 'webpage',
         type: 'eventCallback',
         event: 'chainChanged',
-        arg: getChainIdByNetwork(value) as string,
+        arg: getChainIdByNetwork(value),
       });
     }
   };
