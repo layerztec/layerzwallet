@@ -11,12 +11,14 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { SecureStorage } from '@/src/class/secure-storage';
 import { STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 
 export default function SettingsScreen() {
-  const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
-  const [isClearing, setIsClearing] = useState(false);
-  const { scanQr } = useContext(ScanQrContext);
   const router = useRouter();
+  const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
+  const { scanQr } = useContext(ScanQrContext);
+  const { setStep } = useContext(InitializationContext);
+  const [isClearing, setIsClearing] = useState(false);
 
   const handleClearStorage = async () => {
     Alert.alert('Clear Storage', 'Are you sure you want to clear all app data? This action cannot be undone.', [
@@ -37,7 +39,9 @@ export default function SettingsScreen() {
                 text: 'OK',
                 onPress: () => {
                   // Navigate back to the index screen which will handle redirection to onboarding
+                  router.dismissAll();
                   router.replace('/');
+                  setStep(EStep.INTRO);
                 },
               },
             ]);

@@ -4,24 +4,29 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import 'react-native-reanimated';
 import { AppState, AppStateStatus, LogBox } from 'react-native';
+import 'react-native-reanimated';
+import { SWRConfig } from 'swr';
+
+import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
+import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
 
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
-import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
-import { AskPasswordContextProvider } from '@/src/hooks/AskPasswordContext';
-import { AskMnemonicContextProvider } from '@/src/hooks/AskMnemonicContext';
-import { SWRConfig } from 'swr';
-import { SwrCacheProvider } from '@/src/class/swr-cache-provider';
-import { ScanQrContextProvider } from '@/src/hooks/ScanQrContext';
 import { LayerzStorage } from '@/src/class/layerz-storage';
+import { SwrCacheProvider } from '@/src/class/swr-cache-provider';
+import { AskMnemonicContextProvider } from '@/src/hooks/AskMnemonicContext';
+import { AskPasswordContextProvider } from '@/src/hooks/AskPasswordContext';
+import { ScanQrContextProvider } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
+import { InitializationContextProvider } from '@shared/hooks/InitializationContext';
+import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { Header } from './NetworkSelector';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 LogBox.ignoreLogs(['Open debugger to view warnings.']);
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
@@ -72,36 +77,39 @@ export default function RootLayout() {
       <ScanQrContextProvider>
         <AskPasswordContextProvider>
           <AskMnemonicContextProvider>
-            <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
-              <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
-                <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                  <Stack>
-                    <Stack.Screen name="index" options={{ headerShown: false, title: 'Home' }} />
-                    <Stack.Screen name="receive" />
-                    <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
-                    <Stack.Screen name="onboarding/intro" options={{ headerShown: false }} />
-                    <Stack.Screen name="onboarding/create-password" options={{ headerShown: false }} />
-                    <Stack.Screen name="onboarding/tos" options={{ headerShown: false }} />
-                    <Stack.Screen name="onboarding/import-wallet" options={{ headerShown: false }} />
-                    <Stack.Screen name="onboarding/create-wallet" options={{ headerShown: false }} />
-                    <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
-                    <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
-                    <Stack.Screen name="Onramp" options={{ headerShown: true }} />
-                    <Stack.Screen
-                      name="NetworkSelector"
-                      options={{
-                        presentation: 'formSheet',
-                        sheetAllowedDetents: [0.66, 1.0],
-                        header: () => <Header />,
-                        sheetGrabberVisible: true,
-                      }}
-                    />
-                    <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
-                  </Stack>
-                  <StatusBar style="auto" />
-                </ThemeProvider>
-              </NetworkContextProvider>
-            </AccountNumberContextProvider>
+            <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
+              <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
+                <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
+                  <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                    <Stack>
+                      <Stack.Screen name="index" options={{ headerShown: false, title: 'Index' }} />
+                      <Stack.Screen name="home" options={{ headerShown: false, title: 'Home', animation: 'none' }} />
+                      <Stack.Screen name="receive" />
+                      <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
+                      <Stack.Screen name="onboarding/intro" options={{ headerShown: false }} />
+                      <Stack.Screen name="onboarding/create-password" options={{ headerShown: false }} />
+                      <Stack.Screen name="onboarding/tos" options={{ headerShown: false }} />
+                      <Stack.Screen name="onboarding/import-wallet" options={{ headerShown: false }} />
+                      <Stack.Screen name="onboarding/create-wallet" options={{ headerShown: false }} />
+                      <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
+                      <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
+                      <Stack.Screen name="Onramp" options={{ headerShown: true }} />
+                      <Stack.Screen
+                        name="NetworkSelector"
+                        options={{
+                          presentation: 'formSheet',
+                          sheetAllowedDetents: [0.66, 1.0],
+                          header: () => <Header />,
+                          sheetGrabberVisible: true,
+                        }}
+                      />
+                      <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
+                    </Stack>
+                    <StatusBar style="auto" />
+                  </ThemeProvider>
+                </NetworkContextProvider>
+              </AccountNumberContextProvider>
+            </InitializationContextProvider>
           </AskMnemonicContextProvider>
         </AskPasswordContextProvider>
       </ScanQrContextProvider>

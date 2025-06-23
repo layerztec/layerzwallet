@@ -11,7 +11,7 @@ export default function IntroScreen() {
   };
 
   const handleImportWallet = () => {
-    router.replace('/onboarding/import-wallet');
+    router.push('/onboarding/import-wallet');
   };
 
   return (

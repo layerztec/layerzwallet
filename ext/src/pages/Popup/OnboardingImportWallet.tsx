@@ -1,9 +1,10 @@
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
-import React, { useContext, useState } from 'react';
-import { BackgroundCaller } from '../../modules/background-caller';
-import { useScanQR } from '../../hooks/ScanQrContext';
-import { Button, TextArea } from './DesignSystem';
 import { Scan } from 'lucide-react';
+import React, { useContext, useState } from 'react';
+
+import { useScanQR } from '../../hooks/ScanQrContext';
+import { BackgroundCaller } from '../../modules/background-caller';
+import { Button, TextArea } from './DesignSystem';
 
 export default function OnboardingImport() {
   const scanQr = useScanQR();

@@ -1,9 +1,10 @@
-import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router';
+
+import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
+import { ThemedText } from '../../components/ThemedText';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { Button, Input } from './DesignSystem';
-import { ThemedText } from '../../components/ThemedText';
 
 export default function OnboardingCreatePassword() {
   const navigate = useNavigate();

@@ -8,8 +8,8 @@ import { ThemedView } from '@/components/ThemedView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 
 export default function TermsOfServiceScreen() {
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleAgree = async () => {
     setIsLoading(true);
@@ -17,8 +17,8 @@ export default function TermsOfServiceScreen() {
       // Accept the terms of service
       await BackgroundExecutor.acceptTermsOfService();
 
-      // Navigate to the main index screen
-      router.replace('/');
+      // Navigate to the main home screen
+      router.replace('/home');
     } catch (error) {
       console.error('Error accepting terms:', error);
       Alert.alert('Error', 'Failed to accept terms. Please try again.');

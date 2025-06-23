@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
+
 import { ThemedText } from '@/components/ThemedText';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
 
 export default function CreateWalletScreen() {
   const router = useRouter();

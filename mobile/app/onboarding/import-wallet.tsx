@@ -1,10 +1,11 @@
+import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
+
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ImportWalletScreen() {
