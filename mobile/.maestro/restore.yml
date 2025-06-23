@@ -1,0 +1,28 @@
+# Testplan:
+# - restore the wallet
+# - check all the networks have no null balance
+
+appId: com.layerzwallet.mobile
+---
+- runFlow:
+    file: subflows/wallet-restore.yml
+    env:
+      MNEMONIC: ${MAESTRO_TEST_MNEMONIC}
+
+# run for all networks
+- evalScript: ${output.networks = ['bitcoin','rootstock','botanix','strata','citrea','ark','liquid','liquidtest','spark','lightning','lightningtest']}
+- repeat:
+    while:
+      true: ${output.networks.length > 0}
+    commands:
+      # switch to the next network
+      - runFlow:
+          file: subflows/network-switch.yml
+          env:
+            NETWORK: ${output.networks.shift()}
+      # wait for the balance to load
+      - assertVisible:
+          id: 'LayerBalance'
+      - extendedWaitUntil:
+          notVisible: '???'
+          timeout: 60000

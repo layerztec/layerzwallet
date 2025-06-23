@@ -1,0 +1,63 @@
+appId: com.layerzwallet.mobile
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+
+- runFlow: skip-dev-client.yml
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: 'Import Existing'
+    timeout: 15000
+- tapOn: 'Import Existing'
+
+# Wrong mnemonic, run this flow only on android. On ios maestro fails with "Input text wrong TEXT FAILED"
+# why it still can enter mnemonic? IDK
+- runFlow:
+    when:
+      platform: 'android'
+    commands:
+      - tapOn:
+          id: 'ImportWalletMnemonicInput'
+      - inputText: 'wrong'
+      - tapOn: 'Import wallet' # to remove focus from the keyboard
+      - tapOn:
+          id: 'ImportWalletImportButton'
+      - assertVisible: 'Invalid mnemonic seed'
+      - tapOn:
+          id: 'ImportWalletMnemonicInput'
+      - eraseText
+
+# Correct mnemonic
+- tapOn:
+    id: 'ImportWalletMnemonicInput'
+- inputText: ${MNEMONIC}
+- tapOn: 'Import wallet' # to remove focus from the keyboard
+- tapOn:
+    id: 'ImportWalletImportButton'
+- extendedWaitUntil:
+    visible: 'Create Password'
+    timeout: 300_000 # 5 min
+
+# Create password
+- tapOn:
+    id: 'EnterPasswordInput'
+- inputText:
+    text: '123456'
+- tapOn:
+    id: 'RepeatPasswordInput'
+- inputText:
+    text: '123456'
+- tapOn:
+    point: 10%,10% # to remove focus from the keyboard
+- tapOn:
+    id: 'CreatePasswordButton'
+- waitForAnimationToEnd
+
+# Accept terms of service
+- tapOn: 'I Agree'
+- waitForAnimationToEnd
+
+# Wait for home screen with Send & Receive buttons
+- assertVisible: 'Send'
+- assertVisible: 'Receive'

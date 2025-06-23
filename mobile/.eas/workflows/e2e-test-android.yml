@@ -20,3 +20,4 @@ jobs:
         - .maestro/home.yml
         - .maestro/wallet-creation-and-selftest.yml
         - .maestro/receive.yml
+        - .maestro/restore.yml

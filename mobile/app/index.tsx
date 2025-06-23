@@ -198,7 +198,9 @@ export default function IndexScreen() {
           <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
             {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
           </ThemedText>
-          <ThemedText style={styles.balanceLabel}>Layer Balance:</ThemedText>
+          <ThemedText style={styles.balanceLabel} testID="LayerBalance">
+            Layer Balance:
+          </ThemedText>
           <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
             {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
           </ThemedText>

@@ -59,6 +59,7 @@ export default function ImportWalletScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               editable={!isLoading}
+              testID="ImportWalletMnemonicInput"
             />
           </View>
 
@@ -81,7 +82,13 @@ export default function ImportWalletScreen() {
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={[styles.button, styles.secondaryButton, isLoading && styles.disabledButton]} onPress={handleImportWallet} disabled={isLoading}>
-            {isLoading ? <ActivityIndicator color="white" size="small" /> : <ThemedText style={styles.buttonText}>Import</ThemedText>}
+            {isLoading ? (
+              <ActivityIndicator color="white" size="small" />
+            ) : (
+              <ThemedText style={styles.buttonText} testID="ImportWalletImportButton">
+                Import
+              </ThemedText>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
