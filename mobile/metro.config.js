@@ -24,7 +24,6 @@ module.exports = (async () => {
 
   defaultConfig.watchFolders = [path.resolve(path.join(__dirname, '../shared'))];
 
-  // Alias resolver for future use
   // @see https://docs.expo.dev/guides/customizing-metro/#aliases
   defaultConfig.resolver.resolveRequest = (context, moduleName, platform) => {
     return context.resolveRequest(context, ALIASES[moduleName] ?? moduleName, platform);

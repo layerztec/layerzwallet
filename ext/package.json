@@ -17,6 +17,7 @@
     "circular": "npx tsx utils/madge.ts",
     "lint": "prettier '**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' --config ./.prettierrc --check && tsc --noEmit && eslint ./",
     "lint:write": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' --config ./.prettierrc; eslint ./ --fix",
+    "lint:fix": "npm run lint:write",
     "prepare": "cd .. && husky ext/.husky"
   },
   "dependencies": {

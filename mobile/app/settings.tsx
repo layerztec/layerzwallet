@@ -83,8 +83,8 @@ export default function SettingsScreen() {
           </ThemedView>
 
           <ThemedView style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Account Number</ThemedText>
-            <ThemedText style={styles.accountText}>Current Account: {accountNumber}</ThemedText>
+            <ThemedText style={styles.sectionTitle}>Pocket Number</ThemedText>
+            <ThemedText style={styles.accountText}>Current Pocket: {accountNumber}</ThemedText>
 
             <View style={styles.accountSelectorContainer}>
               {[0, 1, 2, 3, 4].map((num) => (

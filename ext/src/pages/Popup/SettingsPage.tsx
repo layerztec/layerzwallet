@@ -37,14 +37,14 @@ const SettingsPage: React.FC = () => {
       <ThemedText type="headline">Settings</ThemedText>
 
       <div style={{ textAlign: 'left', fontSize: '16px' }}>
-        <ThemedText>Switch account:</ThemedText>
+        <ThemedText>Switch pocket:</ThemedText>
         <div style={{ marginBottom: '20px', marginTop: '5px' }}>
           <Select value={accountNumber} id="account-select" onChange={(e) => setSelectedAccount(e.target.value)}>
-            <option value={0}>Account 0</option>
-            <option value={1}>Account 1</option>
-            <option value={2}>Account 2</option>
-            <option value={3}>Account 3</option>
-            <option value={4}>Account 4</option>
+            <option value={0}>Pocket 0</option>
+            <option value={1}>Pocket 1</option>
+            <option value={2}>Pocket 2</option>
+            <option value={3}>Pocket 3</option>
+            <option value={4}>Pocket 4</option>
           </Select>
         </div>
       </div>
@@ -52,10 +52,6 @@ const SettingsPage: React.FC = () => {
       <div style={{ fontSize: '12px' }}>
         <ThemedText>{pck.name + ' v' + pck.version}</ThemedText>
       </div>
-
-      <a href="https://github.com/layerztec/bugtracker/issues" target="_blank" rel="noopener noreferrer">
-        <ThemedText type="link">Bugtracker</ThemedText>
-      </a>
 
       <br />
       <hr />
