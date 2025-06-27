@@ -136,6 +136,10 @@ const SettingsPage: React.FC = () => {
         Clear storage
       </Button>
 
+      <Button onClick={() => navigate('/seed-backup')} style={{ marginBottom: '10px' }}>
+        Seed Backup
+      </Button>
+
       <div id="messages" data-testid="messages"></div>
     </div>
   );

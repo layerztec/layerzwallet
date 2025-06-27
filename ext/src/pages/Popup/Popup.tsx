@@ -27,6 +27,7 @@ import OnboardingTos from './OnboardingTos';
 import './Popup.css';
 import Receive from './Receive';
 import ReceiveLightning from './ReceiveLightning';
+import SeedBackup from './SeedBackup';
 import SendArk from './SendArk';
 import SendBtc from './SendBtc';
 import SendEvm from './SendEvm';
@@ -79,6 +80,7 @@ const AppContent: React.FC = () => {
             <Route path="/home" element={<Home />} />
             <Route path="/receive" element={<Receive />} />
             <Route path="/receive-lightning" element={<ReceiveLightning />} />
+            <Route path="/seed-backup" element={<SeedBackup />} />
             <Route path="/send-liquid" element={<SendLiquid />} />
             <Route path="/send-evm" element={<SendEvm />} />
             <Route path="/send-ark" element={<SendArk />} />
