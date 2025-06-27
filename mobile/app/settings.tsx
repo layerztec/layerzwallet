@@ -64,6 +64,10 @@ export default function SettingsScreen() {
     router.push('/selftest');
   };
 
+  const handleNavigateToSeedBackup = () => {
+    router.push('/SeedBackup');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.container}>
@@ -74,6 +78,10 @@ export default function SettingsScreen() {
         <ScrollView style={styles.scrollContainer}>
           <ThemedView style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Data Management</ThemedText>
+
+            <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={handleNavigateToSeedBackup}>
+              <ThemedText style={styles.primaryButtonText}>Backup Seed Phrase</ThemedText>
+            </TouchableOpacity>
 
             <TouchableOpacity style={[styles.button, styles.dangerButton, isClearing && styles.buttonDisabled]} onPress={handleClearStorage} disabled={isClearing}>
               <ThemedText style={styles.dangerButtonText}>{isClearing ? 'Clearing...' : 'Clear All App Data'}</ThemedText>
@@ -157,6 +165,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  primaryButton: {
+    backgroundColor: '#007AFF',
+  },
+  primaryButtonText: {
+    color: 'white',
+    fontWeight: '700',
   },
   dangerButton: {
     backgroundColor: '#FF3B30',
