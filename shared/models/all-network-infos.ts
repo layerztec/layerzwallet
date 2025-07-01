@@ -13,6 +13,7 @@ import {
   NETWORK_LIGHTNING,
   NETWORK_LIGHTNINGTESTNET,
   Networks,
+  NETWORK_BOTANIX,
 } from '../types/networks';
 
 export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
@@ -39,6 +40,15 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 18,
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/botanix',
     isTestnet: true,
+  },
+  [NETWORK_BOTANIX]: {
+    chainId: 3637,
+    ticker: 'BTC',
+    rpcUrl: 'https://rpc.botanixlabs.com',
+    explorerUrl: 'https://botanixscan.io',
+    decimals: 18,
+    knowMoreUrl: 'https://www.bitcoinlayers.org/layers/botanix',
+    isTestnet: false,
   },
   [NETWORK_STRATADEVNET]: {
     chainId: 8091,

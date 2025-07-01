@@ -39,7 +39,7 @@ export const getNetworkIcon = (network: string): any => {
       return 'flash';
     case 'rootstock':
       return 'cube';
-    case 'botanix':
+    case 'botanixtest':
       return 'leaf';
     case 'strata':
       return 'layers';
@@ -69,7 +69,7 @@ export const getNetworkGradient = (network: string) => {
       return [accent3, accent1];
     case 'rootstock':
       return [primaryColor, '#4E9FFF'];
-    case 'botanix':
+    case 'botanixtest':
       return [accent2, '#96BEDC'];
     case 'strata':
       return [accent4, '#A855F7'];

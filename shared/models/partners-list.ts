@@ -53,6 +53,13 @@ const partnersList: PartnerInfo[] = [
     imgUrl: '',
     description: 'Progressive web-app to manage Ark bitcoins on the go',
   },
+  {
+    name: 'Bridge',
+    chainId: 3637,
+    url: 'https://bridge.botanixlabs.com',
+    imgUrl: '',
+    description: 'Bridge Bitcoin to Botanix',
+  },
 ];
 
 export function getPartnersList(network: Networks): PartnerInfo[] {

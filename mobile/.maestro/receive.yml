@@ -3,7 +3,7 @@ appId: com.layerzwallet.mobile
 - runFlow: subflows/wallet-creation.yml
 
 # run for all networks
-- evalScript: ${output.networks = ['bitcoin','rootstock','botanix','strata','citrea','ark','liquid','liquidtest','spark']}
+- evalScript: ${output.networks = ['bitcoin','rootstock','botanixtest','strata','citrea','ark','liquid','liquidtest','spark']}
 - repeat:
     while:
       true: ${output.networks.length > 0}

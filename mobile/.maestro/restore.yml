@@ -10,7 +10,7 @@ appId: com.layerzwallet.mobile
       MNEMONIC: ${MAESTRO_TEST_MNEMONIC}
 
 # run for all networks
-- evalScript: ${output.networks = ['bitcoin','rootstock','botanix','strata','citrea','ark','liquid','liquidtest','spark','lightning','lightningtest']}
+- evalScript: ${output.networks = ['bitcoin','rootstock','botanixtest','strata','citrea','ark','liquid','liquidtest','spark','lightning','lightningtest']}
 - repeat:
     while:
       true: ${output.networks.length > 0}
