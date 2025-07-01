@@ -53,6 +53,7 @@
     "bip85": "0.0.3",
     "bitcoinjs-lib": "^6.1.7",
     "bitcoinjs-message": "^2.2.0",
+    "bolt11": "^1.4.1",
     "browserify-cipher": "^1.0.1",
     "browserify-zlib": "^0.2.0",
     "buffer": "^6.0.3",

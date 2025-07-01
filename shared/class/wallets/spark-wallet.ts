@@ -1,13 +1,16 @@
-import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { ArkWallet } from './ark-wallet';
 import { SparkWallet as SDK } from '@buildonspark/spark-sdk';
+import { InterfaceLightningWallet } from './interface-lightning-wallet';
 
 export interface ISparkAdapter {
   initialize(...options: Parameters<typeof SDK.initialize>): ReturnType<typeof SDK.initialize>;
 }
 
-export class SparkWallet extends ArkWallet {
+export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
   private _sdkWallet: SDK | undefined = undefined;
-  public adapter: ISparkAdapter;
+  protected adapter: ISparkAdapter;
+
+  protected _bolt11toReceiveRequestId: Record<string, string> = {};
 
   constructor() {
     super();
@@ -46,7 +49,12 @@ export class SparkWallet extends ArkWallet {
       maxFeeSats: 99,
     });
     console.log('Payment Response:', payment_response);
-    return payment_response;
+
+    if (payment_response.status === 'LIGHTNING_PAYMENT_SUCCEEDED' || payment_response.status === 'LIGHTNING_PAYMENT_INITIATED') {
+      return true;
+    }
+
+    return false;
   }
 
   async getOffchainReceiveAddress(): Promise<string | undefined> {
@@ -73,12 +81,6 @@ export class SparkWallet extends ArkWallet {
     return Number(balance.balance);
   }
 
-  async checkLnInvoiceById(id: string) {
-    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
-
-    return await this._sdkWallet.getLightningReceiveRequest(id);
-  }
-
   async createLightningInvoice(amountSats: number, memo: string = '') {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
@@ -89,6 +91,25 @@ export class SparkWallet extends ArkWallet {
 
     console.log('Invoice:', invoice);
 
-    return invoice;
+    this._bolt11toReceiveRequestId[invoice.invoice.encodedInvoice] = invoice.id;
+
+    return invoice.invoice.encodedInvoice;
+  }
+
+  allowLightning(): boolean {
+    return true;
+  }
+
+  async isInvoicePaid(invoice: string): Promise<boolean> {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+
+    const id = this._bolt11toReceiveRequestId[invoice];
+
+    const lightningPaymentStatus = await this._sdkWallet.getLightningReceiveRequest(id);
+
+    if (lightningPaymentStatus?.status === 'LIGHTNING_PAYMENT_RECEIVED') return true;
+    if (lightningPaymentStatus?.status === 'TRANSFER_COMPLETED') return true;
+
+    return false;
   }
 }
