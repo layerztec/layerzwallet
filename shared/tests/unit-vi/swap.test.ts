@@ -15,7 +15,7 @@ test('throws on incorrect swap pair', async () => {
     errMsg = error.message;
   }
 
-  assert.strictEqual(errMsg, 'Swap pair liquidtest->botanix not supported by Boltz');
+  assert.strictEqual(errMsg, 'Swap pair liquidtest->botanixtest not supported by Boltz');
 });
 
 test('accepts correct swap pair', async () => {
