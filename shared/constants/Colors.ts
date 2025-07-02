@@ -1,3 +1,15 @@
+import {
+  NETWORK_ARKMUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_BOTANIX,
+  NETWORK_BOTANIXTESTNET,
+  NETWORK_CITREATESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUIDTESTNET,
+  NETWORK_ROOTSTOCK,
+  NETWORK_STRATADEVNET,
+} from '../types/networks';
+
 const primaryColor = '#011474';
 const accent1 = '#FD5D2B';
 const accent2 = '#9DF9EC';
@@ -31,21 +43,21 @@ export const Colors = {
 
 export const getNetworkIcon = (network: string): any => {
   switch (network) {
-    case 'bitcoin':
+    case NETWORK_BITCOIN:
       return 'logo-bitcoin';
-    case 'breez':
-    case 'breeztestnet':
-    case 'breeztest':
+    case NETWORK_LIQUID:
+    case NETWORK_LIQUIDTESTNET:
       return 'flash';
-    case 'rootstock':
+    case NETWORK_ROOTSTOCK:
       return 'cube';
-    case 'botanixtest':
+    case NETWORK_BOTANIX:
+    case NETWORK_BOTANIXTESTNET:
       return 'leaf';
-    case 'strata':
+    case NETWORK_STRATADEVNET:
       return 'layers';
-    case 'citrea':
+    case NETWORK_CITREATESTNET:
       return 'diamond';
-    case 'ark':
+    case NETWORK_ARKMUTINYNET:
       return 'boat';
     default:
       return 'globe';
@@ -61,21 +73,21 @@ export const getNetworkGradient = (network: string) => {
   const neutral = '#CECDCD';
 
   switch (network) {
-    case 'bitcoin':
+    case NETWORK_BITCOIN:
       return [accent1, '#FF8C00'];
-    case 'breez':
-    case 'breeztestnet':
-    case 'breeztest':
+    case NETWORK_LIQUID:
+    case NETWORK_LIQUIDTESTNET:
       return [accent3, accent1];
-    case 'rootstock':
+    case NETWORK_ROOTSTOCK:
       return [primaryColor, '#4E9FFF'];
-    case 'botanixtest':
+    case NETWORK_BOTANIX:
+    case NETWORK_BOTANIXTESTNET:
       return [accent2, '#96BEDC'];
-    case 'strata':
+    case NETWORK_STRATADEVNET:
       return [accent4, '#A855F7'];
-    case 'citrea':
+    case NETWORK_CITREATESTNET:
       return [accent1, '#FF6B8A'];
-    case 'ark':
+    case NETWORK_ARKMUTINYNET:
       return [primaryColor, '#4285F4'];
     default:
       return [neutral, '#9CA3AF'];
