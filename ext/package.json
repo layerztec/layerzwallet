@@ -24,7 +24,7 @@
     "@arklabs/wallet-sdk": "0.0.15",
     "@bitcoinerlab/secp256k1": "1.2.0",
     "@breeztech/breez-sdk-liquid": "0.9.1",
-    "@buildonspark/spark-sdk": "^0.1.37",
+    "@buildonspark/spark-sdk": "^0.1.43",
     "@metamask/eth-sig-util": "4.0.1",
     "@noble/hashes": "1.7.1",
     "@noble/secp256k1": "1.6.3",

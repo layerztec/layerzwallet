@@ -35,7 +35,7 @@
     "@bitcoinerlab/secp256k1": "1.2.0",
     "@breeztech/breez-sdk-liquid": "0.9.2-rc2",
     "@breeztech/react-native-breez-sdk-liquid": "0.9.2-rc2",
-    "@buildonspark/spark-sdk": "^0.1.37",
+    "@buildonspark/spark-sdk": "^0.1.43",
     "@expo/vector-icons": "^14.1.0",
     "@metamask/eth-sig-util": "8.2.0",
     "@noble/hashes": "^1.7.1",
