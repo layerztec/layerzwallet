@@ -3,7 +3,7 @@ import { EvmWallet } from '@shared/class/evm-wallet';
 import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { lazyInitWallet, saveArkAddresses, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
+import { lazyInitWallet, saveArkAddresses, saveBitcoinXpubs, saveSubMnemonics, saveWalletState, sanitizeAndValidateMnemonic } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, MessageType, MessageTypeMap, OpenPopupRequest, ProcessRPCRequest } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC } from '@shared/types/IStorage';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
@@ -87,16 +87,20 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
   },
 
   async saveMnemonic(mnemonic) {
-    if (!EvmWallet.isMnemonicValid(mnemonic)) {
+    let sanitizedMnemonic = mnemonic;
+    try {
+      sanitizedMnemonic = sanitizeAndValidateMnemonic(mnemonic);
+    } catch (error) {
       return false;
     }
 
-    const xpub = EvmWallet.mnemonicToXpub(mnemonic);
-    await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, mnemonic);
+    const xpub = EvmWallet.mnemonicToXpub(sanitizedMnemonic);
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
-    await saveBitcoinXpubs(LayerzStorage, mnemonic);
-    await saveArkAddresses(LayerzStorage, mnemonic);
-    await saveSubMnemonics(LayerzStorage, mnemonic);
+    await saveBitcoinXpubs(LayerzStorage, sanitizedMnemonic);
+    await saveArkAddresses(LayerzStorage, sanitizedMnemonic);
+    await saveSubMnemonics(LayerzStorage, sanitizedMnemonic);
+    // we are saving master mnemonic at the end, so that if any of the above fails, we don't end up with a partially working wallet
+    await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, sanitizedMnemonic);
 
     return true;
   },

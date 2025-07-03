@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { MessageType } from '@shared/types/IBackgroundCaller';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { handleMessage } from '../../modules/background-message-controller';
+import { sanitizeAndValidateMnemonic } from '../../../../shared/modules/wallet-utils';
 
 import CreateData = chrome.windows.CreateData;
 
@@ -29,12 +30,12 @@ test('BackgroundMessageController can handle messages SAVE_MNEMONIC', async () =
   const response2 = handleMessage(
     {
       type: MessageType.SAVE_MNEMONIC,
-      params: ['abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'],
+      params: ['abandon abandon abandon abandon abandon abandon abandon abandon\nabandon abandon abandon ABOUT'],
     },
     {},
     (response) => {
-      assert.strictEqual(response, true);
       handleMessageDone = true;
+      assert.strictEqual(response, true);
     }
   );
 
@@ -127,4 +128,17 @@ test('BackgroundMessageController can handle message OPEN_POPUP', async () => {
   assert.ok(!callbackCalled); // not called because popup returns result waaay later, via async messaging
 
   expect(openMockedMethod).toHaveBeenCalled();
+});
+
+test('sanitizeAndValidateMnemonic should handle complex whitespace scenarios', () => {
+  const mnemonic = '\n\n  abandon\t abandon   abandon\r\n abandon abandon  abandon\t\t abandon abandon abandon abandon   abandon ABOUT  \n\n';
+  const result = sanitizeAndValidateMnemonic(mnemonic);
+  assert.strictEqual(result, 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
+});
+
+test('sanitizeAndValidateMnemonic should throw error for mnemonic with less than 12 words', () => {
+  const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon';
+  assert.throws(() => {
+    sanitizeAndValidateMnemonic(mnemonic);
+  }, /Invalid mnemonic length/);
 });

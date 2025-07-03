@@ -114,3 +114,19 @@ export async function lazyInitWallet(network: SupportedWalletNetworks, accountNu
   await saveWalletState(storage, wallet, network, accountNumber);
   return wallet;
 }
+
+export const sanitizeAndValidateMnemonic = (mnemonic: string): string => {
+  // Remove extra spaces and newlines
+  const sanitizedMnemonic = mnemonic.replace(/\s+/g, ' ').trim().toLocaleLowerCase();
+
+  // Validate mnemonic length
+  const words = sanitizedMnemonic.split(' ');
+  if (words.length < 12 || words.length > 24) {
+    throw new Error('Invalid mnemonic length. It should be 12 to 24 words.');
+  }
+
+  // Check if we can import it
+  BIP85.fromMnemonic(sanitizedMnemonic);
+
+  return sanitizedMnemonic;
+};

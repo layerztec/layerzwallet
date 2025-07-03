@@ -4,6 +4,7 @@ import React, { useContext, useState } from 'react';
 
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
+import { sanitizeAndValidateMnemonic } from '@shared/modules/wallet-utils';
 import { Button, TextArea } from './DesignSystem';
 
 export default function OnboardingImport() {
@@ -18,6 +19,14 @@ export default function OnboardingImport() {
   };
 
   const handleSaveMnemonicSeed = async () => {
+    // Validate and sanitize the mnemonic first
+    try {
+      sanitizeAndValidateMnemonic(value);
+    } catch (error: any) {
+      setError(error.message);
+      return;
+    }
+
     const response = await BackgroundCaller.saveMnemonic(value);
 
     if (!response) {

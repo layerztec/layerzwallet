@@ -2,11 +2,12 @@ import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { sanitizeAndValidateMnemonic } from '@shared/modules/wallet-utils';
 
 export default function ImportWalletScreen() {
   const { scanQr } = useContext(ScanQrContext);
@@ -26,7 +27,15 @@ export default function ImportWalletScreen() {
 
     try {
       await new Promise((resolve) => setTimeout(resolve, 200)); // propagate ui
-      const response = await BackgroundExecutor.saveMnemonic(mnemonic.trim());
+
+      try {
+        sanitizeAndValidateMnemonic(mnemonic);
+      } catch (validationError) {
+        setError('Invalid mnemonic seed');
+        return;
+      }
+
+      const response = await BackgroundExecutor.saveMnemonic(mnemonic);
 
       if (!response) {
         setError('Invalid mnemonic seed');

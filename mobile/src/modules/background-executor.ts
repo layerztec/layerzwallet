@@ -4,7 +4,7 @@ import { EvmWallet } from '@shared/class/evm-wallet';
 import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { lazyInitWallet as lazyInitWalletOrig, saveArkAddresses, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
+import { lazyInitWallet as lazyInitWalletOrig, saveArkAddresses, saveBitcoinXpubs, saveSubMnemonics, saveWalletState, sanitizeAndValidateMnemonic } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller } from '@shared/types/IBackgroundCaller';
 import {
   ENCRYPTED_PREFIX,
@@ -85,16 +85,20 @@ export const BackgroundExecutor: IBackgroundCaller = {
   },
 
   async saveMnemonic(mnemonic) {
-    if (!EvmWallet.isMnemonicValid(mnemonic)) {
+    let sanitizedMnemonic = mnemonic;
+    try {
+      sanitizedMnemonic = sanitizeAndValidateMnemonic(mnemonic);
+    } catch (error) {
       return false;
     }
 
-    const xpub = EvmWallet.mnemonicToXpub(mnemonic);
-    await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, mnemonic);
+    const xpub = EvmWallet.mnemonicToXpub(sanitizedMnemonic);
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
-    await saveBitcoinXpubs(LayerzStorage, mnemonic);
-    await saveArkAddresses(LayerzStorage, mnemonic);
-    await saveSubMnemonics(SecureStorage, mnemonic);
+    await saveBitcoinXpubs(LayerzStorage, sanitizedMnemonic);
+    await saveArkAddresses(LayerzStorage, sanitizedMnemonic);
+    await saveSubMnemonics(SecureStorage, sanitizedMnemonic);
+    // we are saving master mnemonic at the end, so that if any of the above fails, we don't end up with a partially working wallet
+    await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, sanitizedMnemonic);
 
     return true;
   },

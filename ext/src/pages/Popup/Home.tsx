@@ -12,17 +12,7 @@ import { getDecimalsByNetwork, getIsTestnet, getKnowMoreUrl, getTickerByNetwork 
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { SwapPair, SwapPlatform } from '@shared/types/swap';
 
-import {
-  getAvailableNetworks,
-  NETWORK_ARKMUTINYNET,
-  NETWORK_BITCOIN,
-  NETWORK_LIGHTNING,
-  NETWORK_LIGHTNINGTESTNET,
-  NETWORK_LIQUID,
-  NETWORK_LIQUIDTESTNET,
-  NETWORK_SPARK,
-  Networks,
-} from '@shared/types/networks';
+import { getAvailableNetworks, NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { BackgroundCaller } from '../../modules/background-caller';
 import PartnersView from './components/PartnersView';
 import TokensView from './components/TokensView';
