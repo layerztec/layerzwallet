@@ -15,7 +15,7 @@ import { formatBalance, hexToDec } from '@shared/modules/string-utils';
 
 interface SendTransactionArgs {
   params: any[];
-  id: string;
+  id: number;
   from: string;
 }
 
@@ -83,7 +83,7 @@ export function SendTransaction(args: SendTransactionArgs) {
 
       await Messenger.sendResponseToActiveTabsFromPopupToContentScript({
         for: 'webpage',
-        id: Number(id),
+        id,
         error: {
           code: 4902,
           message: 'Cant get params',
@@ -101,7 +101,7 @@ export function SendTransaction(args: SendTransactionArgs) {
 
   const onDenyClick = async () => {
     const id = args.id;
-    await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id: Number(id), error: { code: 4001, message: 'User rejected the request.' } });
+    await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id, error: { code: 4001, message: 'User rejected the request.' } });
 
     await new Promise((resolve) => setTimeout(resolve, 100)); // propagate
     window.close();
@@ -169,7 +169,7 @@ export function SendTransaction(args: SendTransactionArgs) {
 
       await Messenger.sendResponseToActiveTabsFromPopupToContentScript({
         for: 'webpage',
-        id: Number(id),
+        id,
         response: txid,
       });
 

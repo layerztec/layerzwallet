@@ -4,7 +4,6 @@
  */
 import { Provider } from '@shared/class/provider';
 import { EIP6963ProviderDetail, EIP6963ProviderInfo } from '@shared/types/eip6963';
-import '../../modules/messenger-adapter'; // needed to be imported before we can use Messenger
 
 /**
  * @deprecated Legacy injection method. Can be removed since modern dapps use EIP-6963 provider discovery
@@ -27,6 +26,7 @@ function onPageLoad() {
 
   function announceProvider() {
     console.log('announceProvider()');
+
     const info: EIP6963ProviderInfo = {
       uuid: STATIC_UUID,
       name: 'Layerz Wallet',
@@ -45,7 +45,22 @@ function onPageLoad() {
   });
 
   announceProvider();
+
+  console.log('announceProvider() done');
 }
+
+document.addEventListener('LayerzWalletExtension', async function (e) {
+  // @ts-ignore
+  const args = JSON.parse(e.detail) as Eip1193CustomEventRequest;
+
+  if (args.for !== 'contentScript') {
+    // Ignore messages intended for the webpage
+    return;
+  }
+
+  // @ts-ignore
+  window.ReactNativeWebView.postMessage(e.detail);
+});
 
 window.addEventListener('load', onPageLoad);
 

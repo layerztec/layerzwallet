@@ -1,20 +1,18 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { Messenger } from '@shared/modules/messenger';
+import { EvmRpcMethod } from '@shared/types/evm-rpc-method';
+import { ThemedText } from '../../components/ThemedText';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { EthRequestAccounts } from './ActionComponents/EthRequestAccounts';
 import { EthSignTypedData } from './ActionComponents/EthSignTypedData';
 import { PersonalSign } from './ActionComponents/PersonalSign';
-import { ThemedText } from '../../components/ThemedText';
 import { SendTransaction } from './ActionComponents/SendTransaction';
 import { SwitchEthereumChain } from './ActionComponents/SwitchEthereumChain';
 import { WalletRequestPermissions } from './ActionComponents/WalletRequestPermissions';
-
-// actual evm rpc methods, plus our own custom `Loading` to render the loading state
-type EvmRpcMethod = 'wallet_switchEthereumChain' | 'personal_sign' | 'eth_signTypedData_v4' | 'wallet_requestPermissions' | 'eth_sendTransaction' | 'eth_requestAccounts' | 'eth_accounts' | 'Loading';
 
 /**
  * basically this is a parent screen component that only unwraps GET params for the action, and passes them to a
@@ -24,67 +22,65 @@ const Action: React.FC = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { search } = useLocation();
-  const [method, setMethod] = useState<EvmRpcMethod>('Loading'); // describing state of a parent component, and which sub-component it should render
-  const [params, setParams] = useState<any[]>([]);
-  const [from, setFrom] = useState<string>('');
-  const [id, setId] = useState<string>('');
+
+  // Parse search parameters using useMemo for better performance and cleaner code
+  const { id, method, from, params } = useMemo(() => {
+    const searchParams = new URLSearchParams(search);
+
+    let parsedParams: any[] = [];
+    try {
+      parsedParams = JSON.parse(searchParams.get('params') ?? '');
+    } catch {
+      parsedParams = [];
+    }
+
+    return {
+      id: Number(searchParams.get('id') ?? ''),
+      method: searchParams.get('method') as EvmRpcMethod,
+      from: searchParams.get('from') ?? '',
+      params: parsedParams,
+    };
+  }, [search]);
 
   useEffect(() => {
-    (async () => {
-      const searchParams = new URLSearchParams(search);
-      console.log('search', search);
-      const methodFromParams: EvmRpcMethod = searchParams.get('method') as EvmRpcMethod;
-      setMethod(methodFromParams);
-      let paramsFromState;
-
-      try {
-        paramsFromState = JSON.parse(searchParams.get('params') ?? '');
-      } catch (_) {
-        paramsFromState = [];
+    const initializeAction = async () => {
+      if (!method) {
+        throw new Error('Method is required');
       }
 
-      setParams(paramsFromState);
-      const fromFromState = searchParams.get('from');
-      setFrom(fromFromState ?? '');
-      const idFromState = searchParams.get('id');
-      setId(idFromState ?? '');
-
-      const whitelist = await BackgroundCaller.getWhitelist();
-
-      if (methodFromParams === 'eth_requestAccounts' || methodFromParams === 'eth_accounts') {
-        if (fromFromState && whitelist.includes(fromFromState)) {
+      // Handle auto-approval for whitelisted dapps
+      if (method === 'eth_requestAccounts' || method === 'eth_accounts') {
+        const whitelist = await BackgroundCaller.getWhitelist();
+        if (whitelist.includes(from)) {
           // no need to ask for an approval in a dedicated screen, approval is already granted, we just need to reply
           const addressResponse = await BackgroundCaller.getAddress(network, accountNumber);
-          await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id: Number(idFromState), response: [addressResponse] });
+          await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id, response: [addressResponse] });
           await new Promise((resolve) => setTimeout(resolve, 100)); // propagate
           window.close();
-        } else {
-          setMethod('eth_requestAccounts');
+          return;
         }
       }
-    })();
-  }, [network, accountNumber, search]);
+    };
+
+    initializeAction();
+  }, [network, accountNumber, method, from, id]);
 
   const renderMethodComponent = () => {
+    const componentProps = { params, id, from };
+
     switch (method) {
-      case 'Loading':
-        return (
-          <div>
-            <ThemedText>Loading...</ThemedText>
-          </div>
-        );
       case 'wallet_switchEthereumChain':
-        return <SwitchEthereumChain params={params} id={id} from={from} />;
+        return <SwitchEthereumChain {...componentProps} />;
       case 'personal_sign':
-        return <PersonalSign params={params} id={id} from={from} />;
+        return <PersonalSign {...componentProps} />;
       case 'eth_signTypedData_v4':
-        return <EthSignTypedData params={params} id={id} from={from} />;
+        return <EthSignTypedData {...componentProps} />;
       case 'wallet_requestPermissions':
-        return <WalletRequestPermissions params={params} id={id} from={from} />;
+        return <WalletRequestPermissions {...componentProps} />;
       case 'eth_sendTransaction':
-        return <SendTransaction params={params} id={id} from={from} />;
+        return <SendTransaction {...componentProps} />;
       case 'eth_requestAccounts':
-        return <EthRequestAccounts params={params} id={id} from={from} />;
+        return <EthRequestAccounts {...componentProps} />;
       default:
         return (
           <div>

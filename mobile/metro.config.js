@@ -29,5 +29,8 @@ module.exports = (async () => {
     return context.resolveRequest(context, ALIASES[moduleName] ?? moduleName, platform);
   };
 
+  // Add custom asset extensions. Used to load inpage-bridge
+  defaultConfig.resolver.assetExts.push('jstxt');
+
   return defaultConfig;
 })();

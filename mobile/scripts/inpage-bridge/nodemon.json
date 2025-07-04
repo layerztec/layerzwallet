@@ -1,0 +1,7 @@
+{
+  "verbose": true,
+  "execMap": {
+    "sh": "sh"
+  },
+  "ext": "ts"
+}

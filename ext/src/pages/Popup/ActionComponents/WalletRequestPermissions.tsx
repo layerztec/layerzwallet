@@ -8,7 +8,7 @@ import { LayerzStorage } from '../../../class/layerz-storage';
 
 interface WalletRequestPermissionsArgs {
   params: any[];
-  id: string;
+  id: number;
   from: string;
 }
 
@@ -26,7 +26,7 @@ export function WalletRequestPermissions(args: WalletRequestPermissionsArgs) {
 
       const dp = new DappPermissions(String(from), LayerzStorage);
       const response = await dp.addPermissions(permissions[0]);
-      await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id: Number(id), response });
+      await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id, response });
     } catch (error: any) {
       alert(error.message);
     } finally {
@@ -39,7 +39,7 @@ export function WalletRequestPermissions(args: WalletRequestPermissionsArgs) {
     const id = args.id;
     await Messenger.sendResponseToActiveTabsFromPopupToContentScript({
       for: 'webpage',
-      id: Number(id),
+      id,
       error: { code: 4001, message: 'User rejected the request.' },
     });
     await new Promise((resolve) => setTimeout(resolve, 100)); // propagate

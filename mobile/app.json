@@ -120,6 +120,12 @@
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to scan QR codes with addresses"
         }
       ],
+      [
+        "expo-asset",
+        {
+          "assets": ["assets/js/inpage-bridge.jstxt"]
+        }
+      ],
       "expo-secure-store",
       "expo-font",
       "expo-web-browser"

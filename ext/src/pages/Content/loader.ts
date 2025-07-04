@@ -8,6 +8,8 @@
  */
 import { processRPC } from '@shared/modules/rpc-controller';
 import { Eip1193CustomEventResponse } from '@shared/types/eip1193-custom-event';
+
+import '../../modules/messenger-adapter'; // needed to be imported before we can use Messenger
 import { LayerzStorage } from '../../class/layerz-storage';
 import { BackgroundCaller } from '../../modules/background-caller';
 

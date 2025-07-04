@@ -25,7 +25,8 @@
     "integration": "vitest run ../shared/tests/integration-vi/ --silent",
     "lint": "prettier '**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' --config ./.prettierrc --check && tsc --noEmit && expo lint",
     "lint:write": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' --config ./.prettierrc; expo lint --fix",
-    "lint:fix": "npm run lint:write"
+    "lint:fix": "npm run lint:write",
+    "buildbridge": "cd scripts/inpage-bridge && ./build.sh"
   },
   "jest": {
     "preset": "jest-expo"
@@ -121,7 +122,10 @@
     "jest-expo": "~53.0.5",
     "prettier": "^3.5.3",
     "react-test-renderer": "19.0.0",
+    "ts-loader": "^9.5.2",
     "typescript": "~5.8.3",
-    "vitest": "^3.0.9"
+    "vitest": "^3.0.9",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^6.0.1"
   }
 }

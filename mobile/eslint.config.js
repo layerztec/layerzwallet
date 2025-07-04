@@ -7,6 +7,11 @@ module.exports = defineConfig([
   eslintPluginPrettierRecommended,
   {
     ignores: ['dist/*', 'entry.js'],
+    languageOptions: {
+      globals: {
+        node: true, // for the inpage-bridge webpack config
+      },
+    },
     rules: {
       '@typescript-eslint/no-unused-vars': 'off',
       'import/no-named-as-default': 'off',

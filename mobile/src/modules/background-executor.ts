@@ -1,11 +1,11 @@
-import { SecureStorage } from '@/src/class/secure-storage';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { lazyInitWallet as lazyInitWalletOrig, saveArkAddresses, saveBitcoinXpubs, saveSubMnemonics, saveWalletState, sanitizeAndValidateMnemonic } from '@shared/modules/wallet-utils';
-import { IBackgroundCaller } from '@shared/types/IBackgroundCaller';
+import { lazyInitWallet as lazyInitWalletOrig, sanitizeAndValidateMnemonic, saveArkAddresses, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
+import { IBackgroundCaller, OpenPopupRequest } from '@shared/types/IBackgroundCaller';
 import {
   ENCRYPTED_PREFIX,
   STORAGE_KEY_ACCEPTED_TOS,
@@ -16,10 +16,11 @@ import {
   STORAGE_KEY_WHITELIST,
 } from '@shared/types/IStorage';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { BrowserBridge } from '../class/browser-bridge';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
-import { encrypt } from '../modules/encryption';
-import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { SecureStorage } from '../class/secure-storage';
+import { decrypt, encrypt } from '../modules/encryption';
 
 // Cache of wallets by network and account number (currently only bitcoin)
 const cachedWallets: Record<string, Record<number, WatchOnlyWallet>> = {
@@ -165,7 +166,15 @@ export const BackgroundExecutor: IBackgroundCaller = {
   },
 
   async unwhitelistDapp(dapp) {
-    alert('Implement me'); // todo
+    let whitelist: string[] = [];
+    try {
+      whitelist = JSON.parse(await LayerzStorage.getItem(STORAGE_KEY_WHITELIST));
+    } catch {}
+
+    try {
+      whitelist = whitelist.filter((item) => item !== dapp);
+      await LayerzStorage.setItem(STORAGE_KEY_WHITELIST, JSON.stringify(whitelist));
+    } catch {}
   },
 
   async getWhitelist() {
@@ -180,16 +189,58 @@ export const BackgroundExecutor: IBackgroundCaller = {
     console.log(data);
   },
 
-  async signPersonalMessage() {
-    throw new Error('Implement me'); // TODO
+  async signPersonalMessage(message, accountNumber, password) {
+    const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
+
+    if (!encryptedMnemonic.startsWith(ENCRYPTED_PREFIX)) {
+      return {
+        success: false,
+        bytes: '',
+        message: 'Mnemonic is not encrypted. Please reinstall the app to fix this issue.',
+      };
+    }
+
+    try {
+      const deviceId = await getDeviceID(SecureStorage, Csprng);
+      const decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, deviceId);
+      const evm = new EvmWallet();
+      const bytes = await evm.signPersonalMessage(message, decrypted as string, accountNumber);
+      return { success: true, bytes };
+    } catch (error) {
+      return { success: false, bytes: '', message: 'Bad password' };
+    }
   },
 
-  async signTypedData() {
-    throw new Error('Implement me'); // TODO
+  async signTypedData(message, accountNumber, password) {
+    const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
+
+    if (!encryptedMnemonic.startsWith(ENCRYPTED_PREFIX)) {
+      return {
+        success: false,
+        bytes: '',
+        message: 'Mnemonic is not encrypted. Please reinstall the app to fix this issue.',
+      };
+    }
+
+    try {
+      const deviceId = await getDeviceID(SecureStorage, Csprng);
+      const decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, deviceId);
+      const evm = new EvmWallet();
+      const bytes = await evm.signTypedDataMessage(message, decrypted as string, accountNumber);
+      return { success: true, bytes };
+    } catch (error) {
+      return { success: false, bytes: '', message: 'Bad password' };
+    }
   },
 
-  async openPopup() {
-    throw new Error('Implement me'); // TODO
+  async openPopup(...params: OpenPopupRequest) {
+    const bridge = BrowserBridge.getInstance();
+    if (bridge) {
+      const [method, methodParams, id, from] = params;
+      bridge.openActionScreen(method, methodParams, from, id);
+    } else {
+      console.error('BrowserBridge not available for openPopup');
+    }
   },
 
   async getBtcSendData(accountNumber) {

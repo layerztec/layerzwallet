@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 import { SWRConfig } from 'swr';
 
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
+import '../src/modules/messenger-adapter'; // needed to be imported before we can use Messenger
 import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
 
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -21,6 +22,7 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
 import { InitializationContextProvider } from '@shared/hooks/InitializationContext';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
+import { Header as ActionHeader } from './Action';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -94,6 +96,9 @@ export default function RootLayout() {
                       <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
                       <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
                       <Stack.Screen name="Onramp" options={{ headerShown: true }} />
+                      <Stack.Screen name="AskPassword" options={{ presentation: 'modal', headerShown: false }} />
+                      <Stack.Screen name="AskMnemonic" options={{ presentation: 'modal', headerShown: false }} />
+                      <Stack.Screen name="DAppBrowser" options={{ headerShown: true, title: 'Browser' }} />
                       <Stack.Screen
                         name="NetworkSelector"
                         options={{
@@ -101,6 +106,15 @@ export default function RootLayout() {
                           sheetAllowedDetents: [0.66, 1.0],
                           headerShown: false,
                           animation: 'fade',
+                        }}
+                      />
+                      <Stack.Screen
+                        name="Action"
+                        options={{
+                          presentation: 'formSheet',
+                          sheetAllowedDetents: [0.66, 1.0],
+                          header: () => <ActionHeader />,
+                          sheetGrabberVisible: true,
                         }}
                       />
                       <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />

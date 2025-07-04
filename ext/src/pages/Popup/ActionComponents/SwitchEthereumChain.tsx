@@ -11,7 +11,7 @@ import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 
 interface SwitchEthereumChainArgs {
   params: any[];
-  id: string;
+  id: number;
   from: string;
 }
 
@@ -31,7 +31,7 @@ export function SwitchEthereumChain(args: SwitchEthereumChainArgs) {
 
       await Messenger.sendResponseToActiveTabsFromPopupToContentScript({
         for: 'webpage',
-        id: Number(id),
+        id,
         response: null,
       });
 
@@ -44,7 +44,7 @@ export function SwitchEthereumChain(args: SwitchEthereumChainArgs) {
 
     await Messenger.sendResponseToActiveTabsFromPopupToContentScript({
       for: 'webpage',
-      id: Number(id),
+      id,
       error: {
         code: 4902,
         message: 'Unrecognized chain ID',
@@ -57,7 +57,7 @@ export function SwitchEthereumChain(args: SwitchEthereumChainArgs) {
 
   const onDenyClick = async () => {
     const id = args.id;
-    await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id: Number(id), error: { code: 4001, message: 'User rejected the request.' } });
+    await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id, error: { code: 4001, message: 'User rejected the request.' } });
 
     await new Promise((resolve) => setTimeout(resolve, 100)); // propagate
     window.close();

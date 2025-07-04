@@ -1,73 +1,36 @@
 import { Eip1193CustomEventCallback, Eip1193CustomEventResponse } from '../types/eip1193-custom-event';
 import { MessageTypeMap } from '../types/IBackgroundCaller';
 
+export interface IMessengerAdapter {
+  sendResponseToActiveTabsFromPopupToContentScript(message: Eip1193CustomEventResponse): Promise<void>;
+  sendEventCallbackFromPopupToContentScript(message: Eip1193CustomEventCallback): Promise<void>;
+  documentDispatchEvent(message: Eip1193CustomEventCallback): void;
+  sendResponseFromContentScriptToContentScript(message: Eip1193CustomEventResponse): Promise<void>;
+  sendGenericMessageToBackground<T extends keyof MessageTypeMap>(type: T, params: MessageTypeMap[T]['params']): Promise<MessageTypeMap[T]['response']>;
+}
+
 /**
- * Simple wrapper around few methods that shoot events. Mostly related to EIP-1193 and integrationwith EVM Dapps.
+ * Shared messenger that delegates to the platform-specific adapter.
+ * Similar to BreezWallet, this provides a consistent interface across platforms.
  */
 export const Messenger = {
-  async sendResponseToActiveTabsFromPopupToContentScript(message: Eip1193CustomEventResponse) {
-    chrome.tabs.query({ active: true }, function (tabs) {
-      // Send message to all active tabs since the target dapp is likely among them
-      tabs.map(
-        (tab) =>
-          typeof tab.id !== 'undefined' &&
-          chrome.tabs.sendMessage(tab.id, message, function (_response: any) {
-            // Response handling not needed
-          })
-      );
-    });
+  async sendResponseToActiveTabsFromPopupToContentScript(message: Eip1193CustomEventResponse): Promise<void> {
+    return await globalThis.messengerAdapter.sendResponseToActiveTabsFromPopupToContentScript(message);
   },
 
-  async sendEventCallbackFromPopupToContentScript(message: Eip1193CustomEventCallback) {
-    console.log('Broadcasting event to the Dapp:', message);
-    chrome.tabs.query({ active: true }, function (tabs) {
-      // Send message to all active tabs since the target dapp is likely among them
-      tabs.map(
-        (tab) =>
-          typeof tab.id !== 'undefined' &&
-          chrome.tabs.sendMessage(tab.id, message, function (response: any) {
-            if (response) {
-              console.debug('Response from content script:', response);
-            }
-          })
-      );
-    });
+  async sendEventCallbackFromPopupToContentScript(message: Eip1193CustomEventCallback): Promise<void> {
+    return await globalThis.messengerAdapter.sendEventCallbackFromPopupToContentScript(message);
   },
 
-  documentDispatchEvent(message: Eip1193CustomEventCallback) {
-    console.log('Dispatching event to the Dapp:', message);
-    document.dispatchEvent(
-      new CustomEvent('LayerzWalletExtension', {
-        // Serialize message to JSON string to prevent Firefox security violations when passing complex objects
-        detail: JSON.stringify(message),
-      })
-    );
+  documentDispatchEvent(message: Eip1193CustomEventCallback): void {
+    return globalThis.messengerAdapter.documentDispatchEvent(message);
   },
 
-  async sendResponseFromContentScriptToContentScript(message: Eip1193CustomEventResponse) {
-    document.dispatchEvent(
-      new CustomEvent('LayerzWalletExtension', {
-        // Serialize message to JSON string to prevent Firefox security violations
-        // when passing complex objects between content scripts
-        detail: JSON.stringify(message),
-      })
-    );
+  async sendResponseFromContentScriptToContentScript(message: Eip1193CustomEventResponse): Promise<void> {
+    return await globalThis.messengerAdapter.sendResponseFromContentScriptToContentScript(message);
   },
 
   sendGenericMessageToBackground<T extends keyof MessageTypeMap>(type: T, params: MessageTypeMap[T]['params']): Promise<MessageTypeMap[T]['response']> {
-    return new Promise((resolve, reject) => {
-      try {
-        const message = { type, params };
-        chrome.runtime.sendMessage(message, (response) => {
-          if (response?.error) {
-            reject(new Error(response.message));
-          } else {
-            resolve(response);
-          }
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
+    return globalThis.messengerAdapter.sendGenericMessageToBackground(type, params);
   },
 };

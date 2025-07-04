@@ -11,7 +11,15 @@ import { NETWORK_ROOTSTOCK, Networks } from '../types/networks';
 import { IStorage } from '../types/IStorage';
 import { DappPermissions } from '../class/dapp-permissions';
 
-export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBackgroundCaller, method: string, params: any, id: number, from: string) {
+export async function processRPC(
+  LayerzStorage: IStorage,
+  BackgroundCaller: IBackgroundCaller,
+  method: string,
+  params: any,
+  id: number,
+  from: string,
+  sendResponse = Messenger.sendResponseFromContentScriptToContentScript
+) {
   const network: Networks = ((await LayerzStorage.getItem(STORAGE_SELECTED_NETWORK)) || DEFAULT_NETWORK) as Networks;
   const whitelist = await BackgroundCaller.getWhitelist();
   const accountNumber: number = Number(await LayerzStorage.getItem(STORAGE_SELECTED_ACCOUNT_NUMBER)) || 0;
@@ -22,14 +30,14 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
     case 'wallet_getPermissions':
       const dp = new DappPermissions(from, LayerzStorage);
       const permissions = await dp.getPermissions();
-      await Messenger.sendResponseFromContentScriptToContentScript({ for: 'webpage', id: id, response: permissions });
+      await sendResponse({ for: 'webpage', id, response: permissions });
       return { success: true };
 
     case 'wallet_revokePermissions':
       // Revoke permissions immediately without requiring user confirmation
       const dp2 = new DappPermissions(from, LayerzStorage);
       await dp2.revokePermissions(params[0]);
-      await Messenger.sendResponseFromContentScriptToContentScript({ for: 'webpage', id: id, response: null });
+      await sendResponse({ for: 'webpage', id, response: null });
       return { success: true };
 
     case 'eth_accounts':
@@ -39,9 +47,9 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
         const addressResponse = await BackgroundCaller.getAddress(NETWORK_ROOTSTOCK, accountNumber); // most likely dapp is interested in EVM address specifically, NOT of currently-selected network
         responseForEthAccounts.push(addressResponse);
       }
-      await Messenger.sendResponseFromContentScriptToContentScript({
+      await sendResponse({
         for: 'webpage',
-        id: id,
+        id,
         response: responseForEthAccounts,
       });
       return { success: true };
@@ -50,9 +58,9 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
       if (whitelist.includes(from)) {
         // Dapp is whitelisted, so we can respond immediately without showing approval screen
         const addressResponse = await BackgroundCaller.getAddress(NETWORK_ROOTSTOCK, accountNumber); // most likely dapp is interested in EVM address specifically, NOT of currently-selected network
-        await Messenger.sendResponseFromContentScriptToContentScript({
+        await sendResponse({
           for: 'webpage',
-          id: id,
+          id,
           response: [addressResponse],
         });
         return { success: true };
@@ -71,9 +79,9 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
           await new Promise((resolve) => setTimeout(resolve, 500)); // sleep to propagate
           // network supported by us
           await LayerzStorage.setItem(STORAGE_SELECTED_NETWORK, net);
-          await Messenger.sendResponseFromContentScriptToContentScript({
+          await sendResponse({
             for: 'webpage',
-            id: id,
+            id,
             response: null,
           });
 
@@ -93,9 +101,9 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
 
     case 'eth_chainId':
       // can just reply with a chainId, no need to show a screen for that
-      await Messenger.sendResponseFromContentScriptToContentScript({
+      await sendResponse({
         for: 'webpage',
-        id: id,
+        id,
         response: getChainIdByNetwork(network),
       });
       return { success: true };
@@ -103,9 +111,9 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
     /** @deprecated ? */
     case 'net_version':
       // can just reply with a chainId, no need to show a screen for that
-      await Messenger.sendResponseFromContentScriptToContentScript({
+      await sendResponse({
         for: 'webpage',
-        id: id,
+        id,
         response: new BigNumber(getChainIdByNetwork(network)).toNumber(),
       });
       return { success: true };
@@ -113,11 +121,11 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
     case 'wallet_watchAsset':
       // Token watching requests are currently unimplemented. Return success to avoid errors.
       // TODO: handle tokens, since we can watch them with RPC calls to the smart contract via RPCprovider
-      await Messenger.sendResponseFromContentScriptToContentScript({ for: 'webpage', id: id, response: true });
+      await sendResponse({ for: 'webpage', id, response: true });
       return { success: true };
 
     case 'web3_clientVersion':
-      await Messenger.sendResponseFromContentScriptToContentScript({ for: 'webpage', id: id, response: 'LayerzWallet/1.0.0' });
+      await sendResponse({ for: 'webpage', id, response: 'LayerzWallet/1.0.0' });
       return { success: true };
 
     // Forward these RPC calls directly to the provider without user confirmation
@@ -157,10 +165,10 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
       try {
         const rpc = getRpcProvider(network);
         const response = await rpc.send(method, params);
-        await Messenger.sendResponseFromContentScriptToContentScript({ for: 'webpage', id: id, response });
+        await sendResponse({ for: 'webpage', id, response });
       } catch (e: any) {
         console.warn('rpc error for', method, ':', e);
-        await Messenger.sendResponseFromContentScriptToContentScript({ for: 'webpage', id: id, error: e.error });
+        await sendResponse({ for: 'webpage', id, error: e.error });
       }
 
       return { success: true };

@@ -22,8 +22,28 @@ import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import {
+  NETWORK_ARKMUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_BOTANIX,
+  NETWORK_BOTANIXTESTNET,
+  NETWORK_CITREATESTNET,
+  NETWORK_LIGHTNING,
+  NETWORK_LIGHTNINGTESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUIDTESTNET,
+  NETWORK_ROOTSTOCK,
+  NETWORK_SEPOLIA,
+  NETWORK_SPARK,
+  NETWORK_STRATADEVNET,
+} from '@shared/types/networks';
 import { SwapPair, SwapPlatform } from '@shared/types/swap';
+
+// Helper function to check if network is EVM
+const isEVMNetwork = (network: string): boolean => {
+  const evmNetworks = [NETWORK_SEPOLIA, NETWORK_ROOTSTOCK, NETWORK_BOTANIXTESTNET, NETWORK_BOTANIX, NETWORK_STRATADEVNET, NETWORK_CITREATESTNET];
+  return evmNetworks.includes(network as any);
+};
 
 export default function HomeScreen() {
   const { network } = useContext(NetworkContext);
@@ -112,6 +132,10 @@ export default function HomeScreen() {
     });
   };
 
+  const goToDAppBrowser = () => {
+    router.push('/DAppBrowser');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
@@ -198,18 +222,26 @@ export default function HomeScreen() {
               </TouchableOpacity>
 
               {fiatOnRamp?.[network]?.canBuyWithFiat ? (
-                <TouchableOpacity style={[styles.button]} onPress={goToBuyBitcoin}>
+                <TouchableOpacity style={styles.button} onPress={goToBuyBitcoin}>
                   <ThemedText style={styles.buttonText}> $ Buy </ThemedText>
                 </TouchableOpacity>
               ) : null}
 
               {swapPairs.length > 0 ? (
-                <TouchableOpacity style={[styles.button]} onPress={() => setShowSwapInterface(true)}>
+                <TouchableOpacity style={styles.button} onPress={() => setShowSwapInterface(true)}>
                   <ThemedText style={styles.buttonText}>
                     <Ionicons name="refresh" size={16} color="white" /> Swap
                   </ThemedText>
                 </TouchableOpacity>
               ) : null}
+            </ThemedView>
+
+            <ThemedView style={styles.buttonRowWithGap}>
+              {isEVMNetwork(network) && (
+                <TouchableOpacity style={styles.button} onPress={goToDAppBrowser}>
+                  <ThemedText style={styles.buttonText}>Browser</ThemedText>
+                </TouchableOpacity>
+              )}
             </ThemedView>
           </ThemedView>
         </ThemedView>
@@ -284,6 +316,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '100%',
     gap: 12,
+  },
+  buttonRowWithGap: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+    marginTop: 12,
   },
   button: {
     backgroundColor: '#007AFF',
