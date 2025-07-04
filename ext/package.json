@@ -21,7 +21,7 @@
     "prepare": "cd .. && husky ext/.husky"
   },
   "dependencies": {
-    "@arklabs/wallet-sdk": "0.0.15",
+    "@arkade-os/sdk": "^0.1.4",
     "@bitcoinerlab/secp256k1": "1.2.0",
     "@breeztech/breez-sdk-liquid": "0.9.1",
     "@buildonspark/spark-sdk": "^0.1.43",
