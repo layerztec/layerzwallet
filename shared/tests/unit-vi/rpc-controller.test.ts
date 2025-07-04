@@ -2,17 +2,19 @@ import assert from 'assert';
 import { afterEach, beforeEach, expect, vi as jest, test } from 'vitest';
 
 import * as networkGetters from '../../models/network-getters';
-import { Messenger } from '../../modules/messenger';
+import { IMessengerAdapter } from '../../modules/messenger';
 import { processRPC } from '../../modules/rpc-controller';
 import { Eip1193CustomEventResponse } from '../../types/eip1193-custom-event';
 import { IBackgroundCaller } from '../../types/IBackgroundCaller';
 import { IStorage } from '../../types/IStorage';
 
-const messengerMock = () => ({
-  Messenger: {
-    sendResponseFromContentScriptToContentScript: () => {},
-  },
-});
+const messengerMock: IMessengerAdapter = {
+  sendResponseToActiveTabsFromPopupToContentScript: jest.fn(),
+  sendEventCallbackFromPopupToContentScript: jest.fn(),
+  documentDispatchEvent: jest.fn(),
+  sendResponseFromContentScriptToContentScript: jest.fn(),
+  sendGenericMessageToBackground: jest.fn(),
+};
 
 const backgroundCallerMock = () => ({
   BackgroundCaller: {
@@ -25,7 +27,7 @@ const backgroundCallerMock = () => ({
   },
 });
 
-jest.mock('../../../src/modules/messenger.ts', messengerMock);
+jest.mock('../../../src/modules/messenger.ts', () => ({ Messenger: messengerMock }));
 jest.mock('../../../src/modules/background-caller.ts', backgroundCallerMock);
 
 const _cache: Record<string, string> = {};
@@ -95,17 +97,17 @@ afterEach(() => {
 });
 
 test('RpcController can resolve simple calls (like eth_chainId) on the spot', async () => {
-  const mockedMethod = jest.spyOn(Messenger, 'sendResponseFromContentScriptToContentScript').mockImplementation(async (message: Eip1193CustomEventResponse): Promise<void> => {
+  const mockedMethod = jest.spyOn(messengerMock, 'sendResponseFromContentScriptToContentScript').mockImplementation(async (message: Eip1193CustomEventResponse): Promise<void> => {
     assert.deepStrictEqual(message, { for: 'webpage', id: 12345, response: '0x0' });
   });
 
-  const response = await processRPC(storageMock, backgroundCallerMock2, 'eth_chainId', {}, 12345, 'localhost');
+  const response = await processRPC(storageMock, backgroundCallerMock2, 'eth_chainId', {}, 12345, 'localhost', messengerMock);
   assert.deepStrictEqual(response, { success: true });
   expect(mockedMethod).toHaveBeenCalled();
 });
 
 test('RpcController can resolve calls that fallthrough to a real RPC (like eth_getBalance)', async () => {
-  const mockedMethod = jest.spyOn(Messenger, 'sendResponseFromContentScriptToContentScript').mockImplementation(async (message: Eip1193CustomEventResponse): Promise<void> => {
+  const mockedMethod = jest.spyOn(messengerMock, 'sendResponseFromContentScriptToContentScript').mockImplementation(async (message: Eip1193CustomEventResponse): Promise<void> => {
     assert.deepStrictEqual(message, { for: 'webpage', id: 12345, response: '0xdeadbabe' /* balance of the address */ });
   });
 
@@ -121,7 +123,7 @@ test('RpcController can resolve calls that fallthrough to a real RPC (like eth_g
     };
   });
 
-  const response = await processRPC(storageMock, backgroundCallerMock2, 'eth_getBalance', ['0xF5e61719675B46848572249b65DC6d9D83E7180A', 'latest'], 12345, 'localhost');
+  const response = await processRPC(storageMock, backgroundCallerMock2, 'eth_getBalance', ['0xF5e61719675B46848572249b65DC6d9D83E7180A', 'latest'], 12345, 'localhost', messengerMock);
   assert.deepStrictEqual(response, { success: true });
   expect(mockedMethod).toHaveBeenCalled();
   expect(mockedMethod2).toHaveBeenCalled();
@@ -135,7 +137,7 @@ test('RpcController can do calls that need to go to OPEN_POPUP that require user
     assert.strictEqual(from, 'localhost');
   });
 
-  await processRPC(storageMock, backgroundCallerMock2, 'personal_sign', ['hello world', '0xF5e61719675B46848572249b65DC6d9D83E7180A'], 12345, 'localhost');
+  await processRPC(storageMock, backgroundCallerMock2, 'personal_sign', ['hello world', '0xF5e61719675B46848572249b65DC6d9D83E7180A'], 12345, 'localhost', messengerMock);
   expect(mockedMethod).toHaveBeenCalled();
 });
 
@@ -147,7 +149,7 @@ test('wallet_switchEthereumChain opens popup', async () => {
     assert.strictEqual(from, 'localhost');
   });
 
-  const response = await processRPC(storageMock, backgroundCallerMock2, 'wallet_switchEthereumChain', [{ chainId: '0x1e' }], 12345, 'localhost');
+  const response = await processRPC(storageMock, backgroundCallerMock2, 'wallet_switchEthereumChain', [{ chainId: '0x1e' }], 12345, 'localhost', messengerMock);
   console.log(response);
   expect(mockedMethod).toHaveBeenCalled();
 });
@@ -170,7 +172,7 @@ test('wallet_switchEthereumChain when dapp is whitelisted is replying on the spo
     return ['localhost'];
   });
 
-  const mockedMethod3 = jest.spyOn(Messenger, 'sendResponseFromContentScriptToContentScript').mockImplementation(async (message: Eip1193CustomEventResponse): Promise<void> => {
+  const mockedMethod3 = jest.spyOn(messengerMock, 'sendResponseFromContentScriptToContentScript').mockImplementation(async (message: Eip1193CustomEventResponse): Promise<void> => {
     assert.deepStrictEqual(message, { for: 'webpage', id: 12345, response: null });
   });
 
@@ -179,7 +181,7 @@ test('wallet_switchEthereumChain when dapp is whitelisted is replying on the spo
     assert.deepStrictEqual(value, 'rootstock');
   });
 
-  const response = await processRPC(storageMock, backgroundCallerMock2, 'wallet_switchEthereumChain', [{ chainId: '0x1e' }], 12345, 'localhost');
+  const response = await processRPC(storageMock, backgroundCallerMock2, 'wallet_switchEthereumChain', [{ chainId: '0x1e' }], 12345, 'localhost', messengerMock);
   console.log(response);
   assert.deepStrictEqual(response, { success: true });
   expect(mockedMethod).toHaveBeenCalledTimes(0);

@@ -1,13 +1,13 @@
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { BrowserBridge } from '@/src/class/browser-bridge';
-import { Colors } from '@shared/constants/Colors';
-import { DappPermissions, PermissionRequest } from '@shared/class/dapp-permissions';
 import { LayerzStorage } from '@/src/class/layerz-storage';
+import { DappPermissions, PermissionRequest } from '@shared/class/dapp-permissions';
+import { Colors } from '@shared/constants/Colors';
 
 interface WalletRequestPermissionsArgs {
   params: any[];

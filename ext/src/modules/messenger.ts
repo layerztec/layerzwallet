@@ -1,11 +1,11 @@
-import { Eip1193CustomEventCallback, Eip1193CustomEventResponse } from '../shared-link/types/eip1193-custom-event';
-import { MessageTypeMap } from '../shared-link/types/IBackgroundCaller';
+import { Eip1193CustomEventCallback, Eip1193CustomEventResponse } from '@shared/types/eip1193-custom-event';
+import { MessageTypeMap } from '@shared/types/IBackgroundCaller';
 import { IMessengerAdapter } from '@shared/modules/messenger';
 
 /**
  * Extension-specific messenger implementation that uses Chrome APIs.
  */
-class MessengerAdapter implements IMessengerAdapter {
+class ExtensionMessenger implements IMessengerAdapter {
   async sendResponseToActiveTabsFromPopupToContentScript(message: Eip1193CustomEventResponse): Promise<void> {
     chrome.tabs.query({ active: true }, function (tabs) {
       // Send message to all active tabs since the target dapp is likely among them
@@ -73,4 +73,4 @@ class MessengerAdapter implements IMessengerAdapter {
   }
 }
 
-globalThis.messengerAdapter = new MessengerAdapter();
+export const Messenger = new ExtensionMessenger();

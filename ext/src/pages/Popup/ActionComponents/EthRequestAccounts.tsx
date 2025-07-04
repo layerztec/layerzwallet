@@ -1,10 +1,10 @@
 import React, { useContext, useEffect, useState } from 'react';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { BackgroundCaller } from '../../../modules/background-caller';
-import { Messenger } from '@shared/modules/messenger';
-import { AddressBubble, Button } from '../DesignSystem';
 import { NETWORK_ROOTSTOCK } from '@shared/types/networks';
+import { BackgroundCaller } from '../../../modules/background-caller';
+import { Messenger } from '../../../modules/messenger';
+import { AddressBubble, Button } from '../DesignSystem';
 
 interface EthRequestAccountsArgs {
   params: any[];

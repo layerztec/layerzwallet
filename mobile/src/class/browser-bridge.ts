@@ -3,6 +3,7 @@ import WebView, { WebViewMessageEvent } from 'react-native-webview';
 
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { Messenger } from '@/src/modules/messenger';
 import { processRPC } from '@shared/modules/rpc-controller';
 import { Eip1193CustomEventRequest } from '@shared/types/eip1193-custom-event';
 
@@ -44,7 +45,7 @@ export class BrowserBridge {
 
     console.info('<<< bridge:', args);
 
-    await processRPC(LayerzStorage, BackgroundExecutor, args.method, args.params, args.id, args.from);
+    await processRPC(LayerzStorage, BackgroundExecutor, args.method, args.params, args.id, args.from, Messenger);
   };
 
   openActionScreen = (method: string, params: any[], from: string, id: string | number) => {

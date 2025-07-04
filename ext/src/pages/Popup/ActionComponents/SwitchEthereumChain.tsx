@@ -1,13 +1,12 @@
 import BigNumber from 'bignumber.js';
 import React, { useContext } from 'react';
 
-import { getChainIdByNetwork } from '@shared/models/network-getters';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-
-import { Messenger } from '@shared/modules/messenger';
-import { getAvailableNetworks, Networks } from '@shared/types/networks';
-import { Button } from '../DesignSystem';
+import { getChainIdByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
+import { getAvailableNetworks, Networks } from '@shared/types/networks';
+import { Messenger } from '../../../modules/messenger';
+import { Button } from '../DesignSystem';
 
 interface SwitchEthereumChainArgs {
   params: any[];

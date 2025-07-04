@@ -1,14 +1,14 @@
+import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
 import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { BrowserBridge } from '@/src/class/browser-bridge';
-import { Colors } from '@shared/constants/Colors';
+import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { Colors } from '@shared/constants/Colors';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 
 interface EthSignTypedDataArgs {
   params: any[];

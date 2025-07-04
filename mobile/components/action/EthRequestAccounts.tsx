@@ -1,14 +1,14 @@
+import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { BrowserBridge } from '@/src/class/browser-bridge';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { Colors } from '@shared/constants/Colors';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { BrowserBridge } from '@/src/class/browser-bridge';
-import { Colors } from '@shared/constants/Colors';
 
 interface EthRequestAccountsArgs {
   params: any[];

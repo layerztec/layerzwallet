@@ -2,9 +2,8 @@ import React, { useContext, useState } from 'react';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { AskPasswordContext } from '../../../hooks/AskPasswordContext';
-
 import { BackgroundCaller } from '../../../modules/background-caller';
-import { Messenger } from '@shared/modules/messenger';
+import { Messenger } from '../../../modules/messenger';
 import { Button } from '../DesignSystem';
 
 interface PersonalSignArgs {

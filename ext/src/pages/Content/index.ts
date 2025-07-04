@@ -4,7 +4,6 @@
  */
 import { Provider } from '@shared/class/provider';
 import { EIP6963ProviderDetail, EIP6963ProviderInfo } from '@shared/types/eip6963';
-import '../../modules/messenger-adapter'; // needed to be imported before we can use Messenger
 
 /**
  * @deprecated Legacy injection method. Can be removed since modern dapps use EIP-6963 provider discovery

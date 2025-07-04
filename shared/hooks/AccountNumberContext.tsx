@@ -2,10 +2,8 @@ import React, { createContext, ReactNode, useEffect, useState } from 'react';
 
 import { DEFAULT_NETWORK } from '../config';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { Messenger } from '../modules/messenger';
-
+import { IMessengerAdapter } from '../modules/messenger';
 import { Networks } from '../types/networks';
-
 import { STORAGE_SELECTED_NETWORK } from './NetworkContext';
 import { IStorage } from '../types/IStorage';
 
@@ -29,6 +27,7 @@ interface AccountNumberContextProviderProps {
   children: ReactNode;
   storage: IStorage;
   backgroundCaller: IBackgroundCaller;
+  messenger: IMessengerAdapter;
 }
 
 export const AccountNumberContextProvider: React.FC<AccountNumberContextProviderProps> = (props) => {
@@ -60,7 +59,7 @@ export const AccountNumberContextProvider: React.FC<AccountNumberContextProvider
         try {
           const response = (await props.storage.getItem(STORAGE_SELECTED_NETWORK)) as Networks;
           const addressResponse = await props.backgroundCaller.getAddress(response || DEFAULT_NETWORK, accountNumber);
-          await Messenger.sendEventCallbackFromPopupToContentScript({
+          await props.messenger.sendEventCallbackFromPopupToContentScript({
             for: 'webpage',
             event: 'accountsChanged',
             type: 'eventCallback',

@@ -9,9 +9,9 @@
 import { processRPC } from '@shared/modules/rpc-controller';
 import { Eip1193CustomEventResponse } from '@shared/types/eip1193-custom-event';
 
-import '../../modules/messenger-adapter'; // needed to be imported before we can use Messenger
 import { LayerzStorage } from '../../class/layerz-storage';
 import { BackgroundCaller } from '../../modules/background-caller';
+import { Messenger } from '../../modules/messenger';
 
 console.log('Injecting LZ...');
 
@@ -45,7 +45,7 @@ document.addEventListener('LayerzWalletExtension', async function (e) {
 
   // Process event via RPC controller which handles it directly or forwards to background script
   // Background script can open popup UI when needed (not possible from content script)
-  await processRPC(LayerzStorage, BackgroundCaller, args.method, args.params, args.id, args.from);
+  await processRPC(LayerzStorage, BackgroundCaller, args.method, args.params, args.id, args.from, Messenger);
 });
 
 chrome.runtime.onMessage.addListener(function (msg: Eip1193CustomEventResponse, sender, sendResponse) {

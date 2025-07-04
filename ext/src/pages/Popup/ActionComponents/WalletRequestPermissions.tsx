@@ -1,10 +1,9 @@
 import React from 'react';
 
 import { DappPermissions, PermissionRequest } from '@shared/class/dapp-permissions';
-
-import { Messenger } from '@shared/modules/messenger';
-import { Button } from '../DesignSystem';
 import { LayerzStorage } from '../../../class/layerz-storage';
+import { Messenger } from '../../../modules/messenger';
+import { Button } from '../DesignSystem';
 
 interface WalletRequestPermissionsArgs {
   params: any[];

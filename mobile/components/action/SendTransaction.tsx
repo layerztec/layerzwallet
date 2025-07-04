@@ -1,18 +1,18 @@
-import React, { useContext, useState } from 'react';
-import { Alert, StyleSheet, TouchableOpacity, ScrollView, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import React, { useContext, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { BrowserBridge } from '@/src/class/browser-bridge';
-import { Colors } from '@shared/constants/Colors';
+import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { EvmWallet } from '@shared/class/evm-wallet';
-import { StringNumber } from '@shared/types/string-number';
+import { Colors } from '@shared/constants/Colors';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance, hexToDec } from '@shared/modules/string-utils';
+import { StringNumber } from '@shared/types/string-number';
 
 interface SendTransactionArgs {
   params: any[];

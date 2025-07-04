@@ -3,7 +3,7 @@ import { useLocation } from 'react-router';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { Messenger } from '@shared/modules/messenger';
+import { Messenger } from '../../modules/messenger';
 import { EvmRpcMethod } from '@shared/types/evm-rpc-method';
 import { ThemedText } from '../../components/ThemedText';
 import { BackgroundCaller } from '../../modules/background-caller';

@@ -39,12 +39,3 @@ global.window = {
   crypto: nodeCrypto,
   fetch,
 };
-
-// Mock the messengerAdapter for tests
-global.messengerAdapter = {
-  sendResponseToActiveTabsFromPopupToContentScript: async () => {},
-  sendEventCallbackFromPopupToContentScript: async () => {},
-  documentDispatchEvent: () => {},
-  sendResponseFromContentScriptToContentScript: async () => {},
-  sendGenericMessageToBackground: async () => {},
-};

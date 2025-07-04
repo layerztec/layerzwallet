@@ -2,7 +2,7 @@ import React, { createContext, ReactNode, useEffect, useState } from 'react';
 import { DEFAULT_NETWORK } from '../config';
 import { getChainIdByNetwork } from '../models/network-getters';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { Messenger } from '../modules/messenger';
+import { IMessengerAdapter } from '../modules/messenger';
 import { getAvailableNetworks, Networks } from '../types/networks';
 import { IStorage } from '../types/IStorage';
 
@@ -24,6 +24,7 @@ interface NetworkContextProviderProps {
   children: ReactNode;
   storage: IStorage;
   backgroundCaller: IBackgroundCaller;
+  messenger: IMessengerAdapter;
 }
 
 export const NetworkContextProvider: React.FC<NetworkContextProviderProps> = (props) => {
@@ -54,7 +55,7 @@ export const NetworkContextProvider: React.FC<NetworkContextProviderProps> = (pr
       setNetwork(value);
 
       // triggering event for any connected Dapp:
-      Messenger.sendEventCallbackFromPopupToContentScript({
+      props.messenger.sendEventCallbackFromPopupToContentScript({
         for: 'webpage',
         type: 'eventCallback',
         event: 'chainChanged',

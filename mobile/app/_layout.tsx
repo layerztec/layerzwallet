@@ -9,7 +9,6 @@ import 'react-native-reanimated';
 import { SWRConfig } from 'swr';
 
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
-import '../src/modules/messenger-adapter'; // needed to be imported before we can use Messenger
 import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
 
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -19,6 +18,7 @@ import { AskMnemonicContextProvider } from '@/src/hooks/AskMnemonicContext';
 import { AskPasswordContextProvider } from '@/src/hooks/AskPasswordContext';
 import { ScanQrContextProvider } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { Messenger } from '@/src/modules/messenger';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
 import { InitializationContextProvider } from '@shared/hooks/InitializationContext';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
@@ -79,8 +79,8 @@ export default function RootLayout() {
         <AskPasswordContextProvider>
           <AskMnemonicContextProvider>
             <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
-              <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
-                <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
+              <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
+                <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                   <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
                     <Stack>
                       <Stack.Screen name="index" options={{ headerShown: false, title: 'Index' }} />
