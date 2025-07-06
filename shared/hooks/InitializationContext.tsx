@@ -4,10 +4,11 @@ import { IStorage } from '../types/IStorage';
 
 export enum EStep {
   LOADING = 1,
-  INTRO = 2,
-  PASSWORD = 3,
-  TOS = 4,
-  READY = 5,
+  WELCOME = 2,
+  INTRO = 3,
+  PASSWORD = 4,
+  TOS = 5,
+  READY = 6,
 }
 
 interface IInitializationContext {
@@ -41,7 +42,7 @@ export const InitializationContextProvider: React.FC<InitializationProviderProps
       const hasEncryptedMnemonic = await backgroundCaller.hasEncryptedMnemonic();
 
       if (!hasMnemonic) {
-        s = EStep.INTRO;
+        s = EStep.WELCOME;
       } else if (!hasEncryptedMnemonic) {
         s = EStep.PASSWORD;
       } else if (!hasAcceptedTermsOfService) {
