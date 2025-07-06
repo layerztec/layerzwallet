@@ -6,7 +6,9 @@ import { EStep, InitializationContext } from '@shared/hooks/InitializationContex
 export default function IndexScreen() {
   const { step } = useContext(InitializationContext);
 
-  if (step === EStep.INTRO) {
+  if (step === EStep.WELCOME) {
+    return <Redirect href="/onboarding/welcome" />;
+  } else if (step === EStep.INTRO) {
     return <Redirect href="/onboarding/intro" />;
   } else if (step === EStep.PASSWORD) {
     return <Redirect href="/onboarding/create-password" />;

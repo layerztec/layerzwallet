@@ -87,6 +87,7 @@ export default function RootLayout() {
                       <Stack.Screen name="receive" />
                       <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
                       <Stack.Screen name="SeedBackup" options={{ headerShown: true, title: 'Seed Backup' }} />
+                      <Stack.Screen name="onboarding/welcome" options={{ headerShown: false }} />
                       <Stack.Screen name="onboarding/intro" options={{ headerShown: false }} />
                       <Stack.Screen name="onboarding/create-password" options={{ headerShown: false }} />
                       <Stack.Screen name="onboarding/tos" options={{ headerShown: false }} />

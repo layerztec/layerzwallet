@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { welcomeColors, gradients } from '@/src/shared-link/constants/Colors';
 import { Typography } from '@/src/shared-link/constants/Typography';
 
-export default function WelcomeScreen() {
+const WelcomeScreen = () => {
   const router = useRouter();
 
   const handleContinue = () => {
@@ -14,15 +14,12 @@ export default function WelcomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Pixelated hero background covers status bar and hero section */}
       <ImageBackground source={require('@/assets/images/pixelated-gradient.png')} style={styles.pixelatedBackground} resizeMode="cover">
-        {/* Bottom fade gradient overlay */}
         <LinearGradient start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} colors={gradients.welcomeBottomOverlay as [string, string]} style={styles.bottomFade} />
       </ImageBackground>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           <View style={styles.column}>
-            {/* Hero section text overlay */}
             <View style={styles.heroSection}>
               <Text style={styles.welcomeText}>{'Welcome to Layerz'}</Text>
             </View>
@@ -41,7 +38,6 @@ export default function WelcomeScreen() {
           </View>
         </ScrollView>
 
-        {/* Pinned Get Started button */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity onPress={handleContinue}>
             <LinearGradient start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} colors={gradients.welcomeButton as [string, string]} style={styles.button}>
@@ -57,7 +53,9 @@ export default function WelcomeScreen() {
       </SafeAreaView>
     </View>
   );
-}
+};
+
+export default WelcomeScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -87,13 +85,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   scrollContent: {
-    paddingBottom: 20, // Minimal space for the fixed button
+    paddingBottom: 20,
   },
   column: {
-    marginBottom: 5, // Very small bottom margin
+    marginBottom: 5,
   },
   heroSection: {
-    height: 300, // Reduce hero section height (was 400)
+    height: 300,
     width: '100%',
     justifyContent: 'flex-end',
     position: 'relative',
@@ -106,8 +104,8 @@ const styles = StyleSheet.create({
     lineHeight: Typography.headline.lineHeight,
     letterSpacing: Typography.headline.letterSpacing,
     width: 222,
-    marginBottom: 20, // Reduce bottom margin (was 40)
-    marginLeft: 40, // Add left margin here instead of padding on hero section
+    marginBottom: 20,
+    marginLeft: 40,
   },
   descriptionText: {
     color: welcomeColors.textPrimary,
@@ -116,14 +114,14 @@ const styles = StyleSheet.create({
     fontWeight: '400' as const,
     lineHeight: Typography.paragraph.lineHeight,
     letterSpacing: Typography.paragraph.letterSpacing,
-    marginBottom: 8, // Much smaller bottom margin (was 15)
+    marginBottom: 8,
     marginLeft: 40,
     width: 303,
   },
   pageIndicators: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5, // Very small bottom margin (was 20)
+    marginBottom: 5,
     marginLeft: 40,
   },
   activeDot: {
@@ -142,10 +140,10 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     position: 'absolute',
-    bottom: 60, // Move button higher from bottom
+    bottom: 60,
     left: 0,
     right: 0,
-    paddingBottom: 0, // Remove extra padding since we moved it up
+    paddingBottom: 0,
     paddingHorizontal: 16,
     backgroundColor: 'transparent',
   },
