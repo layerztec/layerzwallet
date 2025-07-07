@@ -176,7 +176,7 @@ export default function HomeScreen() {
           <ThemedText style={styles.balanceLabel} testID="LayerBalance">
             Layer Balance:
           </ThemedText>
-          <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
+          <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1} testID="LayerActualBalance">
             {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
           </ThemedText>
           <ThemedText adjustsFontSizeToFit numberOfLines={1}>
