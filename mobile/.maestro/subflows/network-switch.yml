@@ -24,7 +24,15 @@ appId: com.layerzwallet.mobile
 
 # scroll to the network to select
 - scrollUntilVisible:
-    centerElement: true
+    direction: DOWN
+    visibilityPercentage: 100
+    element:
+      id: ${'network-' + NETWORK}
+
+# scroll to the network to select (in case its on the other end of the list)
+- scrollUntilVisible:
+    direction: UP
+    visibilityPercentage: 100
     element:
       id: ${'network-' + NETWORK}
 
