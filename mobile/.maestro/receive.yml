@@ -5,7 +5,7 @@ appId: com.layerzwallet.mobile
 # run for networks which have unique receive screens: bitcoin, rootstock (evm), ark, liquid (both liquid & lightning)
 # all other networks reuse receive screens from those. generic receive address generation for specific wallet types
 # should be done in selftest
-- evalScript: ${output.networks = ['liquid', 'bitcoin', 'rootstock', 'ark']}
+- evalScript: ${output.networks = ['liquid', 'bitcoin', 'rootstock', 'spark']}
 - repeat:
     while:
       true: ${output.networks.length > 0}

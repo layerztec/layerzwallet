@@ -12,10 +12,15 @@ appId: com.layerzwallet.mobile
     direction: UP
 
 # do a fast swipe to scroll to the top
-- swipe:
-    start: 50%, 20%
-    end: 50%, 100%
-    duration: 10
+- runFlow:
+    when:
+      notVisible:
+        id: ${'network-' + NETWORK}
+    commands:
+      - swipe:
+          start: 50%, 20%
+          end: 50%, 100%
+          duration: 10
 
 # scroll to the network to select
 - scrollUntilVisible:

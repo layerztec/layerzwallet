@@ -12,12 +12,16 @@ import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { SecureStorage } from '@/src/class/secure-storage';
 import { STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
+import { useSettings } from '@shared/hooks/useSettings';
+import { SETTINGS_CONFIG } from '@shared/hooks/SettingsContext';
+import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
   const { scanQr } = useContext(ScanQrContext);
   const { setStep } = useContext(InitializationContext);
+  const { settings, updateSetting } = useSettings();
   const [isClearing, setIsClearing] = useState(false);
 
   const handleClearStorage = async () => {
@@ -68,6 +72,22 @@ export default function SettingsScreen() {
     router.push('/SeedBackup');
   };
 
+  const handleSettingChange = async (key: string, value: string) => {
+    try {
+      await updateSetting(key as any, value);
+    } catch (error) {
+      console.error('Error updating setting:', error);
+    }
+  };
+
+  const formatSettingName = (key: string) => {
+    return key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+  };
+
+  const formatOptionName = (option: string) => {
+    return capitalizeFirstLetter(option);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.container}>
@@ -101,6 +121,39 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+          </ThemedView>
+
+          {/* App Settings Section */}
+          <ThemedView style={styles.section} testID="AppSettingsSection">
+            <ThemedText style={styles.sectionTitle} testID="AppSettingsTitle">
+              App Settings
+            </ThemedText>
+            {Object.keys(SETTINGS_CONFIG).map((key) => {
+              const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
+              const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
+
+              return (
+                <View key={key} style={styles.settingContainer} testID={`SettingContainer-${key}`}>
+                  <ThemedText style={styles.settingLabel} testID={`SettingLabel-${key}`}>
+                    {formatSettingName(key)}:
+                  </ThemedText>
+                  <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
+                    {config.options.map((option: string) => (
+                      <TouchableOpacity
+                        key={option}
+                        style={[styles.settingOptionButton, currentValue === option && styles.settingOptionButtonActive]}
+                        onPress={() => handleSettingChange(key, option)}
+                        testID={`SettingOption-${key}-${option}`}
+                      >
+                        <ThemedText style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive]} testID={`SettingOptionText-${key}-${option}`}>
+                          {formatOptionName(option)}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              );
+            })}
           </ThemedView>
 
           <ThemedView style={styles.section}>
@@ -235,6 +288,38 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   accountButtonTextActive: {
+    color: 'white',
+  },
+  settingContainer: {
+    marginBottom: 16,
+  },
+  settingLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  settingOptionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  settingOptionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  settingOptionButtonActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  settingOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  settingOptionTextActive: {
     color: 'white',
   },
 });

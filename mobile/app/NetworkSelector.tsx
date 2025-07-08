@@ -3,23 +3,24 @@ import { useRouter } from 'expo-router';
 import React, { useContext, useRef, useLayoutEffect } from 'react';
 import { FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { getAvailableNetworks, Networks } from '@shared/types/networks';
+import { Networks } from '@shared/types/networks';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { getIsTestnet } from '@shared/models/network-getters';
+import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { Colors, getNetworkGradient, getNetworkIcon } from '@shared/constants/Colors';
 
 const NetworkSelector: React.FC = () => {
   const router = useRouter();
   const { network: currentNetwork, setNetwork } = useContext(NetworkContext);
-  const networks = getAvailableNetworks();
   const flatListRef = useRef<FlatList>(null);
+  const availableNetworks = useAvailableNetworks();
 
   // Auto-scroll to selected network when modal appears
   useLayoutEffect(() => {
     const scrollToSelectedNetwork = () => {
-      const selectedIndex = networks.findIndex((network) => network === currentNetwork);
+      const selectedIndex = availableNetworks.findIndex((network) => network === currentNetwork);
 
       if (selectedIndex !== -1 && flatListRef.current) {
         flatListRef.current?.scrollToIndex({
@@ -31,7 +32,7 @@ const NetworkSelector: React.FC = () => {
 
     const timer = setTimeout(scrollToSelectedNetwork, 100);
     return () => clearTimeout(timer);
-  }, [currentNetwork, networks]);
+  }, [currentNetwork, availableNetworks]);
 
   const handleNetworkSelect = (network: Networks) => {
     setNetwork(network);
@@ -119,7 +120,7 @@ const NetworkSelector: React.FC = () => {
       automaticallyAdjustKeyboardInsets
       contentInset={{ top: 0, left: 0, bottom: 100, right: 0 }}
       contentInsetAdjustmentBehavior="automatic"
-      data={networks}
+      data={availableNetworks}
       testID="NetworkSelectorList"
       renderItem={({ item: availableNetwork }) => <AnimatedNetworkCard key={availableNetwork} network={availableNetwork} />}
       nestedScrollEnabled
