@@ -40,6 +40,7 @@ export default function ImportWalletScreen() {
       if (!response) {
         setError('Invalid mnemonic seed');
       } else {
+        router.dismissAll();
         router.replace('/onboarding/create-password');
       }
     } catch (err) {
