@@ -2,6 +2,8 @@ import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
+import { useSettings } from '@shared/hooks/useSettings';
+import { SETTINGS_CONFIG } from '@shared/hooks/SettingsContext';
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router';
 import { Csprng } from '../../class/rng';
@@ -16,6 +18,8 @@ const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const { setStep } = useContext(InitializationContext);
   const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
+  const { settings, updateSetting } = useSettings();
+
   const assert = (condition: boolean, message: string) => {
     if (!condition) throw new Error('Assertion failed: ' + message);
   };
@@ -30,6 +34,14 @@ const SettingsPage: React.FC = () => {
   const setSelectedAccount = (value: string) => {
     console.log(typeof value, value);
     setAccountNumber(parseInt(value));
+  };
+
+  const handleSettingChange = async (key: string, value: string | boolean) => {
+    try {
+      await updateSetting(key as any, value);
+    } catch (error) {
+      console.error('Error updating setting:', error);
+    }
   };
 
   return (
@@ -47,6 +59,29 @@ const SettingsPage: React.FC = () => {
             <option value={4}>Pocket 4</option>
           </Select>
         </div>
+      </div>
+
+      {/* App Settings Section */}
+      <div style={{ textAlign: 'left', fontSize: '16px', marginBottom: '20px' }}>
+        {Object.keys(SETTINGS_CONFIG).map((key) => {
+          const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
+          const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
+
+          return (
+            <div key={key} style={{ marginBottom: '15px' }}>
+              <ThemedText>{key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}:</ThemedText>
+              <div style={{ marginTop: '5px' }}>
+                <Select id={`setting-${key}`} value={currentValue} onChange={(e) => handleSettingChange(key, e.target.value)}>
+                  {config.options.map((option: string) => (
+                    <option key={option} value={option}>
+                      {option === 'never' ? 'Never' : option === 'ON' ? 'On' : option === 'OFF' ? 'Off' : option.length === 2 ? option.toUpperCase() : option.charAt(0).toUpperCase() + option.slice(1)}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div style={{ fontSize: '12px' }}>

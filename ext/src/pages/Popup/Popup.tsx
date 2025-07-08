@@ -10,6 +10,7 @@ import { Hello } from '@shared/class/hello';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
 import { EStep, InitializationContext, InitializationContextProvider } from '@shared/hooks/InitializationContext';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
+import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
 import { LayerzStorage } from '../../class/layerz-storage';
 import { SwrCacheProvider } from '../../class/swr-cache-provider';
 import { AskPasswordContextProvider } from '../../hooks/AskPasswordContext';
@@ -121,11 +122,13 @@ const Popup: React.FC = () => {
           <AskMnemonicContextProvider>
             <ScanQrContextProvider>
               <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
-                <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
-                  <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
-                    <AppContent />
-                  </NetworkContextProvider>
-                </AccountNumberContextProvider>
+                <SettingsContextProvider storage={LayerzStorage}>
+                  <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
+                    <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
+                      <AppContent />
+                    </NetworkContextProvider>
+                  </AccountNumberContextProvider>
+                </SettingsContextProvider>
               </InitializationContextProvider>
             </ScanQrContextProvider>
           </AskMnemonicContextProvider>

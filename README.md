@@ -12,13 +12,15 @@ Experience the future of Bitcoin with Layer2-focused wallet. Bitcoin-only, non-c
 
 - [x] Bitcoin base layer
 - [x] Rootstock
-- [x] Botanix (testnet)
+- [x] Botanix
 - [x] Citrea (testnet)
 - [x] Strata (testnet)
 - [x] Liquid & Liquid assets
 - [x] Ark (by ArkLabs) (testnet)
+- [x] Spark
 - [ ] RGB
-- [ ] Lightning & Taproot assets
+- [x] Lightning (breez-nodeless)
+- [ ] Taproot assets
 
 ## Other features (current and upcoming)
 
@@ -48,7 +50,7 @@ Shared code (anything that can be reused, cryptography, network fetchers, react 
 
 - Run `npm install` to install the dependencies.
 - Run `npm start`
-- Use Expo Go to scan QR code from terminal
+- Use Dev build to scan QR code from terminal
 
 Development build for android (produces apk that has to load bundle remotely): `eas build --platform android --profile development-simulator --local`
 
@@ -72,3 +74,9 @@ We are also relying on Expo EAS for builds, so a generic workflow to run e2e tes
 - Note the `Artifacts` field, and download the one you need: `wget https://expo.dev/artifacts/eas/example.apk`
 - make sure Android device is connected and in dev mode, then install the apk: `adb install example.apk`
 - run the tests `npm run e2e` (from `mobile/` dir)
+
+
+## Build
+
+* local android build: `eas build --platform android --profile preview --local`
+* ext build: `npm run build`

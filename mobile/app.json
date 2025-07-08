@@ -66,6 +66,10 @@
           "src": "./assets/images/android_512x512.png"
         }
       ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/android_512x512.png",
+        "backgroundColor": "#000000"
+      },
       "intentFilters": [
         {
           "action": "VIEW",

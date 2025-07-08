@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it } from 'vitest';
 import assert from 'assert';
+import { SETTINGS_CONFIG } from '../../hooks/SettingsContext';
 
 describe('codebase', function () {
   /**
@@ -22,5 +23,14 @@ describe('codebase', function () {
 
     assert.strictEqual(extPrettierConfig, mobilePrettierConfig);
     assert.strictEqual(extPrettierConfig, sharedPrettierConfig);
+  });
+
+  it('all SETTINGS_CONFIG default values are among possible options', function () {
+    Object.entries(SETTINGS_CONFIG).forEach(([key, config]) => {
+      const defaultValue = config.default;
+      const options = config.options as readonly any[];
+
+      assert(options.includes(defaultValue), `Setting "${key}" has default value "${defaultValue}" which is not among the possible options: [${options.join(', ')}]`);
+    });
   });
 });

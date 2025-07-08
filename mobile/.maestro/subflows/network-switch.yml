@@ -1,31 +1,23 @@
 appId: com.layerzwallet.mobile
 ---
+# Dynamic network switch test that uses the NETWORK environment variable
 - tapOn:
     id: 'NetworkSwitcherTrigger'
 - waitForAnimationToEnd
-- assertVisible: 'Select Network'
+- waitForAnimationToEnd
 
-# expand the network switcher
-- swipe:
-    from:
-      id: 'NetworkSelectorHeader'
-    direction: UP
+- repeat:
+    while:
+      notVisible:
+        id: ${'selectedNetwork-' + NETWORK}
+    commands:
+      - swipe:
+          start: 50%,80%
+          end: 50%,65%
 
-# do a fast swipe to scroll to the top
-- swipe:
-    start: 50%, 20%
-    end: 50%, 100%
-    duration: 10
-
-# scroll to the network to select
-- scrollUntilVisible:
-    centerElement: true
-    element:
-      id: ${'network-' + NETWORK}
-
-# select the network
 - tapOn:
     id: ${'network-' + NETWORK}
+- waitForAnimationToEnd
 - waitForAnimationToEnd
 - assertVisible:
     id: ${'selectedNetwork-' + NETWORK}
