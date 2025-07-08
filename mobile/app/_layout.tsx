@@ -21,7 +21,6 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
 import { InitializationContextProvider } from '@shared/hooks/InitializationContext';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
-import { Header } from './NetworkSelector';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -98,10 +97,10 @@ export default function RootLayout() {
                       <Stack.Screen
                         name="NetworkSelector"
                         options={{
-                          presentation: 'formSheet',
+                          presentation: 'transparentModal',
                           sheetAllowedDetents: [0.66, 1.0],
-                          header: () => <Header />,
-                          sheetGrabberVisible: true,
+                          headerShown: false,
+                          animation: 'fade',
                         }}
                       />
                       <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
