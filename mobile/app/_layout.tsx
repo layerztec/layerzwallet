@@ -21,6 +21,7 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
 import { InitializationContextProvider } from '@shared/hooks/InitializationContext';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
+import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -77,38 +78,40 @@ export default function RootLayout() {
         <AskPasswordContextProvider>
           <AskMnemonicContextProvider>
             <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
-              <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
-                <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
-                  <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                    <Stack>
-                      <Stack.Screen name="index" options={{ headerShown: false, title: 'Index' }} />
-                      <Stack.Screen name="home" options={{ headerShown: false, title: 'Home', animation: 'none' }} />
-                      <Stack.Screen name="receive" />
-                      <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
-                      <Stack.Screen name="SeedBackup" options={{ headerShown: true, title: 'Seed Backup' }} />
-                      <Stack.Screen name="onboarding/intro" options={{ headerShown: false }} />
-                      <Stack.Screen name="onboarding/create-password" options={{ headerShown: false }} />
-                      <Stack.Screen name="onboarding/tos" options={{ headerShown: false }} />
-                      <Stack.Screen name="onboarding/import-wallet" options={{ headerShown: false }} />
-                      <Stack.Screen name="onboarding/create-wallet" options={{ headerShown: false }} />
-                      <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
-                      <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
-                      <Stack.Screen name="Onramp" options={{ headerShown: true }} />
-                      <Stack.Screen
-                        name="NetworkSelector"
-                        options={{
-                          presentation: 'transparentModal',
-                          sheetAllowedDetents: [0.66, 1.0],
-                          headerShown: false,
-                          animation: 'fade',
-                        }}
-                      />
-                      <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
-                    </Stack>
-                    <StatusBar style="auto" />
-                  </ThemeProvider>
-                </NetworkContextProvider>
-              </AccountNumberContextProvider>
+              <SettingsContextProvider storage={LayerzStorage}>
+                <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
+                  <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
+                    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                      <Stack>
+                        <Stack.Screen name="index" options={{ headerShown: false, title: 'Index' }} />
+                        <Stack.Screen name="home" options={{ headerShown: false, title: 'Home', animation: 'none' }} />
+                        <Stack.Screen name="receive" />
+                        <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
+                        <Stack.Screen name="SeedBackup" options={{ headerShown: true, title: 'Seed Backup' }} />
+                        <Stack.Screen name="onboarding/intro" options={{ headerShown: false }} />
+                        <Stack.Screen name="onboarding/create-password" options={{ headerShown: false }} />
+                        <Stack.Screen name="onboarding/tos" options={{ headerShown: false }} />
+                        <Stack.Screen name="onboarding/import-wallet" options={{ headerShown: false }} />
+                        <Stack.Screen name="onboarding/create-wallet" options={{ headerShown: false }} />
+                        <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
+                        <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
+                        <Stack.Screen name="Onramp" options={{ headerShown: true }} />
+                        <Stack.Screen
+                          name="NetworkSelector"
+                          options={{
+                            presentation: 'transparentModal',
+                            sheetAllowedDetents: [0.66, 1.0],
+                            headerShown: false,
+                            animation: 'fade',
+                          }}
+                        />
+                        <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
+                      </Stack>
+                      <StatusBar style="auto" />
+                    </ThemeProvider>
+                  </NetworkContextProvider>
+                </AccountNumberContextProvider>
+              </SettingsContextProvider>
             </InitializationContextProvider>
           </AskMnemonicContextProvider>
         </AskPasswordContextProvider>
