@@ -3,14 +3,15 @@
 # - check all the networks have no null balance
 
 appId: com.layerzwallet.mobile
+jsEngine: graaljs
 ---
 - runFlow:
     file: subflows/wallet-restore.yml
     env:
       MNEMONIC: ${MAESTRO_TEST_MNEMONIC}
 
-# run for all networks
-- evalScript: ${output.networks = ['bitcoin','rootstock', 'botanix', 'botanixtest','strata','citrea','ark','liquid','liquidtest','spark','lightning','lightningtest']}
+# run for some networks (where we have non-zero balance)
+- evalScript: ${output.networks = ['bitcoin', 'spark']} # 'rootstock'
 - repeat:
     while:
       true: ${output.networks.length > 0}

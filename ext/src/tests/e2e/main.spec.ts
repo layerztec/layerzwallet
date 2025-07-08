@@ -69,6 +69,15 @@ test('can send coins to second account, and verify balance', async ({ page, exte
 
   await helperImportWallet(page, extensionId, process.env.TEST_MNEMONIC);
   await page.goto(`chrome-extension://${extensionId}/popup.html`);
+
+  // Testnet is not visible by default
+  await expect(page.getByText(/Sepolia/)).not.toBeVisible();
+
+  // Enabling all testnets
+  await page.getByTestId('settings-button').click();
+  await page.selectOption('select[id="setting-showTestnets"]', 'ON');
+  await page.goto(`chrome-extension://${extensionId}/popup.html`); // Navigate back to home
+
   await page.getByText(/Sepolia/).click();
   await new Promise((resolve) => setTimeout(resolve, 5_000)); // sleep, waiting for balance to load on screen
 

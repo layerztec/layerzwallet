@@ -7,6 +7,7 @@ export const STORAGE_KEY_WHITELIST = 'STORAGE_KEY_WHITELIST';
 export const STORAGE_KEY_ACCEPTED_TOS = 'STORAGE_KEY_ACCEPTED_TOS';
 export const STORAGE_KEY_SERIALIZED = 'STORAGE_KEY_SERIALIZED';
 export const STORAGE_KEY_SUB_MNEMONIC = 'STORAGE_KEY_SUB_MNEMONIC';
+export const STORAGE_KEY_SETTINGS = 'STORAGE_KEY_SETTINGS';
 
 export interface IStorage {
   setItem(key: string, value: string): Promise<void>;
