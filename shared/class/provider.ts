@@ -29,14 +29,21 @@ export class Provider implements MetaMaskProvider {
   private async backgroundRPC(args: RequestArguments): Promise<unknown> {
     const id = this._requestId++;
     return new Promise((resolve, reject) => {
+      let resolved = false;
       // setting up a listener for events and waiting for a response for OUR event from content script
       document.addEventListener('LayerzWalletExtension', function (e) {
+        if (resolved) {
+          return; // already resolved, ignoring
+        }
+
         // @ts-ignore e.detail actually exists
         const event = JSON.parse(e.detail) as Eip1193CustomEventResponse;
 
-        if (event.for !== 'webpage' || event.id !== id) {
+        if (event.for !== 'webpage' || Number(event.id) !== id) {
           return; // ignoring
         }
+
+        resolved = true;
 
         if (event.error) {
           console.log('rejecting promise.................. error=', event.error);
@@ -49,19 +56,20 @@ export class Provider implements MetaMaskProvider {
       });
 
       // sending the event, it should be received by OUR CONTENT SCRIPT...
+      const event: Eip1193CustomEventRequest = { ...args, for: 'contentScript', id, from: window.location.hostname };
       document.dispatchEvent(
         new CustomEvent('LayerzWalletExtension', {
           // stringifying for better compatibility with firefox (avoids some security violation)
-          detail: JSON.stringify({ ...args, for: 'contentScript', id, from: window.location.hostname } as Eip1193CustomEventRequest),
+          detail: JSON.stringify(event),
         })
       );
     });
   }
 
   // @ts-ignore some ts bullshit
-  request(args: RequestArguments): Promise<unknown> {
+  request = (args: RequestArguments): Promise<unknown> => {
     return this.backgroundRPC(args);
-  }
+  };
 
   constructor() {
     const that = this;

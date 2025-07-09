@@ -1,12 +1,12 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, FlatList } from 'react-native';
-import * as Linking from 'expo-linking';
+import assert from 'assert';
+import BigNumber from 'bignumber.js';
+import { useRouter } from 'expo-router';
 
 import { Networks } from '@shared/types/networks';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { SwapPair, SwapPlatform } from '@shared/types/swap';
-import assert from 'assert';
-import BigNumber from 'bignumber.js';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { useBalance } from '@shared/hooks/useBalance';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -15,6 +15,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getSwapPairs, getSwapProvidersList } from '@shared/models/swap-providers-list';
 
 const SwapInterfaceView: React.FC = () => {
+  const router = useRouter();
   const [amount, setAmount] = useState<string>('');
   const [targetNetwork, setTargetNetwork] = useState<Networks>();
   const { network, setNetwork } = useContext(NetworkContext);
@@ -53,6 +54,18 @@ const SwapInterfaceView: React.FC = () => {
     assert(destinationAddress, 'internal error: no destination address');
 
     return provider.swap(network, setNetwork, targetNetwork, parseInt(satValue), destinationAddress);
+  };
+
+  const handleGo = async () => {
+    setIsLoading(true);
+    try {
+      const url = await handleSwap();
+      router.push({ pathname: '/DAppBrowser', params: { url } });
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const supportedNetworks = swapPairs.map((pair) => pair.to);
@@ -103,18 +116,7 @@ const SwapInterfaceView: React.FC = () => {
         </Modal>
 
         {targetNetwork && !isLoading && (
-          <TouchableOpacity
-            style={styles.goButton}
-            onPress={() => {
-              setIsLoading(true);
-              handleSwap()
-                .then((url) => {
-                  Linking.openURL(url);
-                })
-                .catch((e) => setError(e.message))
-                .finally(() => setIsLoading(false));
-            }}
-          >
+          <TouchableOpacity style={styles.goButton} onPress={handleGo}>
             <Text style={styles.goButtonText}>Go</Text>
           </TouchableOpacity>
         )}

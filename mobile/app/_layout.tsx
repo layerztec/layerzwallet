@@ -18,10 +18,12 @@ import { AskMnemonicContextProvider } from '@/src/hooks/AskMnemonicContext';
 import { AskPasswordContextProvider } from '@/src/hooks/AskPasswordContext';
 import { ScanQrContextProvider } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { Messenger } from '@/src/modules/messenger';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
 import { InitializationContextProvider } from '@shared/hooks/InitializationContext';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
+import { Header as ActionHeader } from './Action';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -79,8 +81,8 @@ export default function RootLayout() {
           <AskMnemonicContextProvider>
             <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
               <SettingsContextProvider storage={LayerzStorage}>
-                <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
-                  <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
+                <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
+                  <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
                       <Stack>
                         <Stack.Screen name="index" options={{ headerShown: false, title: 'Index' }} />
@@ -96,6 +98,9 @@ export default function RootLayout() {
                         <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
                         <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
                         <Stack.Screen name="Onramp" options={{ headerShown: true }} />
+                        <Stack.Screen name="AskPassword" options={{ presentation: 'modal', headerShown: false }} />
+                        <Stack.Screen name="AskMnemonic" options={{ presentation: 'modal', headerShown: false }} />
+                        <Stack.Screen name="DAppBrowser" options={{ headerShown: true, title: 'Browser' }} />
                         <Stack.Screen
                           name="NetworkSelector"
                           options={{
@@ -103,6 +108,15 @@ export default function RootLayout() {
                             sheetAllowedDetents: [0.66, 1.0],
                             headerShown: false,
                             animation: 'fade',
+                          }}
+                        />
+                        <Stack.Screen
+                          name="Action"
+                          options={{
+                            presentation: 'formSheet',
+                            sheetAllowedDetents: [0.66, 1.0],
+                            header: () => <ActionHeader />,
+                            sheetGrabberVisible: true,
                           }}
                         />
                         <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />

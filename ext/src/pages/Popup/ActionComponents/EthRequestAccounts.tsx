@@ -1,14 +1,14 @@
 import React, { useContext, useEffect, useState } from 'react';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { BackgroundCaller } from '../../../modules/background-caller';
-import { Messenger } from '@shared/modules/messenger';
-import { AddressBubble, Button } from '../DesignSystem';
 import { NETWORK_ROOTSTOCK } from '@shared/types/networks';
+import { BackgroundCaller } from '../../../modules/background-caller';
+import { Messenger } from '../../../modules/messenger';
+import { AddressBubble, Button } from '../DesignSystem';
 
 interface EthRequestAccountsArgs {
   params: any[];
-  id: string;
+  id: number;
   from: string;
 }
 
@@ -34,7 +34,7 @@ export function EthRequestAccounts(args: EthRequestAccountsArgs) {
       // whitelisting this Dapp
       await BackgroundCaller.whitelistDapp(from);
     }
-    await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id: Number(id), response: [address] });
+    await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id, response: [address] });
     await new Promise((resolve) => setTimeout(resolve, 100)); // propagate
     window.close();
   };
@@ -43,7 +43,7 @@ export function EthRequestAccounts(args: EthRequestAccountsArgs) {
     const id = args.id;
     await Messenger.sendResponseToActiveTabsFromPopupToContentScript({
       for: 'webpage',
-      id: Number(id),
+      id,
       error: { code: 4001, message: 'User rejected the request.' },
     });
     await new Promise((resolve) => setTimeout(resolve, 100)); // propagate

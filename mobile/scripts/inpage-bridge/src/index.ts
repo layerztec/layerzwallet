@@ -1,6 +1,5 @@
 /**
- * @fileoverview This is the INNER content script that gets injected into webpages by the loader script. For security reasons,
- * this script can only communicate with the OUTER content script through message passing.
+ * @fileoverview This is the entry point for the inpage bridge. It is used to inject the Provider to the page.
  */
 import { Provider } from '@shared/class/provider';
 import { EIP6963ProviderDetail, EIP6963ProviderInfo } from '@shared/types/eip6963';
@@ -26,6 +25,7 @@ function onPageLoad() {
 
   function announceProvider() {
     console.log('announceProvider()');
+
     const info: EIP6963ProviderInfo = {
       uuid: STATIC_UUID,
       name: 'Layerz Wallet',
@@ -44,7 +44,22 @@ function onPageLoad() {
   });
 
   announceProvider();
+
+  console.log('announceProvider() done');
 }
+
+document.addEventListener('LayerzWalletExtension', async function (e) {
+  // @ts-ignore
+  const args = JSON.parse(e.detail) as Eip1193CustomEventRequest;
+
+  if (args.for !== 'contentScript') {
+    // Ignore messages intended for the webpage
+    return;
+  }
+
+  // @ts-ignore
+  window.ReactNativeWebView.postMessage(e.detail);
+});
 
 window.addEventListener('load', onPageLoad);
 

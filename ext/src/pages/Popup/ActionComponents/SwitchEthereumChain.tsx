@@ -1,17 +1,16 @@
 import BigNumber from 'bignumber.js';
 import React, { useContext } from 'react';
 
-import { getChainIdByNetwork } from '@shared/models/network-getters';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-
-import { Messenger } from '@shared/modules/messenger';
-import { getAvailableNetworks, Networks } from '@shared/types/networks';
-import { Button } from '../DesignSystem';
+import { getChainIdByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
+import { getAvailableNetworks, Networks } from '@shared/types/networks';
+import { Messenger } from '../../../modules/messenger';
+import { Button } from '../DesignSystem';
 
 interface SwitchEthereumChainArgs {
   params: any[];
-  id: string;
+  id: number;
   from: string;
 }
 
@@ -31,7 +30,7 @@ export function SwitchEthereumChain(args: SwitchEthereumChainArgs) {
 
       await Messenger.sendResponseToActiveTabsFromPopupToContentScript({
         for: 'webpage',
-        id: Number(id),
+        id,
         response: null,
       });
 
@@ -44,7 +43,7 @@ export function SwitchEthereumChain(args: SwitchEthereumChainArgs) {
 
     await Messenger.sendResponseToActiveTabsFromPopupToContentScript({
       for: 'webpage',
-      id: Number(id),
+      id,
       error: {
         code: 4902,
         message: 'Unrecognized chain ID',
@@ -57,7 +56,7 @@ export function SwitchEthereumChain(args: SwitchEthereumChainArgs) {
 
   const onDenyClick = async () => {
     const id = args.id;
-    await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id: Number(id), error: { code: 4001, message: 'User rejected the request.' } });
+    await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id, error: { code: 4001, message: 'User rejected the request.' } });
 
     await new Promise((resolve) => setTimeout(resolve, 100)); // propagate
     window.close();

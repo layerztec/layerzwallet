@@ -2,14 +2,13 @@ import React, { useContext, useState } from 'react';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { AskPasswordContext } from '../../../hooks/AskPasswordContext';
-
 import { BackgroundCaller } from '../../../modules/background-caller';
-import { Messenger } from '@shared/modules/messenger';
+import { Messenger } from '../../../modules/messenger';
 import { Button } from '../DesignSystem';
 
 interface PersonalSignArgs {
   params: any[];
-  id: string;
+  id: number;
   from: string;
 }
 
@@ -40,7 +39,7 @@ export function PersonalSign(args: PersonalSignArgs) {
       }
 
       const id = args.id;
-      await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id: Number(id), response: signedResponse.bytes });
+      await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id, response: signedResponse.bytes });
 
       await new Promise((resolve) => setTimeout(resolve, 100)); // propagate
       window.close();
@@ -55,7 +54,7 @@ export function PersonalSign(args: PersonalSignArgs) {
     const id = args.id;
     await Messenger.sendResponseToActiveTabsFromPopupToContentScript({
       for: 'webpage',
-      id: Number(id),
+      id,
       error: { code: 4001, message: 'User rejected the request.' },
     });
     await new Promise((resolve) => setTimeout(resolve, 100)); // propagate
