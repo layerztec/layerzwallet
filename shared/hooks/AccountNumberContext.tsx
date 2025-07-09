@@ -2,7 +2,7 @@ import React, { createContext, ReactNode, useEffect, useState } from 'react';
 
 import { DEFAULT_NETWORK } from '../config';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { IMessengerAdapter } from '../modules/messenger';
+import { IMessenger } from '../modules/messenger';
 import { Networks } from '../types/networks';
 import { STORAGE_SELECTED_NETWORK } from './NetworkContext';
 import { IStorage } from '../types/IStorage';
@@ -27,7 +27,7 @@ interface AccountNumberContextProviderProps {
   children: ReactNode;
   storage: IStorage;
   backgroundCaller: IBackgroundCaller;
-  messenger: IMessengerAdapter;
+  messenger: IMessenger;
 }
 
 export const AccountNumberContextProvider: React.FC<AccountNumberContextProviderProps> = (props) => {

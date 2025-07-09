@@ -1,0 +1,31 @@
+appId: com.layerzwallet.mobile
+---
+- runFlow: subflows/wallet-creation.yml
+
+# Switch to Rootstock network
+- runFlow:
+    file: subflows/network-switch.yml
+    env:
+      NETWORK: 'rootstock'
+
+- tapOn: 'Browser'
+- waitForAnimationToEnd
+- tapOn: 'unwhitelist'
+- waitForAnimationToEnd
+- extendedWaitUntil: # wait for page to load
+    visible: 'E2E Test Dapp'
+
+- tapOn: 'Use Layerz Wallet'
+- waitForAnimationToEnd
+- scroll
+- tapOn: 'Connect'
+- waitForAnimationToEnd
+
+- assertVisible: 'Account Access Request'
+- scroll # Extend the popup
+- tapOn: 'Allow'
+- waitForAnimationToEnd
+
+- extendedWaitUntil: # Wait for Success message
+    visible: 'Success'
+- tapOn: 'Ok'

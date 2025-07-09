@@ -2,13 +2,13 @@ import assert from 'assert';
 import { afterEach, beforeEach, expect, vi as jest, test } from 'vitest';
 
 import * as networkGetters from '../../models/network-getters';
-import { IMessengerAdapter } from '../../modules/messenger';
+import { IMessenger } from '../../modules/messenger';
 import { processRPC } from '../../modules/rpc-controller';
 import { Eip1193CustomEventResponse } from '../../types/eip1193-custom-event';
 import { IBackgroundCaller } from '../../types/IBackgroundCaller';
 import { IStorage } from '../../types/IStorage';
 
-const messengerMock: IMessengerAdapter = {
+const messengerMock: IMessenger = {
   sendResponseToActiveTabsFromPopupToContentScript: jest.fn(),
   sendEventCallbackFromPopupToContentScript: jest.fn(),
   documentDispatchEvent: jest.fn(),

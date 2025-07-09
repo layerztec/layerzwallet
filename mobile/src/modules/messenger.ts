@@ -1,12 +1,12 @@
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { Eip1193CustomEventCallback, Eip1193CustomEventResponse } from '@shared/types/eip1193-custom-event';
 import { MessageTypeMap } from '@shared/types/IBackgroundCaller';
-import { IMessengerAdapter } from '@shared/modules/messenger';
+import { IMessenger } from '@shared/modules/messenger';
 
 /**
  * Mobile-specific messenger implementation that uses BrowserBridge for WebView communication.
  */
-class MobileMessenger implements IMessengerAdapter {
+class MobileMessenger implements IMessenger {
   async sendResponseToActiveTabsFromPopupToContentScript() {
     throw new Error('sendResponseToActiveTabsFromPopupToContentScript not implemented in mobile context');
   }

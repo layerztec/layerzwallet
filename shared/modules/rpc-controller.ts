@@ -8,9 +8,9 @@ import { getChainIdByNetwork, getNetworkByChainId, getRpcProvider } from '../mod
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { IStorage } from '../types/IStorage';
 import { NETWORK_ROOTSTOCK, Networks } from '../types/networks';
-import { IMessengerAdapter } from './messenger';
+import { IMessenger } from './messenger';
 
-export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBackgroundCaller, method: string, params: any, id: number, from: string, Messenger: IMessengerAdapter) {
+export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBackgroundCaller, method: string, params: any, id: number, from: string, Messenger: IMessenger) {
   const network: Networks = ((await LayerzStorage.getItem(STORAGE_SELECTED_NETWORK)) || DEFAULT_NETWORK) as Networks;
   const whitelist = await BackgroundCaller.getWhitelist();
   const accountNumber: number = Number(await LayerzStorage.getItem(STORAGE_SELECTED_ACCOUNT_NUMBER)) || 0;

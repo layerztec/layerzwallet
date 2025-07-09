@@ -19,7 +19,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
-import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
+import { getDecimalsByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import {
@@ -38,12 +38,6 @@ import {
   NETWORK_STRATADEVNET,
 } from '@shared/types/networks';
 import { SwapPair, SwapPlatform } from '@shared/types/swap';
-
-// Helper function to check if network is EVM
-const isEVMNetwork = (network: string): boolean => {
-  const evmNetworks = [NETWORK_SEPOLIA, NETWORK_ROOTSTOCK, NETWORK_BOTANIXTESTNET, NETWORK_BOTANIX, NETWORK_STRATADEVNET, NETWORK_CITREATESTNET];
-  return evmNetworks.includes(network as any);
-};
 
 export default function HomeScreen() {
   const { network } = useContext(NetworkContext);
@@ -237,7 +231,7 @@ export default function HomeScreen() {
             </ThemedView>
 
             <ThemedView style={styles.buttonRowWithGap}>
-              {isEVMNetwork(network) && (
+              {getIsEVM(network) && (
                 <TouchableOpacity style={styles.button} onPress={goToDAppBrowser}>
                   <ThemedText style={styles.buttonText}>Browser</ThemedText>
                 </TouchableOpacity>

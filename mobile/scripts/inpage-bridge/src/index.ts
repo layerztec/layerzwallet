@@ -1,6 +1,5 @@
 /**
- * @fileoverview This is the INNER content script that gets injected into webpages by the loader script. For security reasons,
- * this script can only communicate with the OUTER content script through message passing.
+ * @fileoverview This is the entry point for the inpage bridge. It is used to inject the Provider to the page.
  */
 import { Provider } from '@shared/class/provider';
 import { EIP6963ProviderDetail, EIP6963ProviderInfo } from '@shared/types/eip6963';
