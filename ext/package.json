@@ -11,7 +11,7 @@
     "build": "node utils/build.js",
     "start": "node utils/webserver.js",
     "unit": "vitest run ../shared/tests/unit-vi/ ./src/tests/unit-vi/ --silent",
-    "integration": "vitest run ../shared/tests/integration-vi/ --silent",
+    "integration": "vitest run ../shared/tests/integration-vi/ src/tests/integration/ --silent",
     "e2e": "playwright test",
     "test": "npm run unit && npm run integration && npm run circular",
     "circular": "npx tsx utils/madge.ts",

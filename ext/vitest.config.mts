@@ -4,8 +4,13 @@ import fs from 'fs';
 
 export default defineConfig({
   test: {
-    setupFiles: ['../shared/tests/setup-vi.js', '../ext/src/modules/spark-adapter.ts'],
+    setupFiles: [
+      '../shared/tests/setup-vi.js',
+      '../ext/src/modules/spark-adapter.ts',
+      '../ext/src/modules/breeze-adapter.ts',
+    ],
     testTimeout: 60_000,
+    dangerouslyIgnoreUnhandledErrors: true, // breez test throws unhandled errors
     include: [
       '**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       '../shared/tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'

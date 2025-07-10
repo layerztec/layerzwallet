@@ -29,7 +29,10 @@ class BreezAdapter implements IBreezAdapter {
 
   private async getSdk(connection: BreezConnection) {
     if (!this.initialized) {
-      await init();
+      // when running in the test environment, we are actually using node version of breez sdk and init is not a function
+      if (typeof init === 'function') {
+        await init();
+      }
       this.initialized = true;
     }
     if (connection.mnemonic === this.cc?.mnemonic && connection.network === this.cc?.network && this.sdk) {

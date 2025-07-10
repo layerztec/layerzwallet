@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
-import { breezAdapter } from '../../modules/breeze-adapter';
+
+const { breezAdapter } = global;
 
 describe('BreezWallet', () => {
   afterEach(async () => {
@@ -35,7 +36,7 @@ describe('BreezWallet', () => {
 
   it('should be able to use the BreezWallet class', async () => {
     const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
-    const w = new BreezWallet(mnemonic, 'mainnet', breezAdapter);
+    const w = new BreezWallet(mnemonic, 'mainnet');
     const info = await w.getInfo();
     expect(info).toEqual({
       blockchainInfo: {
@@ -57,8 +58,8 @@ describe('BreezWallet', () => {
     const mnemonic1 = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
     const mnemonic2 = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
 
-    const w1 = new BreezWallet(mnemonic1, 'testnet', breezAdapter);
-    const w2 = new BreezWallet(mnemonic2, 'mainnet', breezAdapter);
+    const w1 = new BreezWallet(mnemonic1, 'testnet');
+    const w2 = new BreezWallet(mnemonic2, 'mainnet');
 
     const info1 = await w1.getInfo();
     const info2 = await w2.getInfo();
