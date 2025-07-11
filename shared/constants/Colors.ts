@@ -32,8 +32,8 @@ export const Colors = {
     tabIconSelected: accent1,
   },
   dark: {
-    text: primaryColor,
-    background: '#fff',
+    text: 'grey',
+    background: '#011474',
     tint: primaryColor,
     icon: accent1,
     tabIconDefault: neutral,

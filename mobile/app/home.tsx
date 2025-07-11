@@ -376,7 +376,6 @@ const styles = StyleSheet.create({
   networkCardTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
   },
   networkStatus: {
     flexDirection: 'row',
