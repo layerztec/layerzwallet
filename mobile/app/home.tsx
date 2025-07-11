@@ -1,15 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { OnrampProps } from '@/app/Onramp';
+import GradientScreen from '@/components/GradientScreen';
 import LiquidTokensView from '@/components/LiquidTokensView';
 import SwapInterfaceView from '@/components/SwapInterfaceView';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import TokensView from '@/components/TokensView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Hello } from '@shared/class/hello';
@@ -17,9 +16,11 @@ import { getNetworkGradient, getNetworkIcon } from '@shared/constants/Colors';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
+import { useAccountBalance } from '@shared/hooks/useAccountBalance';
+import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
-import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
+import { getDecimalsByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
@@ -33,6 +34,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
   const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
+  const availableNetworks = useAvailableNetworks();
+  const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
 
   useEffect(() => {
     setSwapPairs(getSwapPairs(network, SwapPlatform.MOBILE));
@@ -112,23 +115,28 @@ export default function HomeScreen() {
     });
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-        <ThemedView style={styles.headerContainer}>
-          <ThemedView style={styles.header}>
-            <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
-          </ThemedView>
-          <TouchableOpacity style={styles.settingsButton} onPress={goToSettings} testID="SettingsButton">
-            <Ionicons name="settings-outline" size={24} color="#007AFF" />
-          </TouchableOpacity>
-        </ThemedView>
+  const goToDAppBrowser = () => {
+    router.push('/DAppBrowser');
+  };
 
-        <ThemedView style={styles.networkContainer}>
+  return (
+    <GradientScreen>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.headerContainer}>
+          <View style={styles.header}>
+            <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
+          </View>
+          <TouchableOpacity style={styles.settingsButton} onPress={goToSettings} testID="SettingsButton">
+            <Ionicons name="settings-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.networkContainer}>
           <TouchableOpacity onPress={() => router.push('/NetworkSelector')} testID="NetworkSwitcherTrigger" activeOpacity={0.6}>
             <Animated.View style={styles.networkCard} testID={`selectedNetwork-${network}`}>
-              <ThemedView style={styles.networkCardTouchable}>
-                <ThemedView
+              <View style={styles.networkCardTouchable}>
+                <View
                   style={[
                     styles.networkIconContainer,
                     {
@@ -137,12 +145,12 @@ export default function HomeScreen() {
                   ]}
                 >
                   <Ionicons name={getNetworkIcon(network)} size={24} color="white" />
-                </ThemedView>
+                </View>
 
-                <ThemedView style={styles.networkInfo}>
+                <View style={styles.networkInfo}>
                   <ThemedText style={styles.networkCardTitle}>{network.charAt(0).toUpperCase() + network.slice(1)}</ThemedText>
-                  <ThemedView style={styles.networkStatus}>
-                    <ThemedView
+                  <View style={styles.networkStatus}>
+                    <View
                       style={[
                         styles.statusIndicator,
                         {
@@ -151,44 +159,44 @@ export default function HomeScreen() {
                       ]}
                     />
                     <ThemedText style={styles.networkCardSubtitle}>{getIsTestnet(network) ? 'Testnet' : 'Mainnet'}</ThemedText>
-                  </ThemedView>
-                </ThemedView>
+                  </View>
+                </View>
 
-                <ThemedView style={styles.actionButton}>
-                  <Ionicons name="chevron-forward" size={20} color="#6B7280" />
-                </ThemedView>
-              </ThemedView>
+                <View style={styles.actionButton}>
+                  <Ionicons name="chevron-forward" size={20} color="rgba(255, 255, 255, 0.6)" />
+                </View>
+              </View>
             </Animated.View>
           </TouchableOpacity>
-        </ThemedView>
+        </View>
 
         {getIsTestnet(network) && (
-          <ThemedView style={styles.testnetWarningContainer}>
+          <View style={styles.testnetWarningContainer}>
             <ThemedText style={styles.testnetWarningText}>Warning: You are using a testnet, coins have no value</ThemedText>
-          </ThemedView>
+          </View>
         )}
 
-        <ThemedView style={styles.balanceContainer}>
+        <View style={styles.balanceContainer}>
           <ThemedText style={styles.balanceLabel}>Pocket Balance:</ThemedText>
           <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
-            {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
+            {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN)) + ' ' + getTickerByNetwork(NETWORK_BITCOIN) : ''}
           </ThemedText>
           <ThemedText style={styles.balanceLabel} testID="LayerBalance">
             Layer Balance:
           </ThemedText>
-          <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
+          <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1} testID="LayerActualBalance">
             {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
           </ThemedText>
           <ThemedText adjustsFontSizeToFit numberOfLines={1}>
             {balance && +balance > 0 && exchangeRate ? '$' + formatFiatBalance(balance, getDecimalsByNetwork(network), exchangeRate) : ''}
           </ThemedText>
-        </ThemedView>
+        </View>
 
-        {showSwapInterface ? <SwapInterfaceView /> : <ThemedView>{network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET ? <LiquidTokensView /> : <TokensView />}</ThemedView>}
+        {showSwapInterface ? <SwapInterfaceView /> : <View>{network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET ? <LiquidTokensView /> : <TokensView />}</View>}
 
-        <ThemedView style={styles.contentContainer}>
-          <ThemedView style={styles.buttonContainer}>
-            <ThemedView style={styles.buttonRow}>
+        <View style={styles.contentContainer}>
+          <View style={styles.buttonContainer}>
+            <View style={styles.buttonRow}>
               <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive}>
                 <ThemedText style={styles.buttonText}>Receive</ThemedText>
               </TouchableOpacity>
@@ -198,82 +206,88 @@ export default function HomeScreen() {
               </TouchableOpacity>
 
               {fiatOnRamp?.[network]?.canBuyWithFiat ? (
-                <TouchableOpacity style={[styles.button]} onPress={goToBuyBitcoin}>
+                <TouchableOpacity style={styles.button} onPress={goToBuyBitcoin}>
                   <ThemedText style={styles.buttonText}> $ Buy </ThemedText>
                 </TouchableOpacity>
               ) : null}
 
               {swapPairs.length > 0 ? (
-                <TouchableOpacity style={[styles.button]} onPress={() => setShowSwapInterface(true)}>
+                <TouchableOpacity style={styles.button} onPress={() => setShowSwapInterface(true)}>
                   <ThemedText style={styles.buttonText}>
                     <Ionicons name="refresh" size={16} color="white" /> Swap
                   </ThemedText>
                 </TouchableOpacity>
               ) : null}
-            </ThemedView>
-          </ThemedView>
-        </ThemedView>
+            </View>
+
+            <View style={styles.buttonRowWithGap}>
+              {getIsEVM(network) && (
+                <TouchableOpacity style={styles.button} onPress={goToDAppBrowser}>
+                  <ThemedText style={styles.buttonText}>Browser</ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
       </ScrollView>
-    </SafeAreaView>
+    </GradientScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
   container: {
     flexGrow: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
   },
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingRight: 20,
+    paddingHorizontal: 4,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   header: {
-    padding: 20,
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flex: 1,
   },
   settingsButton: {
-    padding: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    opacity: 0.7,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   balanceContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
-    marginTop: 0,
-    marginBottom: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 30,
+    marginBottom: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    marginHorizontal: 4,
   },
   balanceLabel: {
-    fontSize: 14,
-    fontWeight: '600',
     marginTop: 8,
-    opacity: 0.8,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   balanceText: {
-    fontSize: 18,
-    fontWeight: 'bold',
     textAlign: 'center',
     width: '100%',
     marginBottom: 4,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   contentContainer: {
     flex: 1,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 4,
+    paddingBottom: 20,
   },
   buttonContainer: {
     marginTop: 20,
@@ -283,44 +297,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    gap: 12,
+    gap: 8,
+  },
+  buttonRowWithGap: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 8,
+    marginTop: 8,
   },
   button: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
+    backgroundColor: '#000000',
+    borderRadius: 16,
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
     flex: 1,
   },
   buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   receiveButton: {
-    backgroundColor: '#34C759',
+    backgroundColor: 'rgba(52, 199, 89, 0.8)',
   },
   sendButton: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: 'rgba(255, 59, 48, 0.8)',
   },
   networkContainer: {
-    marginHorizontal: 20,
-    marginVertical: 10,
+    marginVertical: 20,
   },
   networkCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     overflow: 'hidden',
   },
   networkCardTouchable: {
@@ -341,9 +351,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   networkCardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   networkStatus: {
     flexDirection: 'row',
@@ -356,51 +364,20 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   networkCardSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   actionButton: {
     padding: 4,
   },
-  currentNetworkText: {
-    fontSize: 16,
-    color: '#374151',
-    fontWeight: '600',
-    flex: 1,
-  },
-  networkButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: '#f0f0f0',
-    marginHorizontal: 4,
-    marginVertical: 4,
-  },
-  selectedNetworkButton: {
-    backgroundColor: '#007AFF',
-  },
-  networkButtonText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  selectedNetworkButtonText: {
-    color: 'white',
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
   testnetWarningContainer: {
-    backgroundColor: 'rgba(255, 0, 0, 0.1)',
-    padding: 10,
-    borderRadius: 5,
-    marginHorizontal: 20,
+    backgroundColor: 'rgba(255, 59, 48, 0.2)',
+    padding: 12,
+    borderRadius: 16,
     marginVertical: 10,
+    marginHorizontal: 4,
   },
   testnetWarningText: {
-    color: 'red',
-    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
-    fontWeight: 'bold',
   },
 });

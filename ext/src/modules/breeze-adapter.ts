@@ -1,4 +1,4 @@
-import init, { BindingLiquidSdk, connect, defaultConfig, PrepareReceiveRequest, ReceivePaymentRequest, PrepareSendRequest, SendPaymentRequest } from '@breeztech/breez-sdk-liquid';
+import init, { BindingLiquidSdk, connect, defaultConfig, PrepareReceiveRequest, ReceivePaymentRequest, PrepareSendRequest, SendPaymentRequest, GetPaymentRequest } from '@breeztech/breez-sdk-liquid';
 import { BreezConnection, IBreezAdapter, assetMetadata } from '@shared/class/wallets/breez-wallet';
 
 const API_KEY = process.env.EXPO_PUBLIC_BREEZ_API_KEY;
@@ -29,7 +29,10 @@ class BreezAdapter implements IBreezAdapter {
 
   private async getSdk(connection: BreezConnection) {
     if (!this.initialized) {
-      await init();
+      // when running in the test environment, we are actually using node version of breez sdk and init is not a function
+      if (typeof init === 'function') {
+        await init();
+      }
       this.initialized = true;
     }
     if (connection.mnemonic === this.cc?.mnemonic && connection.network === this.cc?.network && this.sdk) {
@@ -67,6 +70,10 @@ class BreezAdapter implements IBreezAdapter {
     return await sdk.sendPayment(args);
   }
 
+  private async getPayment(sdk: BindingLiquidSdk, args: GetPaymentRequest) {
+    return await sdk.getPayment(args);
+  }
+
   get api() {
     const getInfo = this.withLockAndSdk(this.getInfo.bind(this));
     const fetchLightningLimits = this.withLockAndSdk(this.fetchLightningLimits.bind(this));
@@ -74,6 +81,7 @@ class BreezAdapter implements IBreezAdapter {
     const receivePayment = this.withLockAndSdk(this.receivePayment.bind(this));
     const prepareSendPayment = this.withLockAndSdk(this.prepareSendPayment.bind(this));
     const sendPayment = this.withLockAndSdk(this.sendPayment.bind(this));
+    const getPayment = this.withLockAndSdk(this.getPayment.bind(this));
 
     return {
       getInfo,
@@ -82,6 +90,7 @@ class BreezAdapter implements IBreezAdapter {
       receivePayment,
       prepareSendPayment,
       sendPayment,
+      getPayment,
     };
   }
 

@@ -17,6 +17,7 @@ import { AskPasswordContextProvider } from '../../hooks/AskPasswordContext';
 import { AskMnemonicContextProvider } from '../../hooks/AskMnemonicContext';
 import { ScanQrContextProvider } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
+import { Messenger } from '../../modules/messenger';
 import Action from './Action';
 import { Card } from './DesignSystem';
 import Home from './Home';
@@ -123,8 +124,8 @@ const Popup: React.FC = () => {
             <ScanQrContextProvider>
               <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
                 <SettingsContextProvider storage={LayerzStorage}>
-                  <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
-                    <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
+                  <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller} messenger={Messenger}>
+                    <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller} messenger={Messenger}>
                       <AppContent />
                     </NetworkContextProvider>
                   </AccountNumberContextProvider>

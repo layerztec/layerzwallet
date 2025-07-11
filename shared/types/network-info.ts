@@ -6,4 +6,5 @@ export type NetworkInfo = {
   rpcUrl: string;
   knowMoreUrl?: string;
   isTestnet?: boolean;
+  isEVM?: boolean;
 };

@@ -13,7 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * @see https://swr.vercel.app/docs/advanced/react-native.en-US
  */
 export class SwrCacheProvider implements Cache<any> {
-  private cachePrefix = 'swr-cache-';
+  private cachePrefix = 'swr-cache-v3-';
   private cache: Map<string, any> = new Map();
 
   constructor() {

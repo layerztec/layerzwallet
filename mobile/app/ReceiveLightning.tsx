@@ -4,12 +4,12 @@ import BigNumber from 'bignumber.js';
 import * as Clipboard from 'expo-clipboard';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { Alert, ScrollView, Share, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { Alert, ScrollView, Share, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
+import GradientScreen from '@/components/GradientScreen';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -202,252 +202,231 @@ export default function ReceiveLightningScreen() {
   // Handle payment received
   if (isNewBalanceGT()) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <Stack.Screen options={{ title: 'Receive Lightning', headerShown: true }} />
+      <GradientScreen>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ScreenHeader title="Receive Lightning" />
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <ThemedView style={styles.contentContainer}>
-            <ThemedView style={[styles.networkBar, { backgroundColor: '#FF9500' }]}>
-              <ThemedText style={styles.networkText}>{network?.toUpperCase()} LIGHTNING</ThemedText>
-            </ThemedView>
-
-            <ThemedView style={styles.successContainer}>
+          <View style={styles.contentContainer}>
+            <View style={styles.successContainer}>
               <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
-              <ThemedText style={styles.successText}>
+              <ThemedText style={styles.successMessage}>
                 Received: +{isNewBalanceGT() ? formatBalance(String(isNewBalanceGT()), getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
               </ThemedText>
-              <TouchableOpacity style={styles.button} onPress={() => router.back()}>
-                <ThemedText style={styles.buttonText}>Back to Wallet</ThemedText>
+              <TouchableOpacity style={styles.shareButton} onPress={() => router.back()}>
+                <ThemedText style={styles.shareButtonText}>Back to Wallet</ThemedText>
               </TouchableOpacity>
-            </ThemedView>
-          </ThemedView>
+            </View>
+          </View>
         </ScrollView>
-      </SafeAreaView>
+      </GradientScreen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <Stack.Screen options={{ title: 'Receive Lightning', headerShown: true }} />
+    <GradientScreen>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title="Receive Lightning" />
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <ThemedView style={styles.contentContainer}>
-          <ThemedView testID="ReceiveLightningHeader" style={[styles.networkBar, { backgroundColor: '#FF9500' }]}>
-            <ThemedText style={styles.networkText}>{network?.toUpperCase()} LIGHTNING</ThemedText>
-          </ThemedView>
+        <View style={styles.contentContainer}>
+          <View style={styles.qrSection}>
+            {!invoice ? (
+              <>
+                <ThemedText style={styles.subtitle}>Enter amount to receive in sats</ThemedText>
 
-          {!invoice ? (
-            <>
-              <ThemedText style={styles.subtitle}>Enter amount to receive in sats</ThemedText>
-
-              {limits && (
-                <ThemedText style={styles.limitsText}>
-                  Min: {limits.min} sats | Max: {limits.max} sats
-                </ThemedText>
-              )}
-
-              <TextInput
-                style={styles.amountInput}
-                placeholder="Amount (sats)"
-                placeholderTextColor="#888"
-                value={amount}
-                onChangeText={handleAmountChange}
-                keyboardType="numeric"
-                testID="ReceiveLightningAmountInput"
-              />
-
-              {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : <ThemedText style={styles.hintText}>Enter the amount you want to receive</ThemedText>}
-
-              <TouchableOpacity
-                style={[styles.button, (isGenerating || !isWalletInitialized) && styles.disabledButton]}
-                onPress={generateInvoice}
-                disabled={isGenerating || !isWalletInitialized}
-                testID="GenerateButton"
-              >
-                <ThemedText style={styles.buttonText}>{isGenerating ? 'Generating...' : !isWalletInitialized ? 'Initializing...' : 'Generate Invoice'}</ThemedText>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <ThemedText style={styles.subtitle}>Scan the QR code or copy the invoice</ThemedText>
-
-              <ThemedView style={styles.qrContainer} testID="LNQrContainer">
-                <QRCode testID="InvoiceQrCode" value={invoice} size={200} backgroundColor="white" color="black" />
-              </ThemedView>
-
-              <ThemedView style={styles.invoiceInfoContainer}>
-                <ThemedText style={styles.amountText}>Amount: {amount} sats</ThemedText>
-
-                {feesSat !== null && <ThemedText style={styles.feeText}>Network Fee: {feesSat} sats</ThemedText>}
-              </ThemedView>
-
-              <ThemedView style={styles.addressContainer}>
-                <ThemedText testID="InvoiceLabel" style={styles.addressLabel}>
-                  Invoice:
-                </ThemedText>
-                <TouchableOpacity testID="CopyInvoiceButton" onPress={handleCopyInvoice} style={styles.addressTextContainer}>
-                  <ThemedText testID="InvoiceText" style={styles.addressText} numberOfLines={2} ellipsizeMode="middle">
-                    {invoice}
+                {limits && (
+                  <ThemedText style={styles.limitsText}>
+                    Min: {limits.min} sats | Max: {limits.max} sats
                   </ThemedText>
-                  <Ionicons testID="CopyIcon" name="copy-outline" size={20} color="#007AFF" style={styles.copyIcon} />
-                </TouchableOpacity>
-              </ThemedView>
+                )}
 
-              <ThemedView style={styles.buttonContainer}>
-                <TouchableOpacity style={styles.button} onPress={handleNewInvoice} testID="NewInvoiceButton">
-                  <ThemedText style={styles.buttonText}>Generate New Invoice</ThemedText>
-                </TouchableOpacity>
+                <TextInput
+                  style={styles.amountInput}
+                  placeholder="Amount (sats)"
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  value={amount}
+                  onChangeText={handleAmountChange}
+                  keyboardType="numeric"
+                  testID="ReceiveLightningAmountInput"
+                />
 
-                <TouchableOpacity testID="LNShareButton" onPress={handleShare} style={styles.shareButton}>
-                  <Ionicons name="share-outline" size={24} color="#007AFF" />
+                {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : <ThemedText style={styles.hintText}>Enter the amount you want to receive</ThemedText>}
+
+                <TouchableOpacity
+                  style={[styles.generateButton, (isGenerating || !isWalletInitialized) && styles.disabledButton]}
+                  onPress={generateInvoice}
+                  disabled={isGenerating || !isWalletInitialized}
+                  testID="GenerateButton"
+                >
+                  <ThemedText style={styles.generateButtonText}>{isGenerating ? 'Generating...' : !isWalletInitialized ? 'Initializing...' : 'Generate Invoice'}</ThemedText>
                 </TouchableOpacity>
-              </ThemedView>
-            </>
-          )}
-        </ThemedView>
+              </>
+            ) : (
+              <>
+                <ThemedText style={styles.subtitle}>Scan the QR code or copy the invoice</ThemedText>
+
+                <View style={styles.qrContainer} testID="LNQrContainer">
+                  <QRCode testID="InvoiceQrCode" value={invoice} size={280} backgroundColor="white" color="black" />
+                </View>
+
+                <View style={styles.invoiceInfoContainer}>
+                  <ThemedText style={styles.amountDisplay}>Amount: {amount} sats</ThemedText>
+                  {feesSat !== null && <ThemedText style={styles.feeDisplay}>Network Fee: {feesSat} sats</ThemedText>}
+                </View>
+
+                <View style={styles.addressContainer}>
+                  <TouchableOpacity testID="CopyInvoiceButton" onPress={handleCopyInvoice} style={styles.addressTextContainer}>
+                    <ThemedText testID="InvoiceText" style={styles.addressText} numberOfLines={2} ellipsizeMode="middle">
+                      {invoice}
+                    </ThemedText>
+                    <Ionicons testID="CopyIcon" name="copy-outline" size={20} color="rgba(255, 255, 255, 0.8)" style={styles.copyIcon} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity style={styles.shareButton} onPress={handleShare} testID="LNShareButton">
+                    <Ionicons name="share-outline" size={28} color="rgba(255, 255, 255, 0.8)" />
+                    <ThemedText style={styles.shareButtonText}>Share invoice</ThemedText>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.copyButton} onPress={handleNewInvoice} testID="NewInvoiceButton">
+                    <Ionicons name="refresh" size={22} color="rgba(255, 255, 255, 0.8)" />
+                    <ThemedText style={styles.copyButtonText}>New invoice</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
       </ScrollView>
-    </SafeAreaView>
+    </GradientScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
   scrollContent: {
     flexGrow: 1,
+    paddingHorizontal: 16,
   },
   contentContainer: {
     flex: 1,
-    padding: 20,
     alignItems: 'center',
   },
-  networkBar: {
-    marginBottom: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+  qrSection: {
     alignItems: 'center',
-  },
-  networkText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: 'white',
+    marginTop: 40,
+    marginBottom: 30,
+    width: '100%',
   },
   subtitle: {
-    fontSize: 18,
-    marginBottom: 10,
+    marginBottom: 20,
     textAlign: 'center',
   },
   limitsText: {
-    fontSize: 14,
-    color: 'gray',
     marginBottom: 20,
+    textAlign: 'center',
   },
   amountInput: {
     width: '80%',
     height: 50,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    fontSize: 18,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
     marginBottom: 15,
     textAlign: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    color: 'white',
   },
   errorText: {
-    color: 'red',
+    color: '#FF6B6B',
     marginBottom: 15,
     textAlign: 'center',
   },
   hintText: {
-    color: 'gray',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 15,
     textAlign: 'center',
   },
-  button: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+  generateButton: {
+    backgroundColor: '#000000',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
+    marginTop: 20,
     width: '80%',
   },
+  generateButtonText: {},
   disabledButton: {
-    backgroundColor: '#ccc',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    opacity: 0.5,
   },
   qrContainer: {
-    marginVertical: 20,
-    padding: 16,
+    marginBottom: 30,
+    padding: 20,
     backgroundColor: 'white',
-    borderRadius: 8,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
   },
   invoiceInfoContainer: {
     alignItems: 'center',
     marginBottom: 20,
   },
-  amountText: {
-    fontSize: 16,
+  amountDisplay: {
     marginBottom: 5,
   },
-  feeText: {
-    fontSize: 14,
-    color: 'gray',
-  },
+  feeDisplay: {},
   addressContainer: {
     width: '100%',
-    marginTop: 10,
-  },
-  addressLabel: {
-    fontSize: 14,
-    marginBottom: 8,
+    marginBottom: 30,
   },
   addressTextContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 16,
   },
   addressText: {
-    fontSize: 12,
     flex: 1,
   },
   copyIcon: {
     marginLeft: 8,
   },
-  buttonContainer: {
-    flexDirection: 'column',
-    alignItems: 'center',
+  actionButtons: {
     width: '100%',
-    marginTop: 20,
+    gap: 8,
   },
   shareButton: {
-    marginTop: 15,
-    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000000',
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 12,
   },
+  shareButtonText: {},
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 12,
+  },
+  copyButtonText: {},
   successContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 100,
   },
-  successText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#4CAF50',
+  successMessage: {
     marginTop: 20,
     marginBottom: 40,
     textAlign: 'center',

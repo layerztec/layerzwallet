@@ -1,0 +1,38 @@
+# This subflow is used to skip the dev client on the mobile app when dev client does NOT see a development
+# server. This may happen if testing on device and NOT emulator/simulator.
+#
+# This subflow is not incuded in any flow, and should be used locally to debug e2e tests.
+# Just replace "- runFlow: skip-dev-client.yml" with "- runFlow: skip-dev-client-device.yml"
+#
+appId: com.layerzwallet.mobile
+---
+- runFlow:
+    when:
+      visible:
+        text: 'Development Build'
+    commands:
+      - tapOn:
+          id: 'DevLauncherURLToggle'
+      - tapOn:
+          id: 'DevLauncherURLInput'
+      - inputText: 'http://192.168.8.185:8081' ############################### CHANGE ME IF NECESSARY
+      - hideKeyboard
+      - tapOn: Connect
+      - waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible:
+        text: 'Continue'
+    commands:
+      - tapOn: 'Continue'
+      - waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible:
+        text: 'Runtime version:.*'
+    commands:
+      - tapOn:
+          point: 10%,10% # close expo dev client modal
+      - waitForAnimationToEnd

@@ -4,7 +4,6 @@ import React, { useContext } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -30,7 +29,7 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
   if (+formattedBalance === 0) return null;
 
   return (
-    <ThemedView style={styles.assetContainer}>
+    <View style={styles.assetContainer}>
       <View style={styles.assetInfo}>
         <ThemedText style={styles.assetName}>{token?.name}</ThemedText>
         <ThemedText style={styles.assetFullName}>({capitalizeFirstLetter(network)})</ThemedText>
@@ -48,15 +47,15 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
               params: { contractAddress: token?.address },
             });
           }}
-          style={styles.button}
+          style={styles.sendButton}
         >
-          <Ionicons name="send" size={16} color="#666" />
+          <Ionicons name="send" size={16} color="rgba(255, 255, 255, 0.8)" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/Receive')} style={styles.button}>
-          <Ionicons name="arrow-down" size={16} color="#666" />
+        <TouchableOpacity onPress={() => router.push('/Receive')} style={styles.receiveButton}>
+          <Ionicons name="arrow-down" size={16} color="rgba(255, 255, 255, 0.8)" />
         </TouchableOpacity>
       </View>
-    </ThemedView>
+    </View>
   );
 };
 
@@ -69,68 +68,75 @@ const TokensView: React.FC = () => {
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
       <ThemedText style={styles.title}>Tokens</ThemedText>
       <View>
         {tokenList.map((token) => (
           <TokenRow key={token.address} tokenAddress={token.address} />
         ))}
       </View>
-    </ThemedView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 10,
-    marginTop: 10,
+    paddingHorizontal: 16,
+    marginTop: 20,
   },
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 16,
     textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   assetContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
     marginVertical: 4,
-    marginHorizontal: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   assetInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   assetName: {
-    fontWeight: '700',
-    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   assetFullName: {
     marginLeft: 5,
-    color: '#888',
-    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   balance: {
-    fontSize: 14,
     marginLeft: 'auto',
     marginRight: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   symbol: {
-    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   buttonContainer: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
   },
-  button: {
-    backgroundColor: 'white',
-    padding: 8,
-    borderRadius: 4,
+  sendButton: {
+    backgroundColor: 'rgba(255, 59, 48, 0.3)',
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  receiveButton: {
+    backgroundColor: 'rgba(52, 199, 89, 0.3)',
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
 });
 

@@ -1,4 +1,4 @@
-import { Messenger } from '@shared/modules/messenger';
+import { Messenger } from './messenger';
 import { GetSubMnemonicResponse, GetBtcSendDataResponse, IBackgroundCaller, MessageType } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { LayerzStorage } from '../class/layerz-storage';

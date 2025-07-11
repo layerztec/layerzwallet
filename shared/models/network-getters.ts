@@ -85,3 +85,12 @@ export function getKnowMoreUrl(network: Networks): string | undefined {
 
   return AllNetworkInfos[network].knowMoreUrl;
 }
+
+export function getIsEVM(network: Networks): boolean {
+  if (!AllNetworkInfos[network]) {
+    // safeguard
+    throw new Error(`Network not implemented: ${network}`);
+  }
+
+  return Boolean(AllNetworkInfos[network].isEVM);
+}

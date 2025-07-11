@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
+import { useAccountBalance } from '@shared/hooks/useAccountBalance';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
@@ -32,6 +33,7 @@ const Home: React.FC = () => {
   const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
   const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
   const availableNetworks = useAvailableNetworks();
+  const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
 
   useEffect(() => {
     setIsTestnet(getIsTestnet(network));
@@ -127,6 +129,9 @@ const Home: React.FC = () => {
           <span style={{ fontSize: 14 }}>{balance && +balance > 0 && exchangeRate ? '$' + formatFiatBalance(balance, getDecimalsByNetwork(network), exchangeRate) : ''}</span>
         </div>
       </h1>
+      <h3>
+        <span id="pocket-balance">Pocket balance: {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : ''}</span> {getTickerByNetwork(NETWORK_BITCOIN)}
+      </h3>
 
       {showSwapInterface ? (
         <SwapInterfaceView />

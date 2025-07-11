@@ -1,4 +1,4 @@
-import { InMemoryKey, Wallet, WalletConfig } from '@arklabs/wallet-sdk';
+import { InMemoryKey, Wallet, WalletConfig } from '@arkade-os/sdk';
 import BIP32Factory from 'bip32';
 import * as bip39 from 'bip39';
 import assert from 'assert';

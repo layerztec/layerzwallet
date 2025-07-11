@@ -23,6 +23,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 8,
     explorerUrl: 'https://mempool.space',
     rpcUrl: '',
+    isEVM: false,
   },
   [NETWORK_ROOTSTOCK]: {
     chainId: 30,
@@ -31,6 +32,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     explorerUrl: 'https://rootstock.blockscout.com',
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/rootstock',
     decimals: 18,
+    isEVM: true,
   },
   [NETWORK_BOTANIXTESTNET]: {
     chainId: 3636,
@@ -40,6 +42,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 18,
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/botanix',
     isTestnet: true,
+    isEVM: true,
   },
   [NETWORK_BOTANIX]: {
     chainId: 3637,
@@ -49,6 +52,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 18,
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/botanix',
     isTestnet: false,
+    isEVM: true,
   },
   [NETWORK_STRATADEVNET]: {
     chainId: 8091,
@@ -58,6 +62,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 18,
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/strata',
     isTestnet: true,
+    isEVM: true,
   },
   [NETWORK_SEPOLIA]: {
     chainId: 11155111,
@@ -66,6 +71,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     explorerUrl: 'https://sepolia.etherscan.io',
     decimals: 18,
     isTestnet: true,
+    isEVM: true,
   },
   [NETWORK_CITREATESTNET]: {
     chainId: 5115,
@@ -75,6 +81,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 18,
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/citrea',
     isTestnet: true,
+    isEVM: true,
   },
   [NETWORK_ARKMUTINYNET]: {
     chainId: -1,
@@ -84,6 +91,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 8,
     knowMoreUrl: 'https://arklabs.to/',
     isTestnet: true,
+    isEVM: false,
   },
   [NETWORK_LIQUID]: {
     chainId: 11,
@@ -92,6 +100,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     explorerUrl: '',
     decimals: 8,
     knowMoreUrl: 'https://breez.technology/',
+    isEVM: false,
   },
   [NETWORK_LIQUIDTESTNET]: {
     chainId: 12,
@@ -101,6 +110,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 8,
     knowMoreUrl: 'https://breez.technology/',
     isTestnet: true,
+    isEVM: false,
   },
   [NETWORK_SPARK]: {
     chainId: 13,
@@ -110,6 +120,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 8,
     knowMoreUrl: 'https://spark.money',
     isTestnet: false,
+    isEVM: false,
   },
   [NETWORK_LIGHTNING]: {
     chainId: 14,
@@ -118,6 +129,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     explorerUrl: 'https://mempool.space/lightning',
     rpcUrl: '',
     knowMoreUrl: 'https://lightning.network/',
+    isEVM: false,
   },
   [NETWORK_LIGHTNINGTESTNET]: {
     chainId: 15,
@@ -127,5 +139,6 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     rpcUrl: '',
     knowMoreUrl: 'https://lightning.network/',
     isTestnet: true,
+    isEVM: false,
   },
 };

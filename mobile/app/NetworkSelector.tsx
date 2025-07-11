@@ -1,16 +1,17 @@
 import { useRouter } from 'expo-router';
 import React, { useContext, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { getAvailableNetworks, Networks } from '@shared/types/networks';
+import { Networks } from '@shared/types/networks';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getIsTestnet } from '@shared/models/network-getters';
+import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { getNetworkGradient, getNetworkIcon } from '@shared/constants/Colors';
 import DashboardTiles from '@/components/DashboardTiles';
 
 const NetworkSelector: React.FC = () => {
   const router = useRouter();
   const { network: currentNetwork, setNetwork } = useContext(NetworkContext);
-  const networks = getAvailableNetworks();
+  const networks = useAvailableNetworks();
 
   const handleNetworkSelect = (network: Networks) => {
     setNetwork(network);

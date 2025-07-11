@@ -16,6 +16,24 @@ interface balanceFetcherArg {
   backgroundCaller: IBackgroundCaller;
 }
 
+/**
+ * extra key `backgroundCaller` can mutate unpredictably, causing more cache saves, and messing up logic
+ * of useAccountBalance hook. this middleware removes it from the key
+ */
+function keyCleanupMiddleware(useSWRNext: any) {
+  return (key: any, fetcher: any, config: any) => {
+    let newKey = key;
+    if (typeof key === 'object' && key.backgroundCaller) {
+      newKey = Object.assign({}, key);
+      delete newKey.backgroundCaller;
+    }
+
+    console.log(`useBalance(${JSON.stringify(newKey)})`); // logging
+
+    return useSWRNext(newKey, () => fetcher(key), config);
+  };
+}
+
 export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumber | undefined> => {
   const { accountNumber, network, backgroundCaller } = arg;
   if (typeof accountNumber === 'undefined' || !network) return undefined;
@@ -83,6 +101,7 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
 
   const arg: balanceFetcherArg = { cacheKey: 'balanceFetcher', accountNumber, network, backgroundCaller };
   const { data, error, isLoading } = useSWR(arg, balanceFetcher, {
+    use: [keyCleanupMiddleware],
     refreshInterval,
     refreshWhenHidden: false,
     keepPreviousData: true,

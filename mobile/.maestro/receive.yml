@@ -5,7 +5,7 @@ appId: com.layerzwallet.mobile
 # run for networks which have unique receive screens: bitcoin, rootstock (evm), ark, liquid (both liquid & lightning)
 # all other networks reuse receive screens from those. generic receive address generation for specific wallet types
 # should be done in selftest
-- evalScript: ${output.networks = ['liquid', 'bitcoin', 'rootstock', 'ark']}
+- evalScript: ${output.networks = ['liquid', 'bitcoin', 'rootstock', 'spark']}
 - repeat:
     while:
       true: ${output.networks.length > 0}
@@ -23,11 +23,7 @@ appId: com.layerzwallet.mobile
           timeout: 60000
       # Verify all basic UI components rendered successfully with an actual address.
       - assertVisible:
-          id: 'NetworkAddressHeader'
-      - assertVisible:
           id: 'QrContainer' # This will fail if the address was not obtained
-      - assertVisible:
-          id: 'AddressLabel'
       - scroll
       - assertVisible:
           id: 'CopyAddressButton' # expand later with ui feedback
@@ -74,11 +70,7 @@ appId: com.layerzwallet.mobile
 
       # Verify all basic UI components rendered successfully with an actual address.
       - assertVisible:
-          id: 'ReceiveLightningHeader'
-      - assertVisible:
           id: 'LNQrContainer' # This will fail if the address was not obtained
-      - assertVisible:
-          id: 'InvoiceLabel'
       - scroll
       - assertVisible:
           id: 'CopyInvoiceButton' # expand later with ui feedback

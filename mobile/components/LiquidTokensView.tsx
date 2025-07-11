@@ -5,7 +5,6 @@ import React, { useContext, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { BreezWallet, getBreezNetwork, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -45,9 +44,9 @@ const LiquidTokensView: React.FC = () => {
 
   if (loading) {
     return (
-      <ThemedView style={styles.loadingContainer}>
-        <ThemedText>Loading assets...</ThemedText>
-      </ThemedView>
+      <View style={styles.loadingContainer}>
+        <ThemedText style={styles.loadingText}>Loading assets...</ThemedText>
+      </View>
     );
   }
 
@@ -68,11 +67,11 @@ const LiquidTokensView: React.FC = () => {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
       <ThemedText style={styles.title}>Assets</ThemedText>
       <View>
         {assetBalances.map((item) => (
-          <ThemedView key={item.assetId} style={styles.assetContainer}>
+          <View key={item.assetId} style={styles.assetContainer}>
             <View style={styles.assetInfo}>
               <ThemedText style={styles.assetName}>{getAssetName(item)}</ThemedText>
               {item.name && <ThemedText style={styles.assetFullName}>({item.name})</ThemedText>}
@@ -81,17 +80,17 @@ const LiquidTokensView: React.FC = () => {
             <ThemedText style={styles.balance}>{item.balance ? item.balance : item.balanceSat}</ThemedText>
 
             <View style={styles.buttonContainer}>
-              <TouchableOpacity onPress={() => goToSend(item.assetId)} style={styles.button}>
-                <Ionicons name="send" size={16} color="#666" />
+              <TouchableOpacity onPress={() => goToSend(item.assetId)} style={styles.sendButton}>
+                <Ionicons name="send" size={16} color="rgba(255, 255, 255, 0.8)" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={goToReceive} style={styles.button}>
-                <Ionicons name="arrow-down" size={16} color="#666" />
+              <TouchableOpacity onPress={goToReceive} style={styles.receiveButton}>
+                <Ionicons name="arrow-down" size={16} color="rgba(255, 255, 255, 0.8)" />
               </TouchableOpacity>
             </View>
-          </ThemedView>
+          </View>
         ))}
       </View>
-    </ThemedView>
+    </View>
   );
 };
 
@@ -99,55 +98,68 @@ export default LiquidTokensView;
 
 const styles = StyleSheet.create({
   container: {
-    padding: 10,
-    marginTop: 10,
+    paddingHorizontal: 16,
+    marginTop: 20,
   },
   loadingContainer: {
     padding: 20,
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    marginHorizontal: 16,
+  },
+  loadingText: {
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 16,
     textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   assetContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
     marginVertical: 4,
-    marginHorizontal: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   assetInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   assetName: {
-    fontWeight: '700',
-    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   assetFullName: {
     marginLeft: 5,
-    color: '#888',
-    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   balance: {
-    fontSize: 14,
     marginLeft: 'auto',
     marginRight: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   buttonContainer: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
   },
-  button: {
-    backgroundColor: 'white',
-    padding: 8,
-    borderRadius: 4,
+  sendButton: {
+    backgroundColor: 'rgba(255, 59, 48, 0.3)',
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  receiveButton: {
+    backgroundColor: 'rgba(52, 199, 89, 0.3)',
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
 });

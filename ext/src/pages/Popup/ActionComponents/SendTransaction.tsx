@@ -1,21 +1,20 @@
+import { SendIcon } from 'lucide-react';
 import React, { useContext, useState } from 'react';
 
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { AskMnemonicContext } from '../../../hooks/AskMnemonicContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-
-import { BackgroundCaller } from '../../../modules/background-caller';
-import { Messenger } from '@shared/modules/messenger';
-import { Button, HodlButton, SelectFeeSlider } from '../DesignSystem';
-import { StringNumber } from '@shared/types/string-number';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { SendIcon } from 'lucide-react';
 import { formatBalance, hexToDec } from '@shared/modules/string-utils';
+import { StringNumber } from '@shared/types/string-number';
+import { AskMnemonicContext } from '../../../hooks/AskMnemonicContext';
+import { BackgroundCaller } from '../../../modules/background-caller';
+import { Messenger } from '../../../modules/messenger';
+import { Button, HodlButton, SelectFeeSlider } from '../DesignSystem';
 
 interface SendTransactionArgs {
   params: any[];
-  id: string;
+  id: number;
   from: string;
 }
 
@@ -83,7 +82,7 @@ export function SendTransaction(args: SendTransactionArgs) {
 
       await Messenger.sendResponseToActiveTabsFromPopupToContentScript({
         for: 'webpage',
-        id: Number(id),
+        id,
         error: {
           code: 4902,
           message: 'Cant get params',
@@ -101,7 +100,7 @@ export function SendTransaction(args: SendTransactionArgs) {
 
   const onDenyClick = async () => {
     const id = args.id;
-    await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id: Number(id), error: { code: 4001, message: 'User rejected the request.' } });
+    await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id, error: { code: 4001, message: 'User rejected the request.' } });
 
     await new Promise((resolve) => setTimeout(resolve, 100)); // propagate
     window.close();
@@ -169,7 +168,7 @@ export function SendTransaction(args: SendTransactionArgs) {
 
       await Messenger.sendResponseToActiveTabsFromPopupToContentScript({
         for: 'webpage',
-        id: Number(id),
+        id,
         response: txid,
       });
 
