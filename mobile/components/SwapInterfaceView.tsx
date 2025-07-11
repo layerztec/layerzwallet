@@ -1,9 +1,10 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, FlatList } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, FlatList } from 'react-native';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { useRouter } from 'expo-router';
 
+import { ThemedText } from '@/components/ThemedText';
 import { Networks } from '@shared/types/networks';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { SwapPair, SwapPlatform } from '@shared/types/swap';
@@ -73,26 +74,34 @@ const SwapInterfaceView: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.swapRow}>
-        <Text style={styles.label}>Swap</Text>
+        <ThemedText style={styles.label}>Swap</ThemedText>
 
-        <TextInput style={styles.amountInput} placeholder="0.000" keyboardType="numeric" value={amount} onChangeText={setAmount} testID="swap-amount-input" />
+        <TextInput
+          style={styles.amountInput}
+          placeholder="0.000"
+          placeholderTextColor="rgba(255, 255, 255, 0.6)"
+          keyboardType="numeric"
+          value={amount}
+          onChangeText={setAmount}
+          testID="swap-amount-input"
+        />
 
         <View style={styles.tickerContainer}>
-          <Text style={styles.ticker}>
-            <Text style={styles.tickerBold}>{getTickerByNetwork(network)}</Text>
-          </Text>
+          <ThemedText style={styles.ticker}>
+            <ThemedText style={styles.tickerBold}>{getTickerByNetwork(network)}</ThemedText>
+          </ThemedText>
         </View>
 
-        <Text style={styles.label}>to</Text>
+        <ThemedText style={styles.label}>to</ThemedText>
 
         <TouchableOpacity style={styles.pickerContainer} onPress={() => setShowNetworkPicker(true)}>
-          <Text style={styles.pickerText}>{targetNetwork ? capitalizeFirstLetter(targetNetwork) : 'Select target network'}</Text>
+          <ThemedText style={styles.pickerText}>{targetNetwork ? capitalizeFirstLetter(targetNetwork) : 'Select target network'}</ThemedText>
         </TouchableOpacity>
 
         <Modal visible={showNetworkPicker} transparent={true} animationType="slide" onRequestClose={() => setShowNetworkPicker(false)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Select Target Network</Text>
+              <ThemedText style={styles.modalTitle}>Select Target Network</ThemedText>
               <FlatList
                 data={supportedNetworks}
                 keyExtractor={(item) => `to-${item}`}
@@ -104,12 +113,12 @@ const SwapInterfaceView: React.FC = () => {
                       setShowNetworkPicker(false);
                     }}
                   >
-                    <Text style={styles.networkOptionText}>{capitalizeFirstLetter(item)}</Text>
+                    <ThemedText style={styles.networkOptionText}>{capitalizeFirstLetter(item)}</ThemedText>
                   </TouchableOpacity>
                 )}
               />
               <TouchableOpacity style={styles.closeButton} onPress={() => setShowNetworkPicker(false)}>
-                <Text style={styles.closeButtonText}>Close</Text>
+                <ThemedText style={styles.closeButtonText}>Close</ThemedText>
               </TouchableOpacity>
             </View>
           </View>
@@ -117,130 +126,121 @@ const SwapInterfaceView: React.FC = () => {
 
         {targetNetwork && !isLoading && (
           <TouchableOpacity style={styles.goButton} onPress={handleGo}>
-            <Text style={styles.goButtonText}>Go</Text>
+            <ThemedText style={styles.goButtonText}>Go</ThemedText>
           </TouchableOpacity>
         )}
 
-        {isLoading && <ActivityIndicator size="large" color="#282c34" />}
+        {isLoading && <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />}
       </View>
 
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {error && <ThemedText style={styles.errorText}>{error}</ThemedText>}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    paddingHorizontal: 16,
+    marginTop: 20,
   },
   swapRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 20,
+    flexDirection: 'column',
+    gap: 16,
+    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   label: {
-    fontSize: 16,
-    color: '#282c34',
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
   },
   amountInput: {
-    width: '25%',
-    minWidth: 80,
-    height: 40,
-    paddingHorizontal: 10,
+    height: 50,
+    paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#282c34',
-    borderRadius: 5,
-    fontSize: 16,
-    color: '#282c34',
-    backgroundColor: 'white',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    color: 'white',
+    textAlign: 'center',
   },
   tickerContainer: {
-    flex: 1,
-    minWidth: 60,
+    alignItems: 'center',
   },
   ticker: {
-    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   tickerBold: {
-    fontWeight: 'bold',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   pickerContainer: {
-    flex: 1,
-    minWidth: 150,
     borderWidth: 1,
-    borderColor: '#282c34',
-    borderRadius: 5,
-    backgroundColor: 'white',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   pickerText: {
-    fontSize: 16,
-    color: '#282c34',
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 16,
     padding: 20,
     width: '80%',
     maxHeight: '70%',
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
     marginBottom: 15,
     textAlign: 'center',
-    color: '#282c34',
+    color: '#333',
   },
   networkOption: {
     paddingVertical: 15,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
   },
   networkOptionText: {
-    fontSize: 16,
-    color: '#282c34',
+    color: '#333',
   },
   closeButton: {
     marginTop: 15,
-    backgroundColor: '#282c34',
-    paddingVertical: 10,
+    backgroundColor: '#000',
+    paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 5,
+    borderRadius: 16,
     alignItems: 'center',
   },
   closeButtonText: {
     color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   goButton: {
-    backgroundColor: '#282c34',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: 'white',
+    backgroundColor: '#000',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    alignItems: 'center',
   },
   goButtonText: {
     color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   errorText: {
-    color: 'red',
-    fontSize: 14,
-    marginTop: 10,
+    color: '#FF6B6B',
+    textAlign: 'center',
+    marginTop: 16,
   },
 });
 
