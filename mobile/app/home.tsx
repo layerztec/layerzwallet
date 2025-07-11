@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { OnrampProps } from '@/app/Onramp';
+import Button from '@/components/Button';
 import GradientScreen from '@/components/GradientScreen';
 import LiquidTokensView from '@/components/LiquidTokensView';
 import SwapInterfaceView from '@/components/SwapInterfaceView';
@@ -197,36 +198,28 @@ export default function HomeScreen() {
         <View style={styles.contentContainer}>
           <View style={styles.buttonContainer}>
             <View style={styles.buttonRow}>
-              <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive}>
-                <ThemedText style={styles.buttonText}>Receive</ThemedText>
-              </TouchableOpacity>
+              <Button style={StyleSheet.compose(styles.buttonFlex, styles.receiveButton)} onPress={goToReceive}>
+                Receive
+              </Button>
 
-              <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
-                <ThemedText style={styles.buttonText}>Send</ThemedText>
-              </TouchableOpacity>
+              <Button style={StyleSheet.compose(styles.buttonFlex, styles.sendButton)} onPress={goToSend}>
+                Send
+              </Button>
 
               {fiatOnRamp?.[network]?.canBuyWithFiat ? (
-                <TouchableOpacity style={styles.button} onPress={goToBuyBitcoin}>
-                  <ThemedText style={styles.buttonText}> $ Buy </ThemedText>
-                </TouchableOpacity>
+                <Button style={styles.buttonFlex} onPress={goToBuyBitcoin}>
+                  $ Buy
+                </Button>
               ) : null}
 
               {swapPairs.length > 0 ? (
-                <TouchableOpacity style={styles.button} onPress={() => setShowSwapInterface(true)}>
-                  <ThemedText style={styles.buttonText}>
-                    <Ionicons name="refresh" size={16} color="white" /> Swap
-                  </ThemedText>
-                </TouchableOpacity>
+                <Button style={styles.buttonFlex} onPress={() => setShowSwapInterface(true)}>
+                  <Ionicons name="refresh" size={16} color="white" /> Swap
+                </Button>
               ) : null}
             </View>
 
-            <View style={styles.buttonRowWithGap}>
-              {getIsEVM(network) && (
-                <TouchableOpacity style={styles.button} onPress={goToDAppBrowser}>
-                  <ThemedText style={styles.buttonText}>Browser</ThemedText>
-                </TouchableOpacity>
-              )}
-            </View>
+            <View style={styles.buttonRowWithGap}>{getIsEVM(network) && <Button onPress={goToDAppBrowser}>Browser</Button>}</View>
           </View>
         </View>
       </ScrollView>
@@ -306,16 +299,8 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 8,
   },
-  button: {
-    backgroundColor: '#000000',
-    borderRadius: 16,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
+  buttonFlex: {
     flex: 1,
-  },
-  buttonText: {
-    color: 'rgba(255, 255, 255, 0.9)',
   },
   receiveButton: {
     backgroundColor: 'rgba(52, 199, 89, 0.8)',

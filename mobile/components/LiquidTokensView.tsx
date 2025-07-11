@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
+import Button from '@/components/Button';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { BreezWallet, getBreezNetwork, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
@@ -80,12 +81,12 @@ const LiquidTokensView: React.FC = () => {
             <ThemedText style={styles.balance}>{item.balance ? item.balance : item.balanceSat}</ThemedText>
 
             <View style={styles.buttonContainer}>
-              <TouchableOpacity onPress={() => goToSend(item.assetId)} style={styles.sendButton}>
+              <Button style={[styles.actionButton, styles.sendButton]} onPress={() => goToSend(item.assetId)}>
                 <Ionicons name="send" size={16} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={goToReceive} style={styles.receiveButton}>
+              </Button>
+              <Button style={[styles.actionButton, styles.receiveButton]} onPress={goToReceive}>
                 <Ionicons name="arrow-down" size={16} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
+              </Button>
             </View>
           </View>
         ))}
@@ -148,18 +149,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  sendButton: {
-    backgroundColor: 'rgba(255, 59, 48, 0.3)',
+  actionButton: {
     padding: 10,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  sendButton: {
+    backgroundColor: 'rgba(255, 59, 48, 0.3)',
   },
   receiveButton: {
     backgroundColor: 'rgba(52, 199, 89, 0.3)',
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
 });

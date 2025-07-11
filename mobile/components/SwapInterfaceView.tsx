@@ -4,6 +4,7 @@ import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { useRouter } from 'expo-router';
 
+import Button from '@/components/Button';
 import { ThemedText } from '@/components/ThemedText';
 import { Networks } from '@shared/types/networks';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
@@ -117,18 +118,12 @@ const SwapInterfaceView: React.FC = () => {
                   </TouchableOpacity>
                 )}
               />
-              <TouchableOpacity style={styles.closeButton} onPress={() => setShowNetworkPicker(false)}>
-                <ThemedText style={styles.closeButtonText}>Close</ThemedText>
-              </TouchableOpacity>
+              <Button onPress={() => setShowNetworkPicker(false)}>Close</Button>
             </View>
           </View>
         </Modal>
 
-        {targetNetwork && !isLoading && (
-          <TouchableOpacity style={styles.goButton} onPress={handleGo}>
-            <ThemedText style={styles.goButtonText}>Go</ThemedText>
-          </TouchableOpacity>
-        )}
+        {targetNetwork && !isLoading && <Button onPress={handleGo}>Go</Button>}
 
         {isLoading && <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />}
       </View>
@@ -216,27 +211,7 @@ const styles = StyleSheet.create({
   networkOptionText: {
     color: '#333',
   },
-  closeButton: {
-    marginTop: 15,
-    backgroundColor: '#000',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    color: 'white',
-  },
-  goButton: {
-    backgroundColor: '#000',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  goButtonText: {
-    color: 'white',
-  },
+
   errorText: {
     color: '#FF6B6B',
     textAlign: 'center',

@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useContext } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
+import Button from '@/components/Button';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -40,20 +41,20 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
       </ThemedText>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity
+        <Button
+          style={[styles.actionButton, styles.sendButton]}
           onPress={() => {
             router.push({
               pathname: '/SendTokenEvm',
               params: { contractAddress: token?.address },
             });
           }}
-          style={styles.sendButton}
         >
           <Ionicons name="send" size={16} color="rgba(255, 255, 255, 0.8)" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/Receive')} style={styles.receiveButton}>
+        </Button>
+        <Button style={[styles.actionButton, styles.receiveButton]} onPress={() => router.push('/Receive')}>
           <Ionicons name="arrow-down" size={16} color="rgba(255, 255, 255, 0.8)" />
-        </TouchableOpacity>
+        </Button>
       </View>
     </View>
   );
@@ -124,19 +125,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  sendButton: {
-    backgroundColor: 'rgba(255, 59, 48, 0.3)',
+  actionButton: {
     padding: 10,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  sendButton: {
+    backgroundColor: 'rgba(255, 59, 48, 0.3)',
   },
   receiveButton: {
     backgroundColor: 'rgba(52, 199, 89, 0.3)',
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
 });
 
