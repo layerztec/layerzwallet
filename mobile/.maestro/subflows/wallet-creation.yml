@@ -13,6 +13,11 @@ appId: com.layerzwallet.mobile
     timeout: 15000
 
 - tapOn: 'Get Started'
+
+- extendedWaitUntil:
+    visible: 'Create New Wallet'
+    timeout: 15000
+
 - tapOn: 'Create New Wallet'
 
 - extendedWaitUntil:
