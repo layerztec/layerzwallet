@@ -12,7 +12,7 @@ import { State } from 'swr/_internal';
  * @see https://swr.vercel.app/docs/advanced/cache
  */
 export class SwrCacheProvider implements Cache<any> {
-  private cachePrefix = 'cache-v4-';
+  private cachePrefix = 'cache-v5-';
 
   get(key: string): State<any> | undefined {
     try {

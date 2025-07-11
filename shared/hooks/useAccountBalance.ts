@@ -32,13 +32,13 @@ export const useAccountBalance = (accountNumber: number, availableNetworks: Netw
         const defaultDecimals = getDecimalsByNetwork(NETWORK_BITCOIN);
         const decimals = getDecimalsByNetwork(network);
 
-        if (decimals > defaultDecimals) {
-          // droping extra precision for networks that have more decimals than bitcoin,
-          // but still peg 1 to 1 with btc
-          networkBalance = Math.floor(networkBalance / 10 ** (decimals - defaultDecimals));
-        }
-
         if (balance?.data && networkBalance) {
+          if (decimals > defaultDecimals) {
+            // droping extra precision for networks that have more decimals than bitcoin,
+            // but still peg 1 to 1 with btc
+            networkBalance = Math.floor(networkBalance / 10 ** (decimals - defaultDecimals));
+          }
+
           sumSats += networkBalance;
         }
       }
