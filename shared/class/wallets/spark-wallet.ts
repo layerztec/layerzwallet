@@ -1,6 +1,7 @@
 import { ArkWallet } from './ark-wallet';
 import { SparkWallet as SDK } from '@buildonspark/spark-sdk';
-import { InterfaceLightningWallet } from './interface-lightning-wallet';
+import { createLightningInvoiceResponse, InterfaceLightningWallet } from './interface-lightning-wallet';
+import bolt11 from 'bolt11';
 
 export interface ISparkAdapter {
   initialize(...options: Parameters<typeof SDK.initialize>): ReturnType<typeof SDK.initialize>;
@@ -39,14 +40,17 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     return transfers.transfers;
   }
 
-  async payLightningInvoice(invoice: string) {
+  async payLightningInvoice(invoice: string, masFeePercentage: number = 1) {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
-    // todo: decode invoice,  set maxFeeSats as 1% of amount
+    const decoded = bolt11.decode(invoice);
+    if (!decoded.satoshis) throw new Error('Cant pay zero-amount invoices');
+
+    const maxFeeSats = Math.ceil((decoded.satoshis / 100) * masFeePercentage);
 
     const payment_response = await this._sdkWallet.payLightningInvoice({
       invoice,
-      maxFeeSats: 99,
+      maxFeeSats,
     });
     console.log('Payment Response:', payment_response);
 
@@ -81,7 +85,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     return Number(balance.balance);
   }
 
-  async createLightningInvoice(amountSats: number, memo: string = '') {
+  async createLightningInvoice(amountSats: number, memo: string = ''): Promise<createLightningInvoiceResponse> {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
     const invoice = await this._sdkWallet.createLightningInvoice({
@@ -93,7 +97,10 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
 
     this._bolt11toReceiveRequestId[invoice.invoice.encodedInvoice] = invoice.id;
 
-    return invoice.invoice.encodedInvoice;
+    return {
+      invoice: invoice.invoice.encodedInvoice,
+      serviceFeeSat: 0, // im currently not aware of any fees that Spark takes when receiving
+    };
   }
 
   allowLightning(): boolean {
