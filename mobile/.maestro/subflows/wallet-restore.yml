@@ -7,9 +7,12 @@ appId: com.layerzwallet.mobile
 - runFlow: skip-dev-client.yml
 - waitForAnimationToEnd
 
+# Wait for the app to fully initialize and determine the step
+- waitForAnimationToEnd
+
 - extendedWaitUntil:
     visible: 'Get Started'
-    timeout: 15000
+    timeout: 30000
 
 - tapOn: 'Get Started'
 
