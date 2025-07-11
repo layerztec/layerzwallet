@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeAreaView, View, ScrollView, Text, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
+import { SafeAreaView, View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { welcomeColors, gradients } from '@/src/shared-link/constants/Colors';
@@ -14,30 +14,27 @@ const WelcomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ImageBackground source={require('@/assets/images/pixelated-gradient.png')} style={styles.pixelatedBackground} resizeMode="cover">
-        <LinearGradient start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} colors={gradients.welcomeBottomOverlay as [string, string]} style={styles.bottomFade} />
-      </ImageBackground>
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          <View style={styles.column}>
-            <View style={styles.heroSection}>
-              <Text style={styles.welcomeText}>{'Welcome to Layerz'}</Text>
-            </View>
+        <Image source={require('@/assets/images/pixelated-gradient.png')} style={styles.pixelatedBackground} resizeMode="cover" />
 
-            <Text style={styles.descriptionText}>
-              {"Layerz starts with your Base Wallet — this is your core Bitcoin account. It's where your Bitcoin is stored, secured by your keys. Every other layer connects to this foundation."}
-            </Text>
-            <View style={styles.pageIndicators}>
-              <View style={styles.activeDot} />
-              <View style={styles.inactiveDot} />
-              <View style={styles.inactiveDot} />
-              <View style={styles.inactiveDot} />
-              <View style={styles.inactiveDot} />
-              <View style={styles.inactiveDot} />
-            </View>
+        <View style={styles.spacer} />
+
+        <View style={styles.column}>
+          <Text style={styles.welcomeText}>{'Welcome to Layerz'}</Text>
+
+          <Text style={styles.descriptionText}>
+            {"Layerz starts with your Base Wallet — this is your core Bitcoin account. It's where your Bitcoin is stored, secured by your keys. Every other layer connects to this foundation."}
+          </Text>
+          <View style={styles.pageIndicators}>
+            <View style={styles.activeDot} />
+            <View style={styles.inactiveDot} />
+            <View style={styles.inactiveDot} />
+            <View style={styles.inactiveDot} />
+            <View style={styles.inactiveDot} />
+            <View style={styles.inactiveDot} />
           </View>
-        </ScrollView>
-
+        </View>
+        <View style={styles.buttonSpacer} />
         <View style={styles.buttonContainer}>
           <TouchableOpacity onPress={handleContinue}>
             <LinearGradient start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} colors={gradients.welcomeButton as [string, string]} style={styles.button}>
@@ -63,38 +60,18 @@ const styles = StyleSheet.create({
     backgroundColor: welcomeColors.background,
   },
   pixelatedBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 300,
-    zIndex: -1,
-  },
-  bottomFade: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 192,
+    width: '100%',
+    height: '40%',
   },
   safeArea: {
     flex: 1,
-  },
-  scrollView: {
-    flex: 1,
     backgroundColor: 'transparent',
   },
-  scrollContent: {
-    paddingBottom: 20,
+  spacer: {
+    flex: 1,
   },
   column: {
-    marginBottom: 5,
-  },
-  heroSection: {
-    height: 300,
-    width: '100%',
-    justifyContent: 'flex-end',
-    position: 'relative',
+    paddingHorizontal: 40,
   },
   welcomeText: {
     color: welcomeColors.textPrimary,
@@ -105,7 +82,6 @@ const styles = StyleSheet.create({
     letterSpacing: Typography.headline.letterSpacing,
     width: 222,
     marginBottom: 20,
-    marginLeft: 40,
   },
   descriptionText: {
     color: welcomeColors.textPrimary,
@@ -114,15 +90,12 @@ const styles = StyleSheet.create({
     fontWeight: '400' as const,
     lineHeight: Typography.paragraph.lineHeight,
     letterSpacing: Typography.paragraph.letterSpacing,
-    marginBottom: 8,
-    marginLeft: 40,
-    width: 303,
+    marginBottom: 37,
   },
   pageIndicators: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 5,
-    marginLeft: 40,
   },
   activeDot: {
     width: 8,
@@ -138,12 +111,11 @@ const styles = StyleSheet.create({
     backgroundColor: welcomeColors.textSecondary,
     marginRight: 10,
   },
+  buttonSpacer: {
+    height: 100,
+  },
   buttonContainer: {
-    position: 'absolute',
-    bottom: 60,
-    left: 0,
-    right: 0,
-    paddingBottom: 0,
+    paddingBottom: 60,
     paddingHorizontal: 16,
     backgroundColor: 'transparent',
   },
