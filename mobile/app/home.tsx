@@ -17,26 +17,14 @@ import { getNetworkGradient, getNetworkIcon } from '@shared/constants/Colors';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
+import { useAccountBalance } from '@shared/hooks/useAccountBalance';
+import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getDecimalsByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import {
-  NETWORK_ARKMUTINYNET,
-  NETWORK_BITCOIN,
-  NETWORK_BOTANIX,
-  NETWORK_BOTANIXTESTNET,
-  NETWORK_CITREATESTNET,
-  NETWORK_LIGHTNING,
-  NETWORK_LIGHTNINGTESTNET,
-  NETWORK_LIQUID,
-  NETWORK_LIQUIDTESTNET,
-  NETWORK_ROOTSTOCK,
-  NETWORK_SEPOLIA,
-  NETWORK_SPARK,
-  NETWORK_STRATADEVNET,
-} from '@shared/types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SwapPair, SwapPlatform } from '@shared/types/swap';
 
 export default function HomeScreen() {
@@ -47,6 +35,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
   const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
+  const availableNetworks = useAvailableNetworks();
+  const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
 
   useEffect(() => {
     setSwapPairs(getSwapPairs(network, SwapPlatform.MOBILE));
@@ -189,7 +179,7 @@ export default function HomeScreen() {
         <ThemedView style={styles.balanceContainer}>
           <ThemedText style={styles.balanceLabel}>Pocket Balance:</ThemedText>
           <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
-            {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
+            {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN)) + ' ' + getTickerByNetwork(NETWORK_BITCOIN) : ''}
           </ThemedText>
           <ThemedText style={styles.balanceLabel} testID="LayerBalance">
             Layer Balance:
