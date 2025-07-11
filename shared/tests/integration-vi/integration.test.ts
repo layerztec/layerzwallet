@@ -3,7 +3,7 @@ import BigNumber from 'bignumber.js';
 import { ethers } from 'ethers';
 import { expect, test, vi } from 'vitest';
 import { EvmWallet } from '../../class/evm-wallet';
-import { keyCleanupMiddleware } from '../../hooks/useBalance';
+import { balanceFetcher } from '../../hooks/useBalance';
 import { tokenBalanceFetcher } from '../../hooks/useTokenBalance';
 import { getTokenList } from '../../models/token-list';
 import { IBackgroundCaller } from '../../types/IBackgroundCaller';
@@ -62,7 +62,7 @@ test('can fetch balance', async (context) => {
   }
 
   vi.spyOn(backgroundCallerMock2, 'getAddress').mockResolvedValueOnce(EvmWallet.xpubToAddress(EvmWallet.mnemonicToXpub(process.env.TEST_MNEMONIC), 0)); // test mnemonic account 0
-  const balance = await keyCleanupMiddleware({
+  const balance = await balanceFetcher({
     cacheKey: 'balanceFetcher',
     network: NETWORK_SEPOLIA,
     accountNumber: 0,
@@ -80,7 +80,7 @@ test('can fetch STRATA balance', async (context) => {
   }
 
   vi.spyOn(backgroundCallerMock2, 'getAddress').mockResolvedValueOnce(EvmWallet.xpubToAddress(EvmWallet.mnemonicToXpub(process.env.TEST_MNEMONIC), 0)); // test mnemonic account 0
-  const balance = await keyCleanupMiddleware({
+  const balance = await balanceFetcher({
     cacheKey: 'balanceFetcher',
     network: NETWORK_STRATADEVNET,
     accountNumber: 0,
