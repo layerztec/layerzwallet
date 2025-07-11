@@ -178,6 +178,12 @@ class BreezAdapter implements IBreezAdapter {
     return await RNAPI.sendPayment(args as RNAPI.SendPaymentRequest); // type is too complex to convert
   }
 
+  private async getPayment(args: JSAPI.GetPaymentRequest) {
+    const result = await RNAPI.getPayment(args as RNAPI.GetPaymentRequest); // type is simple enough to just convert like this
+    if (!result) return undefined; // undefined expected instead of null ¯\_(ツ)_/¯
+    return result;
+  }
+
   get api() {
     const getInfo = this.withLockAndSdk(this.getInfo.bind(this));
     const prepareReceivePayment = this.withLockAndSdk(this.prepareReceivePayment.bind(this));
@@ -185,6 +191,7 @@ class BreezAdapter implements IBreezAdapter {
     const receivePayment = this.withLockAndSdk(this.receivePayment.bind(this));
     const prepareSendPayment = this.withLockAndSdk(this.prepareSendPayment.bind(this));
     const sendPayment = this.withLockAndSdk(this.sendPayment.bind(this));
+    const getPayment = this.withLockAndSdk(this.getPayment.bind(this));
 
     return {
       getInfo,
@@ -193,6 +200,7 @@ class BreezAdapter implements IBreezAdapter {
       receivePayment,
       prepareSendPayment,
       sendPayment,
+      getPayment,
     };
   }
 

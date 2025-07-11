@@ -16,6 +16,8 @@ import { getNetworkGradient, getNetworkIcon } from '@shared/constants/Colors';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
+import { useAccountBalance } from '@shared/hooks/useAccountBalance';
+import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getDecimalsByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
@@ -32,6 +34,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
   const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
+  const availableNetworks = useAvailableNetworks();
+  const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
 
   useEffect(() => {
     setSwapPairs(getSwapPairs(network, SwapPlatform.MOBILE));
@@ -175,7 +179,7 @@ export default function HomeScreen() {
         <View style={styles.balanceContainer}>
           <ThemedText style={styles.balanceLabel}>Pocket Balance:</ThemedText>
           <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
-            {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
+            {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN)) + ' ' + getTickerByNetwork(NETWORK_BITCOIN) : ''}
           </ThemedText>
           <ThemedText style={styles.balanceLabel} testID="LayerBalance">
             Layer Balance:

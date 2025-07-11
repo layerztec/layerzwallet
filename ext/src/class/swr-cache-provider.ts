@@ -12,11 +12,11 @@ import { State } from 'swr/_internal';
  * @see https://swr.vercel.app/docs/advanced/cache
  */
 export class SwrCacheProvider implements Cache<any> {
-  private cachePrefix = 'cache-v3-';
+  private cachePrefix = 'cache-v4-';
 
   get(key: string): State<any> | undefined {
     try {
-      let value = localStorage.getItem(`${this.cachePrefix}${key}`);
+      let value = localStorage.getItem(key.startsWith(this.cachePrefix) ? key : `${this.cachePrefix}${key}`);
       if (value) {
         const data = JSON.parse(value);
         return { data };
@@ -39,6 +39,15 @@ export class SwrCacheProvider implements Cache<any> {
   }
 
   keys(): IterableIterator<string> {
-    return [].values();
+    const that = this;
+    function* generator() {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(that.cachePrefix)) {
+          yield key;
+        }
+      }
+    }
+    return generator();
   }
 }
