@@ -2,7 +2,7 @@ import React from 'react';
 import { SafeAreaView, View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { welcomeColors, gradients } from '@/src/shared-link/constants/Colors';
+import { Colors, gradients } from '@/src/shared-link/constants/Colors';
 import { Typography } from '@/src/shared-link/constants/Typography';
 
 const WelcomeScreen = () => {
@@ -37,7 +37,7 @@ const WelcomeScreen = () => {
         <View style={styles.buttonSpacer} />
         <View style={styles.buttonContainer}>
           <TouchableOpacity onPress={handleContinue}>
-            <LinearGradient start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} colors={gradients.welcomeButton as [string, string]} style={styles.button}>
+            <LinearGradient start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} colors={gradients.gradient1 as [string, string]} style={styles.button}>
               <View style={styles.buttonContent}>
                 <View style={styles.arrowIcon}>
                   <Text style={styles.arrowText}>→</Text>
@@ -57,7 +57,7 @@ export default WelcomeScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: welcomeColors.background,
+    backgroundColor: Colors.dark.background,
   },
   pixelatedBackground: {
     width: '100%',
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   welcomeText: {
-    color: welcomeColors.textPrimary,
+    color: Colors.dark.text,
     fontFamily: Typography.headline.fontFamily,
     fontSize: 42,
     fontWeight: '300' as const,
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   descriptionText: {
-    color: welcomeColors.textPrimary,
+    color: Colors.dark.text,
     fontFamily: Typography.paragraph.fontFamily,
     fontSize: Typography.paragraph.fontSize,
     fontWeight: '400' as const,
@@ -101,14 +101,14 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: welcomeColors.textPrimary,
+    backgroundColor: Colors.dark.text,
     marginRight: 10,
   },
   inactiveDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: welcomeColors.textSecondary,
+    backgroundColor: Colors.dark.tabIconDefault,
     marginRight: 10,
   },
   buttonSpacer: {
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   buttonText: {
-    color: welcomeColors.buttonText,
+    color: Colors.dark.background,
     fontFamily: Typography.paragraph.fontFamily,
     fontSize: Typography.paragraph.fontSize,
     fontWeight: '400' as const,
