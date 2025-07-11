@@ -10,6 +10,7 @@ export interface ISparkAdapter {
 export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
   private _sdkWallet: SDK | undefined = undefined;
   protected adapter: ISparkAdapter;
+  public allowLightning: true = true;
 
   protected _bolt11toReceiveRequestId: Record<string, string> = {};
 
@@ -101,10 +102,6 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
       invoice: invoice.invoice.encodedInvoice,
       serviceFeeSat: 0, // im currently not aware of any fees that Spark takes when receiving
     };
-  }
-
-  allowLightning(): boolean {
-    return true;
   }
 
   async isInvoicePaid(invoice: string): Promise<boolean> {

@@ -39,6 +39,7 @@ export class BreezWallet implements InterfaceLightningWallet {
   public m: string;
   public n: LiquidNetwork;
   public adapter: IBreezAdapter;
+  public allowLightning: true = true;
 
   constructor(mnemonic: string, network: LiquidNetwork) {
     this.m = mnemonic;
@@ -95,10 +96,6 @@ export class BreezWallet implements InterfaceLightningWallet {
       throw new Error('Failed to generate Liquid address');
     }
     return receiveResponse.destination;
-  }
-
-  allowLightning(): boolean {
-    return true;
   }
 
   async payLightningInvoice(invoice: string, masFeePercentage: number = 1): Promise<boolean> {

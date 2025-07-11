@@ -4,7 +4,7 @@ export interface createLightningInvoiceResponse {
 }
 
 export interface InterfaceLightningWallet {
-  allowLightning(): boolean;
+  allowLightning: true;
 
   payLightningInvoice(invoice: string): Promise<boolean>;
 
