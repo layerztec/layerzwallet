@@ -101,7 +101,8 @@
     "swr": "2.3.3",
     "timers-browserify": "^2.0.12",
     "uint8array-extras": "^1.4.0",
-    "url": "^0.11.4"
+    "url": "^0.11.4",
+    "expo-linear-gradient": "~14.1.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
