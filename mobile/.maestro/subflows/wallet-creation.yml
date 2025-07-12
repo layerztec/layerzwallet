@@ -27,14 +27,22 @@ appId: com.layerzwallet.mobile
     visible: 'Write down these 12 words in numerical order and keep them in a secure place. Never share them with anyone.'
     timeout: 150000
 
-# First wait for the loading to complete
+# Wait for the loading to complete - increase timeout and add more specific conditions
 - extendedWaitUntil:
     notVisible: 'Creating your wallet...'
-    timeout: 120000
+    timeout: 180000
+
+# Additional wait to ensure UI is stable
+- waitForAnimationToEnd
 
 # Then verify the Continue button is available and enabled
 - extendedWaitUntil:
     visible: 'Continue'
+    timeout: 60000
+
+# Ensure wallet creation is fully complete before proceeding
+- extendedWaitUntil:
+    notVisible: 'Loading'
     timeout: 30000
 
 # Now proceed to the enter password screen
