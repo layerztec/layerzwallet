@@ -6,4 +6,4 @@ appId: com.layerzwallet.mobile
 
 - runFlow: subflows/skip-dev-client.yml
 - waitForAnimationToEnd
-- assertVisible: 'Welcome to LZW'
+- assertVisible: 'Welcome to Layerz'

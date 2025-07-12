@@ -46,18 +46,19 @@ interface DashboardTileProps {
   onCardPress: (index: number) => void;
   totalCards: number;
   disableNavigation?: boolean;
+  isNetworkSelector?: boolean;
 }
 
 interface LayerCardTileProps extends DashboardTileProps {
   transitionId: string;
 }
 
-const LayerCardTile = ({ card, index, cardPosition, scrollY, selectedIndex, onCardPress, transitionId, totalCards, disableNavigation = false }: LayerCardTileProps) => {
+const LayerCardTile = ({ card, index, cardPosition, scrollY, selectedIndex, onCardPress, transitionId, totalCards, disableNavigation = false, isNetworkSelector = false }: LayerCardTileProps) => {
   const router = useRouter();
   const { returnProgress } = useLocalSearchParams();
 
   const cardScale = useSharedValue(UNFOCUSED_SCALE);
-  const cardOpacity = useSharedValue(0.6);
+  const cardOpacity = useSharedValue(isNetworkSelector ? 1 : 0.6); // Start with full opacity for network selector
   const cardY = useSharedValue(0);
   const cardX = useSharedValue(0);
   const rotationX = useSharedValue(0);
@@ -69,27 +70,74 @@ const LayerCardTile = ({ card, index, cardPosition, scrollY, selectedIndex, onCa
   useEffect(() => {
     if (selectedIndex >= 0 && selectedIndex !== index) {
       const slideDirection = index < selectedIndex ? -1 : 1;
-      const slideDistance = slideDirection * 400;
+      const slideDistance = slideDirection * (isNetworkSelector ? 200 : 400); // Shorter distance for smoother feel
 
       cardY.value = withTiming(slideDistance, {
-        duration: 350,
+        duration: isNetworkSelector ? 250 : 350, // Faster for network selector
       });
-      cardOpacity.value = withTiming(0, {
-        duration: 350,
+      cardOpacity.value = withTiming(isNetworkSelector ? 0.3 : 0, {
+        // Don't go to complete 0 for smoother feel
+        duration: isNetworkSelector ? 250 : 350,
       });
     } else if (selectedIndex < 0) {
       if (!wasTapped.value) {
         cardY.value = withSpring(0, {
-          damping: 30,
-          stiffness: 400,
+          damping: isNetworkSelector ? 35 : 30, // Slightly more damping for smoother feel
+          stiffness: isNetworkSelector ? 500 : 400, // Higher stiffness for quicker settle
           mass: 0.5,
         });
+
+        // Ensure opacity returns to 1 smoothly
+        if (isNetworkSelector) {
+          cardOpacity.value = withTiming(1, {
+            duration: 200,
+          });
+        }
       }
     }
-  }, [selectedIndex, index, cardY, cardOpacity, wasTapped]);
+  }, [selectedIndex, index, cardY, cardOpacity, wasTapped, isNetworkSelector]);
 
   const animatedStyle = useAnimatedStyle(() => {
     'worklet';
+
+    // Super smooth animations for network selector
+    if (isNetworkSelector) {
+      if (selectedIndex >= 0 && selectedIndex !== index) {
+        return {
+          transform: [{ translateY: cardY.value }, { scale: 0.95 }],
+          opacity: cardOpacity.value,
+          elevation: 0,
+          zIndex: 0,
+        };
+      }
+
+      // For network selector, create smooth distance-based animations
+      const centerY = height / 2 - CARD_HEIGHT / 2;
+      const currentCardY = cardPosition - scrollY.value + centerY;
+      const distanceFromCenter = Math.abs(currentCardY - centerY);
+
+      // Smooth scale transition (no abrupt changes)
+      const maxDistance = height * 0.8; // Increased range for smoother transitions
+      const scale = interpolate(distanceFromCenter, [0, maxDistance * 0.3, maxDistance], [1.0, 0.98, 0.9], 'clamp');
+
+      // Super smooth opacity transition (no sudden drops)
+      const opacity = interpolate(distanceFromCenter, [0, maxDistance * 0.5, maxDistance], [1.0, 0.95, 0.3], 'clamp');
+
+      // Smooth elevation transition
+      const elevation = interpolate(distanceFromCenter, [0, maxDistance], [8, 2], 'clamp');
+
+      // Smooth z-index (no big jumps)
+      const zIndex = Math.round(interpolate(distanceFromCenter, [0, maxDistance], [100, 10], 'clamp'));
+
+      return {
+        transform: [{ translateY: cardY.value }, { scale: isNaN(scale) ? 1 : scale }],
+        opacity: Math.max(0.05, Math.min(1, isNaN(opacity) ? 1 : opacity)),
+        elevation: Math.max(0, isNaN(elevation) ? 5 : elevation),
+        zIndex: isNaN(zIndex) ? 50 : zIndex,
+      };
+    }
+
+    // Original complex animations for dashboard (also improved)
     if (isCurrentlySelected.value) {
       return {
         transform: [{ translateY: cardY.value }, { scale: cardScale.value }, { perspective: 1000 }],
@@ -113,31 +161,58 @@ const LayerCardTile = ({ card, index, cardPosition, scrollY, selectedIndex, onCa
       const currentCardY = cardPosition - scrollY.value + centerY;
       const rawDistanceFromCenter = Math.abs(currentCardY - centerY);
 
-      if (!isFinite(rawDistanceFromCenter) || rawDistanceFromCenter < 0 || rawDistanceFromCenter > height * 2) {
+      // Improved: Smoother fallback with gradual transition instead of abrupt change
+      if (!isFinite(rawDistanceFromCenter) || rawDistanceFromCenter < 0) {
         return {
           transform: [{ translateY: 0 }, { translateX: 0 }, { scale: UNFOCUSED_SCALE }, { rotateZ: '0deg' }, { perspective: 1000 }],
-          opacity: 0.6,
-          elevation: 5,
-          zIndex: 10,
+          opacity: 0.3, // Increased from 0.6 for consistency
+          elevation: 3,
+          zIndex: 5,
           borderWidth: 0,
           borderColor: 'transparent',
         };
       }
 
-      const distanceFromCenter = Math.max(0, Math.min(height, rawDistanceFromCenter));
-      const scaleThreshold = SCROLL_SNAP_THRESHOLD * 0.75;
-      const currentScale = interpolate(distanceFromCenter, [0, scaleThreshold], [FOCUSED_SCALE, UNFOCUSED_SCALE], 'clamp');
-      const opacityThreshold = SCROLL_SNAP_THRESHOLD * 0.75;
-      const currentOpacity = interpolate(distanceFromCenter, [0, opacityThreshold, SCROLL_SNAP_THRESHOLD * 1.8], [1.0, 0.85, 0.0], 'clamp');
+      // Use raw distance without hard clamping to prevent abrupt clipping
+      const distanceFromCenter = Math.max(0, rawDistanceFromCenter);
 
-      const zIndexThreshold = SCROLL_SNAP_THRESHOLD * 0.8;
+      // Define ranges for smooth transitions
+      const scaleRange = SCROLL_SNAP_THRESHOLD * 0.75;
+      const opacityRange1 = SCROLL_SNAP_THRESHOLD * 0.75;
+      const opacityRange2 = SCROLL_SNAP_THRESHOLD * 3.5; // Extended for ultra-smooth fade
+      const zIndexRange = SCROLL_SNAP_THRESHOLD * 0.8;
+      const maxRange = height * 4; // Extended but with smooth transitions
+
+      const scaleThreshold = scaleRange;
+      const currentScale = interpolate(distanceFromCenter, [0, scaleThreshold], [FOCUSED_SCALE, UNFOCUSED_SCALE], 'clamp');
+
+      // Ultra-smooth opacity with extended range to prevent abrupt clipping
+      const currentOpacity = interpolate(
+        distanceFromCenter,
+        [0, opacityRange1, opacityRange2, maxRange],
+        [1.0, 0.9, 0.2, 0.05], // Extended range with very gradual fade
+        'clamp'
+      );
+
       const screenCenter = height / 2;
       const isAboveCenter = currentCardY < screenCenter;
-      const cardZIndex = isAboveCenter ? interpolate(distanceFromCenter, [0, zIndexThreshold], [2000, 800], 'clamp') : interpolate(distanceFromCenter, [0, zIndexThreshold], [2000, 10], 'clamp');
-      const cardElevation = isAboveCenter ? interpolate(distanceFromCenter, [0, zIndexThreshold], [50, 25], 'clamp') : interpolate(distanceFromCenter, [0, zIndexThreshold], [50, 5], 'clamp');
+
+      // Ultra-smooth z-index transitions with extended range
+      const cardZIndex = isAboveCenter
+        ? interpolate(distanceFromCenter, [0, zIndexRange, opacityRange2, maxRange], [1000, 400, 50, 1], 'clamp')
+        : interpolate(distanceFromCenter, [0, zIndexRange, opacityRange2, maxRange], [1000, 200, 25, 1], 'clamp');
+
+      const cardElevation = isAboveCenter
+        ? interpolate(distanceFromCenter, [0, zIndexRange, opacityRange2, maxRange], [30, 15, 5, 0], 'clamp')
+        : interpolate(distanceFromCenter, [0, zIndexRange, opacityRange2, maxRange], [30, 10, 3, 0], 'clamp');
 
       const focusedOffset = interpolate(distanceFromCenter, [0, scaleThreshold], [-2, 0], 'clamp');
-      const stackingOffset = isAboveCenter ? interpolate(distanceFromCenter, [0, scaleThreshold], [0, -3], 'clamp') : interpolate(distanceFromCenter, [0, scaleThreshold * 1.4], [0, 120], 'clamp');
+
+      // Smoother stacking offset (no abrupt jump)
+      const stackingThreshold = scaleThreshold * 1.2; // Reduced multiplier for smoother transition
+      const stackingOffset = isAboveCenter
+        ? interpolate(distanceFromCenter, [0, stackingThreshold, opacityRange2], [0, -3, -5], 'clamp')
+        : interpolate(distanceFromCenter, [0, stackingThreshold, opacityRange2], [0, 60, 100], 'clamp');
 
       const borderThreshold = SCROLL_SNAP_THRESHOLD * 0.5;
       const borderWidth = interpolate(distanceFromCenter, [0, borderThreshold], [2, 0], 'clamp');
@@ -145,7 +220,8 @@ const LayerCardTile = ({ card, index, cardPosition, scrollY, selectedIndex, onCa
       const safeBorderOpacity = Math.max(0, Math.min(1, isNaN(borderOpacity) ? 0 : borderOpacity));
       const borderColor = `rgba(255, 255, 255, ${safeBorderOpacity.toFixed(3)})`;
 
-      const rotationAngle = interpolate(distanceFromCenter, [0, scaleThreshold * 2], [0, isAboveCenter ? -1 : 1], 'clamp');
+      // Smoother rotation
+      const rotationAngle = interpolate(distanceFromCenter, [0, scaleThreshold * 2], [0, isAboveCenter ? -0.5 : 0.5], 'clamp');
 
       return {
         transform: [
@@ -155,7 +231,7 @@ const LayerCardTile = ({ card, index, cardPosition, scrollY, selectedIndex, onCa
           { rotateZ: `${rotationAngle}deg` },
           { perspective: 1000 },
         ],
-        opacity: Math.max(0, Math.min(1, isNaN(currentOpacity) ? 1 : currentOpacity)),
+        opacity: Math.max(0.05, Math.min(1, isNaN(currentOpacity) ? 1 : currentOpacity)), // Minimum 0.05 to prevent abrupt clipping
         elevation: Math.max(0, isNaN(cardElevation) ? 0 : cardElevation),
         zIndex: isNaN(cardZIndex) ? 0 : Math.round(cardZIndex),
         borderWidth: Math.max(0, isNaN(borderWidth) ? 0 : borderWidth),
@@ -164,17 +240,23 @@ const LayerCardTile = ({ card, index, cardPosition, scrollY, selectedIndex, onCa
     } catch (error) {
       return {
         transform: [{ translateY: 0 }, { translateX: 0 }, { scale: UNFOCUSED_SCALE }, { rotateZ: '0deg' }, { perspective: 1000 }],
-        opacity: 0.6,
-        elevation: 5,
-        zIndex: 10,
+        opacity: 0.3, // Improved fallback opacity
+        elevation: 3,
+        zIndex: 5,
         borderWidth: 0,
         borderColor: 'transparent',
       };
     }
-  }, [selectedIndex, scrollY]);
+  }, [selectedIndex, scrollY, isNetworkSelector, cardPosition, cardY, cardX, cardScale, cardOpacity, isCurrentlySelected]);
 
   const handlePress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    // Lighter haptic feedback for network selector
+    if (isNetworkSelector) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    }
+
     const actualIndex = card.originalIndex !== undefined ? card.originalIndex : index;
     onCardPress(actualIndex);
 
@@ -425,9 +507,10 @@ interface DashboardTilesProps {
   cards?: LayerCard[];
   onCardPress?: (index: number) => void;
   onClose?: () => void;
+  isNetworkSelector?: boolean;
 }
 
-const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress, onClose }: DashboardTilesProps) => {
+const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress, onClose, isNetworkSelector = false }: DashboardTilesProps) => {
   const { accountNumber } = useContext(AccountNumberContext);
 
   const networkCards = useNetworkCards(accountNumber);
@@ -437,12 +520,19 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isInitialized, setIsInitialized] = useState(false);
   const [currentNetworkId, setCurrentNetworkId] = useState<string>('bitcoin');
-  const opacity = useSharedValue(1);
+  // Initialize opacity immediately to prevent flash
+  const opacity = useSharedValue(isNetworkSelector ? 1 : 0);
 
   useEffect(() => {
-    opacity.value = withTiming(1, { duration: 150 });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [opacity]);
+    if (isNetworkSelector) {
+      // For network selector, ensure opacity stays at 1 immediately
+      opacity.value = 1;
+    } else {
+      // For dashboard, use the fade-in animation
+      opacity.value = withTiming(1, { duration: 150 });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  }, [opacity, isNetworkSelector]);
 
   useEffect(() => {
     if (cards.length > 0 && cards[0]?.networkId) {
@@ -490,6 +580,7 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
   const infiniteScrollData = useMemo(() => {
     if (cards.length === 0) return [];
 
+    // Always use infinite scroll with repetitions for smooth experience
     const repeatCount = 7;
     const result: (LayerCard & { uniqueKey: string; originalIndex: number })[] = [];
 
@@ -508,6 +599,8 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
 
   const initialScrollPosition = useMemo(() => {
     if (infiniteScrollData.length === 0) return 0;
+
+    // Always start in middle of repeated data for infinite scroll
     const middleRepeat = Math.floor(7 / 2);
     return middleRepeat * cards.length;
   }, [infiniteScrollData.length, cards.length]);
@@ -515,15 +608,17 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
   useEffect(() => {
     if (!isInitialized && infiniteScrollData.length > 0 && listRef.current) {
       const initialOffset = initialScrollPosition * SCROLL_SNAP_THRESHOLD;
-      setTimeout(() => {
+      // Use requestAnimationFrame to prevent flash on first render
+      requestAnimationFrame(() => {
         listRef.current?.scrollToOffset({ offset: initialOffset, animated: false });
         setIsInitialized(true);
         scrollOffset.value = initialOffset;
-      }, 100);
+      });
     }
   }, [infiniteScrollData.length, isInitialized, initialScrollPosition, scrollOffset, cards]);
 
   const handleScrollEnd = useCallback(() => {
+    // Always handle infinite scroll logic for smooth experience
     const currentOffset = scrollOffset.value;
     const sectionHeight = cards.length * SCROLL_SNAP_THRESHOLD;
     const currentSection = Math.floor(currentOffset / sectionHeight);
@@ -596,6 +691,7 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
               transitionId={`card-${item.name}-${index}`}
               totalCards={infiniteScrollData.length}
               disableNavigation={!!onExternalCardPress}
+              isNetworkSelector={isNetworkSelector}
             />
           ) : (
             <NetworkCard
@@ -614,7 +710,7 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
         </View>
       );
     },
-    [scrollOffset, selectedIndex, handleCardPress, infiniteScrollData.length, onExternalCardPress, providedCards, accountNumber]
+    [scrollOffset, selectedIndex, handleCardPress, infiniteScrollData.length, onExternalCardPress, providedCards, accountNumber, isNetworkSelector]
   );
 
   return (
@@ -643,17 +739,31 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
         onMomentumScrollEnd={handleScrollEnd}
         scrollEventThrottle={4}
         showsVerticalScrollIndicator={false}
-        decelerationRate="fast"
+        decelerationRate={'fast'}
         pagingEnabled={false}
         bounces={true}
         removeClippedSubviews={false}
         maxToRenderPerBatch={8}
         windowSize={15}
+        initialNumToRender={5} // Render fewer items initially to prevent flash
         snapToInterval={SCROLL_SNAP_THRESHOLD}
-        snapToAlignment="start"
+        snapToAlignment={'start'}
         getItemLayout={(data, index) => ({ length: SCROLL_SNAP_THRESHOLD, offset: SCROLL_SNAP_THRESHOLD * index, index })}
-        contentContainerStyle={{ paddingTop: height / 4 - CARD_HEIGHT / 2, paddingBottom: height / 4 - CARD_HEIGHT / 2 }}
-        style={[styles.flatListContainer, { height: height / 2, position: 'absolute', bottom: 0, left: 0, right: 0 }]}
+        contentContainerStyle={{
+          paddingTop: height / 4 - CARD_HEIGHT / 2,
+          paddingBottom: height / 4 - CARD_HEIGHT / 2,
+        }}
+        style={[
+          styles.flatListContainer,
+          {
+            height: height / 2, // Standard height for infinite scroll
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            opacity: isInitialized ? 1 : 0, // Only show when initialized
+          },
+        ]}
       />
     </Animated.View>
   );

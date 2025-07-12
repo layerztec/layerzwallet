@@ -7,12 +7,12 @@ appId: com.layerzwallet.mobile
 - runFlow: skip-dev-client.yml
 
 - waitForAnimationToEnd
-
+- waitForAnimationToEnd
 - extendedWaitUntil:
-    visible: 'Create New Wallet'
-    timeout: 15000
+    visible: 'Create Wallet'
+    timeout: 150000
 
-- tapOn: 'Create New Wallet'
+- tapOn: 'Create Wallet'
 
 - extendedWaitUntil:
     visible: 'Write down these 12 words in numerical order and keep them in a secure place. Never share them with anyone.'

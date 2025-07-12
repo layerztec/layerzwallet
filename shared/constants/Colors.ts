@@ -31,14 +31,24 @@ export const Colors = {
     icon: accent1,
     tabIconDefault: neutral,
     tabIconSelected: accent1,
+    buttonPrimary: primaryColor,
+    buttonSecondary: 'transparent',
+    buttonBorder: '#FFFFFF1A',
+    buttonText: '#FFFFFF',
+    paragraphText: '#B8B8B8',
   },
   dark: {
-    text: 'grey',
-    background: '#011474',
+    text: 'grey', // Change to #FFFFFF later to match Figma. Currently using 'grey' for visibility in dark mode and e2e testing.
+    background: primaryColor,
     tint: primaryColor,
     icon: accent1,
     tabIconDefault: neutral,
     tabIconSelected: accent1,
+    buttonPrimary: '#000000',
+    buttonSecondary: 'transparent',
+    buttonBorder: '#FFFFFF1A',
+    buttonText: '#FFFFFF',
+    paragraphText: '#B8B8B8',
   },
 };
 

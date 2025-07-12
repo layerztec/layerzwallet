@@ -7,9 +7,9 @@ appId: com.layerzwallet.mobile
 - runFlow: skip-dev-client.yml
 - waitForAnimationToEnd
 - extendedWaitUntil:
-    visible: 'Import Existing'
-    timeout: 15000
-- tapOn: 'Import Existing'
+    visible: 'Import Wallet'
+    timeout: 150000
+- tapOn: 'Import Wallet'
 
 # Wrong mnemonic, run this flow only on android. On ios maestro fails with "Input text wrong TEXT FAILED"
 # why it still can enter mnemonic? IDK
