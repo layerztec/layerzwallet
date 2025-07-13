@@ -7,7 +7,7 @@ import { Typography } from '@shared/constants/Typography';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function IntroScreen() {
+export default function CreateWalletIntroScreen() {
   const router = useRouter();
 
   const logoOpacity = useRef(new Animated.Value(0)).current;
@@ -22,51 +22,45 @@ export default function IntroScreen() {
     const animationSequence = Animated.sequence([
       Animated.timing(logoOpacity, {
         toValue: 1,
-        duration: 800,
+        duration: 500,
         useNativeDriver: true,
       }),
-
-      Animated.delay(300),
 
       Animated.parallel([
         Animated.timing(titleOpacity, {
           toValue: 1,
-          duration: 600,
+          duration: 400,
           useNativeDriver: true,
         }),
         Animated.timing(titleTranslateY, {
           toValue: 0,
-          duration: 600,
+          duration: 400,
           useNativeDriver: true,
         }),
       ]),
-
-      Animated.delay(200),
 
       Animated.parallel([
         Animated.timing(subtitleOpacity, {
           toValue: 1,
-          duration: 600,
+          duration: 400,
           useNativeDriver: true,
         }),
         Animated.timing(subtitleTranslateY, {
           toValue: 0,
-          duration: 600,
+          duration: 400,
           useNativeDriver: true,
         }),
       ]),
 
-      Animated.delay(400),
-
       Animated.parallel([
         Animated.timing(buttonsOpacity, {
           toValue: 1,
-          duration: 700,
+          duration: 400,
           useNativeDriver: true,
         }),
         Animated.timing(buttonsTranslateY, {
           toValue: 0,
-          duration: 700,
+          duration: 400,
           useNativeDriver: true,
         }),
       ]),
@@ -76,11 +70,7 @@ export default function IntroScreen() {
   }, [logoOpacity, titleOpacity, titleTranslateY, subtitleOpacity, subtitleTranslateY, buttonsOpacity, buttonsTranslateY]);
 
   const handleCreateWallet = async () => {
-    router.push('/onboarding/create-wallet-intro');
-  };
-
-  const handleImportWallet = () => {
-    router.push('/onboarding/import-wallet');
+    router.replace('/onboarding/create-wallet');
   };
 
   return (
@@ -94,7 +84,7 @@ export default function IntroScreen() {
               },
             ]}
           >
-            <Image source={require('@/assets/images/logo.png')} style={styles.image} />
+            <Image source={require('@/assets/images/ui/newWallet.png')} style={styles.image} />
           </Animated.View>
         </View>
 
@@ -107,8 +97,8 @@ export default function IntroScreen() {
               },
             ]}
           >
-            <ThemedText type="title" darkColor={Colors.dark.buttonText}>
-              Welcome to Layerz
+            <ThemedText type="title" darkColor={Colors.dark.buttonText} textAlign="center">
+              Generating your new recovery phrase
             </ThemedText>
           </Animated.View>
 
@@ -122,8 +112,8 @@ export default function IntroScreen() {
               },
             ]}
           >
-            <ThemedText type="paragraph" darkColor={Colors.dark.paragraphText}>
-              From A–Z, You're in Control
+            <ThemedText type="paragraph" darkColor={Colors.dark.text} textAlign="center">
+              A recovery phrase is a series of 12 words in a specific order. This word combination is unique to your wallet. Make sure to have pen and paper ready so you can write it down.
             </ThemedText>
           </Animated.View>
         </View>
@@ -140,16 +130,9 @@ export default function IntroScreen() {
           >
             <TouchableOpacity style={styles.button} onPress={handleCreateWallet}>
               <View style={styles.view}>
+                <Image source={require('@/assets/images/ui/arrow-right.png')} style={styles.image} />
                 <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
-                  Create Wallet
-                </ThemedText>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.button2} onPress={handleImportWallet}>
-              <View style={styles.view}>
-                <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
-                  Import Wallet
+                  Continue
                 </ThemedText>
               </View>
             </TouchableOpacity>
@@ -176,6 +159,7 @@ const styles = StyleSheet.create({
   },
   image: {
     alignSelf: 'center',
+    marginRight: 8,
   },
   content: {
     flex: 2,
@@ -191,12 +175,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   button: {
-    alignItems: 'center',
     backgroundColor: Colors.dark.buttonPrimary,
     borderRadius: 16,
-    marginBottom: 8,
     height: 56,
     justifyContent: 'center',
+    alignContent: 'center',
+    marginBottom: 8,
   },
   button2: {
     alignItems: 'center',
@@ -204,12 +188,12 @@ const styles = StyleSheet.create({
     borderColor: Colors.dark.buttonBorder,
     borderRadius: 16,
     borderWidth: 1,
-    justifyContent: 'center',
-    height: 56,
+    paddingVertical: 22,
   },
   view: {
     alignItems: 'center',
-    paddingBottom: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   buttonText: {
     fontSize: 16,
