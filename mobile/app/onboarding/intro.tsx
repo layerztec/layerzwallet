@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, Image, Animated } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors, gradients } from '@shared/constants/Colors';
 import { Typography } from '@shared/constants/Typography';
@@ -9,7 +9,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function IntroScreen() {
   const router = useRouter();
-  const hasAnimatedRef = useRef(false);
 
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const titleOpacity = useRef(new Animated.Value(0)).current;
@@ -19,7 +18,7 @@ export default function IntroScreen() {
   const buttonsOpacity = useRef(new Animated.Value(0)).current;
   const buttonsTranslateY = useRef(new Animated.Value(40)).current;
 
-  const runEntranceAnimation = useCallback(() => {
+  useEffect(() => {
     const animationSequence = Animated.sequence([
       Animated.timing(logoOpacity, {
         toValue: 1,
@@ -76,133 +75,8 @@ export default function IntroScreen() {
     animationSequence.start();
   }, [logoOpacity, titleOpacity, titleTranslateY, subtitleOpacity, subtitleTranslateY, buttonsOpacity, buttonsTranslateY]);
 
-  const runReEntranceAnimation = useCallback(() => {
-    // Reset values for re-entrance from opposite directions
-    logoOpacity.setValue(0);
-    titleOpacity.setValue(0);
-    titleTranslateY.setValue(-30); // Start from opposite direction
-    subtitleOpacity.setValue(0);
-    subtitleTranslateY.setValue(30); // Start from opposite direction
-    buttonsOpacity.setValue(0);
-    buttonsTranslateY.setValue(50); // Start from bottom
-
-    // Faster re-entrance animation
-    const reEntranceSequence = Animated.parallel([
-      Animated.timing(logoOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.timing(titleOpacity, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(titleTranslateY, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(subtitleOpacity, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(subtitleTranslateY, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(buttonsOpacity, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(buttonsTranslateY, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-    ]);
-
-    reEntranceSequence.start();
-  }, [logoOpacity, titleOpacity, titleTranslateY, subtitleOpacity, subtitleTranslateY, buttonsOpacity, buttonsTranslateY]);
-
-  useEffect(() => {
-    if (!hasAnimatedRef.current) {
-      runEntranceAnimation();
-      hasAnimatedRef.current = true;
-    }
-  }, [runEntranceAnimation]);
-
-  // Handle re-entrance when coming back from another screen
-  useFocusEffect(
-    React.useCallback(() => {
-      if (hasAnimatedRef.current) {
-        // This is a return from another screen, run re-entrance animation
-        setTimeout(() => {
-          runReEntranceAnimation();
-        }, 100); // Small delay to let exit animations finish
-      }
-    }, [runReEntranceAnimation])
-  );
-
   const handleCreateWallet = async () => {
-    // Start coordinated exit animations that prepare for the morph
-    Animated.parallel([
-      // Logo scales down and fades
-      Animated.parallel([
-        Animated.timing(logoOpacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]),
-      // Title slides right (opposite of new screen's left slide)
-      Animated.parallel([
-        Animated.timing(titleOpacity, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(titleTranslateY, {
-          toValue: -30,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]),
-      // Subtitle slides left (opposite of new screen's right slide)
-      Animated.parallel([
-        Animated.timing(subtitleOpacity, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(subtitleTranslateY, {
-          toValue: 30,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]),
-      // Buttons slide down (opposite of new screen's up slide)
-      Animated.parallel([
-        Animated.timing(buttonsOpacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(buttonsTranslateY, {
-          toValue: 50,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start(() => {
-      // Navigate after animations complete with slight delay for smoother transition
-      setTimeout(() => {
-        router.push('/onboarding/create-wallet-intro');
-      }, 50);
-    });
+    router.push('/onboarding/create-wallet-intro');
   };
 
   const handleImportWallet = () => {
@@ -220,7 +94,7 @@ export default function IntroScreen() {
               },
             ]}
           >
-            <Image source={require('@/assets/images/logo.png')} style={styles.image} nativeID="hero-image" />
+            <Image source={require('@/assets/images/logo.png')} style={styles.image} />
           </Animated.View>
         </View>
 
@@ -248,7 +122,7 @@ export default function IntroScreen() {
               },
             ]}
           >
-            <ThemedText type="paragraph" darkColor={Colors.dark.text}>
+            <ThemedText type="paragraph" darkColor={Colors.dark.paragraphText}>
               From A–Z, You're in Control
             </ThemedText>
           </Animated.View>
@@ -265,7 +139,7 @@ export default function IntroScreen() {
             ]}
           >
             <TouchableOpacity style={styles.button} onPress={handleCreateWallet}>
-              <View style={styles.view} nativeID="create-button">
+              <View style={styles.view}>
                 <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
                   Create Wallet
                 </ThemedText>

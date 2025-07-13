@@ -63,7 +63,6 @@ export const ThemedText: React.FC<ThemedTextProps> = ({ style, lightColor, darkC
     customStyles.fontSize = typeof size === 'number' ? `${size}px` : size;
   }
 
-  // Extract textAlign from rest props if present
   const { textAlign, ...restProps } = rest as any;
   if (textAlign) {
     customStyles.textAlign = textAlign;
