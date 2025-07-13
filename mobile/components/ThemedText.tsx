@@ -1,13 +1,11 @@
-import { Text, type TextProps } from 'react-native';
+import { Text, type TextProps, type TextStyle } from 'react-native';
 import { useThemeColor } from '../hooks/useThemeColor';
 import { Typography } from '@shared/constants/Typography';
 import { BaseThemedTextProps } from '@shared/types/ThemedText';
 
-type MobileTextAlign = 'auto' | 'left' | 'right' | 'center' | 'justify';
-
 export type ThemedTextProps = TextProps &
   BaseThemedTextProps & {
-    textAlign?: MobileTextAlign;
+    textAlign?: TextStyle['textAlign'];
   };
 
 export function ThemedText({ style, lightColor, darkColor, type = 'default', textAlign, ...rest }: ThemedTextProps) {
