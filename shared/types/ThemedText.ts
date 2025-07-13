@@ -2,6 +2,7 @@ import { Typography } from '@shared/constants/Typography';
 
 export type TypographyKey = keyof typeof Typography;
 export type TextType = 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'headline' | 'subHeadline' | 'paragraph' | TypographyKey;
+export type WebTextAlign = 'start' | 'end' | 'left' | 'right' | 'center' | 'justify' | 'match-parent';
 
 export interface BaseThemedTextProps {
   /**
@@ -25,4 +26,10 @@ export interface WebThemedTextProps extends BaseThemedTextProps {
   size?: number | string;
 
   color?: string;
+
+  /**
+   * Text alignment for web components
+   * @default 'start'
+   */
+  textAlign?: WebTextAlign;
 }

@@ -63,6 +63,11 @@ export const ThemedText: React.FC<ThemedTextProps> = ({ style, lightColor, darkC
     customStyles.fontSize = typeof size === 'number' ? `${size}px` : size;
   }
 
+  const { textAlign, ...restProps } = rest as any;
+  if (textAlign) {
+    customStyles.textAlign = textAlign;
+  }
+
   // Special cases that don't directly map to Typography constants
   if (type === 'defaultSemiBold') {
     customStyles = {
@@ -91,7 +96,7 @@ export const ThemedText: React.FC<ThemedTextProps> = ({ style, lightColor, darkC
   }
 
   return (
-    <span style={customStyles} {...rest}>
+    <span style={customStyles} {...restProps}>
       {children}
     </span>
   );

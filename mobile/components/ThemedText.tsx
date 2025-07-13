@@ -1,11 +1,14 @@
-import { Text, type TextProps } from 'react-native';
+import { Text, type TextProps, type TextStyle } from 'react-native';
 import { useThemeColor } from '../hooks/useThemeColor';
 import { Typography } from '@shared/constants/Typography';
 import { BaseThemedTextProps } from '@shared/types/ThemedText';
 
-export type ThemedTextProps = TextProps & BaseThemedTextProps;
+export type ThemedTextProps = TextProps &
+  BaseThemedTextProps & {
+    textAlign?: TextStyle['textAlign'];
+  };
 
-export function ThemedText({ style, lightColor, darkColor, type = 'default', ...rest }: ThemedTextProps) {
+export function ThemedText({ style, lightColor, darkColor, type = 'default', textAlign, ...rest }: ThemedTextProps) {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
 
   let typographyStyle: any[] = [];
@@ -29,6 +32,7 @@ export function ThemedText({ style, lightColor, darkColor, type = 'default', ...
     }
     typographyStyle = [Typography[typographyKey]];
   }
+  const alignmentStyle = textAlign ? { textAlign } : {};
 
-  return <Text style={[{ color }, ...typographyStyle, style]} {...rest} />;
+  return <Text style={[{ color }, ...typographyStyle, alignmentStyle, style]} {...rest} />;
 }
