@@ -10,9 +10,10 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: 'Create Wallet'
-    timeout: 150000
+    timeout: 15000
+- waitForAnimationToEnd
 
-- tapOn: 'Create Wallet'
+- tapOn: 'Continue'
 
 - extendedWaitUntil:
     visible: 'Write down these 12 words in numerical order and keep them in a secure place. Never share them with anyone.'

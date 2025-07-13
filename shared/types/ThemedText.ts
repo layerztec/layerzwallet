@@ -25,4 +25,10 @@ export interface WebThemedTextProps extends BaseThemedTextProps {
   size?: number | string;
 
   color?: string;
+
+  /**
+   * Text alignment for web components
+   * @default 'auto'
+   */
+  textAlign?: 'auto' | 'left' | 'right' | 'center' | 'justify';
 }

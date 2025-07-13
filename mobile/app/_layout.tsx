@@ -91,9 +91,20 @@ export default function RootLayout() {
                         <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
                         <Stack.Screen name="SeedBackup" options={{ headerShown: true, title: 'Seed Backup' }} />
                         <Stack.Screen name="onboarding/intro" options={{ headerShown: false }} />
+                        <Stack.Screen
+                          name="onboarding/create-wallet-intro"
+                          options={{
+                            headerTitle: '',
+                            headerTintColor: '#fff',
+                            headerBackButtonDisplayMode: 'minimal',
+                            headerTransparent: true,
+                            headerBackImageSource: require('@/assets/images/ui/headerBackImage.png'),
+                          }}
+                        />
                         <Stack.Screen name="onboarding/create-password" options={{ headerShown: false }} />
                         <Stack.Screen name="onboarding/tos" options={{ headerShown: false }} />
                         <Stack.Screen name="onboarding/import-wallet" options={{ headerShown: false }} />
+
                         <Stack.Screen name="onboarding/create-wallet" options={{ headerShown: false }} />
                         <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
                         <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />

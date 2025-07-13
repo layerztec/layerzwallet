@@ -3,9 +3,15 @@ import { useThemeColor } from '../hooks/useThemeColor';
 import { Typography } from '@shared/constants/Typography';
 import { BaseThemedTextProps } from '@shared/types/ThemedText';
 
-export type ThemedTextProps = TextProps & BaseThemedTextProps;
+// Mobile-specific TextAlign type that includes all React Native supported values
+type MobileTextAlign = 'auto' | 'left' | 'right' | 'center' | 'justify';
 
-export function ThemedText({ style, lightColor, darkColor, type = 'default', ...rest }: ThemedTextProps) {
+export type ThemedTextProps = TextProps &
+  BaseThemedTextProps & {
+    textAlign?: MobileTextAlign;
+  };
+
+export function ThemedText({ style, lightColor, darkColor, type = 'default', textAlign, ...rest }: ThemedTextProps) {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
 
   let typographyStyle: any[] = [];
@@ -30,5 +36,8 @@ export function ThemedText({ style, lightColor, darkColor, type = 'default', ...
     typographyStyle = [Typography[typographyKey]];
   }
 
-  return <Text style={[{ color }, ...typographyStyle, style]} {...rest} />;
+  // Apply textAlign if provided
+  const alignmentStyle = textAlign ? { textAlign } : {};
+
+  return <Text style={[{ color }, ...typographyStyle, alignmentStyle, style]} {...rest} />;
 }
