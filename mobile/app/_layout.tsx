@@ -90,7 +90,7 @@ export default function RootLayout() {
                         <Stack.Screen name="receive" />
                         <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
                         <Stack.Screen name="SeedBackup" options={{ headerShown: true, title: 'Seed Backup' }} />
-                        <Stack.Screen name="onboarding/intro" options={{ headerShown: false }} />
+                        <Stack.Screen name="onboarding/intro" options={{ headerTitle: '', headerTransparent: true }} />
                         <Stack.Screen
                           name="onboarding/create-wallet-intro"
                           options={{

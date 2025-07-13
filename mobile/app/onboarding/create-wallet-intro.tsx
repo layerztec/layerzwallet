@@ -22,51 +22,45 @@ export default function CreateWalletIntroScreen() {
     const animationSequence = Animated.sequence([
       Animated.timing(logoOpacity, {
         toValue: 1,
-        duration: 800,
+        duration: 500,
         useNativeDriver: true,
       }),
-
-      Animated.delay(300),
 
       Animated.parallel([
         Animated.timing(titleOpacity, {
           toValue: 1,
-          duration: 600,
+          duration: 400,
           useNativeDriver: true,
         }),
         Animated.timing(titleTranslateY, {
           toValue: 0,
-          duration: 600,
+          duration: 400,
           useNativeDriver: true,
         }),
       ]),
-
-      Animated.delay(200),
 
       Animated.parallel([
         Animated.timing(subtitleOpacity, {
           toValue: 1,
-          duration: 600,
+          duration: 400,
           useNativeDriver: true,
         }),
         Animated.timing(subtitleTranslateY, {
           toValue: 0,
-          duration: 600,
+          duration: 400,
           useNativeDriver: true,
         }),
       ]),
 
-      Animated.delay(400),
-
       Animated.parallel([
         Animated.timing(buttonsOpacity, {
           toValue: 1,
-          duration: 700,
+          duration: 400,
           useNativeDriver: true,
         }),
         Animated.timing(buttonsTranslateY, {
           toValue: 0,
-          duration: 700,
+          duration: 400,
           useNativeDriver: true,
         }),
       ]),
