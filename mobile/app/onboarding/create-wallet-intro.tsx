@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Animated } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Image, Animated, Easing } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors, gradients } from '@shared/constants/Colors';
 import { Typography } from '@shared/constants/Typography';
@@ -9,6 +9,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CreateWalletIntroScreen() {
   const router = useRouter();
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [hasNavigatedAway, setHasNavigatedAway] = useState(false);
 
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const titleOpacity = useRef(new Animated.Value(0)).current;
@@ -18,77 +20,129 @@ export default function CreateWalletIntroScreen() {
   const buttonsOpacity = useRef(new Animated.Value(0)).current;
   const buttonsTranslateY = useRef(new Animated.Value(40)).current;
 
+  // Custom transition animations
+  const buttonScale = useRef(new Animated.Value(1)).current;
+  const contentFadeOut = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
-    const animationSequence = Animated.sequence([
-      Animated.timing(logoOpacity, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
+    // Only run initial animation if we haven't navigated away
+    if (!hasNavigatedAway) {
+      const animationSequence = Animated.sequence([
+        Animated.timing(logoOpacity, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
 
-      Animated.parallel([
-        Animated.timing(titleOpacity, {
+        Animated.parallel([
+          Animated.timing(titleOpacity, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.timing(titleTranslateY, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ]),
+
+        Animated.parallel([
+          Animated.timing(subtitleOpacity, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.timing(subtitleTranslateY, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ]),
+
+        Animated.parallel([
+          Animated.timing(buttonsOpacity, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.timing(buttonsTranslateY, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]);
+
+      animationSequence.start();
+    }
+  }, [hasNavigatedAway, logoOpacity, titleOpacity, titleTranslateY, subtitleOpacity, subtitleTranslateY, buttonsOpacity, buttonsTranslateY]);
+
+  // Handle screen focus - fade content back in when returning
+  useFocusEffect(
+    React.useCallback(() => {
+      if (hasNavigatedAway) {
+        // Fade content back in when returning from another screen
+        Animated.timing(contentFadeOut, {
           toValue: 1,
           duration: 400,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
-        }),
-        Animated.timing(titleTranslateY, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]),
-
-      Animated.parallel([
-        Animated.timing(subtitleOpacity, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(subtitleTranslateY, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]),
-
-      Animated.parallel([
-        Animated.timing(buttonsOpacity, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(buttonsTranslateY, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]);
-
-    animationSequence.start();
-  }, [logoOpacity, titleOpacity, titleTranslateY, subtitleOpacity, subtitleTranslateY, buttonsOpacity, buttonsTranslateY]);
+        }).start();
+        setIsTransitioning(false);
+      }
+    }, [hasNavigatedAway, contentFadeOut])
+  );
 
   const handleCreateWallet = async () => {
-    router.replace('/onboarding/create-wallet');
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    setHasNavigatedAway(true);
+
+    // Professional button press animation
+    Animated.sequence([
+      // Quick scale down
+      Animated.timing(buttonScale, {
+        toValue: 0.95,
+        duration: 100,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      // Scale back up
+      Animated.timing(buttonScale, {
+        toValue: 1,
+        duration: 150,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Content cross-fade transition animation
+    setTimeout(() => {
+      // Fade out only the content below the image
+      Animated.timing(contentFadeOut, {
+        toValue: 0,
+        duration: 400,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start(() => {
+        router.push('/onboarding/create-wallet-backup-settings');
+      });
+    }, 200);
   };
 
   return (
     <LinearGradient colors={gradients.blueGradient} style={styles.container}>
       <SafeAreaView style={styles.safeAreaView}>
-        <View style={styles.logoContainer}>
-          <Animated.View
-            style={[
-              {
-                opacity: logoOpacity,
-              },
-            ]}
-          >
+        {/* Fixed positioned image */}
+        <View style={styles.fixedImageContainer}>
+          <Animated.View style={[{ opacity: logoOpacity }]}>
             <Image source={require('@/assets/images/ui/newWallet.png')} style={styles.image} />
           </Animated.View>
         </View>
 
-        <View style={styles.content}>
+        {/* Scrollable content area */}
+        <Animated.View style={[styles.content, { opacity: contentFadeOut }]}>
           <Animated.View
             style={[
               {
@@ -116,9 +170,9 @@ export default function CreateWalletIntroScreen() {
               A recovery phrase is a series of 12 words in a specific order. This word combination is unique to your wallet. Make sure to have pen and paper ready so you can write it down.
             </ThemedText>
           </Animated.View>
-        </View>
+        </Animated.View>
 
-        <View style={styles.buttonSection}>
+        <Animated.View style={[styles.buttonSection, { opacity: 1 }]}>
           <Animated.View
             style={[
               styles.buttonContainer,
@@ -128,16 +182,18 @@ export default function CreateWalletIntroScreen() {
               },
             ]}
           >
-            <TouchableOpacity style={styles.button} onPress={handleCreateWallet}>
-              <View style={styles.view}>
-                <Image source={require('@/assets/images/ui/arrow-right.png')} style={styles.image} />
-                <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
-                  Continue
-                </ThemedText>
-              </View>
-            </TouchableOpacity>
+            <Animated.View style={[{ transform: [{ scale: buttonScale }] }]}>
+              <TouchableOpacity style={styles.button} onPress={handleCreateWallet} testID="ContinueButton">
+                <View style={styles.view}>
+                  <Image source={require('@/assets/images/ui/arrow-right.png')} style={styles.image} />
+                  <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
+                    Continue
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
           </Animated.View>
-        </View>
+        </Animated.View>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -151,6 +207,14 @@ const styles = StyleSheet.create({
   safeAreaView: {
     flex: 1,
   },
+  fixedImageContainer: {
+    position: 'absolute',
+    top: 100,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1,
+  },
   logoContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -162,17 +226,20 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   content: {
-    flex: 2,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
+    paddingTop: 180, // Make room for fixed image
   },
   buttonSection: {
-    flex: 1,
-    justifyContent: 'flex-end',
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
   },
   buttonContainer: {
-    marginHorizontal: 16,
+    // No horizontal margin needed since buttonSection handles positioning
   },
   button: {
     backgroundColor: Colors.dark.buttonPrimary,
