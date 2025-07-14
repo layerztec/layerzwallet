@@ -1,6 +1,6 @@
 import { ArkWallet } from './ark-wallet';
 import { SparkWallet as SDK } from '@buildonspark/spark-sdk';
-import { createLightningInvoiceResponse, InterfaceLightningWallet } from './interface-lightning-wallet';
+import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
 import bolt11 from 'bolt11';
 
 export interface ISparkAdapter {
@@ -115,5 +115,20 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     if (lightningPaymentStatus?.status === 'TRANSFER_COMPLETED') return true;
 
     return false;
+  }
+
+  async fetchLightningLimits(): Promise<LightningPaymentLimitsResponse> {
+    return Promise.resolve({
+      send: {
+        maxSat: -1,
+        minSat: -1,
+        maxZeroConfSat: -1,
+      },
+      receive: {
+        maxZeroConfSat: 0,
+        minSat: 0,
+        maxSat: 100000000,
+      },
+    });
   }
 }

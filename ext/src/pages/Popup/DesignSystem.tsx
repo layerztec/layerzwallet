@@ -21,6 +21,176 @@ export const SelectFeeSlider: React.FC<
   );
 };
 
+// ActionPopupButton Component
+export const ActionPopupButton: React.FC<{
+  children: React.ReactNode;
+  actions: Array<{ label: string; onClick: () => void }>;
+  disabled?: boolean;
+}> = ({ children, actions, disabled }) => {
+  const [showPopup, setShowPopup] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const handleClick = (event: React.MouseEvent) => {
+    if (disabled) return;
+    event.stopPropagation();
+
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPopupPosition({
+        x: rect.left,
+        y: rect.top - 150,
+      });
+    }
+    setShowPopup(true);
+    setProgress(0);
+
+    // Start progress for default button (first action)
+    intervalRef.current = setInterval(() => {
+      setProgress((prevProgress) => {
+        if (prevProgress < 100) {
+          return prevProgress + (100 * 10) / 3000; // 3 seconds = 3000ms
+        }
+        clearInterval(intervalRef.current!);
+        // Trigger default action when progress reaches 100%
+        actions[0]?.onClick();
+        setShowPopup(false);
+        return 100;
+      });
+    }, 10);
+  };
+
+  const handleActionClick = (action: () => void) => {
+    // Clear the progress interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    // Trigger the clicked action
+    action();
+    setShowPopup(false);
+    setProgress(0);
+  };
+
+  const handleClose = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    setShowPopup(false);
+    setProgress(0);
+  };
+
+  // Close popup when clicking outside
+  useEffect(() => {
+    if (showPopup) {
+      const handleClickOutside = (event: MouseEvent) => {
+        const target = event.target as Element;
+        if (!target.closest('[data-popup-container]')) {
+          handleClose();
+        }
+      };
+
+      // Use setTimeout to avoid immediate closure
+      setTimeout(() => {
+        document.addEventListener('click', handleClickOutside);
+      }, 100);
+
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showPopup]);
+
+  return (
+    <div style={{ position: 'relative', display: 'inline-block', zIndex: 1 }}>
+      <button
+        ref={buttonRef}
+        onClick={handleClick}
+        disabled={disabled}
+        style={{
+          backgroundColor: '#282c34',
+          color: 'white',
+          border: '1px solid white',
+          padding: '10px 20px',
+          borderRadius: '5px',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          fontSize: '20px',
+          transition: 'background-color 0.3s',
+          opacity: disabled ? 0.5 : 1,
+          display: 'inline-flex',
+          alignItems: 'center',
+          whiteSpace: 'nowrap',
+          margin: '0 5px 5px 0',
+        }}
+      >
+        {children}
+      </button>
+
+      {showPopup && (
+        <div
+          data-popup-container
+          style={{
+            position: 'fixed',
+            top: popupPosition.y,
+            left: popupPosition.x,
+            backgroundColor: 'white',
+            border: '1px solid #ccc',
+            borderRadius: '8px',
+            padding: '10px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            zIndex: 1000,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            minWidth: '200px',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {actions.map((action, index) => (
+            <button
+              key={index}
+              onClick={() => handleActionClick(action.onClick)}
+              style={{
+                backgroundColor: '#282c34',
+                color: 'white',
+                border: '1px solid white',
+                padding: '10px 20px',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                transition: 'background-color 0.3s',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                width: '100%',
+                position: 'relative',
+                ...(index === 0 && {
+                  // Default button (first action) has progress bar
+                  overflow: 'hidden',
+                }),
+              }}
+            >
+              {index === 0 && progress > 0 && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    width: `${progress}%`,
+                    height: '5px',
+                    backgroundColor: 'white',
+                    transition: 'width 0.1s linear',
+                  }}
+                />
+              )}
+              <span style={{ zIndex: 1, position: 'relative' }}>{action.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Switch Component
 export const Switch = <T extends string>({ items, activeItem, onItemClick }: { items: T[]; activeItem: T; onItemClick: (item: T) => void }) => {
   return (
@@ -639,6 +809,19 @@ export default function DesignSystem() {
         <h2>Toggle Switch</h2>
         <div style={{ marginBottom: '20px' }}>
           <ToggleSwitch checked={toggleValue} onChange={(e) => setToggleValue(e.target.checked)} />
+        </div>
+
+        <h2>Action Popup Button</h2>
+        <div style={{ marginBottom: '20px' }}>
+          <ActionPopupButton
+            actions={[
+              { label: 'Default Action', onClick: () => alert('Default action triggered!') },
+              { label: 'Secondary Action', onClick: () => alert('Secondary action triggered!') },
+              { label: 'Cancel', onClick: () => alert('Cancel action triggered!') },
+            ]}
+          >
+            Show Actions
+          </ActionPopupButton>
         </div>
       </Card>
     </div>

@@ -18,9 +18,10 @@ import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHT
 import { BackgroundCaller } from '../../modules/background-caller';
 import PartnersView from './components/PartnersView';
 import TokensView from './components/TokensView';
-import { Button, Switch } from './DesignSystem';
+import { ActionPopupButton, Button, Switch } from './DesignSystem';
 import LiquidTokensView from './components/LiquidTokensView';
 import SwapInterfaceView from './components/SwapInterfaceView';
+import { ReceiveLightningProps } from './ReceiveLightning';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -46,14 +47,7 @@ const Home: React.FC = () => {
   }, [network]);
 
   const handleReceive = () => {
-    switch (network) {
-      case NETWORK_LIGHTNING:
-      case NETWORK_LIGHTNINGTESTNET:
-        navigate('/receive-lightning');
-        break;
-      default:
-        navigate('/receive');
-    }
+    navigate('/receive');
   };
 
   const handleSend = () => {
@@ -76,6 +70,38 @@ const Home: React.FC = () => {
       default:
         navigate('/send-evm');
     }
+  };
+
+  const handleReceiveLightningOnSpark = () => {
+    if (network === NETWORK_LIGHTNINGTESTNET) {
+      alert('Spark has no testnet');
+      return;
+    }
+    const state: ReceiveLightningProps = { network: NETWORK_SPARK };
+    navigate('/receive-lightning', { state });
+  };
+
+  const handleReceiveLightningOnLiquid = () => {
+    let chosenNetwork: typeof NETWORK_LIQUIDTESTNET | typeof NETWORK_LIQUID = NETWORK_LIQUID; // default - mainnet
+
+    if (network === NETWORK_LIGHTNINGTESTNET) {
+      chosenNetwork = NETWORK_LIQUIDTESTNET;
+    }
+
+    const state: ReceiveLightningProps = { network: chosenNetwork };
+    navigate('/receive-lightning', { state });
+  };
+
+  const handleBuyClick = () => {
+    BackgroundCaller.getAddress(network, accountNumber).then((addressResponse) => {
+      if (addressResponse) {
+        window.open(`https://layerztec.github.io/website/onramp/?address=${addressResponse}&network=${network}`, '_blank');
+      }
+    });
+  };
+
+  const handleSwapClick = () => {
+    setShowSwapInterface(true);
   };
 
   return (
@@ -112,15 +138,7 @@ const Home: React.FC = () => {
         <span id="home-balance">{balance ? formatBalance(balance, getDecimalsByNetwork(network), 8) : ''}</span> {getTickerByNetwork(network)}
         {fiatOnRamp?.[network]?.canBuyWithFiat ? (
           <span style={{ paddingLeft: '15px' }}>
-            <Button
-              onClick={() => {
-                BackgroundCaller.getAddress(network, accountNumber).then((addressResponse) => {
-                  if (addressResponse) {
-                    window.open(`https://layerztec.github.io/website/onramp/?address=${addressResponse}&network=${network}`, '_blank');
-                  }
-                });
-              }}
-            >
+            <Button onClick={handleBuyClick}>
               <ShoppingCartIcon /> Buy
             </Button>
           </span>
@@ -148,17 +166,33 @@ const Home: React.FC = () => {
         <SendIcon />
         Send
       </Button>
-      <Button onClick={handleReceive}>
-        <ArrowDownRightIcon />
-        Receive
-      </Button>
+
+      {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
+        <ActionPopupButton
+          actions={[
+            {
+              label: 'Receive on Spark',
+              onClick: handleReceiveLightningOnSpark,
+            },
+            {
+              label: 'Receive on Liquid',
+              onClick: handleReceiveLightningOnLiquid,
+            },
+            { label: 'Cancel', onClick: () => {} },
+          ]}
+        >
+          <ArrowDownRightIcon />
+          Receive
+        </ActionPopupButton>
+      ) : (
+        <Button onClick={handleReceive}>
+          <ArrowDownRightIcon />
+          Receive
+        </Button>
+      )}
 
       {swapPairs.length > 0 ? (
-        <Button
-          onClick={() => {
-            setShowSwapInterface(true);
-          }}
-        >
+        <Button onClick={handleSwapClick}>
           <RefreshCwIcon /> Swap
         </Button>
       ) : null}
