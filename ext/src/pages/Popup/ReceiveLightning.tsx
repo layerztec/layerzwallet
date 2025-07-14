@@ -1,29 +1,32 @@
-import { PrepareReceiveRequest, ReceivePaymentRequest } from '@breeztech/breez-sdk-liquid';
 import writeQR from '@paulmillr/qr';
 import BigNumber from 'bignumber.js';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { ThemedText } from '../../components/ThemedText';
 
 import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET } from '@shared/types/networks';
+import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
+import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
 import { BackgroundCaller } from '../../modules/background-caller';
-// import { getBreezNetwork } from '../../modules/breeze-adapter';
 import { AddressBubble, Input, WideButton } from './DesignSystem';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+
+export interface ReceiveLightningProps {
+  network: Networks;
+}
 
 const ReceiveLightning: React.FC = () => {
+  const location = useLocation();
+  const { network } = location.state as ReceiveLightningProps;
   const navigate = useNavigate();
   const [amount, setAmount] = useState<string>('');
   const [invoice, setInvoice] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const network = useContext(NetworkContext).network as typeof NETWORK_LIGHTNING | typeof NETWORK_LIGHTNINGTESTNET;
   const { accountNumber } = useContext(AccountNumberContext);
   const [imgSrc, setImgSrc] = useState('');
   const [oldBalance, setOldBalance] = useState<StringNumber>('');
@@ -31,7 +34,7 @@ const ReceiveLightning: React.FC = () => {
   const [limits, setLimits] = useState<{ min: number; max: number } | null>(null);
   const [isWalletInitialized, setIsWalletInitialized] = useState<boolean>(false);
   const [feesSat, setFeesSat] = useState<number | null>(null);
-  const breezWalletRef = useRef<BreezWallet | null>(null);
+  const walletRef = useRef<BreezWallet | SparkWallet | null>(null);
 
   const isNewBalanceGT = useCallback((): false | StringNumber => {
     if (Boolean(balance && oldBalance && new BigNumber(balance).gt(oldBalance))) {
@@ -68,17 +71,30 @@ const ReceiveLightning: React.FC = () => {
     }
   };
 
-  // Initialize the BreezWallet
+  // Initialize the wallet
   useEffect(() => {
     const initializeWallet = async () => {
       try {
-        const breezMnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
-        breezWalletRef.current = new BreezWallet(breezMnemonic, getBreezNetwork(network));
+        if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
+          const subMnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
+          const bNetwork = getBreezNetwork(network);
+
+          walletRef.current = new BreezWallet(subMnemonic, bNetwork);
+        }
+
+        if (network === NETWORK_SPARK) {
+          const subMnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
+
+          walletRef.current = new SparkWallet();
+          walletRef.current.setSecret(subMnemonic);
+          await walletRef.current.init();
+        }
+
         setIsWalletInitialized(true);
 
         // Fetch limits after wallet is initialized
-        if (breezWalletRef.current) {
-          const limitsResponse = await breezWalletRef.current.fetchLightningLimits();
+        if (walletRef.current) {
+          const limitsResponse = await walletRef.current.fetchLightningLimits();
           setLimits({
             min: limitsResponse.receive.minSat,
             max: limitsResponse.receive.maxSat,
@@ -93,7 +109,7 @@ const ReceiveLightning: React.FC = () => {
     initializeWallet();
 
     return () => {
-      breezWalletRef.current = null;
+      walletRef.current = null;
       setIsWalletInitialized(false);
     };
   }, [network, accountNumber]);
@@ -119,7 +135,7 @@ const ReceiveLightning: React.FC = () => {
       return;
     }
 
-    if (!breezWalletRef.current || !isWalletInitialized) {
+    if (!walletRef.current || !isWalletInitialized) {
       setError('Wallet is not initialized yet. Please try again.');
       return;
     }
@@ -143,24 +159,11 @@ const ReceiveLightning: React.FC = () => {
         }
       }
 
-      // Step 1: Prepare receive payment to get fee information
-      const prepareRequest: PrepareReceiveRequest = {
-        paymentMethod: 'lightning',
-        amount: { type: 'bitcoin', payerAmountSat: amountSats },
-      };
+      const response = await walletRef.current.createLightningInvoice(amountSats, 'please pay');
 
-      const prepareResponse = await breezWalletRef.current.prepareReceivePayment(prepareRequest);
-      setFeesSat(prepareResponse.feesSat);
-
-      // Step 2: Generate the actual lightning invoice
-      const receiveRequest: ReceivePaymentRequest = {
-        prepareResponse: prepareResponse,
-        description: `Payment to ${getTickerByNetwork(network)} wallet`,
-      };
-
-      const receiveResponse = await breezWalletRef.current.receivePayment(receiveRequest);
-      setInvoice(receiveResponse.destination);
-      setImgSrc(qrGifDataUrl(receiveResponse.destination));
+      setFeesSat(response.serviceFeeSat);
+      setInvoice(response.invoice);
+      setImgSrc(qrGifDataUrl(response.invoice));
     } catch (err) {
       console.error('Failed to generate invoice:', err);
       setError('Failed to generate invoice. Please try again.');
@@ -191,7 +194,7 @@ const ReceiveLightning: React.FC = () => {
 
   return (
     <div style={{ position: 'relative' }}>
-      <ThemedText type="headline">Receive Lightning on {network.charAt(0).toUpperCase() + network.slice(1)}</ThemedText>
+      <ThemedText type="headline">Receive Lightning on {capitalizeFirstLetter(network)}</ThemedText>
 
       {!invoice ? (
         <>
