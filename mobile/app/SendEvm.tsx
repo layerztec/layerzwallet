@@ -4,12 +4,12 @@ import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, ScrollView } from 'react-native';
 
+import GradientScreen from '@/components/GradientScreen';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -219,39 +219,63 @@ export default function SendScreen() {
     }
   };
 
+  if (screenState === 'broadcasting') {
+    return (
+      <GradientScreen variant="green">
+        <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
+        <View style={styles.broadcastingContainer}>
+          <ThemedText style={styles.broadcastingText}>Broadcasting transaction...</ThemedText>
+        </View>
+      </GradientScreen>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <Stack.Screen
-        options={{
-          title: 'Send',
-          headerShown: true,
-        }}
-      />
+    <GradientScreen variant="green">
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ThemedView style={styles.container}>
-            <ThemedView style={styles.formContainer}>
-              {errorMessage ? <ThemedText style={styles.errorText}>{errorMessage}</ThemedText> : null}
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.contentContainer}>
+          {errorMessage ? (
+            <View style={styles.errorContainer}>
+              <Ionicons name="warning" size={20} color="#ff4444" />
+              <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>
+            </View>
+          ) : null}
 
-              <ThemedText style={styles.label}>Recipient Address</ThemedText>
-              <View style={styles.addressInputContainer}>
-                <TextInput style={styles.addressInput} placeholder="Enter recipient address" value={recipientAddress} onChangeText={handleAddressChange} autoCapitalize="none" autoCorrect={false} />
-                <TouchableOpacity style={styles.qrButton} onPress={handleScanQr}>
-                  <Ionicons name="qr-code-outline" size={24} color="white" />
-                </TouchableOpacity>
-              </View>
+          <View style={styles.inputSection}>
+            <ThemedText style={styles.inputLabel}>Recipient Address</ThemedText>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter recipient address"
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                value={recipientAddress}
+                onChangeText={handleAddressChange}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity style={styles.qrButton} onPress={handleScanQr}>
+                <Ionicons name="qr-code-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
+              </TouchableOpacity>
+            </View>
+          </View>
 
-              <ThemedText style={styles.label}>Amount</ThemedText>
-              <View style={styles.amountInputContainer}>
-                <TextInput style={styles.amountInput} placeholder="0.0" value={amount} onChangeText={handleAmountChange} keyboardType="decimal-pad" />
-                <ThemedText style={styles.ticker}>{getTickerByNetwork(network)}</ThemedText>
-              </View>
-              <ThemedText style={styles.availableBalance}>
-                Available balance: {balance ? `${formatBalance(balance, getDecimalsByNetwork(network))} ${getTickerByNetwork(network)}` : 'Loading...'}
-              </ThemedText>
+          <View style={styles.inputSection}>
+            <ThemedText style={styles.inputLabel}>Amount</ThemedText>
+            <View style={styles.amountContainer}>
+              <TextInput style={styles.amountInput} placeholder="0.00" placeholderTextColor="rgba(255, 255, 255, 0.6)" value={amount} onChangeText={handleAmountChange} keyboardType="decimal-pad" />
+              <ThemedText style={styles.ticker}>{getTickerByNetwork(network)}</ThemedText>
+            </View>
+            <ThemedText style={styles.balanceText}>
+              Available balance: {balance ? formatBalance(balance, getDecimalsByNetwork(network)) : 'Loading...'} {getTickerByNetwork(network)}
+            </ThemedText>
+          </View>
 
-              <ThemedText style={styles.label}>Fee Multiplier: {feeMultiplier.toFixed(0)}x</ThemedText>
+          <View style={styles.feeSection}>
+            <ThemedText style={styles.inputLabel}>Fee Speed: {feeMultiplier.toFixed(0)}x</ThemedText>
+            <View style={styles.sliderContainer}>
               <Slider
                 style={styles.slider}
                 minimumValue={1}
@@ -259,118 +283,142 @@ export default function SendScreen() {
                 step={1}
                 value={feeMultiplier}
                 onValueChange={setFeeMultiplier}
-                minimumTrackTintColor="#007AFF"
-                maximumTrackTintColor="#CCCCCC"
-                thumbTintColor="#007AFF"
+                minimumTrackTintColor="rgba(255, 255, 255, 0.8)"
+                maximumTrackTintColor="rgba(255, 255, 255, 0.3)"
+                thumbTintColor="rgba(255, 255, 255, 0.9)"
               />
               <View style={styles.sliderLabels}>
-                <ThemedText>Slower</ThemedText>
-                <ThemedText>Faster</ThemedText>
+                <ThemedText style={styles.sliderLabel}>Slower</ThemedText>
+                <ThemedText style={styles.sliderLabel}>Faster</ThemedText>
+              </View>
+            </View>
+          </View>
+
+          {screenState === 'preparing' ? (
+            <View style={styles.loadingContainer}>
+              <ThemedText style={styles.loadingText}>Preparing transaction...</ThemedText>
+            </View>
+          ) : null}
+
+          {screenState === 'init' ? (
+            <TouchableOpacity style={[styles.sendButton, (!recipientAddress || !amount) && styles.disabledButton]} onPress={handleSend} disabled={!recipientAddress || !amount}>
+              <Ionicons name="send" size={20} color="rgba(255, 255, 255, 0.8)" />
+              <ThemedText style={styles.sendButtonText}>Send</ThemedText>
+            </TouchableOpacity>
+          ) : null}
+
+          {screenState === 'prepared' && fees && maxFees ? (
+            <View style={styles.preparedContainer}>
+              <ThemedText style={styles.preparedTitle}>Ready to Send</ThemedText>
+
+              <View style={styles.detailsContainer}>
+                <View style={styles.detailRow}>
+                  <ThemedText style={styles.detailLabel}>To:</ThemedText>
+                  <ThemedText style={styles.detailValue} numberOfLines={1} ellipsizeMode="middle">
+                    {recipientAddress}
+                  </ThemedText>
+                </View>
+                <View style={styles.detailRow}>
+                  <ThemedText style={styles.detailLabel}>Amount:</ThemedText>
+                  <ThemedText style={styles.detailValue}>
+                    {amount} {getTickerByNetwork(network)}
+                  </ThemedText>
+                </View>
+                <View style={styles.detailRow}>
+                  <ThemedText style={styles.detailLabel}>Fee Range:</ThemedText>
+                  <ThemedText style={styles.detailValue}>
+                    {formatBalance(fees, getDecimalsByNetwork(network))} - {formatBalance(maxFees, getDecimalsByNetwork(network))} {getTickerByNetwork(network)}
+                  </ThemedText>
+                </View>
               </View>
 
-              {screenState === 'preparing' ? <ThemedText>Preparing...</ThemedText> : null}
-
-              {screenState === 'init' ? (
-                <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-                  <ThemedText style={styles.sendButtonText}>Send</ThemedText>
-                </TouchableOpacity>
-              ) : null}
-
-              {screenState === 'prepared' && fees && maxFees ? (
-                <View>
-                  <ThemedText style={{ fontSize: 14 }}>
-                    Fees between {formatBalance(fees, getDecimalsByNetwork(network))} {getTickerByNetwork(network)} and {formatBalance(maxFees, getDecimalsByNetwork(network))}{' '}
-                    {getTickerByNetwork(network)}
-                  </ThemedText>
-
-                  <LongPressButton
-                    style={styles.sendButton}
-                    textStyle={styles.sendButtonText}
-                    onLongPressComplete={handleBroadcast}
-                    title="Hold to confirm send"
-                    progressColor="#FFFFFF"
-                    backgroundColor="#007AFF"
-                  />
-                </View>
-              ) : null}
-            </ThemedView>
-          </ThemedView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+              <LongPressButton
+                style={styles.confirmButton}
+                textStyle={styles.confirmButtonText}
+                onLongPressComplete={handleBroadcast}
+                title="Hold to confirm send"
+                progressColor="rgba(255, 255, 255, 0.3)"
+                backgroundColor="#000000"
+              />
+            </View>
+          ) : null}
+        </View>
+      </ScrollView>
+    </GradientScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
+  },
+  contentContainer: {
     flex: 1,
   },
-  container: {
-    flex: 1,
-    padding: 16,
+  inputSection: {
+    marginBottom: 30,
   },
-  formContainer: {
-    flex: 1,
+  inputLabel: {
+    marginBottom: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
-  label: {
-    fontSize: 16,
-    marginBottom: 8,
-    fontWeight: '500',
-  },
-  errorText: {
-    color: 'red',
-    marginBottom: 16,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  addressInputContainer: {
+  inputContainer: {
     flexDirection: 'row',
-    marginBottom: 16,
     alignItems: 'center',
+    gap: 12,
   },
-  addressInput: {
+  input: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+    height: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   qrButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    width: 48,
-    height: 48,
-    marginLeft: 8,
+    width: 50,
+    height: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
-  amountInputContainer: {
+  amountContainer: {
     flexDirection: 'row',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    marginBottom: 8,
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    paddingRight: 16,
   },
   amountInput: {
     flex: 1,
-    padding: 12,
-    fontSize: 16,
+    height: 50,
+    paddingHorizontal: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   ticker: {
-    paddingRight: 12,
-    fontSize: 16,
-    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
-  availableBalance: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 24,
-    marginLeft: 4,
+  balanceText: {
+    marginTop: 8,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  feeSection: {
+    marginBottom: 30,
+  },
+  sliderContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    padding: 16,
   },
   slider: {
     height: 40,
@@ -379,20 +427,94 @@ const styles = StyleSheet.create({
   sliderLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
+  },
+  sliderLabel: {
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 68, 68, 0.3)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+    gap: 8,
+  },
+  errorText: {
+    color: '#ff4444',
+    flex: 1,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  loadingText: {
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   sendButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    height: 50,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000000',
+    paddingVertical: 16,
+    borderRadius: 16,
     marginTop: 'auto',
-    marginBottom: 16,
+    marginBottom: 20,
+    gap: 8,
   },
   sendButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  disabledButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  preparedContainer: {
+    marginTop: 20,
+  },
+  preparedTitle: {
+    marginBottom: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  detailsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  detailLabel: {
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  detailValue: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    flex: 1,
+    textAlign: 'right',
+    marginLeft: 12,
+  },
+  confirmButton: {
+    backgroundColor: '#000000',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  confirmButtonText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  broadcastingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  broadcastingText: {
+    color: 'rgba(255, 255, 255, 0.9)',
   },
 });

@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, TouchableOpacity, Text, Modal, StyleSheet, Dimensions, Animated } from 'react-native';
+import { View, TouchableOpacity, Text, Modal, StyleSheet, Dimensions, Animated, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface Action {
@@ -12,9 +12,10 @@ interface ActionPopupButtonProps {
   actions: Action[];
   disabled?: boolean;
   testID?: string;
+  style?: ViewStyle | ViewStyle[];
 }
 
-export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, actions, disabled = false, testID }) => {
+export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, actions, disabled = false, testID, style }) => {
   const [showPopup, setShowPopup] = useState(false);
   const [progress, setProgress] = useState(0);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
@@ -90,7 +91,7 @@ export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, 
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity ref={buttonRef} onPress={handlePress} disabled={disabled} style={[styles.button, disabled && styles.buttonDisabled]} activeOpacity={0.7} testID={testID}>
+      <TouchableOpacity ref={buttonRef} onPress={handlePress} disabled={disabled} style={[styles.button, disabled && styles.buttonDisabled, style]} activeOpacity={0.7} testID={testID}>
         {children}
       </TouchableOpacity>
 

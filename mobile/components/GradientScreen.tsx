@@ -7,11 +7,13 @@ import { gradients } from '@shared/constants/Colors';
 interface GradientScreenProps {
   children: React.ReactNode;
   style?: ViewStyle;
+  variant?: 'blue' | 'green';
 }
 
-const GradientScreen: React.FC<GradientScreenProps> = ({ children, style }) => {
+const GradientScreen: React.FC<GradientScreenProps> = ({ children, style, variant = 'blue' }) => {
+  const gradientColors = variant === 'green' ? gradients.greenGradient : gradients.blueGradient;
   return (
-    <LinearGradient colors={gradients.blueGradient} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.gradient}>
+    <LinearGradient colors={gradientColors} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.gradient}>
       <SafeAreaView style={[styles.safeArea, style]} edges={['top', 'left', 'right', 'bottom']}>
         {children}
       </SafeAreaView>
