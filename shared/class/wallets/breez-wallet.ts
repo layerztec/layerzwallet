@@ -98,7 +98,7 @@ export class BreezWallet implements InterfaceLightningWallet {
     return receiveResponse.destination;
   }
 
-  async payLightningInvoice(invoice: string, masFeePercentage: number = 1): Promise<boolean> {
+  async payLightningInvoice(invoice: string, maxFeePercentage: number = 1): Promise<boolean> {
     const decoded = bolt11.decode(invoice);
     if (!decoded.satoshis) throw new Error('Cant pay zero-amount invoices');
 
@@ -109,8 +109,8 @@ export class BreezWallet implements InterfaceLightningWallet {
 
     const prepareResponse = await this.prepareSendPayment(prepareSendRequest);
 
-    if (prepareResponse?.feesSat && prepareResponse.feesSat > (decoded.satoshis / 100) * masFeePercentage) {
-      throw new Error(`Potential fees to pay this invoice are more than ${masFeePercentage}%`);
+    if (prepareResponse?.feesSat && prepareResponse.feesSat > (decoded.satoshis / 100) * maxFeePercentage) {
+      throw new Error(`Potential fees to pay this invoice are more than ${maxFeePercentage}%`);
     }
 
     const sendRequest: SendPaymentRequest = {

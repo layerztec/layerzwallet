@@ -1,19 +1,16 @@
 import writeQR from '@paulmillr/qr';
-import BigNumber from 'bignumber.js';
-import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { ThemedText } from '../../components/ThemedText';
 
-import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
-import { StringNumber } from '@shared/types/string-number';
+import { Networks } from '@shared/types/networks';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { AddressBubble, Input, WideButton } from './DesignSystem';
-import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { WalletFactory } from '@shared/class/wallet-factory';
+import { TLightningWallet } from '@shared/types/TWallet';
 
 export interface ReceiveLightningProps {
   network: Networks;
@@ -29,28 +26,62 @@ const ReceiveLightning: React.FC = () => {
   const [error, setError] = useState<string>('');
   const { accountNumber } = useContext(AccountNumberContext);
   const [imgSrc, setImgSrc] = useState('');
-  const [oldBalance, setOldBalance] = useState<StringNumber>('');
-  const { balance } = useBalance(network, accountNumber, BackgroundCaller);
   const [limits, setLimits] = useState<{ min: number; max: number } | null>(null);
   const [isWalletInitialized, setIsWalletInitialized] = useState<boolean>(false);
   const [feesSat, setFeesSat] = useState<number | null>(null);
-  const walletRef = useRef<BreezWallet | SparkWallet | null>(null);
+  const walletRef = useRef<TLightningWallet | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isInvoicePaid, setIsInvoicePaid] = useState<boolean>(false);
 
-  const isNewBalanceGT = useCallback((): false | StringNumber => {
-    if (Boolean(balance && oldBalance && new BigNumber(balance).gt(oldBalance))) {
-      return new BigNumber(balance ?? '0').minus(oldBalance).toString(10);
-    }
-
-    return false;
-  }, [balance, oldBalance]);
-
+  // Polling effect for invoice payment status
   useEffect(() => {
-    if (!oldBalance && balance) {
-      // initial update
-      setOldBalance(balance);
+    if (!invoice || !walletRef.current) {
       return;
     }
-  }, [balance, isNewBalanceGT, oldBalance]);
+
+    const pollForPayment = async () => {
+      try {
+        const wallet = walletRef.current;
+        if (!wallet) return;
+
+        const isPaid = await wallet.isInvoicePaid(invoice);
+        if (isPaid) {
+          setIsInvoicePaid(true);
+          // Clear the interval when payment is detected
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+        }
+      } catch (error) {
+        console.error('Error checking invoice payment status:', error);
+      }
+    };
+
+    // Start polling immediately
+    pollForPayment();
+
+    // Set up interval to poll every 5 seconds
+    pollingIntervalRef.current = setInterval(pollForPayment, 3_000);
+
+    // Cleanup function
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [invoice]);
+
+  // Cleanup interval when component unmounts
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   const qrGifDataUrl = (text: string) => {
     const gifBytes = writeQR(text, 'gif', {
@@ -75,21 +106,7 @@ const ReceiveLightning: React.FC = () => {
   useEffect(() => {
     const initializeWallet = async () => {
       try {
-        if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
-          const subMnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
-          const bNetwork = getBreezNetwork(network);
-
-          walletRef.current = new BreezWallet(subMnemonic, bNetwork);
-        }
-
-        if (network === NETWORK_SPARK) {
-          const subMnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
-
-          walletRef.current = new SparkWallet();
-          walletRef.current.setSecret(subMnemonic);
-          await walletRef.current.init();
-        }
-
+        walletRef.current = await WalletFactory.getInstance().getLightningWallet(network, accountNumber, BackgroundCaller);
         setIsWalletInitialized(true);
 
         // Fetch limits after wallet is initialized
@@ -101,7 +118,7 @@ const ReceiveLightning: React.FC = () => {
           });
         }
       } catch (err) {
-        console.error('Failed to initialize Breez wallet:', err);
+        console.error('Failed to initialize wallet:', err);
         setError('Failed to initialize wallet. Please try again.');
       }
     };
@@ -172,7 +189,7 @@ const ReceiveLightning: React.FC = () => {
     }
   };
 
-  if (isNewBalanceGT()) {
+  if (isInvoicePaid) {
     return (
       <div style={{ position: 'relative' }}>
         <ThemedText type="headline">Receive Lightning on {network.charAt(0).toUpperCase() + network.slice(1)}</ThemedText>
@@ -181,7 +198,7 @@ const ReceiveLightning: React.FC = () => {
           <div style={{ color: '#4CAF50', fontSize: '48px', marginBottom: '20px' }}>✓</div>
           <h2 style={{ color: '#4CAF50', marginBottom: '15px' }}>
             <ThemedText type="headline">
-              Received: +{isNewBalanceGT() ? formatBalance(String(isNewBalanceGT()), getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
+              Received: +{formatBalance(String(+amount - (feesSat || 0)), getDecimalsByNetwork(network), 8)} {getTickerByNetwork(network)}
             </ThemedText>
           </h2>
           <WideButton onClick={() => navigate('/')}>

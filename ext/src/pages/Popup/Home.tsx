@@ -22,6 +22,7 @@ import { ActionPopupButton, Button, Switch } from './DesignSystem';
 import LiquidTokensView from './components/LiquidTokensView';
 import SwapInterfaceView from './components/SwapInterfaceView';
 import { ReceiveLightningProps } from './ReceiveLightning';
+import { SendLightningProps } from './SendLightning';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -81,6 +82,15 @@ const Home: React.FC = () => {
     navigate('/receive-lightning', { state });
   };
 
+  const handleSendLightningOnSpark = () => {
+    if (network === NETWORK_LIGHTNINGTESTNET) {
+      alert('Spark has no testnet');
+      return;
+    }
+    const state: SendLightningProps = { network: NETWORK_SPARK };
+    navigate('/send-lightning', { state });
+  };
+
   const handleReceiveLightningOnLiquid = () => {
     let chosenNetwork: typeof NETWORK_LIQUIDTESTNET | typeof NETWORK_LIQUID = NETWORK_LIQUID; // default - mainnet
 
@@ -90,6 +100,17 @@ const Home: React.FC = () => {
 
     const state: ReceiveLightningProps = { network: chosenNetwork };
     navigate('/receive-lightning', { state });
+  };
+
+  const handleSendLightningOnLiquid = () => {
+    let chosenNetwork: typeof NETWORK_LIQUIDTESTNET | typeof NETWORK_LIQUID = NETWORK_LIQUID; // default - mainnet
+
+    if (network === NETWORK_LIGHTNINGTESTNET) {
+      chosenNetwork = NETWORK_LIQUIDTESTNET;
+    }
+
+    const state: SendLightningProps = { network: chosenNetwork };
+    navigate('/send-lightning', { state });
   };
 
   const handleBuyClick = () => {
@@ -162,10 +183,30 @@ const Home: React.FC = () => {
 
       <br />
       <br />
-      <Button onClick={handleSend}>
-        <SendIcon />
-        Send
-      </Button>
+
+      {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
+        <ActionPopupButton
+          actions={[
+            {
+              label: 'Send via Spark',
+              onClick: handleSendLightningOnSpark,
+            },
+            {
+              label: 'Send via Liquid',
+              onClick: handleSendLightningOnLiquid,
+            },
+            { label: 'Cancel', onClick: () => {} },
+          ]}
+        >
+          <SendIcon />
+          Send
+        </ActionPopupButton>
+      ) : (
+        <Button onClick={handleSend}>
+          <SendIcon />
+          Send
+        </Button>
+      )}
 
       {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
         <ActionPopupButton
