@@ -1,71 +1,88 @@
-import BigNumber from 'bignumber.js';
 import { Scan, ZapIcon } from 'lucide-react';
-import React, { useContext, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import React, { useContext, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import { ThemedText } from '../../components/ThemedText';
-import { PrepareSendRequest, PrepareSendResponse, SendPaymentRequest } from '@breeztech/breez-sdk-liquid';
-
-import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
+import * as bolt11 from 'bolt11';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
+import { NETWORK_BITCOIN, Networks } from '@shared/types/networks';
 import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { Button, HodlButton, Input, WideButton } from './DesignSystem';
+import BigNumber from 'bignumber.js';
+import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { WalletFactory } from '@shared/class/wallet-factory';
+import { TLightningWallet } from '@shared/types/TWallet';
+
+export interface SendLightningProps {
+  network: Networks;
+}
+
+const maxFeePercent = 1; // hardcoded at the moment. might give user option to adjust later
 
 const SendLightning: React.FC = () => {
+  const location = useLocation();
+  const { network } = location.state as SendLightningProps;
   const scanQr = useScanQR();
   const navigate = useNavigate();
   const { askMnemonic } = useContext(AskMnemonicContext);
   const [invoice, setInvoice] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const [sendState, setSendState] = useState<'idle' | 'preparing' | 'prepared' | 'success'>('idle');
-  const [preparedResponse, setPreparedResponse] = useState<PrepareSendResponse | null>(null);
+  const [sendState, setSendState] = useState<'idle' | 'preparing' | 'prepared' | 'sending' | 'success'>('idle');
   const [feeSats, setFeeSats] = useState<number | null>(null);
   const [amountToSend, setAmountToSend] = useState<string>('');
-  const network = useContext(NetworkContext).network as typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET;
   const { accountNumber } = useContext(AccountNumberContext);
-  const breezWallet = useRef<BreezWallet | null>(null);
+  const walletRef = useRef<TLightningWallet | null>(null);
+
+  const onInvoiceInput = async (scanned: string) => {
+    setInvoice(scanned);
+    try {
+      const decoded = bolt11.decode(scanned.trim());
+      setAmountToSend(String(decoded.satoshis));
+
+      if (!decoded.satoshis) {
+        throw new Error('Could not determine payment amount from invoice');
+      }
+
+      const feeBN = new BigNumber(decoded.satoshis).dividedBy(100).multipliedBy(maxFeePercent).toNumber();
+      setFeeSats(Math.max(Math.round(feeBN), 1));
+      setError('');
+    } catch (error: any) {
+      setError(error.message);
+    }
+  };
 
   const handleQRScan = async () => {
     const scanned = await scanQr();
-    if (scanned) {
-      setInvoice(scanned);
+    if (scanned && scanned.trim()) {
+      await onInvoiceInput(scanned.trim());
     }
   };
+
+  // Initialize the wallet
+  useEffect(() => {
+    const initializeWallet = async () => {
+      try {
+        walletRef.current = await WalletFactory.getInstance().getLightningWallet(network, accountNumber, BackgroundCaller);
+      } catch (err) {
+        console.error('Failed to initialize wallet:', err);
+        setError('Failed to initialize wallet. Please try again.');
+      }
+    };
+
+    initializeWallet();
+
+    return () => {
+      walletRef.current = null;
+    };
+  }, [network, accountNumber]);
 
   const prepareTransaction = async () => {
     setSendState('preparing');
     setError('');
     try {
-      // Validate invoice
-      if (!invoice || invoice.trim() === '') {
-        throw new Error('Please enter a valid Lightning invoice');
-      }
-
-      const mnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
-      const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
-      breezWallet.current = wallet;
-
-      // Prepare the payment
-      const prepareSendRequest: PrepareSendRequest = {
-        destination: invoice.trim(),
-      };
-
-      const prepareResponse = await wallet.prepareSendPayment(prepareSendRequest);
-      setPreparedResponse(prepareResponse);
-      setFeeSats(prepareResponse.feesSat || 0);
-
-      // Extract amount information from the destination
-      if (prepareResponse.destination.type === 'bolt11' && prepareResponse.destination.invoice.amountMsat) {
-        const msat = new BigNumber(prepareResponse.destination.invoice.amountMsat);
-        const satAmount = msat.dividedBy(1000).integerValue(BigNumber.ROUND_FLOOR);
-        setAmountToSend(satAmount.toString());
-      } else {
-        throw new Error('Could not determine payment amount from invoice');
-      }
+      await askMnemonic(); // verify password
 
       setSendState('prepared');
     } catch (error: any) {
@@ -77,19 +94,22 @@ const SendLightning: React.FC = () => {
 
   const sendPayment = async () => {
     try {
-      if (!breezWallet.current || !preparedResponse) {
-        throw new Error('Transaction not properly prepared');
+      if (!walletRef.current) {
+        throw new Error('Internal error: wallet not initialized');
       }
 
-      await askMnemonic(); // verify password
-      const sendRequest: SendPaymentRequest = {
-        prepareResponse: preparedResponse,
-      };
+      setSendState('sending');
+      await new Promise((r) => setTimeout(r, 200)); // propagate
 
       // Send payment
-      const paymentResponse = await breezWallet.current.sendPayment(sendRequest);
-      console.log('Payment sent:', paymentResponse);
-      setSendState('success');
+      const paymentResponse = await walletRef.current.payLightningInvoice(invoice);
+
+      if (paymentResponse) {
+        setSendState('success');
+      } else {
+        setSendState('idle');
+        setError('Payment failed');
+      }
     } catch (error: any) {
       console.error('Send payment error:', error);
       setError(error.message);
@@ -98,7 +118,6 @@ const SendLightning: React.FC = () => {
 
   const handleCancel = () => {
     setSendState('idle');
-    setPreparedResponse(null);
   };
 
   if (sendState === 'success') {
@@ -129,7 +148,7 @@ const SendLightning: React.FC = () => {
             data-testid="lightning-invoice-input"
             type="text"
             placeholder="Enter the Lightning invoice"
-            onChange={(event) => setInvoice(event.target.value)}
+            onChange={(event) => onInvoiceInput(event.target.value)}
             value={invoice}
             style={{ flexGrow: 1, marginRight: '10px' }}
           />
@@ -164,19 +183,21 @@ const SendLightning: React.FC = () => {
           </div>
         )}
 
-        {sendState === 'preparing' ? <span>loading...</span> : null}
+        {sendState === 'preparing' || sendState === 'sending' ? <span>loading...</span> : null}
 
-        {sendState === 'prepared' && (
+        {invoice && amountToSend && (
           <div style={{ backgroundColor: '#f5f5f5', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
             <h3 style={{ marginTop: 0, marginBottom: '15px' }}>Payment Details</h3>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span>Amount:</span>
-              <strong>{amountToSend ? formatBalance(amountToSend, 8, 8) : ''} sats</strong>
+              <strong>
+                {amountToSend ? formatBalance(amountToSend, getDecimalsByNetwork(NETWORK_BITCOIN)) : ''} {getTickerByNetwork(network)}
+              </strong>
             </div>
             {feeSats !== null && (
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>Fee:</span>
-                <strong>{feeSats} sats</strong>
+                <strong>up to {feeSats} sats</strong>
               </div>
             )}
           </div>
@@ -185,7 +206,7 @@ const SendLightning: React.FC = () => {
         {sendState === 'idle' && (
           <WideButton data-testid="verify-payment-button" onClick={prepareTransaction} style={{ backgroundColor: '#FF9500' }}>
             <ZapIcon />
-            <ThemedText>Verify Payment</ThemedText>
+            <ThemedText>Send</ThemedText>
           </WideButton>
         )}
 
