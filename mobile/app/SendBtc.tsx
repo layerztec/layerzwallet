@@ -210,7 +210,7 @@ const SendBtc: React.FC = () => {
 
   if (isSuccess) {
     return (
-      <GradientScreen variant="green">
+      <GradientScreen variant={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title="Send" />
         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -230,7 +230,7 @@ const SendBtc: React.FC = () => {
   }
 
   return (
-    <GradientScreen variant="green">
+    <GradientScreen variant={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title="Send" />
       <ScrollView contentContainerStyle={styles.scrollContent}>

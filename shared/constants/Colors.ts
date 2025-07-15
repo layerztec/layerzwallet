@@ -18,10 +18,15 @@ const accent4 = '#F5B9CD';
 const neutral = '#CECDCD';
 
 export const gradients = {
-  gradient1: [accent1, accent2],
-  gradient2: [accent3, accent4],
+  gradient1: [accent1, accent2] as const,
+  gradient2: [accent3, accent4] as const,
   blueGradient: ['#01125f', '#0e2589'] as const,
-  greenGradient: ['#034628', '#026B3C'] as const,
+  base: ['#01125F', '#0E2589'] as const,
+  rootstock: ['#034628', '#026B3C'] as const,
+  botanix: ['#60490F', '#745A13'] as const,
+  citrea: ['#6B2911', '#8B3A03'] as const,
+  strata: ['#40126B', '#56168A'] as const,
+  liquid: ['#00474E', '#006C55'] as const,
 };
 
 export const Colors = {

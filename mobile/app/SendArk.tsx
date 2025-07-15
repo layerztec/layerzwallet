@@ -104,7 +104,7 @@ const SendArk = () => {
 
   if (isSuccess) {
     return (
-      <GradientScreen variant="green">
+      <GradientScreen variant={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
         <View style={styles.successContainer}>
@@ -119,7 +119,7 @@ const SendArk = () => {
   }
 
   return (
-    <GradientScreen variant="green">
+    <GradientScreen variant={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
 

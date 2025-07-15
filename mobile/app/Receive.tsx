@@ -90,7 +90,7 @@ export default function ReceiveScreen() {
 
   if (isNewBalanceGT()) {
     return (
-      <GradientScreen variant="blue">
+      <GradientScreen variant={network}>
         <Stack.Screen options={{ headerShown: false }} />
 
         <ScreenHeader title="Receive" />
@@ -107,7 +107,7 @@ export default function ReceiveScreen() {
   }
 
   return (
-    <GradientScreen variant="blue">
+    <GradientScreen variant={network}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScreenHeader title="Receive" />

@@ -128,7 +128,7 @@ const SendLightning: React.FC = () => {
 
   if (sendState === 'success') {
     return (
-      <GradientScreen variant="green">
+      <GradientScreen variant={network}>
         <ScreenHeader title="Send Lightning" />
         <View style={styles.successContainer}>
           <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
@@ -143,7 +143,7 @@ const SendLightning: React.FC = () => {
   }
 
   return (
-    <GradientScreen variant="green">
+    <GradientScreen variant={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title="Send Lightning" />
 

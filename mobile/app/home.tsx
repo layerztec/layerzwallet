@@ -176,7 +176,7 @@ export default function HomeScreen() {
   ];
 
   return (
-    <GradientScreen variant="blue">
+    <GradientScreen variant={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerContainer}>

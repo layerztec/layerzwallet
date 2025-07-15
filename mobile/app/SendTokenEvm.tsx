@@ -166,7 +166,7 @@ const SendTokenEvm: React.FC = () => {
   };
 
   return (
-    <GradientScreen variant="green">
+    <GradientScreen variant={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title={`Send ${token?.name}`} />
 

@@ -221,7 +221,7 @@ export default function SendScreen() {
 
   if (screenState === 'broadcasting') {
     return (
-      <GradientScreen variant="green">
+      <GradientScreen variant={network}>
         <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
         <View style={styles.broadcastingContainer}>
           <ThemedText style={styles.broadcastingText}>Broadcasting transaction...</ThemedText>
@@ -231,7 +231,7 @@ export default function SendScreen() {
   }
 
   return (
-    <GradientScreen variant="green">
+    <GradientScreen variant={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
 

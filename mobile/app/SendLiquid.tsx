@@ -186,7 +186,7 @@ const SendLiquid = () => {
 
   if (isSuccess) {
     return (
-      <GradientScreen variant="green">
+      <GradientScreen variant={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title="Send Liquid" />
         <View style={styles.successContainer}>
@@ -202,7 +202,7 @@ const SendLiquid = () => {
 
   if (isLoading) {
     return (
-      <GradientScreen variant="green">
+      <GradientScreen variant={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title="Send Liquid" />
         <View style={styles.loadingContainer}>
@@ -220,7 +220,7 @@ const SendLiquid = () => {
     }
 
     return (
-      <GradientScreen variant="green">
+      <GradientScreen variant={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title="Confirm Transaction" />
         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -266,7 +266,7 @@ const SendLiquid = () => {
   }
 
   return (
-    <GradientScreen variant="green">
+    <GradientScreen variant={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title="Send Liquid" />
       <ScrollView contentContainerStyle={styles.scrollContent}>
