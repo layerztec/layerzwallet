@@ -104,8 +104,7 @@ export default function RootLayout() {
                         <Stack.Screen name="onboarding/create-password" options={{ headerShown: false }} />
                         <Stack.Screen name="onboarding/tos" options={{ headerShown: false }} />
                         <Stack.Screen name="onboarding/import-wallet" options={{ headerShown: false }} />
-
-                        <Stack.Screen name="onboarding/create-wallet" options={{ headerShown: false, gestureEnabled: false, headerBackVisible: false }} />
+                        <Stack.Screen name="onboarding/create-wallet" options={{ headerShown: false }} />
                         <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
                         <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
                         <Stack.Screen name="Onramp" options={{ headerShown: true }} />
