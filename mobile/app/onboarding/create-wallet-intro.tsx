@@ -70,6 +70,7 @@ export default function CreateWalletIntroScreen() {
   }, [logoOpacity, titleOpacity, titleTranslateY, subtitleOpacity, subtitleTranslateY, buttonsOpacity, buttonsTranslateY]);
 
   const handleCreateWallet = async () => {
+    router.dismissAll();
     router.replace('/onboarding/create-wallet');
   };
 
