@@ -144,6 +144,37 @@ export default function HomeScreen() {
     },
   ];
 
+  const handleSendViaSpark = () => {
+    if (network === NETWORK_LIGHTNINGTESTNET) {
+      Alert.alert('Spark does not have a testnet');
+    } else {
+      router.push({ pathname: '/SendLightning', params: { network: NETWORK_SPARK } });
+    }
+  };
+
+  const handleSendViaLiquid = () => {
+    if (network === NETWORK_LIGHTNINGTESTNET) {
+      router.push({ pathname: '/SendLightning', params: { network: NETWORK_LIQUIDTESTNET } });
+    } else {
+      router.push({ pathname: '/SendLightning', params: { network: NETWORK_LIQUID } });
+    }
+  };
+
+  const getLightningSendActions = () => [
+    {
+      label: 'Send via Spark',
+      onClick: handleSendViaSpark,
+    },
+    {
+      label: 'Send via Liquid',
+      onClick: handleSendViaLiquid,
+    },
+    {
+      label: 'Cancel',
+      onClick: () => {},
+    },
+  ];
+
   return (
     <GradientScreen>
       <Stack.Screen options={{ headerShown: false }} />
@@ -234,9 +265,17 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
-                <ThemedText style={styles.buttonText}>Send</ThemedText>
-              </TouchableOpacity>
+              {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
+                <ActionPopupButton actions={getLightningSendActions()}>
+                  <ThemedText style={styles.buttonText}>
+                    <Ionicons name="arrow-up" size={16} color="white" /> Send
+                  </ThemedText>
+                </ActionPopupButton>
+              ) : (
+                <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
+                  <ThemedText style={styles.buttonText}>Send</ThemedText>
+                </TouchableOpacity>
+              )}
 
               {fiatOnRamp?.[network]?.canBuyWithFiat ? (
                 <TouchableOpacity style={styles.button} onPress={goToBuyBitcoin}>
