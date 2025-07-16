@@ -17,7 +17,7 @@ export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, 
   const [showPopup, setShowPopup] = useState(false);
   const [progress, setProgress] = useState(0);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
-  const buttonRef = useRef<TouchableOpacity | null>(null);
+  const buttonRef = useRef<any>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressAnimation = useRef(new Animated.Value(0)).current;
 
