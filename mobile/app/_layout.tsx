@@ -35,6 +35,9 @@ const DefaultNavigatorOptions: NativeStackNavigationOptions = {
   headerBackButtonDisplayMode: 'minimal' as 'minimal',
   headerTransparent: true,
   headerBackImageSource: require('@/assets/images/ui/headerBackImage.png'),
+  gestureEnabled: true,
+  gestureDirection: 'horizontal',
+  animationDuration: 350,
 };
 
 export default function RootLayout() {
@@ -92,20 +95,75 @@ export default function RootLayout() {
                 <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                   <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                      <Stack>
+                      <Stack
+                        screenOptions={{
+                          ...DefaultNavigatorOptions,
+                          fullScreenGestureEnabled: true,
+                        }}
+                      >
                         <Stack.Screen name="index" options={{ headerShown: false, title: 'Index' }} />
                         <Stack.Screen name="home" options={{ headerShown: false, title: 'Home', animation: 'none' }} />
+                        <Stack.Screen
+                          name="onboarding/intro"
+                          options={{
+                            headerTitle: '',
+                            headerTransparent: true,
+                            animation: 'fade',
+                            animationDuration: 300,
+                          }}
+                        />
+                        <Stack.Screen
+                          name="onboarding/create-wallet-intro"
+                          options={{
+                            ...DefaultNavigatorOptions,
+                          }}
+                        />
+                        <Stack.Screen
+                          name="onboarding/create-wallet-backup-settings"
+                          options={{
+                            ...DefaultNavigatorOptions,
+                          }}
+                        />
+                        <Stack.Screen
+                          name="onboarding/create-password"
+                          options={{
+                            headerShown: false,
+                            animation: 'slide_from_right',
+                            animationDuration: 350,
+                            gestureEnabled: true,
+                          }}
+                        />
+                        <Stack.Screen
+                          name="onboarding/tos"
+                          options={{
+                            headerShown: false,
+                            animation: 'slide_from_right',
+                            animationDuration: 350,
+                            gestureEnabled: true,
+                          }}
+                        />
+                        <Stack.Screen
+                          name="onboarding/import-wallet"
+                          options={{
+                            headerShown: false,
+                            animation: 'slide_from_right',
+                            animationDuration: 350,
+                            gestureEnabled: true,
+                          }}
+                        />
+                        <Stack.Screen
+                          name="onboarding/create-wallet"
+                          options={{
+                            headerShown: false,
+                            animation: 'slide_from_right',
+                            animationDuration: 350,
+                            gestureEnabled: true,
+                          }}
+                        />
                         <Stack.Screen name="receive" />
                         <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
                         <Stack.Screen name="SeedBackup" options={{ headerShown: true, title: 'Seed Backup' }} />
-                        <Stack.Screen name="onboarding/intro" options={{ headerTitle: '', headerTransparent: true }} />
-                        <Stack.Screen name="onboarding/create-wallet-intro" options={DefaultNavigatorOptions} />
-                        <Stack.Screen name="onboarding/create-wallet-backup-settings" options={{ ...DefaultNavigatorOptions, animation: 'none' }} />
-                        <Stack.Screen name="onboarding/create-password" options={{ headerShown: false }} />
-                        <Stack.Screen name="onboarding/tos" options={{ headerShown: false }} />
-                        <Stack.Screen name="onboarding/import-wallet" options={{ headerShown: false }} />
 
-                        <Stack.Screen name="onboarding/create-wallet" options={{ headerShown: false }} />
                         <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
                         <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
                         <Stack.Screen name="Onramp" options={{ headerShown: true }} />

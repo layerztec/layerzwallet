@@ -1,16 +1,12 @@
-import { ArrowDownRightIcon, Info, SendIcon, ShoppingCartIcon, RefreshCwIcon } from 'lucide-react';
+import { ArrowDownRightIcon, Info, SendIcon, RefreshCwIcon } from 'lucide-react';
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { useBalance } from '@shared/hooks/useBalance';
-import { useAccountBalance } from '@shared/hooks/useAccountBalance';
-import { useExchangeRate } from '@shared/hooks/useExchangeRate';
-import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
-import { getDecimalsByNetwork, getIsTestnet, getKnowMoreUrl, getTickerByNetwork } from '@shared/models/network-getters';
-import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
+import { getKnowMoreUrl } from '@shared/models/network-getters';
+import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { SwapPair, SwapPlatform } from '@shared/types/swap';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
@@ -18,25 +14,23 @@ import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHT
 import { BackgroundCaller } from '../../modules/background-caller';
 import PartnersView from './components/PartnersView';
 import TokensView from './components/TokensView';
-import { Button, Switch } from './DesignSystem';
+import { ActionPopupButton, Button, Switch } from './DesignSystem';
 import LiquidTokensView from './components/LiquidTokensView';
 import SwapInterfaceView from './components/SwapInterfaceView';
+import BalanceView from './components/BalanceView';
+import { ReceiveLightningProps } from './ReceiveLightning';
+import { SendLightningProps } from './SendLightning';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
 
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { balance } = useBalance(network, accountNumber, BackgroundCaller);
-  const [isTestnet, setIsTestnet] = useState<boolean>(false);
-  const { exchangeRate } = useExchangeRate(network, 'USD');
   const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
   const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
   const availableNetworks = useAvailableNetworks();
-  const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
 
   useEffect(() => {
-    setIsTestnet(getIsTestnet(network));
     setShowSwapInterface(false);
   }, [network]);
 
@@ -46,14 +40,7 @@ const Home: React.FC = () => {
   }, [network]);
 
   const handleReceive = () => {
-    switch (network) {
-      case NETWORK_LIGHTNING:
-      case NETWORK_LIGHTNINGTESTNET:
-        navigate('/receive-lightning');
-        break;
-      default:
-        navigate('/receive');
-    }
+    navigate('/receive');
   };
 
   const handleSend = () => {
@@ -76,6 +63,50 @@ const Home: React.FC = () => {
       default:
         navigate('/send-evm');
     }
+  };
+
+  const handleReceiveLightningOnSpark = () => {
+    if (network === NETWORK_LIGHTNINGTESTNET) {
+      alert('Spark has no testnet');
+      return;
+    }
+    const state: ReceiveLightningProps = { network: NETWORK_SPARK };
+    navigate('/receive-lightning', { state });
+  };
+
+  const handleSendLightningOnSpark = () => {
+    if (network === NETWORK_LIGHTNINGTESTNET) {
+      alert('Spark has no testnet');
+      return;
+    }
+    const state: SendLightningProps = { network: NETWORK_SPARK };
+    navigate('/send-lightning', { state });
+  };
+
+  const handleReceiveLightningOnLiquid = () => {
+    let chosenNetwork: typeof NETWORK_LIQUIDTESTNET | typeof NETWORK_LIQUID = NETWORK_LIQUID; // default - mainnet
+
+    if (network === NETWORK_LIGHTNINGTESTNET) {
+      chosenNetwork = NETWORK_LIQUIDTESTNET;
+    }
+
+    const state: ReceiveLightningProps = { network: chosenNetwork };
+    navigate('/receive-lightning', { state });
+  };
+
+  const handleSendLightningOnLiquid = () => {
+    let chosenNetwork: typeof NETWORK_LIQUIDTESTNET | typeof NETWORK_LIQUID = NETWORK_LIQUID; // default - mainnet
+
+    if (network === NETWORK_LIGHTNINGTESTNET) {
+      chosenNetwork = NETWORK_LIQUIDTESTNET;
+    }
+
+    const state: SendLightningProps = { network: chosenNetwork };
+    navigate('/send-lightning', { state });
+  };
+
+  const handleSwapClick = () => {
+    setShowSwapInterface(true);
   };
 
   return (
@@ -103,35 +134,7 @@ const Home: React.FC = () => {
         </div>
       ) : null}
 
-      {isTestnet ? (
-        <div style={{ color: 'darkred', width: '100%', marginBottom: '15px' }}>
-          <span style={{ fontSize: 14 }}>Testnet. Coins have no value</span>
-        </div>
-      ) : null}
-      <h1>
-        <span id="home-balance">{balance ? formatBalance(balance, getDecimalsByNetwork(network), 8) : ''}</span> {getTickerByNetwork(network)}
-        {fiatOnRamp?.[network]?.canBuyWithFiat ? (
-          <span style={{ paddingLeft: '15px' }}>
-            <Button
-              onClick={() => {
-                BackgroundCaller.getAddress(network, accountNumber).then((addressResponse) => {
-                  if (addressResponse) {
-                    window.open(`https://layerztec.github.io/website/onramp/?address=${addressResponse}&network=${network}`, '_blank');
-                  }
-                });
-              }}
-            >
-              <ShoppingCartIcon /> Buy
-            </Button>
-          </span>
-        ) : null}
-        <div style={{ width: '100%', marginBottom: '15px' }}>
-          <span style={{ fontSize: 14 }}>{balance && +balance > 0 && exchangeRate ? '$' + formatFiatBalance(balance, getDecimalsByNetwork(network), exchangeRate) : ''}</span>
-        </div>
-      </h1>
-      <h3>
-        <span id="pocket-balance">Pocket balance: {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : ''}</span> {getTickerByNetwork(NETWORK_BITCOIN)}
-      </h3>
+      <BalanceView network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />
 
       {showSwapInterface ? (
         <SwapInterfaceView />
@@ -144,21 +147,57 @@ const Home: React.FC = () => {
 
       <br />
       <br />
-      <Button onClick={handleSend}>
-        <SendIcon />
-        Send
-      </Button>
-      <Button onClick={handleReceive}>
-        <ArrowDownRightIcon />
-        Receive
-      </Button>
+
+      {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
+        <ActionPopupButton
+          actions={[
+            {
+              label: 'Send via Spark',
+              onClick: handleSendLightningOnSpark,
+            },
+            {
+              label: 'Send via Liquid',
+              onClick: handleSendLightningOnLiquid,
+            },
+            { label: 'Cancel', onClick: () => {} },
+          ]}
+        >
+          <SendIcon />
+          Send
+        </ActionPopupButton>
+      ) : (
+        <Button onClick={handleSend}>
+          <SendIcon />
+          Send
+        </Button>
+      )}
+
+      {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
+        <ActionPopupButton
+          actions={[
+            {
+              label: 'Receive on Spark',
+              onClick: handleReceiveLightningOnSpark,
+            },
+            {
+              label: 'Receive on Liquid',
+              onClick: handleReceiveLightningOnLiquid,
+            },
+            { label: 'Cancel', onClick: () => {} },
+          ]}
+        >
+          <ArrowDownRightIcon />
+          Receive
+        </ActionPopupButton>
+      ) : (
+        <Button onClick={handleReceive}>
+          <ArrowDownRightIcon />
+          Receive
+        </Button>
+      )}
 
       {swapPairs.length > 0 ? (
-        <Button
-          onClick={() => {
-            setShowSwapInterface(true);
-          }}
-        >
+        <Button onClick={handleSwapClick}>
           <RefreshCwIcon /> Swap
         </Button>
       ) : null}
