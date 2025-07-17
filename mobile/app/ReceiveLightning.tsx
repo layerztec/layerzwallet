@@ -210,7 +210,7 @@ export default function ReceiveLightningScreen() {
   // Handle payment received
   if (isInvoicePaid) {
     return (
-      <GradientScreen>
+      <GradientScreen variant={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title={'Received on ' + capitalizeFirstLetter(network)} />
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -228,7 +228,7 @@ export default function ReceiveLightningScreen() {
   }
 
   return (
-    <GradientScreen>
+    <GradientScreen variant={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title={'Receive Lightning on ' + capitalizeFirstLetter(network)} />
 

@@ -2,12 +2,12 @@ import type { AssetBalance, PrepareSendRequest, PrepareSendResponse } from '@bre
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
+import GradientScreen from '@/components/GradientScreen';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -186,28 +186,30 @@ const SendLiquid = () => {
 
   if (isSuccess) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <Stack.Screen options={{ title: 'Send Liquid', headerShown: true }} />
-        <ThemedView style={styles.successContainer}>
+      <GradientScreen variant={network}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ScreenHeader title="Send Liquid" />
+        <View style={styles.successContainer}>
           <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
           <ThemedText style={styles.successText}>Transaction Sent!</ThemedText>
           <TouchableOpacity style={styles.button} onPress={() => router.back()}>
             <ThemedText style={styles.buttonText}>Back to Wallet</ThemedText>
           </TouchableOpacity>
-        </ThemedView>
-      </SafeAreaView>
+        </View>
+      </GradientScreen>
     );
   }
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <Stack.Screen options={{ title: 'Send Liquid', headerShown: true }} />
-        <ThemedView style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+      <GradientScreen variant={network}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ScreenHeader title="Send Liquid" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
           <ThemedText style={styles.loadingText}>Loading asset...</ThemedText>
-        </ThemedView>
-      </SafeAreaView>
+        </View>
+      </GradientScreen>
     );
   }
 
@@ -218,30 +220,31 @@ const SendLiquid = () => {
     }
 
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <Stack.Screen options={{ title: 'Confirm Transaction', headerShown: true }} />
+      <GradientScreen variant={network}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ScreenHeader title="Confirm Transaction" />
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <ThemedView style={styles.contentContainer}>
+          <View style={styles.contentContainer}>
             <ThemedText style={styles.subtitle}>Transaction Details</ThemedText>
 
-            <ThemedView style={styles.detailRow}>
+            <View style={styles.detailRow}>
               <ThemedText style={styles.detailLabel}>Amount:</ThemedText>
               <ThemedText style={styles.detailValue}>
                 {formatBalance(prepareResult.destination.addressData.amountSat!.toString(), 8, 8)} {selectedAsset?.ticker}
               </ThemedText>
-            </ThemedView>
+            </View>
 
-            <ThemedView style={styles.detailRow}>
+            <View style={styles.detailRow}>
               <ThemedText style={styles.detailLabel}>Fee:</ThemedText>
               <ThemedText style={styles.detailValue}>{formatBalance((prepareResult.feesSat || 0).toString(), 8, 8)} sats</ThemedText>
-            </ThemedView>
+            </View>
 
-            <ThemedView>
+            <View>
               <ThemedText style={styles.detailLabel}>To Address:</ThemedText>
               <ThemedText style={styles.detailValue} numberOfLines={3}>
                 {prepareResult.destination.addressData.address}
               </ThemedText>
-            </ThemedView>
+            </View>
 
             <LongPressButton
               style={styles.sendButton}
@@ -256,52 +259,53 @@ const SendLiquid = () => {
             <TouchableOpacity style={[styles.button, styles.cancelButton, isSending && styles.disabledButton]} onPress={() => setShowConfirm(false)} disabled={isSending}>
               <ThemedText style={styles.buttonText}>Cancel</ThemedText>
             </TouchableOpacity>
-          </ThemedView>
+          </View>
         </ScrollView>
-      </SafeAreaView>
+      </GradientScreen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <Stack.Screen options={{ title: 'Send Liquid', headerShown: true }} />
+    <GradientScreen variant={network}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title="Send Liquid" />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <ThemedView style={styles.contentContainer}>
-          <ThemedView style={[styles.networkBar, { backgroundColor: '#3498db' }]}>
+        <View style={styles.contentContainer}>
+          <View style={[styles.networkBar, { backgroundColor: '#3498db' }]}>
             <ThemedText style={styles.networkText}>{network?.toUpperCase()} LIQUID</ThemedText>
-          </ThemedView>
+          </View>
 
           {selectedAsset && (
-            <ThemedView style={styles.assetInfo}>
+            <View style={styles.assetInfo}>
               <ThemedText style={styles.subtitle}>Sending {getAssetName(selectedAsset)}</ThemedText>
               {selectedAsset.name && <ThemedText style={styles.assetFullName}>({selectedAsset.name})</ThemedText>}
               <ThemedText style={styles.assetBalance}>
                 Available: {formatBalance(selectedAsset.balanceSat.toString(), 8, 8)} {selectedAsset.ticker}
               </ThemedText>
-            </ThemedView>
+            </View>
           )}
 
           <ThemedText style={styles.inputLabel}>Recipient Address</ThemedText>
-          <ThemedView style={styles.addressInputContainer}>
+          <View style={styles.addressInputContainer}>
             <TextInput
               style={[styles.input, styles.addressInput]}
               placeholder="Enter Liquid address"
-              placeholderTextColor="#888"
+              placeholderTextColor="rgba(255, 255, 255, 0.6)"
               value={address}
               onChangeText={handleAddressChange}
               autoCapitalize="none"
               autoCorrect={false}
             />
             <TouchableOpacity style={styles.scanButton} onPress={handleScanQR}>
-              <Ionicons name="scan-outline" size={24} color="#000" />
+              <Ionicons name="qr-code-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
             </TouchableOpacity>
-          </ThemedView>
+          </View>
 
           <ThemedText style={styles.inputLabel}>Amount</ThemedText>
           <TextInput
             style={styles.input}
             placeholder={`Enter amount in ${selectedAsset?.ticker || ''}`}
-            placeholderTextColor="#888"
+            placeholderTextColor="rgba(255, 255, 255, 0.6)"
             value={amount}
             onChangeText={handleAmountChange}
             keyboardType="decimal-pad"
@@ -312,86 +316,84 @@ const SendLiquid = () => {
           <TouchableOpacity style={[styles.button, isSending && styles.disabledButton]} onPress={handleSend} disabled={isSending}>
             <ThemedText style={styles.buttonText}>{isSending ? 'Preparing...' : 'Prepare'}</ThemedText>
           </TouchableOpacity>
-        </ThemedView>
+        </View>
       </ScrollView>
-    </SafeAreaView>
+    </GradientScreen>
   );
 };
 
 export default SendLiquid;
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
   scrollContent: {
     flexGrow: 1,
+    paddingHorizontal: 16,
   },
   contentContainer: {
     flex: 1,
-    padding: 20,
   },
   networkBar: {
-    marginBottom: 20,
+    marginBottom: 30,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
     alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(52, 152, 219, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 152, 219, 0.4)',
   },
   networkText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: 'white',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   subtitle: {
-    fontSize: 18,
     marginBottom: 15,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   assetInfo: {
-    marginBottom: 20,
+    marginBottom: 30,
     padding: 15,
-    borderRadius: 10,
-    backgroundColor: '#f8f9fa',
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   assetFullName: {
-    fontSize: 14,
-    color: '#888',
+    color: 'rgba(255, 255, 255, 0.6)',
     marginBottom: 5,
   },
   assetBalance: {
-    fontSize: 14,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   inputLabel: {
-    fontSize: 16,
-    marginBottom: 8,
+    marginBottom: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
     padding: 12,
-    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
     marginBottom: 20,
   },
   errorText: {
-    color: 'red',
+    color: '#ff4444',
     marginBottom: 15,
   },
   button: {
-    backgroundColor: '#3498db',
+    backgroundColor: '#000000',
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 16,
     alignItems: 'center',
     marginTop: 10,
   },
   disabledButton: {
-    backgroundColor: '#ccc',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   loadingContainer: {
     flex: 1,
@@ -400,18 +402,16 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   successContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    marginTop: 100,
   },
   successText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#4CAF50',
+    color: 'rgba(255, 255, 255, 0.9)',
     marginTop: 20,
     marginBottom: 30,
   },
@@ -421,46 +421,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   detailLabel: {
-    fontSize: 16,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   detailValue: {
-    fontSize: 16,
-    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   cancelButton: {
-    backgroundColor: '#e74c3c',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     marginTop: 10,
   },
   addressInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
+    gap: 12,
   },
   addressInput: {
     flex: 1,
-    marginRight: 10,
   },
   scanButton: {
-    padding: 12,
+    width: 50,
+    height: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: -20,
   },
   sendButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#000000',
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 16,
     alignItems: 'center',
     marginTop: 10,
   },
   sendButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
 });
