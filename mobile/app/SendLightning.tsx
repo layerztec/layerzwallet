@@ -1,16 +1,16 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import BigNumber from 'bignumber.js';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
+import React, { useContext, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
 import * as bolt11 from 'bolt11';
-import BigNumber from 'bignumber.js';
 
+import GradientScreen from '@/components/GradientScreen';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
+import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BITCOIN, Networks } from '@shared/types/networks';
 import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
@@ -128,248 +128,289 @@ const SendLightning: React.FC = () => {
 
   if (sendState === 'success') {
     return (
-      <SafeAreaView style={styles.container}>
-        <ThemedView style={styles.successContainer}>
-          <ThemedText style={styles.successIcon}>✓</ThemedText>
-          <ThemedText style={styles.successTitle}>Sent!</ThemedText>
-          <ThemedText style={styles.successAmount}>{amountToSend ? formatBalance(amountToSend, 8, 8) : ''} sats have been sent</ThemedText>
+      <GradientScreen variant={network}>
+        <ScreenHeader title="Send Lightning" />
+        <View style={styles.successContainer}>
+          <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
+          <ThemedText style={styles.successMessage}>Payment Sent!</ThemedText>
+          <ThemedText style={styles.successSubMessage}>{amountToSend ? formatBalance(amountToSend, 8, 8) : ''} sats</ThemedText>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
           </TouchableOpacity>
-        </ThemedView>
-      </SafeAreaView>
+        </View>
+      </GradientScreen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ title: `Send Lightning on ${capitalizeFirstLetter(network)}`, headerShown: true }} />
-      <ThemedView style={styles.content}>
-        <ThemedView style={styles.inputSection}>
-          <ThemedText style={styles.inputLabel}>Lightning Invoice</ThemedText>
-          <ThemedView style={styles.invoiceInputContainer}>
-            <TextInput style={styles.input} placeholder="Enter the Lightning invoice" placeholderTextColor="#999" onChangeText={onInvoiceInput} value={invoice} multiline />
-            <TouchableOpacity style={styles.scanButton} onPress={handleQRScan}>
-              <Ionicons name="scan-outline" size={24} color="#007AFF" />
+    <GradientScreen variant={network}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title="Send Lightning" />
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.contentContainer}>
+          {/* Network Badge */}
+          <View style={styles.networkBadge}>
+            <Ionicons name="flash" size={16} color="rgba(255, 255, 255, 0.9)" />
+            <ThemedText style={styles.networkText}>{network?.toUpperCase()} LIGHTNING</ThemedText>
+          </View>
+
+          {/* Error Display */}
+          {error ? (
+            <View style={styles.errorContainer}>
+              <Ionicons name="warning" size={20} color="#ff4444" />
+              <ThemedText style={styles.errorText}>{error}</ThemedText>
+            </View>
+          ) : null}
+
+          {/* Invoice Input Section */}
+          <View style={styles.inputSection}>
+            <ThemedText style={styles.inputLabel}>Lightning Invoice</ThemedText>
+            <View style={styles.invoiceContainer}>
+              <TextInput
+                style={styles.invoiceInput}
+                placeholder="Paste Lightning invoice here..."
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                onChangeText={onInvoiceInput}
+                value={invoice}
+                multiline
+                textAlignVertical="top"
+              />
+              <TouchableOpacity style={styles.scanButton} onPress={handleQRScan}>
+                <Ionicons name="qr-code-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Loading Display */}
+          {sendState === 'preparing' || sendState === 'sending' ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" />
+              <ThemedText style={styles.loadingText}>{sendState === 'preparing' ? 'Preparing payment...' : 'Sending payment...'}</ThemedText>
+            </View>
+          ) : null}
+
+          {/* Payment Details */}
+          {invoice && amountToSend && sendState === 'idle' ? (
+            <View style={styles.detailsContainer}>
+              <ThemedText style={styles.detailsTitle}>Payment Details</ThemedText>
+
+              <View style={styles.detailRow}>
+                <ThemedText style={styles.detailLabel}>Amount:</ThemedText>
+                <ThemedText style={styles.detailValue}>
+                  {amountToSend ? formatBalance(amountToSend, getDecimalsByNetwork(NETWORK_BITCOIN)) : ''} {getTickerByNetwork(NETWORK_BITCOIN)}
+                </ThemedText>
+              </View>
+
+              {feeSats !== null && (
+                <View style={styles.detailRow}>
+                  <ThemedText style={styles.detailLabel}>Fee:</ThemedText>
+                  <ThemedText style={styles.detailValue}>up to {feeSats} sats</ThemedText>
+                </View>
+              )}
+            </View>
+          ) : null}
+
+          {/* Verify Button */}
+          {sendState === 'idle' && invoice && amountToSend && (
+            <TouchableOpacity style={[styles.verifyButton]} onPress={prepareTransaction}>
+              <Ionicons name="flash" size={20} color="rgba(255, 255, 255, 0.8)" />
+              <ThemedText style={styles.verifyButtonText}>Send Payment</ThemedText>
             </TouchableOpacity>
-          </ThemedView>
-        </ThemedView>
+          )}
 
-        {error && (
-          <ThemedView style={styles.errorContainer}>
-            <ThemedText style={styles.errorText}>{error}</ThemedText>
-          </ThemedView>
-        )}
+          {/* Confirm Payment */}
+          {sendState === 'prepared' && (
+            <View style={styles.confirmContainer}>
+              <LongPressButton
+                style={styles.confirmButton}
+                textStyle={styles.confirmButtonText}
+                onLongPressComplete={sendPayment}
+                title="Hold to send payment"
+                progressColor="rgba(255, 255, 255, 0.3)"
+                backgroundColor="#000000"
+              />
 
-        {sendState === 'preparing' || sendState === 'sending' ? (
-          <ThemedView style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#007AFF" />
-            <ThemedText style={styles.loadingText}>loading...</ThemedText>
-          </ThemedView>
-        ) : null}
-
-        {invoice && amountToSend && (
-          <ThemedView style={styles.detailsContainer}>
-            <ThemedText style={styles.detailsTitle}>Payment Details</ThemedText>
-            <ThemedView style={styles.detailsRow}>
-              <ThemedText style={styles.detailsLabel}>Amount:</ThemedText>
-              <ThemedText style={styles.detailsValue}>
-                {amountToSend ? formatBalance(amountToSend, getDecimalsByNetwork(NETWORK_BITCOIN)) : ''} {getTickerByNetwork(NETWORK_BITCOIN)}
-              </ThemedText>
-            </ThemedView>
-            {feeSats !== null && (
-              <ThemedView style={styles.detailsRow}>
-                <ThemedText style={styles.detailsLabel}>Fee:</ThemedText>
-                <ThemedText style={styles.detailsValue}>up to {feeSats} sats</ThemedText>
-              </ThemedView>
-            )}
-          </ThemedView>
-        )}
-
-        {sendState === 'idle' && (
-          <TouchableOpacity style={styles.payButton} onPress={prepareTransaction}>
-            <ThemedText style={styles.payIcon}>⚡</ThemedText>
-            <ThemedText style={styles.payButtonText}>Send</ThemedText>
-          </TouchableOpacity>
-        )}
-
-        {sendState === 'prepared' && (
-          <ThemedView style={styles.confirmContainer}>
-            <LongPressButton
-              style={styles.payButton}
-              textStyle={styles.payButtonText}
-              onLongPressComplete={sendPayment}
-              title="Hold to send payment"
-              progressColor="#FFFFFF"
-              backgroundColor="#FF9500"
-            />
-
-            <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
-              <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
-            </TouchableOpacity>
-          </ThemedView>
-        )}
-      </ThemedView>
-    </SafeAreaView>
+              <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
+                <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    </GradientScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
+  },
+  contentContainer: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    padding: 20,
+  networkBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255, 149, 0, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 149, 0, 0.4)',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 30,
+    gap: 6,
   },
-  headline: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+  networkText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
   },
   inputSection: {
-    marginBottom: 20,
+    marginBottom: 30,
   },
   inputLabel: {
-    fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
-  invoiceInputContainer: {
+  invoiceContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    gap: 12,
   },
-  input: {
+  invoiceInput: {
     flex: 1,
-    minHeight: 100,
-    maxHeight: 150,
+    minHeight: 120,
+    maxHeight: 160,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    fontSize: 16,
-    textAlignVertical: 'top',
-    marginRight: 10,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   scanButton: {
     width: 50,
-    height: 40,
+    height: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: '#282c34',
-    borderRadius: 5,
-    justifyContent: 'center',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
     alignItems: 'center',
-    backgroundColor: 'white',
-  },
-  scanIcon: {
-    fontSize: 20,
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
   },
   errorContainer: {
-    marginBottom: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 68, 68, 0.3)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+    gap: 8,
   },
   errorText: {
-    color: 'red',
-    fontSize: 16,
+    color: '#ff4444',
+    flex: 1,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 20,
+    gap: 10,
   },
   loadingText: {
-    marginLeft: 10,
-    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   detailsContainer: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 20,
   },
   detailsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
-  detailsRow: {
+  detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  detailsLabel: {
-    fontSize: 16,
-    color: '#666',
+  detailLabel: {
+    color: 'rgba(255, 255, 255, 0.7)',
   },
-  detailsValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  detailValue: {
+    color: 'rgba(255, 255, 255, 0.9)',
   },
-  payButton: {
-    backgroundColor: '#FF9500',
-    borderRadius: 8,
-    height: 50,
+  verifyButton: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    justifyContent: 'center',
+    backgroundColor: '#000000',
+    paddingVertical: 16,
+    borderRadius: 16,
+    marginTop: 'auto',
+    marginBottom: 20,
+    gap: 8,
   },
-  payIcon: {
-    marginRight: 10,
-    fontSize: 20,
-  },
-  payButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+  verifyButtonText: {
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   confirmContainer: {
-    marginTop: 20,
+    marginTop: 'auto',
+  },
+  confirmButton: {
+    backgroundColor: '#000000',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  confirmButtonText: {
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   cancelButton: {
-    marginTop: 15,
     alignItems: 'center',
+    paddingVertical: 12,
   },
   cancelButtonText: {
-    color: 'gray',
-    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
     textDecorationLine: 'underline',
   },
   successContainer: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    alignItems: 'center',
+    marginTop: 100,
   },
-  successIcon: {
-    color: '#4CAF50',
-    fontSize: 48,
-    marginBottom: 20,
-  },
-  successTitle: {
-    color: '#4CAF50',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  successAmount: {
-    color: '#666',
-    fontSize: 18,
-    marginBottom: 30,
+  successMessage: {
+    marginTop: 20,
+    marginBottom: 10,
     textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  successSubMessage: {
+    marginBottom: 40,
+    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   backButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    height: 50,
-    width: '100%',
-    justifyContent: 'center',
+    backgroundColor: '#000000',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    width: '80%',
     alignItems: 'center',
   },
   backButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
 });
 

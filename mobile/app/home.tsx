@@ -158,7 +158,7 @@ export default function HomeScreen() {
   ];
 
   return (
-    <GradientScreen>
+    <GradientScreen variant={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerContainer}>
@@ -216,7 +216,7 @@ export default function HomeScreen() {
           <View style={styles.buttonContainer}>
             <View style={styles.buttonRow}>
               {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
-                <ActionPopupButton actions={getLightningReceiveActions()} testID="ReceiveButton">
+                <ActionPopupButton actions={getLightningReceiveActions()} testID="ReceiveButton" style={[styles.button, styles.receiveButton]}>
                   <ThemedText style={styles.buttonText}>
                     <Ionicons name="arrow-down" size={16} color="white" /> Receive
                   </ThemedText>
@@ -228,7 +228,7 @@ export default function HomeScreen() {
               )}
 
               {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
-                <ActionPopupButton actions={getLightningSendActions()} testID="SendButton">
+                <ActionPopupButton actions={getLightningSendActions()} testID="SendButton" style={[styles.button, styles.sendButton]}>
                   <ThemedText style={styles.buttonText}>
                     <Ionicons name="arrow-up" size={16} color="white" /> Send
                   </ThemedText>
