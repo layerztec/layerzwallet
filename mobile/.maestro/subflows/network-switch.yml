@@ -1,23 +1,36 @@
 appId: com.layerzwallet.mobile
 ---
 # Dynamic network switch test that uses the NETWORK environment variable
-- tapOn:
-    id: 'NetworkSwitcherTrigger'
-- waitForAnimationToEnd
-- waitForAnimationToEnd
+# fot the ios we use backdoor network switcher, because of the maestro issues
 
-- repeat:
-    while:
-      notVisible:
-        id: ${'selectedNetwork-' + NETWORK}
+- runFlow:
+    when:
+      platform: ios
     commands:
-      - swipe:
-          start: 50%,80%
-          end: 50%,65%
+      - longPressOn:
+          id: BackdoorNetworkSwitcher
+      - waitForAnimationToEnd
+      - tapOn:
+          id: ${'backdoor-network-' + NETWORK}
 
-- tapOn:
-    id: ${'network-' + NETWORK}
-- waitForAnimationToEnd
-- waitForAnimationToEnd
+- runFlow:
+    when:
+      platform: android
+    commands:
+      - tapOn:
+          id: NetworkSwitcherTrigger
+      - waitForAnimationToEnd
+      - repeat:
+          while:
+            notVisible:
+              id: ${'activeNetwork-' + NETWORK}
+          commands:
+            - swipe:
+                start: 50%,80%
+                end: 50%,65%
+      - tapOn:
+          id: ${'network-' + NETWORK}
+      - waitForAnimationToEnd
+
 - assertVisible:
     id: ${'selectedNetwork-' + NETWORK}

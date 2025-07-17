@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import React, { useContext, useRef, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, ScrollView, ActivityIndicator, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 
+import GradientScreen from '@/components/GradientScreen';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -17,7 +18,6 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { NETWORK_SPARK } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
@@ -104,257 +104,282 @@ const SendArk = () => {
 
   if (isSuccess) {
     return (
-      <SafeAreaView style={styles.container}>
-        <ThemedView style={styles.successContainer}>
-          <Ionicons name="checkmark-circle" size={48} color="#4CAF50" style={styles.successIcon} />
-          <ThemedText style={styles.successTitle}>Sent!</ThemedText>
+      <GradientScreen variant={network}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
+        <View style={styles.successContainer}>
+          <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
+          <ThemedText style={styles.successTitle}>Transaction Sent!</ThemedText>
           <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/home')}>
             <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
           </TouchableOpacity>
-        </ThemedView>
-      </SafeAreaView>
+        </View>
+      </GradientScreen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ThemedView style={styles.content}>
-        <ThemedText style={styles.title}>Send {getTickerByNetwork(network)}</ThemedText>
+    <GradientScreen variant={network}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
 
-        <ThemedView style={styles.inputSection}>
-          <ThemedText style={styles.inputLabel}>Recipient</ThemedText>
-          <ThemedView style={styles.addressInputContainer}>
-            <TextInput style={styles.input} testID="recipient-address-input" placeholder="Enter the recipient's address" placeholderTextColor="#999" onChangeText={setToAddress} value={toAddress} />
-            <TouchableOpacity
-              style={styles.scanButton}
-              onPress={async () => {
-                const scanned = await scanQr();
-                console.log({ scanned });
-                if (scanned) {
-                  setToAddress(scanned);
-                }
-              }}
-            >
-              <Ionicons name="scan-outline" size={24} color="#007AFF" />
-            </TouchableOpacity>
-          </ThemedView>
-        </ThemedView>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.contentContainer}>
+          <View style={styles.networkBadge}>
+            <ThemedText style={styles.networkText}>{network === NETWORK_SPARK ? 'SPARK' : 'ARK'} NETWORK</ThemedText>
+          </View>
 
-        <ThemedView style={styles.divider} />
+          {error ? (
+            <View style={styles.errorContainer}>
+              <Ionicons name="warning" size={20} color="#ff4444" />
+              <ThemedText style={styles.errorText}>{error}</ThemedText>
+            </View>
+          ) : null}
 
-        <ThemedView style={styles.inputSection}>
-          <ThemedText style={styles.inputLabel}>Amount</ThemedText>
-          <TextInput style={styles.input2} testID="amount-input" placeholder="0.00" placeholderTextColor="#999" keyboardType="numeric" onChangeText={handleAmountChange} value={amount} />
-          <ThemedText style={styles.balanceText}>
-            Available balance: {balance ? formatBalance(balance, getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
-          </ThemedText>
-        </ThemedView>
-
-        {error ? (
-          <ThemedView style={styles.errorContainer}>
-            <ThemedText style={styles.errorText}>{error}</ThemedText>
-          </ThemedView>
-        ) : null}
-
-        {isPreparing ? (
-          <ThemedView style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#007AFF" />
-            <ThemedText style={styles.loadingText}>Preparing transaction...</ThemedText>
-          </ThemedView>
-        ) : null}
-
-        {!isPreparing && !isPrepared ? (
-          <TouchableOpacity style={styles.sendButton} testID="send-screen-send-button" onPress={prepareTransaction}>
-            <Ionicons name="send" size={20} color="white" style={styles.sendIcon} />
-            <ThemedText style={styles.sendButtonText}>Send</ThemedText>
-          </TouchableOpacity>
-        ) : null}
-
-        {isPrepared ? (
-          isSending ? (
-            <ThemedView style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#007AFF" />
-              <ThemedText style={styles.loadingText}>Sending...</ThemedText>
-            </ThemedView>
-          ) : (
-            <ThemedView style={styles.confirmContainer}>
-              <LongPressButton
-                style={styles.sendButton}
-                textStyle={styles.sendButtonText}
-                onLongPressComplete={actualSend}
-                title="Hold to confirm send"
-                progressColor="#FFFFFF"
-                backgroundColor="#007AFF"
+          <View style={styles.inputSection}>
+            <ThemedText style={styles.inputLabel}>Recipient</ThemedText>
+            <View style={styles.addressInputContainer}>
+              <TextInput
+                style={styles.input}
+                testID="recipient-address-input"
+                placeholder="Enter the recipient's address"
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                onChangeText={setToAddress}
+                value={toAddress}
               />
-
               <TouchableOpacity
-                onPress={() => {
-                  setIsPreparing(false);
-                  setIsPrepared(false);
+                style={styles.scanButton}
+                onPress={async () => {
+                  const scanned = await scanQr();
+                  console.log({ scanned });
+                  if (scanned) {
+                    setToAddress(scanned);
+                  }
                 }}
-                style={styles.cancelButton}
               >
-                <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
+                <Ionicons name="qr-code-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
               </TouchableOpacity>
-            </ThemedView>
-          )
-        ) : null}
-      </ThemedView>
-    </SafeAreaView>
+            </View>
+          </View>
+
+          <View style={styles.inputSection}>
+            <ThemedText style={styles.inputLabel}>Amount</ThemedText>
+            <TextInput
+              style={styles.input2}
+              testID="amount-input"
+              placeholder="0.00"
+              placeholderTextColor="rgba(255, 255, 255, 0.6)"
+              keyboardType="numeric"
+              onChangeText={handleAmountChange}
+              value={amount}
+            />
+            <ThemedText style={styles.balanceText}>
+              Available balance: {balance ? formatBalance(balance, getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
+            </ThemedText>
+          </View>
+
+          {isPreparing ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" />
+              <ThemedText style={styles.loadingText}>Preparing transaction...</ThemedText>
+            </View>
+          ) : null}
+
+          {!isPreparing && !isPrepared ? (
+            <TouchableOpacity style={styles.sendButton} testID="send-screen-send-button" onPress={prepareTransaction}>
+              <Ionicons name="send" size={20} color="rgba(255, 255, 255, 0.8)" style={styles.sendIcon} />
+              <ThemedText style={styles.sendButtonText}>Send</ThemedText>
+            </TouchableOpacity>
+          ) : null}
+
+          {isPrepared ? (
+            isSending ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" />
+                <ThemedText style={styles.loadingText}>Sending...</ThemedText>
+              </View>
+            ) : (
+              <View style={styles.confirmContainer}>
+                <LongPressButton
+                  style={styles.sendButton}
+                  textStyle={styles.sendButtonText}
+                  onLongPressComplete={actualSend}
+                  title="Hold to confirm send"
+                  progressColor="#FFFFFF"
+                  backgroundColor="#007AFF"
+                />
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setIsPreparing(false);
+                    setIsPrepared(false);
+                  }}
+                  style={styles.cancelButton}
+                >
+                  <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
+                </TouchableOpacity>
+              </View>
+            )
+          ) : null}
+        </View>
+      </ScrollView>
+    </GradientScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
+  },
+  contentContainer: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    padding: 20,
+  networkBadge: {
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255, 69, 0, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 69, 0, 0.4)',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 30,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+  networkText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
+    textAlign: 'center',
   },
   inputSection: {
-    marginBottom: 20,
+    marginBottom: 30,
   },
   inputLabel: {
-    fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   addressInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
   },
   input: {
     flex: 1,
     height: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    fontSize: 16,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   input2: {
     height: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    fontSize: 16,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   scanButton: {
-    marginLeft: 10,
     width: 50,
     height: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#ddd',
-    marginVertical: 20,
-  },
   balanceText: {
-    fontSize: 14,
-    color: 'gray',
+    color: 'rgba(255, 255, 255, 0.6)',
     marginTop: 8,
   },
   errorContainer: {
-    marginBottom: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 68, 68, 0.3)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+    gap: 8,
   },
   errorText: {
-    color: 'red',
-    fontSize: 16,
+    color: '#ff4444',
+    flex: 1,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 20,
+    gap: 10,
   },
   loadingText: {
-    marginLeft: 10,
-    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   sendButton: {
-    backgroundColor: '#FF3B30',
-    borderRadius: 8,
+    backgroundColor: '#000000',
+    borderRadius: 16,
     height: 50,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
+    gap: 8,
   },
   sendIcon: {
-    marginRight: 10,
+    marginRight: 0,
   },
   sendButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   confirmContainer: {
     marginTop: 20,
   },
   confirmButton: {
-    backgroundColor: '#FF3B30',
-    borderRadius: 8,
+    backgroundColor: '#000000',
+    borderRadius: 16,
     height: 50,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
   confirmButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   cancelButton: {
     marginTop: 15,
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: 'gray',
-    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
     textDecorationLine: 'underline',
   },
   successContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
-  },
-  successIcon: {
-    marginBottom: 20,
+    marginTop: 100,
   },
   successTitle: {
-    color: '#4CAF50',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  successMessage: {
-    color: '#666',
-    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 20,
     marginBottom: 30,
+    textAlign: 'center',
   },
   backButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    height: 50,
-    width: '100%',
-    justifyContent: 'center',
+    backgroundColor: '#000000',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    width: '80%',
     alignItems: 'center',
   },
   backButtonText: {
-    color: 'white',
-    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: 'bold',
   },
 });

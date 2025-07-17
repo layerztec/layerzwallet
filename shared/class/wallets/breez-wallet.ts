@@ -110,7 +110,7 @@ export class BreezWallet implements InterfaceLightningWallet {
     const prepareResponse = await this.prepareSendPayment(prepareSendRequest);
 
     if (prepareResponse?.feesSat && prepareResponse.feesSat > (decoded.satoshis / 100) * maxFeePercentage) {
-      throw new Error(`Potential fees to pay this invoice are more than ${maxFeePercentage}%`);
+      throw new Error(`Potential fees to pay this invoice are more than ${maxFeePercentage}% (${prepareResponse?.feesSat} sat)`);
     }
 
     const sendRequest: SendPaymentRequest = {

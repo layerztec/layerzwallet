@@ -4,6 +4,8 @@
 let Buffer = require('buffer/').Buffer;
 global.Buffer = Buffer;
 
+import 'react-native-get-random-values';
+
 // should be last
 // @see https://docs.expo.dev/router/installation/
 import 'expo-router/entry';

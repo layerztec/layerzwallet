@@ -1,365 +1,416 @@
-import { PrepareSendRequest, PrepareSendResponse, SendPaymentRequest } from '@breeztech/breez-sdk-liquid';
 import BigNumber from 'bignumber.js';
-import { Stack } from 'expo-router';
-import React, { useContext, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
+import React, { useContext, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
+import * as bolt11 from 'bolt11';
 
+import GradientScreen from '@/components/GradientScreen';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { formatBalance } from '@shared/modules/string-utils';
+import { NETWORK_BITCOIN, Networks } from '@shared/types/networks';
 import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { WalletFactory } from '@shared/class/wallet-factory';
+import { TLightningWallet } from '@shared/types/TWallet';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
 
-const SendLightning = () => {
+export type SendLightningProps = {
+  network: Networks;
+};
+
+const maxFeePercent = 1; // hardcoded at the moment. might give user option to adjust later
+
+const SendLightning: React.FC = () => {
+  const params = useLocalSearchParams<SendLightningProps>();
+  const network = params.network;
   const { scanQr } = useContext(ScanQrContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
   const navigation = useNavigation();
   const [invoice, setInvoice] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const [isPreparing, setIsPreparing] = useState<boolean>(false);
-  const [isPrepared, setIsPrepared] = useState<boolean>(false);
-  const [isSuccess, setIsSuccess] = useState<boolean>(false);
-  const [preparedResponse, setPreparedResponse] = useState<PrepareSendResponse | null>(null);
+  const [sendState, setSendState] = useState<'idle' | 'preparing' | 'prepared' | 'sending' | 'success'>('idle');
   const [feeSats, setFeeSats] = useState<number | null>(null);
   const [amountToSend, setAmountToSend] = useState<string>('');
-  const network = useContext(NetworkContext).network as typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET;
   const { accountNumber } = useContext(AccountNumberContext);
-  const breezWallet = useRef<BreezWallet | null>(null);
+  const walletRef = useRef<TLightningWallet | null>(null);
 
-  const handleInvoiceChange = (text: string) => {
-    setInvoice(text);
-    setError('');
-  };
-
-  const prepareTransaction = async () => {
-    setIsPreparing(true);
-    setError('');
+  const onInvoiceInput = async (scanned: string) => {
+    setInvoice(scanned);
     try {
-      // Validate invoice
-      if (!invoice || invoice.trim() === '') {
-        throw new Error('Please enter a valid Lightning invoice');
-      }
+      const decoded = bolt11.decode(scanned.trim());
+      setAmountToSend(String(decoded.satoshis));
 
-      const mnemonic = await BackgroundExecutor.getSubMnemonic(accountNumber);
-      const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
-      breezWallet.current = wallet;
-
-      // Prepare the payment
-      const prepareSendRequest: PrepareSendRequest = {
-        destination: invoice.trim(),
-      };
-      const prepareResponse = await wallet.prepareSendPayment(prepareSendRequest);
-      setPreparedResponse(prepareResponse);
-
-      // Extract fee
-      setFeeSats(prepareResponse.feesSat || 0);
-
-      // Extract amount information from the destination
-      if (prepareResponse.destination.type === 'bolt11' && prepareResponse.destination.invoice.amountMsat) {
-        const msat = new BigNumber(prepareResponse.destination.invoice.amountMsat);
-        const satAmount = msat.dividedBy(1000).integerValue(BigNumber.ROUND_FLOOR);
-        setAmountToSend(satAmount.toString());
-      } else {
+      if (!decoded.satoshis) {
         throw new Error('Could not determine payment amount from invoice');
       }
 
-      setIsPrepared(true);
+      const feeBN = new BigNumber(decoded.satoshis).dividedBy(100).multipliedBy(maxFeePercent).toNumber();
+      setFeeSats(Math.max(Math.round(feeBN), 1));
+      setError('');
     } catch (error: any) {
-      console.error('Prepare transaction error:', error);
-      setError(error.message);
-    } finally {
-      setIsPreparing(false);
-    }
-  };
-
-  const sendPayment = async () => {
-    try {
-      if (!breezWallet.current || !preparedResponse) {
-        throw new Error('Transaction not properly prepared');
-      }
-
-      await askMnemonic(); // verify password
-      const sendRequest: SendPaymentRequest = {
-        prepareResponse: preparedResponse,
-      };
-
-      const paymentResponse = await breezWallet.current.sendPayment(sendRequest);
-      console.log('Payment sent:', paymentResponse);
-      setIsSuccess(true);
-    } catch (error: any) {
-      console.error('Send payment error:', error);
       setError(error.message);
     }
   };
 
   const handleQRScan = async () => {
     const scanned = await scanQr();
-    if (scanned) {
-      setInvoice(scanned);
+    if (scanned && scanned.trim()) {
+      await onInvoiceInput(scanned.trim());
+    }
+  };
+
+  // Initialize the wallet
+  useEffect(() => {
+    const initializeWallet = async () => {
+      try {
+        walletRef.current = await WalletFactory.getInstance().getLightningWallet(network, accountNumber, BackgroundExecutor);
+      } catch (err) {
+        console.error('Failed to initialize wallet:', err);
+        setError('Failed to initialize wallet. Please try again.');
+      }
+    };
+
+    initializeWallet();
+
+    return () => {
+      walletRef.current = null;
+    };
+  }, [accountNumber, network]);
+
+  const prepareTransaction = async () => {
+    setSendState('preparing');
+    setError('');
+    try {
+      await askMnemonic(); // verify password
+
+      setSendState('prepared');
+    } catch (error: any) {
+      console.error('Prepare transaction error:', error);
+      setError(error.message);
+      setSendState('idle');
+    }
+  };
+
+  const sendPayment = async () => {
+    try {
+      if (!walletRef.current) {
+        throw new Error('Internal error: wallet not initialized');
+      }
+
+      setSendState('sending');
+      await new Promise((r) => setTimeout(r, 200)); // propagate
+
+      // Send payment
+      const paymentResponse = await walletRef.current.payLightningInvoice(invoice);
+
+      if (paymentResponse) {
+        setSendState('success');
+      } else {
+        setSendState('idle');
+        setError('Payment failed');
+      }
+    } catch (error: any) {
+      console.error('Send payment error:', error);
+      setError(error.message);
+      setSendState('idle');
     }
   };
 
   const handleCancel = () => {
-    setIsPreparing(false);
-    setIsPrepared(false);
-    setPreparedResponse(null);
+    setSendState('idle');
   };
 
-  if (isSuccess) {
+  if (sendState === 'success') {
     return (
-      <SafeAreaView style={styles.container}>
-        <ThemedView style={styles.successContainer}>
-          <Ionicons name="checkmark-circle" size={48} color="#4CAF50" style={styles.successIcon} />
-          <ThemedText style={styles.successTitle}>Payment Sent!</ThemedText>
-          <ThemedText style={styles.successAmount}>{amountToSend ? formatBalance(amountToSend, 8, 8) : ''} sats</ThemedText>
+      <GradientScreen variant={network}>
+        <ScreenHeader title="Send Lightning" />
+        <View style={styles.successContainer}>
+          <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
+          <ThemedText style={styles.successMessage}>Payment Sent!</ThemedText>
+          <ThemedText style={styles.successSubMessage}>{amountToSend ? formatBalance(amountToSend, 8, 8) : ''} sats</ThemedText>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
           </TouchableOpacity>
-        </ThemedView>
-      </SafeAreaView>
+        </View>
+      </GradientScreen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ title: `Send Lightning`, headerShown: true }} />
-      <ThemedView style={styles.content}>
-        <ThemedView style={[styles.networkBar, { backgroundColor: '#FF9500' }]}>
-          <ThemedText style={styles.networkText}>{network?.toUpperCase()} LIGHTNING</ThemedText>
-        </ThemedView>
+    <GradientScreen variant={network}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title="Send Lightning" />
 
-        <ThemedView style={styles.inputSection}>
-          <ThemedText style={styles.inputLabel}>Lightning Invoice</ThemedText>
-          <ThemedView style={styles.invoiceInputContainer}>
-            <TextInput style={styles.input} placeholder="Enter the Lightning invoice" placeholderTextColor="#999" onChangeText={handleInvoiceChange} value={invoice} multiline />
-            <TouchableOpacity style={styles.scanButton} onPress={handleQRScan}>
-              <Ionicons name="scan-outline" size={24} color="#007AFF" />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.contentContainer}>
+          {/* Network Badge */}
+          <View style={styles.networkBadge}>
+            <Ionicons name="flash" size={16} color="rgba(255, 255, 255, 0.9)" />
+            <ThemedText style={styles.networkText}>{network?.toUpperCase()} LIGHTNING</ThemedText>
+          </View>
+
+          {/* Error Display */}
+          {error ? (
+            <View style={styles.errorContainer}>
+              <Ionicons name="warning" size={20} color="#ff4444" />
+              <ThemedText style={styles.errorText}>{error}</ThemedText>
+            </View>
+          ) : null}
+
+          {/* Invoice Input Section */}
+          <View style={styles.inputSection}>
+            <ThemedText style={styles.inputLabel}>Lightning Invoice</ThemedText>
+            <View style={styles.invoiceContainer}>
+              <TextInput
+                style={styles.invoiceInput}
+                placeholder="Paste Lightning invoice here..."
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                onChangeText={onInvoiceInput}
+                value={invoice}
+                multiline
+                textAlignVertical="top"
+              />
+              <TouchableOpacity style={styles.scanButton} onPress={handleQRScan}>
+                <Ionicons name="qr-code-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Loading Display */}
+          {sendState === 'preparing' || sendState === 'sending' ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" />
+              <ThemedText style={styles.loadingText}>{sendState === 'preparing' ? 'Preparing payment...' : 'Sending payment...'}</ThemedText>
+            </View>
+          ) : null}
+
+          {/* Payment Details */}
+          {invoice && amountToSend && sendState === 'idle' ? (
+            <View style={styles.detailsContainer}>
+              <ThemedText style={styles.detailsTitle}>Payment Details</ThemedText>
+
+              <View style={styles.detailRow}>
+                <ThemedText style={styles.detailLabel}>Amount:</ThemedText>
+                <ThemedText style={styles.detailValue}>
+                  {amountToSend ? formatBalance(amountToSend, getDecimalsByNetwork(NETWORK_BITCOIN)) : ''} {getTickerByNetwork(NETWORK_BITCOIN)}
+                </ThemedText>
+              </View>
+
+              {feeSats !== null && (
+                <View style={styles.detailRow}>
+                  <ThemedText style={styles.detailLabel}>Fee:</ThemedText>
+                  <ThemedText style={styles.detailValue}>up to {feeSats} sats</ThemedText>
+                </View>
+              )}
+            </View>
+          ) : null}
+
+          {/* Verify Button */}
+          {sendState === 'idle' && invoice && amountToSend && (
+            <TouchableOpacity style={[styles.verifyButton]} onPress={prepareTransaction}>
+              <Ionicons name="flash" size={20} color="rgba(255, 255, 255, 0.8)" />
+              <ThemedText style={styles.verifyButtonText}>Send Payment</ThemedText>
             </TouchableOpacity>
-          </ThemedView>
-        </ThemedView>
+          )}
 
-        {error && (
-          <ThemedView style={styles.errorContainer}>
-            <ThemedText style={styles.errorText}>{error}</ThemedText>
-          </ThemedView>
-        )}
+          {/* Confirm Payment */}
+          {sendState === 'prepared' && (
+            <View style={styles.confirmContainer}>
+              <LongPressButton
+                style={styles.confirmButton}
+                textStyle={styles.confirmButtonText}
+                onLongPressComplete={sendPayment}
+                title="Hold to send payment"
+                progressColor="rgba(255, 255, 255, 0.3)"
+                backgroundColor="#000000"
+              />
 
-        {isPreparing && (
-          <ThemedView style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#007AFF" />
-            <ThemedText style={styles.loadingText}>Preparing transaction...</ThemedText>
-          </ThemedView>
-        )}
-
-        {isPrepared && (
-          <ThemedView style={styles.detailsContainer}>
-            <ThemedText style={styles.detailsTitle}>Payment Details</ThemedText>
-            <ThemedView style={styles.detailsRow}>
-              <ThemedText style={styles.detailsLabel}>Amount:</ThemedText>
-              <ThemedText style={styles.detailsValue}>{amountToSend ? formatBalance(amountToSend, 8, 8) : ''} sats</ThemedText>
-            </ThemedView>
-            {feeSats !== null && (
-              <ThemedView style={styles.detailsRow}>
-                <ThemedText style={styles.detailsLabel}>Fee:</ThemedText>
-                <ThemedText style={styles.detailsValue}>{feeSats} sats</ThemedText>
-              </ThemedView>
-            )}
-          </ThemedView>
-        )}
-
-        {!isPreparing && !isPrepared && (
-          <TouchableOpacity style={styles.payButton} onPress={prepareTransaction}>
-            <Ionicons name="flash" size={20} color="white" style={styles.payIcon} />
-            <ThemedText style={styles.payButtonText}>Verify Payment</ThemedText>
-          </TouchableOpacity>
-        )}
-
-        {isPrepared && (
-          <ThemedView style={styles.confirmContainer}>
-            <LongPressButton
-              style={styles.payButton}
-              textStyle={styles.payButtonText}
-              onLongPressComplete={sendPayment}
-              title="Hold to send payment"
-              progressColor="#FFFFFF"
-              backgroundColor="#FF9500"
-            />
-
-            <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
-              <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
-            </TouchableOpacity>
-          </ThemedView>
-        )}
-      </ThemedView>
-    </SafeAreaView>
+              <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
+                <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    </GradientScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
+  },
+  contentContainer: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  networkBar: {
-    marginBottom: 20,
+  networkBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255, 149, 0, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 149, 0, 0.4)',
+    borderRadius: 20,
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 20,
-    alignItems: 'center',
-    alignSelf: 'center',
+    marginBottom: 30,
+    gap: 6,
   },
   networkText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: 'white',
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
   },
   inputSection: {
-    marginBottom: 20,
+    marginBottom: 30,
   },
   inputLabel: {
-    fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
-  invoiceInputContainer: {
+  invoiceContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    gap: 12,
   },
-  input: {
+  invoiceInput: {
     flex: 1,
-    minHeight: 100,
-    maxHeight: 150,
+    minHeight: 120,
+    maxHeight: 160,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    fontSize: 16,
-    textAlignVertical: 'top',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   scanButton: {
-    marginLeft: 10,
     width: 50,
     height: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    justifyContent: 'center',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
     alignItems: 'center',
-    alignSelf: 'center',
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
   },
   errorContainer: {
-    marginBottom: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 68, 68, 0.3)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+    gap: 8,
   },
   errorText: {
-    color: 'red',
-    fontSize: 16,
+    color: '#ff4444',
+    flex: 1,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 20,
+    gap: 10,
   },
   loadingText: {
-    marginLeft: 10,
-    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   detailsContainer: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
     padding: 16,
-    marginVertical: 16,
+    marginBottom: 20,
   },
   detailsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
-  detailsRow: {
+  detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  detailsLabel: {
-    fontSize: 16,
-    color: '#666',
+  detailLabel: {
+    color: 'rgba(255, 255, 255, 0.7)',
   },
-  detailsValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  detailValue: {
+    color: 'rgba(255, 255, 255, 0.9)',
   },
-  payButton: {
-    backgroundColor: '#FF9500',
-    borderRadius: 8,
-    height: 50,
+  verifyButton: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    justifyContent: 'center',
+    backgroundColor: '#000000',
+    paddingVertical: 16,
+    borderRadius: 16,
+    marginTop: 'auto',
+    marginBottom: 20,
+    gap: 8,
   },
-  payIcon: {
-    marginRight: 10,
-  },
-  payButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+  verifyButtonText: {
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   confirmContainer: {
-    marginTop: 20,
+    marginTop: 'auto',
+  },
+  confirmButton: {
+    backgroundColor: '#000000',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  confirmButtonText: {
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   cancelButton: {
-    marginTop: 15,
     alignItems: 'center',
+    paddingVertical: 12,
   },
   cancelButtonText: {
-    color: 'gray',
-    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
     textDecorationLine: 'underline',
   },
   successContainer: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    alignItems: 'center',
+    marginTop: 100,
   },
-  successIcon: {
-    marginBottom: 20,
+  successMessage: {
+    marginTop: 20,
+    marginBottom: 10,
+    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
-  successTitle: {
-    color: '#4CAF50',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  successAmount: {
-    fontSize: 18,
-    marginBottom: 30,
+  successSubMessage: {
+    marginBottom: 40,
+    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   backButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    height: 50,
-    width: '100%',
-    justifyContent: 'center',
+    backgroundColor: '#000000',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    width: '80%',
     alignItems: 'center',
   },
   backButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
 });
 

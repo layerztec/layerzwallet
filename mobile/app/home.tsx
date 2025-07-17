@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { OnrampProps } from '@/app/Onramp';
@@ -25,6 +25,7 @@ import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SwapPair, SwapPlatform } from '@shared/types/swap';
+import { ActionPopupButton } from '@/components/ActionPopupButton';
 
 export default function HomeScreen() {
   const { network } = useContext(NetworkContext);
@@ -75,14 +76,7 @@ export default function HomeScreen() {
   };
 
   const goToReceive = () => {
-    switch (network) {
-      case NETWORK_LIGHTNING:
-      case NETWORK_LIGHTNINGTESTNET:
-        router.push('/ReceiveLightning');
-        break;
-      default:
-        router.push('/Receive');
-    }
+    router.push('/Receive');
   };
 
   const goToSend = () => {
@@ -119,8 +113,70 @@ export default function HomeScreen() {
     router.push('/DAppBrowser');
   };
 
+  const handleReceiveOnSpark = () => {
+    if (network === NETWORK_LIGHTNINGTESTNET) {
+      Alert.alert('Spark does not have a testnet');
+    } else {
+      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_SPARK } });
+    }
+  };
+
+  const handleReceiveOnLiquid = () => {
+    if (network === NETWORK_LIGHTNINGTESTNET) {
+      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_LIQUIDTESTNET } });
+    } else {
+      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_LIQUID } });
+    }
+  };
+
+  const getLightningReceiveActions = () => [
+    {
+      label: 'Receive on Spark',
+      onClick: handleReceiveOnSpark,
+    },
+    {
+      label: 'Receive on Liquid',
+      onClick: handleReceiveOnLiquid,
+    },
+    {
+      label: 'Cancel',
+      onClick: () => {},
+    },
+  ];
+
+  const handleSendViaSpark = () => {
+    if (network === NETWORK_LIGHTNINGTESTNET) {
+      Alert.alert('Spark does not have a testnet');
+    } else {
+      router.push({ pathname: '/SendLightning', params: { network: NETWORK_SPARK } });
+    }
+  };
+
+  const handleSendViaLiquid = () => {
+    if (network === NETWORK_LIGHTNINGTESTNET) {
+      router.push({ pathname: '/SendLightning', params: { network: NETWORK_LIQUIDTESTNET } });
+    } else {
+      router.push({ pathname: '/SendLightning', params: { network: NETWORK_LIQUID } });
+    }
+  };
+
+  const getLightningSendActions = () => [
+    {
+      label: 'Send via Spark',
+      onClick: handleSendViaSpark,
+    },
+    {
+      label: 'Send via Liquid',
+      onClick: handleSendViaLiquid,
+    },
+    {
+      label: 'Cancel',
+      onClick: () => {},
+    },
+  ];
+
   return (
-    <GradientScreen>
+    <GradientScreen variant={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerContainer}>
@@ -162,9 +218,9 @@ export default function HomeScreen() {
                   </View>
                 </View>
 
-                <View style={styles.actionButton}>
+                <TouchableOpacity onPress={() => router.push('/NetworkSelector')} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
                   <Ionicons name="chevron-forward" size={20} color="rgba(255, 255, 255, 0.6)" />
-                </View>
+                </TouchableOpacity>
               </View>
             </Animated.View>
           </TouchableOpacity>
@@ -197,13 +253,29 @@ export default function HomeScreen() {
         <View style={styles.contentContainer}>
           <View style={styles.buttonContainer}>
             <View style={styles.buttonRow}>
-              <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive}>
-                <ThemedText style={styles.buttonText}>Receive</ThemedText>
-              </TouchableOpacity>
+              {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
+                <ActionPopupButton actions={getLightningReceiveActions()} testID="ReceiveButton" style={[styles.button, styles.receiveButton]}>
+                  <ThemedText style={styles.buttonText}>
+                    <Ionicons name="arrow-down" size={16} color="white" /> Receive
+                  </ThemedText>
+                </ActionPopupButton>
+              ) : (
+                <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive}>
+                  <ThemedText style={styles.buttonText}>Receive</ThemedText>
+                </TouchableOpacity>
+              )}
 
-              <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
-                <ThemedText style={styles.buttonText}>Send</ThemedText>
-              </TouchableOpacity>
+              {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
+                <ActionPopupButton actions={getLightningSendActions()} testID="SendButton" style={[styles.button, styles.sendButton]}>
+                  <ThemedText style={styles.buttonText}>
+                    <Ionicons name="arrow-up" size={16} color="white" /> Send
+                  </ThemedText>
+                </ActionPopupButton>
+              ) : (
+                <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
+                  <ThemedText style={styles.buttonText}>Send</ThemedText>
+                </TouchableOpacity>
+              )}
 
               {fiatOnRamp?.[network]?.canBuyWithFiat ? (
                 <TouchableOpacity style={styles.button} onPress={goToBuyBitcoin}>
@@ -365,9 +437,6 @@ const styles = StyleSheet.create({
   },
   networkCardSubtitle: {
     color: 'rgba(255, 255, 255, 0.7)',
-  },
-  actionButton: {
-    padding: 4,
   },
   testnetWarningContainer: {
     backgroundColor: 'rgba(255, 59, 48, 0.2)',
