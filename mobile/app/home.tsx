@@ -162,9 +162,9 @@ export default function HomeScreen() {
                   </View>
                 </View>
 
-                <View style={styles.actionButton}>
+                <TouchableOpacity onPress={() => router.push('/NetworkSelector')} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
                   <Ionicons name="chevron-forward" size={20} color="rgba(255, 255, 255, 0.6)" />
-                </View>
+                </TouchableOpacity>
               </View>
             </Animated.View>
           </TouchableOpacity>
@@ -365,9 +365,6 @@ const styles = StyleSheet.create({
   },
   networkCardSubtitle: {
     color: 'rgba(255, 255, 255, 0.7)',
-  },
-  actionButton: {
-    padding: 4,
   },
   testnetWarningContainer: {
     backgroundColor: 'rgba(255, 59, 48, 0.2)',
