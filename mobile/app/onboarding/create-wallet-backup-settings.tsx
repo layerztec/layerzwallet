@@ -64,7 +64,7 @@ export default function CreateWalletBackupSettingsScreen() {
           </Animated.View>
 
           <Animated.View style={[styles.buttonSection, buttonTransition]}>
-            <View style={styles.buttonContainer}>
+            <View>
               <TouchableOpacity style={styles.button} onPress={handleCreateWallet} testID="DoThisLaterButton" disabled>
                 <View style={styles.view}>
                   <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 180, // Make room for fixed image
+    paddingTop: 180,
     paddingBottom: 20,
   },
   buttonSection: {
@@ -130,9 +130,6 @@ const styles = StyleSheet.create({
     bottom: 20,
     left: 20,
     right: 20,
-  },
-  buttonContainer: {
-    // No horizontal margin needed since buttonSection handles positioning
   },
   button: {
     backgroundColor: Colors.dark.buttonPrimary,

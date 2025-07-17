@@ -46,7 +46,7 @@ export const useHorizontalSlideOut = (direction: 'left' | 'right' = 'left') => {
   const scale = useRef(new Animated.Value(1)).current;
 
   const slideOut = (callback?: () => void) => {
-    const toValue = direction === 'left' ? -300 : 300; // Slide left for forward, right for back
+    const toValue = direction === 'left' ? -300 : 300;
     Animated.parallel([
       Animated.spring(translateX, {
         toValue,

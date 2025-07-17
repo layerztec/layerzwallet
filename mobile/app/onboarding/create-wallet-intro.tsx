@@ -11,7 +11,6 @@ import { useHorizontalSpringTransition, useSequentialSpringAnimation } from '@/h
 export default function CreateWalletIntroScreen() {
   const router = useRouter();
 
-  // Use component-level custom transitions only
   const imageTransition = useHorizontalSpringTransition(true, 'forward');
   const titleTransition = useSequentialSpringAnimation(200);
   const subtitleTransition = useSequentialSpringAnimation(400);
