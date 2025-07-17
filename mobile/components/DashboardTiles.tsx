@@ -722,11 +722,7 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
         </TouchableOpacity>
       )}
 
-      <TouchableOpacity style={styles.networkSwitcherTrigger} testID="NetworkSwitcherTrigger" onPress={() => {}}>
-        <Text style={styles.hiddenText}>Network Switcher</Text>
-      </TouchableOpacity>
-
-      <View style={styles.selectedNetworkIndicator} testID={`selectedNetwork-${currentNetworkId}`}>
+      <View style={styles.selectedNetworkIndicator} testID={`activeNetwork-${currentNetworkId}`}>
         <Text style={styles.hiddenText}>{currentNetworkId} Selected</Text>
       </View>
 
