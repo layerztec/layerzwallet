@@ -254,7 +254,7 @@ export default function HomeScreen() {
           <View style={styles.buttonContainer}>
             <View style={styles.buttonRow}>
               {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
-                <ActionPopupButton actions={getLightningReceiveActions()}>
+                <ActionPopupButton actions={getLightningReceiveActions()} testID="ReceiveButton">
                   <ThemedText style={styles.buttonText}>
                     <Ionicons name="arrow-down" size={16} color="white" /> Receive
                   </ThemedText>
@@ -266,7 +266,7 @@ export default function HomeScreen() {
               )}
 
               {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
-                <ActionPopupButton actions={getLightningSendActions()}>
+                <ActionPopupButton actions={getLightningSendActions()} testID="SendButton">
                   <ThemedText style={styles.buttonText}>
                     <Ionicons name="arrow-up" size={16} color="white" /> Send
                   </ThemedText>

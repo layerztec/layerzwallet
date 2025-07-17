@@ -11,9 +11,10 @@ interface ActionPopupButtonProps {
   children: React.ReactNode;
   actions: Action[];
   disabled?: boolean;
+  testID?: string;
 }
 
-export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, actions, disabled = false }) => {
+export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, actions, disabled = false, testID }) => {
   const [showPopup, setShowPopup] = useState(false);
   const [progress, setProgress] = useState(0);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
@@ -89,7 +90,7 @@ export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, 
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity ref={buttonRef} onPress={handlePress} disabled={disabled} style={[styles.button, disabled && styles.buttonDisabled]} activeOpacity={0.7}>
+      <TouchableOpacity ref={buttonRef} onPress={handlePress} disabled={disabled} style={[styles.button, disabled && styles.buttonDisabled]} activeOpacity={0.7} testID={testID}>
         {children}
       </TouchableOpacity>
 
@@ -106,7 +107,13 @@ export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, 
             ]}
           >
             {actions.map((action, index) => (
-              <TouchableOpacity key={index} onPress={() => handleActionPress(action.onClick)} style={[styles.actionButton, index === 0 && styles.defaultActionButton]} activeOpacity={0.7}>
+              <TouchableOpacity
+                key={index}
+                onPress={() => handleActionPress(action.onClick)}
+                style={[styles.actionButton, index === 0 && styles.defaultActionButton]}
+                activeOpacity={0.7}
+                testID={testID ? `${testID}${index}` : undefined}
+              >
                 {index === 0 && progress > 0 && (
                   <Animated.View
                     style={[

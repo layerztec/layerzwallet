@@ -42,9 +42,20 @@ appId: com.layerzwallet.mobile
           file: subflows/network-switch.yml
           env:
             NETWORK: ${output.networks.shift()}
-      - assertVisible: 'Receive'
-      - assertVisible: 'Send'
-      - tapOn: 'Receive'
+      - assertVisible:
+          id: 'ReceiveButton'
+      - assertVisible:
+          id: 'SendButton'
+      - tapOn:
+          id: 'ReceiveButton'
+      # waiting for default network to auto-select
+      - extendedWaitUntil:
+          visible:
+            id: 'ReceiveLightningAmountInput'
+          timeout: 9000
+      - extendedWaitUntil:
+          notVisible: 'Initializing...'
+          timeout: 15000
       - tapOn:
           id: 'ReceiveLightningAmountInput'
       - inputText:
