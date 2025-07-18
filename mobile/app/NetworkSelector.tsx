@@ -3,10 +3,11 @@ import React, { useContext, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Networks } from '@shared/types/networks';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { getIsTestnet } from '@shared/models/network-getters';
+import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { getNetworkGradient, getNetworkIcon } from '@shared/constants/Colors';
-import DashboardTiles from '@/components/DashboardTiles';
+import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
+import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 
 const NetworkSelector: React.FC = () => {
   const router = useRouter();
@@ -19,15 +20,15 @@ const NetworkSelector: React.FC = () => {
   };
 
   // Transform network data into the format DashboardTiles expects
-  const networkCards = useMemo(() => {
+  const networkCards: (LayerCard & { isSelected: boolean })[] = useMemo(() => {
     return networks.map((network) => {
       const isTestnet = getIsTestnet(network);
       const gradientColors = getNetworkGradient(network);
       const iconName = getNetworkIcon(network);
 
       return {
-        name: network.charAt(0).toUpperCase() + network.slice(1),
-        ticker: network.toUpperCase(),
+        name: capitalizeFirstLetter(network),
+        ticker: getTickerByNetwork(network),
         balance: currentNetwork === network ? 'Selected' : 'Available',
         usdValue: isTestnet ? 'Testnet' : 'Mainnet',
         color: gradientColors[0],
