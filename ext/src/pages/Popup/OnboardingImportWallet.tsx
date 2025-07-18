@@ -27,13 +27,17 @@ export default function OnboardingImport() {
       return;
     }
 
-    const response = await BackgroundCaller.saveMnemonic(value);
+    try {
+      const response = await BackgroundCaller.saveMnemonic(value);
 
-    if (!response) {
-      setError('Invalid mnemonic seed');
-      return;
-    } else {
-      setStep(EStep.PASSWORD);
+      if (!response) {
+        setError('Invalid mnemonic seed');
+        return;
+      } else {
+        setStep(EStep.PASSWORD);
+      }
+    } catch (error: any) {
+      setError(`Failed to save mnemonic: ${error.message}`);
     }
   };
 

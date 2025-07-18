@@ -6,6 +6,7 @@ import { ThemedText } from '../../components/ThemedText';
 
 const OnboardingCreateWallet: React.FC = () => {
   const [recoveryPhrase, setRecoveryPhrase] = useState<string>('');
+  const [error, setError] = useState<string>('');
   const { setStep } = useContext(InitializationContext);
 
   const handleNext = async () => {
@@ -14,11 +15,15 @@ const OnboardingCreateWallet: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      const hasMnemonic = await BackgroundCaller.hasMnemonic();
+      try {
+        const hasMnemonic = await BackgroundCaller.hasMnemonic();
 
-      if (!hasMnemonic) {
-        const response = await BackgroundCaller.createMnemonic();
-        setRecoveryPhrase(response.mnemonic);
+        if (!hasMnemonic) {
+          const response = await BackgroundCaller.createMnemonic();
+          setRecoveryPhrase(response.mnemonic);
+        }
+      } catch (error: any) {
+        setError(`Failed to create wallet: ${error.message}`);
       }
     })();
   }, []);
@@ -28,8 +33,21 @@ const OnboardingCreateWallet: React.FC = () => {
   return (
     <>
       <div>
-        <ThemedText type="headline">Your secret recovery phrase</ThemedText>
-        <ThemedText type="paragraph">Write down these 12 words in numerical order and keep them in a secure place. Never share them with anyone.</ThemedText>
+        <div>
+          <ThemedText type="headline">Your secret recovery phrase</ThemedText>
+        </div>
+        <div>
+          <ThemedText type="paragraph">Write down these 12 words in numerical order and keep them in a secure place. Never share them with anyone.</ThemedText>
+        </div>
+
+        {error && (
+          <div>
+            <ThemedText style={{ color: 'red', marginBottom: '10px' }} type="paragraph">
+              Error: {error}
+            </ThemedText>
+          </div>
+        )}
+
         <div>
           {words.map((word, index) => (
             <span key={index}>

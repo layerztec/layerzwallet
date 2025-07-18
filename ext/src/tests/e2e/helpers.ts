@@ -43,6 +43,7 @@ export const helperImportWallet = async (page: Page, extensionId: string, seed?:
   await assertOnboardingImport(page);
   await fillOnboardingImport(page, seed);
   await page.getByRole('button', { name: 'Import' }).click();
+  await expect(page.locator('body')).not.toHaveText(/Failed to save mnemonic/);
 
   await assertOnboardingChoosePassword(page);
   await fillOnboardingChoosePassword(page);
