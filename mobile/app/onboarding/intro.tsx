@@ -3,7 +3,6 @@ import { View, StyleSheet, TouchableOpacity, Image, Animated } from 'react-nativ
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors, gradients } from '@shared/constants/Colors';
-import { Typography } from '@shared/constants/Typography';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
