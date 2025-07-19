@@ -1,5 +1,11 @@
 appId: com.layerzwallet.mobile
 ---
+#
+# uncomment if testing dev client on a real device
+#
+#- stopApp: com.layerzwallet.mobile
+#- openLink: exp+layerzwallet://expo-development-client/?url=http%3A%2F%2F192.168.8.185%3A8081 ###### change the ip if necessary
+
 - runFlow:
     when:
       visible:
