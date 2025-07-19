@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { useRouter } from 'expo-router';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
@@ -30,9 +31,9 @@ const BackdoorNetworkSwitcher: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <FlatList data={networks} renderItem={renderNetworkItem} keyExtractor={(item) => item} contentContainerStyle={styles.listContainer} showsVerticalScrollIndicator={false} />
-    </View>
+    </SafeAreaView>
   );
 };
 
