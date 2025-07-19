@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Image, Animated, Easing } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
@@ -7,9 +7,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import SettingsRow from '@/components/SettingsRow';
 import { useHorizontalSpringTransition, useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
+import { useBiometrics } from '@/hooks/useBiometrics';
 
-export default function CreateWalletBackupSettingsScreen() {
+export default function CreateWalletBackupPasswordScreen() {
   const router = useRouter();
+  const [pinEnabled, setPinEnabled] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const biometricInfo = useBiometrics();
 
   const imageTransition = useHorizontalSpringTransition(true, 'forward');
   const titleTransition = useSequentialSpringAnimation(100);
@@ -18,7 +22,8 @@ export default function CreateWalletBackupSettingsScreen() {
   const buttonTransition = useSequentialSpringAnimation(400);
 
   const handleCreateWallet = async () => {
-    router.push('/onboarding/create-wallet-backup-password');
+    router.dismissAll();
+    router.replace('/onboarding/create-wallet');
   };
 
   return (
@@ -34,7 +39,7 @@ export default function CreateWalletBackupSettingsScreen() {
           <View style={styles.content}>
             <Animated.View style={[titleTransition]}>
               <ThemedText type="title" darkColor={Colors.dark.buttonText} textAlign="center">
-                To better protect your funds, review your backup and security settings.
+                Now let's secure this app with a PIN or Biometric Authentication
               </ThemedText>
             </Animated.View>
 
@@ -42,25 +47,36 @@ export default function CreateWalletBackupSettingsScreen() {
 
             <Animated.View style={[subtitleTransition]}>
               <ThemedText type="paragraph" darkColor={Colors.dark.text} textAlign="center">
-                A recovery phrase is a series of 12 words in a specific order. This word combination is unique to your wallet. Make sure to have pen and paper ready so you can write it down.
+                If someone gets hold of your phone unlocked, you don't want them to be able to view or move your funds.
               </ThemedText>
             </Animated.View>
           </View>
 
           <Animated.View style={[settingsTransition]}>
             <SettingsRow
-              title="Manual Backup"
-              description="To recover your wallet in case you lose access to this application."
-              onPress={handleCreateWallet}
+              title="PIN"
+              description="Set a 4-digit code to protect from unwanted access."
+              showSwitch
+              switchValue={pinEnabled}
+              onSwitchToggle={setPinEnabled}
               showBottomDivider
-              testID="ManualBackupSettingsRow"
+              testID="PinSettingsRow"
             />
-            <SettingsRow title="Cloud Backup" description="To recover your wallet in case you lose access to this application." disabled testID="CloudBackupSettingsRow" />
+            {biometricInfo.isAvailable && (
+              <SettingsRow
+                title={biometricInfo.displayName}
+                description={biometricInfo.description}
+                showSwitch
+                switchValue={biometricEnabled}
+                onSwitchToggle={setBiometricEnabled}
+                testID="BiometricSettingsRow"
+              />
+            )}
           </Animated.View>
 
           <Animated.View style={[styles.buttonSection, buttonTransition]}>
             <View>
-              <TouchableOpacity style={styles.button} onPress={handleCreateWallet} testID="DoThisLaterButton" disabled>
+              <TouchableOpacity style={styles.button} onPress={handleCreateWallet} testID="DoThisLaterButton">
                 <View style={styles.view}>
                   <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
                     Do this later
@@ -130,7 +146,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.buttonPrimary,
     borderRadius: 16,
     height: 56,
-    opacity: 0.5,
     justifyContent: 'center',
     alignContent: 'center',
     marginBottom: 8,

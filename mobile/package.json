@@ -75,6 +75,7 @@
     "expo-haptics": "~14.1.4",
     "expo-linear-gradient": "~14.1.5",
     "expo-linking": "~7.1.5",
+    "expo-local-authentication": "~16.0.5",
     "expo-router": "~5.0.7",
     "expo-secure-store": "~14.2.3",
     "expo-sensors": "~14.1.4",

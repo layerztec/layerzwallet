@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Pressable, ViewStyle, Platform } from 'react-native';
+import { View, StyleSheet, Pressable, ViewStyle, Platform, Switch } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@shared/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,10 +12,24 @@ interface SettingsRowProps {
   disabled?: boolean;
   style?: ViewStyle;
   testID?: string;
+  showSwitch?: boolean;
+  switchValue?: boolean;
+  onSwitchToggle?: (value: boolean) => void;
 }
 
-export default function SettingsRow({ title, description, onPress, showBottomDivider = false, disabled = false, testID, style }: SettingsRowProps) {
-  const ContainerComponent = onPress ? Pressable : View;
+export default function SettingsRow({
+  title,
+  description,
+  onPress,
+  showBottomDivider = false,
+  disabled = false,
+  testID,
+  style,
+  showSwitch = false,
+  switchValue = false,
+  onSwitchToggle,
+}: SettingsRowProps) {
+  const ContainerComponent = onPress && !showSwitch ? Pressable : View;
 
   const rippleConfig =
     Platform.OS === 'android'
@@ -45,10 +59,25 @@ export default function SettingsRow({ title, description, onPress, showBottomDiv
           )}
         </View>
 
-        {onPress && (
-          <View style={styles.chevronContainer}>
-            <Ionicons name="chevron-forward" size={20} color={disabled ? Colors.dark.tabIconDefault : Colors.dark.buttonText} />
+        {showSwitch ? (
+          <View style={styles.switchContainer}>
+            <Switch
+              value={switchValue}
+              onValueChange={onSwitchToggle}
+              disabled={disabled}
+              trackColor={{
+                false: Colors.dark.tabIconDefault,
+                true: Colors.dark.buttonPrimary,
+              }}
+              thumbColor={switchValue ? Colors.dark.buttonText : Colors.dark.text}
+            />
           </View>
+        ) : (
+          onPress && (
+            <View style={styles.chevronContainer}>
+              <Ionicons name="chevron-forward" size={20} color={disabled ? Colors.dark.tabIconDefault : Colors.dark.buttonText} />
+            </View>
+          )
         )}
       </View>
 
@@ -87,6 +116,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   chevronContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  switchContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
