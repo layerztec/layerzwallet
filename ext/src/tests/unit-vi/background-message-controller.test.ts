@@ -45,12 +45,6 @@ test('BackgroundMessageController can handle messages SAVE_MNEMONIC', async () =
   }
 
   assert.deepStrictEqual(staticCache, {
-    STORAGE_KEY_ARK_ADDRESS0: 'tark1qra883hysahlkt0ujcwhv0x2n278849c3m7t3a08l7fdc40f4f2n6rk3r0waql82jhdgdjfdrzfg957dlc7w33xnelgz6vrhwamzmhlfhs0zd3',
-    STORAGE_KEY_ARK_ADDRESS1: 'tark1qra883hysahlkt0ujcwhv0x2n278849c3m7t3a08l7fdc40f4f2nmgfut39zcyqyd58gysvuwx9e54dgdwcg06rnducrlnmjskm2v2k2a9c6ju',
-    STORAGE_KEY_ARK_ADDRESS2: 'tark1qra883hysahlkt0ujcwhv0x2n278849c3m7t3a08l7fdc40f4f2n6zq0lwn6r55zly4ezz2la4quaxmh8zn0v0vkj05gd03nw9eg8zr558uj2c',
-    STORAGE_KEY_ARK_ADDRESS3: 'tark1qra883hysahlkt0ujcwhv0x2n278849c3m7t3a08l7fdc40f4f2nmj7482uy5wcqcum6cvggp6dv5d4hzc7yxefryc835keh8xnh99pyc7cs5j',
-    STORAGE_KEY_ARK_ADDRESS4: 'tark1qra883hysahlkt0ujcwhv0x2n278849c3m7t3a08l7fdc40f4f2nmmgk5696fma43lc68th5cjz0arpf0xhxdas9lzw7935lp2p0tmxkq0nh6k',
-    STORAGE_KEY_ARK_ADDRESS5: 'tark1qra883hysahlkt0ujcwhv0x2n278849c3m7t3a08l7fdc40f4f2nmsef9jz7gvwhj47x8curjzv7wmq4h0ke8g9tw4cm77uvar542cynp64hty',
     STORAGE_KEY_BTC_XPUB0: 'zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs',
     STORAGE_KEY_BTC_XPUB1: 'zpub6rFR7y4Q2AijF6Gk1bofHLs1d66hKFamhXWdWBup1Em25wfabZqkDqvaieV63fDQFaYmaatCG7jVNUpUiM2hAMo6SAVHcrUpSnHDpNzucB7',
     STORAGE_KEY_BTC_XPUB2: 'zpub6rFR7y4Q2AijHxf5H8YD9SZ1S1hrLi3PmbR9iJeVVZSJmK8R86EPCwBhyTaycoeXEVqLigViktQUy2tt3yLnvcZ7BcXz9QxHrLjaTeJn3xL',
@@ -72,7 +66,7 @@ test('BackgroundMessageController can handle messages SAVE_MNEMONIC', async () =
   // checking that it was saved:
 
   await new Promise((resolve) => setTimeout(resolve, 100)); // sleep to allow callback to fire
-  expect(setMockedMethod2).toHaveBeenCalledTimes(20);
+  expect(setMockedMethod2).toHaveBeenCalledTimes(14);
   expect(getMockedMethod).toHaveBeenCalledTimes(0);
 
   // confirm mnemonic not encrypted though present
