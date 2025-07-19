@@ -73,32 +73,4 @@ export class ArkWallet extends AbstractHDElectrumWallet {
     const address = await this._wallet.getAddress();
     return address;
   }
-
-  async getOffchainBalanceForAddress(address: string) {
-    const url = `${this._arkServerUrl}/v1/vtxos/${address}`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch VTXOs: ${response.statusText}`);
-    }
-    const data = await response.json();
-    // Convert from server format to our internal VTXO format and only return spendable coins (settled or pending)
-    const vtxos = [...(data.spendableVtxos || [])].map((vtxo) => ({
-      txid: vtxo.outpoint.txid,
-      vout: vtxo.outpoint.vout,
-      value: Number(vtxo.amount),
-      status: {
-        confirmed: !!vtxo.roundTxid,
-      },
-      virtualStatus: {
-        state: vtxo.isPending ? 'pending' : 'settled',
-        batchTxID: vtxo.roundTxid,
-        batchExpiry: vtxo.expireAt ? Number(vtxo.expireAt) : undefined,
-      },
-    }));
-
-    const offchainSettled = vtxos.filter((coin) => coin.virtualStatus.state === 'settled').reduce((sum, coin) => sum + coin.value, 0);
-    const offchainPending = vtxos.filter((coin) => coin.virtualStatus.state === 'pending').reduce((sum, coin) => sum + coin.value, 0);
-
-    return offchainSettled + offchainPending;
-  }
 }

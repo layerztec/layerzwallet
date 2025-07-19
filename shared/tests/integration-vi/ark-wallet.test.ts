@@ -14,6 +14,5 @@ test('ark', async (context) => {
 
   const offchainBalance = await w.getOffchainBalance();
 
-  // assert.ok(offchainBalance >= 666);
-  // assert.strictEqual(await w.getOffchainBalanceForAddress((await w.getOffchainReceiveAddress())!), offchainBalance);
+  assert.ok(offchainBalance >= 666);
 });
