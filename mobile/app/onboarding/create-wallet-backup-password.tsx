@@ -57,6 +57,7 @@ export default function CreateWalletBackupPasswordScreen() {
               title="PIN"
               description="Set a 4-digit code to protect from unwanted access."
               showSwitch
+              disabled
               switchValue={pinEnabled}
               onSwitchToggle={setPinEnabled}
               showBottomDivider
@@ -67,6 +68,7 @@ export default function CreateWalletBackupPasswordScreen() {
                 title={biometricInfo.displayName}
                 description={biometricInfo.description}
                 showSwitch
+                disabled
                 switchValue={biometricEnabled}
                 onSwitchToggle={setBiometricEnabled}
                 testID="BiometricSettingsRow"
