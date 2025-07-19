@@ -5,14 +5,13 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnUI, runOnJS, interpolate, useAnimatedScrollHandler, useAnimatedReaction } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
-import { getAvailableNetworks } from '@shared/types/networks';
+import { getAvailableNetworks, NETWORK_BITCOIN, Networks } from '@shared/types/networks';
 import { getNetworkGradient, getNetworkIcon } from '@shared/constants/Colors';
 import { getIsTestnet, getTickerByNetwork, getDecimalsByNetwork } from '@shared/models/network-getters';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { useBalance } from '@shared/hooks/useBalance';
-import { useExchangeRate } from '@shared/hooks/useExchangeRate';
-import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { useCachedBalance } from '@shared/hooks/useCachedBalance';
+import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
+import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
@@ -23,7 +22,7 @@ const ZOOM_SCALE = 2.5;
 const CARD_SPACING = -50;
 const SCROLL_SNAP_THRESHOLD = CARD_HEIGHT + CARD_SPACING;
 
-interface LayerCard {
+export interface LayerCard {
   name: string;
   ticker: string;
   balance: string;
@@ -34,7 +33,7 @@ interface LayerCard {
   tags?: string[];
   tokenCount?: number;
   originalIndex?: number;
-  networkId?: string;
+  networkId: Networks;
 }
 
 interface DashboardTileProps {
@@ -425,7 +424,7 @@ const useNetworkCards = (accountNumber: number): LayerCard[] => {
       const ticker = getTickerByNetwork(network);
 
       return {
-        name: network.charAt(0).toUpperCase() + network.slice(1),
+        name: capitalizeFirstLetter(network),
         ticker: ticker,
         balance: '0.00000',
         usdValue: isTestnet ? 'Testnet' : '$0.00',
@@ -453,8 +452,8 @@ const NetworkCard = ({
   disableNavigation,
   accountNumber,
 }: LayerCardTileProps & { accountNumber: number }) => {
-  const { balance, isLoading: balanceLoading, error: balanceError } = useBalance(card.networkId as any, accountNumber, BackgroundExecutor);
-  const { exchangeRate, isLoading: exchangeRateLoading, error: exchangeRateError } = useExchangeRate(card.networkId as any, 'USD');
+  const { balance } = useCachedBalance(card.networkId, accountNumber);
+  const { exchangeRate } = useCachedExchangeRate(card.networkId, 'USD');
   const [hasTimedOut, setHasTimedOut] = useState(false);
 
   useEffect(() => {
@@ -467,26 +466,32 @@ const NetworkCard = ({
 
   const cardData = useMemo(() => {
     const isTestnet = getIsTestnet(card.networkId as any);
+    let formattedBalance = '0.00000';
 
-    const formattedBalance =
-      balance !== undefined && balance !== null ? formatBalance(balance, getDecimalsByNetwork(card.networkId as any), 8) : balanceLoading && !hasTimedOut ? '···' : balanceError ? 'Error' : '0.00000';
+    if (balance !== undefined && balance !== null) {
+      formattedBalance = formatBalance(balance, getDecimalsByNetwork(card.networkId as any), 8);
+    } else if (!hasTimedOut) {
+      formattedBalance = '···';
+    } else {
+      formattedBalance = '0.00000';
+    }
 
-    const formattedUsdValue = isTestnet
-      ? 'Testnet'
-      : balance !== undefined && balance !== null && exchangeRate
-        ? `$${formatFiatBalance(balance, getDecimalsByNetwork(card.networkId as any), exchangeRate)}`
-        : exchangeRateLoading && !hasTimedOut
-          ? '···'
-          : exchangeRateError
-            ? 'Rate Error'
-            : '$0.00';
+    let formattedUsdValue = '$0.00';
+
+    if (isTestnet) {
+      formattedUsdValue = 'Testnet';
+    } else if (balance !== undefined && balance !== null && exchangeRate) {
+      formattedUsdValue = `$${formatFiatBalance(balance, getDecimalsByNetwork(card.networkId as any), +exchangeRate)}`;
+    } else {
+      formattedUsdValue = '...';
+    }
 
     return {
       ...card,
       balance: formattedBalance,
       usdValue: formattedUsdValue,
     };
-  }, [card, balance, exchangeRate, balanceLoading, exchangeRateLoading, hasTimedOut, balanceError, exchangeRateError]);
+  }, [card, balance, exchangeRate, hasTimedOut]);
 
   return (
     <LayerCardTile
@@ -519,7 +524,7 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
   const scrollOffset = useSharedValue(0);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [currentNetworkId, setCurrentNetworkId] = useState<string>('bitcoin');
+  const [currentNetworkId, setCurrentNetworkId] = useState<Networks>(NETWORK_BITCOIN);
   // Initialize opacity immediately to prevent flash
   const opacity = useSharedValue(isNetworkSelector ? 1 : 0);
 
