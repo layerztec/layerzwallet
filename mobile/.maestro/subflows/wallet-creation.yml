@@ -19,6 +19,9 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 - tapOn:
     id: 'ManualBackupSettingsRow'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'DoThisLaterButton'
 
 - extendedWaitUntil:
     visible: 'Write down these 12 words in numerical order and keep them in a secure place. Never share them with anyone.'
