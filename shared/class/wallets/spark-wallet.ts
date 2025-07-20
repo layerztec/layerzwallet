@@ -62,7 +62,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     return false;
   }
 
-  async getOffchainReceiveAddress(): Promise<string | undefined> {
+  async getOffchainReceiveAddress(): Promise<string> {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
     return await this._sdkWallet.getSparkAddress();

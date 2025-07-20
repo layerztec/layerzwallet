@@ -65,9 +65,11 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
   }
 
   if (network === NETWORK_ARKMUTINYNET) {
-    const address = await backgroundCaller.getAddress(network, accountNumber);
     const aw = new ArkWallet();
-    const virtualBalance = await aw.getOffchainBalanceForAddress(address);
+    const submnemonic = await backgroundCaller.getSubMnemonic(accountNumber);
+    aw.setSecret(submnemonic);
+    await aw.init();
+    const virtualBalance = await aw.getOffchainBalance();
     return virtualBalance.toString(10);
   }
 
