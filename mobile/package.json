@@ -32,7 +32,7 @@
     "preset": "jest-expo"
   },
   "dependencies": {
-    "@arkade-os/sdk": "^0.1.4",
+    "@arkade-os/sdk": "0.2.0",
     "@bitcoinerlab/secp256k1": "1.2.0",
     "@breeztech/breez-sdk-liquid": "0.10.2",
     "@breeztech/react-native-breez-sdk-liquid": "0.10.2",

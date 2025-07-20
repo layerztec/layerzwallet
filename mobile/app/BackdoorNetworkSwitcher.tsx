@@ -1,10 +1,10 @@
 import React, { useContext } from 'react';
 import { useRouter } from 'expo-router';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
-import { Networks } from '@shared/types/networks';
 
 const BackdoorNetworkSwitcher: React.FC = () => {
   const router = useRouter();
@@ -16,29 +16,30 @@ const BackdoorNetworkSwitcher: React.FC = () => {
     router.back();
   };
 
-  const renderNetworkItem = ({ item }: { item: Networks }) => {
-    const name = item.charAt(0).toUpperCase() + item.slice(1);
-    const isSelected = currentNetwork === item;
-
-    return (
-      <TouchableOpacity testID={`backdoor-network-${item}`} style={[styles.networkItem, isSelected && styles.selectedNetworkItem]} onPress={() => handleNetworkSelect(item)} activeOpacity={0.7}>
-        <View style={styles.networkItemContent}>
-          <Text>{name}</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
   return (
-    <View style={styles.container}>
-      <FlatList data={networks} renderItem={renderNetworkItem} keyExtractor={(item) => item} contentContainerStyle={styles.listContainer} showsVerticalScrollIndicator={false} />
-    </View>
+    <SafeAreaView style={styles.container}>
+      {networks.map((network) => (
+        <TouchableOpacity
+          key={network}
+          testID={`backdoor-network-${network}`}
+          style={[styles.networkItem, currentNetwork === network && styles.selectedNetworkItem]}
+          onPress={() => handleNetworkSelect(network)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.networkItemContent}>
+            <Text>{network}</Text>
+          </View>
+        </TouchableOpacity>
+      ))}
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#fff',
   },
   listContainer: {

@@ -4,23 +4,16 @@ import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { lazyInitWallet as lazyInitWalletOrig, sanitizeAndValidateMnemonic, saveArkAddresses, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
+import { lazyInitWallet as lazyInitWalletOrig, sanitizeAndValidateMnemonic, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, OpenPopupRequest } from '@shared/types/IBackgroundCaller';
-import {
-  ENCRYPTED_PREFIX,
-  STORAGE_KEY_ACCEPTED_TOS,
-  STORAGE_KEY_ARK_ADDRESS,
-  STORAGE_KEY_EVM_XPUB,
-  STORAGE_KEY_MNEMONIC,
-  STORAGE_KEY_SUB_MNEMONIC,
-  STORAGE_KEY_WHITELIST,
-} from '@shared/types/IStorage';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_WHITELIST } from '@shared/types/IStorage';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { BrowserBridge } from '../class/browser-bridge';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
 import { SecureStorage } from '../class/secure-storage';
 import { decrypt, encrypt } from '../modules/encryption';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 
 // Cache of wallets by network and account number (currently only bitcoin)
 const cachedWallets: Record<string, Record<number, WatchOnlyWallet>> = {
@@ -48,8 +41,11 @@ export const BackgroundExecutor: IBackgroundCaller = {
       await saveWalletState(LayerzStorage, wallet, network, accountNumber);
       return address;
     } else if (network === NETWORK_ARKMUTINYNET) {
-      const address = await LayerzStorage.getItem(STORAGE_KEY_ARK_ADDRESS + accountNumber);
-      return address;
+      const mnemonic = await SecureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
+      const aw = new ArkWallet();
+      aw.setSecret(mnemonic);
+      await aw.init();
+      return await aw.getOffchainReceiveAddress();
     } else if (network === NETWORK_SPARK) {
       const sp = new SparkWallet();
       const submnemonic = await BackgroundExecutor.getSubMnemonic(accountNumber);
@@ -96,7 +92,6 @@ export const BackgroundExecutor: IBackgroundCaller = {
     const xpub = EvmWallet.mnemonicToXpub(sanitizedMnemonic);
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, sanitizedMnemonic);
-    await saveArkAddresses(LayerzStorage, sanitizedMnemonic);
     await saveSubMnemonics(SecureStorage, sanitizedMnemonic);
     // we are saving master mnemonic at the end, so that if any of the above fails, we don't end up with a partially working wallet
     await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, sanitizedMnemonic);
@@ -112,7 +107,6 @@ export const BackgroundExecutor: IBackgroundCaller = {
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
-    await saveArkAddresses(LayerzStorage, mnemonic);
     await saveSubMnemonics(SecureStorage, mnemonic);
 
     return { mnemonic };

@@ -1,4 +1,4 @@
-import { Button, View } from 'react-native';
+import { Button, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { EvmWallet } from '@shared/class/evm-wallet';
@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { Csprng } from '@/src/class/rng';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function TabThreeScreen() {
   const [testState, setTestState] = useState<'not_started' | 'running' | 'ok' | 'error'>('not_started');
@@ -76,7 +77,7 @@ export default function TabThreeScreen() {
   };
 
   return (
-    <View>
+    <SafeAreaView style={styles.container}>
       {(() => {
         switch (testState) {
           case 'not_started':
@@ -89,6 +90,14 @@ export default function TabThreeScreen() {
             return <ThemedText>ok!</ThemedText>;
         }
       })()}
-    </View>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
