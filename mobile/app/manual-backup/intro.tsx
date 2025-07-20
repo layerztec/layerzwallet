@@ -1,35 +1,30 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Animated, Easing } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, TouchableOpacity, Image, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors, gradients } from '@shared/constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import SettingsRow from '@/components/SettingsRow';
 import { useHorizontalSpringTransition, useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 
-export default function CreateWalletBackupSettingsScreen() {
+export default function ManualBackupIntroScreen() {
   const router = useRouter();
 
   const imageTransition = useHorizontalSpringTransition(true, 'forward');
-  const titleTransition = useSequentialSpringAnimation(100);
-  const subtitleTransition = useSequentialSpringAnimation(200);
-  const settingsTransition = useSequentialSpringAnimation(300);
-  const buttonTransition = useSequentialSpringAnimation(400);
+  const titleTransition = useSequentialSpringAnimation(200);
+  const subtitleTransition = useSequentialSpringAnimation(400);
+  const buttonTransition = useSequentialSpringAnimation(600);
 
-  const handleCreateWallet = async () => {
-    router.push('/onboarding/create-wallet-backup-password');
-  };
-
-  const handleManualBackup = async () => {
-    router.push('/manual-backup/intro');
+  const handleContinue = async () => {
+    router.dismissAll();
+    router.replace('/onboarding/create-wallet');
   };
 
   return (
     <View style={styles.container}>
       <LinearGradient colors={gradients.blueGradient} style={styles.container}>
         <SafeAreaView style={styles.safeAreaView}>
-          <View style={styles.fixedImageContainer}>
+          <View style={styles.logoContainer}>
             <Animated.View style={[imageTransition]}>
               <Image source={require('@/assets/images/ui/newWallet.png')} style={styles.image} />
             </Animated.View>
@@ -38,7 +33,7 @@ export default function CreateWalletBackupSettingsScreen() {
           <View style={styles.content}>
             <Animated.View style={[titleTransition]}>
               <ThemedText type="title" darkColor={Colors.dark.buttonText} textAlign="center">
-                To better protect your funds, review your backup and security settings.
+                First, let's create your recovery phrase
               </ThemedText>
             </Animated.View>
 
@@ -51,28 +46,18 @@ export default function CreateWalletBackupSettingsScreen() {
             </Animated.View>
           </View>
 
-          <Animated.View style={[settingsTransition]}>
-            <SettingsRow
-              title="Manual Backup"
-              description="To recover your wallet in case you lose access to this application."
-              onPress={handleManualBackup}
-              showBottomDivider
-              testID="ManualBackupSettingsRow"
-            />
-            <SettingsRow title="Cloud Backup" description="To recover your wallet in case you lose access to this application." disabled testID="CloudBackupSettingsRow" />
-          </Animated.View>
-
-          <Animated.View style={[styles.buttonSection, buttonTransition]}>
-            <View>
-              <TouchableOpacity style={styles.button} onPress={handleCreateWallet} testID="DoThisLaterButton" disabled>
+          <View style={styles.buttonSection}>
+            <Animated.View style={[styles.buttonContainer, buttonTransition]}>
+              <TouchableOpacity style={styles.button} onPress={handleContinue} testID="ManualBackupContinueButton">
                 <View style={styles.view}>
+                  <Image source={require('@/assets/images/ui/arrow-right.png')} style={styles.image} />
                   <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
-                    Do this later
+                    Continue
                   </ThemedText>
                 </View>
               </TouchableOpacity>
-            </View>
-          </Animated.View>
+            </Animated.View>
+          </View>
         </SafeAreaView>
       </LinearGradient>
     </View>
@@ -87,26 +72,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
   },
-  backButton: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-    zIndex: 2,
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  fixedImageContainer: {
-    position: 'absolute',
-    top: 100,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 1,
-  },
   logoContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -118,23 +83,22 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   content: {
+    flex: 2,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 180,
-    paddingBottom: 20,
   },
   buttonSection: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  buttonContainer: {
+    marginHorizontal: 20,
   },
   button: {
     backgroundColor: Colors.dark.buttonPrimary,
     borderRadius: 16,
     height: 56,
-    opacity: 0.5,
     justifyContent: 'center',
     alignContent: 'center',
     marginBottom: 8,

@@ -131,6 +131,12 @@ export default function RootLayout() {
                           }}
                         />
                         <Stack.Screen
+                          name="manual-backup/intro"
+                          options={{
+                            ...DefaultNavigatorOptions,
+                          }}
+                        />
+                        <Stack.Screen
                           name="onboarding/create-password"
                           options={{
                             headerShown: false,
