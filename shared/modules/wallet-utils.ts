@@ -1,9 +1,8 @@
 import { BIP85 } from 'bip85';
 
-import { ArkWallet } from '../class/wallets/ark-wallet';
 import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
 import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
-import { IStorage, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_BTC_XPUB, getSerializedStorageKey } from '../types/IStorage';
+import { IStorage, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_BTC_XPUB, getSerializedStorageKey } from '../types/IStorage';
 import { NETWORK_BITCOIN, Networks } from '../types/networks';
 import { WalletSerializer } from './wallet-serializer';
 
@@ -19,24 +18,6 @@ export async function saveBitcoinXpubs(storage: IStorage, mnemonic: string) {
     btcWallet.setDerivationPath(`m/84'/0'/${accountNum}'`); // BIP84
     const btcXpub = btcWallet.getXpub();
     await storage.setItem(STORAGE_KEY_BTC_XPUB + accountNum, btcXpub);
-  }
-}
-
-/**
- * Save Ark addresses for accounts 0-5 to storage.
- * @param storage Storage instance (LayerzStorage or compatible)
- * @param mnemonic The mnemonic to derive Ark addresses from
- */
-export async function saveArkAddresses(storage: IStorage, mnemonic: string) {
-  for (let accountNum = 0; accountNum <= 5; accountNum++) {
-    const ark = new ArkWallet();
-    ark.setSecret(mnemonic);
-    ark.setAccountNumber(accountNum);
-    await ark.init();
-    const address = await ark.getOffchainReceiveAddress();
-    if (address) {
-      await storage.setItem(STORAGE_KEY_ARK_ADDRESS + accountNum, address);
-    }
   }
 }
 

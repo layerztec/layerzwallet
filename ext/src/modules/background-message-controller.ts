@@ -3,14 +3,15 @@ import { EvmWallet } from '@shared/class/evm-wallet';
 import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { lazyInitWallet, saveArkAddresses, saveBitcoinXpubs, saveSubMnemonics, saveWalletState, sanitizeAndValidateMnemonic } from '@shared/modules/wallet-utils';
+import { lazyInitWallet, saveBitcoinXpubs, saveSubMnemonics, saveWalletState, sanitizeAndValidateMnemonic } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, MessageType, MessageTypeMap, OpenPopupRequest, ProcessRPCRequest } from '@shared/types/IBackgroundCaller';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_ARK_ADDRESS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC } from '@shared/types/IStorage';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC } from '@shared/types/IStorage';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { Csprng } from '../../src/class/rng';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
 import { decrypt, encrypt } from '../modules/encryption';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 
 // we only keep bitcoin wallets in the background for now
 type TBackgroundWallets = WatchOnlyWallet;
@@ -71,8 +72,11 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
       await saveWalletState(LayerzStorage, wallet, network, accountNumber);
       return address;
     } else if (network === NETWORK_ARKMUTINYNET) {
-      const address = await LayerzStorage.getItem(STORAGE_KEY_ARK_ADDRESS + accountNumber);
-      return address;
+      const mnemonic = await SecureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
+      const aw = new ArkWallet();
+      aw.setSecret(mnemonic);
+      await aw.init();
+      return await aw.getOffchainReceiveAddress();
     } else if (network === NETWORK_SPARK) {
       throw new Error('this should never happen: temporarily executed on the spot in the BackgroundCaller'); // fixme
     } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
@@ -97,7 +101,6 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     const xpub = EvmWallet.mnemonicToXpub(sanitizedMnemonic);
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, sanitizedMnemonic);
-    await saveArkAddresses(LayerzStorage, sanitizedMnemonic);
     await saveSubMnemonics(LayerzStorage, sanitizedMnemonic);
     // we are saving master mnemonic at the end, so that if any of the above fails, we don't end up with a partially working wallet
     await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, sanitizedMnemonic);
@@ -112,7 +115,6 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, mnemonic);
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
-    await saveArkAddresses(LayerzStorage, mnemonic);
     await saveSubMnemonics(LayerzStorage, mnemonic);
 
     return { mnemonic };
