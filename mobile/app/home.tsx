@@ -4,7 +4,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { OnrampProps } from '@/app/Onramp';
+import BalanceView from '@/components/BalanceView';
 import GradientScreen from '@/components/GradientScreen';
 import LiquidTokensView from '@/components/LiquidTokensView';
 import SwapInterfaceView from '@/components/SwapInterfaceView';
@@ -15,14 +15,8 @@ import { Hello } from '@shared/class/hello';
 import { getNetworkGradient, getNetworkIcon } from '@shared/constants/Colors';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { useBalance } from '@shared/hooks/useBalance';
-import { useAccountBalance } from '@shared/hooks/useAccountBalance';
-import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
-import { useExchangeRate } from '@shared/hooks/useExchangeRate';
-import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
-import { getDecimalsByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
+import { getIsEVM, getIsTestnet } from '@shared/models/network-getters';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
-import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SwapPair, SwapPlatform } from '@shared/types/swap';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
@@ -30,13 +24,9 @@ import { ActionPopupButton } from '@/components/ActionPopupButton';
 export default function HomeScreen() {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
-  const { exchangeRate } = useExchangeRate(network, 'USD');
   const router = useRouter();
   const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
   const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
-  const availableNetworks = useAvailableNetworks();
-  const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
 
   useEffect(() => {
     setSwapPairs(getSwapPairs(network, SwapPlatform.MOBILE));
@@ -99,14 +89,6 @@ export default function HomeScreen() {
       default:
         router.push('/SendEvm');
     }
-  };
-
-  const goToBuyBitcoin = () => {
-    BackgroundExecutor.getAddress(network, accountNumber).then((address) => {
-      router.push('/Onramp');
-      const params: OnrampProps = { address, network };
-      router.replace({ pathname: '/Onramp', params });
-    });
   };
 
   const goToDAppBrowser = () => {
@@ -226,27 +208,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {getIsTestnet(network) && (
-          <View style={styles.testnetWarningContainer}>
-            <ThemedText style={styles.testnetWarningText}>Warning: You are using a testnet, coins have no value</ThemedText>
-          </View>
-        )}
-
-        <View style={styles.balanceContainer}>
-          <ThemedText style={styles.balanceLabel}>Pocket Balance:</ThemedText>
-          <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1}>
-            {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN)) + ' ' + getTickerByNetwork(NETWORK_BITCOIN) : ''}
-          </ThemedText>
-          <ThemedText style={styles.balanceLabel} testID="LayerBalance">
-            Layer Balance:
-          </ThemedText>
-          <ThemedText style={styles.balanceText} adjustsFontSizeToFit numberOfLines={1} testID="LayerActualBalance">
-            {balance ? formatBalance(balance, getDecimalsByNetwork(network)) + ' ' + getTickerByNetwork(network) : '???'}
-          </ThemedText>
-          <ThemedText adjustsFontSizeToFit numberOfLines={1}>
-            {balance && +balance > 0 && exchangeRate ? '$' + formatFiatBalance(balance, getDecimalsByNetwork(network), exchangeRate) : ''}
-          </ThemedText>
-        </View>
+        <BalanceView network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundExecutor} />
 
         {showSwapInterface ? <SwapInterfaceView /> : <View>{network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET ? <LiquidTokensView /> : <TokensView />}</View>}
 
@@ -276,12 +238,6 @@ export default function HomeScreen() {
                   <ThemedText style={styles.buttonText}>Send</ThemedText>
                 </TouchableOpacity>
               )}
-
-              {fiatOnRamp?.[network]?.canBuyWithFiat ? (
-                <TouchableOpacity style={styles.button} onPress={goToBuyBitcoin}>
-                  <ThemedText style={styles.buttonText}> $ Buy </ThemedText>
-                </TouchableOpacity>
-              ) : null}
 
               {swapPairs.length > 0 ? (
                 <TouchableOpacity style={styles.button} onPress={() => setShowSwapInterface(true)}>
@@ -335,25 +291,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  balanceContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 30,
-    marginBottom: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    marginHorizontal: 4,
-  },
-  balanceLabel: {
-    marginTop: 8,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  balanceText: {
-    textAlign: 'center',
-    width: '100%',
-    marginBottom: 4,
     color: 'rgba(255, 255, 255, 0.9)',
   },
   contentContainer: {
@@ -438,15 +375,7 @@ const styles = StyleSheet.create({
   networkCardSubtitle: {
     color: 'rgba(255, 255, 255, 0.7)',
   },
-  testnetWarningContainer: {
-    backgroundColor: 'rgba(255, 59, 48, 0.2)',
-    padding: 12,
-    borderRadius: 16,
-    marginVertical: 10,
-    marginHorizontal: 4,
-  },
-  testnetWarningText: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
+  actionButton: {
+    padding: 4,
   },
 });
