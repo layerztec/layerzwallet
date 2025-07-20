@@ -4,12 +4,20 @@ import { Networks } from '../types/networks';
 import { getFiatRate } from '../models/fiatUnit';
 import { getIsTestnet } from '../models/network-getters';
 
-type TFiat = 'USD';
+export type TFiat = 'USD';
 
 interface exchangeRateFetcherArg {
   cacheKey: string;
   network: Networks;
   fiat: TFiat;
+}
+
+function middleware(useSWRNext: any) {
+  return (key: any, fetcher: any, config: any) => {
+    console.log(`useExchangeRate(${JSON.stringify(key)})`); // logging
+
+    return useSWRNext(key, () => fetcher(key), config);
+  };
 }
 
 export const exchangeRateFetcher = async (arg: exchangeRateFetcherArg): Promise<number> => {
@@ -35,6 +43,7 @@ export function useExchangeRate(network: Networks, fiat: TFiat) {
   );
 
   const { data, error, isLoading } = useSWR(arg, exchangeRateFetcher, {
+    use: [middleware],
     refreshInterval,
     refreshWhenHidden: false,
   });
