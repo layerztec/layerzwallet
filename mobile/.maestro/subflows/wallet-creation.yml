@@ -21,9 +21,6 @@ appId: com.layerzwallet.mobile
     id: 'ManualBackupSettingsRow'
 - waitForAnimationToEnd
 - tapOn:
-    id: 'DoThisLaterButton'
-- waitForAnimationToEnd
-- tapOn:
     id: 'ManualBackupContinueButton'
 
 - extendedWaitUntil:
