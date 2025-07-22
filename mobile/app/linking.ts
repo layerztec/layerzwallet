@@ -11,13 +11,22 @@ export default {
           showSwapInterface: (val: string) => val === 'true',
         },
       },
-      SendBtc: {
-        path: 'send/btc',
-        parse: {
-          toAddress: (toAddress: string) => toAddress,
-          amount: (amount: string) => amount,
+      SendBtc: [
+        {
+          path: 'send/btc',
+          parse: {
+            toAddress: (toAddress: string) => toAddress,
+            amount: (amount: string) => amount,
+          },
         },
-      },
+        {
+          path: 'bitcoin/:address',
+          parse: {
+            toAddress: (address: string) => address,
+            amount: (amount: string) => amount,
+          },
+        },
+      ],
       SendArk: {
         path: 'send/ark',
         parse: {
@@ -25,14 +34,24 @@ export default {
           amount: (amount: string) => amount,
         },
       },
-      SendLiquid: {
-        path: 'send/liquid',
-        parse: {
-          assetId: (assetId: string) => assetId,
-          toAddress: (toAddress: string) => toAddress,
-          amount: (amount: string) => amount,
+      SendLiquid: [
+        {
+          path: 'send/liquid',
+          parse: {
+            assetId: (assetId: string) => assetId,
+            toAddress: (toAddress: string) => toAddress,
+            amount: (amount: string) => amount,
+          },
         },
-      },
+        {
+          path: 'liquidnetwork/:address',
+          parse: {
+            toAddress: (address: string) => address,
+            amount: (amount: string) => amount,
+            assetId: (assetId: string) => assetId,
+          },
+        },
+      ],
       SendLightning: {
         path: 'send/lightning',
         parse: {
@@ -61,6 +80,8 @@ export default {
           fromNetwork: (fromNetwork: string) => fromNetwork,
           toNetwork: (toNetwork: string) => toNetwork,
           amount: (amount: string) => amount,
+          address: (address: string) => address,
+          network: (network: string) => network,
         },
       },
       TransactionSuccessEvm: 'transaction-success',

@@ -2,7 +2,7 @@ appId: com.layerzwallet.mobile
 ---
 - runFlow: subflows/wallet-creation.yml
 
-# Test deep link to Bitcoin Send with recipient address
+# Test deep link to Bitcoin Send with recipient address using layerzwallet:// scheme
 - openLink: 'layerzwallet://send/btc?toAddress=bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
 - waitForAnimationToEnd
 - extendedWaitUntil:
@@ -11,7 +11,7 @@ appId: com.layerzwallet.mobile
 
 - assertVisible: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
 
-# Test deep link with both address and amount
+# Test deep link with both address and amount using layerzwallet:// scheme
 - runFlow: subflows/back.yml
 - openLink: 'layerzwallet://send/btc?toAddress=bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh&amount=0.001'
 - waitForAnimationToEnd
@@ -21,3 +21,14 @@ appId: com.layerzwallet.mobile
 
 - assertVisible: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
 - assertVisible: '0.001'
+
+# Test deep link using bitcoin:// scheme (BIP21 format)
+- runFlow: subflows/back.yml
+- openLink: 'bitcoin:bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh?amount=0.002'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: 'Recipient Address'
+    timeout: 15000
+
+- assertVisible: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+- assertVisible: '0.002'

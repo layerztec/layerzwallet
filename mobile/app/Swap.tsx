@@ -21,6 +21,8 @@ export type SwapParams = {
   fromNetwork?: Networks;
   toNetwork?: Networks;
   amount?: string;
+  address?: string;
+  network?: string;
 };
 
 export default function SwapScreen() {
