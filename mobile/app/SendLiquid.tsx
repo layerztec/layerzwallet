@@ -19,6 +19,8 @@ import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
 
 export type SendLiquidParams = {
   assetId?: string; // Optional asset ID - if not provided, use L-BTC
+  toAddress?: string;
+  amount?: string;
 };
 
 const SendLiquid = () => {
@@ -30,8 +32,8 @@ const SendLiquid = () => {
   const { scanQr } = useContext(ScanQrContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
 
-  const [address, setAddress] = useState<string>('');
-  const [amount, setAmount] = useState<string>('');
+  const address = params.toAddress ?? '';
+  const amount = params.amount ?? '';
   const [selectedAsset, setSelectedAsset] = useState<AssetBalance | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
@@ -80,20 +82,20 @@ const SendLiquid = () => {
   const handleAmountChange = (text: string) => {
     const normalizedText = text.replace(',', '.');
     if (normalizedText === '' || /^\d*\.?\d*$/.test(normalizedText)) {
-      setAmount(normalizedText);
+      router.replace({ pathname: '/SendLiquid', params: { ...params, amount: normalizedText } });
       setError('');
     }
   };
 
   const handleAddressChange = (text: string) => {
-    setAddress(text);
+    router.replace({ pathname: '/SendLiquid', params: { ...params, toAddress: text } });
     setError('');
   };
 
   const handleScanQR = async () => {
     const scanned = await scanQr();
     if (scanned) {
-      setAddress(scanned);
+      router.replace({ pathname: '/SendLiquid', params: { ...params, toAddress: scanned } });
     }
   };
 

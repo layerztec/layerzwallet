@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
-import { router, Stack } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useContext, useRef, useState } from 'react';
 import { View, ScrollView, ActivityIndicator, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 
@@ -21,10 +21,18 @@ import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_SPARK } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
+export type SendArkParams = {
+  toAddress?: string;
+  amount?: string;
+};
+
 const SendArk = () => {
+  const params = useLocalSearchParams<SendArkParams>();
+  const router = useRouter();
   const { scanQr } = useContext(ScanQrContext);
-  const [toAddress, setToAddress] = useState<string>('');
-  const [amount, setAmount] = useState<string>('');
+
+  const toAddress = params.toAddress ?? '';
+  const amount = params.amount ?? '';
   const [error, setError] = useState<string>('');
   const [isPreparing, setIsPreparing] = useState<boolean>(false);
   const [isPrepared, setIsPrepared] = useState<boolean>(false);
@@ -35,14 +43,6 @@ const SendArk = () => {
   const { askMnemonic } = useContext(AskMnemonicContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const arkWallet = useRef<ArkWallet | undefined>(undefined);
-
-  const handleAmountChange = (text: string) => {
-    const normalizedText = text.replace(',', '.');
-    if (normalizedText === '' || /^\d*\.?\d*$/.test(normalizedText)) {
-      setAmount(normalizedText);
-      setError('');
-    }
-  };
 
   const actualSend = async () => {
     let startTs = Date.now();
@@ -78,13 +78,11 @@ const SendArk = () => {
       // TODO: validate the address
       // TODO: validate the amount
 
-      let mnemonic = await askMnemonic();
-      let w: ArkWallet | SparkWallet = new ArkWallet();
-
+      const mnemonic = await askMnemonic();
+      const w = network === NETWORK_SPARK ? new SparkWallet() : new ArkWallet();
       if (network === NETWORK_SPARK) {
-        w = new SparkWallet();
-        mnemonic = await BackgroundExecutor.getSubMnemonic(accountNumber);
-        w.setSecret(mnemonic);
+        (w as SparkWallet).setSecret(mnemonic);
+        (w as SparkWallet).setAccountNumber(accountNumber);
         await w.init();
       } else {
         w.setSecret(mnemonic);
@@ -144,16 +142,15 @@ const SendArk = () => {
                 testID="recipient-address-input"
                 placeholder="Enter the recipient's address"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                onChangeText={setToAddress}
+                onChangeText={(text) => router.replace({ pathname: '/SendArk', params: { ...params, toAddress: text } })}
                 value={toAddress}
               />
               <TouchableOpacity
                 style={styles.scanButton}
                 onPress={async () => {
                   const scanned = await scanQr();
-                  console.log({ scanned });
                   if (scanned) {
-                    setToAddress(scanned);
+                    router.replace({ pathname: '/SendArk', params: { ...params, toAddress: scanned } });
                   }
                 }}
               >
@@ -167,10 +164,13 @@ const SendArk = () => {
             <TextInput
               style={styles.input2}
               testID="amount-input"
-              placeholder="0.00"
+              placeholder="Enter amount"
               placeholderTextColor="rgba(255, 255, 255, 0.6)"
               keyboardType="numeric"
-              onChangeText={handleAmountChange}
+              onChangeText={(text) => {
+                const normalized = text.replace(',', '.');
+                router.replace({ pathname: '/SendArk', params: { ...params, amount: normalized } });
+              }}
               value={amount}
             />
             <ThemedText style={styles.balanceText}>

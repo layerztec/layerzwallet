@@ -7,7 +7,6 @@ import Animated from 'react-native-reanimated';
 import BalanceView from '@/components/BalanceView';
 import GradientScreen from '@/components/GradientScreen';
 import LiquidTokensView from '@/components/LiquidTokensView';
-import SwapInterfaceView from '@/components/SwapInterfaceView';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -26,11 +25,9 @@ export default function HomeScreen() {
   const { accountNumber } = useContext(AccountNumberContext);
   const router = useRouter();
   const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
-  const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
 
   useEffect(() => {
     setSwapPairs(getSwapPairs(network, SwapPlatform.MOBILE));
-    setShowSwapInterface(false);
   }, [network]);
 
   useEffect(() => {
@@ -210,7 +207,7 @@ export default function HomeScreen() {
 
         <BalanceView network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundExecutor} />
 
-        {showSwapInterface ? <SwapInterfaceView /> : <View>{network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET ? <LiquidTokensView /> : <TokensView />}</View>}
+        <View>{network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET ? <LiquidTokensView /> : <TokensView />}</View>
 
         <View style={styles.contentContainer}>
           <View style={styles.buttonContainer}>
@@ -240,7 +237,7 @@ export default function HomeScreen() {
               )}
 
               {swapPairs.length > 0 ? (
-                <TouchableOpacity style={styles.button} onPress={() => setShowSwapInterface(true)}>
+                <TouchableOpacity style={styles.button} onPress={() => router.push({ pathname: '/Swap', params: { fromNetwork: network } })}>
                   <ThemedText style={styles.buttonText}>
                     <Ionicons name="refresh" size={16} color="white" /> Swap
                   </ThemedText>

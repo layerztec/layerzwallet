@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
@@ -22,17 +22,19 @@ import { Ionicons } from '@expo/vector-icons';
 
 export type SendLightningProps = {
   network: Networks;
+  invoice?: string;
 };
 
 const maxFeePercent = 1; // hardcoded at the moment. might give user option to adjust later
 
 const SendLightning: React.FC = () => {
   const params = useLocalSearchParams<SendLightningProps>();
+  const router = useRouter();
   const network = params.network;
+  const invoice = params.invoice ?? '';
   const { scanQr } = useContext(ScanQrContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
   const navigation = useNavigation();
-  const [invoice, setInvoice] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [sendState, setSendState] = useState<'idle' | 'preparing' | 'prepared' | 'sending' | 'success'>('idle');
   const [feeSats, setFeeSats] = useState<number | null>(null);
@@ -41,7 +43,7 @@ const SendLightning: React.FC = () => {
   const walletRef = useRef<TLightningWallet | null>(null);
 
   const onInvoiceInput = async (scanned: string) => {
-    setInvoice(scanned);
+    router.replace({ pathname: '/SendLightning', params: { ...params, invoice: scanned } });
     try {
       const decoded = bolt11.decode(scanned.trim());
       setAmountToSend(String(decoded.satoshis));

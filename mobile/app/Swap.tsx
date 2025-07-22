@@ -2,8 +2,10 @@ import React, { useContext, useEffect, useState } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, FlatList } from 'react-native';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 
+import GradientScreen from '@/components/GradientScreen';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { Networks } from '@shared/types/networks';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
@@ -15,25 +17,18 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getSwapPairs, getSwapProvidersList } from '@shared/models/swap-providers-list';
 
-export type SwapInterfaceViewProps = {
-  // Allow component to be used both as standalone and with router params
-  useRouterParams?: boolean;
-  onAmountChange?: (amount: string) => void;
-  onTargetNetworkChange?: (network: Networks) => void;
-  initialAmount?: string;
-  initialTargetNetwork?: Networks;
+export type SwapParams = {
+  fromNetwork?: Networks;
+  toNetwork?: Networks;
+  amount?: string;
 };
 
-const SwapInterfaceView: React.FC<SwapInterfaceViewProps> = ({ useRouterParams = false, onAmountChange, onTargetNetworkChange, initialAmount = '', initialTargetNetwork }) => {
+export default function SwapScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ amount?: string; toNetwork?: Networks }>();
+  const params = useLocalSearchParams<SwapParams>();
 
-  // Use router params if enabled, otherwise use internal state
-  const [internalAmount, setInternalAmount] = useState<string>(initialAmount);
-  const [internalTargetNetwork, setInternalTargetNetwork] = useState<Networks | undefined>(initialTargetNetwork);
-
-  const amount = useRouterParams ? (params.amount ?? '') : internalAmount;
-  const targetNetwork = useRouterParams ? params.toNetwork : internalTargetNetwork;
+  const amount = params.amount ?? '';
+  const targetNetwork = params.toNetwork;
 
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
@@ -47,22 +42,19 @@ const SwapInterfaceView: React.FC<SwapInterfaceViewProps> = ({ useRouterParams =
     setSwapPairs(getSwapPairs(network, SwapPlatform.MOBILE));
   }, [network]);
 
-  const handleAmountChange = (text: string) => {
-    if (useRouterParams) {
-      router.setParams({ amount: text });
-    } else {
-      setInternalAmount(text);
-      onAmountChange?.(text);
+  // Update network if fromNetwork param is provided
+  useEffect(() => {
+    if (params.fromNetwork && params.fromNetwork !== network) {
+      setNetwork(params.fromNetwork);
     }
+  }, [params.fromNetwork, network, setNetwork]);
+
+  const handleAmountChange = (text: string) => {
+    router.setParams({ amount: text });
   };
 
   const handleTargetNetworkChange = (selectedNetwork: Networks) => {
-    if (useRouterParams) {
-      router.setParams({ toNetwork: selectedNetwork });
-    } else {
-      setInternalTargetNetwork(selectedNetwork);
-      onTargetNetworkChange?.(selectedNetwork);
-    }
+    router.setParams({ toNetwork: selectedNetwork });
     setShowNetworkPicker(false);
   };
 
@@ -107,68 +99,77 @@ const SwapInterfaceView: React.FC<SwapInterfaceViewProps> = ({ useRouterParams =
   const supportedNetworks = swapPairs.map((pair) => pair.to);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.swapRow}>
-        <ThemedText style={styles.label}>Swap</ThemedText>
+    <GradientScreen>
+      <Stack.Screen
+        options={{
+          header: () => <ScreenHeader title="Swap" />,
+        }}
+      />
 
-        <TextInput
-          style={styles.amountInput}
-          placeholder="0.000"
-          placeholderTextColor="rgba(255, 255, 255, 0.6)"
-          keyboardType="numeric"
-          value={amount}
-          onChangeText={handleAmountChange}
-          testID="swap-amount-input"
-        />
+      <View style={styles.container}>
+        <View style={styles.swapRow}>
+          <ThemedText style={styles.label}>Swap</ThemedText>
 
-        <View style={styles.tickerContainer}>
-          <ThemedText style={styles.ticker}>
-            <ThemedText style={styles.tickerBold}>{getTickerByNetwork(network)}</ThemedText>
-          </ThemedText>
+          <TextInput
+            style={styles.amountInput}
+            placeholder="0.000"
+            placeholderTextColor="rgba(255, 255, 255, 0.6)"
+            keyboardType="numeric"
+            value={amount}
+            onChangeText={handleAmountChange}
+            testID="swap-amount-input"
+          />
+
+          <View style={styles.tickerContainer}>
+            <ThemedText style={styles.ticker}>
+              <ThemedText style={styles.tickerBold}>{getTickerByNetwork(network)}</ThemedText>
+            </ThemedText>
+          </View>
+
+          <ThemedText style={styles.label}>to</ThemedText>
+
+          <TouchableOpacity style={styles.pickerContainer} onPress={() => setShowNetworkPicker(true)}>
+            <ThemedText style={styles.pickerText}>{targetNetwork ? capitalizeFirstLetter(targetNetwork) : 'Select target network'}</ThemedText>
+          </TouchableOpacity>
+
+          <Modal visible={showNetworkPicker} transparent={true} animationType="slide" onRequestClose={() => setShowNetworkPicker(false)}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <ThemedText style={styles.modalTitle}>Select Target Network</ThemedText>
+                <FlatList
+                  data={supportedNetworks}
+                  keyExtractor={(item) => `to-${item}`}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity style={styles.networkOption} onPress={() => handleTargetNetworkChange(item)}>
+                      <ThemedText style={styles.networkOptionText}>{capitalizeFirstLetter(item)}</ThemedText>
+                    </TouchableOpacity>
+                  )}
+                />
+                <TouchableOpacity style={styles.closeButton} onPress={() => setShowNetworkPicker(false)}>
+                  <ThemedText style={styles.closeButtonText}>Close</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+          {targetNetwork && !isLoading && (
+            <TouchableOpacity style={styles.goButton} onPress={handleGo}>
+              <ThemedText style={styles.goButtonText}>Go</ThemedText>
+            </TouchableOpacity>
+          )}
+
+          {isLoading && <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />}
         </View>
 
-        <ThemedText style={styles.label}>to</ThemedText>
-
-        <TouchableOpacity style={styles.pickerContainer} onPress={() => setShowNetworkPicker(true)}>
-          <ThemedText style={styles.pickerText}>{targetNetwork ? capitalizeFirstLetter(targetNetwork) : 'Select target network'}</ThemedText>
-        </TouchableOpacity>
-
-        <Modal visible={showNetworkPicker} transparent={true} animationType="slide" onRequestClose={() => setShowNetworkPicker(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <ThemedText style={styles.modalTitle}>Select Target Network</ThemedText>
-              <FlatList
-                data={supportedNetworks}
-                keyExtractor={(item) => `to-${item}`}
-                renderItem={({ item }) => (
-                  <TouchableOpacity style={styles.networkOption} onPress={() => handleTargetNetworkChange(item)}>
-                    <ThemedText style={styles.networkOptionText}>{capitalizeFirstLetter(item)}</ThemedText>
-                  </TouchableOpacity>
-                )}
-              />
-              <TouchableOpacity style={styles.closeButton} onPress={() => setShowNetworkPicker(false)}>
-                <ThemedText style={styles.closeButtonText}>Close</ThemedText>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-
-        {targetNetwork && !isLoading && (
-          <TouchableOpacity style={styles.goButton} onPress={handleGo}>
-            <ThemedText style={styles.goButtonText}>Go</ThemedText>
-          </TouchableOpacity>
-        )}
-
-        {isLoading && <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />}
+        {error && <ThemedText style={styles.errorText}>{error}</ThemedText>}
       </View>
-
-      {error && <ThemedText style={styles.errorText}>{error}</ThemedText>}
-    </View>
+    </GradientScreen>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     paddingHorizontal: 16,
     marginTop: 20,
   },
@@ -184,6 +185,8 @@ const styles = StyleSheet.create({
   label: {
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '500',
   },
   amountInput: {
     height: 50,
@@ -194,15 +197,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     color: 'white',
     textAlign: 'center',
+    fontSize: 18,
   },
   tickerContainer: {
     alignItems: 'center',
   },
   ticker: {
     color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 16,
   },
   tickerBold: {
     color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
   },
   pickerContainer: {
     borderWidth: 1,
@@ -217,6 +223,7 @@ const styles = StyleSheet.create({
   pickerText: {
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
+    fontSize: 16,
   },
   modalOverlay: {
     flex: 1,
@@ -235,6 +242,8 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     textAlign: 'center',
     color: '#333',
+    fontSize: 18,
+    fontWeight: '600',
   },
   networkOption: {
     paddingVertical: 15,
@@ -244,6 +253,7 @@ const styles = StyleSheet.create({
   },
   networkOptionText: {
     color: '#333',
+    fontSize: 16,
   },
   closeButton: {
     marginTop: 15,
@@ -255,6 +265,8 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   goButton: {
     backgroundColor: '#000',
@@ -265,12 +277,13 @@ const styles = StyleSheet.create({
   },
   goButtonText: {
     color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   errorText: {
     color: '#FF6B6B',
     textAlign: 'center',
     marginTop: 16,
+    fontSize: 14,
   },
 });
-
-export default SwapInterfaceView;

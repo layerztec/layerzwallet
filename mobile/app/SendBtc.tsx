@@ -1,8 +1,7 @@
-import { useNavigation } from '@react-navigation/native';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
-import { Stack } from 'expo-router';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,11 +25,16 @@ import { formatBalance } from '@shared/modules/string-utils';
 
 type TFeeRateOptions = { [rate: number]: number };
 
+export type SendBtcParams = {
+  toAddress?: string;
+  amount?: string;
+};
 const SendBtc: React.FC = () => {
   const { scanQr } = useContext(ScanQrContext);
-  const navigation = useNavigation();
-  const [toAddress, setToAddress] = useState<string>('');
-  const [amount, setAmount] = useState<string>('');
+  const params = useLocalSearchParams<SendBtcParams>();
+  const router = useRouter();
+  const toAddress = params.toAddress ?? '';
+  const amount = params.amount ?? '';
   const [error, setError] = useState<string>('');
   const [isPreparing, setIsPreparing] = useState<boolean>(false);
   const [isPrepared, setIsPrepared] = useState<boolean>(false);
@@ -46,14 +50,6 @@ const SendBtc: React.FC = () => {
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const [showFeeModal, setShowFeeModal] = useState(false);
   const wallet = useRef(new HDSegwitBech32Wallet());
-
-  const handleAmountChange = (text: string) => {
-    const normalizedText = text.replace(',', '.');
-    if (normalizedText === '' || /^\d*\.?\d*$/.test(normalizedText)) {
-      setAmount(normalizedText);
-      setError('');
-    }
-  };
 
   const feeRate = useMemo(() => {
     if (customFeeRate !== undefined) return customFeeRate;
@@ -200,10 +196,10 @@ const SendBtc: React.FC = () => {
     if (scanned) {
       try {
         const decoded = bip21.decode(scanned);
-        if (decoded?.address) setToAddress(decoded.address);
-        if (decoded?.options?.amount) setAmount(String(decoded.options.amount));
+        if (decoded?.address) router.replace({ pathname: '/SendBtc', params: { ...params, toAddress: decoded.address } });
+        if (decoded?.options?.amount) router.replace({ pathname: '/SendBtc', params: { ...params, amount: String(decoded.options.amount) } });
       } catch {
-        setToAddress(scanned);
+        router.replace({ pathname: '/SendBtc', params: { ...params, toAddress: scanned } });
       }
     }
   };
@@ -219,7 +215,7 @@ const SendBtc: React.FC = () => {
               <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
               <ThemedText style={styles.successMessage}>Transaction Sent!</ThemedText>
               <ThemedText style={styles.successSubMessage}>Your {getTickerByNetwork(network)} are on their way</ThemedText>
-              <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+              <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                 <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
               </TouchableOpacity>
             </View>
@@ -242,12 +238,26 @@ const SendBtc: React.FC = () => {
                 style={styles.input}
                 placeholder="Enter the recipient's address"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                onChangeText={setToAddress}
-                value={toAddress}
                 autoCapitalize="none"
                 autoCorrect={false}
+                onChangeText={(text) => router.replace({ pathname: '/SendBtc', params: { ...params, toAddress: text } })}
+                value={toAddress}
               />
-              <TouchableOpacity style={styles.scanButton} onPress={handleScanQr}>
+              <TouchableOpacity
+                style={styles.scanButton}
+                onPress={async () => {
+                  const scanned = await scanQr();
+                  if (scanned) {
+                    try {
+                      const decoded = bip21.decode(scanned);
+                      if (decoded?.address) router.replace({ pathname: '/SendBtc', params: { ...params, toAddress: decoded.address } });
+                      if (decoded?.options?.amount) router.replace({ pathname: '/SendBtc', params: { ...params, amount: String(decoded.options.amount) } });
+                    } catch {
+                      router.replace({ pathname: '/SendBtc', params: { ...params, toAddress: scanned } });
+                    }
+                  }
+                }}
+              >
                 <Ionicons name="scan-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
               </TouchableOpacity>
             </View>
@@ -255,7 +265,19 @@ const SendBtc: React.FC = () => {
 
           <View style={styles.inputSection}>
             <ThemedText style={styles.inputLabel}>Amount</ThemedText>
-            <TextInput style={styles.input} placeholder="0.00" placeholderTextColor="rgba(255, 255, 255, 0.6)" onChangeText={handleAmountChange} value={amount} keyboardType="decimal-pad" />
+            <TextInput
+              style={styles.input}
+              placeholder="0.00"
+              placeholderTextColor="rgba(255, 255, 255, 0.6)"
+              keyboardType="decimal-pad"
+              onChangeText={(text) => {
+                const normalized = text.replace(',', '.');
+                if (normalized === '' || /^\d*\.?\d*$/.test(normalized)) {
+                  router.replace({ pathname: '/SendBtc', params: { ...params, amount: normalized } });
+                }
+              }}
+              value={amount}
+            />
             <ThemedText style={styles.balanceText}>
               Available balance: {balance ? formatBalance(balance, getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
             </ThemedText>
