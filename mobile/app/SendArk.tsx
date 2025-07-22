@@ -164,7 +164,7 @@ const SendArk = () => {
             <TextInput
               style={styles.input2}
               testID="amount-input"
-              placeholder="Enter amount"
+              placeholder="0.00"
               placeholderTextColor="rgba(255, 255, 255, 0.6)"
               keyboardType="numeric"
               onChangeText={(text) => {
