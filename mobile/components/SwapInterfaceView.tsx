@@ -16,7 +16,6 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getSwapPairs, getSwapProvidersList } from '@shared/models/swap-providers-list';
 
 export type SwapInterfaceViewProps = {
-  // Allow component to be used both as standalone and with router params
   useRouterParams?: boolean;
   onAmountChange?: (amount: string) => void;
   onTargetNetworkChange?: (network: Networks) => void;
@@ -29,7 +28,6 @@ const SwapInterfaceView: React.FC<SwapInterfaceViewProps> = ({ useRouterParams =
   const router = useRouter();
   const params = useLocalSearchParams<{ amount?: string; toNetwork?: Networks }>();
 
-  // Use router params if enabled, otherwise use internal state
   const [internalAmount, setInternalAmount] = useState<string>(initialAmount);
   const [internalTargetNetwork, setInternalTargetNetwork] = useState<Networks | undefined>(initialTargetNetwork);
 
