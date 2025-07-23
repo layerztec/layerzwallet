@@ -31,7 +31,7 @@ export const gradients = {
 
 export const Colors = {
   light: {
-    text: primaryColor,
+    text: '#ebebeb',
     background: '#fff',
     tint: primaryColor,
     icon: accent1,

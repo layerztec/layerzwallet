@@ -4,8 +4,9 @@ import * as Linking from 'expo-linking';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View, Alert, TextInput } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
-import { useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
@@ -123,7 +124,9 @@ const DAppBrowser: React.FC = () => {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <SafeAreaView style={styles.safeArea}>
+      <Stack.Screen options={{ headerShown: false }} />
+
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={[styles.iconButton, !canGoBack && styles.disabledButton]} onPress={goBack} disabled={!canGoBack}>
           <Ionicons name="arrow-back" size={16} color={canGoBack ? 'white' : '#999'} />
@@ -171,7 +174,7 @@ const DAppBrowser: React.FC = () => {
         injectedJavaScriptBeforeContentLoaded={js}
         webviewDebuggingEnabled={true}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
