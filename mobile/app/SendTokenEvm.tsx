@@ -26,6 +26,8 @@ import BigNumber from 'bignumber.js';
 
 export type SendTokenEvmProps = {
   contractAddress: string;
+  toAddress?: string;
+  amountToSend?: string;
 };
 
 const SendTokenEvm: React.FC = () => {
@@ -43,9 +45,9 @@ const SendTokenEvm: React.FC = () => {
   const { balance } = useTokenBalance(network, accountNumber, contractAddress, BackgroundExecutor);
 
   const [address, setAddress] = useState<string>(''); // our address
-  const [toAddress, setToAddress] = useState<string>('');
+  const toAddress = params.toAddress ?? '';
   const [bytes, setBytes] = useState<string>(''); // txhex ready to broadcast
-  const [amountToSend, setAmountToSend] = useState<string>('');
+  const amountToSend = params.amountToSend ?? '';
   const [error, setError] = useState<string>('');
   const [screenState, setScreenState] = useState<'init' | 'preparing' | 'prepared'>('init');
   const [fees, setFees] = useState<StringNumber>(); // min fees user will have to pay for the transaction
@@ -71,7 +73,7 @@ const SendTokenEvm: React.FC = () => {
     try {
       const scannedAddress = await scanQr();
       if (scannedAddress) {
-        setToAddress(scannedAddress);
+        router.replace({ pathname: '/SendTokenEvm', params: { ...params, toAddress: scannedAddress } });
       }
     } catch (error) {
       console.error('QR scan error:', error);
@@ -180,7 +182,13 @@ const SendTokenEvm: React.FC = () => {
             <View style={styles.inputContainer}>
               <ThemedText style={styles.label}>Recipient</ThemedText>
               <View style={styles.addressInputContainer}>
-                <TextInput style={styles.input} placeholder="Enter the recipient's address" value={toAddress} onChangeText={setToAddress} placeholderTextColor="rgba(255, 255, 255, 0.6)" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter the recipient's address"
+                  value={toAddress}
+                  onChangeText={(text) => router.replace({ pathname: '/SendTokenEvm', params: { ...params, toAddress: text } })}
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                />
                 <TouchableOpacity style={styles.scanButton} onPress={handleScanQr}>
                   <Ionicons name="qr-code-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
                 </TouchableOpacity>
@@ -189,7 +197,14 @@ const SendTokenEvm: React.FC = () => {
 
             <View style={styles.inputContainer}>
               <ThemedText style={styles.label}>Amount</ThemedText>
-              <TextInput style={styles.input} placeholder="0.00" value={amountToSend} onChangeText={setAmountToSend} keyboardType="decimal-pad" placeholderTextColor="rgba(255, 255, 255, 0.6)" />
+              <TextInput
+                style={styles.input}
+                placeholder="0.00"
+                value={amountToSend}
+                onChangeText={(text) => router.replace({ pathname: '/SendTokenEvm', params: { ...params, amountToSend: text } })}
+                keyboardType="decimal-pad"
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
+              />
               <ThemedText style={styles.balanceText}>
                 Available balance: {token?.symbol} {balance ? formatBalance(balance, token?.decimals ?? 1, 2) : ''}
               </ThemedText>

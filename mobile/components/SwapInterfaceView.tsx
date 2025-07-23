@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, FlatList } from 'react-native';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Networks } from '@shared/types/networks';
@@ -15,10 +15,25 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getSwapPairs, getSwapProvidersList } from '@shared/models/swap-providers-list';
 
-const SwapInterfaceView: React.FC = () => {
+export type SwapInterfaceViewProps = {
+  useRouterParams?: boolean;
+  onAmountChange?: (amount: string) => void;
+  onTargetNetworkChange?: (network: Networks) => void;
+  onClose?: () => void;
+  initialAmount?: string;
+  initialTargetNetwork?: Networks;
+};
+
+const SwapInterfaceView: React.FC<SwapInterfaceViewProps> = ({ useRouterParams = false, onAmountChange, onTargetNetworkChange, onClose, initialAmount = '', initialTargetNetwork }) => {
   const router = useRouter();
-  const [amount, setAmount] = useState<string>('');
-  const [targetNetwork, setTargetNetwork] = useState<Networks>();
+  const params = useLocalSearchParams<{ amount?: string; toNetwork?: Networks }>();
+
+  const [internalAmount, setInternalAmount] = useState<string>(initialAmount);
+  const [internalTargetNetwork, setInternalTargetNetwork] = useState<Networks | undefined>(initialTargetNetwork);
+
+  const amount = useRouterParams ? (params.amount ?? '') : internalAmount;
+  const targetNetwork = useRouterParams ? params.toNetwork : internalTargetNetwork;
+
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
@@ -30,6 +45,25 @@ const SwapInterfaceView: React.FC = () => {
   useEffect(() => {
     setSwapPairs(getSwapPairs(network, SwapPlatform.MOBILE));
   }, [network]);
+
+  const handleAmountChange = (text: string) => {
+    if (useRouterParams) {
+      router.setParams({ amount: text });
+    } else {
+      setInternalAmount(text);
+      onAmountChange?.(text);
+    }
+  };
+
+  const handleTargetNetworkChange = (selectedNetwork: Networks) => {
+    if (useRouterParams) {
+      router.setParams({ toNetwork: selectedNetwork });
+    } else {
+      setInternalTargetNetwork(selectedNetwork);
+      onTargetNetworkChange?.(selectedNetwork);
+    }
+    setShowNetworkPicker(false);
+  };
 
   const handleSwap = async (): Promise<string> => {
     setError('');
@@ -73,8 +107,16 @@ const SwapInterfaceView: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {onClose && (
+        <View style={styles.header}>
+          <ThemedText style={styles.headerTitle}>Swap</ThemedText>
+          <TouchableOpacity onPress={onClose} style={styles.headerCloseButton}>
+            <ThemedText style={styles.headerCloseButtonText}>✕</ThemedText>
+          </TouchableOpacity>
+        </View>
+      )}
       <View style={styles.swapRow}>
-        <ThemedText style={styles.label}>Swap</ThemedText>
+        {!onClose && <ThemedText style={styles.label}>Swap</ThemedText>}
 
         <TextInput
           style={styles.amountInput}
@@ -82,7 +124,7 @@ const SwapInterfaceView: React.FC = () => {
           placeholderTextColor="rgba(255, 255, 255, 0.6)"
           keyboardType="numeric"
           value={amount}
-          onChangeText={setAmount}
+          onChangeText={handleAmountChange}
           testID="swap-amount-input"
         />
 
@@ -106,13 +148,7 @@ const SwapInterfaceView: React.FC = () => {
                 data={supportedNetworks}
                 keyExtractor={(item) => `to-${item}`}
                 renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.networkOption}
-                    onPress={() => {
-                      setTargetNetwork(item);
-                      setShowNetworkPicker(false);
-                    }}
-                  >
+                  <TouchableOpacity style={styles.networkOption} onPress={() => handleTargetNetworkChange(item)}>
                     <ThemedText style={styles.networkOptionText}>{capitalizeFirstLetter(item)}</ThemedText>
                   </TouchableOpacity>
                 )}
@@ -142,6 +178,17 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     marginTop: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  headerTitle: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 18,
+    fontWeight: '600',
   },
   swapRow: {
     flexDirection: 'column',
@@ -226,6 +273,19 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     color: 'white',
+  },
+  headerCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerCloseButtonText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   goButton: {
     backgroundColor: '#000',

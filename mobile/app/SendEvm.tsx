@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, ScrollView } from 'react-native';
 
@@ -23,17 +23,23 @@ import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
 import { TransactionSuccessProps } from './TransactionSuccessEvm';
 
+export type SendEvmParams = {
+  toAddress?: string;
+  amount?: string;
+};
+
 export default function SendScreen() {
+  const params = useLocalSearchParams<SendEvmParams>();
+  const router = useRouter();
   const [screenState, setScreenState] = useState<'init' | 'preparing' | 'prepared' | 'broadcasting'>('init');
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { scanQr } = useContext(ScanQrContext);
-  const [address, setAddress] = useState('');
-  const [recipientAddress, setRecipientAddress] = useState('');
-  const [amount, setAmount] = useState('');
+  const [address, setAddress] = useState<string>('');
+  const recipientAddress = params.toAddress ?? '';
+  const amount = params.amount ?? '';
   const [feeMultiplier, setFeeMultiplier] = useState(1);
   const [errorMessage, setErrorMessage] = useState('');
-  const router = useRouter();
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const [bytes, setBytes] = useState('');
   const [fees, setFees] = useState<StringNumber>(); // min fees user will have to pay for the transaction
@@ -68,14 +74,26 @@ export default function SendScreen() {
   };
 
   const handleAddressChange = (text: string) => {
-    setRecipientAddress(text);
+    router.replace({
+      pathname: '/SendEvm',
+      params: {
+        ...params,
+        toAddress: text,
+      },
+    });
     setErrorMessage('');
   };
 
   const handleAmountChange = (text: string) => {
     const normalizedText = text.replace(',', '.');
     if (normalizedText === '' || /^\d*\.?\d*$/.test(normalizedText)) {
-      setAmount(normalizedText);
+      router.replace({
+        pathname: '/SendEvm',
+        params: {
+          ...params,
+          amount: normalizedText,
+        },
+      });
       setErrorMessage('');
     }
   };
@@ -210,8 +228,13 @@ export default function SendScreen() {
     try {
       const scannedAddress = await scanQr();
       if (scannedAddress) {
-        setRecipientAddress(scannedAddress);
-        handleAddressChange(scannedAddress);
+        router.replace({
+          pathname: '/SendEvm',
+          params: {
+            ...params,
+            toAddress: scannedAddress,
+          },
+        });
       }
     } catch (error) {
       console.error('QR scan error:', error);

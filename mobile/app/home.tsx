@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -25,8 +25,24 @@ export default function HomeScreen() {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    showSwapInterface?: string;
+    fromNetwork?: string;
+    toNetwork?: string;
+    amount?: string;
+  }>();
   const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
   const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (params.showSwapInterface === 'true') {
+      setShowSwapInterface(true);
+    }
+  }, [params.showSwapInterface]);
+
+  useEffect(() => {
+    setShowSwapInterface(false);
+  }, [network]);
 
   useEffect(() => {
     setSwapPairs(getSwapPairs(network, SwapPlatform.MOBILE));
@@ -67,6 +83,10 @@ export default function HomeScreen() {
 
   const goToReceive = () => {
     router.push('/Receive');
+  };
+
+  const handleSwapClick = () => {
+    setShowSwapInterface(true);
   };
 
   const goToSend = () => {
@@ -210,53 +230,59 @@ export default function HomeScreen() {
 
         <BalanceView network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundExecutor} />
 
-        {showSwapInterface ? <SwapInterfaceView /> : <View>{network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET ? <LiquidTokensView /> : <TokensView />}</View>}
+        {showSwapInterface ? (
+          <SwapInterfaceView useRouterParams={false} initialAmount={params.amount} initialTargetNetwork={params.toNetwork as any} onClose={() => setShowSwapInterface(false)} />
+        ) : (
+          <>
+            <View>{network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET ? <LiquidTokensView /> : <TokensView />}</View>
 
-        <View style={styles.contentContainer}>
-          <View style={styles.buttonContainer}>
-            <View style={styles.buttonRow}>
-              {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
-                <ActionPopupButton actions={getLightningReceiveActions()} testID="ReceiveButton" style={[styles.button, styles.receiveButton]}>
-                  <ThemedText style={styles.buttonText}>
-                    <Ionicons name="arrow-down" size={16} color="white" /> Receive
-                  </ThemedText>
-                </ActionPopupButton>
-              ) : (
-                <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive}>
-                  <ThemedText style={styles.buttonText}>Receive</ThemedText>
-                </TouchableOpacity>
-              )}
+            <View style={styles.contentContainer}>
+              <View style={styles.buttonContainer}>
+                <View style={styles.buttonRow}>
+                  {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
+                    <ActionPopupButton actions={getLightningReceiveActions()} testID="ReceiveButton" style={[styles.button, styles.receiveButton]}>
+                      <ThemedText style={styles.buttonText}>
+                        <Ionicons name="arrow-down" size={16} color="white" /> Receive
+                      </ThemedText>
+                    </ActionPopupButton>
+                  ) : (
+                    <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive}>
+                      <ThemedText style={styles.buttonText}>Receive</ThemedText>
+                    </TouchableOpacity>
+                  )}
 
-              {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
-                <ActionPopupButton actions={getLightningSendActions()} testID="SendButton" style={[styles.button, styles.sendButton]}>
-                  <ThemedText style={styles.buttonText}>
-                    <Ionicons name="arrow-up" size={16} color="white" /> Send
-                  </ThemedText>
-                </ActionPopupButton>
-              ) : (
-                <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
-                  <ThemedText style={styles.buttonText}>Send</ThemedText>
-                </TouchableOpacity>
-              )}
+                  {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
+                    <ActionPopupButton actions={getLightningSendActions()} testID="SendButton" style={[styles.button, styles.sendButton]}>
+                      <ThemedText style={styles.buttonText}>
+                        <Ionicons name="arrow-up" size={16} color="white" /> Send
+                      </ThemedText>
+                    </ActionPopupButton>
+                  ) : (
+                    <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
+                      <ThemedText style={styles.buttonText}>Send</ThemedText>
+                    </TouchableOpacity>
+                  )}
 
-              {swapPairs.length > 0 ? (
-                <TouchableOpacity style={styles.button} onPress={() => setShowSwapInterface(true)}>
-                  <ThemedText style={styles.buttonText}>
-                    <Ionicons name="refresh" size={16} color="white" /> Swap
-                  </ThemedText>
-                </TouchableOpacity>
-              ) : null}
+                  {swapPairs.length > 0 ? (
+                    <TouchableOpacity style={styles.button} onPress={handleSwapClick}>
+                      <ThemedText style={styles.buttonText}>
+                        <Ionicons name="refresh" size={16} color="white" /> Swap
+                      </ThemedText>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+
+                <View style={styles.buttonRowWithGap}>
+                  {getIsEVM(network) && (
+                    <TouchableOpacity style={styles.button} onPress={goToDAppBrowser}>
+                      <ThemedText style={styles.buttonText}>Browser</ThemedText>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
             </View>
-
-            <View style={styles.buttonRowWithGap}>
-              {getIsEVM(network) && (
-                <TouchableOpacity style={styles.button} onPress={goToDAppBrowser}>
-                  <ThemedText style={styles.buttonText}>Browser</ThemedText>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </View>
+          </>
+        )}
       </ScrollView>
     </GradientScreen>
   );
