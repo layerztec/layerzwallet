@@ -9,6 +9,9 @@ export default {
         path: 'home',
         parse: {
           showSwapInterface: (val: string) => val === 'true',
+          fromNetwork: (fromNetwork: string) => fromNetwork,
+          toNetwork: (toNetwork: string) => toNetwork,
+          amount: (amount: string) => amount,
         },
       },
       SendBtc: [
@@ -72,16 +75,6 @@ export default {
           contractAddress: (contractAddress: string) => contractAddress,
           toAddress: (toAddress: string) => toAddress,
           amountToSend: (amountToSend: string) => amountToSend,
-        },
-      },
-      Swap: {
-        path: 'swap',
-        parse: {
-          fromNetwork: (fromNetwork: string) => fromNetwork,
-          toNetwork: (toNetwork: string) => toNetwork,
-          amount: (amount: string) => amount,
-          address: (address: string) => address,
-          network: (network: string) => network,
         },
       },
       TransactionSuccessEvm: 'transaction-success',

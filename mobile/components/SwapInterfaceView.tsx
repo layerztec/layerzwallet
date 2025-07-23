@@ -20,11 +20,12 @@ export type SwapInterfaceViewProps = {
   useRouterParams?: boolean;
   onAmountChange?: (amount: string) => void;
   onTargetNetworkChange?: (network: Networks) => void;
+  onClose?: () => void;
   initialAmount?: string;
   initialTargetNetwork?: Networks;
 };
 
-const SwapInterfaceView: React.FC<SwapInterfaceViewProps> = ({ useRouterParams = false, onAmountChange, onTargetNetworkChange, initialAmount = '', initialTargetNetwork }) => {
+const SwapInterfaceView: React.FC<SwapInterfaceViewProps> = ({ useRouterParams = false, onAmountChange, onTargetNetworkChange, onClose, initialAmount = '', initialTargetNetwork }) => {
   const router = useRouter();
   const params = useLocalSearchParams<{ amount?: string; toNetwork?: Networks }>();
 
@@ -108,8 +109,16 @@ const SwapInterfaceView: React.FC<SwapInterfaceViewProps> = ({ useRouterParams =
 
   return (
     <View style={styles.container}>
+      {onClose && (
+        <View style={styles.header}>
+          <ThemedText style={styles.headerTitle}>Swap</ThemedText>
+          <TouchableOpacity onPress={onClose} style={styles.headerCloseButton}>
+            <ThemedText style={styles.headerCloseButtonText}>✕</ThemedText>
+          </TouchableOpacity>
+        </View>
+      )}
       <View style={styles.swapRow}>
-        <ThemedText style={styles.label}>Swap</ThemedText>
+        {!onClose && <ThemedText style={styles.label}>Swap</ThemedText>}
 
         <TextInput
           style={styles.amountInput}
@@ -171,6 +180,17 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     marginTop: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  headerTitle: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 18,
+    fontWeight: '600',
   },
   swapRow: {
     flexDirection: 'column',
@@ -255,6 +275,19 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     color: 'white',
+  },
+  headerCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerCloseButtonText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   goButton: {
     backgroundColor: '#000',
