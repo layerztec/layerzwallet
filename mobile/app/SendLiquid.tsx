@@ -21,6 +21,7 @@ export type SendLiquidParams = {
   assetId?: string; // Optional asset ID - if not provided, use L-BTC
   toAddress?: string;
   amount?: string;
+  message?: string; // Optional message from liquidnetwork: URI
 };
 
 const SendLiquid = () => {

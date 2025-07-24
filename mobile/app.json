@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/ios_1024x1024.png",
-    "scheme": ["bitcoin", "liquidnetwork", "layerzwallet"],
+    "scheme": "layerzwallet",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -15,7 +15,7 @@
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleURLTypes": [
           {
-            "CFBundleURLSchemes": ["bitcoin", "liquidnetwork", "layerzwallet"]
+            "CFBundleURLSchemes": ["bitcoin", "liquidnetwork", "liquidwallet", "layerzwallet"]
           }
         ]
       },
@@ -42,6 +42,13 @@
           "action": "VIEW",
           "data": {
             "scheme": "liquidnetwork"
+          },
+          "category": ["BROWSABLE", "DEFAULT"]
+        },
+        {
+          "action": "VIEW",
+          "data": {
+            "scheme": "liquidwallet"
           },
           "category": ["BROWSABLE", "DEFAULT"]
         },
@@ -83,7 +90,7 @@
       [
         "expo-asset",
         {
-          "assets": ["assets/js/inpage-bridge.jstxt"]
+          "assets": ["assets/js/inpage-bridge.js"]
         }
       ],
       "expo-secure-store",

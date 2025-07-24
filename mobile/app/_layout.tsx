@@ -1,13 +1,15 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { AppState, AppStateStatus, LogBox } from 'react-native';
 import 'react-native-reanimated';
 import { SWRConfig } from 'swr';
+import * as Linking from 'expo-linking';
+import * as bip21 from 'bip21';
 
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
@@ -18,7 +20,6 @@ import { SwrCacheProvider } from '@/src/class/swr-cache-provider';
 import { AskMnemonicContextProvider } from '@/src/hooks/AskMnemonicContext';
 import { AskPasswordContextProvider } from '@/src/hooks/AskPasswordContext';
 import { ScanQrContextProvider } from '@/src/hooks/ScanQrContext';
-import { useDeepLinkHandler } from '@/src/hooks/useDeepLinkHandler';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Messenger } from '@/src/modules/messenger';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
@@ -43,11 +44,83 @@ const DefaultNavigatorOptions: NativeStackNavigationOptions = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  useDeepLinkHandler();
+  // Deep link handler for Bitcoin and Liquid URIs
+  useEffect(() => {
+    const handleDeepLink = (url: string) => {
+      console.log('[DEEP_LINK] Received URL:', url);
+
+      if (url.startsWith('bitcoin:')) {
+        try {
+          const decoded = bip21.decode(url);
+          const params = new URLSearchParams({
+            toAddress: decoded.address,
+            ...(decoded.options?.amount && { amount: decoded.options.amount.toString() }),
+            ...(decoded.options?.label && { label: decoded.options.label }),
+            ...(decoded.options?.message && { message: decoded.options.message }),
+          });
+
+          const routeUrl = `/SendBtc?${params.toString()}`;
+          console.log('[DEEP_LINK] Routing to:', routeUrl);
+          router.push(routeUrl as any);
+        } catch (e) {
+          console.warn('[DEEP_LINK] BIP21 parsing failed:', e);
+          // Fallback: try to extract address manually
+          const addressMatch = url.match(/^bitcoin:([a-zA-Z0-9]+)/);
+          if (addressMatch) {
+            const routeUrl = `/SendBtc?toAddress=${addressMatch[1]}`;
+            console.log('[DEEP_LINK] Routing to (fallback):', routeUrl);
+            router.push(routeUrl as any);
+          }
+        }
+      } else if (url.startsWith('liquidnetwork:') || url.startsWith('liquidwallet:')) {
+        try {
+          const scheme = url.startsWith('liquidnetwork:') ? 'liquidnetwork:' : 'liquidwallet:';
+          let urlToParse = url.replace(new RegExp(`^${scheme}`), '');
+
+          if (!urlToParse.startsWith('//')) {
+            urlToParse = '//' + urlToParse;
+          }
+
+          const urlObj = new URL(scheme + urlToParse);
+          const address = urlObj.pathname.replace(/^\//, '');
+
+          const params = new URLSearchParams({
+            toAddress: address,
+            ...(urlObj.searchParams.get('amount') && { amount: urlObj.searchParams.get('amount')! }),
+            ...(urlObj.searchParams.get('assetId') && { assetId: urlObj.searchParams.get('assetId')! }),
+            ...(urlObj.searchParams.get('message') && { message: urlObj.searchParams.get('message')! }),
+          });
+
+          const routeUrl = `/SendLiquid?${params.toString()}`;
+          console.log('[DEEP_LINK] Routing to:', routeUrl);
+          router.push(routeUrl as any);
+        } catch (e) {
+          console.warn('[DEEP_LINK] Liquid URI parsing failed:', e);
+        }
+      }
+    };
+
+    // Handle initial URL (app opened from deep link)
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        console.log('[DEEP_LINK] Initial URL:', url);
+        handleDeepLink(url);
+      }
+    });
+
+    // Handle URLs when app is already open
+    const subscription = Linking.addEventListener('url', (event) => {
+      console.log('[DEEP_LINK] URL event:', event.url);
+      handleDeepLink(event.url);
+    });
+
+    return () => subscription?.remove();
+  }, [router]);
 
   useEffect(() => {
     if (loaded) {
@@ -129,12 +202,6 @@ export default function RootLayout() {
                         />
                         <Stack.Screen
                           name="onboarding/create-wallet-backup-password"
-                          options={{
-                            ...DefaultNavigatorOptions,
-                          }}
-                        />
-                        <Stack.Screen
-                          name="manual-backup/intro"
                           options={{
                             ...DefaultNavigatorOptions,
                           }}
