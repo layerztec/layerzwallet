@@ -18,6 +18,7 @@ import { SwrCacheProvider } from '@/src/class/swr-cache-provider';
 import { AskMnemonicContextProvider } from '@/src/hooks/AskMnemonicContext';
 import { AskPasswordContextProvider } from '@/src/hooks/AskPasswordContext';
 import { ScanQrContextProvider } from '@/src/hooks/ScanQrContext';
+import { useDeepLinkHandler } from '@/src/hooks/useDeepLinkHandler';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Messenger } from '@/src/modules/messenger';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
@@ -45,6 +46,8 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+
+  useDeepLinkHandler();
 
   useEffect(() => {
     if (loaded) {
@@ -172,12 +175,17 @@ export default function RootLayout() {
                             gestureEnabled: true,
                           }}
                         />
-                        <Stack.Screen name="receive" />
+                        <Stack.Screen name="Receive" />
                         <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
                         <Stack.Screen name="SeedBackup" options={{ headerShown: true, title: 'Seed Backup' }} />
 
                         <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
+                        <Stack.Screen name="SendBtc" options={{ title: 'Send Bitcoin' }} />
                         <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
+                        <Stack.Screen name="SendLiquid" options={{ title: 'Send Liquid' }} />
+                        <Stack.Screen name="SendLightning" options={{ title: 'Send Lightning' }} />
+                        <Stack.Screen name="SendEvm" options={{ title: 'Send EVM' }} />
+                        <Stack.Screen name="SendTokenEvm" options={{ title: 'Send Token' }} />
                         <Stack.Screen name="Onramp" options={{ headerShown: true }} />
                         <Stack.Screen name="AskPassword" options={{ presentation: 'modal', headerShown: false }} />
                         <Stack.Screen name="AskMnemonic" options={{ presentation: 'modal', headerShown: false }} />

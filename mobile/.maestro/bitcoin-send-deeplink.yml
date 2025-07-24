@@ -32,3 +32,14 @@ appId: com.layerzwallet.mobile
 
 - assertVisible: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
 - assertVisible: '0.002'
+
+# Test BIP21 with label parameter
+- runFlow: subflows/back.yml
+- openLink: 'bitcoin:bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh?amount=0.003&label=Test%20Payment'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: 'Recipient Address'
+    timeout: 15000
+
+- assertVisible: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+- assertVisible: '0.003'

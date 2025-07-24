@@ -28,6 +28,8 @@ type TFeeRateOptions = { [rate: number]: number };
 export type SendBtcParams = {
   toAddress?: string;
   amount?: string;
+  label?: string;
+  message?: string;
 };
 const SendBtc: React.FC = () => {
   const { scanQr } = useContext(ScanQrContext);

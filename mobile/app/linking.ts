@@ -14,22 +14,15 @@ export default {
           amount: (amount: string) => amount,
         },
       },
-      SendBtc: [
-        {
-          path: 'send/btc',
-          parse: {
-            toAddress: (toAddress: string) => toAddress,
-            amount: (amount: string) => amount,
-          },
+      SendBtc: {
+        path: 'send/btc',
+        parse: {
+          toAddress: (toAddress: string) => toAddress,
+          amount: (amount: string) => amount,
+          label: (label: string) => label,
+          message: (message: string) => message,
         },
-        {
-          path: 'bitcoin/:address',
-          parse: {
-            toAddress: (address: string) => address,
-            amount: (amount: string) => amount,
-          },
-        },
-      ],
+      },
       SendArk: {
         path: 'send/ark',
         parse: {
