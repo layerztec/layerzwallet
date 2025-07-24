@@ -1,9 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -73,9 +72,9 @@ export function EthSignTypedData(args: EthSignTypedDataArgs) {
       }
 
       return (
-        <ThemedView style={styles.messageContainer}>
+        <View style={styles.messageContainer}>
           <ThemedText style={styles.messageText}>{typedData}</ThemedText>
-        </ThemedView>
+        </View>
       );
     } catch (error: any) {
       return <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText>;
@@ -83,72 +82,82 @@ export function EthSignTypedData(args: EthSignTypedDataArgs) {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedView style={styles.contentContainer}>
-        <ThemedText style={styles.title}>Sign Typed Data</ThemedText>
-        <ThemedText style={styles.subtitle}>
-          Dapp <ThemedText style={styles.highlight}>{args.from}</ThemedText> wants you to sign typed data
-        </ThemedText>
-        {renderTypedData()}
-      </ThemedView>
+    <View style={styles.container} collapsable={true}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.contentContainer}>
+          <ThemedText style={styles.title}>Sign Typed Data</ThemedText>
+          <ThemedText style={styles.subtitle}>
+            Dapp <ThemedText style={styles.highlight}>{args.from}</ThemedText> wants you to sign typed data
+          </ThemedText>
+          {renderTypedData()}
+        </View>
 
-      <ThemedView style={styles.buttonContainer}>
-        <TouchableOpacity style={[styles.button, styles.secondaryButton, isLoading && styles.disabledButton]} onPress={onDenyClick} disabled={isLoading} activeOpacity={0.8}>
-          <ThemedText style={[styles.buttonText, styles.secondaryButtonText, isLoading && styles.disabledButtonText]}>{isLoading ? 'Processing...' : 'Deny'}</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, styles.primaryButton, isLoading && styles.disabledButton]} onPress={onAllowClick} disabled={isLoading} activeOpacity={0.8}>
-          <ThemedText style={[styles.buttonText, styles.primaryButtonText, isLoading && styles.disabledButtonText]}>{isLoading ? 'Processing...' : 'Allow'}</ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
-    </ThemedView>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={[styles.button, styles.secondaryButton, isLoading && styles.disabledButton]} onPress={onDenyClick} disabled={isLoading} activeOpacity={0.8}>
+            <ThemedText style={[styles.buttonText, styles.secondaryButtonText, isLoading && styles.disabledButtonText]}>{isLoading ? 'Processing...' : 'Deny'}</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.button, styles.primaryButton, isLoading && styles.disabledButton]} onPress={onAllowClick} disabled={isLoading} activeOpacity={0.8}>
+            <ThemedText style={[styles.buttonText, styles.primaryButtonText, isLoading && styles.disabledButtonText]}>{isLoading ? 'Processing...' : 'Allow'}</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
   },
-  contentContainer: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     padding: 24,
     alignItems: 'center',
     paddingVertical: 20,
   },
+  contentContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B7280',
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
   },
   highlight: {
     fontWeight: '600',
-    color: Colors.light.text,
+    color: 'rgba(255, 255, 255, 1)',
   },
   messageContainer: {
     width: '100%',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     padding: 16,
     marginTop: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   messageText: {
     fontSize: 14,
     fontFamily: 'SpaceMono',
-    color: '#1F2937',
+    color: 'rgba(255, 255, 255, 0.9)',
     lineHeight: 20,
   },
   errorText: {
     fontSize: 14,
-    color: '#DC2626',
+    color: 'rgba(255, 255, 255, 0.6)',
     textAlign: 'center',
     marginTop: 16,
   },
@@ -157,9 +166,10 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 24,
     paddingBottom: 40,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 100,
   },
   button: {
     flex: 1,
@@ -169,12 +179,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   secondaryButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   disabledButton: {
     opacity: 0.5,
@@ -184,12 +196,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   secondaryButtonText: {
-    color: Colors.light.text,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   disabledButtonText: {
-    color: '#9CA3AF',
+    color: 'rgba(255, 255, 255, 0.4)',
   },
 });

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useMemo } from 'react';
-import { Alert, StyleSheet } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import { EthRequestAccounts } from '@/components/action/EthRequestAccounts';
 import { EthSignTypedData } from '@/components/action/EthSignTypedData';
@@ -10,7 +10,6 @@ import { SendTransaction } from '@/components/action/SendTransaction';
 import { SwitchEthereumChain } from '@/components/action/SwitchEthereumChain';
 import { WalletRequestPermissions } from '@/components/action/WalletRequestPermissions';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -91,20 +90,20 @@ const Action: React.FC = () => {
         return <EthRequestAccounts {...componentProps} />;
       default:
         return (
-          <ThemedView style={styles.errorContainer}>
+          <View style={styles.errorContainer}>
             <ThemedText style={styles.errorText}>Unknown method: {method}</ThemedText>
-          </ThemedView>
+          </View>
         );
     }
   };
 
-  return <ThemedView style={styles.container}>{renderMethodComponent()}</ThemedView>;
+  return <View style={styles.container}>{renderMethodComponent()}</View>;
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
   },
   loadingContainer: {
     flex: 1,
@@ -114,7 +113,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 18,
-    color: Colors.light.text,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   errorContainer: {
     flex: 1,
@@ -124,39 +123,9 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 18,
-    color: '#DC2626',
+    color: 'rgba(255, 255, 255, 0.6)',
     textAlign: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 36,
-    paddingBottom: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: Colors.light.text,
   },
 });
 
-const Header = () => (
-  <ThemedView testID="ActionHeader" style={styles.header}>
-    <ThemedView style={styles.headerContent}>
-      <Ionicons name="shield-checkmark" size={24} color={Colors.light.icon} />
-      <ThemedText style={styles.headerTitle}>Action Required</ThemedText>
-    </ThemedView>
-  </ThemedView>
-);
-
 export default Action;
-export { Header };
