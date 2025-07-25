@@ -21,5 +21,4 @@ jobs:
         - .maestro/wallet-creation-and-selftest.yml
         - .maestro/receive.yml
         - .maestro/restore.yml
-#        - .maestro/bitcoin-send-deeplink.yml # enable at later PR
 #        - .maestro/browser.yml # always fails on CI, passes locally
