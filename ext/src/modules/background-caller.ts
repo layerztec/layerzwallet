@@ -3,26 +3,46 @@ import { GetSubMnemonicResponse, GetBtcSendDataResponse, IBackgroundCaller, Mess
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
-import { NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_SPARK } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { lazyInitWallet as lazyInitWalletOrig, LazyInitWallets, SupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
+import assert from 'assert';
 
 const STORAGE_KEY_WHITELIST = 'STORAGE_KEY_WHITELIST';
 const STORAGE_KEY_ACCEPTED_TOS = 'STORAGE_KEY_ACCEPTED_TOS';
+
+/**
+ * Cache of wallets by network and account number
+ * 1 of 2 - this one resides in context of whoever is calling BackgroundCaller, which is most likely
+ * the Popup
+ */
+const cachedWallets: Record<SupportedLazyInitWalletNetworks, Record<number, LazyInitWallets>> = {
+  [NETWORK_BITCOIN]: {},
+  [NETWORK_SPARK]: {},
+};
 
 /**
  * Makes calls to the background script and handles responses. The background script executes sensitive operations
  * in an isolated context for security. Communication is handled via the `Messenger` service
  */
 export const BackgroundCaller: IBackgroundCaller = {
+  /**
+   * ACHTUNG!
+   *
+   * this will create a wallet object that will exist in the __context where it was called__.
+   * there might be a situation (in ext) when same wallet was created in background script and popup
+   */
+  async lazyInitWallet(network: SupportedLazyInitWalletNetworks, accountNumber: number) {
+    return lazyInitWalletOrig(network, accountNumber, cachedWallets, LayerzStorage, SecureStorage);
+  },
+
   async getAddress(...params) {
     const [network, accountNumber] = params;
     if (network === NETWORK_SPARK) {
       // executing in Popup context instead of background script context since spark lib cant work there (expects `window.`)
       // @see https://github.com/buildonspark/spark/issues/32  // fixme
-      const sp = new SparkWallet();
-      const submnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
-      sp.setSecret(submnemonic);
-      await sp.init();
+      const sp = await BackgroundCaller.lazyInitWallet(network, accountNumber);
+      assert(sp instanceof SparkWallet);
       return String(await sp.getOffchainReceiveAddress());
     }
 

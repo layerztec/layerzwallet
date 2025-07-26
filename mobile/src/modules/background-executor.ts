@@ -4,7 +4,15 @@ import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { lazyInitWallet as lazyInitWalletOrig, sanitizeAndValidateMnemonic, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
+import {
+  lazyInitWallet as lazyInitWalletOrig,
+  sanitizeAndValidateMnemonic,
+  saveBitcoinXpubs,
+  saveSubMnemonics,
+  saveWalletState,
+  SupportedLazyInitWalletNetworks,
+  LazyInitWallets,
+} from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, OpenPopupRequest } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_WHITELIST } from '@shared/types/IStorage';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
@@ -14,19 +22,14 @@ import { Csprng } from '../class/rng';
 import { SecureStorage } from '../class/secure-storage';
 import { decrypt, encrypt } from '../modules/encryption';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import assert from 'assert';
 
-// Cache of wallets by network and account number (currently only bitcoin)
-const cachedWallets: Record<string, Record<number, WatchOnlyWallet>> = {
+// Cache of wallets by network and account number
+const cachedWallets: Record<SupportedLazyInitWalletNetworks, Record<number, LazyInitWallets>> = {
   [NETWORK_BITCOIN]: {},
+  [NETWORK_SPARK]: {},
   // [NETWORK_LIQUID]: {},
   // [NETWORK_LIQUIDTESTNET]: {},
-};
-
-const lazyInitWallet = async (...args: Parameters<typeof lazyInitWalletOrig>) => {
-  if (args[0] !== NETWORK_BITCOIN) {
-    throw new Error('lazyInitWallet only supports NETWORK_BITCOIN');
-  }
-  return lazyInitWalletOrig(...args) as unknown as WatchOnlyWallet;
 };
 
 /**
@@ -34,9 +37,14 @@ const lazyInitWallet = async (...args: Parameters<typeof lazyInitWalletOrig>) =>
  * no need to handle calls via messages, we can just execute them on the spot
  */
 export const BackgroundExecutor: IBackgroundCaller = {
+  async lazyInitWallet(network: SupportedLazyInitWalletNetworks, accountNumber: number) {
+    return lazyInitWalletOrig(network, accountNumber, cachedWallets, LayerzStorage, SecureStorage);
+  },
+
   async getAddress(network, accountNumber) {
     if (network === NETWORK_BITCOIN) {
-      const wallet = await lazyInitWallet(network, accountNumber, cachedWallets, LayerzStorage);
+      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof WatchOnlyWallet);
       const address = await wallet.getAddressAsync();
       await saveWalletState(LayerzStorage, wallet, network, accountNumber);
       return address;
@@ -47,10 +55,8 @@ export const BackgroundExecutor: IBackgroundCaller = {
       await aw.init();
       return await aw.getOffchainReceiveAddress();
     } else if (network === NETWORK_SPARK) {
-      const sp = new SparkWallet();
-      const submnemonic = await BackgroundExecutor.getSubMnemonic(accountNumber);
-      sp.setSecret(submnemonic);
-      await sp.init();
+      const sp = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      assert(sp instanceof SparkWallet);
       return String(await sp.getOffchainReceiveAddress());
     } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
       const mnemonic = await SecureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
@@ -137,7 +143,8 @@ export const BackgroundExecutor: IBackgroundCaller = {
     if (!BlueElectrum.mainConnected) {
       await BlueElectrum.connectMain();
     }
-    const wallet = await lazyInitWallet(NETWORK_BITCOIN, accountNumber, cachedWallets, LayerzStorage);
+    const wallet = await BackgroundExecutor.lazyInitWallet(NETWORK_BITCOIN, accountNumber);
+    assert(wallet instanceof WatchOnlyWallet);
     await wallet.fetchBalance();
     await saveWalletState(LayerzStorage, wallet, NETWORK_BITCOIN, accountNumber);
     return {
@@ -241,7 +248,8 @@ export const BackgroundExecutor: IBackgroundCaller = {
     if (!BlueElectrum.mainConnected) {
       await BlueElectrum.connectMain();
     }
-    const wallet = await lazyInitWallet(NETWORK_BITCOIN, accountNumber, cachedWallets, LayerzStorage);
+    const wallet = await BackgroundExecutor.lazyInitWallet(NETWORK_BITCOIN, accountNumber);
+    assert(wallet instanceof WatchOnlyWallet);
     await wallet.fetchBalance();
     await wallet.fetchUtxo();
     const changeAddress = await wallet.getChangeAddressAsync();

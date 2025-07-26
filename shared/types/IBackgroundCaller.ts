@@ -1,5 +1,6 @@
 import { CreateTransactionUtxo } from '../class/wallets/types';
 import { Networks } from '../types/networks';
+import { LazyInitWallets, SupportedLazyInitWalletNetworks } from '../modules/wallet-utils';
 
 // Message types for background script communication
 export enum MessageType {
@@ -102,6 +103,7 @@ export interface ProcessRPCRequest {
 }
 
 export interface IBackgroundCaller {
+  lazyInitWallet(network: SupportedLazyInitWalletNetworks, accountNumber: number): Promise<LazyInitWallets>;
   getAddress(...params: GetAddressParams): Promise<GetAddressResponse>;
   acceptTermsOfService(): Promise<void>;
   hasAcceptedTermsOfService(): Promise<boolean>;

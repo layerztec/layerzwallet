@@ -86,6 +86,13 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     return Number(balance.balance);
   }
 
+  async cleanupConnections() {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+
+    this._sdkWallet.removeAllListeners();
+    await this._sdkWallet.cleanupConnections();
+  }
+
   async createLightningInvoice(amountSats: number, memo: string = ''): Promise<createLightningInvoiceResponse> {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 

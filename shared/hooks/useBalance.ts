@@ -8,6 +8,7 @@ import { getRpcProvider } from '../models/network-getters';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
+import assert from 'assert';
 
 interface balanceFetcherArg {
   cacheKey: string;
@@ -56,20 +57,25 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
   }
 
   if (network === NETWORK_SPARK) {
-    const sw = new SparkWallet();
-    const submnemonic = await backgroundCaller.getSubMnemonic(accountNumber);
-    sw.setSecret(submnemonic);
-    await sw.init();
+    const start = +new Date();
+    const sw = await backgroundCaller.lazyInitWallet(network, accountNumber);
+    assert(sw instanceof SparkWallet);
     const virtualBalance = await sw.getOffchainBalance();
+    const end = +new Date();
+    console.log('spark balance took', (end - start) / 1000, 'sec, balance =', virtualBalance.toString(10));
+    setTimeout(() => sw.cleanupConnections(), 2_000);
     return virtualBalance.toString(10);
   }
 
   if (network === NETWORK_ARKMUTINYNET) {
+    const start = +new Date();
     const aw = new ArkWallet();
     const submnemonic = await backgroundCaller.getSubMnemonic(accountNumber);
     aw.setSecret(submnemonic);
     await aw.init();
+    const end = +new Date();
     const virtualBalance = await aw.getOffchainBalance();
+    console.log('ark balance took', (end - start) / 1000, 'sec, balance =', virtualBalance.toString(10));
     return virtualBalance.toString(10);
   }
 
@@ -87,14 +93,14 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
   switch (network) {
     case NETWORK_SPARK:
     case NETWORK_ARKMUTINYNET:
-      refreshInterval = 3_000; // transfers are just server interactions, should be fast
+      refreshInterval = 5_000; // transfers are just server interactions, should be fast
       break;
 
     case NETWORK_LIGHTNING:
     case NETWORK_LIGHTNINGTESTNET:
     case NETWORK_LIQUID:
     case NETWORK_LIQUIDTESTNET:
-      refreshInterval = 3_000; // we are just fetching data from the SDK, should be fast
+      refreshInterval = 5_000; // we are just fetching data from the SDK, should be fast
       break;
 
     case NETWORK_BITCOIN:
