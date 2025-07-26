@@ -67,12 +67,22 @@ export default function CreatePasswordScreen() {
             <ThemedText style={styles.subtitle}>Create a password to encrypt your wallet</ThemedText>
 
             <ThemedView style={styles.inputContainer}>
-              <TextInput style={styles.input} placeholder="Enter password" placeholderTextColor="#999" secureTextEntry value={password} onChangeText={setPassword} testID="EnterPasswordInput" />
+              <TextInput
+                style={styles.input}
+                placeholder="Enter password"
+                placeholderTextColor="#999"
+                autoCapitalize="none"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                testID="EnterPasswordInput"
+              />
 
               <TextInput
                 style={styles.input}
                 placeholder="Repeat password"
                 placeholderTextColor="#999"
+                autoCapitalize="none"
                 secureTextEntry
                 value={repeatPassword}
                 onChangeText={setRepeatPassword}
