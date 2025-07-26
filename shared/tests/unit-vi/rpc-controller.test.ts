@@ -42,6 +42,7 @@ const storageMock: IStorage = {
 };
 
 const backgroundCallerMock2: IBackgroundCaller = {
+  lazyInitWallet: () => Promise.reject(),
   log: () => Promise.resolve(),
   getWhitelist: async () => Promise.resolve([]),
   hasAcceptedTermsOfService: async () => Promise.resolve(false),

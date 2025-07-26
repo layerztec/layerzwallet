@@ -2,8 +2,9 @@ import { BIP85 } from 'bip85';
 
 import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
 import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
+import { SparkWallet } from '../class/wallets/spark-wallet';
 import { IStorage, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_BTC_XPUB, getSerializedStorageKey } from '../types/IStorage';
-import { NETWORK_BITCOIN, Networks } from '../types/networks';
+import { NETWORK_BITCOIN, NETWORK_SPARK, Networks } from '../types/networks';
 import { WalletSerializer } from './wallet-serializer';
 
 /**
@@ -45,7 +46,8 @@ export async function saveWalletState(storage: IStorage, wallet: WatchOnlyWallet
   }
 }
 
-type SupportedWalletNetworks = typeof NETWORK_BITCOIN;
+export type SupportedLazyInitWalletNetworks = typeof NETWORK_BITCOIN | typeof NETWORK_SPARK;
+export type LazyInitWallets = WatchOnlyWallet | SparkWallet;
 
 /**
  * Initialize and cache a wallet for the given network/account, using serialization if available.
@@ -55,16 +57,34 @@ type SupportedWalletNetworks = typeof NETWORK_BITCOIN;
  * @param accountNumber Account index
  * @param cachedWallets Cache object to store/retrieve wallets
  * @param storage Storage instance (LayerzStorage or compatible)
+ * @param secureStorage
  * @returns The initialized wallet instance
  */
-export async function lazyInitWallet(network: SupportedWalletNetworks, accountNumber: number, cachedWallets: Record<string, Record<number, any>>, storage: IStorage): Promise<WatchOnlyWallet> {
-  if (![NETWORK_BITCOIN].includes(network)) {
+export async function lazyInitWallet(
+  network: SupportedLazyInitWalletNetworks,
+  accountNumber: number,
+  cachedWallets: Record<SupportedLazyInitWalletNetworks, Record<number, LazyInitWallets>>,
+  storage: IStorage,
+  secureStorage: IStorage
+): Promise<LazyInitWallets> {
+  if (![NETWORK_BITCOIN, NETWORK_SPARK].includes(network)) {
     throw new Error(`Unsupported network for lazyInitWallet: ${network}`);
   }
   // cache hit
   if (cachedWallets[network]?.[accountNumber]) {
     return cachedWallets[network][accountNumber];
   }
+
+  if (network === NETWORK_SPARK) {
+    // we dont save it to storage
+    const sw = new SparkWallet();
+    const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
+    sw.setSecret(submnemonic);
+    await sw.init();
+    cachedWallets[network][accountNumber] = sw;
+    return sw;
+  }
+
   // try to restore wallet from the storage
   const storageKey = getSerializedStorageKey(network, accountNumber);
   try {

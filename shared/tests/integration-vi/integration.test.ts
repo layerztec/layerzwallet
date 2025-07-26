@@ -11,6 +11,7 @@ import { NETWORK_BOTANIXTESTNET, NETWORK_ROOTSTOCK, NETWORK_SEPOLIA, NETWORK_STR
 import { exchangeRateFetcher } from '../../hooks/useExchangeRate';
 
 const backgroundCallerMock2: IBackgroundCaller = {
+  lazyInitWallet: () => Promise.reject(),
   log: () => Promise.resolve(),
   getWhitelist: async () => Promise.resolve([]),
   hasAcceptedTermsOfService: async () => Promise.resolve(false),
