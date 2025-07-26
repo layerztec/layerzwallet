@@ -34,7 +34,7 @@ appId: com.layerzwallet.mobile
 
 # Then verify the Continue button is available and enabled
 - assertVisible:
-    text: 'Continue'
+    text: 'Verify'
     enabled: true
 
 # Now proceed to the enter password screen

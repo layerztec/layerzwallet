@@ -1,10 +1,9 @@
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, StyleSheet, ViewStyle, TextStyle, Animated, ActivityIndicator, FlatList, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ViewStyle, TextStyle, Animated, ActivityIndicator, FlatList, TouchableOpacity, Image, ImageStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Colors, gradients } from '@shared/constants/Colors';
@@ -168,7 +167,7 @@ export default function CreateWalletScreen() {
               {!isLoading && !error && recoveryPhrase && (
                 <Animated.View style={verifyButtonAnimation}>
                   <TouchableOpacity style={styles.verifyButton} onPress={handleContinue}>
-                    <Ionicons name="arrow-forward" size={20} color={Colors.dark.buttonText} />
+                    <Image source={require('@/assets/images/ui/arrow-right.png')} style={styles.image} />
                     <ThemedText style={styles.verifyButtonText}>Verify</ThemedText>
                   </TouchableOpacity>
                 </Animated.View>
@@ -229,6 +228,10 @@ const styles = StyleSheet.create({
     width: '48%',
     minHeight: 50,
   } as ViewStyle,
+  image: {
+    alignSelf: 'center',
+    marginRight: 8,
+  } as ImageStyle,
   wordNumber: {
     width: 24,
     height: 24,
