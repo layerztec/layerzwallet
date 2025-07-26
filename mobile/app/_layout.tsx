@@ -26,7 +26,6 @@ import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext
 import { InitializationContextProvider } from '@shared/hooks/InitializationContext';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
-import { Header as ActionHeader } from './Action';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -270,9 +269,10 @@ export default function RootLayout() {
                           name="Action"
                           options={{
                             presentation: 'formSheet',
-                            sheetAllowedDetents: [0.66, 1.0],
-                            header: () => <ActionHeader />,
+                            sheetAllowedDetents: [0.95],
                             sheetGrabberVisible: true,
+                            headerTransparent: false,
+                            gestureEnabled: true,
                           }}
                         />
                         <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />

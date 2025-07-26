@@ -1,9 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { Colors } from '@shared/constants/Colors';
 
@@ -51,9 +50,9 @@ export function SwitchEthereumChain(args: SwitchEthereumChainArgs) {
       const params = args.params;
       if (Array.isArray(params) && params.length > 0 && params[0].chainId) {
         return (
-          <ThemedView style={styles.networkInfo}>
+          <View style={styles.networkInfo}>
             <ThemedText style={styles.networkText}>Chain ID: {params[0].chainId}</ThemedText>
-          </ThemedView>
+          </View>
         );
       }
       return null;
@@ -63,31 +62,31 @@ export function SwitchEthereumChain(args: SwitchEthereumChainArgs) {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedView style={styles.contentContainer}>
+    <View style={styles.container}>
+      <View style={styles.contentContainer}>
         <ThemedText style={styles.title}>Switch Network</ThemedText>
         <ThemedText style={styles.subtitle}>
           Dapp <ThemedText style={styles.highlight}>{args.from}</ThemedText> wants to switch to a different network
         </ThemedText>
         {renderNetworkInfo()}
-      </ThemedView>
+      </View>
 
-      <ThemedView style={styles.buttonContainer}>
+      <View style={styles.buttonContainer}>
         <TouchableOpacity style={[styles.button, styles.secondaryButton, isLoading && styles.disabledButton]} onPress={onDenyClick} disabled={isLoading} activeOpacity={0.8}>
           <ThemedText style={[styles.buttonText, styles.secondaryButtonText, isLoading && styles.disabledButtonText]}>{isLoading ? 'Processing...' : 'Deny'}</ThemedText>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.button, styles.primaryButton, isLoading && styles.disabledButton]} onPress={onAllowClick} disabled={isLoading} activeOpacity={0.8}>
           <ThemedText style={[styles.buttonText, styles.primaryButtonText, isLoading && styles.disabledButtonText]}>{isLoading ? 'Processing...' : 'Allow'}</ThemedText>
         </TouchableOpacity>
-      </ThemedView>
-    </ThemedView>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
   },
   contentContainer: {
     flex: 1,
@@ -98,36 +97,38 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B7280',
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
   },
   highlight: {
     fontWeight: '600',
-    color: Colors.light.text,
+    color: 'rgba(255, 255, 255, 1)',
   },
   networkInfo: {
     width: '100%',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     padding: 16,
     marginTop: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   networkText: {
     fontSize: 16,
-    color: '#1F2937',
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
   },
   errorText: {
     fontSize: 14,
-    color: '#DC2626',
+    color: 'rgba(255, 255, 255, 0.6)',
     textAlign: 'center',
     marginTop: 16,
   },
@@ -136,9 +137,9 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 24,
     paddingBottom: 40,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   button: {
     flex: 1,
@@ -148,12 +149,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryButton: {
-    backgroundColor: Colors.light.tint,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   secondaryButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   disabledButton: {
     opacity: 0.5,
@@ -163,12 +166,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   secondaryButtonText: {
-    color: Colors.light.text,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   disabledButtonText: {
-    color: '#9CA3AF',
+    color: 'rgba(255, 255, 255, 0.4)',
   },
 });
