@@ -90,7 +90,7 @@
       [
         "expo-asset",
         {
-          "assets": ["assets/js/inpage-bridge.js"]
+          "assets": ["assets/js/inpage-bridge.jstxt"]
         }
       ],
       "expo-secure-store",
