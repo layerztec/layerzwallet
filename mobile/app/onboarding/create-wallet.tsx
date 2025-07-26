@@ -96,7 +96,7 @@ export default function CreateWalletScreen() {
   }, []);
 
   const handleContinue = () => {
-    router.replace('/onboarding/create-password');
+    router.push('/manual-backup/validation-intro');
   };
 
   const handleSaveBackup = async () => {

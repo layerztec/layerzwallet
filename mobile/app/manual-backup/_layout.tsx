@@ -15,6 +15,7 @@ export default function ManualBackupLayout() {
       }}
     >
       <Stack.Screen name="intro" />
+      <Stack.Screen name="validation-intro" />
     </Stack>
   );
 }
