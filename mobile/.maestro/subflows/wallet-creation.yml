@@ -24,7 +24,7 @@ appId: com.layerzwallet.mobile
     id: 'ManualBackupContinueButton'
 
 - extendedWaitUntil:
-    visible: 'Write down these 12 words in numerical order and keep them in a secure place. Never share them with anyone.'
+    visible: 'Make sure to write it down as shown here. You have to verify this later.'
     timeout: 150000
 
 # First wait for the loading to complete
@@ -34,8 +34,11 @@ appId: com.layerzwallet.mobile
 
 # Then verify the Continue button is available and enabled
 - assertVisible:
-    text: 'Verify'
+    id: 'VerifyButton'
     enabled: true
+
+- tapOn:
+    id: 'VerifyButton'
 
 # Now proceed to the enter password screen
 - repeat:

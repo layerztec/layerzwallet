@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, StyleSheet, ViewStyle, TextStyle, Animated, ActivityIndicator, FlatList, TouchableOpacity, Image, ImageStyle } from 'react-native';
+import { View, StyleSheet, ViewStyle, TextStyle, ImageStyle, Animated, ActivityIndicator, FlatList, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -124,7 +124,7 @@ export default function CreateWalletScreen() {
           <View style={styles.contentContainer}>
             <View style={styles.titleContainer}>
               <ThemedText type="title" style={styles.title}>
-                {isLoading ? 'Creating your wallet...' : "This is your{'\\n'}recovery phrase"}
+                {isLoading ? 'Creating your wallet...' : 'This is your \nrecovery phrase'}
               </ThemedText>
               {!isLoading && <ThemedText style={styles.subtitle}>Make sure to write it down as shown here.{'\n'}You have to verify this later.</ThemedText>}
             </View>
@@ -166,7 +166,7 @@ export default function CreateWalletScreen() {
             <View style={styles.bottomButtonContainer}>
               {!isLoading && !error && recoveryPhrase && (
                 <Animated.View style={verifyButtonAnimation}>
-                  <TouchableOpacity style={styles.verifyButton} onPress={handleContinue}>
+                  <TouchableOpacity style={styles.verifyButton} onPress={handleContinue} testID="VerifyButton">
                     <Image source={require('@/assets/images/ui/arrow-right.png')} style={styles.image} />
                     <ThemedText style={styles.verifyButtonText}>Verify</ThemedText>
                   </TouchableOpacity>
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   } as ViewStyle,
   titleContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginVertical: 30,
   } as ViewStyle,
   title: {
     ...Typography.headline,
