@@ -4,8 +4,9 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { NavigationBar } from 'expo-navigation-bar';
 import { useEffect } from 'react';
-import { AppState, AppStateStatus, LogBox } from 'react-native';
+import { AppState, AppStateStatus, LogBox, Platform } from 'react-native';
 import 'react-native-reanimated';
 import { SWRConfig } from 'swr';
 
@@ -44,6 +45,13 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const style = colorScheme === 'dark' ? 'light' : 'dark';
+      NavigationBar.setStyle(style);
+    }
+  }, [colorScheme]);
 
   useEffect(() => {
     if (loaded) {
@@ -202,7 +210,7 @@ export default function RootLayout() {
                         />
                         <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
                       </Stack>
-                      <StatusBar style="auto" />
+                      <StatusBar style="light" />
                     </ThemeProvider>
                   </NetworkContextProvider>
                 </AccountNumberContextProvider>
