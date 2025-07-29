@@ -44,28 +44,49 @@ appId: com.layerzwallet.mobile
 - tapOn:
     id: 'ValidationIntroContinueButton'
 
-# Now proceed to the enter password screen
+# Now proceed to the create PIN screen
 - repeat:
     while:
-      notVisible:
-        id: 'EnterPasswordInput'
+      notVisible: 'Create a PIN'
     commands:
       - tapOn: 'Continue'
       - waitForAnimationToEnd
 
-# Create password
-- tapOn:
-    id: 'EnterPasswordInput'
-- inputText:
-    text: '123456' # Password
-- tapOn:
-    id: 'RepeatPasswordInput'
-- inputText:
-    text: '123456' # Confirm password
-- tapOn:
-    point: 10%,10% # to remove focus from the keyboard
-- tapOn:
-    id: 'CreatePasswordButton'
+# Create PIN by tapping keypad buttons (123456)
+- extendedWaitUntil:
+    visible: 'Create a PIN'
+    timeout: 10000
+- waitForAnimationToEnd
+
+# Enter PIN: 1-2-3-4-5-6
+- tapOn: '1'
+- waitForAnimationToEnd
+- tapOn: '2' 
+- waitForAnimationToEnd
+- tapOn: '3'
+- waitForAnimationToEnd
+- tapOn: '4'
+- waitForAnimationToEnd
+- tapOn: '5'
+- waitForAnimationToEnd
+- tapOn: '6'
+- waitForAnimationToEnd
+
+# Confirm PIN: 1-2-3-4-5-6
+- extendedWaitUntil:
+    visible: 'Confirm your PIN'
+    timeout: 5000
+- tapOn: '1'
+- waitForAnimationToEnd
+- tapOn: '2'
+- waitForAnimationToEnd
+- tapOn: '3'
+- waitForAnimationToEnd
+- tapOn: '4'
+- waitForAnimationToEnd
+- tapOn: '5'
+- waitForAnimationToEnd
+- tapOn: '6'
 - waitForAnimationToEnd
 
 # Accept terms of service

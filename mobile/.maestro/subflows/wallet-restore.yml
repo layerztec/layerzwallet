@@ -36,22 +36,41 @@ appId: com.layerzwallet.mobile
 - tapOn:
     id: 'ImportWalletImportButton'
 - extendedWaitUntil:
-    visible: 'Create Password'
+    visible: 'Create a PIN'
     timeout: 300_000 # 5 min
 
-# Create password
-- tapOn:
-    id: 'EnterPasswordInput'
-- inputText:
-    text: '123456'
-- tapOn:
-    id: 'RepeatPasswordInput'
-- inputText:
-    text: '123456'
-- tapOn:
-    point: 10%,10% # to remove focus from the keyboard
-- tapOn:
-    id: 'CreatePasswordButton'
+# Create PIN by tapping keypad buttons (123456)
+- waitForAnimationToEnd
+
+# Enter PIN: 1-2-3-4-5-6
+- tapOn: '1'
+- waitForAnimationToEnd
+- tapOn: '2'
+- waitForAnimationToEnd
+- tapOn: '3'
+- waitForAnimationToEnd
+- tapOn: '4'
+- waitForAnimationToEnd
+- tapOn: '5'
+- waitForAnimationToEnd
+- tapOn: '6'
+- waitForAnimationToEnd
+
+# Confirm PIN: 1-2-3-4-5-6
+- extendedWaitUntil:
+    visible: 'Confirm your PIN'
+    timeout: 5000
+- tapOn: '1'
+- waitForAnimationToEnd
+- tapOn: '2'
+- waitForAnimationToEnd
+- tapOn: '3'
+- waitForAnimationToEnd
+- tapOn: '4'
+- waitForAnimationToEnd
+- tapOn: '5'
+- waitForAnimationToEnd
+- tapOn: '6'
 - waitForAnimationToEnd
 
 # Accept terms of service
