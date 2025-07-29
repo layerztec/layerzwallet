@@ -61,7 +61,7 @@ appId: com.layerzwallet.mobile
 # Enter PIN: 1-2-3-4-5-6
 - tapOn: '1'
 - waitForAnimationToEnd
-- tapOn: '2' 
+- tapOn: '2'
 - waitForAnimationToEnd
 - tapOn: '3'
 - waitForAnimationToEnd
