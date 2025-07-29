@@ -42,6 +42,10 @@ export const Colors = {
     buttonBorder: '#FFFFFF1A',
     buttonText: '#FFFFFF',
     paragraphText: '#B8B8B8',
+    error: '#FF6B6B',
+    white30: 'rgba(255, 255, 255, 0.3)',
+    white50: 'rgba(255, 255, 255, 0.5)',
+    white90: 'rgba(255, 255, 255, 0.9)',
   },
   dark: {
     text: 'grey', // Change to #FFFFFF later to match Figma. Currently using 'grey' for visibility in dark mode and e2e testing.
@@ -55,6 +59,10 @@ export const Colors = {
     buttonBorder: '#FFFFFF1A',
     buttonText: '#FFFFFF',
     paragraphText: '#B8B8B8',
+    error: '#FF6B6B',
+    white30: 'rgba(255, 255, 255, 0.3)',
+    white50: 'rgba(255, 255, 255, 0.5)',
+    white90: 'rgba(255, 255, 255, 0.9)',
   },
 };
 

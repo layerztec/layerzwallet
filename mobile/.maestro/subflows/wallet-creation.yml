@@ -47,18 +47,19 @@ appId: com.layerzwallet.mobile
 # Now proceed to the create PIN screen
 - repeat:
     while:
-      notVisible: 'Create a PIN'
+      notVisible: 'Choose a 4-digit PIN'
     commands:
       - tapOn: 'Continue'
       - waitForAnimationToEnd
 
-# Create PIN by tapping keypad buttons (123456)
+# Create PIN by tapping keypad buttons (1234)
 - extendedWaitUntil:
-    visible: 'Create a PIN'
+    visible: 'Choose a 4-digit PIN'
     timeout: 10000
 - waitForAnimationToEnd
 
-# Enter PIN: 1-2-3-4-5-6
+# Test PIN mismatch scenario first
+# Enter PIN: 1-2-3-4
 - tapOn: '1'
 - waitForAnimationToEnd
 - tapOn: '2'
@@ -68,7 +69,41 @@ appId: com.layerzwallet.mobile
 - tapOn: '4'
 - waitForAnimationToEnd
 
-# Confirm PIN: 1-2-3-4-5-6
+# Confirm with wrong PIN: 5-6-7-8 to test mismatch
+- extendedWaitUntil:
+    visible: 'Confirm your PIN'
+    timeout: 5000
+- tapOn: '5'
+- waitForAnimationToEnd
+- tapOn: '6'
+- waitForAnimationToEnd
+- tapOn: '7'
+- waitForAnimationToEnd
+- tapOn: '8'
+- waitForAnimationToEnd
+
+# Verify error message appears
+- assertVisible: 'PINs do not match'
+
+# Wait for auto-reset (2.5 seconds + animation time)
+- waitForAnimationToEnd:
+    timeout: 4000
+- extendedWaitUntil:
+    visible: 'Choose a 4-digit PIN'
+    timeout: 5000
+
+# Now create PIN correctly
+# Enter PIN: 1-2-3-4
+- tapOn: '1'
+- waitForAnimationToEnd
+- tapOn: '2'
+- waitForAnimationToEnd
+- tapOn: '3'
+- waitForAnimationToEnd
+- tapOn: '4'
+- waitForAnimationToEnd
+
+# Confirm PIN: 1-2-3-4
 - extendedWaitUntil:
     visible: 'Confirm your PIN'
     timeout: 5000

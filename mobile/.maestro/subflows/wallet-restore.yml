@@ -36,13 +36,13 @@ appId: com.layerzwallet.mobile
 - tapOn:
     id: 'ImportWalletImportButton'
 - extendedWaitUntil:
-    visible: 'Create a PIN'
+    visible: 'Choose a 4-digit PIN'
     timeout: 300_000 # 5 min
 
-# Create PIN by tapping keypad buttons (123456)
+# Create PIN by tapping keypad buttons (1234)
 - waitForAnimationToEnd
 
-# Enter PIN: 1-2-3-4-5-6
+# Enter PIN: 1-2-3-4
 - tapOn: '1'
 - waitForAnimationToEnd
 - tapOn: '2'
@@ -52,7 +52,7 @@ appId: com.layerzwallet.mobile
 - tapOn: '4'
 - waitForAnimationToEnd
 
-# Confirm PIN: 1-2-3-4-5-6
+# Confirm PIN: 1-2-3-4
 - extendedWaitUntil:
     visible: 'Confirm your PIN'
     timeout: 5000
