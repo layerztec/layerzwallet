@@ -51,10 +51,6 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 - tapOn: '4'
 - waitForAnimationToEnd
-- tapOn: '5'
-- waitForAnimationToEnd
-- tapOn: '6'
-- waitForAnimationToEnd
 
 # Confirm PIN: 1-2-3-4-5-6
 - extendedWaitUntil:
@@ -67,10 +63,6 @@ appId: com.layerzwallet.mobile
 - tapOn: '3'
 - waitForAnimationToEnd
 - tapOn: '4'
-- waitForAnimationToEnd
-- tapOn: '5'
-- waitForAnimationToEnd
-- tapOn: '6'
 - waitForAnimationToEnd
 
 # Accept terms of service

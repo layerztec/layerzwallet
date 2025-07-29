@@ -10,9 +10,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { gradients } from '@shared/constants/Colors';
 import { Typography } from '@/constants/Typography';
-import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 
-const PIN_LENGTH = 6;
+const PIN_LENGTH = 4;
 
 export default function CreatePasswordScreen() {
   const [pin, setPin] = useState<string>('');
@@ -22,11 +21,31 @@ export default function CreatePasswordScreen() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
 
-  const titleAnimation = useSequentialSpringAnimation(100);
-  const subtitleAnimation = useSequentialSpringAnimation(200);
-  const pinDotsAnimation = useSequentialSpringAnimation(300);
-  const keypadAnimation = useSequentialSpringAnimation(400);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const shakeAnimation = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, scaleAnim, slideAnim]);
 
   const handlePinInput = (digit: string) => {
     if (isLoading) return;
@@ -76,10 +95,14 @@ export default function CreatePasswordScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setErrorMessage('PINs do not match');
       shakeError();
+
+      // Clear error and reset UI after 2.5 seconds
       setTimeout(() => {
+        setErrorMessage('');
         setConfirmPin('');
         setIsConfirming(false);
-      }, 1000);
+        setPin('');
+      }, 2500);
       return;
     }
 
@@ -121,7 +144,15 @@ export default function CreatePasswordScreen() {
   const renderPinDots = () => {
     const currentPin = isConfirming ? confirmPin : pin;
     return (
-      <Animated.View style={[styles.pinDotsContainer, pinDotsAnimation, { transform: [{ translateX: shakeAnimation }] }]}>
+      <Animated.View
+        style={[
+          styles.pinDotsContainer,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateX: shakeAnimation }, { scale: scaleAnim }],
+          },
+        ]}
+      >
         {Array.from({ length: PIN_LENGTH }).map((_, index) => (
           <View key={index} style={[styles.pinDot, currentPin.length > index && styles.pinDotFilled, errorMessage && styles.pinDotError]} />
         ))}
@@ -144,7 +175,15 @@ export default function CreatePasswordScreen() {
     ];
 
     return (
-      <Animated.View style={[styles.keypadContainer, keypadAnimation]}>
+      <Animated.View
+        style={[
+          styles.keypadContainer,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
+      >
         {rows.map((row, rowIndex) => (
           <View key={rowIndex} style={styles.keypadRow}>
             {row.map((item) => {
@@ -173,12 +212,12 @@ export default function CreatePasswordScreen() {
           <View style={styles.contentContainer}>
             {/* Title Section */}
             <View style={styles.titleContainer}>
-              <Animated.View style={[titleAnimation]}>
+              <Animated.View style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
                 <ThemedText style={styles.title}>{isConfirming ? 'Confirm your PIN' : 'Create a PIN'}</ThemedText>
               </Animated.View>
 
-              <Animated.View style={[subtitleAnimation]}>
-                <ThemedText style={styles.subtitle}>{isConfirming ? 'Enter your PIN again to confirm' : 'Create a 6-digit PIN to secure your wallet'}</ThemedText>
+              <Animated.View style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+                <ThemedText style={styles.subtitle}>{isConfirming ? 'Enter your PIN again to confirm' : 'Create a 4-digit PIN to secure your wallet'}</ThemedText>
               </Animated.View>
             </View>
 
@@ -279,16 +318,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   } as ViewStyle,
   keypadButton: {
-    width: 100,
-    height: 80,
+    width: 80,
+    height: 90,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 15,
+    marginHorizontal: 20,
   } as ViewStyle,
   keypadButtonText: {
     ...Typography.buttonText,
     color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '400',
+    lineHeight: 32,
   } as TextStyle,
 });
