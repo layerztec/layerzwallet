@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, Alert, View, Animated, Easing } from 'react-native';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { StyleSheet, TouchableOpacity, Alert, View, Animated, Easing, Platform, TextInput, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,14 +12,59 @@ import { gradients, Colors } from '@shared/constants/Colors';
 import { Typography } from '@/constants/Typography';
 
 const PIN_LENGTH = 4;
+const ANIMATION_DURATION = {
+  FADE: 800,
+  SLIDE: 600,
+  BUTTON_PRESS: 100,
+  PIN_DOT_SCALE: 200,
+  PIN_DOT_RESTORE: 300,
+  SHAKE_SEGMENT: 100,
+};
+
+const ANIMATION_CONFIG = {
+  SCALE_AMOUNT: 1.2,
+  BUTTON_SCALE: 0.9,
+  ENTRANCE_DURATION: 500,
+  ENTRANCE_DELAY: 100,
+};
+
+const KEYPAD_ROWS = [
+  ['1', '2', '3'],
+  ['4', '5', '6'],
+  ['7', '8', '9'],
+  ['', '0', 'delete'],
+] as const;
+
+const getScaledValue = (baseValue: number, screenHeight: number) => {
+  const baseHeight = 812;
+  const scale = Math.max(0.8, Math.min(1.2, screenHeight / baseHeight));
+  return Math.round(baseValue * scale);
+};
+
+const getLayoutValues = (width: number, height: number) => ({
+  titleFontSize: getScaledValue(28, height),
+  subtitleFontSize: getScaledValue(16, height),
+  pinDotSize: getScaledValue(16, height),
+  explanationFontSize: getScaledValue(14, height),
+  errorFontSize: getScaledValue(14, height),
+  keypadButtonSize: Math.min(Math.max(65, getScaledValue(80, height)), width * 0.22),
+  keypadButtonFontSize: getScaledValue(26, height),
+  deleteIconSize: getScaledValue(24, height),
+});
 
 export default function CreatePasswordScreen() {
+  const { width, height } = useWindowDimensions();
+  const layout = useMemo(() => getLayoutValues(width, height), [width, height]);
+  const styles = useMemo(() => createStyles(layout), [layout]);
+
   const [pin, setPin] = useState<string>('');
   const [confirmPin, setConfirmPin] = useState<string>('');
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
+
+  const hiddenTextInputRef = useRef<TextInput>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -30,219 +75,275 @@ export default function CreatePasswordScreen() {
       .fill(0)
       .map(() => new Animated.Value(1))
   ).current;
-  const keypadScale = useRef(new Animated.Value(1)).current;
+
+  const keypadButtonScales = useRef(
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'delete'].reduce(
+      (acc, key) => {
+        acc[key] = new Animated.Value(1);
+        return acc;
+      },
+      {} as Record<string, Animated.Value>
+    )
+  ).current;
 
   useEffect(() => {
-    Animated.stagger(100, [
+    Animated.stagger(ANIMATION_CONFIG.ENTRANCE_DELAY, [
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1000,
+        duration: ANIMATION_DURATION.FADE,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 800,
+        duration: ANIMATION_DURATION.SLIDE,
         easing: Easing.out(Easing.back(1.1)),
         useNativeDriver: true,
       }),
-      Animated.spring(scaleAnim, {
+      Animated.timing(scaleAnim, {
         toValue: 1,
-        tension: 80,
-        friction: 6,
+        duration: ANIMATION_CONFIG.ENTRANCE_DURATION,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
     ]).start();
   }, [fadeAnim, scaleAnim, slideAnim]);
 
-  const animatePinDot = (index: number) => {
-    Animated.sequence([
-      Animated.spring(pinDotScales[index], {
-        toValue: 1.3,
-        tension: 300,
-        friction: 5,
-        useNativeDriver: true,
-      }),
-      Animated.spring(pinDotScales[index], {
-        toValue: 1,
-        tension: 300,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
+  const animatePinDot = useCallback(
+    (index: number) => {
+      Animated.sequence([
+        Animated.timing(pinDotScales[index], {
+          toValue: ANIMATION_CONFIG.SCALE_AMOUNT,
+          duration: ANIMATION_DURATION.PIN_DOT_SCALE,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pinDotScales[index], {
+          toValue: 1,
+          duration: ANIMATION_DURATION.PIN_DOT_RESTORE,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    },
+    [pinDotScales]
+  );
 
-  const animateKeypadPress = () => {
-    Animated.sequence([
-      Animated.timing(keypadScale, {
-        toValue: 0.98,
-        duration: 100,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.timing(keypadScale, {
-        toValue: 1,
-        duration: 200,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
+  const animateKeypadPress = useCallback(
+    (buttonKey: string) => {
+      const buttonScale = keypadButtonScales[buttonKey];
+      if (!buttonScale) return;
 
-  const handlePinInput = (digit: string) => {
-    if (isLoading) return;
+      Animated.sequence([
+        Animated.timing(buttonScale, {
+          toValue: ANIMATION_CONFIG.BUTTON_SCALE,
+          duration: ANIMATION_DURATION.BUTTON_PRESS,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(buttonScale, {
+          toValue: 1,
+          duration: ANIMATION_DURATION.BUTTON_PRESS,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    },
+    [keypadButtonScales]
+  );
 
-    const currentPin = isConfirming ? confirmPin : pin;
-    if (currentPin.length < PIN_LENGTH) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      animateKeypadPress();
+  const shakeError = useCallback(() => {
+    const shakeSequence = [
+      { toValue: 10, duration: ANIMATION_DURATION.SHAKE_SEGMENT },
+      { toValue: -10, duration: ANIMATION_DURATION.SHAKE_SEGMENT },
+      { toValue: 8, duration: ANIMATION_DURATION.SHAKE_SEGMENT },
+      { toValue: -8, duration: ANIMATION_DURATION.SHAKE_SEGMENT },
+      { toValue: 5, duration: ANIMATION_DURATION.SHAKE_SEGMENT },
+      { toValue: -5, duration: ANIMATION_DURATION.SHAKE_SEGMENT },
+      { toValue: 0, duration: ANIMATION_DURATION.SHAKE_SEGMENT },
+    ];
 
-      const newPin = currentPin + digit;
-      animatePinDot(currentPin.length);
+    Animated.sequence(
+      shakeSequence.map((shake) =>
+        Animated.timing(shakeAnimation, {
+          toValue: shake.toValue,
+          duration: shake.duration,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        })
+      )
+    ).start();
+  }, [shakeAnimation]);
 
-      if (isConfirming) {
-        setConfirmPin(newPin);
-        if (newPin.length === PIN_LENGTH) {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          setTimeout(() => validatePins(pin, newPin), 200);
-        }
-      } else {
-        setPin(newPin);
-        if (newPin.length === PIN_LENGTH) {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          setTimeout(() => {
-            setIsConfirming(true);
-            setErrorMessage('');
-          }, 200);
-        }
-      }
-    }
-  };
-
-  const handleDelete = () => {
-    if (isLoading) return;
-
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    if (isConfirming) {
-      if (confirmPin.length > 0) {
-        setConfirmPin(confirmPin.slice(0, -1));
-      } else {
-        setIsConfirming(false);
-        setErrorMessage('');
-      }
-    } else {
-      setPin(pin.slice(0, -1));
-    }
-  };
-
-  const resetPinWithAnimation = () => {
-    const fadeOutAnimations = pinDotScales.map((scale) =>
-      Animated.timing(scale, {
-        toValue: 0,
-        duration: 150,
-        easing: Easing.in(Easing.quad),
-        useNativeDriver: true,
-      })
-    );
-
-    Animated.parallel(fadeOutAnimations).start(() => {
+  const resetPinWithAnimation = useCallback(() => {
+    Animated.parallel(
+      pinDotScales.map((scale) =>
+        Animated.timing(scale, {
+          toValue: 0,
+          duration: 150,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        })
+      )
+    ).start(() => {
       setErrorMessage('');
       setConfirmPin('');
       setIsConfirming(false);
       setPin('');
 
-      const fadeInAnimations = pinDotScales.map((scale) =>
-        Animated.timing(scale, {
-          toValue: 1,
-          duration: 200,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        })
-      );
-
-      Animated.stagger(50, fadeInAnimations).start();
+      Animated.parallel(
+        pinDotScales.map((scale) =>
+          Animated.timing(scale, {
+            toValue: 1,
+            duration: 200,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          })
+        )
+      ).start();
     });
-  };
+  }, [pinDotScales]);
 
-  const validatePins = async (originalPin: string, confirmedPin: string) => {
-    if (originalPin !== confirmedPin) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setErrorMessage('PINs do not match');
-      shakeError();
+  const validatePins = useCallback(
+    async (originalPin: string, confirmedPin: string) => {
+      if (originalPin !== confirmedPin) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        setErrorMessage('PINs do not match');
+        shakeError();
 
-      // Clear error and reset UI after 2.5 seconds
-      setTimeout(() => {
-        resetPinWithAnimation();
-      }, 2500);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // Use the PIN as the password for encryption
-      const result = await BackgroundExecutor.encryptMnemonic(originalPin);
-
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to encrypt wallet');
+        setTimeout(() => resetPinWithAnimation(), 2500);
+        return;
       }
 
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setIsLoading(true);
+      try {
+        const result = await BackgroundExecutor.encryptMnemonic(originalPin);
 
-      // Navigate to the terms of service screen
-      router.replace('/onboarding/tos');
-    } catch (error) {
-      console.error('Error encrypting wallet:', error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', 'Failed to create PIN. Please try again.');
-      setPin('');
-      setConfirmPin('');
-      setIsConfirming(false);
-    } finally {
-      setIsLoading(false);
+        if (!result.success) {
+          throw new Error(result.message || 'Failed to encrypt wallet');
+        }
+
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.replace('/onboarding/tos');
+      } catch (error) {
+        console.error('Error encrypting wallet:', error);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert('Error', 'Failed to create PIN. Please try again.');
+        setPin('');
+        setConfirmPin('');
+        setIsConfirming(false);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [router, resetPinWithAnimation, shakeError]
+  );
+
+  const handlePinInput = useCallback(
+    (digit: string, shouldAnimate: boolean = true) => {
+      if (isLoading) return;
+
+      const currentPin = isConfirming ? confirmPin : pin;
+      if (currentPin.length < PIN_LENGTH) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        if (shouldAnimate) {
+          animateKeypadPress(digit);
+        }
+
+        const newPin = currentPin + digit;
+        animatePinDot(currentPin.length);
+
+        if (isConfirming) {
+          setConfirmPin(newPin);
+          if (newPin.length === PIN_LENGTH) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            setTimeout(() => validatePins(pin, newPin), 200);
+          }
+        } else {
+          setPin(newPin);
+          if (newPin.length === PIN_LENGTH) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            setTimeout(() => {
+              setIsConfirming(true);
+              setErrorMessage('');
+            }, 200);
+          }
+        }
+      }
+    },
+    [isLoading, isConfirming, confirmPin, pin, animateKeypadPress, animatePinDot, validatePins]
+  );
+
+  const handleDelete = useCallback(
+    (shouldAnimate: boolean = true) => {
+      if (isLoading) return;
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (shouldAnimate) {
+        animateKeypadPress('delete');
+      }
+
+      if (isConfirming) {
+        if (confirmPin.length > 0) {
+          setConfirmPin(confirmPin.slice(0, -1));
+        }
+      } else {
+        setPin(pin.slice(0, -1));
+      }
+    },
+    [isLoading, isConfirming, confirmPin, pin, animateKeypadPress]
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (hiddenTextInputRef.current) {
+        hiddenTextInputRef.current.focus();
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Maintain focus on the hidden input to capture hardware keyboard
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (hiddenTextInputRef.current && !isLoading) {
+        // Check if the input is focused, if not, focus it
+        const input = hiddenTextInputRef.current;
+        if (input && !input.isFocused()) {
+          input.focus();
+        }
+      }
+    }, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [isLoading]);
+
+  const handleTextInputChange = useCallback((text: string) => {
+    // Clear the input immediately to prevent text accumulation
+    if (hiddenTextInputRef.current) {
+      hiddenTextInputRef.current.clear();
     }
-  };
+  }, []);
 
-  const shakeError = () => {
-    const shakeSequence = [
-      { toValue: 8, duration: 80 },
-      { toValue: -8, duration: 80 },
-      { toValue: 6, duration: 70 },
-      { toValue: -6, duration: 70 },
-      { toValue: 4, duration: 60 },
-      { toValue: -4, duration: 60 },
-      { toValue: 0, duration: 100 },
-    ];
+  const handleKeyPress = useCallback(
+    (event: any) => {
+      const { nativeEvent } = event;
 
-    const animations = shakeSequence.map(({ toValue, duration }) =>
-      Animated.timing(shakeAnimation, {
-        toValue,
-        duration,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      })
-    );
+      if (/^[0-9]$/.test(nativeEvent.key)) {
+        const digit = nativeEvent.key;
+        handlePinInput(digit, true);
+      }
 
-    Animated.sequence(animations).start();
+      if (nativeEvent.key === 'Backspace') {
+        handleDelete(true);
+      }
 
-    pinDotScales.forEach((scale, index) => {
-      Animated.sequence([
-        Animated.timing(scale, {
-          toValue: 1.1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scale, {
-          toValue: 1,
-          duration: 200,
-          easing: Easing.elastic(1.2),
-          useNativeDriver: true,
-        }),
-      ]).start();
-    });
-  };
+      event.preventDefault?.();
+    },
+    [handlePinInput, handleDelete]
+  );
 
-  const renderPinDots = () => {
+  const renderPinDots = useMemo(() => {
     const currentPin = isConfirming ? confirmPin : pin;
     return (
       <Animated.View
@@ -269,33 +370,36 @@ export default function CreatePasswordScreen() {
         ))}
       </Animated.View>
     );
-  };
+  }, [isConfirming, confirmPin, pin, fadeAnim, shakeAnimation, scaleAnim, errorMessage, pinDotScales, styles.pinDot, styles.pinDotError, styles.pinDotFilled, styles.pinDotsContainer]);
 
-  const renderKeypadButton = (digit: string) => (
-    <TouchableOpacity key={digit} style={styles.keypadButton} onPress={() => handlePinInput(digit)} disabled={isLoading}>
-      <ThemedText style={styles.keypadButtonText}>{digit}</ThemedText>
-    </TouchableOpacity>
+  const renderKeypadButton = useCallback(
+    (digit: string) => (
+      <Animated.View
+        key={digit}
+        style={{
+          transform: [{ scale: keypadButtonScales[digit] || 1 }],
+        }}
+      >
+        <TouchableOpacity style={styles.keypadButton} onPress={() => handlePinInput(digit)} disabled={isLoading}>
+          <ThemedText style={styles.keypadButtonText}>{digit}</ThemedText>
+        </TouchableOpacity>
+      </Animated.View>
+    ),
+    [keypadButtonScales, styles.keypadButton, styles.keypadButtonText, handlePinInput, isLoading]
   );
 
-  const renderKeypad = () => {
-    const rows = [
-      ['1', '2', '3'],
-      ['4', '5', '6'],
-      ['7', '8', '9'],
-      ['', '0', 'delete'],
-    ];
-
+  const renderKeypad = useMemo(() => {
     return (
       <Animated.View
         style={[
           styles.keypadContainer,
           {
             opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }, { scale: keypadScale }],
+            transform: [{ translateY: slideAnim }],
           },
         ]}
       >
-        {rows.map((row, rowIndex) => (
+        {KEYPAD_ROWS.map((row, rowIndex) => (
           <View key={rowIndex} style={styles.keypadRow}>
             {row.map((item) => {
               if (item === '') {
@@ -306,9 +410,16 @@ export default function CreatePasswordScreen() {
                 const isDeleteDisabled = isLoading || currentPin.length === 0;
 
                 return (
-                  <TouchableOpacity key="delete" style={[styles.keypadButton, isDeleteDisabled && styles.keypadButtonDisabled]} onPress={handleDelete} disabled={isDeleteDisabled}>
-                    <Ionicons name="backspace-outline" size={24} color={isDeleteDisabled ? Colors.dark.white30 : Colors.dark.white90} />
-                  </TouchableOpacity>
+                  <Animated.View
+                    key="delete"
+                    style={{
+                      transform: [{ scale: keypadButtonScales['delete'] || 1 }],
+                    }}
+                  >
+                    <TouchableOpacity style={[styles.keypadButton, isDeleteDisabled && styles.keypadButtonDisabled]} onPress={() => handleDelete()} disabled={isDeleteDisabled}>
+                      <Ionicons name="backspace-outline" size={layout.deleteIconSize} color={isDeleteDisabled ? Colors.dark.white30 : Colors.dark.white90} />
+                    </TouchableOpacity>
+                  </Animated.View>
                 );
               }
               return renderKeypadButton(item);
@@ -317,14 +428,39 @@ export default function CreatePasswordScreen() {
         ))}
       </Animated.View>
     );
-  };
+  }, [styles, fadeAnim, slideAnim, isConfirming, confirmPin, pin, isLoading, keypadButtonScales, handleDelete, layout.deleteIconSize, renderKeypadButton]);
 
   return (
     <View style={styles.container}>
       <LinearGradient colors={gradients.blueGradient} style={styles.gradient}>
         <SafeAreaView style={styles.safeArea}>
+          <TextInput
+            ref={hiddenTextInputRef}
+            style={styles.hiddenTextInput}
+            value=""
+            onChangeText={handleTextInputChange}
+            onKeyPress={handleKeyPress}
+            keyboardType="default"
+            returnKeyType="done"
+            autoFocus={false}
+            caretHidden={true}
+            contextMenuHidden={true}
+            autoComplete="off"
+            autoCorrect={false}
+            spellCheck={false}
+            maxLength={0}
+            selectTextOnFocus={false}
+            textContentType="none"
+            secureTextEntry={false}
+            enterKeyHint="done"
+            allowFontScaling={false}
+            showSoftInputOnFocus={false}
+            editable={true}
+            blurOnSubmit={false}
+          />
+
           <View style={styles.contentContainer}>
-            <View style={styles.titleContainer}>
+            <View style={styles.headerSection}>
               <Animated.View style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
                 <ThemedText style={styles.title}>{isConfirming ? 'Confirm your PIN' : 'Choose a 4-digit PIN'}</ThemedText>
               </Animated.View>
@@ -334,12 +470,15 @@ export default function CreatePasswordScreen() {
               </Animated.View>
             </View>
 
-            <View style={styles.pinSection}>{renderPinDots()}</View>
-            <ThemedText style={styles.pinExplanation}>This is used to encrypt your wallet.</ThemedText>
-            {errorMessage ? <ThemedText style={styles.errorText}>{errorMessage}</ThemedText> : null}
+            <View style={styles.middleSection}>
+              {renderPinDots}
+              <ThemedText style={styles.pinExplanation}>This is used to encrypt your wallet.</ThemedText>
+              {errorMessage ? <ThemedText style={styles.errorText}>{errorMessage}</ThemedText> : null}
+            </View>
+
             <View style={styles.keypadSection}>
               <View style={styles.keypadSeparator} />
-              {renderKeypad()}
+              <View style={styles.keypadContainer}>{renderKeypad}</View>
             </View>
           </View>
         </SafeAreaView>
@@ -348,7 +487,7 @@ export default function CreatePasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -359,99 +498,44 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
   },
+  hiddenTextInput: {
+    position: 'absolute',
+    top: -1000,
+    left: -1000,
+    width: 1,
+    height: 1,
+    opacity: 0,
+  },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 20,
-    justifyContent: 'space-between',
   },
-  titleContainer: {
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 40,
-  },
-  title: {
-    ...Typography.headline,
-    color: Colors.dark.buttonText,
-    textAlign: 'center',
-    marginBottom: 16,
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  subtitle: {
-    ...Typography.paragraph,
-    color: Colors.dark.paragraphText,
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '400',
-  },
-  pinSection: {
-    alignItems: 'center',
-    marginVertical: 40,
-  },
-  pinDotsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerSection: {
+    flex: 1.5,
     justifyContent: 'center',
-    marginBottom: 20,
+    alignItems: 'center',
   },
-  pinExplanation: {
-    ...Typography.paragraph,
-    color: Colors.dark.paragraphText,
-    textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 20,
-    marginHorizontal: 20,
-    marginBottom: 10,
-    fontWeight: '400',
-  },
-  pinDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.dark.white30,
-    marginHorizontal: 8,
-    borderWidth: 1,
-    borderColor: Colors.dark.white50,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  pinDotFilled: {
-    backgroundColor: Colors.dark.white90,
-    borderColor: Colors.dark.white90,
-    shadowOpacity: 0.2,
-  },
-  pinDotError: {
-    backgroundColor: Colors.dark.error,
-    borderColor: Colors.dark.error,
-    shadowColor: Colors.dark.error,
-    shadowOpacity: 0.3,
-  },
-  errorText: {
-    ...Typography.paragraph,
-    color: Colors.dark.error,
-    textAlign: 'center',
-    fontSize: 14,
-    marginTop: 10,
-    fontWeight: '400',
+  middleSection: {
+    flex: 0.8,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingTop: 15,
   },
   keypadSection: {
-    alignItems: 'center',
-    paddingBottom: 40,
+    flex: 3.5,
     justifyContent: 'flex-end',
-    flex: 1,
+    paddingBottom: 15,
+  },
+  keypadContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 15,
   },
   keypadSeparator: {
     width: '120%',
     marginLeft: -40,
     height: 1,
     backgroundColor: Colors.dark.white30,
-    marginBottom: 30,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -461,29 +545,98 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  keypadContainer: {
-    alignItems: 'center',
-  },
   keypadRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 16,
-  },
-  keypadButton: {
-    width: 80,
-    height: 90,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 20,
+    marginVertical: 6,
   },
   keypadButtonDisabled: {
     opacity: 0.3,
   },
-  keypadButtonText: {
-    ...Typography.buttonText,
-    color: Colors.dark.buttonText,
-    fontSize: 28,
-    fontWeight: '400',
-    lineHeight: 32,
-  },
 } as const);
+
+const createStyles = (layout: ReturnType<typeof getLayoutValues>) =>
+  StyleSheet.create({
+    ...baseStyles,
+    title: {
+      ...Typography.headline,
+      color: Colors.dark.buttonText,
+      textAlign: 'center',
+      fontWeight: '700',
+      fontSize: layout.titleFontSize,
+    },
+    subtitle: {
+      ...Typography.paragraph,
+      color: Colors.dark.paragraphText,
+      textAlign: 'center',
+      fontWeight: '400',
+      fontSize: layout.subtitleFontSize,
+    },
+    pinDotsContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    pinDot: {
+      backgroundColor: Colors.dark.white30,
+      borderWidth: 1,
+      borderColor: Colors.dark.white50,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 2,
+      width: layout.pinDotSize,
+      height: layout.pinDotSize,
+      borderRadius: layout.pinDotSize / 2,
+      marginHorizontal: 8,
+    },
+    pinDotFilled: {
+      backgroundColor: Colors.dark.white90,
+      borderColor: Colors.dark.white90,
+      shadowOpacity: 0.2,
+    },
+    pinDotError: {
+      backgroundColor: Colors.dark.error,
+      borderColor: Colors.dark.error,
+      shadowColor: Colors.dark.error,
+      shadowOpacity: 0.3,
+    },
+    pinExplanation: {
+      ...Typography.paragraph,
+      color: Colors.dark.paragraphText,
+      textAlign: 'center',
+      marginHorizontal: 20,
+      fontWeight: '400',
+      fontSize: layout.explanationFontSize,
+      marginTop: 16,
+    },
+    errorText: {
+      ...Typography.paragraph,
+      color: Colors.dark.error,
+      textAlign: 'center',
+      fontWeight: '400',
+      fontSize: layout.errorFontSize,
+    },
+    keypadButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: layout.keypadButtonSize,
+      height: layout.keypadButtonSize,
+      marginHorizontal: 12,
+      borderRadius: layout.keypadButtonSize / 2,
+    },
+    keypadButtonText: {
+      ...Typography.buttonText,
+      color: Colors.dark.buttonText,
+      fontWeight: '600',
+      fontSize: layout.keypadButtonFontSize,
+      lineHeight: layout.keypadButtonFontSize * 1.1,
+      textAlign: 'center',
+      includeFontPadding: false,
+      textAlignVertical: 'center',
+    },
+  });
