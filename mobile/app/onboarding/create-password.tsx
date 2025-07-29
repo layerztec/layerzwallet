@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, Alert, View, ViewStyle, TextStyle, Animated, Easing } from 'react-native';
+import { StyleSheet, TouchableOpacity, Alert, View, Animated, Easing } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -351,24 +351,24 @@ export default function CreatePasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  } as ViewStyle,
+  },
   gradient: {
     flex: 1,
-  } as ViewStyle,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: 'transparent',
-  } as ViewStyle,
+  },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 20,
     justifyContent: 'space-between',
-  } as ViewStyle,
+  },
   titleContainer: {
     alignItems: 'center',
     paddingTop: 60,
     paddingBottom: 40,
-  } as ViewStyle,
+  },
   title: {
     ...Typography.headline,
     color: Colors.dark.buttonText,
@@ -376,23 +376,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 28,
     fontWeight: '700',
-  } as TextStyle,
+  },
   subtitle: {
     ...Typography.paragraph,
     color: Colors.dark.paragraphText,
     textAlign: 'center',
     fontSize: 16,
-  } as TextStyle,
+    fontWeight: '400',
+  },
   pinSection: {
     alignItems: 'center',
     marginVertical: 40,
-  } as ViewStyle,
+  },
   pinDotsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
-  } as ViewStyle,
+  },
   pinExplanation: {
     ...Typography.paragraph,
     color: Colors.dark.paragraphText,
@@ -401,7 +402,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginHorizontal: 20,
     marginBottom: 10,
-  } as TextStyle,
+    fontWeight: '400',
+  },
   pinDot: {
     width: 16,
     height: 16,
@@ -418,31 +420,32 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
-  } as ViewStyle,
+  },
   pinDotFilled: {
     backgroundColor: Colors.dark.white90,
     borderColor: Colors.dark.white90,
     shadowOpacity: 0.2,
-  } as ViewStyle,
+  },
   pinDotError: {
     backgroundColor: Colors.dark.error,
     borderColor: Colors.dark.error,
     shadowColor: Colors.dark.error,
     shadowOpacity: 0.3,
-  } as ViewStyle,
+  },
   errorText: {
     ...Typography.paragraph,
     color: Colors.dark.error,
     textAlign: 'center',
     fontSize: 14,
     marginTop: 10,
-  } as TextStyle,
+    fontWeight: '400',
+  },
   keypadSection: {
     alignItems: 'center',
     paddingBottom: 40,
     justifyContent: 'flex-end',
     flex: 1,
-  } as ViewStyle,
+  },
   keypadSeparator: {
     width: '120%',
     marginLeft: -40,
@@ -457,30 +460,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 1,
-  } as ViewStyle,
+  },
   keypadContainer: {
     alignItems: 'center',
-  } as ViewStyle,
+  },
   keypadRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom: 16,
-  } as ViewStyle,
+  },
   keypadButton: {
     width: 80,
     height: 90,
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 20,
-  } as ViewStyle,
+  },
   keypadButtonDisabled: {
     opacity: 0.3,
-  } as ViewStyle,
+  },
   keypadButtonText: {
     ...Typography.buttonText,
     color: Colors.dark.buttonText,
     fontSize: 28,
     fontWeight: '400',
     lineHeight: 32,
-  } as TextStyle,
-});
+  },
+} as const);
