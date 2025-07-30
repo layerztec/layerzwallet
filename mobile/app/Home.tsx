@@ -53,10 +53,9 @@ export default function Home() {
   // URL parameter handling
   useEffect(() => {
     if (params.showSwapInterface === 'true') {
-      // Handle swap interface parameter if needed
-      console.log('Show swap interface requested via URL params');
+      router.push('/Swap');
     }
-  }, [params.showSwapInterface]);
+  }, [params.showSwapInterface, router]);
 
   // Mock transactions data - in real app this would come from API
   const [transactions] = useState<Transaction[]>([
@@ -147,7 +146,7 @@ export default function Home() {
   };
 
   const handleSwap = () => {
-    router.push('/swap');
+    router.push('/Swap');
   };
 
   const handleBuyClick = () => {
