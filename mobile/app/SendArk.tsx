@@ -18,7 +18,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 export type SendArkParams = {
@@ -78,19 +78,13 @@ const SendArk = () => {
       // TODO: validate the address
       // TODO: validate the amount
 
-      const mnemonic = await askMnemonic();
-      const w = network === NETWORK_SPARK ? new SparkWallet() : new ArkWallet();
-      if (network === NETWORK_SPARK) {
-        (w as SparkWallet).setSecret(mnemonic);
-        (w as SparkWallet).setAccountNumber(accountNumber);
-        await w.init();
-      } else {
-        w.setSecret(mnemonic);
-        w.setAccountNumber(accountNumber);
-        await w.init();
-      }
-      arkWallet.current = w;
+      await askMnemonic(); // only asking to verify user knows it. will throw if he doesnt
 
+      assert(network === NETWORK_ARKMUTINYNET || network === NETWORK_SPARK);
+      let w = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      assert(w instanceof ArkWallet || w instanceof SparkWallet);
+
+      arkWallet.current = w;
       setIsPrepared(true);
     } catch (error: any) {
       console.error(error.message);

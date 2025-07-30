@@ -2,6 +2,7 @@ import { ArkWallet } from './ark-wallet';
 import { SparkWallet as SDK } from '@buildonspark/spark-sdk';
 import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
 import bolt11 from 'bolt11';
+import assert from 'assert';
 
 export interface ISparkAdapter {
   initialize(...options: Parameters<typeof SDK.initialize>): ReturnType<typeof SDK.initialize>;
@@ -20,6 +21,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
   }
 
   async init() {
+    assert(this.secret, 'Internal error: cant init Spark wallet, secret is not set.');
     const { wallet } = await this.adapter.initialize({
       mnemonicOrSeed: this.secret,
       options: {
@@ -84,13 +86,6 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
     const balance = await this._sdkWallet.getBalance();
     return Number(balance.balance);
-  }
-
-  async cleanupConnections() {
-    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
-
-    this._sdkWallet.removeAllListeners();
-    await this._sdkWallet.cleanupConnections();
   }
 
   async createLightningInvoice(amountSats: number, memo: string = ''): Promise<createLightningInvoiceResponse> {

@@ -9,15 +9,17 @@ import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { WalletFactory } from '@shared/class/wallet-factory';
 import { TLightningWallet } from '@shared/types/TWallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
-import { Networks } from '@shared/types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import assert from 'assert';
+import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 export type ReceiveLightningProps = {
-  network: Networks;
+  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET;
 };
 
 export default function ReceiveLightningScreen() {
@@ -48,6 +50,7 @@ export default function ReceiveLightningScreen() {
         if (!wallet) return;
 
         const isPaid = await wallet.isInvoicePaid(invoice);
+        console.log('polling for invoice status:', { isPaid });
         if (isPaid) {
           setIsInvoicePaid(true);
           // Clear the interval when payment is detected
@@ -86,10 +89,13 @@ export default function ReceiveLightningScreen() {
     };
   }, []);
 
+  // init the wallet:
   useEffect(() => {
     const initializeWallet = async () => {
       try {
-        walletRef.current = await WalletFactory.getInstance().getLightningWallet(network, accountNumber, BackgroundExecutor);
+        const w = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        assert(w instanceof BreezWallet || w instanceof SparkWallet);
+        walletRef.current = w;
         setIsWalletInitialized(true);
 
         // Fetch limits after wallet is initialized

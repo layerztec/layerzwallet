@@ -16,6 +16,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
+import assert from 'assert';
 
 export type SendLiquidParams = {
   assetId?: string; // Optional asset ID - if not provided, use L-BTC
@@ -59,8 +60,8 @@ const SendLiquid = () => {
   useEffect(() => {
     const loadAssets = async () => {
       try {
-        const mnemonic = await BackgroundExecutor.getSubMnemonic(accountNumber);
-        const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
+        const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        assert(wallet instanceof BreezWallet);
         const balances = await wallet.getAssetBalances();
         const asset = balances.find((asset) => asset.assetId === assetId);
         if (asset) {
@@ -139,8 +140,8 @@ const SendLiquid = () => {
     setError('');
 
     try {
-      const mnemonic = await BackgroundExecutor.getSubMnemonic(accountNumber);
-      const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
+      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof BreezWallet);
 
       // Prepare the send payment
       const prepareRequest: PrepareSendRequest = {
@@ -173,8 +174,8 @@ const SendLiquid = () => {
 
     try {
       await askMnemonic(); // verify password
-      const mnemonic = await BackgroundExecutor.getSubMnemonic(accountNumber);
-      const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
+      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof BreezWallet);
       await wallet.sendPayment({ prepareResponse: prepareResult });
       setIsSuccess(true);
     } catch (err: any) {

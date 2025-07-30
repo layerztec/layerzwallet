@@ -3,7 +3,6 @@ import useSWR from 'swr';
 
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
-import { BreezWallet, getBreezNetwork } from '../class/wallets/breez-wallet';
 import { getRpcProvider } from '../models/network-getters';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK, Networks } from '../types/networks';
@@ -39,6 +38,11 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
   const { accountNumber, network, backgroundCaller } = arg;
   if (typeof accountNumber === 'undefined' || !network) return undefined;
 
+  if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET) {
+    // LN is a metalayer which is composed of several actual wallets that support ln
+    throw new Error('This should never happen: balance requested for NETWORK_LIGHTNING');
+  }
+
   /**
    * EVM chains can get the balance on the spot (inside context of a Popup) since its a single api call
    * for a single address. For Bitcoin, we pass the call to a background script (and we ignore address argument)
@@ -48,10 +52,8 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
     return (balance.confirmed + balance.unconfirmed).toString(10);
   }
 
-  if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET || network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET) {
-    const mnemonic = await backgroundCaller.getSubMnemonic(accountNumber);
-    const bNetwork = getBreezNetwork(network);
-    const bw = new BreezWallet(mnemonic, bNetwork);
+  if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
+    const bw = await backgroundCaller.lazyInitWallet(network, accountNumber);
     const balance = await bw.getBalance();
     return balance.toString(10);
   }
@@ -63,18 +65,15 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
     const virtualBalance = await sw.getOffchainBalance();
     const end = +new Date();
     console.log('spark balance took', (end - start) / 1000, 'sec, balance =', virtualBalance.toString(10));
-    setTimeout(() => sw.cleanupConnections(), 2_000);
     return virtualBalance.toString(10);
   }
 
   if (network === NETWORK_ARKMUTINYNET) {
     const start = +new Date();
-    const aw = new ArkWallet();
-    const submnemonic = await backgroundCaller.getSubMnemonic(accountNumber);
-    aw.setSecret(submnemonic);
-    await aw.init();
-    const end = +new Date();
+    const aw = await backgroundCaller.lazyInitWallet(network, accountNumber);
+    assert(aw instanceof ArkWallet);
     const virtualBalance = await aw.getOffchainBalance();
+    const end = +new Date();
     console.log('ark balance took', (end - start) / 1000, 'sec, balance =', virtualBalance.toString(10));
     return virtualBalance.toString(10);
   }

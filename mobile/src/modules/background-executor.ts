@@ -28,8 +28,9 @@ import assert from 'assert';
 const cachedWallets: Record<SupportedLazyInitWalletNetworks, Record<number, LazyInitWallets>> = {
   [NETWORK_BITCOIN]: {},
   [NETWORK_SPARK]: {},
-  // [NETWORK_LIQUID]: {},
-  // [NETWORK_LIQUIDTESTNET]: {},
+  [NETWORK_ARKMUTINYNET]: {},
+  [NETWORK_LIQUID]: {},
+  [NETWORK_LIQUIDTESTNET]: {},
 };
 
 /**
@@ -49,18 +50,16 @@ export const BackgroundExecutor: IBackgroundCaller = {
       await saveWalletState(LayerzStorage, wallet, network, accountNumber);
       return address;
     } else if (network === NETWORK_ARKMUTINYNET) {
-      const mnemonic = await SecureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
-      const aw = new ArkWallet();
-      aw.setSecret(mnemonic);
-      await aw.init();
+      const aw = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      assert(aw instanceof ArkWallet);
       return await aw.getOffchainReceiveAddress();
     } else if (network === NETWORK_SPARK) {
       const sp = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(sp instanceof SparkWallet);
       return String(await sp.getOffchainReceiveAddress());
     } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
-      const mnemonic = await SecureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
-      const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
+      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof BreezWallet);
       const address = wallet.getAddressLiquid();
       return address;
     } else {

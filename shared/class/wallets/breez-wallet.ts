@@ -15,7 +15,7 @@ import type {
   SendPaymentResponse,
 } from '@breeztech/breez-sdk-liquid';
 import bolt11 from 'bolt11';
-import { NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '../../types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '../../types/networks';
 import { createLightningInvoiceResponse, InterfaceLightningWallet } from './interface-lightning-wallet';
 
 export type BreezConnection = {
@@ -222,10 +222,10 @@ export const LBTC_ASSET_IDS = {
 };
 
 // Map our app network to Breez LiquidNetwork type
-export const getBreezNetwork = (network: typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET | typeof NETWORK_LIGHTNING | typeof NETWORK_LIGHTNINGTESTNET) => {
-  if (network === NETWORK_LIQUID || network === NETWORK_LIGHTNING) {
+export const getBreezNetwork = (network: typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET) => {
+  if (network === NETWORK_LIQUID) {
     return 'mainnet';
-  } else if (network === NETWORK_LIQUIDTESTNET || network === NETWORK_LIGHTNINGTESTNET) {
+  } else if (network === NETWORK_LIQUIDTESTNET) {
     return 'testnet';
   } else {
     throw new Error(`Unsupported Breez network: ${network}`);

@@ -2,7 +2,7 @@ import BigNumber from 'bignumber.js';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import * as bolt11 from 'bolt11';
 
 import GradientScreen from '@/components/GradientScreen';
@@ -11,21 +11,23 @@ import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_BITCOIN, Networks } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { WalletFactory } from '@shared/class/wallet-factory';
 import { TLightningWallet } from '@shared/types/TWallet';
 import { Ionicons } from '@expo/vector-icons';
+import assert from 'assert';
+import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 export type SendLightningProps = {
-  network: Networks;
+  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET;
   invoice?: string;
 };
 
-const maxFeePercent = 1; // hardcoded at the moment. might give user option to adjust later
+const maxFeePercent = 5; // hardcoded at the moment. might give user option to adjust later
 
 const SendLightning: React.FC = () => {
   const params = useLocalSearchParams<SendLightningProps>();
@@ -43,9 +45,16 @@ const SendLightning: React.FC = () => {
   const walletRef = useRef<TLightningWallet | null>(null);
 
   const onInvoiceInput = async (scanned: string) => {
-    router.replace({ pathname: '/SendLightning', params: { ...params, invoice: scanned } });
+    const newParams: SendLightningProps = { ...params, invoice: scanned };
+    router.replace({ pathname: '/SendLightning', params: newParams });
+  };
+
+  useEffect(() => {
+    if (params.invoice) console.log('got invoice in useEffect params!', params.invoice);
+    if (!params.invoice) return;
+
     try {
-      const decoded = bolt11.decode(scanned.trim());
+      const decoded = bolt11.decode(params.invoice);
       setAmountToSend(String(decoded.satoshis));
 
       if (!decoded.satoshis) {
@@ -58,7 +67,7 @@ const SendLightning: React.FC = () => {
     } catch (error: any) {
       setError(error.message);
     }
-  };
+  }, [params.invoice]);
 
   const handleQRScan = async () => {
     const scanned = await scanQr();
@@ -71,7 +80,9 @@ const SendLightning: React.FC = () => {
   useEffect(() => {
     const initializeWallet = async () => {
       try {
-        walletRef.current = await WalletFactory.getInstance().getLightningWallet(network, accountNumber, BackgroundExecutor);
+        const w = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        assert(w instanceof BreezWallet || w instanceof SparkWallet);
+        walletRef.current = w;
       } catch (err) {
         console.error('Failed to initialize wallet:', err);
         setError('Failed to initialize wallet. Please try again.');
@@ -109,7 +120,7 @@ const SendLightning: React.FC = () => {
       await new Promise((r) => setTimeout(r, 200)); // propagate
 
       // Send payment
-      const paymentResponse = await walletRef.current.payLightningInvoice(invoice);
+      const paymentResponse = await walletRef.current.payLightningInvoice(invoice, maxFeePercent);
 
       if (paymentResponse) {
         setSendState('success');
@@ -193,7 +204,7 @@ const SendLightning: React.FC = () => {
           ) : null}
 
           {/* Payment Details */}
-          {invoice && amountToSend && sendState === 'idle' ? (
+          {invoice && amountToSend && (sendState === 'idle' || sendState === 'prepared') ? (
             <View style={styles.detailsContainer}>
               <ThemedText style={styles.detailsTitle}>Payment Details</ThemedText>
 
