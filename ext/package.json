@@ -24,7 +24,7 @@
     "@arkade-os/sdk": "0.2.0",
     "@bitcoinerlab/secp256k1": "1.2.0",
     "@breeztech/breez-sdk-liquid": "0.10.2",
-    "@buildonspark/spark-sdk": "0.2.4",
+    "@buildonspark/spark-sdk": "0.2.5",
     "@metamask/eth-sig-util": "4.0.1",
     "@noble/hashes": "1.7.1",
     "@noble/secp256k1": "1.6.3",
