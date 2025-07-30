@@ -70,21 +70,16 @@ export default function CreatePasswordScreen() {
   const slideAnim = useRef(new Animated.Value(30)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const shakeAnimation = useRef(new Animated.Value(0)).current;
-  const pinDotScales = useRef(
-    Array(PIN_LENGTH)
-      .fill(0)
-      .map(() => new Animated.Value(1))
-  ).current;
+  const createPinDotScale = () => new Animated.Value(1);
 
-  const keypadButtonScales = useRef(
-    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'delete'].reduce(
-      (acc, key) => {
-        acc[key] = new Animated.Value(1);
-        return acc;
-      },
-      {} as Record<string, Animated.Value>
-    )
-  ).current;
+  const pinDotScales = useRef(Array(PIN_LENGTH).fill(0).map(createPinDotScale)).current;
+
+  const createKeypadButtonScale = (acc: Record<string, Animated.Value>, key: string) => {
+    acc[key] = new Animated.Value(1);
+    return acc;
+  };
+
+  const keypadButtonScales = useRef(['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'delete'].reduce(createKeypadButtonScale, {} as Record<string, Animated.Value>)).current;
 
   useEffect(() => {
     Animated.stagger(ANIMATION_CONFIG.ENTRANCE_DELAY, [
@@ -163,45 +158,44 @@ export default function CreatePasswordScreen() {
       { toValue: 0, duration: ANIMATION_DURATION.SHAKE_SEGMENT },
     ];
 
-    Animated.sequence(
-      shakeSequence.map((shake) =>
-        Animated.timing(shakeAnimation, {
-          toValue: shake.toValue,
-          duration: shake.duration,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        })
-      )
-    ).start();
+    const createShakeAnimation = (shake: { toValue: number; duration: number }) =>
+      Animated.timing(shakeAnimation, {
+        toValue: shake.toValue,
+        duration: shake.duration,
+        easing: Easing.inOut(Easing.quad),
+        useNativeDriver: true,
+      });
+
+    Animated.sequence(shakeSequence.map(createShakeAnimation)).start();
   }, [shakeAnimation]);
 
   const resetPinWithAnimation = useCallback(() => {
-    Animated.parallel(
-      pinDotScales.map((scale) =>
-        Animated.timing(scale, {
-          toValue: 0,
-          duration: 150,
-          easing: Easing.in(Easing.quad),
-          useNativeDriver: true,
-        })
-      )
-    ).start(() => {
+    const createScaleDownAnimation = (scale: Animated.Value) =>
+      Animated.timing(scale, {
+        toValue: 0,
+        duration: 150,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      });
+
+    const createScaleUpAnimation = (scale: Animated.Value) =>
+      Animated.timing(scale, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      });
+
+    const onScaleDownComplete = () => {
       setErrorMessage('');
       setConfirmPin('');
       setIsConfirming(false);
       setPin('');
 
-      Animated.parallel(
-        pinDotScales.map((scale) =>
-          Animated.timing(scale, {
-            toValue: 1,
-            duration: 200,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          })
-        )
-      ).start();
-    });
+      Animated.parallel(pinDotScales.map(createScaleUpAnimation)).start();
+    };
+
+    Animated.parallel(pinDotScales.map(createScaleDownAnimation)).start(onScaleDownComplete);
   }, [pinDotScales]);
 
   const validatePins = useCallback(
@@ -211,7 +205,8 @@ export default function CreatePasswordScreen() {
         setErrorMessage('PINs do not match');
         shakeError();
 
-        setTimeout(() => resetPinWithAnimation(), 2500);
+        const resetWithDelay = () => resetPinWithAnimation();
+        setTimeout(resetWithDelay, 2500);
         return;
       }
 
@@ -257,16 +252,18 @@ export default function CreatePasswordScreen() {
           setConfirmPin(newPin);
           if (newPin.length === PIN_LENGTH) {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            setTimeout(() => validatePins(pin, newPin), 200);
+            const validateWithDelay = () => validatePins(pin, newPin);
+            setTimeout(validateWithDelay, 200);
           }
         } else {
           setPin(newPin);
           if (newPin.length === PIN_LENGTH) {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            setTimeout(() => {
+            const setConfirmingWithDelay = () => {
               setIsConfirming(true);
               setErrorMessage('');
-            }, 200);
+            };
+            setTimeout(setConfirmingWithDelay, 200);
           }
         }
       }
@@ -295,17 +292,19 @@ export default function CreatePasswordScreen() {
   );
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const focusHiddenInput = () => {
       if (hiddenTextInputRef.current) {
         hiddenTextInputRef.current.focus();
       }
-    }, 500);
+    };
+
+    const timer = setTimeout(focusHiddenInput, 500);
     return () => clearTimeout(timer);
   }, []);
 
   // Maintain focus on the hidden input to capture hardware keyboard
   useEffect(() => {
-    const intervalId = setInterval(() => {
+    const maintainFocus = () => {
       if (hiddenTextInputRef.current && !isLoading) {
         // Check if the input is focused, if not, focus it
         const input = hiddenTextInputRef.current;
@@ -313,7 +312,9 @@ export default function CreatePasswordScreen() {
           input.focus();
         }
       }
-    }, 2000);
+    };
+
+    const intervalId = setInterval(maintainFocus, 2000);
 
     return () => clearInterval(intervalId);
   }, [isLoading]);
@@ -345,6 +346,21 @@ export default function CreatePasswordScreen() {
 
   const renderPinDots = useMemo(() => {
     const currentPin = isConfirming ? confirmPin : pin;
+
+    const renderPinDot = (_: unknown, index: number) => (
+      <Animated.View
+        key={index}
+        style={[
+          styles.pinDot,
+          currentPin.length > index && styles.pinDotFilled,
+          errorMessage && styles.pinDotError,
+          {
+            transform: [{ scale: pinDotScales[index] }],
+          },
+        ]}
+      />
+    );
+
     return (
       <Animated.View
         style={[
@@ -354,41 +370,79 @@ export default function CreatePasswordScreen() {
             transform: [{ translateX: shakeAnimation }, { scale: scaleAnim }],
           },
         ]}
+        testID="pin-dots-container"
       >
-        {Array.from({ length: PIN_LENGTH }).map((_, index) => (
-          <Animated.View
-            key={index}
-            style={[
-              styles.pinDot,
-              currentPin.length > index && styles.pinDotFilled,
-              errorMessage && styles.pinDotError,
-              {
-                transform: [{ scale: pinDotScales[index] }],
-              },
-            ]}
-          />
-        ))}
+        {Array.from({ length: PIN_LENGTH }).map(renderPinDot)}
       </Animated.View>
     );
   }, [isConfirming, confirmPin, pin, fadeAnim, shakeAnimation, scaleAnim, errorMessage, pinDotScales, styles.pinDot, styles.pinDotError, styles.pinDotFilled, styles.pinDotsContainer]);
 
   const renderKeypadButton = useCallback(
-    (digit: string) => (
-      <Animated.View
-        key={digit}
-        style={{
-          transform: [{ scale: keypadButtonScales[digit] || 1 }],
-        }}
-      >
-        <TouchableOpacity style={styles.keypadButton} onPress={() => handlePinInput(digit)} disabled={isLoading}>
-          <ThemedText style={styles.keypadButtonText}>{digit}</ThemedText>
-        </TouchableOpacity>
-      </Animated.View>
-    ),
+    (digit: string) => {
+      const handleDigitPress = () => handlePinInput(digit);
+
+      return (
+        <Animated.View
+          key={digit}
+          style={{
+            transform: [{ scale: keypadButtonScales[digit] || 1 }],
+          }}
+        >
+          <TouchableOpacity
+            style={styles.keypadButton}
+            onPress={handleDigitPress}
+            disabled={isLoading}
+            testID={`keypad-button-${digit}`}
+            accessibilityLabel={`PIN digit ${digit}`}
+            accessibilityRole="button"
+          >
+            <ThemedText style={styles.keypadButtonText}>{digit}</ThemedText>
+          </TouchableOpacity>
+        </Animated.View>
+      );
+    },
     [keypadButtonScales, styles.keypadButton, styles.keypadButtonText, handlePinInput, isLoading]
   );
 
   const renderKeypad = useMemo(() => {
+    const renderKeypadRow = (row: readonly string[], rowIndex: number) => (
+      <View key={rowIndex} style={styles.keypadRow}>
+        {row.map(renderKeypadItem)}
+      </View>
+    );
+
+    const renderKeypadItem = (item: string) => {
+      if (item === '') {
+        return <View key="empty" style={styles.keypadButton} />;
+      }
+      if (item === 'delete') {
+        const currentPin = isConfirming ? confirmPin : pin;
+        const isDeleteDisabled = isLoading || currentPin.length === 0;
+        const handleDeletePress = () => handleDelete();
+
+        return (
+          <Animated.View
+            key="delete"
+            style={{
+              transform: [{ scale: keypadButtonScales['delete'] || 1 }],
+            }}
+          >
+            <TouchableOpacity
+              style={[styles.keypadButton, isDeleteDisabled && styles.keypadButtonDisabled]}
+              onPress={handleDeletePress}
+              disabled={isDeleteDisabled}
+              testID="keypad-button-delete"
+              accessibilityLabel="Delete PIN digit"
+              accessibilityRole="button"
+            >
+              <Ionicons name="backspace-outline" size={layout.deleteIconSize} color={isDeleteDisabled ? Colors.dark.white30 : Colors.dark.white90} />
+            </TouchableOpacity>
+          </Animated.View>
+        );
+      }
+      return renderKeypadButton(item);
+    };
+
     return (
       <Animated.View
         style={[
@@ -399,33 +453,7 @@ export default function CreatePasswordScreen() {
           },
         ]}
       >
-        {KEYPAD_ROWS.map((row, rowIndex) => (
-          <View key={rowIndex} style={styles.keypadRow}>
-            {row.map((item) => {
-              if (item === '') {
-                return <View key="empty" style={styles.keypadButton} />;
-              }
-              if (item === 'delete') {
-                const currentPin = isConfirming ? confirmPin : pin;
-                const isDeleteDisabled = isLoading || currentPin.length === 0;
-
-                return (
-                  <Animated.View
-                    key="delete"
-                    style={{
-                      transform: [{ scale: keypadButtonScales['delete'] || 1 }],
-                    }}
-                  >
-                    <TouchableOpacity style={[styles.keypadButton, isDeleteDisabled && styles.keypadButtonDisabled]} onPress={() => handleDelete()} disabled={isDeleteDisabled}>
-                      <Ionicons name="backspace-outline" size={layout.deleteIconSize} color={isDeleteDisabled ? Colors.dark.white30 : Colors.dark.white90} />
-                    </TouchableOpacity>
-                  </Animated.View>
-                );
-              }
-              return renderKeypadButton(item);
-            })}
-          </View>
-        ))}
+        {KEYPAD_ROWS.map(renderKeypadRow)}
       </Animated.View>
     );
   }, [styles, fadeAnim, slideAnim, isConfirming, confirmPin, pin, isLoading, keypadButtonScales, handleDelete, layout.deleteIconSize, renderKeypadButton]);
@@ -462,7 +490,9 @@ export default function CreatePasswordScreen() {
           <View style={styles.contentContainer}>
             <View style={styles.headerSection}>
               <Animated.View style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-                <ThemedText style={styles.title}>{isConfirming ? 'Confirm your PIN' : 'Choose a 4-digit PIN'}</ThemedText>
+                <ThemedText style={styles.title} testID="pin-screen-title">
+                  {isConfirming ? 'Confirm your PIN' : 'Choose a 4-digit PIN'}
+                </ThemedText>
               </Animated.View>
 
               <Animated.View style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
@@ -472,7 +502,7 @@ export default function CreatePasswordScreen() {
 
             <View style={styles.middleSection}>
               {renderPinDots}
-              <ThemedText style={styles.pinExplanation}>This is used to encrypt your wallet.</ThemedText>
+              {!errorMessage && <ThemedText style={styles.pinExplanation}>This is used to encrypt your wallet.</ThemedText>}
               {errorMessage ? <ThemedText style={styles.errorText}>{errorMessage}</ThemedText> : null}
             </View>
 

@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="iPhone 16 - iOS 18.5 - A40E9C79-87A8-4748-B90D-365943EA7A7F" tests="1" failures="1" time="54">
+    <testcase id="wallet-restore" name="wallet-restore" classname="wallet-restore" time="54" status="ERROR">
+      <failure>Unknown error</failure>
+    </testcase>
+  </testsuite>
+</testsuites>
