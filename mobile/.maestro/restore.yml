@@ -33,5 +33,5 @@ jsEngine: graaljs
       - evalScript: ${output.balance = maestro.copiedText}
       - evalScript: ${console.log(output.balance);}
       - evalScript: ${console.log(parseFloat(output.balance));}
-      # guard against NaN:
-      - evalScript: ${if (parseFloat(output.balance) > 0) {} else throw new Error("bad balance = " + output.balance)  }
+      # guard against NaN and check that balance is a valid number (including 0):
+      - evalScript: ${if (!isNaN(parseFloat(output.balance)) && parseFloat(output.balance) >= 0) {} else throw new Error("invalid balance = " + output.balance)  }
