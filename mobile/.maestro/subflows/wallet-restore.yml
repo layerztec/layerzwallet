@@ -43,26 +43,26 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 
 # Enter PIN: 1-2-3-4
-- tapOn: '1'
+- tapOn: 'keypad-button-1'
 - waitForAnimationToEnd
-- tapOn: '2'
+- tapOn: 'keypad-button-2'
 - waitForAnimationToEnd
-- tapOn: '3'
+- tapOn: 'keypad-button-3'
 - waitForAnimationToEnd
-- tapOn: '4'
+- tapOn: 'keypad-button-4'
 - waitForAnimationToEnd
 
 # Confirm PIN: 1-2-3-4
 - extendedWaitUntil:
     visible: 'Confirm your PIN'
     timeout: 5000
-- tapOn: '1'
+- tapOn: 'keypad-button-1'
 - waitForAnimationToEnd
-- tapOn: '2'
+- tapOn: 'keypad-button-2'
 - waitForAnimationToEnd
-- tapOn: '3'
+- tapOn: 'keypad-button-3'
 - waitForAnimationToEnd
-- tapOn: '4'
+- tapOn: 'keypad-button-4'
 - waitForAnimationToEnd
 
 # Accept terms of service

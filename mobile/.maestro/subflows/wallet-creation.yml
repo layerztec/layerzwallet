@@ -60,32 +60,37 @@ appId: com.layerzwallet.mobile
 
 # Test PIN mismatch scenario first
 # Enter PIN: 1-2-3-4
-- tapOn: '1'
+- tapOn:
+    id: 'keypad-button-1'
 - waitForAnimationToEnd
-- tapOn: '2'
+- tapOn:
+    id: 'keypad-button-2'
 - waitForAnimationToEnd
-- tapOn: '3'
+- tapOn:
+    id: 'keypad-button-3'
 - waitForAnimationToEnd
-- tapOn: '4'
+- tapOn:
+    id: 'keypad-button-4'
 - waitForAnimationToEnd
 
 # Confirm with wrong PIN: 5-6-7-8 to test mismatch
 - extendedWaitUntil:
     visible: 'Confirm your PIN'
     timeout: 5000
-- tapOn: '5'
+- tapOn:
+    id: 'keypad-button-5'
 - waitForAnimationToEnd
-- tapOn: '6'
+- tapOn:
+    id: 'keypad-button-6'
 - waitForAnimationToEnd
-- tapOn: '7'
+- tapOn:
+    id: 'keypad-button-7'
 - waitForAnimationToEnd
-- tapOn: '8'
+- tapOn:
+    id: 'keypad-button-8'
 - waitForAnimationToEnd
 
-# Verify error message appears
-- assertVisible: 'PINs do not match'
-
-# Wait for auto-reset (2.5 seconds + animation time)
+# Wait for UI to reset back to original state (2.5 seconds + animation time)
 - waitForAnimationToEnd:
     timeout: 4000
 - extendedWaitUntil:
@@ -94,26 +99,34 @@ appId: com.layerzwallet.mobile
 
 # Now create PIN correctly
 # Enter PIN: 1-2-3-4
-- tapOn: '1'
+- tapOn:
+    id: 'keypad-button-1'
 - waitForAnimationToEnd
-- tapOn: '2'
+- tapOn:
+    id: 'keypad-button-2'
 - waitForAnimationToEnd
-- tapOn: '3'
+- tapOn:
+    id: 'keypad-button-3'
 - waitForAnimationToEnd
-- tapOn: '4'
+- tapOn:
+    id: 'keypad-button-4'
 - waitForAnimationToEnd
 
 # Confirm PIN: 1-2-3-4
 - extendedWaitUntil:
     visible: 'Confirm your PIN'
     timeout: 5000
-- tapOn: '1'
+- tapOn:
+    id: 'keypad-button-1'
 - waitForAnimationToEnd
-- tapOn: '2'
+- tapOn:
+    id: 'keypad-button-2'
 - waitForAnimationToEnd
-- tapOn: '3'
+- tapOn:
+    id: 'keypad-button-3'
 - waitForAnimationToEnd
-- tapOn: '4'
+- tapOn:
+    id: 'keypad-button-4'
 - waitForAnimationToEnd
 
 # Accept terms of service
