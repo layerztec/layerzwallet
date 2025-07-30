@@ -10,6 +10,7 @@ import { BreezWallet, getBreezNetwork, LBTC_ASSET_IDS } from '@shared/class/wall
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
+import assert from 'assert';
 
 const LiquidTokensView: React.FC = () => {
   const router = useRouter();
@@ -27,8 +28,8 @@ const LiquidTokensView: React.FC = () => {
       }
 
       try {
-        const mnemonic = await BackgroundExecutor.getSubMnemonic(accountNumber);
-        const bw = new BreezWallet(mnemonic, getBreezNetwork(network));
+        const bw = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        assert(bw instanceof BreezWallet);
         const balances = await bw.getAssetBalances();
         const filteredBalances = balances.filter((asset) => !Object.values(LBTC_ASSET_IDS).includes(asset.assetId));
         setAssetBalances(filteredBalances);

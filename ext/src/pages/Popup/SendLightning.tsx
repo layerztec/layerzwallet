@@ -5,21 +5,23 @@ import { ThemedText } from '../../components/ThemedText';
 import * as bolt11 from 'bolt11';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_BITCOIN, Networks } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { Button, HodlButton, Input, WideButton } from './DesignSystem';
 import BigNumber from 'bignumber.js';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { WalletFactory } from '@shared/class/wallet-factory';
 import { TLightningWallet } from '@shared/types/TWallet';
+import assert from 'assert';
+import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 export interface SendLightningProps {
-  network: Networks;
+  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET;
 }
 
-const maxFeePercent = 1; // hardcoded at the moment. might give user option to adjust later
+const maxFeePercent = 5; // hardcoded at the moment. might give user option to adjust later
 
 const SendLightning: React.FC = () => {
   const location = useLocation();
@@ -64,7 +66,9 @@ const SendLightning: React.FC = () => {
   useEffect(() => {
     const initializeWallet = async () => {
       try {
-        walletRef.current = await WalletFactory.getInstance().getLightningWallet(network, accountNumber, BackgroundCaller);
+        const w = await BackgroundCaller.lazyInitWallet(network, accountNumber);
+        assert(w instanceof BreezWallet || w instanceof SparkWallet);
+        walletRef.current = w;
       } catch (err) {
         console.error('Failed to initialize wallet:', err);
         setError('Failed to initialize wallet. Please try again.');
@@ -102,7 +106,7 @@ const SendLightning: React.FC = () => {
       await new Promise((r) => setTimeout(r, 200)); // propagate
 
       // Send payment
-      const paymentResponse = await walletRef.current.payLightningInvoice(invoice);
+      const paymentResponse = await walletRef.current.payLightningInvoice(invoice, maxFeePercent);
 
       if (paymentResponse) {
         setSendState('success');

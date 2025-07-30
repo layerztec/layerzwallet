@@ -14,7 +14,7 @@ import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { Button, HodlButton, Input, WideButton } from './DesignSystem';
-import { NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 /**
@@ -34,7 +34,7 @@ const SendArk: React.FC = () => {
   const { accountNumber } = useContext(AccountNumberContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
   const { balance } = useBalance(network, accountNumber, BackgroundCaller);
-  const arkWallet = useRef<ArkWallet | undefined>(undefined);
+  const arkWallet = useRef<ArkWallet | SparkWallet | undefined>(undefined);
 
   const actualSend = async () => {
     let startTs = Date.now();
@@ -71,19 +71,16 @@ const SendArk: React.FC = () => {
       // TODO: validate the address
       // TODO: validate the amount
 
-      let w: ArkWallet | SparkWallet = new ArkWallet();
-      let mnemonic = await askMnemonic();
+      await askMnemonic(); // only asking to verify user knows it. will throw if he doesnt
+
+      let w = await BackgroundCaller.lazyInitWallet(NETWORK_ARKMUTINYNET, accountNumber);
 
       if (network === NETWORK_SPARK) {
-        w = new SparkWallet();
-        // Ark currently uses main mnemonic (operates without mnemonic to fetch balance), but Spark is
-        // always seeded by submnemonic
-        mnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
+        w = await BackgroundCaller.lazyInitWallet(NETWORK_SPARK, accountNumber);
       }
 
-      w.setSecret(mnemonic);
-      w.setAccountNumber(accountNumber);
-      w.init();
+      assert(w instanceof ArkWallet || w instanceof SparkWallet);
+
       arkWallet.current = w;
       setIsPrepared(true);
     } catch (error: any) {

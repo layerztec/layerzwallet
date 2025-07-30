@@ -1,9 +1,9 @@
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
-import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
+import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { lazyInitWallet, saveBitcoinXpubs, saveSubMnemonics, saveWalletState, sanitizeAndValidateMnemonic, LazyInitWallets, SupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
+import { lazyInitWallet, LazyInitWallets, sanitizeAndValidateMnemonic, saveBitcoinXpubs, saveSubMnemonics, saveWalletState, SupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, MessageType, MessageTypeMap, OpenPopupRequest, ProcessRPCRequest } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC } from '@shared/types/IStorage';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
@@ -29,6 +29,9 @@ type TMethods = 'getAddress' | 'saveMnemonic' | 'createMnemonic' | 'getBtcBalanc
 const cachedWallets: Record<SupportedLazyInitWalletNetworks, Record<number, LazyInitWallets>> = {
   [NETWORK_BITCOIN]: {},
   [NETWORK_SPARK]: {},
+  [NETWORK_ARKMUTINYNET]: {},
+  [NETWORK_LIQUID]: {},
+  [NETWORK_LIQUIDTESTNET]: {},
 };
 
 async function handleOpenPopup([method, params, id, from]: OpenPopupRequest, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) {
@@ -76,16 +79,14 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
       await saveWalletState(LayerzStorage, wallet, network, accountNumber);
       return address;
     } else if (network === NETWORK_ARKMUTINYNET) {
-      const mnemonic = await SecureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
-      const aw = new ArkWallet();
-      aw.setSecret(mnemonic);
-      await aw.init();
+      const aw = await lazyInitWallet(network, accountNumber, cachedWallets, LayerzStorage, SecureStorage);
+      assert(aw instanceof ArkWallet);
       return await aw.getOffchainReceiveAddress();
     } else if (network === NETWORK_SPARK) {
       throw new Error('this should never happen: temporarily executed on the spot in the BackgroundCaller'); // fixme
     } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
-      const mnemonic = await SecureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
-      const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
+      const wallet = await lazyInitWallet(network, accountNumber, cachedWallets, LayerzStorage, SecureStorage);
+      assert(wallet instanceof BreezWallet);
       const address = wallet.getAddressLiquid();
       return address;
     } else {

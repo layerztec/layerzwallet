@@ -6,14 +6,16 @@ import { ThemedText } from '../../components/ThemedText';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
-import { Networks } from '@shared/types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { AddressBubble, Input, WideButton } from './DesignSystem';
-import { WalletFactory } from '@shared/class/wallet-factory';
 import { TLightningWallet } from '@shared/types/TWallet';
+import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import assert from 'assert';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 export interface ReceiveLightningProps {
-  network: Networks;
+  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET;
 }
 
 const ReceiveLightning: React.FC = () => {
@@ -106,7 +108,9 @@ const ReceiveLightning: React.FC = () => {
   useEffect(() => {
     const initializeWallet = async () => {
       try {
-        walletRef.current = await WalletFactory.getInstance().getLightningWallet(network, accountNumber, BackgroundCaller);
+        const w = await BackgroundCaller.lazyInitWallet(network, accountNumber);
+        assert(w instanceof BreezWallet || w instanceof SparkWallet);
+        walletRef.current = w;
         setIsWalletInitialized(true);
 
         // Fetch limits after wallet is initialized

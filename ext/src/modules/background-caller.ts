@@ -3,7 +3,7 @@ import { GetSubMnemonicResponse, GetBtcSendDataResponse, IBackgroundCaller, Mess
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
-import { NETWORK_BITCOIN, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { lazyInitWallet as lazyInitWalletOrig, LazyInitWallets, SupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 import assert from 'assert';
@@ -19,6 +19,9 @@ const STORAGE_KEY_ACCEPTED_TOS = 'STORAGE_KEY_ACCEPTED_TOS';
 const cachedWallets: Record<SupportedLazyInitWalletNetworks, Record<number, LazyInitWallets>> = {
   [NETWORK_BITCOIN]: {},
   [NETWORK_SPARK]: {},
+  [NETWORK_ARKMUTINYNET]: {},
+  [NETWORK_LIQUID]: {},
+  [NETWORK_LIQUIDTESTNET]: {},
 };
 
 /**

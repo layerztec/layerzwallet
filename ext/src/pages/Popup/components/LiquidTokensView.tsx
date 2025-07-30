@@ -3,11 +3,12 @@ import { ArrowDownRightIcon, SendIcon } from 'lucide-react';
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { BreezWallet, getBreezNetwork, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
+import { BreezWallet, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
 import { BackgroundCaller } from '../../../modules/background-caller';
+import assert from 'assert';
 
 const LiquidTokensView: React.FC = () => {
   const navigate = useNavigate();
@@ -21,8 +22,8 @@ const LiquidTokensView: React.FC = () => {
       setAssetBalances([]);
 
       try {
-        const mnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
-        const bw = new BreezWallet(mnemonic, getBreezNetwork(network));
+        const bw = await BackgroundCaller.lazyInitWallet(network, accountNumber);
+        assert(bw instanceof BreezWallet);
         const balances = await bw.getAssetBalances();
         const filteredBalances = balances.filter((asset) => !Object.values(LBTC_ASSET_IDS).includes(asset.assetId));
         setAssetBalances(filteredBalances);

@@ -3,7 +3,7 @@ import { Scan, SendIcon } from 'lucide-react';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
-import { BreezWallet, getBreezNetwork, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
+import { BreezWallet, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { formatBalance } from '@shared/modules/string-utils';
@@ -12,6 +12,7 @@ import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { Button, HodlButton, Input, WideButton } from './DesignSystem';
+import assert from 'assert';
 
 const SendLiquid: React.FC = () => {
   const scanQr = useScanQR();
@@ -49,8 +50,8 @@ const SendLiquid: React.FC = () => {
   useEffect(() => {
     const loadAssets = async () => {
       try {
-        const mnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
-        const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
+        const wallet = await BackgroundCaller.lazyInitWallet(network, accountNumber);
+        assert(wallet instanceof BreezWallet);
         const balances = await wallet.getAssetBalances();
         const asset = balances.find((asset) => asset.assetId === assetId);
         if (asset) {
@@ -122,8 +123,8 @@ const SendLiquid: React.FC = () => {
     setError('');
 
     try {
-      const mnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
-      const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
+      const wallet = await BackgroundCaller.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof BreezWallet);
 
       // Prepare the send payment
       const prepareRequest: PrepareSendRequest = {
@@ -156,8 +157,8 @@ const SendLiquid: React.FC = () => {
 
     try {
       await askMnemonic(); // verify password
-      const mnemonic = await BackgroundCaller.getSubMnemonic(accountNumber);
-      const wallet = new BreezWallet(mnemonic, getBreezNetwork(network));
+      const wallet = await BackgroundCaller.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof BreezWallet);
       await wallet.sendPayment({ prepareResponse: prepareResult });
       setIsSuccess(true);
     } catch (err: any) {
