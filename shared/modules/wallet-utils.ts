@@ -83,7 +83,12 @@ export async function lazyInitWallet(
   const lockKey = `${network}-${accountNumber}`;
   if (locks[lockKey]) {
     // wallet initing is in progress, so we just wait till its inited to return it
+    let c = 0;
     while (!cachedWallets[network]?.[accountNumber]) {
+      if (c++ > 30) {
+        locks[lockKey] = false;
+        throw new Error(`Timeout while waiting for ${network}[${accountNumber}] lock`);
+      }
       await new Promise((resolve) => setTimeout(resolve, 500)); // sleep
     }
 

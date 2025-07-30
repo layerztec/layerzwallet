@@ -80,12 +80,8 @@ const SendArk = () => {
 
       await askMnemonic(); // only asking to verify user knows it. will throw if he doesnt
 
-      let w = await BackgroundExecutor.lazyInitWallet(NETWORK_ARKMUTINYNET, accountNumber);
-
-      if (network === NETWORK_SPARK) {
-        w = await BackgroundExecutor.lazyInitWallet(NETWORK_SPARK, accountNumber);
-      }
-
+      assert(network === NETWORK_ARKMUTINYNET || network === NETWORK_SPARK);
+      let w = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(w instanceof ArkWallet || w instanceof SparkWallet);
 
       arkWallet.current = w;

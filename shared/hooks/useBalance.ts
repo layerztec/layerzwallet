@@ -39,9 +39,8 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
   if (typeof accountNumber === 'undefined' || !network) return undefined;
 
   if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET) {
-    // LN is a metalayer which is composed of several actual wallets that support ln,
-    // so we reply with meaningless data, because on UI we should never show it
-    return Promise.resolve('-1');
+    // LN is a metalayer which is composed of several actual wallets that support ln
+    throw new Error('This should never happen: balance requested for NETWORK_LIGHTNING');
   }
 
   /**

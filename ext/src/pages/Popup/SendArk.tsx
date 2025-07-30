@@ -73,12 +73,8 @@ const SendArk: React.FC = () => {
 
       await askMnemonic(); // only asking to verify user knows it. will throw if he doesnt
 
-      let w = await BackgroundCaller.lazyInitWallet(NETWORK_ARKMUTINYNET, accountNumber);
-
-      if (network === NETWORK_SPARK) {
-        w = await BackgroundCaller.lazyInitWallet(NETWORK_SPARK, accountNumber);
-      }
-
+      assert(network === NETWORK_ARKMUTINYNET || network === NETWORK_SPARK);
+      let w = await BackgroundCaller.lazyInitWallet(network, accountNumber);
       assert(w instanceof ArkWallet || w instanceof SparkWallet);
 
       arkWallet.current = w;
