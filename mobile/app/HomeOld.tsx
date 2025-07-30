@@ -49,34 +49,6 @@ export default function HomeScreen() {
     setShowSwapInterface(false);
   }, [network]);
 
-  useEffect(() => {
-    const checkMnemonic = async () => {
-      try {
-        const hasMnemonic = await BackgroundExecutor.hasMnemonic();
-        const hasAcceptedTermsOfService = await BackgroundExecutor.hasAcceptedTermsOfService();
-        const hasEncryptedMnemonic = await BackgroundExecutor.hasEncryptedMnemonic();
-        if (!hasMnemonic) {
-          router.replace('/onboarding/intro');
-          return;
-        }
-
-        if (!hasEncryptedMnemonic) {
-          router.replace('/onboarding/create-password');
-          return;
-        }
-
-        if (!hasAcceptedTermsOfService) {
-          router.replace('/onboarding/tos');
-          return;
-        }
-      } catch (error) {
-        console.error('Error:', error);
-      }
-    };
-
-    checkMnemonic();
-  }, [router]);
-
   const goToSettings = () => {
     router.push('/settings');
   };
@@ -182,9 +154,9 @@ export default function HomeScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerContainer}>
-          <View style={styles.header}>
+          <TouchableOpacity style={styles.header} onPress={() => router.push('/Home')} activeOpacity={0.8}>
             <ThemedText style={styles.title}>{Hello.world()}</ThemedText>
-          </View>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.settingsButton} onPress={goToSettings} testID="SettingsButton">
             <Ionicons name="settings-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
           </TouchableOpacity>
@@ -240,25 +212,29 @@ export default function HomeScreen() {
               <View style={styles.buttonContainer}>
                 <View style={styles.buttonRow}>
                   {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
-                    <ActionPopupButton actions={getLightningReceiveActions()} testID="ReceiveButton" style={[styles.button, styles.receiveButton]}>
-                      <ThemedText style={styles.buttonText}>
-                        <Ionicons name="arrow-down" size={16} color="white" /> Receive
-                      </ThemedText>
+                    <ActionPopupButton actions={getLightningReceiveActions()}>
+                      <TouchableOpacity style={[styles.button, styles.receiveButton]}>
+                        <ThemedText style={styles.buttonText}>
+                          <Ionicons name="arrow-down" size={16} color="white" /> Receive
+                        </ThemedText>
+                      </TouchableOpacity>
                     </ActionPopupButton>
                   ) : (
-                    <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive}>
+                    <TouchableOpacity style={[styles.button, styles.receiveButton]} onPress={goToReceive} testID="ReceiveButton">
                       <ThemedText style={styles.buttonText}>Receive</ThemedText>
                     </TouchableOpacity>
                   )}
 
                   {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
-                    <ActionPopupButton actions={getLightningSendActions()} testID="SendButton" style={[styles.button, styles.sendButton]}>
-                      <ThemedText style={styles.buttonText}>
-                        <Ionicons name="arrow-up" size={16} color="white" /> Send
-                      </ThemedText>
+                    <ActionPopupButton actions={getLightningSendActions()}>
+                      <TouchableOpacity style={[styles.button, styles.sendButton]}>
+                        <ThemedText style={styles.buttonText}>
+                          <Ionicons name="arrow-up" size={16} color="white" /> Send
+                        </ThemedText>
+                      </TouchableOpacity>
                     </ActionPopupButton>
                   ) : (
-                    <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend}>
+                    <TouchableOpacity style={[styles.button, styles.sendButton]} onPress={goToSend} testID="SendButton">
                       <ThemedText style={styles.buttonText}>Send</ThemedText>
                     </TouchableOpacity>
                   )}

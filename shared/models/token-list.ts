@@ -18,3 +18,25 @@ export function getTokenList(network: Networks): TokenInfo[] {
 
   return ret;
 }
+
+// Unified function for getting token/asset icon colors
+export const getTokenIconColor = (name?: string): string => {
+  const colorMap: { [key: string]: string } = {
+    // Bitcoin variants
+    BTC: '#F7931A', // Bitcoin orange
+    BTCC: '#F7931A', // Bitcoin orange
+    LBTC: '#F7931A', // Liquid Bitcoin orange
+
+    // Stablecoins
+    USDT: '#26A17B', // Tether green
+    RUSDT: '#26A17B', // Tether green
+    USDC: '#2775CA', // USD Coin blue
+  };
+
+  if (!name) {
+    return '#8A92B2'; // Default gray
+  }
+
+  const key = name.toUpperCase();
+  return colorMap[key] || '#8A92B2'; // Default gray
+};
