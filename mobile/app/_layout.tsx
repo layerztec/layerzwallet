@@ -32,7 +32,7 @@ LogBox.ignoreLogs(['Open debugger to view warnings.']);
 const DefaultNavigatorOptions: NativeStackNavigationOptions = {
   headerTitle: '',
   headerTintColor: '#fff',
-  headerBackButtonDisplayMode: 'minimal' as 'minimal',
+  headerBackButtonDisplayMode: 'minimal',
   headerTransparent: true,
   headerBackImageSource: require('@/assets/images/ui/headerBackImage.png'),
   gestureEnabled: true,
@@ -109,7 +109,8 @@ export default function RootLayout() {
                         }}
                       >
                         <Stack.Screen name="index" options={{ headerShown: false, title: 'Index' }} />
-                        <Stack.Screen name="home" options={{ headerShown: false, title: 'Home', animation: 'none' }} />
+                        <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'none' }} />
+                        <Stack.Screen name="HomeOld" options={{ headerShown: false, title: 'HomeOld', animation: 'none' }} />
                         <Stack.Screen
                           name="onboarding/intro"
                           options={{
@@ -185,6 +186,22 @@ export default function RootLayout() {
 
                         <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
                         <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
+                        <Stack.Screen name="Swap" options={{ headerShown: false, title: 'Swap' }} />
+                        <Stack.Screen
+                          name="SwapTarget"
+                          options={{
+                            presentation: 'formSheet',
+                            sheetAllowedDetents: [0.6],
+                            sheetGrabberVisible: true,
+                            headerTransparent: false,
+                            gestureEnabled: true,
+                            headerShown: false,
+                            contentStyle: {
+                              height: '100%',
+                              backgroundColor: 'rgb(24, 32, 82)',
+                            },
+                          }}
+                        />
                         <Stack.Screen name="Onramp" options={{ headerShown: true }} />
                         <Stack.Screen name="AskPassword" options={{ presentation: 'modal', headerShown: false }} />
                         <Stack.Screen name="AskMnemonic" options={{ presentation: 'modal', headerShown: false }} />

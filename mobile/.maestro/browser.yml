@@ -8,7 +8,8 @@ appId: com.layerzwallet.mobile
     env:
       NETWORK: 'rootstock'
 
-- tapOn: 'Browser'
+- tapOn:
+    id: 'ExplorerButton'
 - waitForAnimationToEnd
 - tapOn: 'unwhitelist'
 - waitForAnimationToEnd
