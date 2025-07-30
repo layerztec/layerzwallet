@@ -13,6 +13,6 @@ export default function IndexScreen() {
   } else if (step === EStep.TOS) {
     return <Redirect href="/onboarding/tos" />;
   } else {
-    return <Redirect href="/home" />;
+    return <Redirect href="/Home" />;
   }
 }

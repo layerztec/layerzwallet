@@ -1,8 +1,8 @@
 import type { AssetBalance } from '@breeztech/breez-sdk-liquid';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -11,6 +11,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
 import assert from 'assert';
+import { getTokenIconColor } from '@shared/models/token-list';
 
 const LiquidTokensView: React.FC = () => {
   const router = useRouter();
@@ -45,9 +46,9 @@ const LiquidTokensView: React.FC = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <BlurView intensity={50} tint="dark" style={styles.loadingContainer}>
         <ThemedText style={styles.loadingText}>Loading assets...</ThemedText>
-      </View>
+      </BlurView>
     );
   }
 
@@ -59,39 +60,44 @@ const LiquidTokensView: React.FC = () => {
     return asset.ticker || asset.assetId.substring(0, 8) + '...';
   };
 
+  const getAssetDisplayName = (asset: AssetBalance): string => {
+    return asset.name || asset.ticker || 'Unknown Asset';
+  };
+
   const goToSend = (assetId: string) => {
     router.push(`/SendLiquid?assetId=${assetId}`);
   };
 
-  const goToReceive = () => {
-    router.push('/Receive');
-  };
-
   return (
-    <View style={styles.container}>
+    <BlurView intensity={50} tint="dark" style={styles.container}>
       <ThemedText style={styles.title}>Assets</ThemedText>
-      <View>
-        {assetBalances.map((item) => (
-          <View key={item.assetId} style={styles.assetContainer}>
-            <View style={styles.assetInfo}>
-              <ThemedText style={styles.assetName}>{getAssetName(item)}</ThemedText>
-              {item.name && <ThemedText style={styles.assetFullName}>({item.name})</ThemedText>}
-            </View>
+      <View style={styles.assetsList}>
+        {assetBalances.map((item) => {
+          const iconColor = getTokenIconColor(item.name);
+          const assetSymbol = item.ticker || getAssetName(item);
 
-            <ThemedText style={styles.balance}>{item.balance ? item.balance : item.balanceSat}</ThemedText>
+          return (
+            <TouchableOpacity key={item.assetId} style={styles.assetRow} onPress={() => goToSend(item.assetId)} activeOpacity={0.7}>
+              {/* Asset Icon */}
+              <View style={[styles.assetIcon, { backgroundColor: iconColor }]}>
+                <ThemedText style={styles.assetIconText}>{assetSymbol.charAt(0).toUpperCase()}</ThemedText>
+              </View>
 
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity onPress={() => goToSend(item.assetId)} style={styles.sendButton}>
-                <Ionicons name="send" size={16} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={goToReceive} style={styles.receiveButton}>
-                <Ionicons name="arrow-down" size={16} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))}
+              {/* Asset Name */}
+              <ThemedText style={styles.assetName}>{getAssetDisplayName(item)}</ThemedText>
+
+              {/* Asset Amount and Price */}
+              <View style={styles.assetAmounts}>
+                <ThemedText style={styles.assetAmount}>
+                  {item.balance ? item.balance : item.balanceSat} {assetSymbol}
+                </ThemedText>
+                <ThemedText style={styles.assetPrice}>$TODO</ThemedText>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
-    </View>
+    </BlurView>
   );
 };
 
@@ -99,68 +105,68 @@ export default LiquidTokensView;
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    marginTop: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: 20,
+    padding: 16,
+    overflow: 'hidden',
   },
   loadingContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: 20,
     padding: 20,
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    marginHorizontal: 16,
+    overflow: 'hidden',
   },
   loadingText: {
+    fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
   },
   title: {
-    marginBottom: 16,
+    fontSize: 20,
+    fontWeight: '400',
+    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: 24,
   },
-  assetContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    marginVertical: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+  assetsList: {
+    gap: 16,
   },
-  assetInfo: {
+  assetRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    height: 46,
+  },
+  assetIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  assetIconText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
   },
   assetName: {
-    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#ffffff',
+    flex: 1,
   },
-  assetFullName: {
-    marginLeft: 5,
-    color: 'rgba(255, 255, 255, 0.6)',
+  assetAmounts: {
+    alignItems: 'flex-end',
   },
-  balance: {
-    marginLeft: 'auto',
-    marginRight: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
+  assetAmount: {
+    fontSize: 15,
+    fontWeight: '400',
+    color: '#ffffff',
+    marginBottom: 2,
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  sendButton: {
-    backgroundColor: 'rgba(255, 59, 48, 0.3)',
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  receiveButton: {
-    backgroundColor: 'rgba(52, 199, 89, 0.3)',
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+  assetPrice: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.3)',
   },
 });

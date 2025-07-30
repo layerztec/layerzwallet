@@ -15,9 +15,12 @@ appId: com.layerzwallet.mobile
           file: subflows/network-switch.yml
           env:
             NETWORK: ${output.networks.shift()}
-      - assertVisible: 'Receive'
-      - assertVisible: 'Send'
-      - tapOn: 'Receive'
+      - assertVisible:
+          id: 'SendButton'
+      - assertVisible:
+          id: 'ReceiveButton'
+      - tapOn:
+          id: 'ReceiveButton'
       - extendedWaitUntil:
           notVisible: 'Loading address...'
           timeout: 60000

@@ -1,6 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { View, TouchableOpacity, Text, Modal, StyleSheet, Dimensions, Animated, ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useRef, useState, useEffect, cloneElement, ReactElement } from 'react';
+import { View, TouchableOpacity, Text, Modal, StyleSheet, Dimensions, Animated, TouchableOpacityProps } from 'react-native';
 
 interface Action {
   label: string;
@@ -8,35 +7,33 @@ interface Action {
 }
 
 interface ActionPopupButtonProps {
-  children: React.ReactNode;
+  children: ReactElement<TouchableOpacityProps>;
   actions: Action[];
-  disabled?: boolean;
-  testID?: string;
-  style?: ViewStyle | ViewStyle[];
 }
 
-export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, actions, disabled = false, testID, style }) => {
+export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, actions }) => {
   const [showPopup, setShowPopup] = useState(false);
   const [progress, setProgress] = useState(0);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
-  const buttonRef = useRef<any>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressAnimation = useRef(new Animated.Value(0)).current;
 
-  const handlePress = () => {
-    if (disabled) return;
+  // Clone the original component and inject onPress for multiple actions
+  const handlePressWithRef = (event: any) => {
+    // Get the target from the press event for positioning
+    const target = event.target || event.currentTarget;
+    if (target && target.measureInWindow) {
+      target.measureInWindow((x: number, y: number, width: number, height: number) => {
+        const screenWidth = Dimensions.get('window').width;
+        const popupWidth = 200; // Approximate popup width
 
-    // Calculate position for popup
-    buttonRef.current?.measureInWindow((x: number, y: number, width: number, height: number) => {
-      const screenWidth = Dimensions.get('window').width;
-      const popupWidth = 200; // Approximate popup width
+        // Center the popup above the button
+        const popupX = Math.max(10, Math.min(x + width / 2 - popupWidth / 2, screenWidth - popupWidth - 10));
+        const popupY = y - 200; // Position above the button
 
-      // Center the popup above the button
-      const popupX = Math.max(10, Math.min(x + width / 2 - popupWidth / 2, screenWidth - popupWidth - 10));
-      const popupY = y - 200; // Position above the button
-
-      setPopupPosition({ x: popupX, y: popupY });
-    });
+        setPopupPosition({ x: popupX, y: popupY });
+      });
+    }
 
     setShowPopup(true);
     setProgress(0);
@@ -89,11 +86,13 @@ export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, 
     };
   }, []);
 
+  const enhancedChild = cloneElement(children, {
+    onPress: handlePressWithRef,
+  });
+
   return (
-    <View style={styles.container}>
-      <TouchableOpacity ref={buttonRef} onPress={handlePress} disabled={disabled} style={[styles.button, disabled && styles.buttonDisabled, style]} activeOpacity={0.7} testID={testID}>
-        {children}
-      </TouchableOpacity>
+    <>
+      {enhancedChild}
 
       <Modal visible={showPopup} transparent={true} animationType="fade" onRequestClose={handleClose}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={handleClose}>
@@ -108,13 +107,7 @@ export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, 
             ]}
           >
             {actions.map((action, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => handleActionPress(action.onClick)}
-                style={[styles.actionButton, index === 0 && styles.defaultActionButton]}
-                activeOpacity={0.7}
-                testID={testID ? `${testID}${index}` : undefined}
-              >
+              <TouchableOpacity key={index} onPress={() => handleActionPress(action.onClick)} style={[styles.actionButton, index === 0 && styles.defaultActionButton]} activeOpacity={0.7}>
                 {index === 0 && progress > 0 && (
                   <Animated.View
                     style={[
@@ -134,31 +127,11 @@ export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, 
           </View>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'relative',
-    zIndex: 1,
-  },
-  button: {
-    backgroundColor: '#282c34',
-    borderWidth: 1,
-    borderColor: 'white',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    marginHorizontal: 5,
-    marginBottom: 5,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

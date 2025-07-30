@@ -102,7 +102,7 @@ const SendArk = () => {
         <View style={styles.successContainer}>
           <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
           <ThemedText style={styles.successTitle}>Transaction Sent!</ThemedText>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/home')}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/Home')}>
             <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
           </TouchableOpacity>
         </View>

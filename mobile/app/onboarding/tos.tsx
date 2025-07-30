@@ -18,7 +18,7 @@ export default function TermsOfServiceScreen() {
       await BackgroundExecutor.acceptTermsOfService();
 
       // Navigate to the main home screen
-      router.replace('/home');
+      router.replace('/Home');
     } catch (error) {
       console.error('Error accepting terms:', error);
       Alert.alert('Error', 'Failed to accept terms. Please try again.');
