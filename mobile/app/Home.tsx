@@ -388,7 +388,7 @@ export default function Home() {
 
           {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
             <ActionPopupButton actions={getLightningSendActions()}>
-              <TouchableOpacity style={styles.navButtonLarge} activeOpacity={0.8}>
+              <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" activeOpacity={0.8}>
                 <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
                 <ThemedText style={styles.navButtonText}>Send</ThemedText>
               </TouchableOpacity>
@@ -402,7 +402,7 @@ export default function Home() {
 
           {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
             <ActionPopupButton actions={getLightningReceiveActions()}>
-              <TouchableOpacity style={styles.navButtonLarge} activeOpacity={0.8}>
+              <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
                 <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
                 <ThemedText style={styles.navButtonText}>Receive</ThemedText>
               </TouchableOpacity>
