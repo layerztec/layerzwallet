@@ -103,6 +103,7 @@
     "timers-browserify": "^2.0.12",
     "uint8array-extras": "^1.4.0",
     "url": "^0.11.4",
+    "expo-image": "~2.4.0",
     "expo-sharing": "~13.1.5",
     "expo-print": "~14.1.4",
     "expo-file-system": "~18.1.11",
