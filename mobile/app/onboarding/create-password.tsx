@@ -70,6 +70,8 @@ export default function CreatePasswordScreen() {
   const slideAnim = useRef(new Animated.Value(30)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const shakeAnimation = useRef(new Animated.Value(0)).current;
+  const errorFadeAnim = useRef(new Animated.Value(0)).current;
+  const explanationFadeAnim = useRef(new Animated.Value(1)).current;
   const createPinDotScale = () => new Animated.Value(1);
 
   const pinDotScales = useRef(Array(PIN_LENGTH).fill(0).map(createPinDotScale)).current;
@@ -187,22 +189,50 @@ export default function CreatePasswordScreen() {
       });
 
     const onScaleDownComplete = () => {
-      setErrorMessage('');
-      setConfirmPin('');
-      setIsConfirming(false);
-      setPin('');
+      // Fade out error message first
+      Animated.timing(errorFadeAnim, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(() => {
+        setErrorMessage('');
+        setConfirmPin('');
+        setIsConfirming(false);
+        setPin('');
 
-      Animated.parallel(pinDotScales.map(createScaleUpAnimation)).start();
+        // Restore explanation text fade
+        explanationFadeAnim.setValue(1);
+
+        Animated.parallel(pinDotScales.map(createScaleUpAnimation)).start();
+      });
     };
 
     Animated.parallel(pinDotScales.map(createScaleDownAnimation)).start(onScaleDownComplete);
-  }, [pinDotScales]);
+  }, [pinDotScales, errorFadeAnim, explanationFadeAnim]);
 
   const validatePins = useCallback(
     async (originalPin: string, confirmedPin: string) => {
       if (originalPin !== confirmedPin) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setErrorMessage('PINs do not match');
+
+        // Crossfade: fade out explanation and fade in error message
+        Animated.parallel([
+          Animated.timing(explanationFadeAnim, {
+            toValue: 0,
+            duration: 200,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(errorFadeAnim, {
+            toValue: 1,
+            duration: 300,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]).start();
+
         shakeError();
 
         const resetWithDelay = () => resetPinWithAnimation();
@@ -231,7 +261,7 @@ export default function CreatePasswordScreen() {
         setIsLoading(false);
       }
     },
-    [router, resetPinWithAnimation, shakeError]
+    [router, resetPinWithAnimation, shakeError, errorFadeAnim, explanationFadeAnim]
   );
 
   const handlePinInput = useCallback(
@@ -262,13 +292,15 @@ export default function CreatePasswordScreen() {
             const setConfirmingWithDelay = () => {
               setIsConfirming(true);
               setErrorMessage('');
+              // Reset error fade animation
+              errorFadeAnim.setValue(0);
             };
             setTimeout(setConfirmingWithDelay, 200);
           }
         }
       }
     },
-    [isLoading, isConfirming, confirmPin, pin, animateKeypadPress, animatePinDot, validatePins]
+    [isLoading, isConfirming, confirmPin, pin, animateKeypadPress, animatePinDot, validatePins, errorFadeAnim]
   );
 
   const handleDelete = useCallback(
@@ -502,8 +534,16 @@ export default function CreatePasswordScreen() {
 
             <View style={styles.middleSection}>
               {renderPinDots}
-              {!errorMessage && <ThemedText style={styles.pinExplanation}>This is used to encrypt your wallet.</ThemedText>}
-              {errorMessage ? <ThemedText style={styles.errorText}>{errorMessage}</ThemedText> : null}
+              {!errorMessage && (
+                <Animated.View style={{ opacity: explanationFadeAnim }}>
+                  <ThemedText style={styles.pinExplanation}>This is used to encrypt your wallet.</ThemedText>
+                </Animated.View>
+              )}
+              {errorMessage && (
+                <Animated.View style={{ opacity: errorFadeAnim }}>
+                  <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>
+                </Animated.View>
+              )}
             </View>
 
             <View style={styles.keypadSection}>
@@ -650,6 +690,8 @@ const createStyles = (layout: ReturnType<typeof getLayoutValues>) =>
       textAlign: 'center',
       fontWeight: '400',
       fontSize: layout.errorFontSize,
+      marginTop: 24,
+      marginHorizontal: 20,
     },
     keypadButton: {
       alignItems: 'center',
