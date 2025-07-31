@@ -125,6 +125,7 @@ export default function CreatePasswordScreen() {
     // Reset error message
     setErrorMessage('');
 
+    // Check if passwords match
     if (password !== repeatPassword) {
       setErrorMessage('Passwords do not match');
       setRepeatPassword('');
