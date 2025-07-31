@@ -1,60 +1,54 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useContext, useEffect, useState } from 'react';
+import { Foundation, Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useContext } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import GradientFormSheet from '@/components/GradientFormSheet';
 import { ThemedText } from '@/components/ThemedText';
-import { getNetworkIcon } from '@shared/constants/Colors';
+import { AccountItem, AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { getSwapPairs } from '@shared/models/swap-providers-list';
-import { capitalizeFirstLetter } from '@shared/modules/string-utils';
-import { Networks } from '@shared/types/networks';
-import { SwapPlatform } from '@shared/types/swap';
+import { useAccountBalance } from '@shared/hooks/useAccountBalance';
+import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
+import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { formatBalance } from '@shared/modules/string-utils';
+import { NETWORK_BITCOIN } from '@shared/types/networks';
 
-interface TargetNetworkItem {
-  network: Networks;
-  name: string;
-  icon: string;
-}
+const ListItem = ({ item, onPress, accountNumber }: { item: AccountItem; onPress: () => void; accountNumber: number }) => {
+  const availableNetworks = useAvailableNetworks();
+  const IconComponent = item.iconCollection === 'ion' ? Ionicons : Foundation;
+  const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
 
-const ListItem = ({ item, onPress, active, first, last }: { item: TargetNetworkItem; onPress: () => void; active: boolean; first: boolean; last: boolean }) => {
+  const active = accountNumber === accountNumber;
+  const first = accountNumber === 0;
+  const last = accountNumber === accountItems.length - 1;
+
   return (
     <TouchableOpacity style={[styles.item, active && styles.activeItem, first && styles.firstItem, last && styles.lastItem]} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.networkIcon}>
-        <Ionicons name={item.icon as any} size={24} color="white" />
+      <View style={styles.icon}>
+        <IconComponent name={item.icon as any} size={24} color="white" />
       </View>
-      <ThemedText style={styles.networkName}>{item.name}</ThemedText>
+      <View style={styles.info}>
+        <ThemedText style={styles.name}>{item.name}</ThemedText>
+        <ThemedText style={styles.balance}>
+          {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : '0'} {getTickerByNetwork(NETWORK_BITCOIN)}
+        </ThemedText>
+      </View>
     </TouchableOpacity>
   );
 };
 
-export default function SwapTarget() {
+export default function PocketSwitch() {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
-  const [availableTargets, setAvailableTargets] = useState<TargetNetworkItem[]>([]);
-  const params = useLocalSearchParams<{
-    amount?: string;
-  }>();
-
-  useEffect(() => {
-    const swapPairs = getSwapPairs(network, SwapPlatform.MOBILE);
-    const targetNetworks = Array.from(new Set(swapPairs.map((pair) => pair.to)));
-    const targets: TargetNetworkItem[] = targetNetworks.map((targetNetwork) => ({
-      network: targetNetwork,
-      name: capitalizeFirstLetter(targetNetwork),
-      icon: getNetworkIcon(targetNetwork),
-    }));
-    setAvailableTargets(targets);
-  }, [network]);
+  const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
 
   const handleClose = () => {
     router.back();
   };
 
-  const handleSelectTarget = (targetNetwork: Networks) => {
+  const handleSelect = (index: number) => {
+    setAccountNumber(index);
     router.back();
-    router.replace({ pathname: '/Swap', params: { toNetwork: targetNetwork, amount: params.amount } });
   };
 
   return (
@@ -62,7 +56,7 @@ export default function SwapTarget() {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <ThemedText style={styles.title}>Swap to</ThemedText>
+          <ThemedText style={styles.title}>Your pockets</ThemedText>
         </View>
         <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
           <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.8)" />
@@ -70,17 +64,10 @@ export default function SwapTarget() {
 
         {/* Target Networks List */}
         <View style={styles.listContainer}>
-          {availableTargets.map((item, index) => (
-            <ListItem key={item.network} item={item} onPress={() => handleSelectTarget(item.network)} active={false} first={index === 0} last={index === availableTargets.length - 1} />
+          {accountItems.map((item, index) => (
+            <ListItem key={index} accountNumber={index} item={item} onPress={() => handleSelect(index)} />
           ))}
         </View>
-
-        {/* Empty State */}
-        {availableTargets.length === 0 && (
-          <View style={styles.emptyState}>
-            <ThemedText style={styles.emptyText}>No swap targets available for {capitalizeFirstLetter(network)}</ThemedText>
-          </View>
-        )}
       </View>
     </GradientFormSheet>
   );
@@ -123,7 +110,7 @@ const styles = StyleSheet.create({
   },
   item: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 16,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     height: 64,
@@ -139,20 +126,28 @@ const styles = StyleSheet.create({
   activeItem: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
-  networkIcon: {
-    width: 38,
-    height: 38,
+  icon: {
+    width: 40,
+    height: 40,
     borderRadius: 19,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(0, 0, 0, 0.20)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
   },
-  networkName: {
+  info: {
+    // justifyContent: 'center',
+    // alignItems: 'flex-start',
+    // gap: 1,
+    // backgroundColor: 'red',
+  },
+  name: {
     fontSize: 16,
-    fontWeight: '500',
     color: '#ffffff',
-    flex: 1,
+  },
+  balance: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.3)',
   },
   emptyState: {
     flex: 1,
