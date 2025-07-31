@@ -74,26 +74,14 @@ export default function SendScreen() {
   };
 
   const handleAddressChange = (text: string) => {
-    router.replace({
-      pathname: '/SendEvm',
-      params: {
-        ...params,
-        toAddress: text,
-      },
-    });
+    router.setParams({ toAddress: text });
     setErrorMessage('');
   };
 
   const handleAmountChange = (text: string) => {
     const normalizedText = text.replace(',', '.');
     if (normalizedText === '' || /^\d*\.?\d*$/.test(normalizedText)) {
-      router.replace({
-        pathname: '/SendEvm',
-        params: {
-          ...params,
-          amount: normalizedText,
-        },
-      });
+      router.setParams({ amount: normalizedText });
       setErrorMessage('');
     }
   };
@@ -228,13 +216,7 @@ export default function SendScreen() {
     try {
       const scannedAddress = await scanQr();
       if (scannedAddress) {
-        router.replace({
-          pathname: '/SendEvm',
-          params: {
-            ...params,
-            toAddress: scannedAddress,
-          },
-        });
+        router.setParams({ toAddress: scannedAddress });
       }
     } catch (error) {
       console.error('QR scan error:', error);

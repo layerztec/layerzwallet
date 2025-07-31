@@ -136,7 +136,7 @@ const SendArk = () => {
                 testID="recipient-address-input"
                 placeholder="Enter the recipient's address"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                onChangeText={(text) => router.replace({ pathname: '/SendArk', params: { ...params, toAddress: text } })}
+                onChangeText={(text) => router.setParams({ toAddress: text })}
                 value={toAddress}
               />
               <TouchableOpacity
@@ -144,7 +144,7 @@ const SendArk = () => {
                 onPress={async () => {
                   const scanned = await scanQr();
                   if (scanned) {
-                    router.replace({ pathname: '/SendArk', params: { ...params, toAddress: scanned } });
+                    router.setParams({ toAddress: scanned });
                   }
                 }}
               >
@@ -163,7 +163,7 @@ const SendArk = () => {
               keyboardType="numeric"
               onChangeText={(text) => {
                 const normalized = text.replace(',', '.');
-                router.replace({ pathname: '/SendArk', params: { ...params, amount: normalized } });
+                router.setParams({ amount: normalized });
               }}
               value={amount}
             />
