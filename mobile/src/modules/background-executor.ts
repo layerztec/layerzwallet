@@ -4,15 +4,7 @@ import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import {
-  lazyInitWallet as lazyInitWalletOrig,
-  sanitizeAndValidateMnemonic,
-  saveBitcoinXpubs,
-  saveSubMnemonics,
-  saveWalletState,
-  SupportedLazyInitWalletNetworks,
-  LazyInitWallets,
-} from '@shared/modules/wallet-utils';
+import { lazyInitWallet as lazyInitWalletOrig, sanitizeAndValidateMnemonic, saveBitcoinXpubs, saveSubMnemonics, saveWalletState, TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, OpenPopupRequest } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_WHITELIST } from '@shared/types/IStorage';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
@@ -24,22 +16,13 @@ import { decrypt, encrypt } from '../modules/encryption';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import assert from 'assert';
 
-// Cache of wallets by network and account number
-const cachedWallets: Record<SupportedLazyInitWalletNetworks, Record<number, LazyInitWallets>> = {
-  [NETWORK_BITCOIN]: {},
-  [NETWORK_SPARK]: {},
-  [NETWORK_ARKMUTINYNET]: {},
-  [NETWORK_LIQUID]: {},
-  [NETWORK_LIQUIDTESTNET]: {},
-};
-
 /**
  * A drop-in replacement for BackgroundCaller in `ext` project. Since we have only one js context on mobile,
  * no need to handle calls via messages, we can just execute them on the spot
  */
 export const BackgroundExecutor: IBackgroundCaller = {
-  async lazyInitWallet(network: SupportedLazyInitWalletNetworks, accountNumber: number) {
-    return lazyInitWalletOrig(network, accountNumber, cachedWallets, LayerzStorage, SecureStorage);
+  async lazyInitWallet(network: TSupportedLazyInitWalletNetworks, accountNumber: number) {
+    return lazyInitWalletOrig(network, accountNumber, LayerzStorage, SecureStorage);
   },
 
   async getAddress(network, accountNumber) {

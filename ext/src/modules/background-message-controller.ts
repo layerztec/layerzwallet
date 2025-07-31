@@ -3,7 +3,7 @@ import { EvmWallet } from '@shared/class/evm-wallet';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { lazyInitWallet, LazyInitWallets, sanitizeAndValidateMnemonic, saveBitcoinXpubs, saveSubMnemonics, saveWalletState, SupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
+import { lazyInitWallet, sanitizeAndValidateMnemonic, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, MessageType, MessageTypeMap, OpenPopupRequest, ProcessRPCRequest } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC } from '@shared/types/IStorage';
 import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
@@ -20,19 +20,6 @@ type TBackgroundMessage = { [K in keyof MessageTypeMap]: { type: K; params: Mess
 type TSendResponse = (response: MessageTypeMap[keyof MessageTypeMap]['response'] | { error: true; message: string }) => void;
 // Allowed method names for background executor
 type TMethods = 'getAddress' | 'saveMnemonic' | 'createMnemonic' | 'getBtcBalance' | 'encryptMnemonic' | 'signPersonalMessage' | 'signTypedData' | 'getBtcSendData' | 'getSubMnemonic';
-
-/**
- * Cache of wallets by network and account number
- * 2 of 2 - this one resides in background script (aka service worker), which lives a bit longer than Popup but
- * browser still might decide to terminate it
- */
-const cachedWallets: Record<SupportedLazyInitWalletNetworks, Record<number, LazyInitWallets>> = {
-  [NETWORK_BITCOIN]: {},
-  [NETWORK_SPARK]: {},
-  [NETWORK_ARKMUTINYNET]: {},
-  [NETWORK_LIQUID]: {},
-  [NETWORK_LIQUIDTESTNET]: {},
-};
 
 async function handleOpenPopup([method, params, id, from]: OpenPopupRequest, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) {
   if (!sender.tab?.id) {
@@ -73,19 +60,19 @@ function openPopupWindow(request: ProcessRPCRequest, sendResponse: (response?: a
 export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
   async getAddress(network, accountNumber) {
     if (network === NETWORK_BITCOIN) {
-      const wallet = await lazyInitWallet(network, accountNumber, cachedWallets, LayerzStorage, SecureStorage);
+      const wallet = await lazyInitWallet(network, accountNumber, LayerzStorage, SecureStorage);
       assert(wallet instanceof WatchOnlyWallet);
       const address = await wallet.getAddressAsync();
       await saveWalletState(LayerzStorage, wallet, network, accountNumber);
       return address;
     } else if (network === NETWORK_ARKMUTINYNET) {
-      const aw = await lazyInitWallet(network, accountNumber, cachedWallets, LayerzStorage, SecureStorage);
+      const aw = await lazyInitWallet(network, accountNumber, LayerzStorage, SecureStorage);
       assert(aw instanceof ArkWallet);
       return await aw.getOffchainReceiveAddress();
     } else if (network === NETWORK_SPARK) {
       throw new Error('this should never happen: temporarily executed on the spot in the BackgroundCaller'); // fixme
     } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
-      const wallet = await lazyInitWallet(network, accountNumber, cachedWallets, LayerzStorage, SecureStorage);
+      const wallet = await lazyInitWallet(network, accountNumber, LayerzStorage, SecureStorage);
       assert(wallet instanceof BreezWallet);
       const address = wallet.getAddressLiquid();
       return address;
@@ -130,7 +117,7 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
       await BlueElectrum.connectMain();
     }
 
-    const wallet = await lazyInitWallet(NETWORK_BITCOIN, accountNumber, cachedWallets, LayerzStorage, SecureStorage);
+    const wallet = await lazyInitWallet(NETWORK_BITCOIN, accountNumber, LayerzStorage, SecureStorage);
     assert(wallet instanceof WatchOnlyWallet);
     await wallet.fetchBalance();
     await saveWalletState(LayerzStorage, wallet, NETWORK_BITCOIN, accountNumber);
@@ -210,7 +197,7 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     if (!BlueElectrum.mainConnected) {
       await BlueElectrum.connectMain();
     }
-    const wallet = await lazyInitWallet(NETWORK_BITCOIN, accountNumber, cachedWallets, LayerzStorage, SecureStorage);
+    const wallet = await lazyInitWallet(NETWORK_BITCOIN, accountNumber, LayerzStorage, SecureStorage);
     assert(wallet instanceof WatchOnlyWallet);
     await wallet.fetchBalance();
     await wallet.fetchUtxo();
