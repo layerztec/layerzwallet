@@ -9,6 +9,17 @@ import { WalletSerializer } from './wallet-serializer';
 import { BreezWallet, getBreezNetwork } from '../class/wallets/breez-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
 
+// Cache of wallets by network and account number
+const cachedWallets: Record<TSupportedLazyInitWalletNetworks, Record<number, TLazyInitedWallets>> = {
+  [NETWORK_BITCOIN]: {},
+  [NETWORK_SPARK]: {},
+  [NETWORK_ARKMUTINYNET]: {},
+  [NETWORK_LIQUID]: {},
+  [NETWORK_LIQUIDTESTNET]: {},
+};
+
+const locks: Record<string, boolean> = {};
+
 /**
  * Save Bitcoin XPUBs for accounts 0-5 to storage.
  * @param storage Storage instance (LayerzStorage or compatible)
@@ -48,27 +59,19 @@ export async function saveWalletState(storage: IStorage, wallet: WatchOnlyWallet
   }
 }
 
-export type SupportedLazyInitWalletNetworks = typeof NETWORK_BITCOIN | typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET | typeof NETWORK_ARKMUTINYNET;
-export type LazyInitWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkWallet;
+export type TSupportedLazyInitWalletNetworks = typeof NETWORK_BITCOIN | typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET | typeof NETWORK_ARKMUTINYNET;
+export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkWallet;
 
-const locks: Record<string, boolean> = {};
 /**
  * Initialize and cache a wallet for the given network/account, using serialization if available.
  *
  * @param network Network type ("bitcoin")
  * @param accountNumber Account index
- * @param cachedWallets Cache object to store/retrieve wallets
  * @param storage Storage instance (LayerzStorage or compatible)
  * @param secureStorage
  * @returns The initialized wallet instance
  */
-export async function lazyInitWallet(
-  network: SupportedLazyInitWalletNetworks,
-  accountNumber: number,
-  cachedWallets: Record<SupportedLazyInitWalletNetworks, Record<number, LazyInitWallets>>,
-  storage: IStorage,
-  secureStorage: IStorage
-): Promise<LazyInitWallets> {
+export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, accountNumber: number, storage: IStorage, secureStorage: IStorage): Promise<TLazyInitedWallets> {
   console.log(`lazyInitWallet ${network}[${accountNumber}]...`);
   if (![NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_ARKMUTINYNET].includes(network)) {
     throw new Error(`Unsupported network for lazyInitWallet: ${network}`);

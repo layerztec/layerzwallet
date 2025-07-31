@@ -3,26 +3,13 @@ import { GetSubMnemonicResponse, GetBtcSendDataResponse, IBackgroundCaller, Mess
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_SPARK } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { lazyInitWallet as lazyInitWalletOrig, LazyInitWallets, SupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
+import { lazyInitWallet as lazyInitWalletOrig, TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 import assert from 'assert';
 
 const STORAGE_KEY_WHITELIST = 'STORAGE_KEY_WHITELIST';
 const STORAGE_KEY_ACCEPTED_TOS = 'STORAGE_KEY_ACCEPTED_TOS';
-
-/**
- * Cache of wallets by network and account number
- * 1 of 2 - this one resides in context of whoever is calling BackgroundCaller, which is most likely
- * the Popup
- */
-const cachedWallets: Record<SupportedLazyInitWalletNetworks, Record<number, LazyInitWallets>> = {
-  [NETWORK_BITCOIN]: {},
-  [NETWORK_SPARK]: {},
-  [NETWORK_ARKMUTINYNET]: {},
-  [NETWORK_LIQUID]: {},
-  [NETWORK_LIQUIDTESTNET]: {},
-};
 
 /**
  * Makes calls to the background script and handles responses. The background script executes sensitive operations
@@ -35,8 +22,8 @@ export const BackgroundCaller: IBackgroundCaller = {
    * this will create a wallet object that will exist in the __context where it was called__.
    * there might be a situation (in ext) when same wallet was created in background script and popup
    */
-  async lazyInitWallet(network: SupportedLazyInitWalletNetworks, accountNumber: number) {
-    return lazyInitWalletOrig(network, accountNumber, cachedWallets, LayerzStorage, SecureStorage);
+  async lazyInitWallet(network: TSupportedLazyInitWalletNetworks, accountNumber: number) {
+    return lazyInitWalletOrig(network, accountNumber, LayerzStorage, SecureStorage);
   },
 
   async getAddress(...params) {
