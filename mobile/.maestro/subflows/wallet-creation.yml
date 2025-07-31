@@ -17,6 +17,10 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 - tapOn: 'Continue'
 - waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: 'ManualBackupSettingsRow'
+    direction: DOWN
 - tapOn:
     id: 'ManualBackupSettingsRow'
 - waitForAnimationToEnd

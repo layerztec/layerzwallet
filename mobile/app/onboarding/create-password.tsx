@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { Colors, gradients } from '@shared/constants/Colors';
+import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 
 export default function CreatePasswordScreen() {
   const [password, setPassword] = useState('');
@@ -14,6 +16,111 @@ export default function CreatePasswordScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
+  const shakeAnimation = useRef(new Animated.Value(0)).current;
+  const errorFadeAnimation = useRef(new Animated.Value(0)).current;
+  const inputBorderAnimation = useRef(new Animated.Value(0)).current;
+  const scaleAnimation = useRef(new Animated.Value(1)).current;
+
+  const repeatPasswordInputRef = useRef<TextInput>(null);
+
+  const titleTransition = useSequentialSpringAnimation(200);
+  const subtitleTransition = useSequentialSpringAnimation(400);
+  const inputTransition = useSequentialSpringAnimation(600);
+  const buttonTransition = useSequentialSpringAnimation(800);
+
+  const animateError = useCallback(() => {
+    shakeAnimation.setValue(0);
+    errorFadeAnimation.setValue(0);
+    inputBorderAnimation.setValue(0);
+    scaleAnimation.setValue(1);
+
+    Animated.parallel([
+      Animated.sequence([
+        Animated.timing(shakeAnimation, {
+          toValue: 10,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnimation, {
+          toValue: -10,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnimation, {
+          toValue: 8,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnimation, {
+          toValue: -8,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnimation, {
+          toValue: 0,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.spring(errorFadeAnimation, {
+        toValue: 1,
+        tension: 150,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(inputBorderAnimation, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: false,
+      }),
+      Animated.sequence([
+        Animated.spring(scaleAnimation, {
+          toValue: 0.98,
+          tension: 200,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnimation, {
+          toValue: 1,
+          tension: 200,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start(() => {
+      if (repeatPasswordInputRef.current) {
+        repeatPasswordInputRef.current.focus();
+      }
+
+      setTimeout(() => {
+        setErrorMessage('');
+      }, 2000);
+    });
+  }, [shakeAnimation, errorFadeAnimation, inputBorderAnimation, scaleAnimation]);
+
+  const clearErrorAnimation = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(errorFadeAnimation, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(inputBorderAnimation, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [errorFadeAnimation, inputBorderAnimation]);
+
+  useEffect(() => {
+    if (errorMessage) {
+      animateError();
+    } else {
+      clearErrorAnimation();
+    }
+  }, [errorMessage, animateError, clearErrorAnimation]);
+
   const validatePasswords = () => {
     // Reset error message
     setErrorMessage('');
@@ -21,9 +128,9 @@ export default function CreatePasswordScreen() {
     // Check if passwords match
     if (password !== repeatPassword) {
       setErrorMessage('Passwords do not match');
+      setRepeatPassword('');
       return false;
     }
-
     // Check password length (minimum 8 characters)
     if (password.length < 2) {
       setErrorMessage('Password must be at least 2 characters long');
@@ -59,54 +166,159 @@ export default function CreatePasswordScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <ThemedView style={styles.content}>
-            <ThemedText style={styles.title}>Create Password</ThemedText>
-            <ThemedText style={styles.subtitle}>Create a password to encrypt your wallet</ThemedText>
+    <View style={styles.container}>
+      <LinearGradient colors={gradients.blueGradient} style={styles.container}>
+        <SafeAreaView style={styles.safeAreaView}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardContainer}>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+              <View style={styles.content}>
+                <Animated.View style={[titleTransition]}>
+                  <ThemedText type="title" darkColor={Colors.dark.buttonText} textAlign="center">
+                    Create Password
+                  </ThemedText>
+                </Animated.View>
 
-            <ThemedView style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter password"
-                placeholderTextColor="#999"
-                autoCapitalize="none"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-                testID="EnterPasswordInput"
-              />
+                <View style={{ marginVertical: 10 }} />
 
-              <TextInput
-                style={styles.input}
-                placeholder="Repeat password"
-                placeholderTextColor="#999"
-                autoCapitalize="none"
-                secureTextEntry
-                value={repeatPassword}
-                onChangeText={setRepeatPassword}
-                testID="RepeatPasswordInput"
-              />
+                <Animated.View style={[subtitleTransition]}>
+                  <ThemedText type="paragraph" darkColor={Colors.dark.text} textAlign="center">
+                    Create a password to encrypt your wallet
+                  </ThemedText>
+                </Animated.View>
 
-              {errorMessage ? <ThemedText style={styles.errorText}>{errorMessage}</ThemedText> : null}
-            </ThemedView>
+                <Animated.View
+                  style={[
+                    styles.inputContainer,
+                    inputTransition,
+                    {
+                      transform: [{ translateX: shakeAnimation }, { scale: scaleAnimation }],
+                    },
+                  ]}
+                >
+                  <Animated.View
+                    style={[
+                      styles.inputWrapper,
+                      {
+                        borderColor: inputBorderAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['rgba(255, 255, 255, 0.2)', '#FF6B6B'],
+                        }),
+                        shadowOpacity: inputBorderAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 0.3],
+                        }),
+                        shadowColor: '#FF6B6B',
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowRadius: inputBorderAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 8],
+                        }),
+                        elevation: inputBorderAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 5],
+                        }),
+                      },
+                    ]}
+                  >
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter password"
+                      placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                      autoCapitalize="none"
+                      secureTextEntry
+                      value={password}
+                      onChangeText={setPassword}
+                      testID="EnterPasswordInput"
+                    />
+                  </Animated.View>
 
-            <TouchableOpacity style={[styles.button, isLoading ? styles.buttonDisabled : null]} onPress={handleCreatePassword} disabled={isLoading} testID="CreatePasswordButton">
-              <ThemedText style={styles.buttonText}>{isLoading ? 'Creating...' : 'Create Password'}</ThemedText>
-            </TouchableOpacity>
-          </ThemedView>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+                  <Animated.View
+                    style={[
+                      styles.inputWrapper,
+                      {
+                        borderColor: inputBorderAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['rgba(255, 255, 255, 0.2)', '#FF6B6B'],
+                        }),
+                        shadowOpacity: inputBorderAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 0.3],
+                        }),
+                        shadowColor: '#FF6B6B',
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowRadius: inputBorderAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 8],
+                        }),
+                        elevation: inputBorderAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 5],
+                        }),
+                      },
+                    ]}
+                  >
+                    <TextInput
+                      ref={repeatPasswordInputRef}
+                      style={styles.input}
+                      placeholder="Repeat password"
+                      placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                      autoCapitalize="none"
+                      secureTextEntry
+                      value={repeatPassword}
+                      onChangeText={setRepeatPassword}
+                      testID="RepeatPasswordInput"
+                    />
+                  </Animated.View>
+
+                  {errorMessage ? (
+                    <Animated.View
+                      style={[
+                        styles.errorContainer,
+                        {
+                          opacity: errorFadeAnimation,
+                          transform: [
+                            {
+                              scale: errorFadeAnimation.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0.8, 1],
+                              }),
+                            },
+                          ],
+                        },
+                      ]}
+                    >
+                      <ThemedText style={styles.errorText} darkColor="#FF6B6B">
+                        {errorMessage}
+                      </ThemedText>
+                    </Animated.View>
+                  ) : null}
+                </Animated.View>
+              </View>
+
+              <Animated.View style={[styles.buttonSection, buttonTransition]}>
+                <TouchableOpacity style={[styles.button, isLoading ? styles.buttonDisabled : null]} onPress={handleCreatePassword} disabled={isLoading} testID="CreatePasswordButton">
+                  <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
+                    {isLoading ? 'Creating...' : 'Create Password'}
+                  </ThemedText>
+                </TouchableOpacity>
+              </Animated.View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
   },
-  container: {
+  safeAreaView: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  keyboardContainer: {
     flex: 1,
   },
   scrollContent: {
@@ -114,44 +326,44 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
     justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    marginBottom: 30,
-    textAlign: 'center',
-    opacity: 0.7,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 40,
   },
   inputContainer: {
     width: '100%',
-    marginBottom: 30,
+    marginTop: 40,
+  },
+  inputWrapper: {
+    borderWidth: 1,
+    borderRadius: 16,
+    marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   input: {
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    marginBottom: 15,
-    paddingHorizontal: 15,
+    height: 56,
+    paddingHorizontal: 20,
     fontSize: 16,
-    color: 'grey',
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  errorContainer: {
+    marginTop: -8,
+    marginBottom: 16,
+    alignItems: 'center',
   },
   errorText: {
-    color: 'red',
-    marginTop: -10,
-    marginBottom: 15,
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  buttonSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   button: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    height: 50,
+    backgroundColor: Colors.dark.buttonPrimary,
+    borderRadius: 16,
+    height: 56,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -159,7 +371,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
   },
