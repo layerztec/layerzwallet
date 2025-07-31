@@ -196,10 +196,10 @@ const SendBtc: React.FC = () => {
     if (scanned) {
       try {
         const decoded = bip21.decode(scanned);
-        if (decoded?.address) router.replace({ pathname: '/SendBtc', params: { ...params, toAddress: decoded.address } });
-        if (decoded?.options?.amount) router.replace({ pathname: '/SendBtc', params: { ...params, amount: String(decoded.options.amount) } });
+        if (decoded?.address) router.setParams({ toAddress: decoded.address });
+        if (decoded?.options?.amount) router.setParams({ amount: String(decoded.options.amount) });
       } catch {
-        router.replace({ pathname: '/SendBtc', params: { ...params, toAddress: scanned } });
+        router.setParams({ toAddress: scanned });
       }
     }
   };
@@ -240,7 +240,7 @@ const SendBtc: React.FC = () => {
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 autoCapitalize="none"
                 autoCorrect={false}
-                onChangeText={(text) => router.replace({ pathname: '/SendBtc', params: { ...params, toAddress: text } })}
+                onChangeText={(text) => router.setParams({ toAddress: text })}
                 value={toAddress}
               />
               <TouchableOpacity
@@ -250,10 +250,10 @@ const SendBtc: React.FC = () => {
                   if (scanned) {
                     try {
                       const decoded = bip21.decode(scanned);
-                      if (decoded?.address) router.replace({ pathname: '/SendBtc', params: { ...params, toAddress: decoded.address } });
-                      if (decoded?.options?.amount) router.replace({ pathname: '/SendBtc', params: { ...params, amount: String(decoded.options.amount) } });
+                      if (decoded?.address) router.setParams({ toAddress: decoded.address });
+                      if (decoded?.options?.amount) router.setParams({ amount: String(decoded.options.amount) });
                     } catch {
-                      router.replace({ pathname: '/SendBtc', params: { ...params, toAddress: scanned } });
+                      router.setParams({ toAddress: scanned });
                     }
                   }
                 }}
@@ -273,7 +273,7 @@ const SendBtc: React.FC = () => {
               onChangeText={(text) => {
                 const normalized = text.replace(',', '.');
                 if (normalized === '' || /^\d*\.?\d*$/.test(normalized)) {
-                  router.replace({ pathname: '/SendBtc', params: { ...params, amount: normalized } });
+                  router.setParams({ amount: normalized });
                 }
               }}
               value={amount}
