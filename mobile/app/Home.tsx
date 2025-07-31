@@ -14,7 +14,7 @@ import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getNetworkIcon } from '@shared/constants/Colors';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAccountBalance } from '@shared/hooks/useAccountBalance';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
@@ -90,6 +90,7 @@ export default function Home() {
   const { exchangeRate } = useExchangeRate(network, 'USD');
   const availableNetworks = useAvailableNetworks();
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
+  const accountItem = accountItems[accountNumber];
 
   // Lightning network specific balance logic
   const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET;
@@ -276,9 +277,9 @@ export default function Home() {
             </TouchableOpacity>
 
             <View style={styles.headerRight}>
-              <TouchableOpacity style={styles.dailyPocket} onPress={() => router.push('/HomeOld')}>
-                <ThemedText style={styles.dailyPocketLabel}>Daily pocket</ThemedText>
-                <ThemedText style={styles.dailyPocketAmount}>
+              <TouchableOpacity style={styles.pocket} onPress={() => router.push('/PocketSwitch')}>
+                <ThemedText style={styles.pocketLabel}>{accountItem.name} pocket</ThemedText>
+                <ThemedText style={styles.pocketAmount}>
                   {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : '0'} {getTickerByNetwork(NETWORK_BITCOIN)}
                 </ThemedText>
               </TouchableOpacity>
@@ -450,17 +451,18 @@ const styles = StyleSheet.create({
     width: 130,
     height: 50,
   },
-  dailyPocket: {
+  pocket: {
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
-  dailyPocketLabel: {
+  pocketLabel: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: -6,
   },
-  dailyPocketAmount: {
+  pocketAmount: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.5)',
   },

@@ -110,7 +110,6 @@ export default function RootLayout() {
                       >
                         <Stack.Screen name="index" options={{ headerShown: false, title: 'Index' }} />
                         <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'none' }} />
-                        <Stack.Screen name="HomeOld" options={{ headerShown: false, title: 'HomeOld', animation: 'none' }} />
                         <Stack.Screen
                           name="onboarding/intro"
                           options={{
@@ -223,6 +222,20 @@ export default function RootLayout() {
                             sheetGrabberVisible: true,
                             headerTransparent: false,
                             gestureEnabled: true,
+                          }}
+                        />
+                        <Stack.Screen
+                          name="PocketSwitch"
+                          options={{
+                            presentation: 'formSheet',
+                            sheetAllowedDetents: [0.7],
+                            sheetGrabberVisible: true,
+                            headerTransparent: false,
+                            gestureEnabled: true,
+                            headerShown: false,
+                            contentStyle: {
+                              height: '100%',
+                            },
                           }}
                         />
                         <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />

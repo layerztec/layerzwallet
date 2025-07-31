@@ -7,6 +7,35 @@ import { Networks } from '../types/networks';
 import { STORAGE_SELECTED_NETWORK } from './NetworkContext';
 import { IStorage } from '../types/IStorage';
 
+export interface AccountItem {
+  name: string;
+  icon: string;
+  iconCollection: string;
+}
+
+export const accountItems: AccountItem[] = [
+  {
+    name: 'Daily',
+    icon: 'wallet-outline',
+    iconCollection: 'ion',
+  },
+  {
+    name: 'Investment',
+    icon: 'bar-chart-outline',
+    iconCollection: 'ion',
+  },
+  {
+    name: 'Lifestyle',
+    icon: 'cart-outline',
+    iconCollection: 'ion',
+  },
+  {
+    name: 'Emergency',
+    icon: 'sound',
+    iconCollection: 'foundation',
+  },
+] as const;
+
 type AccountNumber = number;
 
 interface IAccountNumberContext {
