@@ -83,20 +83,20 @@ const SendLiquid = () => {
   const handleAmountChange = (text: string) => {
     const normalizedText = text.replace(',', '.');
     if (normalizedText === '' || /^\d*\.?\d*$/.test(normalizedText)) {
-      router.replace({ pathname: '/SendLiquid', params: { ...params, amount: normalizedText } });
+      router.setParams({ amount: normalizedText });
       setError('');
     }
   };
 
   const handleAddressChange = (text: string) => {
-    router.replace({ pathname: '/SendLiquid', params: { ...params, toAddress: text } });
+    router.setParams({ toAddress: text });
     setError('');
   };
 
   const handleScanQR = async () => {
     const scanned = await scanQr();
     if (scanned) {
-      router.replace({ pathname: '/SendLiquid', params: { ...params, toAddress: scanned } });
+      router.setParams({ toAddress: scanned });
     }
   };
 

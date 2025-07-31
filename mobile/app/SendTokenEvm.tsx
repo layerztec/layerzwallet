@@ -73,7 +73,7 @@ const SendTokenEvm: React.FC = () => {
     try {
       const scannedAddress = await scanQr();
       if (scannedAddress) {
-        router.replace({ pathname: '/SendTokenEvm', params: { ...params, toAddress: scannedAddress } });
+        router.setParams({ toAddress: scannedAddress });
       }
     } catch (error) {
       console.error('QR scan error:', error);
@@ -186,7 +186,7 @@ const SendTokenEvm: React.FC = () => {
                   style={styles.input}
                   placeholder="Enter the recipient's address"
                   value={toAddress}
-                  onChangeText={(text) => router.replace({ pathname: '/SendTokenEvm', params: { ...params, toAddress: text } })}
+                  onChangeText={(text) => router.setParams({ toAddress: text })}
                   placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 />
                 <TouchableOpacity style={styles.scanButton} onPress={handleScanQr}>
@@ -201,7 +201,7 @@ const SendTokenEvm: React.FC = () => {
                 style={styles.input}
                 placeholder="0.00"
                 value={amountToSend}
-                onChangeText={(text) => router.replace({ pathname: '/SendTokenEvm', params: { ...params, amountToSend: text } })}
+                onChangeText={(text) => router.setParams({ amountToSend: text })}
                 keyboardType="decimal-pad"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
               />

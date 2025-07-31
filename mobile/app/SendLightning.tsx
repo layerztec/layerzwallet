@@ -45,8 +45,7 @@ const SendLightning: React.FC = () => {
   const walletRef = useRef<TLightningWallet | null>(null);
 
   const onInvoiceInput = async (scanned: string) => {
-    const newParams: SendLightningProps = { ...params, invoice: scanned };
-    router.replace({ pathname: '/SendLightning', params: newParams });
+    router.setParams({ invoice: scanned });
   };
 
   useEffect(() => {

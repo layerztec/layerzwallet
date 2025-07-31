@@ -54,7 +54,7 @@ export default function SwapTarget() {
 
   const handleSelectTarget = (targetNetwork: Networks) => {
     router.back();
-    router.replace({ pathname: '/Swap', params: { toNetwork: targetNetwork, amount: params.amount } });
+    router.setParams({ toNetwork: targetNetwork, amount: params.amount });
   };
 
   return (
