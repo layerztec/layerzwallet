@@ -89,8 +89,13 @@ const UnlockScreen: React.FC = () => {
                 text: 'Disable',
                 style: 'destructive',
                 onPress: async () => {
-                  await disableSecurity();
-                  router.replace('/');
+                  const authResult = await unlockApp();
+                  if (authResult.success) {
+                    await disableSecurity();
+                    router.replace('/');
+                  } else if (!authResult.cancelled) {
+                    Alert.alert('Authentication Required', 'You must authenticate to disable security features.', [{ text: 'OK' }]);
+                  }
                 },
               },
             ]);
@@ -99,7 +104,7 @@ const UnlockScreen: React.FC = () => {
       ],
       { cancelable: false }
     );
-  }, [biometricType, checkSecurityAvailability, disableSecurity, handleUnlock, hasSecurityMismatch, router]);
+  }, [biometricType, checkSecurityAvailability, disableSecurity, handleUnlock, hasSecurityMismatch, router, unlockApp]);
 
   // Auto-trigger unlock on mount if authentication is available (only once)
   useEffect(() => {
@@ -193,28 +198,19 @@ const UnlockScreen: React.FC = () => {
               </View>
             ) : (
               <>
-                {(showRetryButton || hasSecurityMismatch) && (
-                  <TouchableOpacity style={styles.primaryButton} onPress={hasSecurityMismatch ? handleSecurityMismatch : handleUnlock} activeOpacity={0.8}>
-                    <Ionicons name={hasSecurityMismatch ? 'settings' : getBiometricIcon()} size={24} color="white" style={styles.buttonIcon} />
-                    <ThemedText style={styles.buttonText}>{hasSecurityMismatch ? 'Fix Settings' : 'Try Again'}</ThemedText>
+                {hasSecurityMismatch ? (
+                  <TouchableOpacity style={styles.primaryButton} onPress={handleSecurityMismatch} activeOpacity={0.8}>
+                    <Ionicons name="settings" size={24} color="white" style={styles.buttonIcon} />
+                    <ThemedText style={styles.buttonText}>Fix Settings</ThemedText>
                   </TouchableOpacity>
-                )}
-
-                {!hasSecurityMismatch && isAuthenticationAvailable && !showRetryButton && (
+                ) : (
                   <TouchableOpacity style={styles.primaryButton} onPress={handleUnlock} activeOpacity={0.8}>
                     <Ionicons name={getBiometricIcon()} size={24} color="white" style={styles.buttonIcon} />
-                    <ThemedText style={styles.buttonText}>Unlock</ThemedText>
+                    <ThemedText style={styles.buttonText}>{showRetryButton ? 'Try Again' : 'Unlock'}</ThemedText>
                   </TouchableOpacity>
                 )}
               </>
             )}
-          </View>
-
-          {/* Footer Info */}
-          <View style={styles.footer}>
-            <ThemedText style={styles.footerText}>
-              {hasSecurityMismatch ? 'Tap "Fix Settings" to resolve authentication issues' : authError ? 'Tap "Try Again" to retry authentication' : 'Your wallet is protected with device security'}
-            </ThemedText>
           </View>
         </View>
       </SafeAreaView>
@@ -306,18 +302,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 12,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 40,
-    left: 24,
-    right: 24,
-  },
-  footerText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-    textAlign: 'center',
-    lineHeight: 20,
   },
 });
 

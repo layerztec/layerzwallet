@@ -1,12 +1,15 @@
 import React, { useContext, useState } from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, Alert, View } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, Alert, View, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Application from 'expo-application';
+import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { useSecurityContext } from '@/hooks/useSecurityContext';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { SecureStorage } from '@/src/class/secure-storage';
@@ -22,6 +25,18 @@ export default function SettingsScreen() {
   const { scanQr } = useContext(ScanQrContext);
   const { setStep } = useContext(InitializationContext);
   const { settings, updateSetting } = useSettings();
+  const {
+    isSecurityEnabled,
+    isAuthenticationAvailable,
+    biometricType,
+    enableSecurity,
+    disableSecurity,
+    hasSecurityMismatch,
+    checkSecurityAvailability,
+    lockOnBackground,
+    setLockOnBackground,
+    unlockApp,
+  } = useSecurityContext();
   const [isClearing, setIsClearing] = useState(false);
 
   const handleClearStorage = async () => {
@@ -88,6 +103,111 @@ export default function SettingsScreen() {
     return capitalizeFirstLetter(option);
   };
 
+  const handleSecurityToggle = async (enabled: boolean) => {
+    try {
+      if (enabled) {
+        // Check if authentication is available first
+        await checkSecurityAvailability();
+
+        if (!isAuthenticationAvailable) {
+          Alert.alert(
+            'Authentication Unavailable',
+            'Your device does not have biometric authentication or device passcode set up. Please set up Face ID, Touch ID, fingerprint, or a device passcode in your device settings first.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Go to Settings',
+                onPress: () => Linking.openSettings(),
+              },
+            ]
+          );
+          return;
+        }
+
+        const success = await enableSecurity();
+        if (!success) {
+          Alert.alert('Security Setup Failed', 'Failed to enable security. Please make sure your device authentication is working properly.', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Go to Settings',
+              onPress: () => Linking.openSettings(),
+            },
+            { text: 'Try Again', onPress: () => handleSecurityToggle(true) },
+          ]);
+        }
+      } else {
+        Alert.alert('Disable Security?', 'This will disable app security and allow access without authentication. Are you sure?', [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Disable',
+            style: 'destructive',
+            onPress: async () => {
+              await disableSecurity();
+            },
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error toggling security:', error);
+      Alert.alert('Error', 'Failed to update security settings. Please check your device authentication settings and try again.', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Go to Settings',
+          onPress: () => Linking.openSettings(),
+        },
+        { text: 'Try Again', onPress: () => handleSecurityToggle(enabled) },
+      ]);
+    }
+  };
+
+  const handleLockOnBackgroundToggle = async (enabled: boolean) => {
+    try {
+      if (enabled) {
+        await setLockOnBackground(true);
+      } else {
+        Alert.alert('Disable Background Lock?', 'This will allow the app to remain unlocked when returning from background. Are you sure?', [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Disable',
+            style: 'destructive',
+            onPress: async () => {
+              await setLockOnBackground(false);
+            },
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error toggling lock on background:', error);
+      Alert.alert('Error', 'Failed to update background lock setting. Please try again.', [{ text: 'OK' }]);
+    }
+  };
+
+  const getSecurityStatusText = () => {
+    if (hasSecurityMismatch) {
+      return 'Security mismatch detected';
+    }
+    if (!isAuthenticationAvailable) {
+      return 'Device authentication not available';
+    }
+    if (isSecurityEnabled) {
+      return `Protected with ${biometricType || 'device authentication'}`;
+    }
+    return 'Security disabled';
+  };
+
+  const getSecurityStatusColor = () => {
+    if (hasSecurityMismatch) {
+      return '#ff6b6b'; // Red for mismatch
+    }
+    if (isSecurityEnabled && isAuthenticationAvailable) {
+      return '#4CAF50'; // Green for enabled and working
+    }
+    if (!isAuthenticationAvailable) {
+      return '#FFA726'; // Orange for unavailable
+    }
+    return '#9E9E9E'; // Gray for disabled
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.container}>
@@ -120,6 +240,77 @@ export default function SettingsScreen() {
                   <ThemedText style={[styles.accountButtonText, accountNumber === num && styles.accountButtonTextActive]}>{num}</ThemedText>
                 </TouchableOpacity>
               ))}
+            </View>
+          </ThemedView>
+
+          {/* Security Section */}
+          <ThemedView style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Security</ThemedText>
+
+            <View style={styles.securityContainer}>
+              <View style={styles.securityHeader}>
+                <View style={styles.securityTitleContainer}>
+                  <Ionicons name={isSecurityEnabled && isAuthenticationAvailable ? 'shield-checkmark' : 'shield-outline'} size={24} color={getSecurityStatusColor()} style={styles.securityIcon} />
+                  <View style={styles.securityTextContainer}>
+                    <ThemedText style={styles.securityTitle}>App Lock</ThemedText>
+                    <ThemedText style={[styles.securityStatus, { color: getSecurityStatusColor() }]}>{getSecurityStatusText()}</ThemedText>
+                  </View>
+                </View>
+                <Switch
+                  value={isSecurityEnabled}
+                  onValueChange={handleSecurityToggle}
+                  disabled={hasSecurityMismatch}
+                  trackColor={{ false: '#767577', true: '#4CAF50' }}
+                  thumbColor={isSecurityEnabled ? '#ffffff' : '#f4f3f4'}
+                />
+              </View>
+
+              {hasSecurityMismatch && (
+                <TouchableOpacity
+                  style={styles.securityMismatchButton}
+                  onPress={() => {
+                    Alert.alert('Security Settings Issue', `Your device's ${biometricType || 'authentication'} settings have changed. Please check your device settings and try again.`, [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Go to Settings',
+                        onPress: () => Linking.openSettings(),
+                      },
+                      {
+                        text: 'Check Again',
+                        onPress: async () => {
+                          await checkSecurityAvailability();
+                        },
+                      },
+                    ]);
+                  }}
+                >
+                  <Ionicons name="warning" size={16} color="#ff6b6b" style={styles.warningIcon} />
+                  <ThemedText style={styles.securityMismatchText}>Tap to resolve security issue</ThemedText>
+                </TouchableOpacity>
+              )}
+
+              {isSecurityEnabled && (
+                <View style={styles.subSettingContainer}>
+                  <View style={styles.subSettingHeader}>
+                    <View style={styles.subSettingTextContainer}>
+                      <ThemedText style={styles.subSettingTitle}>Lock on Background</ThemedText>
+                      <ThemedText style={styles.subSettingDescription}>Automatically lock the app when it goes to background</ThemedText>
+                    </View>
+                    <Switch
+                      value={lockOnBackground}
+                      onValueChange={handleLockOnBackgroundToggle}
+                      trackColor={{ false: '#767577', true: '#4CAF50' }}
+                      thumbColor={lockOnBackground ? '#ffffff' : '#f4f3f4'}
+                    />
+                  </View>
+                </View>
+              )}
+
+              <ThemedText style={styles.securityDescription}>
+                {isAuthenticationAvailable
+                  ? `When enabled, you'll need to use ${biometricType || 'device authentication'} to unlock the app.`
+                  : 'Enable biometric authentication or device passcode in your device settings to use app lock.'}
+              </ThemedText>
             </View>
           </ThemedView>
 
@@ -321,5 +512,83 @@ const styles = StyleSheet.create({
   },
   settingOptionTextActive: {
     color: 'white',
+  },
+  securityContainer: {
+    padding: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  securityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  securityTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  securityIcon: {
+    marginRight: 12,
+  },
+  securityTextContainer: {
+    flex: 1,
+  },
+  securityTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  securityStatus: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  securityMismatchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  warningIcon: {
+    marginRight: 8,
+  },
+  securityMismatchText: {
+    fontSize: 14,
+    color: '#ff6b6b',
+    fontWeight: '500',
+  },
+  subSettingContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  subSettingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  subSettingTextContainer: {
+    flex: 1,
+    marginRight: 16,
+  },
+  subSettingTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  subSettingDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 18,
+  },
+  securityDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
   },
 });
