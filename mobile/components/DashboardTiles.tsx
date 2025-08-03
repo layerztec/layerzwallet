@@ -6,13 +6,26 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, run
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { getAvailableNetworks, NETWORK_BITCOIN, Networks } from '@shared/types/networks';
+import {
+  getAvailableNetworks,
+  NETWORK_BITCOIN,
+  NETWORK_LIQUID,
+  NETWORK_LIQUIDTESTNET,
+  NETWORK_ROOTSTOCK,
+  NETWORK_BOTANIX,
+  NETWORK_BOTANIXTESTNET,
+  NETWORK_STRATADEVNET,
+  NETWORK_ARKMUTINYNET,
+  NETWORK_CITREATESTNET,
+  Networks,
+} from '@shared/types/networks';
 import { getNetworkGradient, getNetworkIcon, gradients } from '@shared/constants/Colors';
 import { getIsTestnet, getTickerByNetwork, getDecimalsByNetwork } from '@shared/models/network-getters';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useCachedBalance } from '@shared/hooks/useCachedBalance';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
+import { getNetworkImageAsset } from '../utils/networkAssets';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 40;
@@ -258,30 +271,34 @@ const LayerCardTile = ({
             <View style={styles.topRow}>
               <View style={styles.cardHeader}>
                 {displayCard.icon ? (
-                  <Image source={displayCard.icon} style={styles.cardIcon} />
+                  <View style={[styles.iconContainer, { backgroundColor: `${gradientColors[0]}CC` }]}>
+                    <Image source={displayCard.icon} style={styles.cardIcon} />
+                  </View>
                 ) : (
                   <View style={[styles.cardIconPlaceholder, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                     <Text style={{ color: 'white', fontWeight: 'bold' }}>{displayCard.ticker.charAt(0)}</Text>
                   </View>
                 )}
               </View>
-              <View style={styles.tagsContainer}>
-                {displayCard.tokenCount && displayCard.tokenCount > 0 ? (
-                  <View style={styles.tagBadge}>
-                    <Text style={styles.tagText}>
-                      {displayCard.tokenCount} Token{displayCard.tokenCount > 1 ? 's' : ''}
-                    </Text>
-                  </View>
-                ) : (
-                  displayCard.tags &&
-                  displayCard.tags.length > 0 &&
-                  displayCard.tags.map((tag: string, i: number) => (
-                    <View key={i} style={styles.tagBadge}>
-                      <Text style={styles.tagText}>{tag}</Text>
+              {!isNetworkSelector && (
+                <View style={styles.tagsContainer}>
+                  {displayCard.tokenCount && displayCard.tokenCount > 0 ? (
+                    <View style={styles.tagBadge}>
+                      <Text style={styles.tagText}>
+                        {displayCard.tokenCount} Token{displayCard.tokenCount > 1 ? 's' : ''}
+                      </Text>
                     </View>
-                  ))
-                )}
-              </View>
+                  ) : (
+                    displayCard.tags &&
+                    displayCard.tags.length > 0 &&
+                    displayCard.tags.map((tag: string, i: number) => (
+                      <View key={i} style={styles.tagBadge}>
+                        <Text style={styles.tagText}>{tag}</Text>
+                      </View>
+                    ))
+                  )}
+                </View>
+              )}
             </View>
 
             <View style={styles.bottomRow}>
@@ -308,6 +325,7 @@ const useNetworkCards = (accountNumber: number): LayerCard[] => {
       const isTestnet = getIsTestnet(network);
       const gradientColors = getNetworkGradient(network);
       const iconName = getNetworkIcon(network);
+      const networkIcon = getNetworkImageAsset(network);
       const ticker = getTickerByNetwork(network);
 
       return {
@@ -316,7 +334,7 @@ const useNetworkCards = (accountNumber: number): LayerCard[] => {
         balance: '0.00000',
         usdValue: isTestnet ? 'Testnet' : '$0.00',
         color: gradientColors[0],
-        icon: null,
+        icon: networkIcon,
         iconName: iconName,
         tags: isTestnet ? ['Testnet'] : [],
         tokenCount: 0,
@@ -596,17 +614,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  cardIcon: {
-    width: 44,
-    height: 44,
-    marginRight: 12,
-  },
-  cardIconPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 12,
+  },
+  cardIcon: {
+    width: 32,
+    height: 32,
+  },
+  cardIconPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   cardName: {
     color: 'white',
