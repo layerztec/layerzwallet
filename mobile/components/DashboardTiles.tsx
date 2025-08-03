@@ -5,8 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnUI, runOnJS } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getAvailableNetworks, NETWORK_BITCOIN, Networks } from '@shared/types/networks';
-import { getNetworkGradient, getNetworkIcon } from '@shared/constants/Colors';
+import { getNetworkGradient, getNetworkIcon, gradients } from '@shared/constants/Colors';
 import { getIsTestnet, getTickerByNetwork, getDecimalsByNetwork } from '@shared/models/network-getters';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useCachedBalance } from '@shared/hooks/useCachedBalance';
@@ -104,6 +105,19 @@ const LayerCardTile = ({
 
     return { ...card, balance: formattedBalance, usdValue: formattedUsdValue };
   }, [card, balance, exchangeRate, hasTimedOut, accountNumber]);
+
+  const gradientColors = useMemo(() => {
+    let id: keyof typeof gradients = 'base';
+
+    for (const key of Object.keys(gradients)) {
+      if (key.startsWith(card.networkId)) {
+        id = key as keyof typeof gradients;
+        break;
+      }
+    }
+
+    return gradients[id];
+  }, [card.networkId]);
 
   const animatedStyle = useAnimatedStyle(() => {
     if (!isVisible) {
@@ -231,53 +245,56 @@ const LayerCardTile = ({
 
   return (
     <Animated.View style={[styles.cardContainer, animatedStyle]}>
-      <Animated.View sharedTransitionTag={transitionId} style={[styles.card, { backgroundColor: displayCard.color }]}>
-        <TouchableOpacity
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          onPress={handlePress}
-          style={styles.touchableCard}
-          activeOpacity={0.9}
-          testID={displayCard.networkId ? `network-${displayCard.networkId}` : `card-${displayCard.name.toLowerCase()}`}
-        >
-          <View style={styles.topRow}>
-            <View style={styles.cardHeader}>
-              {displayCard.icon ? (
-                <Image source={displayCard.icon} style={styles.cardIcon} />
-              ) : (
-                <View style={[styles.cardIconPlaceholder, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                  <Text style={{ color: 'white', fontWeight: 'bold' }}>{displayCard.ticker.charAt(0)}</Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.tagsContainer}>
-              {displayCard.tokenCount && displayCard.tokenCount > 0 ? (
-                <View style={styles.tagBadge}>
-                  <Text style={styles.tagText}>
-                    {displayCard.tokenCount} Token{displayCard.tokenCount > 1 ? 's' : ''}
-                  </Text>
-                </View>
-              ) : (
-                displayCard.tags &&
-                displayCard.tags.map((tag: string, i: number) => (
-                  <View key={i} style={styles.tagBadge}>
-                    <Text style={styles.tagText}>{tag}</Text>
+      <Animated.View sharedTransitionTag={transitionId} style={styles.card}>
+        <LinearGradient colors={gradientColors} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.cardGradient}>
+          <TouchableOpacity
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            onPress={handlePress}
+            style={styles.touchableCard}
+            activeOpacity={0.9}
+            testID={displayCard.networkId ? `network-${displayCard.networkId}` : `card-${displayCard.name.toLowerCase()}`}
+          >
+            <View style={styles.topRow}>
+              <View style={styles.cardHeader}>
+                {displayCard.icon ? (
+                  <Image source={displayCard.icon} style={styles.cardIcon} />
+                ) : (
+                  <View style={[styles.cardIconPlaceholder, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                    <Text style={{ color: 'white', fontWeight: 'bold' }}>{displayCard.ticker.charAt(0)}</Text>
                   </View>
-                ))
-              )}
+                )}
+              </View>
+              <View style={styles.tagsContainer}>
+                {displayCard.tokenCount && displayCard.tokenCount > 0 ? (
+                  <View style={styles.tagBadge}>
+                    <Text style={styles.tagText}>
+                      {displayCard.tokenCount} Token{displayCard.tokenCount > 1 ? 's' : ''}
+                    </Text>
+                  </View>
+                ) : (
+                  displayCard.tags &&
+                  displayCard.tags.length > 0 &&
+                  displayCard.tags.map((tag: string, i: number) => (
+                    <View key={i} style={styles.tagBadge}>
+                      <Text style={styles.tagText}>{tag}</Text>
+                    </View>
+                  ))
+                )}
+              </View>
             </View>
-          </View>
 
-          <View style={styles.bottomRow}>
-            <Text style={styles.cardName}>{displayCard.name}</Text>
-            <View style={styles.cardBalanceContainer}>
-              <Text style={styles.cardBalance}>
-                {displayCard.balance || '0'} {displayCard.ticker}
-              </Text>
-              <Text style={styles.cardUsdValue}>{displayCard.usdValue || '0.00'}</Text>
+            <View style={styles.bottomRow}>
+              <Text style={styles.cardName}>{displayCard.name}</Text>
+              <View style={styles.cardBalanceContainer}>
+                <Text style={styles.cardBalance}>
+                  {displayCard.balance || '0'} {displayCard.ticker}
+                </Text>
+                <Text style={styles.cardUsdValue}>{displayCard.usdValue || '0.00'}</Text>
+              </View>
             </View>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </LinearGradient>
       </Animated.View>
     </Animated.View>
   );
@@ -546,9 +563,7 @@ const styles = StyleSheet.create({
   card: {
     height: CARD_HEIGHT,
     width: CARD_WIDTH,
-    backgroundColor: '#001689',
     borderRadius: 24,
-    padding: 24,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -557,6 +572,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
+  },
+  cardGradient: {
+    flex: 1,
+    borderRadius: 24,
+    padding: 24,
   },
   touchableCard: {
     flex: 1,
