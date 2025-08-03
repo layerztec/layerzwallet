@@ -468,11 +468,6 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
             </View>
           ))}
         </ScrollView>
-
-        <TouchableOpacity style={styles.addLayerButton}>
-          <Ionicons name="add" size={24} color="white" />
-          <Text style={styles.addLayerText}>Add Layer</Text>
-        </TouchableOpacity>
       </Animated.View>
     </View>
   );
@@ -528,7 +523,6 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     marginTop: height * 0.1,
-    marginBottom: 100,
   },
   scrollContent: {
     alignItems: 'center',
