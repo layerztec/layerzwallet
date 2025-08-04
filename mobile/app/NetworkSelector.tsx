@@ -59,7 +59,7 @@ const NetworkSelector: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <DashboardTiles cards={networkCards} onCardPress={handleCardPress} onClose={handleClose} isNetworkSelector={true} />
+      <DashboardTiles cards={networkCards} onCardPress={handleCardPress} onClose={handleClose} />
     </View>
   );
 };

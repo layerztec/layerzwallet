@@ -4,32 +4,19 @@ import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnUI, runOnJS } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import {
-  getAvailableNetworks,
-  NETWORK_BITCOIN,
-  NETWORK_LIQUID,
-  NETWORK_LIQUIDTESTNET,
-  NETWORK_ROOTSTOCK,
-  NETWORK_BOTANIX,
-  NETWORK_BOTANIXTESTNET,
-  NETWORK_STRATADEVNET,
-  NETWORK_ARKMUTINYNET,
-  NETWORK_CITREATESTNET,
-  Networks,
-} from '@shared/types/networks';
-import { getNetworkGradient, getNetworkIcon, gradients } from '@shared/constants/Colors';
+import { BlurView } from 'expo-blur';
+import { getAvailableNetworks, NETWORK_BITCOIN, Networks } from '@shared/types/networks';
+import { getNetworkGradient, getNetworkIcon } from '@shared/constants/Colors';
 import { getIsTestnet, getTickerByNetwork, getDecimalsByNetwork } from '@shared/models/network-getters';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useCachedBalance } from '@shared/hooks/useCachedBalance';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { getNetworkImageAsset } from '../utils/networkAssets';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 40;
-const CARD_HEIGHT = 240;
+const CARD_HEIGHT = 200;
 const CARD_STACK_OFFSET = 30;
 const BACKGROUND_CARDS_SCALE = [0.92, 0.86, 0.8, 0.74];
 const BACKGROUND_CARDS_OPACITY = [1.0, 1.0, 0.95, 0.9];
@@ -63,17 +50,7 @@ interface LayerCardTileProps extends DashboardTileProps {
   transitionId: string;
 }
 
-const LayerCardTile = ({
-  card,
-  index,
-  currentIndex,
-  totalCards,
-  onCardPress,
-  transitionId,
-  disableNavigation = false,
-  isNetworkSelector = false,
-  accountNumber,
-}: LayerCardTileProps & { accountNumber?: number }) => {
+const LayerCardTile = ({ card, index, currentIndex, totalCards, onCardPress, transitionId, disableNavigation = false, accountNumber }: LayerCardTileProps & { accountNumber?: number }) => {
   const router = useRouter();
   const { returnProgress } = useLocalSearchParams();
 
@@ -118,19 +95,8 @@ const LayerCardTile = ({
 
     return { ...card, balance: formattedBalance, usdValue: formattedUsdValue };
   }, [card, balance, exchangeRate, hasTimedOut, accountNumber]);
-
-  const gradientColors = useMemo(() => {
-    let id: keyof typeof gradients = 'base';
-
-    for (const key of Object.keys(gradients)) {
-      if (key.startsWith(card.networkId)) {
-        id = key as keyof typeof gradients;
-        break;
-      }
-    }
-
-    return gradients[id];
-  }, [card.networkId]);
+  // Compute gradient colors for the network
+  const gradientColors = getNetworkGradient(card.networkId);
 
   const animatedStyle = useAnimatedStyle(() => {
     if (!isVisible) {
@@ -258,60 +224,54 @@ const LayerCardTile = ({
 
   return (
     <Animated.View style={[styles.cardContainer, animatedStyle]}>
-      <Animated.View sharedTransitionTag={transitionId} style={styles.card}>
-        <LinearGradient colors={gradientColors} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.cardGradient}>
-          <TouchableOpacity
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            onPress={handlePress}
-            style={styles.touchableCard}
-            activeOpacity={0.9}
-            testID={displayCard.networkId ? `network-${displayCard.networkId}` : `card-${displayCard.name.toLowerCase()}`}
-          >
-            <View style={styles.topRow}>
-              <View style={styles.cardHeader}>
-                {displayCard.icon ? (
-                  <View style={[styles.iconContainer, { backgroundColor: `${gradientColors[0]}CC` }]}>
-                    <Image source={displayCard.icon} style={styles.cardIcon} />
-                  </View>
-                ) : (
-                  <View style={[styles.cardIconPlaceholder, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                    <Text style={{ color: 'white', fontWeight: 'bold' }}>{displayCard.ticker.charAt(0)}</Text>
-                  </View>
-                )}
-              </View>
-              {!isNetworkSelector && (
-                <View style={styles.tagsContainer}>
-                  {displayCard.tokenCount && displayCard.tokenCount > 0 ? (
-                    <View style={styles.tagBadge}>
-                      <Text style={styles.tagText}>
-                        {displayCard.tokenCount} Token{displayCard.tokenCount > 1 ? 's' : ''}
-                      </Text>
-                    </View>
-                  ) : (
-                    displayCard.tags &&
-                    displayCard.tags.length > 0 &&
-                    displayCard.tags.map((tag: string, i: number) => (
-                      <View key={i} style={styles.tagBadge}>
-                        <Text style={styles.tagText}>{tag}</Text>
-                      </View>
-                    ))
-                  )}
+      <Animated.View sharedTransitionTag={transitionId} style={[styles.card]}>
+        <LinearGradient colors={gradientColors as [string, string]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.gradientBackground} />
+        <TouchableOpacity
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          onPress={handlePress}
+          style={styles.touchableCard}
+          activeOpacity={0.9}
+          testID={displayCard.networkId ? `network-${displayCard.networkId}` : `card-${displayCard.name.toLowerCase()}`}
+        >
+          <View style={styles.topRow}>
+            <View style={styles.cardHeader}>
+              {displayCard.icon ? (
+                <Image source={displayCard.icon} style={styles.cardIcon} />
+              ) : (
+                <View style={[styles.cardIconPlaceholder, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                  <Text style={{ color: 'white', fontWeight: 'bold' }}>{displayCard.ticker.charAt(0)}</Text>
                 </View>
               )}
             </View>
-
-            <View style={styles.bottomRow}>
-              <Text style={styles.cardName}>{displayCard.name}</Text>
-              <View style={styles.cardBalanceContainer}>
-                <Text style={styles.cardBalance}>
-                  {displayCard.balance || '0'} {displayCard.ticker}
-                </Text>
-                <Text style={styles.cardUsdValue}>{displayCard.usdValue || '0.00'}</Text>
-              </View>
+            <View style={styles.tagsContainer}>
+              {displayCard.tokenCount && displayCard.tokenCount > 0 ? (
+                <View style={styles.tagBadge}>
+                  <Text style={styles.tagText}>
+                    {displayCard.tokenCount} Token{displayCard.tokenCount > 1 ? 's' : ''}
+                  </Text>
+                </View>
+              ) : (
+                displayCard.tags &&
+                displayCard.tags.map((tag: string, i: number) => (
+                  <View key={i} style={styles.tagBadge}>
+                    <Text style={styles.tagText}>{tag}</Text>
+                  </View>
+                ))
+              )}
             </View>
-          </TouchableOpacity>
-        </LinearGradient>
+          </View>
+
+          <View style={styles.bottomRow}>
+            <Text style={styles.cardName}>{displayCard.name}</Text>
+            <View style={styles.cardBalanceContainer}>
+              <Text style={styles.cardBalance}>
+                {displayCard.balance || '0'} {displayCard.ticker}
+              </Text>
+              <Text style={styles.cardUsdValue}>{displayCard.usdValue || '0.00'}</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
       </Animated.View>
     </Animated.View>
   );
@@ -325,7 +285,6 @@ const useNetworkCards = (accountNumber: number): LayerCard[] => {
       const isTestnet = getIsTestnet(network);
       const gradientColors = getNetworkGradient(network);
       const iconName = getNetworkIcon(network);
-      const networkIcon = getNetworkImageAsset(network);
       const ticker = getTickerByNetwork(network);
 
       return {
@@ -334,7 +293,7 @@ const useNetworkCards = (accountNumber: number): LayerCard[] => {
         balance: '0.00000',
         usdValue: isTestnet ? 'Testnet' : '$0.00',
         color: gradientColors[0],
-        icon: networkIcon,
+        icon: null,
         iconName: iconName,
         tags: isTestnet ? ['Testnet'] : [],
         tokenCount: 0,
@@ -469,9 +428,6 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
         </View>
 
         <View style={styles.selectedNetworkIndicator} testID={`activeNetwork-${currentNetworkId}`}>
-          <Text style={styles.hiddenText}>{currentNetworkId} Active</Text>
-        </View>
-        <View style={styles.selectedNetworkIndicator} testID={`selectedNetwork-${currentNetworkId}`}>
           <Text style={styles.hiddenText}>{currentNetworkId} Selected</Text>
         </View>
 
@@ -481,13 +437,9 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           decelerationRate="fast"
-          snapToInterval={50}
-          snapToAlignment="center"
-          onScroll={handleScroll}
-          scrollEventThrottle={32}
+          // Update index on both drag release and momentum end to avoid unintended jumps
+          onScrollEndDrag={handleScroll}
           contentInsetAdjustmentBehavior="never"
-          bounces={true}
-          alwaysBounceVertical={false}
           removeClippedSubviews={false}
         >
           {cards.map((card, index) => (
@@ -584,7 +536,9 @@ const styles = StyleSheet.create({
   card: {
     height: CARD_HEIGHT,
     width: CARD_WIDTH,
-    borderRadius: 24,
+    backgroundColor: 'transparent',
+    borderRadius: 20,
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -594,13 +548,13 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 8,
   },
-  cardGradient: {
-    flex: 1,
-    borderRadius: 24,
-    padding: 24,
-  },
   touchableCard: {
     flex: 1,
+  },
+  gradientBackground: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
   topRow: {
     flexDirection: 'row',
@@ -617,25 +571,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
   cardIcon: {
-    width: 32,
-    height: 32,
+    width: 44,
+    height: 44,
+    marginRight: 12,
   },
   cardIconPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
   cardName: {
     color: 'white',
