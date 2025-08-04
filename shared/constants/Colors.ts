@@ -1,13 +1,13 @@
 import {
-  NETWORK_ARKMUTINYNET,
+  NETWORK_ARK_MUTINYNET,
   NETWORK_BITCOIN,
   NETWORK_BOTANIX,
-  NETWORK_BOTANIXTESTNET,
-  NETWORK_CITREATESTNET,
+  NETWORK_BOTANIX_TESTNET,
+  NETWORK_CITREA_TESTNET,
   NETWORK_LIQUID,
-  NETWORK_LIQUIDTESTNET,
+  NETWORK_LIQUID_TESTNET,
   NETWORK_ROOTSTOCK,
-  NETWORK_STRATADEVNET,
+  NETWORK_ALPEN_TESTNET,
 } from '../types/networks';
 
 const primaryColor = '#011474';
@@ -22,11 +22,6 @@ export const gradients = {
   gradient2: [accent3, accent4] as const,
   blueGradient: ['#01125f', '#0e2589'] as const,
   base: ['#01125F', '#0E2589'] as const,
-  rootstock: ['#034628', '#026B3C'] as const,
-  botanix: ['#60490F', '#745A13'] as const,
-  citrea: ['#6B2911', '#8B3A03'] as const,
-  strata: ['#40126B', '#56168A'] as const,
-  liquid: ['#00474E', '#006C55'] as const,
 };
 
 export const Colors = {
@@ -63,18 +58,18 @@ export const getNetworkIcon = (network: string): any => {
     case NETWORK_BITCOIN:
       return 'logo-bitcoin';
     case NETWORK_LIQUID:
-    case NETWORK_LIQUIDTESTNET:
+    case NETWORK_LIQUID_TESTNET:
       return 'flash';
     case NETWORK_ROOTSTOCK:
       return 'cube';
     case NETWORK_BOTANIX:
-    case NETWORK_BOTANIXTESTNET:
+    case NETWORK_BOTANIX_TESTNET:
       return 'leaf';
-    case NETWORK_STRATADEVNET:
+    case NETWORK_ALPEN_TESTNET:
       return 'layers';
-    case NETWORK_CITREATESTNET:
+    case NETWORK_CITREA_TESTNET:
       return 'diamond';
-    case NETWORK_ARKMUTINYNET:
+    case NETWORK_ARK_MUTINYNET:
       return 'boat';
     default:
       return 'globe';
@@ -93,18 +88,18 @@ export const getNetworkGradient = (network: string) => {
     case NETWORK_BITCOIN:
       return [accent1, '#FF8C00'];
     case NETWORK_LIQUID:
-    case NETWORK_LIQUIDTESTNET:
+    case NETWORK_LIQUID_TESTNET:
       return [accent3, accent1];
     case NETWORK_ROOTSTOCK:
       return [primaryColor, '#4E9FFF'];
     case NETWORK_BOTANIX:
-    case NETWORK_BOTANIXTESTNET:
+    case NETWORK_BOTANIX_TESTNET:
       return [accent2, '#96BEDC'];
-    case NETWORK_STRATADEVNET:
+    case NETWORK_ALPEN_TESTNET:
       return [accent4, '#A855F7'];
-    case NETWORK_CITREATESTNET:
+    case NETWORK_CITREA_TESTNET:
       return [accent1, '#FF6B8A'];
-    case NETWORK_ARKMUTINYNET:
+    case NETWORK_ARK_MUTINYNET:
       return [primaryColor, '#4285F4'];
     default:
       return [neutral, '#9CA3AF'];
