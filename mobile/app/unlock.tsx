@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Linking, StyleSheet, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { Alert, Linking, StyleSheet, TouchableOpacity, View, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -11,21 +11,30 @@ import { useSecurityContext } from '@/hooks/useSecurityContext';
 
 const UnlockScreen: React.FC = () => {
   const router = useRouter();
-  const { isAppLocked, isSecurityEnabled, isAuthenticationAvailable, biometricType, hasSecurityMismatch, unlockApp, checkSecurityAvailability, disableSecurity } = useSecurityContext();
+  const params = useLocalSearchParams<{ action?: string }>();
+  const action = params.action;
+  const { isAppLocked, isSecurityEnabled, isAuthenticationAvailable, biometricType, hasSecurityMismatch, unlockApp, checkSecurityAvailability, disableSecurity, enableSecurity } = useSecurityContext();
 
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [showRetryButton, setShowRetryButton] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [autoUnlockAttempted, setAutoUnlockAttempted] = useState(false);
 
-  // Redirect if app is unlocked or security is disabled
   useEffect(() => {
-    if (!isAppLocked && isSecurityEnabled) {
-      router.replace('/');
-    } else if (!isSecurityEnabled) {
-      router.replace('/');
+    if (action === 'disableSecurity' || action === 'enableSecurity') {
+      return;
     }
-  }, [isAppLocked, isSecurityEnabled, router]);
+
+    if (!isAppLocked && isSecurityEnabled) {
+      router.replace('/Home');
+      return;
+    }
+
+    if (!isSecurityEnabled) {
+      router.replace('/Home');
+      return;
+    }
+  }, [isAppLocked, isSecurityEnabled, router, action]);
 
   // Handle security mismatch case
   useEffect(() => {
@@ -43,12 +52,24 @@ const UnlockScreen: React.FC = () => {
       const result = await unlockApp();
 
       if (result.success) {
-        router.replace('/');
+        if (action === 'disableSecurity') {
+          await disableSecurity();
+          try {
+            router.dismiss();
+          } catch {
+            router.replace('/settings');
+          }
+        } else if (action === 'enableSecurity') {
+          await enableSecurity();
+          try {
+            router.dismiss();
+          } catch {
+            router.replace('/settings');
+          }
+        }
       } else if (result.cancelled) {
-        // User cancelled authentication - don't show error, just allow retry
         setShowRetryButton(true);
       } else {
-        // Authentication failed with error
         setAuthError(result.error || 'Authentication failed');
         setShowRetryButton(true);
       }
@@ -59,7 +80,7 @@ const UnlockScreen: React.FC = () => {
     } finally {
       setIsAuthenticating(false);
     }
-  }, [unlockApp, router]);
+  }, [unlockApp, router, action, disableSecurity, enableSecurity]);
 
   const handleSecurityMismatch = useCallback(() => {
     Alert.alert(
@@ -92,7 +113,11 @@ const UnlockScreen: React.FC = () => {
                   const authResult = await unlockApp();
                   if (authResult.success) {
                     await disableSecurity();
-                    router.replace('/');
+                    try {
+                      router.dismiss();
+                    } catch {
+                      router.back();
+                    }
                   } else if (!authResult.cancelled) {
                     Alert.alert('Authentication Required', 'You must authenticate to disable security features.', [{ text: 'OK' }]);
                   }
@@ -106,15 +131,34 @@ const UnlockScreen: React.FC = () => {
     );
   }, [biometricType, checkSecurityAvailability, disableSecurity, handleUnlock, hasSecurityMismatch, router, unlockApp]);
 
-  // Auto-trigger unlock on mount if authentication is available (only once)
   useEffect(() => {
+    if (action === 'enableSecurity' || action === 'disableSecurity') {
+      return;
+    }
+
     if (isAuthenticationAvailable && !hasSecurityMismatch && !isAuthenticating && !autoUnlockAttempted) {
       setAutoUnlockAttempted(true);
       handleUnlock();
     } else if (hasSecurityMismatch) {
       handleSecurityMismatch();
     }
-  }, [isAuthenticationAvailable, hasSecurityMismatch, isAuthenticating, autoUnlockAttempted, handleUnlock, handleSecurityMismatch]);
+  }, [isAuthenticationAvailable, hasSecurityMismatch, isAuthenticating, autoUnlockAttempted, handleUnlock, handleSecurityMismatch, action]);
+
+  const handleClose = useCallback(() => {
+    if (action === 'enableSecurity' || action === 'disableSecurity') {
+      try {
+        router.dismiss();
+      } catch {
+        router.replace('/settings');
+      }
+    } else {
+      try {
+        router.back();
+      } catch (error) {
+        router.replace('/Home');
+      }
+    }
+  }, [router, action]);
 
   const getBiometricIcon = () => {
     switch (biometricType) {
@@ -135,12 +179,24 @@ const UnlockScreen: React.FC = () => {
       return 'Security Settings Issue';
     }
 
+    if (!isAuthenticationAvailable && action === 'enableSecurity') {
+      return 'Authentication Required';
+    }
+
     if (!isAuthenticationAvailable) {
       return 'Authentication Unavailable';
     }
 
     if (authError) {
       return 'Authentication Failed';
+    }
+
+    if (action === 'enableSecurity') {
+      return 'Enable App Lock';
+    }
+
+    if (action === 'disableSecurity') {
+      return 'Disable App Lock';
     }
 
     if (biometricType) {
@@ -155,6 +211,10 @@ const UnlockScreen: React.FC = () => {
       return `Your device's ${biometricType || 'authentication'} settings have changed. Please update your device settings.`;
     }
 
+    if (!isAuthenticationAvailable && action === 'enableSecurity') {
+      return 'Device authentication is required to enable App Lock. Please set up Face ID, Touch ID, or a device passcode in your settings.';
+    }
+
     if (!isAuthenticationAvailable) {
       return 'Device authentication is not set up or available.';
     }
@@ -163,33 +223,35 @@ const UnlockScreen: React.FC = () => {
       return authError;
     }
 
-    return 'Tap to authenticate with your device security';
-  };
+    if (action === 'enableSecurity') {
+      return `Authenticate to enable App Lock with ${biometricType || 'device authentication'}`;
+    }
 
-  // Don't render anything if security is disabled or app is unlocked
-  if (!isSecurityEnabled || !isAppLocked) {
-    return null;
-  }
+    if (action === 'disableSecurity') {
+      return `Authenticate to disable App Lock`;
+    }
+
+    return 'Tap to authenticate';
+  };
 
   return (
     <LinearGradient colors={gradients.blueGradient} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.content}>
-          {/* Logo/Icon */}
-          <View style={styles.iconContainer}>
-            <View style={styles.iconBackground}>
-              <Ionicons name={getBiometricIcon()} size={64} color="white" />
-            </View>
+        {(action === 'enableSecurity' || action === 'disableSecurity') && (
+          <View style={styles.closeButtonRow}>
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose} testID="UnlockCloseButton">
+              <Ionicons name="close" size={24} color="white" />
+            </TouchableOpacity>
           </View>
+        )}
+        <View style={styles.content}>
+          <Image source={require('../assets/images/logo.png')} style={styles.logo} />
 
-          {/* Title and Message */}
           <View style={styles.textContainer}>
-            <ThemedText style={styles.title}>Layerz Wallet</ThemedText>
             <ThemedText style={styles.message}>{getUnlockMessage()}</ThemedText>
             <ThemedText style={styles.subMessage}>{getSubMessage()}</ThemedText>
           </View>
 
-          {/* Action Button */}
           <View style={styles.buttonContainer}>
             {isAuthenticating ? (
               <View style={styles.loadingContainer}>
@@ -206,7 +268,9 @@ const UnlockScreen: React.FC = () => {
                 ) : (
                   <TouchableOpacity style={styles.primaryButton} onPress={handleUnlock} activeOpacity={0.8}>
                     <Ionicons name={getBiometricIcon()} size={24} color="white" style={styles.buttonIcon} />
-                    <ThemedText style={styles.buttonText}>{showRetryButton ? 'Try Again' : 'Unlock'}</ThemedText>
+                    <ThemedText style={styles.buttonText}>
+                      {action === 'enableSecurity' ? 'Enable App Lock' : action === 'disableSecurity' ? 'Disable App Lock' : showRetryButton ? 'Try Again' : 'Unlock'}
+                    </ThemedText>
                   </TouchableOpacity>
                 )}
               </>
@@ -224,6 +288,17 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+  },
+  closeButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  closeButton: {
+    padding: 10,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   content: {
     flex: 1,
@@ -248,12 +323,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 48,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: 16,
-    textAlign: 'center',
+  logo: {
+    width: 200,
+    height: 60,
+    resizeMode: 'contain',
+    marginVertical: 120,
   },
   message: {
     fontSize: 20,
@@ -271,7 +345,10 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     width: '100%',
-    marginBottom: 32,
+    position: 'absolute',
+    bottom: 50,
+    left: 24,
+    right: 24,
   },
   primaryButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',

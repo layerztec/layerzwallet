@@ -1,5 +1,5 @@
 import React, { ReactNode, useEffect } from 'react';
-import { useRouter, useSegments } from 'expo-router';
+import { useRouter, useSegments, useLocalSearchParams } from 'expo-router';
 import { useSecurityContext } from '@/hooks/useSecurityContext';
 
 interface SecurityGuardProps {
@@ -10,19 +10,19 @@ export const SecurityGuard: React.FC<SecurityGuardProps> = ({ children }) => {
   const { isAppLocked, isSecurityEnabled } = useSecurityContext();
   const router = useRouter();
   const segments = useSegments();
+  const params = useLocalSearchParams();
 
   useEffect(() => {
     const currentPath = `/${segments.join('/')}`;
 
-    // If security is enabled and app is locked, redirect to unlock screen
+    if (currentPath === '/unlock') {
+      return;
+    }
+
     if (isSecurityEnabled && isAppLocked && currentPath !== '/unlock') {
       router.replace('/unlock');
     }
-    // If security is disabled or app is unlocked, ensure we're not on unlock screen
-    else if ((!isSecurityEnabled || !isAppLocked) && currentPath === '/unlock') {
-      router.replace('/');
-    }
-  }, [isAppLocked, isSecurityEnabled, segments, router]);
+  }, [isAppLocked, isSecurityEnabled, segments, router, params]);
 
   return <>{children}</>;
 };

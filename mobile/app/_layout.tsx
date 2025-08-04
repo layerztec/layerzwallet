@@ -113,7 +113,23 @@ export default function RootLayout() {
                             }}
                           >
                             <Stack.Screen name="index" options={{ headerShown: false, title: 'Index' }} />
-                            <Stack.Screen name="unlock" options={{ headerShown: false, title: 'Unlock', animation: 'fade' }} />
+                            <Stack.Screen
+                              name="unlock"
+                              options={({ route }) => {
+                                // Check if this is a settings action (enable/disable security)
+                                const params = route.params as { action?: string } | undefined;
+                                const isSettingsAction = params?.action === 'enableSecurity' || params?.action === 'disableSecurity';
+
+                                return {
+                                  headerShown: false,
+                                  title: 'Unlock',
+                                  animation: 'fade',
+                                  headerBackVisible: false,
+                                  gestureEnabled: false,
+                                  presentation: isSettingsAction ? 'modal' : 'card',
+                                };
+                              }}
+                            />
                             <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'none' }} />
                             <Stack.Screen
                               name="onboarding/intro"
