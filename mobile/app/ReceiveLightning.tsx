@@ -13,13 +13,13 @@ import { TLightningWallet } from '@shared/types/TWallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import assert from 'assert';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 export type ReceiveLightningProps = {
-  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET;
+  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET;
 };
 
 export default function ReceiveLightningScreen() {

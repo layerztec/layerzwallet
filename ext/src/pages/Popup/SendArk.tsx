@@ -14,7 +14,7 @@ import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { Button, HodlButton, Input, WideButton } from './DesignSystem';
-import { NETWORK_ARKMUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK_MUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 /**
@@ -73,7 +73,7 @@ const SendArk: React.FC = () => {
 
       await askMnemonic(); // only asking to verify user knows it. will throw if he doesnt
 
-      assert(network === NETWORK_ARKMUTINYNET || network === NETWORK_SPARK);
+      assert(network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK);
       let w = await BackgroundCaller.lazyInitWallet(network, accountNumber);
       assert(w instanceof ArkWallet || w instanceof SparkWallet);
 
