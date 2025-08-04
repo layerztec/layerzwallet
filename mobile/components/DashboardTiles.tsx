@@ -7,7 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { getAvailableNetworks, NETWORK_BITCOIN, Networks } from '@shared/types/networks';
-import { getNetworkGradient, getNetworkIcon } from '@shared/constants/Colors';
+import { getNetworkGradient, getNetworkIcon, gradients as sharedGradients } from '@shared/constants/Colors';
 import { getIsTestnet, getTickerByNetwork, getDecimalsByNetwork } from '@shared/models/network-getters';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useCachedBalance } from '@shared/hooks/useCachedBalance';
@@ -95,8 +95,14 @@ const LayerCardTile = ({ card, index, currentIndex, totalCards, onCardPress, tra
 
     return { ...card, balance: formattedBalance, usdValue: formattedUsdValue };
   }, [card, balance, exchangeRate, hasTimedOut, accountNumber]);
-  // Compute gradient colors for the network
-  const gradientColors = getNetworkGradient(card.networkId);
+  let gradKey: keyof typeof sharedGradients = 'base';
+  for (const key of Object.keys(sharedGradients)) {
+    if (key.startsWith(card.networkId)) {
+      gradKey = key as keyof typeof sharedGradients;
+      break;
+    }
+  }
+  const gradientColors = sharedGradients[gradKey];
 
   const animatedStyle = useAnimatedStyle(() => {
     if (!isVisible) {
@@ -237,10 +243,12 @@ const LayerCardTile = ({ card, index, currentIndex, totalCards, onCardPress, tra
           <View style={styles.topRow}>
             <View style={styles.cardHeader}>
               {displayCard.icon ? (
-                <Image source={displayCard.icon} style={styles.cardIcon} />
+                <View style={styles.iconContainer}>
+                  <Image source={displayCard.icon} style={styles.iconImage} resizeMode="contain" />
+                </View>
               ) : (
-                <View style={[styles.cardIconPlaceholder, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                  <Text style={{ color: 'white', fontWeight: 'bold' }}>{displayCard.ticker.charAt(0)}</Text>
+                <View style={styles.iconContainer}>
+                  <Text style={styles.iconPlaceholderText}>{displayCard.ticker.charAt(0)}</Text>
                 </View>
               )}
             </View>
@@ -437,7 +445,6 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           decelerationRate="fast"
-          // Update index on both drag release and momentum end to avoid unintended jumps
           onScrollEndDrag={handleScroll}
           contentInsetAdjustmentBehavior="never"
           removeClippedSubviews={false}
@@ -624,6 +631,24 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '500',
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  iconImage: {
+    width: 20,
+    height: 20,
+  },
+  iconPlaceholderText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   addLayerButton: {
     position: 'absolute',
