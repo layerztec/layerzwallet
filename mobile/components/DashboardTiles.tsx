@@ -469,6 +469,9 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
         </View>
 
         <View style={styles.selectedNetworkIndicator} testID={`activeNetwork-${currentNetworkId}`}>
+          <Text style={styles.hiddenText}>{currentNetworkId} Active</Text>
+        </View>
+        <View style={styles.selectedNetworkIndicator} testID={`selectedNetwork-${currentNetworkId}`}>
           <Text style={styles.hiddenText}>{currentNetworkId} Selected</Text>
         </View>
 
