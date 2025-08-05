@@ -1,4 +1,4 @@
-import { Networks, NETWORK_BITCOIN, NETWORK_BOTANIXTESTNET, NETWORK_CITREATESTNET, NETWORK_ARKMUTINYNET, NETWORK_BOTANIX } from '../types/networks';
+import { Networks, NETWORK_BITCOIN, NETWORK_BOTANIX_TESTNET, NETWORK_CITREA_TESTNET, NETWORK_ARK_MUTINYNET, NETWORK_BOTANIX } from '../types/networks';
 import { PartnerInfo } from '../types/partner-info';
 
 const partnersList: PartnerInfo[] = [
@@ -25,28 +25,28 @@ const partnersList: PartnerInfo[] = [
   },
   {
     name: 'Check out Botanix Dapps',
-    network: NETWORK_BOTANIXTESTNET,
+    network: NETWORK_BOTANIX_TESTNET,
     url: 'https://botanixlabs.xyz/en/testnet',
     imgUrl: '',
     description: '',
   },
   {
     name: 'Citrea Faucet',
-    network: NETWORK_CITREATESTNET,
+    network: NETWORK_CITREA_TESTNET,
     url: 'https://citrea.xyz/faucet',
     imgUrl: '',
     description: '',
   },
   {
     name: 'Ecosystem',
-    network: NETWORK_CITREATESTNET,
+    network: NETWORK_CITREA_TESTNET,
     url: 'https://citrea.xyz/ecosystem',
     imgUrl: '',
     description: '',
   },
   {
     name: 'Arkade',
-    network: NETWORK_ARKMUTINYNET,
+    network: NETWORK_ARK_MUTINYNET,
     url: 'https://arkade.money/',
     imgUrl: '',
     description: 'Progressive web-app to manage Ark bitcoins on the go',

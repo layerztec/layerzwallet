@@ -7,7 +7,7 @@ import { getDeviceID } from '@shared/modules/device-id';
 import { lazyInitWallet as lazyInitWalletOrig, sanitizeAndValidateMnemonic, saveBitcoinXpubs, saveSubMnemonics, saveWalletState, TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, OpenPopupRequest } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_WHITELIST } from '@shared/types/IStorage';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { BrowserBridge } from '../class/browser-bridge';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
@@ -32,7 +32,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
       const address = await wallet.getAddressAsync();
       await saveWalletState(LayerzStorage, wallet, network, accountNumber);
       return address;
-    } else if (network === NETWORK_ARKMUTINYNET) {
+    } else if (network === NETWORK_ARK_MUTINYNET) {
       const aw = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(aw instanceof ArkWallet);
       return await aw.getOffchainReceiveAddress();
@@ -40,7 +40,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
       const sp = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(sp instanceof SparkWallet);
       return String(await sp.getOffchainReceiveAddress());
-    } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
+    } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
       const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(wallet instanceof BreezWallet);
       const address = wallet.getAddressLiquid();

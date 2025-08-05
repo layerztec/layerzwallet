@@ -4,7 +4,7 @@ import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
 import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
 import { SparkWallet } from '../class/wallets/spark-wallet';
 import { IStorage, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_BTC_XPUB, getSerializedStorageKey } from '../types/IStorage';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 import { WalletSerializer } from './wallet-serializer';
 import { BreezWallet, getBreezNetwork } from '../class/wallets/breez-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
@@ -13,9 +13,9 @@ import { ArkWallet } from '../class/wallets/ark-wallet';
 const cachedWallets: Record<TSupportedLazyInitWalletNetworks, Record<number, TLazyInitedWallets>> = {
   [NETWORK_BITCOIN]: {},
   [NETWORK_SPARK]: {},
-  [NETWORK_ARKMUTINYNET]: {},
+  [NETWORK_ARK_MUTINYNET]: {},
   [NETWORK_LIQUID]: {},
-  [NETWORK_LIQUIDTESTNET]: {},
+  [NETWORK_LIQUID_TESTNET]: {},
 };
 
 const locks: Record<string, boolean> = {};
@@ -59,7 +59,7 @@ export async function saveWalletState(storage: IStorage, wallet: WatchOnlyWallet
   }
 }
 
-export type TSupportedLazyInitWalletNetworks = typeof NETWORK_BITCOIN | typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET | typeof NETWORK_ARKMUTINYNET;
+export type TSupportedLazyInitWalletNetworks = typeof NETWORK_BITCOIN | typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK_MUTINYNET;
 export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkWallet;
 
 /**
@@ -73,7 +73,7 @@ export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | A
  */
 export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, accountNumber: number, storage: IStorage, secureStorage: IStorage): Promise<TLazyInitedWallets> {
   console.log(`lazyInitWallet ${network}[${accountNumber}]...`);
-  if (![NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_ARKMUTINYNET].includes(network)) {
+  if (![NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ARK_MUTINYNET].includes(network)) {
     throw new Error(`Unsupported network for lazyInitWallet: ${network}`);
   }
   // cache hit
@@ -113,7 +113,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     return sw;
   }
 
-  if (network === NETWORK_ARKMUTINYNET) {
+  if (network === NETWORK_ARK_MUTINYNET) {
     const aw = new ArkWallet();
     const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
     aw.setSecret(submnemonic);
@@ -122,7 +122,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     return aw;
   }
 
-  if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
+  if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
     // we dont save it to storage
     const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
     const bNetwork = getBreezNetwork(network);
