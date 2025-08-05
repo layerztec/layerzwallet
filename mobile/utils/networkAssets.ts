@@ -1,13 +1,13 @@
 import {
   NETWORK_BITCOIN,
   NETWORK_LIQUID,
-  NETWORK_LIQUIDTESTNET,
+  NETWORK_LIQUID_TESTNET,
   NETWORK_ROOTSTOCK,
   NETWORK_BOTANIX,
-  NETWORK_BOTANIXTESTNET,
-  NETWORK_STRATADEVNET,
-  NETWORK_ARKMUTINYNET,
-  NETWORK_CITREATESTNET,
+  NETWORK_BOTANIX_TESTNET,
+  NETWORK_ALPEN_TESTNET,
+  NETWORK_ARK_MUTINYNET,
+  NETWORK_CITREA_TESTNET,
 } from '@shared/types/networks';
 
 /**
@@ -20,18 +20,18 @@ export const getNetworkImageAsset = (network: string) => {
     case NETWORK_BITCOIN:
       return require('../assets/images/ui/network/bitcoin.png');
     case NETWORK_LIQUID:
-    case NETWORK_LIQUIDTESTNET:
+    case NETWORK_LIQUID_TESTNET:
       return require('../assets/images/ui/network/liquid.png');
     case NETWORK_ROOTSTOCK:
       return require('../assets/images/ui/network/rootstock.png');
     case NETWORK_BOTANIX:
-    case NETWORK_BOTANIXTESTNET:
+    case NETWORK_BOTANIX_TESTNET:
       return require('../assets/images/ui/network/botanix.png');
-    case NETWORK_STRATADEVNET:
+    case NETWORK_ALPEN_TESTNET:
       return require('../assets/images/ui/network/strata.png');
-    case NETWORK_ARKMUTINYNET:
+    case NETWORK_ARK_MUTINYNET:
       return require('../assets/images/ui/network/ark.png');
-    case NETWORK_CITREATESTNET:
+    case NETWORK_CITREA_TESTNET:
       // TODO: Add citrea.png icon file to assets/images/ui/network/
       return null;
     default:
