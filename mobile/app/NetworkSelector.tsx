@@ -8,6 +8,7 @@ import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { getNetworkGradient, getNetworkIcon } from '@shared/constants/Colors';
 import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
+import { getNetworkImageAsset } from '@/utils/networkAssets';
 
 const NetworkSelector: React.FC = () => {
   const router = useRouter();
@@ -25,6 +26,7 @@ const NetworkSelector: React.FC = () => {
       const isTestnet = getIsTestnet(network);
       const gradientColors = getNetworkGradient(network);
       const iconName = getNetworkIcon(network);
+      const networkIcon = getNetworkImageAsset(network);
 
       return {
         name: capitalizeFirstLetter(network),
@@ -32,7 +34,7 @@ const NetworkSelector: React.FC = () => {
         balance: currentNetwork === network ? 'Selected' : 'Available',
         usdValue: isTestnet ? 'Testnet' : 'Mainnet',
         color: gradientColors[0],
-        icon: null, // We'll use Ionicons instead
+        icon: networkIcon,
         iconName: iconName,
         tags: isTestnet ? ['Testnet'] : ['Mainnet'],
         tokenCount: 0,
