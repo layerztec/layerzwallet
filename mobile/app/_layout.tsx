@@ -27,6 +27,8 @@ import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext
 import { InitializationContextProvider } from '@shared/hooks/InitializationContext';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
+import type { UnlockRouteParams } from '@/types/routes';
+import { UNLOCK_ACTIONS } from '@/types/routes';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -117,8 +119,8 @@ export default function RootLayout() {
                               name="unlock"
                               options={({ route }) => {
                                 // Check if this is a settings action (enable/disable security)
-                                const params = route.params as { action?: string } | undefined;
-                                const isSettingsAction = params?.action === 'enableSecurity' || params?.action === 'disableSecurity';
+                                const params = route.params as UnlockRouteParams;
+                                const isSettingsAction = params?.action === UNLOCK_ACTIONS.ENABLE_SECURITY || params?.action === UNLOCK_ACTIONS.DISABLE_SECURITY;
 
                                 return {
                                   headerShown: false,

@@ -17,6 +17,7 @@ import { EStep, InitializationContext } from '@shared/hooks/InitializationContex
 import { useSettings } from '@shared/hooks/useSettings';
 import { SETTINGS_CONFIG } from '@shared/hooks/SettingsContext';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
+import { unlockRoutes } from '@/utils/navigation';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -116,9 +117,9 @@ export default function SettingsScreen() {
 
   const handleSecurityToggle = async (enabled: boolean) => {
     if (enabled) {
-      router.push('/unlock?action=enableSecurity');
+      router.push(unlockRoutes.enableSecurity());
     } else {
-      router.push('/unlock?action=disableSecurity');
+      router.push(unlockRoutes.disableSecurity());
     }
   };
 

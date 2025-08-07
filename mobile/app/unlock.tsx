@@ -8,10 +8,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { gradients } from '@shared/constants/Colors';
 import { useSecurityContext } from '@/hooks/useSecurityContext';
+import type { UnlockRouteParams } from '@/types/routes';
+import { UNLOCK_ACTIONS } from '@/types/routes';
 
 const UnlockScreen: React.FC = () => {
   const router = useRouter();
-  const params = useLocalSearchParams<{ action?: string }>();
+  const params = useLocalSearchParams<UnlockRouteParams>();
   const action = params.action;
   const { isAppLocked, isSecurityEnabled, isAuthenticationAvailable, biometricType, hasSecurityMismatch, unlockApp, checkSecurityAvailability, disableSecurity, enableSecurity } = useSecurityContext();
 
@@ -21,7 +23,7 @@ const UnlockScreen: React.FC = () => {
   const [autoUnlockAttempted, setAutoUnlockAttempted] = useState(false);
 
   useEffect(() => {
-    if (action === 'disableSecurity' || action === 'enableSecurity') {
+    if (action === UNLOCK_ACTIONS.DISABLE_SECURITY || action === UNLOCK_ACTIONS.ENABLE_SECURITY) {
       return;
     }
 
@@ -52,14 +54,14 @@ const UnlockScreen: React.FC = () => {
       const result = await unlockApp();
 
       if (result.success) {
-        if (action === 'disableSecurity') {
+        if (action === UNLOCK_ACTIONS.DISABLE_SECURITY) {
           await disableSecurity();
           try {
             router.dismiss();
           } catch {
             router.replace('/settings');
           }
-        } else if (action === 'enableSecurity') {
+        } else if (action === UNLOCK_ACTIONS.ENABLE_SECURITY) {
           await enableSecurity();
           try {
             router.dismiss();
@@ -132,7 +134,7 @@ const UnlockScreen: React.FC = () => {
   }, [biometricType, checkSecurityAvailability, disableSecurity, handleUnlock, hasSecurityMismatch, router, unlockApp]);
 
   useEffect(() => {
-    if (action === 'enableSecurity' || action === 'disableSecurity') {
+    if (action === UNLOCK_ACTIONS.ENABLE_SECURITY || action === UNLOCK_ACTIONS.DISABLE_SECURITY) {
       return;
     }
 
@@ -145,7 +147,7 @@ const UnlockScreen: React.FC = () => {
   }, [isAuthenticationAvailable, hasSecurityMismatch, isAuthenticating, autoUnlockAttempted, handleUnlock, handleSecurityMismatch, action]);
 
   const handleClose = useCallback(() => {
-    if (action === 'enableSecurity' || action === 'disableSecurity') {
+    if (action === UNLOCK_ACTIONS.ENABLE_SECURITY || action === UNLOCK_ACTIONS.DISABLE_SECURITY) {
       try {
         router.dismiss();
       } catch {
@@ -179,7 +181,7 @@ const UnlockScreen: React.FC = () => {
       return 'Security Settings Issue';
     }
 
-    if (!isAuthenticationAvailable && action === 'enableSecurity') {
+    if (!isAuthenticationAvailable && action === UNLOCK_ACTIONS.ENABLE_SECURITY) {
       return 'Authentication Required';
     }
 
@@ -191,11 +193,11 @@ const UnlockScreen: React.FC = () => {
       return 'Authentication Failed';
     }
 
-    if (action === 'enableSecurity') {
+    if (action === UNLOCK_ACTIONS.ENABLE_SECURITY) {
       return 'Enable App Lock';
     }
 
-    if (action === 'disableSecurity') {
+    if (action === UNLOCK_ACTIONS.DISABLE_SECURITY) {
       return 'Disable App Lock';
     }
 
@@ -211,7 +213,7 @@ const UnlockScreen: React.FC = () => {
       return `Your device's ${biometricType || 'authentication'} settings have changed. Please update your device settings.`;
     }
 
-    if (!isAuthenticationAvailable && action === 'enableSecurity') {
+    if (!isAuthenticationAvailable && action === UNLOCK_ACTIONS.ENABLE_SECURITY) {
       return 'Device authentication is required to enable App Lock. Please set up Face ID, Touch ID, or a device passcode in your settings.';
     }
 
@@ -223,11 +225,11 @@ const UnlockScreen: React.FC = () => {
       return authError;
     }
 
-    if (action === 'enableSecurity') {
+    if (action === UNLOCK_ACTIONS.ENABLE_SECURITY) {
       return `Authenticate to enable App Lock with ${biometricType || 'device authentication'}`;
     }
 
-    if (action === 'disableSecurity') {
+    if (action === UNLOCK_ACTIONS.DISABLE_SECURITY) {
       return `Authenticate to disable App Lock`;
     }
 
@@ -237,7 +239,7 @@ const UnlockScreen: React.FC = () => {
   return (
     <LinearGradient colors={gradients.blueGradient} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        {(action === 'enableSecurity' || action === 'disableSecurity') && (
+        {(action === UNLOCK_ACTIONS.ENABLE_SECURITY || action === UNLOCK_ACTIONS.DISABLE_SECURITY) && (
           <View style={styles.closeButtonRow}>
             <TouchableOpacity style={styles.closeButton} onPress={handleClose} testID="UnlockCloseButton">
               <Ionicons name="close" size={24} color="white" />
@@ -269,7 +271,7 @@ const UnlockScreen: React.FC = () => {
                   <TouchableOpacity style={styles.primaryButton} onPress={handleUnlock} activeOpacity={0.8}>
                     <Ionicons name={getBiometricIcon()} size={24} color="white" style={styles.buttonIcon} />
                     <ThemedText style={styles.buttonText}>
-                      {action === 'enableSecurity' ? 'Enable App Lock' : action === 'disableSecurity' ? 'Disable App Lock' : showRetryButton ? 'Try Again' : 'Unlock'}
+                      {action === UNLOCK_ACTIONS.ENABLE_SECURITY ? 'Enable App Lock' : action === UNLOCK_ACTIONS.DISABLE_SECURITY ? 'Disable App Lock' : showRetryButton ? 'Try Again' : 'Unlock'}
                     </ThemedText>
                   </TouchableOpacity>
                 )}

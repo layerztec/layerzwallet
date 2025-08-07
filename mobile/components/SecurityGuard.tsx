@@ -1,6 +1,7 @@
 import React, { ReactNode, useEffect } from 'react';
 import { useRouter, useSegments, useLocalSearchParams } from 'expo-router';
 import { useSecurityContext } from '@/hooks/useSecurityContext';
+import { unlockRoutes } from '@/utils/navigation';
 
 interface SecurityGuardProps {
   children: ReactNode;
@@ -20,7 +21,7 @@ export const SecurityGuard: React.FC<SecurityGuardProps> = ({ children }) => {
     }
 
     if (isSecurityEnabled && isAppLocked && currentPath !== '/unlock') {
-      router.replace('/unlock');
+      router.replace(unlockRoutes.regular());
     }
   }, [isAppLocked, isSecurityEnabled, segments, router, params]);
 
