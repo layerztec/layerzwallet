@@ -414,6 +414,11 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
 
   const handleScroll = useCallback(
     (event: any) => {
+      // Don't update during programmatic scrolling
+      if (isScrollingProgrammatically.current) {
+        return;
+      }
+
       const y = event.nativeEvent.contentOffset.y;
       const screenCenter = height / 2;
       const paddingTop = height * 0.4;
