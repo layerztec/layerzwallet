@@ -9,7 +9,7 @@ import { getKnowMoreUrl } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { SwapPair, SwapPlatform } from '@shared/types/swap';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 
 import { BackgroundCaller } from '../../modules/background-caller';
 import PartnersView from './components/PartnersView';
@@ -49,15 +49,15 @@ const Home: React.FC = () => {
         navigate('/send-btc');
         break;
       case NETWORK_SPARK:
-      case NETWORK_ARKMUTINYNET:
+      case NETWORK_ARK_MUTINYNET:
         navigate('/send-ark');
         break;
       case NETWORK_LIQUID:
-      case NETWORK_LIQUIDTESTNET:
+      case NETWORK_LIQUID_TESTNET:
         navigate('/send-liquid');
         break;
       case NETWORK_LIGHTNING:
-      case NETWORK_LIGHTNINGTESTNET:
+      case NETWORK_LIGHTNING_TESTNET:
         navigate('/send-lightning');
         break;
       default:
@@ -66,7 +66,7 @@ const Home: React.FC = () => {
   };
 
   const handleReceiveLightningOnSpark = () => {
-    if (network === NETWORK_LIGHTNINGTESTNET) {
+    if (network === NETWORK_LIGHTNING_TESTNET) {
       alert('Spark has no testnet');
       return;
     }
@@ -75,7 +75,7 @@ const Home: React.FC = () => {
   };
 
   const handleSendLightningOnSpark = () => {
-    if (network === NETWORK_LIGHTNINGTESTNET) {
+    if (network === NETWORK_LIGHTNING_TESTNET) {
       alert('Spark has no testnet');
       return;
     }
@@ -84,10 +84,10 @@ const Home: React.FC = () => {
   };
 
   const handleReceiveLightningOnLiquid = () => {
-    let chosenNetwork: typeof NETWORK_LIQUIDTESTNET | typeof NETWORK_LIQUID = NETWORK_LIQUID; // default - mainnet
+    let chosenNetwork: typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_LIQUID = NETWORK_LIQUID; // default - mainnet
 
-    if (network === NETWORK_LIGHTNINGTESTNET) {
-      chosenNetwork = NETWORK_LIQUIDTESTNET;
+    if (network === NETWORK_LIGHTNING_TESTNET) {
+      chosenNetwork = NETWORK_LIQUID_TESTNET;
     }
 
     const state: ReceiveLightningProps = { network: chosenNetwork };
@@ -95,10 +95,10 @@ const Home: React.FC = () => {
   };
 
   const handleSendLightningOnLiquid = () => {
-    let chosenNetwork: typeof NETWORK_LIQUIDTESTNET | typeof NETWORK_LIQUID = NETWORK_LIQUID; // default - mainnet
+    let chosenNetwork: typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_LIQUID = NETWORK_LIQUID; // default - mainnet
 
-    if (network === NETWORK_LIGHTNINGTESTNET) {
-      chosenNetwork = NETWORK_LIQUIDTESTNET;
+    if (network === NETWORK_LIGHTNING_TESTNET) {
+      chosenNetwork = NETWORK_LIQUID_TESTNET;
     }
 
     const state: SendLightningProps = { network: chosenNetwork };
@@ -141,14 +141,14 @@ const Home: React.FC = () => {
       ) : (
         <div>
           <PartnersView />
-          {network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET ? <LiquidTokensView /> : <TokensView />}
+          {network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET ? <LiquidTokensView /> : <TokensView />}
         </div>
       )}
 
       <br />
       <br />
 
-      {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
+      {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
         <ActionPopupButton
           actions={[
             {
@@ -172,7 +172,7 @@ const Home: React.FC = () => {
         </Button>
       )}
 
-      {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
+      {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
         <ActionPopupButton
           actions={[
             {

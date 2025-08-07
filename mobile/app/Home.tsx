@@ -25,7 +25,7 @@ import { getDecimalsByNetwork, getExplorerUrlByNetwork, getIsEVM, getIsTestnet, 
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { getTokenList } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SwapPlatform } from '@shared/types/swap';
 
 const logo = require('@/assets/images/ui/logo-main-screen.svg');
@@ -93,9 +93,9 @@ export default function Home() {
   const accountItem = accountItems[accountNumber];
 
   // Lightning network specific balance logic
-  const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET;
+  const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET;
   const sparkNetwork = isLightningNetwork ? NETWORK_SPARK : network;
-  const liquidNetwork = isLightningNetwork ? (network === NETWORK_LIGHTNINGTESTNET ? NETWORK_LIQUIDTESTNET : NETWORK_LIQUID) : network;
+  const liquidNetwork = isLightningNetwork ? (network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID) : network;
 
   // Get additional balances for Lightning networks
   const { balance: sparkBalance } = useBalance(sparkNetwork, accountNumber, BackgroundExecutor);
@@ -112,7 +112,7 @@ export default function Home() {
   const canBuyWithFiat = fiatOnRamp?.[network]?.canBuyWithFiat;
 
   // Balance display logic
-  const hasTokens = tokenList.length > 0 || network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET;
+  const hasTokens = tokenList.length > 0 || network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET;
   const formattedBalance = formatBalance(balance || '0', decimals);
   const usdValue = exchangeRate ? formatFiatBalance(balance || '0', decimals, exchangeRate) : '0.00';
 
@@ -126,15 +126,15 @@ export default function Home() {
         router.push('/SendBtc');
         break;
       case NETWORK_SPARK:
-      case NETWORK_ARKMUTINYNET:
+      case NETWORK_ARK_MUTINYNET:
         router.push('/SendArk');
         break;
       case NETWORK_LIQUID:
-      case NETWORK_LIQUIDTESTNET:
+      case NETWORK_LIQUID_TESTNET:
         router.push('/SendLiquid');
         break;
       case NETWORK_LIGHTNING:
-      case NETWORK_LIGHTNINGTESTNET:
+      case NETWORK_LIGHTNING_TESTNET:
         router.push('/SendLightning');
         break;
       default:
@@ -184,7 +184,7 @@ export default function Home() {
 
   // Lightning Network specific handlers
   const handleReceiveOnSpark = () => {
-    if (network === NETWORK_LIGHTNINGTESTNET) {
+    if (network === NETWORK_LIGHTNING_TESTNET) {
       Alert.alert('Spark does not have a testnet');
     } else {
       router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_SPARK } });
@@ -192,8 +192,8 @@ export default function Home() {
   };
 
   const handleReceiveOnLiquid = () => {
-    if (network === NETWORK_LIGHTNINGTESTNET) {
-      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_LIQUIDTESTNET } });
+    if (network === NETWORK_LIGHTNING_TESTNET) {
+      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_LIQUID_TESTNET } });
     } else {
       router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_LIQUID } });
     }
@@ -215,7 +215,7 @@ export default function Home() {
   ];
 
   const handleSendViaSpark = () => {
-    if (network === NETWORK_LIGHTNINGTESTNET) {
+    if (network === NETWORK_LIGHTNING_TESTNET) {
       Alert.alert('Spark does not have a testnet');
     } else {
       router.push({ pathname: '/SendLightning', params: { network: NETWORK_SPARK } });
@@ -223,8 +223,8 @@ export default function Home() {
   };
 
   const handleSendViaLiquid = () => {
-    if (network === NETWORK_LIGHTNINGTESTNET) {
-      router.push({ pathname: '/SendLightning', params: { network: NETWORK_LIQUIDTESTNET } });
+    if (network === NETWORK_LIGHTNING_TESTNET) {
+      router.push({ pathname: '/SendLightning', params: { network: NETWORK_LIQUID_TESTNET } });
     } else {
       router.push({ pathname: '/SendLightning', params: { network: NETWORK_LIQUID } });
     }
@@ -313,10 +313,10 @@ export default function Home() {
                 <ThemedText style={styles.lightningBalanceLabel}>Spark</ThemedText>
                 <View style={styles.lightningBalanceValues}>
                   <ThemedText style={styles.lightningBalanceAmount}>
-                    {network === NETWORK_LIGHTNINGTESTNET ? '0' : sparkBalance ? formatBalance(sparkBalance, Number(getDecimalsByNetwork(NETWORK_SPARK)), 8) : '0'} {getTickerByNetwork(NETWORK_SPARK)}
+                    {network === NETWORK_LIGHTNING_TESTNET ? '0' : sparkBalance ? formatBalance(sparkBalance, Number(getDecimalsByNetwork(NETWORK_SPARK)), 8) : '0'} {getTickerByNetwork(NETWORK_SPARK)}
                   </ThemedText>
                   <ThemedText style={styles.lightningBalanceFiat}>
-                    {network === NETWORK_LIGHTNINGTESTNET
+                    {network === NETWORK_LIGHTNING_TESTNET
                       ? '-'
                       : sparkBalance && +sparkBalance > 0 && sparkExchangeRate
                         ? '$' + formatFiatBalance(sparkBalance, Number(getDecimalsByNetwork(NETWORK_SPARK)), Number(sparkExchangeRate))
@@ -365,7 +365,7 @@ export default function Home() {
           {isEVM && <Button title="🔍 Explorer" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
 
           {/* Tokens Section */}
-          {hasTokens && <View style={styles.tokensSection}>{network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET ? <LiquidTokensView /> : <TokensView />}</View>}
+          {hasTokens && <View style={styles.tokensSection}>{network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET ? <LiquidTokensView /> : <TokensView />}</View>}
 
           {/* Transactions Section */}
           <BlurView intensity={25} tint="dark" style={styles.transactionsContainer}>
@@ -386,7 +386,7 @@ export default function Home() {
         <View style={styles.navContainer}>
           <BlurView intensity={20} tint="dark" style={styles.navBlur} />
 
-          {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
+          {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
             <ActionPopupButton actions={getLightningSendActions()}>
               <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" activeOpacity={0.8}>
                 <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
@@ -400,7 +400,7 @@ export default function Home() {
             </TouchableOpacity>
           )}
 
-          {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
+          {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
             <ActionPopupButton actions={getLightningReceiveActions()}>
               <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
                 <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />

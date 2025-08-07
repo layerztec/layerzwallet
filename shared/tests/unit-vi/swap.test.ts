@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { test } from 'vitest';
 import { SwapProviderBoltz } from '../../models/swap-provider-boltz';
-import { NETWORK_BITCOIN, NETWORK_BOTANIXTESTNET, NETWORK_LIQUIDTESTNET, NETWORK_ROOTSTOCK } from '../../types/networks';
+import { NETWORK_BITCOIN, NETWORK_BOTANIX_TESTNET, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK } from '../../types/networks';
 import { getSwapPairs, getSwapProvidersList } from '../../models/swap-providers-list';
 import { SwapPlatform } from '@shared/types/swap';
 
@@ -10,12 +10,12 @@ test('throws on incorrect swap pair', async () => {
 
   let errMsg = '';
   try {
-    await swapper.swap(NETWORK_LIQUIDTESTNET, () => {}, NETWORK_BOTANIXTESTNET, 1, '0x123');
+    await swapper.swap(NETWORK_LIQUID_TESTNET, () => {}, NETWORK_BOTANIX_TESTNET, 1, '0x123');
   } catch (error: any) {
     errMsg = error.message;
   }
 
-  assert.strictEqual(errMsg, 'Swap pair liquidtest->botanixtest not supported by Boltz');
+  assert.strictEqual(errMsg, 'Swap pair liquid_testnet->botanix_testnet not supported by Boltz');
 });
 
 test('accepts correct swap pair', async () => {
@@ -29,7 +29,7 @@ test('getSwapPartnersList()', async () => {
   let providers = getSwapProvidersList(NETWORK_BITCOIN);
   assert.ok(providers.length > 0); // there are providers that swap from bitcoin
 
-  providers = getSwapProvidersList(NETWORK_LIQUIDTESTNET);
+  providers = getSwapProvidersList(NETWORK_LIQUID_TESTNET);
   assert.ok(providers.length === 0); // there are no providers that swap from testnet
 });
 
@@ -39,7 +39,7 @@ test('getSwapPairs() returns correct pairs', () => {
   assert.ok(bitcoinPairs.every((pair) => pair.from === NETWORK_BITCOIN)); // all pairs are from bitcoin
   assert.ok(bitcoinPairs.some((pair) => pair.to === NETWORK_ROOTSTOCK)); // at least one pair swaps to rootstock
 
-  const testnetPairs = getSwapPairs(NETWORK_LIQUIDTESTNET, SwapPlatform.EXT);
+  const testnetPairs = getSwapPairs(NETWORK_LIQUID_TESTNET, SwapPlatform.EXT);
   assert.strictEqual(testnetPairs.length, 0); // testnet has no swap pairs
 
   // Check for duplicate pairs

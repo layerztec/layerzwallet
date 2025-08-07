@@ -5,7 +5,7 @@ import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
 import { getRpcProvider } from '../models/network-getters';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
 import assert from 'assert';
 
@@ -38,7 +38,7 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
   const { accountNumber, network, backgroundCaller } = arg;
   if (typeof accountNumber === 'undefined' || !network) return undefined;
 
-  if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET) {
+  if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET) {
     // LN is a metalayer which is composed of several actual wallets that support ln
     throw new Error('This should never happen: balance requested for NETWORK_LIGHTNING');
   }
@@ -52,7 +52,7 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
     return (balance.confirmed + balance.unconfirmed).toString(10);
   }
 
-  if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
+  if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
     const bw = await backgroundCaller.lazyInitWallet(network, accountNumber);
     const balance = await bw.getBalance();
     return balance.toString(10);
@@ -68,7 +68,7 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
     return virtualBalance.toString(10);
   }
 
-  if (network === NETWORK_ARKMUTINYNET) {
+  if (network === NETWORK_ARK_MUTINYNET) {
     const start = +new Date();
     const aw = await backgroundCaller.lazyInitWallet(network, accountNumber);
     assert(aw instanceof ArkWallet);
@@ -91,14 +91,14 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
 
   switch (network) {
     case NETWORK_SPARK:
-    case NETWORK_ARKMUTINYNET:
+    case NETWORK_ARK_MUTINYNET:
       refreshInterval = 5_000; // transfers are just server interactions, should be fast
       break;
 
     case NETWORK_LIGHTNING:
-    case NETWORK_LIGHTNINGTESTNET:
+    case NETWORK_LIGHTNING_TESTNET:
     case NETWORK_LIQUID:
-    case NETWORK_LIQUIDTESTNET:
+    case NETWORK_LIQUID_TESTNET:
       refreshInterval = 5_000; // we are just fetching data from the SDK, should be fast
       break;
 

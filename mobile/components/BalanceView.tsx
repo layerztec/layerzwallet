@@ -10,7 +10,7 @@ import { fiatOnRamp } from '@/src/shared-link/models/fiat-on-ramp';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@/src/shared-link/models/network-getters';
 import { formatBalance, formatFiatBalance } from '@/src/shared-link/modules/string-utils';
 import { useAvailableNetworks } from '@/src/shared-link/hooks/useAvailableNetworks';
-import { NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNINGTESTNET, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK, Networks } from '@/src/shared-link/types/networks';
+import { NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@/src/shared-link/types/networks';
 import { IBackgroundCaller } from '@/src/shared-link/types/IBackgroundCaller';
 import { router } from 'expo-router';
 import { OnrampProps } from '@/app/Onramp';
@@ -29,9 +29,9 @@ const BalanceView: React.FC<BalanceViewProps> = ({ network, accountNumber, Backg
 
   // Always call hooks but use the same network if not NETWORK_LIGHTNING, so the deduplication will work and
   // no extra requests to backend will be made
-  const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET;
+  const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET;
   const sparkNetwork = isLightningNetwork ? NETWORK_SPARK : network;
-  const liquidNetwork = isLightningNetwork ? (network === NETWORK_LIGHTNINGTESTNET ? NETWORK_LIQUIDTESTNET : NETWORK_LIQUID) : network;
+  const liquidNetwork = isLightningNetwork ? (network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID) : network;
   const { balance: sparkBalance } = useBalance(sparkNetwork, accountNumber, BackgroundCaller);
   const { balance: liquidBalance } = useBalance(liquidNetwork, accountNumber, BackgroundCaller);
   const { exchangeRate: sparkExchangeRate } = useExchangeRate(sparkNetwork, 'USD');
@@ -53,17 +53,17 @@ const BalanceView: React.FC<BalanceViewProps> = ({ network, accountNumber, Backg
         </View>
       )}
 
-      {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNINGTESTNET ? (
+      {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
         <View>
           <View style={styles.lightningBalanceContainer}>
             <View style={styles.lightningBalanceRow}>
               <ThemedText style={styles.lightningBalanceLabel}>Spark</ThemedText>
               <View style={styles.lightningBalanceValues}>
                 <ThemedText style={styles.lightningBalanceAmount}>
-                  {network === NETWORK_LIGHTNINGTESTNET ? '0' : sparkBalance ? formatBalance(sparkBalance, getDecimalsByNetwork(NETWORK_SPARK), 8) : '0'} {getTickerByNetwork(NETWORK_SPARK)}
+                  {network === NETWORK_LIGHTNING_TESTNET ? '0' : sparkBalance ? formatBalance(sparkBalance, getDecimalsByNetwork(NETWORK_SPARK), 8) : '0'} {getTickerByNetwork(NETWORK_SPARK)}
                 </ThemedText>
                 <ThemedText style={styles.lightningBalanceFiat}>
-                  {network === NETWORK_LIGHTNINGTESTNET
+                  {network === NETWORK_LIGHTNING_TESTNET
                     ? '-'
                     : sparkBalance && +sparkBalance > 0 && sparkExchangeRate
                       ? '$' + formatFiatBalance(sparkBalance, getDecimalsByNetwork(NETWORK_SPARK), sparkExchangeRate)

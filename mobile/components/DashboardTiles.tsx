@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect, useContext } from 'react';
-import { View, StyleSheet, Dimensions, Text, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, Dimensions, Text, Image, TouchableOpacity, FlatList } from 'react-native';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnUI, runOnJS } from 'react-native-reanimated';
@@ -328,7 +328,8 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
   const [currentNetworkId, setCurrentNetworkId] = useState<Networks>(NETWORK_BITCOIN);
   const opacity = useSharedValue(isNetworkSelector ? 1 : 0);
   const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const flatListRef = useRef<FlatList>(null);
+  const isScrollingProgrammatically = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -373,19 +374,39 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
       onExternalCardPress?.(index);
 
       if (index !== currentIndex) {
-        setCurrentIndex(index);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-        if (scrollViewRef.current) {
-          const screenCenter = height / 2;
-          const scrollPosition = index * 50 + height * 0.4 - screenCenter;
-          scrollViewRef.current.scrollTo({ y: Math.max(0, scrollPosition), animated: true });
-        }
-      }
+        // Set flag to prevent handleScroll from interfering
+        isScrollingProgrammatically.current = true;
 
-      const selectedCard = cards[index];
-      if (selectedCard?.networkId) {
-        setCurrentNetworkId(selectedCard.networkId);
+        if (flatListRef.current) {
+          // Use scrollToOffset instead of scrollToIndex for more precise control
+          const screenCenter = height / 2;
+          const paddingTop = height * 0.4;
+          const scrollPosition = index * 50 - screenCenter + paddingTop;
+          flatListRef.current.scrollToOffset({
+            offset: Math.max(0, scrollPosition),
+            animated: true,
+          });
+        }
+
+        // Update state immediately but reset flag after animation
+        setCurrentIndex(index);
+        const selectedCard = cards[index];
+        if (selectedCard?.networkId) {
+          setCurrentNetworkId(selectedCard.networkId);
+        }
+
+        // Reset flag after scroll animation completes
+        setTimeout(() => {
+          isScrollingProgrammatically.current = false;
+        }, 300);
+      } else {
+        // If clicking the already focused card, update immediately
+        const selectedCard = cards[index];
+        if (selectedCard?.networkId) {
+          setCurrentNetworkId(selectedCard.networkId);
+        }
       }
     },
     [onExternalCardPress, currentIndex, cards]
@@ -409,13 +430,14 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
           setCurrentNetworkId(selectedCard.networkId);
         }
 
+        // Debounce haptic feedback
         if (scrollTimeout.current) {
           clearTimeout(scrollTimeout.current);
         }
 
         scrollTimeout.current = setTimeout(() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        }, 50);
+        }, 100);
       }
     },
     [currentIndex, cards]
@@ -439,18 +461,18 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
           <Text style={styles.hiddenText}>{currentNetworkId} Selected</Text>
         </View>
 
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.scrollView}
+        <FlatList
+          ref={flatListRef}
+          data={cards}
+          keyExtractor={(item, index) => `card-${item.name}-${index}`}
+          style={[styles.scrollView, { overflow: 'visible' }]}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           decelerationRate="fast"
-          onScrollEndDrag={handleScroll}
-          contentInsetAdjustmentBehavior="never"
-          removeClippedSubviews={false}
-        >
-          {cards.map((card, index) => (
-            <View key={`card-wrapper-${index}`} style={styles.cardWrapper}>
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          renderItem={({ item: card, index }) => (
+            <View style={styles.cardWrapper}>
               <LayerCardTile
                 card={card}
                 index={index}
@@ -463,8 +485,20 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
                 accountNumber={providedCards ? undefined : accountNumber}
               />
             </View>
-          ))}
-        </ScrollView>
+          )}
+          getItemLayout={(data, index) => ({
+            length: 50, // height of cardWrapper
+            offset: 50 * index,
+            index,
+          })}
+          onScrollToIndexFailed={(info) => {
+            // Fallback for scrollToIndex failures
+            const wait = new Promise((resolve) => setTimeout(resolve, 500));
+            wait.then(() => {
+              flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
+            });
+          }}
+        />
       </Animated.View>
     </View>
   );
@@ -527,18 +561,23 @@ const styles = StyleSheet.create({
     paddingTop: height * 0.4,
     paddingBottom: height * 0.4,
     minHeight: height,
+    overflow: 'visible',
   },
   cardWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    height: 40,
-    marginBottom: 10,
+    height: 50,
+    marginBottom: 0,
+    position: 'relative',
   },
   cardContainer: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
+    height: 250, // Fixed height to contain the card
+    top: -100, // Offset to center the card within the wrapper
   },
   card: {
     height: CARD_HEIGHT,
