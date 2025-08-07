@@ -9,7 +9,7 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { BreezWallet, getBreezNetwork, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_LIQUID, NETWORK_LIQUIDTESTNET } from '@shared/types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET } from '@shared/types/networks';
 import assert from 'assert';
 import { getTokenIconColor } from '@shared/models/token-list';
 
@@ -23,7 +23,7 @@ const LiquidTokensView: React.FC = () => {
   useEffect(() => {
     const fetchBreezAssetBalances = async () => {
       setAssetBalances([]);
-      if (network !== NETWORK_LIQUID && network !== NETWORK_LIQUIDTESTNET) {
+      if (network !== NETWORK_LIQUID && network !== NETWORK_LIQUID_TESTNET) {
         setLoading(false);
         return;
       }

@@ -2,30 +2,30 @@ export const NETWORK_BITCOIN = 'bitcoin' as const;
 export const NETWORK_SEPOLIA = 'sepolia' as const;
 export const NETWORK_ROOTSTOCK = 'rootstock' as const;
 export const NETWORK_BOTANIX = 'botanix' as const;
-export const NETWORK_BOTANIXTESTNET = 'botanixtest' as const;
-export const NETWORK_STRATADEVNET = 'strata' as const;
-export const NETWORK_CITREATESTNET = 'citrea' as const;
-export const NETWORK_ARKMUTINYNET = 'ark' as const;
+export const NETWORK_BOTANIX_TESTNET = 'botanix_testnet' as const;
+export const NETWORK_ALPEN_TESTNET = 'alpen_testnet' as const;
+export const NETWORK_CITREA_TESTNET = 'citrea_testnet' as const;
+export const NETWORK_ARK_MUTINYNET = 'ark_mutinynet' as const;
 export const NETWORK_LIQUID = 'liquid' as const;
-export const NETWORK_LIQUIDTESTNET = 'liquidtest' as const;
+export const NETWORK_LIQUID_TESTNET = 'liquid_testnet' as const;
 export const NETWORK_SPARK = 'spark' as const;
 export const NETWORK_LIGHTNING = 'lightning' as const;
-export const NETWORK_LIGHTNINGTESTNET = 'lightningtest' as const;
+export const NETWORK_LIGHTNING_TESTNET = 'lightning_testnet' as const;
 
 const NetworksIterator = {
   BITCOIN: NETWORK_BITCOIN,
   SEPOLIA: NETWORK_SEPOLIA,
   ROOTSTOCK: NETWORK_ROOTSTOCK,
   BOTANIX: NETWORK_BOTANIX,
-  BOTANIXTESTNET: NETWORK_BOTANIXTESTNET,
-  STRATADEVNET: NETWORK_STRATADEVNET,
-  CITREATESTNET: NETWORK_CITREATESTNET,
-  ARKMUTINYNET: NETWORK_ARKMUTINYNET,
+  BOTANIX_TESTNET: NETWORK_BOTANIX_TESTNET,
+  ALPEN_TESTNET: NETWORK_ALPEN_TESTNET,
+  CITREA_TESTNET: NETWORK_CITREA_TESTNET,
+  ARK_MUTINYNET: NETWORK_ARK_MUTINYNET,
   LIQUID: NETWORK_LIQUID,
-  LIQUIDTESTNET: NETWORK_LIQUIDTESTNET,
+  LIQUID_TESTNET: NETWORK_LIQUID_TESTNET,
   SPARK: NETWORK_SPARK,
   LIGHTNING: NETWORK_LIGHTNING,
-  LIGHTNINGTESTNET: NETWORK_LIGHTNINGTESTNET,
+  LIGHTNING_TESTNET: NETWORK_LIGHTNING_TESTNET,
 } as const;
 
 export type Networks = (typeof NetworksIterator)[keyof typeof NetworksIterator];

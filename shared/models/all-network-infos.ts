@@ -1,17 +1,17 @@
 import { NetworkInfo } from '../types/network-info';
 import {
-  NETWORK_ARKMUTINYNET,
+  NETWORK_ARK_MUTINYNET,
   NETWORK_BITCOIN,
-  NETWORK_BOTANIXTESTNET,
+  NETWORK_BOTANIX_TESTNET,
   NETWORK_LIQUID,
-  NETWORK_LIQUIDTESTNET,
-  NETWORK_CITREATESTNET,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_CITREA_TESTNET,
   NETWORK_ROOTSTOCK,
   NETWORK_SEPOLIA,
   NETWORK_SPARK,
-  NETWORK_STRATADEVNET,
+  NETWORK_ALPEN_TESTNET,
   NETWORK_LIGHTNING,
-  NETWORK_LIGHTNINGTESTNET,
+  NETWORK_LIGHTNING_TESTNET,
   Networks,
   NETWORK_BOTANIX,
 } from '../types/networks';
@@ -34,7 +34,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 18,
     isEVM: true,
   },
-  [NETWORK_BOTANIXTESTNET]: {
+  [NETWORK_BOTANIX_TESTNET]: {
     chainId: 3636,
     ticker: 'BTC',
     rpcUrl: 'https://node.botanixlabs.dev',
@@ -54,11 +54,11 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     isTestnet: false,
     isEVM: true,
   },
-  [NETWORK_STRATADEVNET]: {
-    chainId: 8091,
+  [NETWORK_ALPEN_TESTNET]: {
+    chainId: 2892,
     ticker: 'sBTC',
-    rpcUrl: 'https://stratareth3666f0713.devnet-annapurna.stratabtc.org',
-    explorerUrl: 'https://blockscoutb86fae58ae.devnet-annapurna.stratabtc.org',
+    rpcUrl: 'https://rpc.testnet.alpenlabs.io',
+    explorerUrl: 'https://explorer.testnet.alpenlabs.io',
     decimals: 18,
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/strata',
     isTestnet: true,
@@ -73,7 +73,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     isTestnet: true,
     isEVM: true,
   },
-  [NETWORK_CITREATESTNET]: {
+  [NETWORK_CITREA_TESTNET]: {
     chainId: 5115,
     ticker: 'cBTC',
     rpcUrl: 'https://rpc.testnet.citrea.xyz',
@@ -83,7 +83,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     isTestnet: true,
     isEVM: true,
   },
-  [NETWORK_ARKMUTINYNET]: {
+  [NETWORK_ARK_MUTINYNET]: {
     chainId: -1,
     ticker: 'BTC',
     rpcUrl: '',
@@ -99,16 +99,16 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     rpcUrl: '',
     explorerUrl: '',
     decimals: 8,
-    knowMoreUrl: 'https://breez.technology/',
+    knowMoreUrl: 'https://www.bitcoinlayers.org/layers/liquid',
     isEVM: false,
   },
-  [NETWORK_LIQUIDTESTNET]: {
+  [NETWORK_LIQUID_TESTNET]: {
     chainId: 12,
     ticker: 'tL-BTC',
     rpcUrl: '',
     explorerUrl: '',
     decimals: 8,
-    knowMoreUrl: 'https://breez.technology/',
+    knowMoreUrl: 'https://www.bitcoinlayers.org/layers/liquid',
     isTestnet: true,
     isEVM: false,
   },
@@ -118,7 +118,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     rpcUrl: '',
     explorerUrl: '',
     decimals: 8,
-    knowMoreUrl: 'https://spark.money',
+    knowMoreUrl: 'https://www.bitcoinlayers.org/layers/spark',
     isTestnet: false,
     isEVM: false,
   },
@@ -128,16 +128,16 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 8,
     explorerUrl: 'https://mempool.space/lightning',
     rpcUrl: '',
-    knowMoreUrl: 'https://lightning.network/',
+    knowMoreUrl: 'https://www.bitcoinlayers.org/layers/lightning',
     isEVM: false,
   },
-  [NETWORK_LIGHTNINGTESTNET]: {
+  [NETWORK_LIGHTNING_TESTNET]: {
     chainId: 15,
     ticker: 'tBTC',
     decimals: 8,
     explorerUrl: 'https://mempool.space/testnet/lightning',
     rpcUrl: '',
-    knowMoreUrl: 'https://lightning.network/',
+    knowMoreUrl: 'https://www.bitcoinlayers.org/layers/lightning',
     isTestnet: true,
     isEVM: false,
   },

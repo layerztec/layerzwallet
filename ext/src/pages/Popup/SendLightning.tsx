@@ -5,7 +5,7 @@ import { ThemedText } from '../../components/ThemedText';
 import * as bolt11 from 'bolt11';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
@@ -18,7 +18,7 @@ import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 export interface SendLightningProps {
-  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUIDTESTNET;
+  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET;
 }
 
 const maxFeePercent = 5; // hardcoded at the moment. might give user option to adjust later

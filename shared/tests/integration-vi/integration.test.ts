@@ -7,7 +7,7 @@ import { balanceFetcher } from '../../hooks/useBalance';
 import { tokenBalanceFetcher } from '../../hooks/useTokenBalance';
 import { getTokenList } from '../../models/token-list';
 import { IBackgroundCaller } from '../../types/IBackgroundCaller';
-import { NETWORK_BOTANIXTESTNET, NETWORK_ROOTSTOCK, NETWORK_SEPOLIA, NETWORK_STRATADEVNET } from '../../types/networks';
+import { NETWORK_BOTANIX_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SEPOLIA, NETWORK_ALPEN_TESTNET } from '../../types/networks';
 import { exchangeRateFetcher } from '../../hooks/useExchangeRate';
 
 const backgroundCallerMock2: IBackgroundCaller = {
@@ -74,7 +74,7 @@ test('can fetch balance', async (context) => {
   assert.ok(new BigNumber(balance).gt(0));
 });
 
-test('can fetch STRATA balance', async (context) => {
+test('can fetch ALPEN balance', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
     context.skip();
     return;
@@ -83,13 +83,13 @@ test('can fetch STRATA balance', async (context) => {
   vi.spyOn(backgroundCallerMock2, 'getAddress').mockResolvedValueOnce(EvmWallet.xpubToAddress(EvmWallet.mnemonicToXpub(process.env.TEST_MNEMONIC), 0)); // test mnemonic account 0
   const balance = await balanceFetcher({
     cacheKey: 'balanceFetcher',
-    network: NETWORK_STRATADEVNET,
+    network: NETWORK_ALPEN_TESTNET,
     accountNumber: 0,
     backgroundCaller: backgroundCallerMock2,
   });
 
   assert.ok(balance);
-  assert.ok(new BigNumber(balance).eq(0));
+  assert.ok(new BigNumber(balance).gt(0));
 });
 
 test('can fetch token balance', async (context) => {
@@ -123,7 +123,7 @@ test('can fetch exchange rate', async (context) => {
 
   const rate2 = await exchangeRateFetcher({
     cacheKey: 'exchangeRateFetcher',
-    network: NETWORK_BOTANIXTESTNET,
+    network: NETWORK_BOTANIX_TESTNET,
     fiat: 'USD',
   });
 

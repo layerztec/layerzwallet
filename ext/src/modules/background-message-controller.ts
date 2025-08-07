@@ -6,7 +6,7 @@ import { getDeviceID } from '@shared/modules/device-id';
 import { lazyInitWallet, sanitizeAndValidateMnemonic, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, MessageType, MessageTypeMap, OpenPopupRequest, ProcessRPCRequest } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC } from '@shared/types/IStorage';
-import { NETWORK_ARKMUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUIDTESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { Csprng } from '../../src/class/rng';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
@@ -65,13 +65,13 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
       const address = await wallet.getAddressAsync();
       await saveWalletState(LayerzStorage, wallet, network, accountNumber);
       return address;
-    } else if (network === NETWORK_ARKMUTINYNET) {
+    } else if (network === NETWORK_ARK_MUTINYNET) {
       const aw = await lazyInitWallet(network, accountNumber, LayerzStorage, SecureStorage);
       assert(aw instanceof ArkWallet);
       return await aw.getOffchainReceiveAddress();
     } else if (network === NETWORK_SPARK) {
       throw new Error('this should never happen: temporarily executed on the spot in the BackgroundCaller'); // fixme
-    } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUIDTESTNET) {
+    } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
       const wallet = await lazyInitWallet(network, accountNumber, LayerzStorage, SecureStorage);
       assert(wallet instanceof BreezWallet);
       const address = wallet.getAddressLiquid();
