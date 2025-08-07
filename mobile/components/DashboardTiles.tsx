@@ -184,21 +184,23 @@ const LayerCardTile = ({ card, index, currentIndex, totalCards, onCardPress, tra
   const handlePressIn = () => {
     if (isFocused) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      rotationX.value = withSpring(-3, { damping: 20, stiffness: 500 });
-      rotationY.value = withSpring(2, { damping: 20, stiffness: 500 });
-      cardScale.value = withSpring(0.98, { damping: 20, stiffness: 500 });
+      // Reduce the rotation and scale values to prevent clipping
+      rotationX.value = withSpring(-1, { damping: 25, stiffness: 400 });
+      rotationY.value = withSpring(1, { damping: 25, stiffness: 400 });
+      cardScale.value = withSpring(0.99, { damping: 25, stiffness: 400 });
     } else {
-      cardScale.value = withSpring(0.95, { damping: 30, stiffness: 600 });
+      // Only apply minimal scale to non-focused cards to prevent overlap
+      cardScale.value = withSpring(0.98, { damping: 30, stiffness: 500 });
     }
   };
 
   const handlePressOut = () => {
     if (isFocused) {
-      rotationX.value = withSpring(0, { damping: 20, stiffness: 400 });
-      rotationY.value = withSpring(0, { damping: 20, stiffness: 400 });
-      cardScale.value = withSpring(1, { damping: 20, stiffness: 400 });
+      rotationX.value = withSpring(0, { damping: 25, stiffness: 400 });
+      rotationY.value = withSpring(0, { damping: 25, stiffness: 400 });
+      cardScale.value = withSpring(1, { damping: 25, stiffness: 400 });
     } else {
-      cardScale.value = withSpring(1, { damping: 30, stiffness: 600 });
+      cardScale.value = withSpring(1, { damping: 30, stiffness: 500 });
     }
   };
 
@@ -237,7 +239,9 @@ const LayerCardTile = ({ card, index, currentIndex, totalCards, onCardPress, tra
           onPressOut={handlePressOut}
           onPress={handlePress}
           style={styles.touchableCard}
-          activeOpacity={0.9}
+          activeOpacity={0.95}
+          delayPressIn={50}
+          delayPressOut={50}
           testID={displayCard.networkId ? `network-${displayCard.networkId}` : `card-${displayCard.name.toLowerCase()}`}
         >
           <View style={styles.topRow}>
@@ -390,17 +394,19 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
           });
         }
 
-        // Update state immediately but reset flag after animation
-        setCurrentIndex(index);
-        const selectedCard = cards[index];
-        if (selectedCard?.networkId) {
-          setCurrentNetworkId(selectedCard.networkId);
-        }
+        // Delay state update to prevent visual glitches during scroll
+        setTimeout(() => {
+          setCurrentIndex(index);
+          const selectedCard = cards[index];
+          if (selectedCard?.networkId) {
+            setCurrentNetworkId(selectedCard.networkId);
+          }
+        }, 150); // Delay to allow scroll animation to start
 
         // Reset flag after scroll animation completes
         setTimeout(() => {
           isScrollingProgrammatically.current = false;
-        }, 300);
+        }, 400); // Slightly longer to ensure scroll is complete
       } else {
         // If clicking the already focused card, update immediately
         const selectedCard = cards[index];
@@ -414,7 +420,7 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
 
   const handleScroll = useCallback(
     (event: any) => {
-      // Don't update during programmatic scrolling
+      // Don't update during programmatic scrolling to prevent conflicts
       if (isScrollingProgrammatically.current) {
         return;
       }
@@ -435,14 +441,17 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
           setCurrentNetworkId(selectedCard.networkId);
         }
 
-        // Debounce haptic feedback
+        // Debounce haptic feedback to prevent excessive vibration
         if (scrollTimeout.current) {
           clearTimeout(scrollTimeout.current);
         }
 
         scrollTimeout.current = setTimeout(() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        }, 100);
+          // Only trigger haptic if not programmatically scrolling
+          if (!isScrollingProgrammatically.current) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }
+        }, 150); // Increased debounce time for smoother experience
       }
     },
     [currentIndex, cards]
