@@ -46,45 +46,87 @@ export const SecurityContextProvider: React.FC<Props> = ({ children }) => {
   const [lockOnBackground, setLockOnBackgroundState] = useState(true);
 
   const checkSecurityAvailability = useCallback(async () => {
-    try {
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-      const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
-
-      const available = hasHardware && isEnrolled && supportedTypes.length > 0;
-      setIsAuthenticationAvailable(available);
-      setAuthenticationTypes(supportedTypes);
-
-      if (available) {
-        let detectedType: SecurityContextType['biometricType'] = null;
-
-        if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
-          detectedType = 'FaceID';
-        } else if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
-          detectedType = 'TouchID';
-        } else if (supportedTypes.includes(LocalAuthentication.AuthenticationType.IRIS)) {
-          detectedType = 'Iris';
-        } else {
-          detectedType = 'Biometrics';
-        }
-
-        setBiometricType(detectedType);
-      } else {
-        setBiometricType(null);
-      }
-
-      if (isSecurityEnabled && !available) {
-        setHasSecurityMismatch(true);
-      } else {
-        setHasSecurityMismatch(false);
-      }
-    } catch (error) {
-      console.error('Error checking security availability:', error);
+    const resetSecurityState = () => {
       setIsAuthenticationAvailable(false);
       setAuthenticationTypes([]);
       setBiometricType(null);
+      setHasSecurityMismatch(isSecurityEnabled);
+    };
+
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      if (!hasHardware) {
+        resetSecurityState();
+        return;
+      }
+
+      const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+      setAuthenticationTypes(supportedTypes);
+
+      const enrollmentStatus = await checkEnrollmentStatus();
+
+      const isAvailable = enrollmentStatus.hasAnyCredential;
+      setIsAuthenticationAvailable(isAvailable);
+
+      const biometricLabel = deriveBiometricLabel(supportedTypes, enrollmentStatus.hasBiometric);
+      setBiometricType(biometricLabel);
+
+      setHasSecurityMismatch(isSecurityEnabled && !isAvailable);
+    } catch (error) {
+      console.error('Error checking security availability:', error);
+      resetSecurityState();
     }
   }, [isSecurityEnabled]);
+
+  const checkEnrollmentStatus = async () => {
+    try {
+      const getEnrolledLevel = (LocalAuthentication as any).getEnrolledLevelAsync;
+      if (typeof getEnrolledLevel === 'function') {
+        const level = await getEnrolledLevel();
+        return {
+          hasAnyCredential: level > 0,
+          hasBiometric: level === 2,
+          hasDeviceCredential: level === 1,
+        };
+      }
+    } catch (error) {
+      console.debug('getEnrolledLevelAsync not available:', error);
+    }
+
+    try {
+      const isBiometricEnrolled = await LocalAuthentication.isEnrolledAsync();
+      return {
+        hasAnyCredential: isBiometricEnrolled,
+        hasBiometric: isBiometricEnrolled,
+        hasDeviceCredential: false, // Cannot detect device credentials on older SDKs
+      };
+    } catch (error) {
+      console.debug('isEnrolledAsync failed:', error);
+      return {
+        hasAnyCredential: false,
+        hasBiometric: false,
+        hasDeviceCredential: false,
+      };
+    }
+  };
+
+  const deriveBiometricLabel = (supportedTypes: LocalAuthentication.AuthenticationType[], hasBiometric: boolean): SecurityContextType['biometricType'] => {
+    if (!hasBiometric || supportedTypes.length === 0) {
+      return null;
+    }
+
+    if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+      return 'FaceID';
+    }
+    if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+      return 'TouchID';
+    }
+    if (supportedTypes.includes(LocalAuthentication.AuthenticationType.IRIS)) {
+      return 'Iris';
+    }
+
+    return 'Biometrics';
+  };
 
   const initializeSecurity = useCallback(async () => {
     try {
@@ -141,11 +183,11 @@ export const SecurityContextProvider: React.FC<Props> = ({ children }) => {
       if (result.error === 'user_cancel' || result.error === 'app_cancel' || result.error === 'system_cancel') {
         return { success: false, cancelled: true };
       } else if (result.error === 'not_available') {
-        return { success: false, error: 'Biometric authentication is not available' };
+        return { success: false, error: 'Device authentication is not available' };
       } else if (result.error === 'passcode_not_set') {
         return { success: false, error: 'Device passcode is not set' };
       } else if (result.error === 'not_enrolled') {
-        return { success: false, error: 'No biometric authentication is enrolled on this device' };
+        return { success: false, error: 'No device authentication is enrolled on this device' };
       } else if (result.error === 'lockout') {
         return { success: false, error: 'Authentication is temporarily locked due to too many failed attempts' };
       } else if (result.error === 'timeout') {
@@ -177,7 +219,7 @@ export const SecurityContextProvider: React.FC<Props> = ({ children }) => {
       if (result.success) {
         await SecureStorage.setItem(STORAGE_KEY_SECURITY_ENABLED, 'true');
         setIsSecurityEnabled(true);
-        setIsAppLocked(true);
+        setIsAppLocked(false);
         return true;
       }
 
