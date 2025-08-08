@@ -8,6 +8,8 @@ import {
   NETWORK_ALPEN_TESTNET,
   NETWORK_ARK_MUTINYNET,
   NETWORK_CITREA_TESTNET,
+  NETWORK_LIGHTNING,
+  NETWORK_SPARK,
 } from '@shared/types/networks';
 
 /**
@@ -19,6 +21,10 @@ export const getNetworkImageAsset = (network: string) => {
   switch (network) {
     case NETWORK_BITCOIN:
       return require('../assets/images/ui/network/bitcoin.png');
+    case NETWORK_LIGHTNING:
+      return require('../assets/images/ui/network/lightning.png');
+    case NETWORK_SPARK:
+      return require('../assets/images/ui/network/spark.png');
     case NETWORK_LIQUID:
     case NETWORK_LIQUID_TESTNET:
       return require('../assets/images/ui/network/liquid.png');
