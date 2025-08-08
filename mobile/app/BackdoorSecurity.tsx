@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSecurityContext } from '@/hooks/useSecurityContext';
+import { isMaestroEnvironment } from '@/utils/maestro';
 
 const TEST_PIN = '1234';
 
@@ -10,6 +11,13 @@ const BackdoorSecurity: React.FC = () => {
   const router = useRouter();
   const { isSecurityEnabled, backdoorEnableSecurity, disableSecurity, isAppLocked, backdoorUnlockApp } = useSecurityContext();
   const [pin, setPin] = useState('');
+
+  useEffect(() => {
+    if (!isMaestroEnvironment()) {
+      router.back();
+      return;
+    }
+  }, [router]);
 
   const handleAction = async (action: 'enable' | 'disable' | 'unlock') => {
     if (pin !== TEST_PIN) return;
@@ -32,6 +40,18 @@ const BackdoorSecurity: React.FC = () => {
       console.error('Error during backdoor security action:', error);
     }
   };
+
+  // Safety check - don't render backdoor if not in Maestro environment
+  if (!isMaestroEnvironment()) {
+    return (
+      <SafeAreaView style={{ flex: 1, padding: 20, backgroundColor: '#fff' }}>
+        <Text>Backdoor not available</Text>
+        <TouchableOpacity style={{ padding: 15, backgroundColor: '#8E8E93' }} onPress={() => router.back()}>
+          <Text style={{ color: 'white', textAlign: 'center' }}>Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, padding: 20, backgroundColor: '#fff' }}>

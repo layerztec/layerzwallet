@@ -18,6 +18,7 @@ import { useSettings } from '@shared/hooks/useSettings';
 import { SETTINGS_CONFIG } from '@shared/hooks/SettingsContext';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { unlockRoutes } from '@/utils/navigation';
+import { isMaestroEnvironment } from '@/utils/maestro';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -177,7 +178,13 @@ export default function SettingsScreen() {
 
           {/* Security Section */}
           <ThemedView style={styles.section}>
-            <TouchableOpacity onPress={handleSecurityPress} onLongPress={() => router.push('/BackdoorSecurity' as any)} testID="BackdoorSecurity">
+            <TouchableOpacity
+              onPress={handleSecurityPress}
+              {...(isMaestroEnvironment() && {
+                onLongPress: () => router.push('/BackdoorSecurity' as any),
+                testID: 'BackdoorSecurity',
+              })}
+            >
               <ThemedText style={styles.sectionTitle}>Security</ThemedText>
             </TouchableOpacity>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>

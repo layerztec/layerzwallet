@@ -2,6 +2,7 @@ import React, { createContext, ReactNode, useContext, useEffect, useState, useCa
 import * as LocalAuthentication from 'expo-local-authentication';
 import { AppState, AppStateStatus, Linking } from 'react-native';
 import { SecureStorage } from '@/src/class/secure-storage';
+import { isMaestroEnvironment } from '@/utils/maestro';
 
 const STORAGE_KEY_SECURITY_ENABLED = 'STORAGE_KEY_SECURITY_ENABLED';
 const STORAGE_KEY_LOCK_ON_BACKGROUND = 'STORAGE_KEY_LOCK_ON_BACKGROUND';
@@ -254,6 +255,11 @@ export const SecurityContextProvider: React.FC<Props> = ({ children }) => {
   }, []);
 
   const backdoorEnableSecurity = useCallback(async (): Promise<boolean> => {
+    if (!isMaestroEnvironment()) {
+      console.warn('Backdoor security methods are only available in Maestro environment');
+      return false;
+    }
+
     try {
       await SecureStorage.setItem(STORAGE_KEY_SECURITY_ENABLED, 'true');
       setIsSecurityEnabled(true);
@@ -266,6 +272,11 @@ export const SecurityContextProvider: React.FC<Props> = ({ children }) => {
   }, []);
 
   const backdoorUnlockApp = useCallback(async (): Promise<{ success: boolean; error?: string; cancelled?: boolean }> => {
+    if (!isMaestroEnvironment()) {
+      console.warn('Backdoor security methods are only available in Maestro environment');
+      return { success: false, error: 'Backdoor methods not available' };
+    }
+
     try {
       setIsAppLocked(false);
       return { success: true };
