@@ -20,6 +20,9 @@ export interface SecurityContextType {
   checkSecurityAvailability: () => Promise<void>;
   lockOnBackground: boolean;
   setLockOnBackground: (enabled: boolean) => Promise<void>;
+  // Backdoor methods for testing
+  backdoorEnableSecurity: () => Promise<boolean>;
+  backdoorUnlockApp: () => Promise<{ success: boolean; error?: string; cancelled?: boolean }>;
 }
 
 const SecurityContext = createContext<SecurityContextType | undefined>(undefined);
@@ -250,6 +253,28 @@ export const SecurityContextProvider: React.FC<Props> = ({ children }) => {
     }
   }, []);
 
+  const backdoorEnableSecurity = useCallback(async (): Promise<boolean> => {
+    try {
+      await SecureStorage.setItem(STORAGE_KEY_SECURITY_ENABLED, 'true');
+      setIsSecurityEnabled(true);
+      setIsAppLocked(false);
+      return true;
+    } catch (error) {
+      console.error('Error enabling security via backdoor:', error);
+      return false;
+    }
+  }, []);
+
+  const backdoorUnlockApp = useCallback(async (): Promise<{ success: boolean; error?: string; cancelled?: boolean }> => {
+    try {
+      setIsAppLocked(false);
+      return { success: true };
+    } catch (error) {
+      console.error('Error unlocking app via backdoor:', error);
+      return { success: false, error: 'Backdoor unlock failed' };
+    }
+  }, []);
+
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if ((nextAppState === 'background' || nextAppState === 'inactive') && lockOnBackground) {
@@ -281,6 +306,8 @@ export const SecurityContextProvider: React.FC<Props> = ({ children }) => {
     checkSecurityAvailability,
     lockOnBackground,
     setLockOnBackground,
+    backdoorEnableSecurity,
+    backdoorUnlockApp,
   };
 
   return <SecurityContext.Provider value={contextValue}>{children}</SecurityContext.Provider>;

@@ -128,21 +128,16 @@ export default function SettingsScreen() {
       if (enabled) {
         await setLockOnBackground(true);
       } else {
-        Alert.alert('Disable Background Lock?', 'This will allow the app to remain unlocked when returning from background. Are you sure?', [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Disable',
-            style: 'destructive',
-            onPress: async () => {
-              await setLockOnBackground(false);
-            },
-          },
-        ]);
+        await setLockOnBackground(false);
       }
     } catch (error) {
       console.error('Error toggling lock on background:', error);
-      Alert.alert('Error', 'Failed to update background lock setting. Please try again.', [{ text: 'OK' }]);
     }
+  };
+
+  const handleSecurityPress = () => {
+    // Normal press goes to real security screen
+    router.push(unlockRoutes.regular());
   };
 
   return (
@@ -182,7 +177,9 @@ export default function SettingsScreen() {
 
           {/* Security Section */}
           <ThemedView style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Security</ThemedText>
+            <TouchableOpacity onPress={handleSecurityPress} onLongPress={() => router.push('/BackdoorSecurity' as any)} testID="BackdoorSecurity">
+              <ThemedText style={styles.sectionTitle}>Security</ThemedText>
+            </TouchableOpacity>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <ThemedText style={styles.settingLabel}>App Lock</ThemedText>
               <Switch value={isSecurityEnabled} onValueChange={handleSecurityToggle} disabled={hasSecurityMismatch} />

@@ -1,0 +1,16 @@
+appId: com.layerzwallet.mobile
+---
+# Uses BackdoorSecurity for testing (bypasses biometric authentication)
+
+- longPressOn:
+    id: BackdoorSecurity
+- waitForAnimationToEnd
+- inputText:
+    text: '1234'
+    id: backdoor-security-pin
+- tapOn:
+    id: ${'backdoor-security-' + ACTION}
+- waitForAnimationToEnd
+- tapOn:
+    id: backdoor-security-back
+- waitForAnimationToEnd

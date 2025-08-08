@@ -1,0 +1,30 @@
+appId: com.layerzwallet.mobile
+---
+- launchApp
+- tapOn:
+    id: SettingsButton
+- waitForAnimationToEnd
+
+# Test enabling security
+- runFlow:
+    file: subflows/security-test.yml
+    env:
+      ACTION: enable
+- waitForAnimationToEnd
+
+# Test unlocking app
+- runFlow:
+    file: subflows/security-test.yml
+    env:
+      ACTION: unlock
+- waitForAnimationToEnd
+
+# Test disabling security
+- runFlow:
+    file: subflows/security-test.yml
+    env:
+      ACTION: disable
+- waitForAnimationToEnd
+
+# Return to home
+- runFlow: subflows/back.yml
