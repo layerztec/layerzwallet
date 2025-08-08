@@ -15,6 +15,7 @@
     }
   },
   "scripts": {
+    "postinstall": "node -e \"const fs = require('fs'); const easHash = process.env.EAS_BUILD_GIT_COMMIT_HASH || ''; console.log('EAS_BUILD_GIT_COMMIT_HASH:', easHash); fs.writeFileSync('git_commit_hash.json', JSON.stringify(easHash));\"",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",

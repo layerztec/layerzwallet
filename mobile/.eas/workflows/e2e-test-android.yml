@@ -23,3 +23,41 @@ jobs:
         - .maestro/restore.yml
         - .maestro/browser.yml
         - .maestro/swap.yml
+
+  upload_build_job:
+    needs: [build_android_for_e2e]
+
+    steps:
+      - uses: eas/download_build
+        id: download_build
+        with:
+          build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
+      - name: Print artifact path
+        run: |
+          echo "Artifact path: ${{ steps.download_build.outputs.artifact_path }}"
+
+      - name: Upload artifact to Appetize
+        run: |
+          set -euo pipefail
+          ARTIFACT="${{ steps.download_build.outputs.artifact_path }}"
+          if [ -z "${APPETIZE_API_KEY:-}" ]; then
+            echo "APPETIZE_API_KEY is not set" >&2
+            exit 1
+          fi
+          echo "Uploading $ARTIFACT to Appetize..."
+          APPETIZE_RESPONSE=$(curl -fSL -X POST https://api.appetize.io/v1/apps \
+            -H "X-API-KEY: $APPETIZE_API_KEY" \
+            -F "file=@${ARTIFACT}" \
+            -F "platform=android")
+          echo "Appetize response: $APPETIZE_RESPONSE"
+          APP_URL=$(echo "$APPETIZE_RESPONSE" | jq -r '.appURL')
+          echo "App URL: $APP_URL"
+          if [ -z "${EXPO_EAS_BUILD_UPLOADED_ENDPOINT:-}" ]; then
+            echo "EXPO_EAS_BUILD_UPLOADED_ENDPOINT is not set" >&2
+            exit 1
+          fi
+          echo '{
+            "appURL": "'$APP_URL'",
+            "git_commit_hash": "${{ needs.build_android_for_e2e.outputs.git_commit_hash }}",
+            "platform": "${{ needs.build_android_for_e2e.outputs.platform }}"
+          }' | curl -d @- "$EXPO_EAS_BUILD_UPLOADED_ENDPOINT"

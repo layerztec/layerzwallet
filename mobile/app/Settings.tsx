@@ -20,6 +20,8 @@ import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { STORAGE_KEY_BTC_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 
+const gitCommitHash = require('../git_commit_hash.json');
+
 export default function SettingsScreen() {
   const router = useRouter();
   const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
@@ -204,6 +206,11 @@ export default function SettingsScreen() {
         <ThemedText style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.8)' }}>
           {Application.applicationName} v{Application.nativeApplicationVersion} (build {Application.nativeBuildVersion})
         </ThemedText>
+        {gitCommitHash && (
+          <TouchableOpacity style={[styles.button, styles.changelogButton]} onPress={() => router.push('/Changelog')}>
+            <ThemedText style={styles.changelogButtonText}>Changelog</ThemedText>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </GradientScreen>
   );
@@ -353,5 +360,14 @@ const styles = StyleSheet.create({
   },
   settingOptionTextActive: {
     color: 'white',
+  },
+  changelogButton: {
+    backgroundColor: '#8A2BE2',
+    marginTop: 8,
+    marginHorizontal: 16,
+  },
+  changelogButtonText: {
+    color: 'white',
+    fontWeight: '700',
   },
 });
