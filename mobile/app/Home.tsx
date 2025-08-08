@@ -13,7 +13,7 @@ import LiquidTokensView from '@/components/LiquidTokensView';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { getNetworkIcon } from '@shared/constants/Colors';
+import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAccountBalance } from '@shared/hooks/useAccountBalance';
@@ -106,7 +106,8 @@ export default function Home() {
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);
   const isEVM = getIsEVM(network);
-  const networkIcon = getNetworkIcon(network);
+  const networkImage = getNetworkImageAsset(network);
+  const networkIconContent = networkImage ? <Image source={networkImage} style={{ width: 24, height: 24 }} contentFit="contain" /> : null;
   const tokenList = getTokenList(network);
   const swapPairs = getSwapPairs(network, SwapPlatform.MOBILE);
   const canBuyWithFiat = fiatOnRamp?.[network]?.canBuyWithFiat;
@@ -290,7 +291,7 @@ export default function Home() {
           <View style={styles.networkSelectorContainer}>
             <TouchableOpacity testID="NetworkSwitcherTrigger" style={styles.networkSelector} onPress={handleNetworkSelect} activeOpacity={0.8}>
               <View testID={`selectedNetwork-${network}`} style={styles.networkIcon}>
-                <Ionicons name={networkIcon} size={25} color="white" />
+                {networkIconContent}
               </View>
               <ThemedText style={styles.networkName}>{capitalizeFirstLetter(network)}</ThemedText>
               <TouchableOpacity onPress={handleNetworkSelect} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
