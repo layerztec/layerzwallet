@@ -1,4 +1,4 @@
-import { Networks } from '@shared/types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 
 export type BaseRouteParams = Record<string, string | string[] | undefined>;
 
