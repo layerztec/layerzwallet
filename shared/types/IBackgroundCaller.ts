@@ -1,6 +1,7 @@
 import { CreateTransactionUtxo } from '../class/wallets/types';
 import { Networks } from '../types/networks';
 import { TLazyInitedWallets, TSupportedLazyInitWalletNetworks } from '../modules/wallet-utils';
+import { CommonTransaction } from './common-transaction';
 
 // Message types for background script communication
 export enum MessageType {
@@ -15,6 +16,7 @@ export enum MessageType {
   GET_ADDRESS,
   GET_BTC_SEND_DATA,
   GET_SUB_MNEMONIC,
+  GET_COMMON_TRANSACTIONS,
 }
 
 // Message types for background script communication
@@ -63,6 +65,10 @@ export type MessageTypeMap = {
     params: GetSubMnemonicRequest;
     response: GetSubMnemonicResponse;
   };
+  [MessageType.GET_COMMON_TRANSACTIONS]: {
+    params: GetCommonTransactionsRequest;
+    response: GetCommonTransactionsResponse;
+  };
 };
 
 export type GetAddressParams = [network: Networks, accountNumber: number];
@@ -95,6 +101,9 @@ export type GetBtcSendDataResponse = { utxos: CreateTransactionUtxo[]; changeAdd
 export type GetSubMnemonicRequest = [accountNumber: number];
 export type GetSubMnemonicResponse = string;
 
+export type GetCommonTransactionsRequest = [network: Networks, accountNumber: number, afterTxid?: string, limit?: number];
+export type GetCommonTransactionsResponse = CommonTransaction[];
+
 export interface ProcessRPCRequest {
   method: string;
   params: any;
@@ -122,4 +131,5 @@ export interface IBackgroundCaller {
   openPopup(...params: OpenPopupRequest): Promise<void>;
   getBtcSendData(...params: GetBtcSendDataRequest): Promise<GetBtcSendDataResponse>;
   getSubMnemonic(...params: GetSubMnemonicRequest): Promise<GetSubMnemonicResponse>;
+  getCommonTransactions(...params: GetCommonTransactionsRequest): Promise<GetCommonTransactionsResponse>;
 }

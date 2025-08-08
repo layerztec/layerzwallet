@@ -10,14 +10,14 @@ import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-uti
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { SendTokenEvmProps } from '../SendTokenEvm';
 
-const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
+const TokenRow: React.FC<{ id: string }> = ({ id }) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const navigate = useNavigate();
   const list = getTokenList(network);
-  const token = list.find((token) => token.address === tokenAddress);
+  const token = list.find((token) => token.id === id);
 
-  const { balance } = useTokenBalance(network, accountNumber, tokenAddress, BackgroundCaller);
+  const { balance } = useTokenBalance(network, accountNumber, id, BackgroundCaller);
 
   if (!balance) return null;
 
@@ -49,7 +49,7 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
       </span>
       <div style={{ display: 'flex', gap: 6 }}>
         <button
-          onClick={() => navigate('/send-token-evm', { state: { contractAddress: token?.address } as SendTokenEvmProps })}
+          onClick={() => navigate('/send-token-evm', { state: { contractAddress: token?.id } as SendTokenEvmProps })}
           title="Send"
           style={{
             border: 'none',
@@ -98,7 +98,7 @@ const TokensView: React.FC = () => {
       <h2 style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' }}>Tokens</h2>
       <div>
         {tokenList.map((token) => (
-          <TokenRow key={token.address} tokenAddress={token.address} />
+          <TokenRow key={token.id} id={token.id} />
         ))}
       </div>
     </div>

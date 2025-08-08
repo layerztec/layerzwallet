@@ -12,6 +12,7 @@ import GradientScreen from '@/components/GradientScreen';
 import LiquidTokensView from '@/components/LiquidTokensView';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
+import Transaction from '@/components/Transaction';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
@@ -20,6 +21,7 @@ import { useAccountBalance } from '@shared/hooks/useAccountBalance';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
+import { useTransactions } from '@shared/hooks/useTransactions';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getDecimalsByNetwork, getExplorerUrlByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
@@ -29,15 +31,6 @@ import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGH
 import { SwapPlatform } from '@shared/types/swap';
 
 const logo = require('@/assets/images/ui/logo-main-screen.svg');
-
-interface Transaction {
-  id: string;
-  type: 'received' | 'sent';
-  amount: string;
-  usdAmount: string;
-  date: string;
-  status?: 'pending' | 'completed';
-}
 
 export default function Home() {
   const { network } = useContext(NetworkContext);
@@ -57,39 +50,12 @@ export default function Home() {
     }
   }, [params.showSwapInterface, router]);
 
-  // Mock transactions data - in real app this would come from API
-  const [transactions] = useState<Transaction[]>([
-    {
-      id: '1',
-      type: 'received',
-      amount: '0.00250',
-      usdAmount: '1,000',
-      date: 'Pending...',
-      status: 'pending',
-    },
-    {
-      id: '2',
-      type: 'received',
-      amount: '0.00250',
-      usdAmount: '1,000',
-      date: 'April 04, 2025',
-      status: 'completed',
-    },
-    {
-      id: '3',
-      type: 'sent',
-      amount: '-0.00250',
-      usdAmount: '1,000',
-      date: 'April 04, 2025',
-      status: 'completed',
-    },
-  ]);
-
   // Get balance data
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const { exchangeRate } = useExchangeRate(network, 'USD');
   const availableNetworks = useAvailableNetworks();
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
+  const { transactions, error: transactionsError } = useTransactions(network, accountNumber, BackgroundExecutor);
   const accountItem = accountItems[accountNumber];
 
   // Lightning network specific balance logic
@@ -120,6 +86,9 @@ export default function Home() {
   // Always show native token balance as main balance, USD as sub-balance
   const displayBalance = `${formattedBalance} ${ticker}`;
   const displaySubBalance = `${usdValue} USD`;
+
+  // Get latest transactions (limit to 3 for display)
+  const latestTransactions = transactions?.slice(0, 3) || [];
 
   const handleSend = () => {
     switch (network) {
@@ -246,26 +215,6 @@ export default function Home() {
     },
   ];
 
-  const renderTransactionItem = (transaction: Transaction) => (
-    <View key={transaction.id} style={styles.transactionItem}>
-      <View style={styles.transactionIcon}>
-        <MaterialIcons name={transaction.type === 'received' ? 'call-received' : 'call-made'} size={24} color="rgba(255, 255, 255, 0.8)" />
-      </View>
-
-      <View style={styles.transactionDetails}>
-        <ThemedText style={styles.transactionType}>{transaction.type === 'received' ? 'Received' : 'Sent'}</ThemedText>
-        <ThemedText style={styles.transactionDate}>{transaction.status === 'pending' ? 'Pending...' : transaction.date}</ThemedText>
-      </View>
-
-      <View style={styles.transactionAmounts}>
-        <ThemedText style={styles.transactionAmount}>
-          {transaction.amount} {ticker}
-        </ThemedText>
-        <ThemedText style={styles.transactionUsd}>{transaction.usdAmount} USD</ThemedText>
-      </View>
-    </View>
-  );
-
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -372,7 +321,21 @@ export default function Home() {
           <BlurView intensity={25} tint="dark" style={styles.transactionsContainer}>
             <ThemedText style={styles.transactionsTitle}>Latest Transactions</ThemedText>
 
-            <View style={styles.transactionsList}>{transactions.map(renderTransactionItem)}</View>
+            {latestTransactions.length > 0 ? (
+              <View style={styles.transactionsList}>
+                {latestTransactions.map((transaction) => (
+                  <Transaction key={transaction.txid} network={network} transaction={transaction} />
+                ))}
+              </View>
+            ) : transactionsError ? (
+              <View style={styles.transactionsList}>
+                <ThemedText style={styles.transactionDate}>Error loading transactions</ThemedText>
+              </View>
+            ) : (
+              <View style={styles.transactionsList}>
+                <ThemedText style={styles.transactionDate}>No transactions yet</ThemedText>
+              </View>
+            )}
 
             <Button title="Transaction History" onPress={handleTransactionHistory} variant="dark" />
           </BlurView>

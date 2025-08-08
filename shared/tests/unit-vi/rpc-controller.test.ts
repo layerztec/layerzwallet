@@ -85,6 +85,9 @@ const backgroundCallerMock2: IBackgroundCaller = {
   getSubMnemonic() {
     throw new Error('Function not implemented.');
   },
+  getCommonTransactions() {
+    throw new Error('Function not implemented.');
+  },
 };
 
 beforeEach(() => {
