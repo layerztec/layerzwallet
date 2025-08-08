@@ -8,15 +8,14 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
-import { getTokenList, getTokenIconColor } from '@shared/models/token-list';
+import { getTokenList, getTokenIconColor, getTokenInfo } from '@shared/models/token-list';
 import { formatBalance } from '@shared/modules/string-utils';
 
 const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const router = useRouter();
-  const list = getTokenList(network);
-  const token = list.find((token) => token.address === tokenAddress);
+  const token = getTokenInfo(tokenAddress);
 
   const { balance } = useTokenBalance(network, accountNumber, tokenAddress, BackgroundExecutor);
 
@@ -33,7 +32,7 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
   const goToSend = () => {
     router.push({
       pathname: '/SendTokenEvm',
-      params: { contractAddress: token?.address },
+      params: { contractAddress: token?.id },
     });
   };
 
@@ -71,7 +70,7 @@ const TokensView: React.FC = () => {
       <ThemedText style={styles.title}>Tokens</ThemedText>
       <View style={styles.tokensList}>
         {tokenList.map((token) => (
-          <TokenRow key={token.address} tokenAddress={token.address} />
+          <TokenRow key={token.id} tokenAddress={token.id} />
         ))}
       </View>
     </BlurView>

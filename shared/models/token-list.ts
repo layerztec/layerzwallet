@@ -1,11 +1,37 @@
 import { Networks } from '../types/networks';
-import { TokenInfo } from '../types/token-info';
+import { TokenInfo, EVMTokenInfo, LiquidTokenInfo } from '../types/token-info';
 import { getChainIdByNetwork } from './network-getters';
 import { hexToDec } from '../modules/string-utils';
 
 // kept as a separate json just because in evm world token list is standard by itself and
 // json files can be shared, imported etc
-const list: TokenInfo[] = require('./tokenlist.json');
+const evmList: EVMTokenInfo[] = require('./tokenlist.json');
+const liquidList: LiquidTokenInfo[] = require('./tokenlist-liquid.json');
+
+export function evmToCommonTokenInfo(token: EVMTokenInfo): TokenInfo {
+  return {
+    id: token.address,
+    chainId: token.chainId,
+    name: token.name,
+    decimals: token.decimals,
+    symbol: token.symbol,
+    logoURI: token.logoURI,
+    tags: token.tags,
+    extensions: token.extensions,
+  };
+}
+
+function liquidToCommonTokenInfo(token: LiquidTokenInfo): TokenInfo {
+  return {
+    id: token.assetId,
+    chainId: token.chainId,
+    name: token.name,
+    decimals: token.decimals,
+    symbol: token.symbol,
+  };
+}
+
+const list: TokenInfo[] = [...evmList.map(evmToCommonTokenInfo), ...liquidList.map(liquidToCommonTokenInfo)];
 
 export function getTokenList(network: Networks): TokenInfo[] {
   let ret: TokenInfo[] = [];
@@ -17,6 +43,21 @@ export function getTokenList(network: Networks): TokenInfo[] {
   }
 
   return ret;
+}
+
+export function getTokenInfo(id: string): TokenInfo {
+  const token = list.find((t) => t.id === id);
+  if (token) {
+    return token;
+  }
+  // if token is not found, we return something
+  return {
+    id,
+    name: 'Unknown Token',
+    decimals: 8,
+    symbol: id.substring(0, 8),
+    chainId: 99999,
+  };
 }
 
 // Unified function for getting token/asset icon colors

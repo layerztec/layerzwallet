@@ -57,10 +57,10 @@ export class EvmWallet {
   }
 
   async createTokenTransferTransaction(from: string, to: string, token: TokenInfo, amount: StringNumber): Promise<TransactionRequest> {
-    const iface = new ethers.Contract(token.address, ['function transfer(address,uint256)']);
+    const iface = new ethers.Contract(token.id, ['function transfer(address,uint256)']);
     const data = iface.interface.encodeFunctionData('transfer', [to, amount]);
 
-    return { data, from, to: token.address };
+    return { data, from, to: token.id };
   }
 
   private getWalletFromMnemonic(mnemonic: string, accountNumber: number): Wallet {

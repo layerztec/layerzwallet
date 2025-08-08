@@ -40,7 +40,7 @@ const SendTokenEvm: React.FC = () => {
   const { scanQr } = useContext(ScanQrContext);
 
   const list = getTokenList(network);
-  const token = list.find((token) => token.address === contractAddress);
+  const token = list.find((token) => token.id === contractAddress);
 
   const { balance } = useTokenBalance(network, accountNumber, contractAddress, BackgroundExecutor);
 
@@ -103,7 +103,7 @@ const SendTokenEvm: React.FC = () => {
           bytes,
           recipient: toAddress,
           amountToken: satValue,
-          tokenContractAddress: token?.address,
+          tokenContractAddress: token?.id,
         },
       });
     } catch (error: any) {

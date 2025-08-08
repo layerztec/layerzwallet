@@ -312,4 +312,9 @@ export class WatchOnlyWallet extends LegacyWallet {
     if (this._hdWalletInstance) return this._hdWalletInstance.isSegwit();
     return super.isSegwit();
   }
+
+  getCommonTransactions(...args: Parameters<HDSegwitBech32Wallet['getCommonTransactions']>) {
+    if (this._hdWalletInstance) return this._hdWalletInstance.getCommonTransactions(...args);
+    throw new Error("Not a HD watch-only wallet, can't use getCommonTransactions");
+  }
 }

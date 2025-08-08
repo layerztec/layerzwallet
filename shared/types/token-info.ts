@@ -1,6 +1,6 @@
 export interface TokenInfo {
+  readonly id: string;
   readonly chainId: number;
-  readonly address: string;
   readonly name: string;
   readonly decimals: number;
   readonly symbol: string;
@@ -9,4 +9,12 @@ export interface TokenInfo {
   readonly extensions?: {
     readonly [key: string]: string | number | boolean | null;
   };
+}
+
+export interface EVMTokenInfo extends Omit<TokenInfo, 'id'> {
+  readonly address: string;
+}
+
+export interface LiquidTokenInfo extends Omit<TokenInfo, 'id'> {
+  readonly assetId: string;
 }

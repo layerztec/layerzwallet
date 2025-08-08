@@ -1,5 +1,15 @@
-import init, { BindingLiquidSdk, connect, defaultConfig, PrepareReceiveRequest, ReceivePaymentRequest, PrepareSendRequest, SendPaymentRequest, GetPaymentRequest } from '@breeztech/breez-sdk-liquid';
-import { BreezConnection, IBreezAdapter, assetMetadata } from '@shared/class/wallets/breez-wallet';
+import init, {
+  BindingLiquidSdk,
+  connect,
+  defaultConfig,
+  PrepareReceiveRequest,
+  ReceivePaymentRequest,
+  PrepareSendRequest,
+  SendPaymentRequest,
+  GetPaymentRequest,
+  ListPaymentsRequest,
+} from '@breeztech/breez-sdk-liquid';
+import { BreezConnection, IBreezAdapter, getAssertMetadata } from '@shared/class/wallets/breez-wallet';
 
 const API_KEY = process.env.EXPO_PUBLIC_BREEZ_API_KEY;
 
@@ -40,7 +50,7 @@ class BreezAdapter implements IBreezAdapter {
     }
     await this.sdk?.disconnect();
     const config = defaultConfig(connection.network, API_KEY);
-    config.assetMetadata = assetMetadata;
+    config.assetMetadata = getAssertMetadata(connection.network);
     this.sdk = await connect({ mnemonic: connection.mnemonic, config });
     this.cc = connection;
     return this.sdk;
@@ -74,6 +84,10 @@ class BreezAdapter implements IBreezAdapter {
     return await sdk.getPayment(args);
   }
 
+  private async listPayments(sdk: BindingLiquidSdk, args: ListPaymentsRequest) {
+    return await sdk.listPayments(args);
+  }
+
   get api() {
     const getInfo = this.withLockAndSdk(this.getInfo.bind(this));
     const fetchLightningLimits = this.withLockAndSdk(this.fetchLightningLimits.bind(this));
@@ -82,6 +96,7 @@ class BreezAdapter implements IBreezAdapter {
     const prepareSendPayment = this.withLockAndSdk(this.prepareSendPayment.bind(this));
     const sendPayment = this.withLockAndSdk(this.sendPayment.bind(this));
     const getPayment = this.withLockAndSdk(this.getPayment.bind(this));
+    const listPayments = this.withLockAndSdk(this.listPayments.bind(this));
 
     return {
       getInfo,
@@ -91,6 +106,7 @@ class BreezAdapter implements IBreezAdapter {
       prepareSendPayment,
       sendPayment,
       getPayment,
+      listPayments,
     };
   }
 

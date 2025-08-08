@@ -2,6 +2,7 @@ import type { AssetBalance } from '@breeztech/breez-sdk-liquid';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import assert from 'assert';
 import { BlurView } from 'expo-blur';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -10,8 +11,7 @@ import { BreezWallet, getBreezNetwork, LBTC_ASSET_IDS } from '@shared/class/wall
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET } from '@shared/types/networks';
-import assert from 'assert';
-import { getTokenIconColor } from '@shared/models/token-list';
+import { getTokenIconColor, getTokenInfo } from '@shared/models/token-list';
 
 const LiquidTokensView: React.FC = () => {
   const router = useRouter();
@@ -73,8 +73,9 @@ const LiquidTokensView: React.FC = () => {
       <ThemedText style={styles.title}>Assets</ThemedText>
       <View style={styles.assetsList}>
         {assetBalances.map((item) => {
-          const iconColor = getTokenIconColor(item.name);
-          const assetSymbol = item.ticker || getAssetName(item);
+          const tokenInfo = getTokenInfo(item.assetId);
+          const iconColor = getTokenIconColor(tokenInfo.name);
+          const assetSymbol = tokenInfo.symbol;
 
           return (
             <TouchableOpacity key={item.assetId} style={styles.assetRow} onPress={() => goToSend(item.assetId)} activeOpacity={0.7}>
