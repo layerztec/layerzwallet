@@ -85,9 +85,3 @@ export type TransactionSuccessEvmRouteParams = {
   transactionId: string;
   bytes: string;
 };
-
-export type { Networks } from '@shared/types/networks';
-
-declare const NETWORK_SPARK: string;
-declare const NETWORK_LIQUID: string;
-declare const NETWORK_LIQUID_TESTNET: string;
