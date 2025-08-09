@@ -117,9 +117,9 @@ export default function Home() {
   const formattedBalance = formatBalance(balance || '0', decimals);
   const usdValue = exchangeRate ? formatFiatBalance(balance || '0', decimals, exchangeRate) : '0.00';
 
-  // For multi-token networks, show total USD balance instead of native token balance
-  const displayBalance = hasTokens && isEVM ? `${usdValue} USD` : `${formattedBalance} ${ticker}`;
-  const displaySubBalance = hasTokens && isEVM ? undefined : `${usdValue} USD`;
+  // Always show native token balance as main balance, USD as sub-balance
+  const displayBalance = `${formattedBalance} ${ticker}`;
+  const displaySubBalance = `${usdValue} USD`;
 
   const handleSend = () => {
     switch (network) {
@@ -348,10 +348,10 @@ export default function Home() {
           ) : (
             <View style={styles.balanceSection} testID="LayerBalance">
               <View style={styles.balanceContainer}>
-                <ThemedText style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
+                <ThemedText style={styles.balanceAmount} testID="LayerActualBalance">
                   {balance ? displayBalance : '???'}
                 </ThemedText>
-                {displaySubBalance && <ThemedText style={styles.balanceUsd}>{displaySubBalance}</ThemedText>}
+                <ThemedText style={styles.balanceUsd}>{displaySubBalance}</ThemedText>
               </View>
 
               {canBuyWithFiat && (
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
   },
   balanceAmount: {
     fontSize: 36,
-    lineHeight: undefined, // to reset default one
+    lineHeight: 40, // Add proper line height for better text rendering
     fontWeight: '500',
     color: 'rgba(255, 255, 255, 0.8)',
     marginRight: 4,
