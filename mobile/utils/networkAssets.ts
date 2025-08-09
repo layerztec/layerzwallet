@@ -10,6 +10,7 @@ import {
   NETWORK_CITREA_TESTNET,
   NETWORK_LIGHTNING,
   NETWORK_SPARK,
+  NETWORK_LIGHTNING_TESTNET,
 } from '@shared/types/networks';
 
 /**
@@ -22,6 +23,7 @@ export const getNetworkImageAsset = (network: string) => {
     case NETWORK_BITCOIN:
       return require('../assets/images/ui/network/bitcoin.png');
     case NETWORK_LIGHTNING:
+    case NETWORK_LIGHTNING_TESTNET:
       return require('../assets/images/ui/network/lightning.png');
     case NETWORK_SPARK:
       return require('../assets/images/ui/network/spark.png');
@@ -38,8 +40,7 @@ export const getNetworkImageAsset = (network: string) => {
     case NETWORK_ARK_MUTINYNET:
       return require('../assets/images/ui/network/ark.png');
     case NETWORK_CITREA_TESTNET:
-      // TODO: Add citrea.png icon file to assets/images/ui/network/
-      return null;
+      return require('../assets/images/ui/network/citrea.png');
     default:
       return null;
   }
