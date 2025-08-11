@@ -348,7 +348,7 @@ export default function Home() {
           ) : (
             <View style={styles.balanceSection} testID="LayerBalance">
               <View style={styles.balanceContainer}>
-                <ThemedText style={styles.balanceAmount} testID="LayerActualBalance">
+                <ThemedText style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
                   {balance ? displayBalance : '???'}
                 </ThemedText>
                 <ThemedText style={styles.balanceUsd}>{displaySubBalance}</ThemedText>
