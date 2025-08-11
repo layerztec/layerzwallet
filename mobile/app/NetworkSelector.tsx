@@ -5,7 +5,7 @@ import { Networks } from '@shared/types/networks';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
-import { getNetworkGradient, getNetworkIcon } from '@shared/constants/Colors';
+import { getNetworkGradient } from '@shared/constants/Colors';
 import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
@@ -25,7 +25,6 @@ const NetworkSelector: React.FC = () => {
     return networks.map((network) => {
       const isTestnet = getIsTestnet(network);
       const gradientColors = getNetworkGradient(network);
-      const iconName = getNetworkIcon(network);
       const networkIcon = getNetworkImageAsset(network);
 
       return {
@@ -35,7 +34,6 @@ const NetworkSelector: React.FC = () => {
         usdValue: isTestnet ? 'Testnet' : 'Mainnet',
         color: gradientColors[0],
         icon: networkIcon,
-        iconName: iconName,
         tags: isTestnet ? ['Testnet'] : ['Mainnet'],
         tokenCount: 0,
         networkId: network,

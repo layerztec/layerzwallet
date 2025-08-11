@@ -1,29 +1,29 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import React, { useContext, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import GradientFormSheet from '@/components/GradientFormSheet';
 import { ThemedText } from '@/components/ThemedText';
-import { getNetworkIcon } from '@shared/constants/Colors';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { Networks } from '@shared/types/networks';
 import { SwapPlatform } from '@shared/types/swap';
+import { getNetworkImageAsset } from '@/utils/networkAssets';
 
 interface TargetNetworkItem {
   network: Networks;
   name: string;
-  icon: string;
 }
 
 const ListItem = ({ item, onPress, active, first, last }: { item: TargetNetworkItem; onPress: () => void; active: boolean; first: boolean; last: boolean }) => {
+  const networkImage = getNetworkImageAsset(item.network);
+
   return (
     <TouchableOpacity style={[styles.item, active && styles.activeItem, first && styles.firstItem, last && styles.lastItem]} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.networkIcon}>
-        <Ionicons name={item.icon as any} size={24} color="white" />
-      </View>
+      <View style={styles.networkIcon}>{networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null}</View>
       <ThemedText style={styles.networkName}>{item.name}</ThemedText>
     </TouchableOpacity>
   );
@@ -43,7 +43,6 @@ export default function SwapTarget() {
     const targets: TargetNetworkItem[] = targetNetworks.map((targetNetwork) => ({
       network: targetNetwork,
       name: capitalizeFirstLetter(targetNetwork),
-      icon: getNetworkIcon(targetNetwork),
     }));
     setAvailableTargets(targets);
   }, [network]);
@@ -165,5 +164,9 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.6)',
     textAlign: 'center',
     lineHeight: 24,
+  },
+  networkImage: {
+    width: 24,
+    height: 24,
   },
 });

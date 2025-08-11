@@ -6,7 +6,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { getAvailableNetworks, NETWORK_BITCOIN, Networks } from '@shared/types/networks';
-import { getNetworkGradient, getNetworkIcon, gradients as sharedGradients } from '@shared/constants/Colors';
+import { getNetworkGradient, gradients as sharedGradients } from '@shared/constants/Colors';
 import { getIsTestnet, getTickerByNetwork, getDecimalsByNetwork } from '@shared/models/network-getters';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useCachedBalance } from '@shared/hooks/useCachedBalance';
@@ -24,7 +24,6 @@ export interface LayerCard {
   usdValue: string;
   color: string;
   icon?: any;
-  iconName?: string;
   tags?: string[];
   tokenCount?: number;
   originalIndex?: number;
@@ -172,7 +171,6 @@ const useNetworkCards = (accountNumber: number): LayerCard[] => {
     return networks.map((network, index) => {
       const isTestnet = getIsTestnet(network);
       const gradientColors = getNetworkGradient(network);
-      const iconName = getNetworkIcon(network);
       const ticker = getTickerByNetwork(network);
 
       return {
@@ -182,7 +180,6 @@ const useNetworkCards = (accountNumber: number): LayerCard[] => {
         usdValue: isTestnet ? 'Testnet' : '$0.00',
         color: gradientColors[0],
         icon: null,
-        iconName: iconName,
         tags: isTestnet ? ['Testnet'] : [],
         tokenCount: 0,
         networkId: network,
