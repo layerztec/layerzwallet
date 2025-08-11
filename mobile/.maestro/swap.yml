@@ -1,0 +1,32 @@
+# Testplan:
+# - create a wallet
+# - check if we can swap bitcoin -> liquid
+
+appId: com.layerzwallet.mobile
+jsEngine: graaljs
+---
+- runFlow: subflows/wallet-creation.yml
+
+- tapOn:
+    id: 'SwapButton'
+- waitForAnimationToEnd
+- assertVisible: 'Select target network'
+- tapOn:
+    id: 'AmountInput'
+- eraseText
+- inputText: '0.1'
+- tapOn: # close keyboard
+    id: 'ToLabel'
+- tapOn:
+    id: 'ToNetworkButton'
+- waitForAnimationToEnd
+- assertVisible: 'Swap to'
+- assertVisible:
+    id: 'SwapTarget-rootstock'
+- tapOn:
+    id: 'SwapTarget-liquid'
+- waitForAnimationToEnd
+- assertVisible: 'Swap BTC to Liquid'
+- tapOn:
+    id: 'SwapButton'
+- assertVisible: 'Not enough balance'

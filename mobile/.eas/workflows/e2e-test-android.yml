@@ -22,3 +22,4 @@ jobs:
         - .maestro/receive.yml
         - .maestro/restore.yml
         - .maestro/browser.yml
+        - .maestro/swap.yml

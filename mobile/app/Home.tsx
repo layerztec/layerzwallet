@@ -419,7 +419,7 @@ export default function Home() {
         {swapPairs.length > 0 && (
           <View style={styles.swapButton}>
             <BlurView intensity={40} tint="light" style={styles.navBlur} />
-            <TouchableOpacity style={styles.swapButtonInner} onPress={handleSwap} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.swapButtonInner} onPress={handleSwap} activeOpacity={0.8} testID="SwapButton">
               <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
               <ThemedText style={styles.navButtonText}>Swap</ThemedText>
             </TouchableOpacity>
