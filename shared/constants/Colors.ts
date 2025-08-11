@@ -67,29 +67,6 @@ export const Colors = {
   },
 };
 
-export const getNetworkIcon = (network: string): any => {
-  switch (network) {
-    case NETWORK_BITCOIN:
-      return 'logo-bitcoin';
-    case NETWORK_LIQUID:
-    case NETWORK_LIQUID_TESTNET:
-      return 'flash';
-    case NETWORK_ROOTSTOCK:
-      return 'cube';
-    case NETWORK_BOTANIX:
-    case NETWORK_BOTANIX_TESTNET:
-      return 'leaf';
-    case NETWORK_ALPEN_TESTNET:
-      return 'layers';
-    case NETWORK_CITREA_TESTNET:
-      return 'diamond';
-    case NETWORK_ARK_MUTINYNET:
-      return 'boat';
-    default:
-      return 'globe';
-  }
-};
-
 export const getNetworkGradient = (network: string) => {
   switch (network) {
     case NETWORK_BITCOIN:

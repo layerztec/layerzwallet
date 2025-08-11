@@ -18,7 +18,7 @@ import {
  * @param network The network identifier
  * @returns The require() statement for the network image or null if not found
  */
-export const getNetworkImageAsset = (network: string) => {
+export const getNetworkImageAsset = (network: string): string | null => {
   switch (network) {
     case NETWORK_BITCOIN:
       return require('../assets/images/ui/network/bitcoin.png');

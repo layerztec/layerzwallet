@@ -107,7 +107,7 @@ export default function Home() {
   const decimals = getDecimalsByNetwork(network);
   const isEVM = getIsEVM(network);
   const networkImage = getNetworkImageAsset(network);
-  const networkIconContent = networkImage ? <Image source={networkImage} style={{ width: 24, height: 24 }} contentFit="contain" /> : null;
+  const networkIconContent = networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null;
   const tokenList = getTokenList(network);
   const swapPairs = getSwapPairs(network, SwapPlatform.MOBILE);
   const canBuyWithFiat = fiatOnRamp?.[network]?.canBuyWithFiat;
@@ -492,6 +492,10 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
     fontWeight: '500',
     marginHorizontal: 16,
+  },
+  networkImage: {
+    width: 24,
+    height: 24,
   },
   balanceSection: {
     flexDirection: 'row',
