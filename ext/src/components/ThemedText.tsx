@@ -12,8 +12,8 @@ const baseStyles: React.CSSProperties = {
 const typeStyles: Record<string, React.CSSProperties> = {
   headline: {
     fontFamily: 'Inter-Light, sans-serif',
-    fontSize: '32px',
-    fontWeight: '300',
+    fontSize: '42px',
+    fontWeight: '400',
     lineHeight: '40px',
     letterSpacing: '0.2px',
   },

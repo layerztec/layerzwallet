@@ -111,6 +111,15 @@ export default function RootLayout() {
                         <Stack.Screen name="index" options={{ headerShown: false, title: 'Index' }} />
                         <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'none' }} />
                         <Stack.Screen
+                          name="onboarding/welcome"
+                          options={{
+                            headerTitle: '',
+                            headerTransparent: true,
+                            animation: 'fade',
+                            animationDuration: 300,
+                          }}
+                        />
+                        <Stack.Screen
                           name="onboarding/intro"
                           options={{
                             headerTitle: '',

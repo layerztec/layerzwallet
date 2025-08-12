@@ -15,6 +15,7 @@ const accent1 = '#FD5D2B';
 const accent2 = '#9DF9EC';
 const accent3 = '#D9FD5F';
 const accent4 = '#F5B9CD';
+const welcomeScreenBackgroundColor = '#00007D';
 const neutral = '#CECDCD';
 
 export const gradients = {
@@ -22,7 +23,7 @@ export const gradients = {
   gradient2: [accent3, accent4] as const,
   blueGradient: ['#01125f', '#0e2589'] as const,
   base: ['#01125F', '#0E2589'] as const,
-
+  welcomeScreenBackground: [welcomeScreenBackgroundColor, welcomeScreenBackgroundColor] as const,
   // Network-specific gradients based on the UI design
   [NETWORK_BITCOIN]: ['#0B1F6B', '#1E3A8A'] as const, // Dark blue to blue
   [NETWORK_LIQUID]: ['#0F766E', '#14B8A6'] as const, // Teal gradient
