@@ -9,6 +9,13 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 - waitForAnimationToEnd
 - extendedWaitUntil:
+    visible:
+      id: 'GetStartedButton'
+    timeout: 15000
+- tapOn:
+    id: 'GetStartedButton'
+- waitForAnimationToEnd
+- extendedWaitUntil:
     visible: 'Create Wallet'
     timeout: 15000
 - waitForAnimationToEnd

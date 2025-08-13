@@ -1,22 +1,34 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Animated, ImageBackground } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, TouchableOpacity, Image, Animated, ImageBackground, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors, gradients } from '@shared/constants/Colors';
-import { useHorizontalSpringTransition, useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
+const useFadeIn = (delay: number = 0, duration: number = 450) => {
+  const opacity = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [delay, duration, opacity]);
+  return { opacity } as const;
+};
 
-// First screen shown before the existing Intro screen.
-// Mimics the provided design screenshot while reusing existing onboarding patterns.
 export default function WelcomeScreen() {
   const router = useRouter();
 
-  const imageTransition = useHorizontalSpringTransition(true, 'forward');
-  const titleTransition = useSequentialSpringAnimation(200);
-  const paragraphTransition = useSequentialSpringAnimation(400);
-  const dotsTransition = useSequentialSpringAnimation(500);
-  const buttonTransition = useSequentialSpringAnimation(650);
+  const heroFade = useFadeIn(0, 550);
+  const titleFade = useFadeIn(0, 500);
+  const paragraphFade = useFadeIn(0, 500);
+  const dotsFade = useFadeIn(0, 500);
+  const buttonFade = useFadeIn(0, 550);
 
   const handleGetStarted = () => {
     router.push('/onboarding/intro');
@@ -26,11 +38,10 @@ export default function WelcomeScreen() {
     <View style={styles.root}>
       <LinearGradient colors={gradients.welcomeScreenBackground} style={styles.root}>
         <SafeAreaView style={styles.safeAreaView}>
-          <View style={styles.heroContainer}>
-            <Animated.View style={[imageTransition]}>
-              <ImageBackground source={require('@/assets/images/ui/welcome.png')} style={styles.heroImage} resizeMode="cover">
-                {/* Title overlay at bottom of image */}
-                <Animated.View style={[styles.titleOverlay, titleTransition]}>
+          <View style={styles.container}>
+            <Animated.View style={[heroFade]}>
+              <ImageBackground source={require('@/assets/images/ui/welcome.png')} style={styles.image} resizeMode="cover">
+                <Animated.View style={[styles.titleOverlay, titleFade]}>
                   <ThemedText type="headline" darkColor={Colors.dark.buttonText} style={styles.title}>
                     {`Welcome to \nLayerz`}
                   </ThemedText>
@@ -39,22 +50,19 @@ export default function WelcomeScreen() {
             </Animated.View>
           </View>
 
-          {/* Copy (paragraph only now) */}
-          <Animated.View style={[styles.paragraphContainer, paragraphTransition]}>
+          <Animated.View style={[styles.paragraphContainer, paragraphFade]}>
             <ThemedText type="paragraph" darkColor={Colors.dark.paragraphText}>
               Layerz starts with your Base Wallet — this is your core Bitcoin account. It’s where your Bitcoin is stored, secured by your keys. Every other layer connects to this foundation.
             </ThemedText>
           </Animated.View>
 
-          {/* Pagination dots (static for now) */}
-          <Animated.View style={[styles.dotsContainer, dotsTransition]}>
+          <Animated.View style={[styles.dotsContainer, dotsFade]}>
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <View key={i} style={[styles.dot, i === 0 ? styles.dotActive : null]} />
             ))}
           </Animated.View>
 
-          {/* Button */}
-          <Animated.View style={[styles.buttonSection, buttonTransition]}>
+          <Animated.View style={[styles.buttonSection, buttonFade]}>
             <TouchableOpacity style={styles.button} onPress={handleGetStarted} activeOpacity={0.85} testID="GetStartedButton">
               <LinearGradient colors={['#85F8E8', '#FC602C']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.buttonGradient}>
                 <View style={styles.buttonInner}>
@@ -81,17 +89,17 @@ const styles = StyleSheet.create({
   safeAreaView: {
     flex: 1,
   },
-  heroContainer: {
+  container: {
     paddingBottom: 12,
     position: 'relative',
   },
-  heroImage: {
+  image: {
     width: '100%',
     height: 520,
   },
   paragraphContainer: {
     paddingTop: 8,
-    paddingHorizontal: 20,
+    paddingHorizontal: 30,
   },
   titleOverlay: {
     position: 'absolute',
@@ -109,7 +117,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingVertical: 24,
-    paddingHorizontal: 20,
+    paddingHorizontal: 30,
   },
   dot: {
     width: DOT_SIZE,
@@ -128,8 +136,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     alignSelf: 'center',
-    width: '100%',
-    maxWidth: 370,
+    width: '80%',
   },
   buttonGradient: {
     height: 56,

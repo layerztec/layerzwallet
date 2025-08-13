@@ -123,6 +123,9 @@ export default function RootLayout() {
                           name="onboarding/intro"
                           options={{
                             headerTitle: '',
+                            headerBackVisible: false,
+                            gestureEnabled: false,
+                            fullScreenGestureEnabled: false,
                             headerTransparent: true,
                             animation: 'fade',
                             animationDuration: 300,
