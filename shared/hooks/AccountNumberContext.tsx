@@ -34,6 +34,11 @@ export const accountItems: AccountItem[] = [
     icon: 'sound',
     iconCollection: 'foundation',
   },
+  {
+    name: 'Fifth',
+    icon: 'die-five',
+    iconCollection: 'foundation',
+  },
 ] as const;
 
 type AccountNumber = number;
