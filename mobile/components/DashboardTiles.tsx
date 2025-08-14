@@ -252,8 +252,9 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
 
         <FlatList
           ref={flatListRef}
+          key={`account-${accountNumber}`}
           data={cards}
-          keyExtractor={(item, index) => `card-${item.name}-${index}`}
+          keyExtractor={(item, index) => `card-${item.name}-${index}-${accountNumber}`}
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
