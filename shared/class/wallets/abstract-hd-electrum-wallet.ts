@@ -21,6 +21,9 @@ import ecc from '@bitcoinerlab/secp256k1';
 import { AbstractHDWallet } from './abstract-hd-wallet';
 import { CreateTransactionResult, CreateTransactionTarget, CreateTransactionUtxo, Transaction, Utxo } from './types';
 import { ICsprng } from '../../types/ICsprng';
+import { CommonTransaction } from '../../types/common-transaction';
+import { NETWORK_BITCOIN } from '../../types/networks';
+
 const ECPair = ECPairFactory(ecc);
 const bip32 = BIP32Factory(ecc);
 
@@ -1316,5 +1319,48 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
 
   _getBalancesByPaymentCodeIndex(paymentCode: string): BalanceByIndex {
     return this._balances_by_payment_code_index[paymentCode] || { c: 0, u: 0 };
+  }
+
+  /**
+   * Returns common transactions for the wallet. The transactions are sorted by received timestamp (newest first).
+   *
+   * @param afterTxid - if provided, only transactions after this txid will be returned
+   * @param limit - maximum number of transactions to return
+   * @returns CommonTransaction[]
+   */
+  async getCommonTransactions(afterTxid?: string, limit: number = 10): Promise<CommonTransaction[]> {
+    const txs = this.getTransactions().reverse();
+    let filtered: Transaction[] = [];
+
+    // filter
+    if (afterTxid) {
+      let found = false;
+      for (const tx of txs) {
+        if (found) {
+          filtered.push(tx);
+        }
+        found = tx.txid === afterTxid;
+      }
+    } else {
+      filtered = txs;
+    }
+    filtered = filtered.slice(0, limit);
+
+    // convert to common transaction
+    const commonTransactions: CommonTransaction[] = [];
+    for (const tx of filtered) {
+      const direction = tx?.value ? (tx.value > 0 ? 'receive' : 'send') : 'other';
+      commonTransactions.push({
+        txid: tx.txid,
+        network: NETWORK_BITCOIN,
+        timestamp: (tx.received ?? 0) / 1000,
+        direction,
+        amount: tx?.value,
+        tokenTransfers: [],
+        status: tx.confirmations > 3 ? 'confirmed' : 'pending',
+      });
+    }
+
+    return commonTransactions;
   }
 }

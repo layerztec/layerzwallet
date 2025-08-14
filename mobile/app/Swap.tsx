@@ -64,7 +64,7 @@ export default function Swap() {
   };
 
   const handleToTokenSelect = () => {
-    router.push({ pathname: '/SwapTarget', params: { amount: internalAmount } });
+    router.push({ pathname: '/SwapTarget' });
   };
 
   const handleMaxPress = () => {
@@ -120,7 +120,7 @@ export default function Swap() {
   }
 
   return (
-    <GradientScreen variant={network}>
+    <GradientScreen variant={network} scroll={true}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -139,7 +139,15 @@ export default function Swap() {
           </View>
           <View style={styles.tokenInputRow}>
             <View style={styles.amountContainer}>
-              <TextInput style={styles.amountInput} value={amount} onChangeText={handleAmountChange} placeholder="0.0" placeholderTextColor="rgba(255, 255, 255, 0.5)" keyboardType="numeric" />
+              <TextInput
+                style={styles.amountInput}
+                value={amount}
+                onChangeText={handleAmountChange}
+                placeholder="0.0"
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                keyboardType="numeric"
+                testID="AmountInput"
+              />
             </View>
           </View>
           <View style={styles.balanceRow}>
@@ -152,8 +160,10 @@ export default function Swap() {
 
         {/* To Token Selection */}
         <View style={styles.toSection}>
-          <ThemedText style={styles.toLabel}>To</ThemedText>
-          <TouchableOpacity style={styles.targetButton} onPress={handleToTokenSelect}>
+          <ThemedText style={styles.toLabel} testID="ToLabel">
+            To
+          </ThemedText>
+          <TouchableOpacity style={styles.targetButton} onPress={handleToTokenSelect} testID="ToNetworkButton">
             <ThemedText style={styles.targetButtonText}>{targetNetwork ? capitalizeFirstLetter(targetNetwork) : 'Select target network'}</ThemedText>
             <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.6)" />
           </TouchableOpacity>
@@ -174,7 +184,7 @@ export default function Swap() {
               <ThemedText style={styles.loadingText}>Preparing swap...</ThemedText>
             </View>
           ) : (
-            <Button title={buttonTitle} onPress={handleExecuteSwap} style={[styles.swapButton, ...(canSwap ? [] : [styles.swapButtonDisabled])]} disabled={!canSwap} />
+            <Button testID="SwapButton" title={buttonTitle} onPress={handleExecuteSwap} style={[styles.swapButton, ...(canSwap ? [] : [styles.swapButtonDisabled])]} disabled={!canSwap} />
           )}
         </View>
       </View>

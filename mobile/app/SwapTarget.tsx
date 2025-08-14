@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -12,6 +12,7 @@ import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { Networks } from '@shared/types/networks';
 import { SwapPlatform } from '@shared/types/swap';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
+import { sleep } from '@shared/modules/sleep';
 
 interface TargetNetworkItem {
   network: Networks;
@@ -22,7 +23,12 @@ const ListItem = ({ item, onPress, active, first, last }: { item: TargetNetworkI
   const networkImage = getNetworkImageAsset(item.network);
 
   return (
-    <TouchableOpacity style={[styles.item, active && styles.activeItem, first && styles.firstItem, last && styles.lastItem]} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={[styles.item, active && styles.activeItem, first && styles.firstItem, last && styles.lastItem]}
+      onPress={onPress}
+      activeOpacity={0.7}
+      testID={`SwapTarget-${item.network}`}
+    >
       <View style={styles.networkIcon}>{networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null}</View>
       <ThemedText style={styles.networkName}>{item.name}</ThemedText>
     </TouchableOpacity>
@@ -33,9 +39,6 @@ export default function SwapTarget() {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
   const [availableTargets, setAvailableTargets] = useState<TargetNetworkItem[]>([]);
-  const params = useLocalSearchParams<{
-    amount?: string;
-  }>();
 
   useEffect(() => {
     const swapPairs = getSwapPairs(network, SwapPlatform.MOBILE);
@@ -51,9 +54,11 @@ export default function SwapTarget() {
     router.back();
   };
 
-  const handleSelectTarget = (targetNetwork: Networks) => {
+  const handleSelectTarget = async (targetNetwork: Networks) => {
     router.back();
-    router.setParams({ toNetwork: targetNetwork, amount: params.amount });
+    // let transition happen and then update the params
+    await sleep(100);
+    router.setParams({ toNetwork: targetNetwork });
   };
 
   return (

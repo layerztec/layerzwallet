@@ -1,4 +1,5 @@
 import BigNumber from 'bignumber.js';
+import * as bip21 from 'bip21';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import React, { useContext, useEffect, useRef, useState } from 'react';
@@ -41,11 +42,13 @@ const SendLightning: React.FC = () => {
   const [sendState, setSendState] = useState<'idle' | 'preparing' | 'prepared' | 'sending' | 'success'>('idle');
   const [feeSats, setFeeSats] = useState<number | null>(null);
   const [amountToSend, setAmountToSend] = useState<string>('');
+  const [memo, setMemo] = useState<string>('');
   const { accountNumber } = useContext(AccountNumberContext);
   const walletRef = useRef<TLightningWallet | null>(null);
 
   const onInvoiceInput = async (scanned: string) => {
-    router.setParams({ invoice: scanned });
+    const scanned2use = scanned.trim().replace('lightning:', '').replace('LIGHTNING:', ''); // sanitize
+    router.setParams({ invoice: scanned2use });
   };
 
   useEffect(() => {
@@ -53,11 +56,26 @@ const SendLightning: React.FC = () => {
     if (!params.invoice) return;
 
     try {
+      try {
+        const bip21decoded = bip21.decode(params.invoice);
+        // @ts-ignore `lightning` is not part of bip21 spec, but a valid extension of bip21 thats widely used
+        if (bip21decoded?.options?.lightning) {
+          // @ts-ignore
+          router.setParams({ invoice: bip21decoded?.options?.lightning });
+          return; // useEffect will re-run with the correct parsed invoice
+        }
+      } catch (_) {}
+
       const decoded = bolt11.decode(params.invoice);
-      setAmountToSend(String(decoded.satoshis));
+      setAmountToSend(decoded.satoshis ? String(decoded.satoshis) : '');
 
       if (!decoded.satoshis) {
         throw new Error('Could not determine payment amount from invoice');
+      }
+
+      const memoTag = decoded.tags.find((tag: any) => tag.tagName === 'description');
+      if (memoTag) {
+        setMemo(String(memoTag.data));
       }
 
       const feeBN = new BigNumber(decoded.satoshis).dividedBy(100).multipliedBy(maxFeePercent).toNumber();
@@ -66,13 +84,11 @@ const SendLightning: React.FC = () => {
     } catch (error: any) {
       setError(error.message);
     }
-  }, [params.invoice]);
+  }, [params.invoice, router]);
 
   const handleQRScan = async () => {
     const scanned = await scanQr();
-    if (scanned && scanned.trim()) {
-      await onInvoiceInput(scanned.trim());
-    }
+    scanned && (await onInvoiceInput(scanned));
   };
 
   // Initialize the wallet
@@ -213,6 +229,13 @@ const SendLightning: React.FC = () => {
                   {amountToSend ? formatBalance(amountToSend, getDecimalsByNetwork(NETWORK_BITCOIN)) : ''} {getTickerByNetwork(NETWORK_BITCOIN)}
                 </ThemedText>
               </View>
+
+              {memo && (
+                <View style={styles.detailRow}>
+                  <ThemedText style={styles.detailLabel}>Memo:</ThemedText>
+                  <ThemedText style={styles.detailValue}>{memo}</ThemedText>
+                </View>
+              )}
 
               {feeSats !== null && (
                 <View style={styles.detailRow}>
