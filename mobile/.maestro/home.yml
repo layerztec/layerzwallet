@@ -6,15 +6,4 @@ appId: com.layerzwallet.mobile
 
 - runFlow: subflows/skip-dev-client.yml
 - waitForAnimationToEnd
-- waitForAnimationToEnd
-- waitForAnimationToEnd
-- extendedWaitUntil:
-    visible:
-      id: 'GetStartedButton'
-    timeout: 45000
-- tapOn:
-    id: 'GetStartedButton'
-- waitForAnimationToEnd
-- extendedWaitUntil:
-    visible: 'Welcome to Layerz'
-    timeout: 30000
+- assertVisible: 'Welcome to Layerz'

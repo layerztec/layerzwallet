@@ -6,8 +6,6 @@ appId: com.layerzwallet.mobile
 
 - runFlow: skip-dev-client.yml
 - waitForAnimationToEnd
-- waitForAnimationToEnd
-- waitForAnimationToEnd
 - extendedWaitUntil:
     visible:
       id: 'GetStartedButton'
