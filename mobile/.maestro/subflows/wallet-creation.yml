@@ -8,13 +8,13 @@ appId: com.layerzwallet.mobile
 
 - waitForAnimationToEnd
 - runFlow:
-        when:
-            visible:
-                id: 'GetStartedButton'
-        commands:
-            - tapOn:
-                    id: 'GetStartedButton'
-            - waitForAnimationToEnd
+    when:
+      visible:
+        id: 'GetStartedButton'
+    commands:
+      - tapOn:
+          id: 'GetStartedButton'
+      - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: 'Create Wallet'
     timeout: 15000

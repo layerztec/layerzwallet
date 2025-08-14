@@ -7,13 +7,13 @@ appId: com.layerzwallet.mobile
 - runFlow: skip-dev-client.yml
 - waitForAnimationToEnd
 - runFlow:
-        when:
-            visible:
-                id: 'GetStartedButton'
-        commands:
-            - tapOn:
-                    id: 'GetStartedButton'
-            - waitForAnimationToEnd
+    when:
+      visible:
+        id: 'GetStartedButton'
+    commands:
+      - tapOn:
+          id: 'GetStartedButton'
+      - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: 'Import Wallet'
     timeout: 150000
