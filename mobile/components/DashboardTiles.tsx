@@ -268,7 +268,7 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
               transitionId={`card-${card.name}-${index}`}
               disableNavigation={!!onExternalCardPress}
               isNetworkSelector={isNetworkSelector}
-              accountNumber={providedCards ? undefined : accountNumber}
+              accountNumber={accountNumber}
             />
           )}
         />
