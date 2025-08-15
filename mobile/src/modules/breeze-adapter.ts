@@ -2,7 +2,7 @@ import type * as JSAPI from '@breeztech/breez-sdk-liquid';
 import * as RNAPI from '@breeztech/react-native-breez-sdk-liquid';
 import * as Crypto from 'expo-crypto';
 
-import { BreezConnection, IBreezAdapter, assetMetadata } from '@shared/class/wallets/breez-wallet';
+import { BreezConnection, IBreezAdapter, getAssertMetadata } from '@shared/class/wallets/breez-wallet';
 
 const API_KEY = process.env.EXPO_PUBLIC_BREEZ_API_KEY;
 
@@ -122,8 +122,7 @@ class BreezAdapter implements IBreezAdapter {
     // set the working directory to a unique path based on the mnemonic
     config.workingDir = `${config.workingDir}/${sha256(connection.mnemonic)}`;
     // set the asset metadata
-    // filter out Bitcoin testnet here, it is only needed in Extension
-    config.assetMetadata = assetMetadata.filter(({ assetId }) => assetId !== '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49');
+    config.assetMetadata = getAssertMetadata(connection.network);
     try {
       await RNAPI.connect({ mnemonic: connection.mnemonic, config });
     } catch (e: any) {
@@ -184,6 +183,10 @@ class BreezAdapter implements IBreezAdapter {
     return result;
   }
 
+  private async listPayments(args: JSAPI.ListPaymentsRequest) {
+    return await RNAPI.listPayments(args as RNAPI.ListPaymentsRequest);
+  }
+
   get api() {
     const getInfo = this.withLockAndSdk(this.getInfo.bind(this));
     const prepareReceivePayment = this.withLockAndSdk(this.prepareReceivePayment.bind(this));
@@ -192,6 +195,7 @@ class BreezAdapter implements IBreezAdapter {
     const prepareSendPayment = this.withLockAndSdk(this.prepareSendPayment.bind(this));
     const sendPayment = this.withLockAndSdk(this.sendPayment.bind(this));
     const getPayment = this.withLockAndSdk(this.getPayment.bind(this));
+    const listPayments = this.withLockAndSdk(this.listPayments.bind(this));
 
     return {
       getInfo,
@@ -201,6 +205,7 @@ class BreezAdapter implements IBreezAdapter {
       prepareSendPayment,
       sendPayment,
       getPayment,
+      listPayments,
     };
   }
 

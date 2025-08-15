@@ -30,7 +30,7 @@ const TransactionSuccessEvm: React.FC = () => {
   const { receipt } = useTransactionReceipt(network, transactionId);
 
   const list = getTokenList(network);
-  const tokenInfo = list.find((token) => token.address === tokenContractAddress);
+  const tokenInfo = list.find((token) => token.id === tokenContractAddress);
 
   const [showTimedOutTxIcon, setShowTimedOutTxIcon] = useState(false);
 

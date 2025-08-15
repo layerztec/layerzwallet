@@ -1,5 +1,5 @@
 import { Messenger } from './messenger';
-import { GetSubMnemonicResponse, GetBtcSendDataResponse, IBackgroundCaller, MessageType } from '@shared/types/IBackgroundCaller';
+import { GetSubMnemonicResponse, GetBtcSendDataResponse, IBackgroundCaller, MessageType, GetCommonTransactionsResponse } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
@@ -120,5 +120,9 @@ export const BackgroundCaller: IBackgroundCaller = {
 
   async getSubMnemonic(...params): Promise<GetSubMnemonicResponse> {
     return await Messenger.sendGenericMessageToBackground(MessageType.GET_SUB_MNEMONIC, params);
+  },
+
+  async getCommonTransactions(...params): Promise<GetCommonTransactionsResponse> {
+    return await Messenger.sendGenericMessageToBackground(MessageType.GET_COMMON_TRANSACTIONS, params);
   },
 };

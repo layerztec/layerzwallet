@@ -22,4 +22,5 @@ jobs:
         - .maestro/receive.yml
         - .maestro/restore.yml
         - .maestro/security.yml
+        - .maestro/swap.yml
 #        - .maestro/browser.yml # always fails on CI, passes locally

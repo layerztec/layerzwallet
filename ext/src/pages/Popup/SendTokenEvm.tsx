@@ -29,7 +29,7 @@ const SendTokenEvm: React.FC = () => {
   const { accountNumber } = useContext(AccountNumberContext);
   const { contractAddress } = location.state as SendTokenEvmProps;
   const list = getTokenList(network);
-  const token = list.find((token) => token.address === contractAddress);
+  const token = list.find((token) => token.id === contractAddress);
   const { balance } = useTokenBalance(network, accountNumber, contractAddress, BackgroundCaller);
 
   const [address, setAddress] = useState<string>(''); // our address
@@ -70,7 +70,7 @@ const SendTokenEvm: React.FC = () => {
       const satValueBN = new BigNumber(amountToSend);
       const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(token?.decimals ?? 1)).toString(10);
       navigate('/transaction-success', {
-        state: { transactionId, amount: '0', network: network, bytes, recipient: toAddress, amountToken: satValue, tokenContractAddress: token?.address } as TransactionSuccessProps,
+        state: { transactionId, amount: '0', network: network, bytes, recipient: toAddress, amountToken: satValue, tokenContractAddress: token?.id } as TransactionSuccessProps,
       });
     } catch (error: any) {
       setError(error.message);

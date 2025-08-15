@@ -1,3 +1,5 @@
+import assert from 'assert';
+
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
@@ -14,7 +16,6 @@ import { Csprng } from '../class/rng';
 import { SecureStorage } from '../class/secure-storage';
 import { decrypt, encrypt } from '../modules/encryption';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
-import assert from 'assert';
 
 /**
  * A drop-in replacement for BackgroundCaller in `ext` project. Since we have only one js context on mobile,
@@ -43,7 +44,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
     } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
       const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(wallet instanceof BreezWallet);
-      const address = wallet.getAddressLiquid();
+      const address = await wallet.getAddressLiquid();
       return address;
     } else {
       const xpub = await LayerzStorage.getItem(STORAGE_KEY_EVM_XPUB);
@@ -245,5 +246,19 @@ export const BackgroundExecutor: IBackgroundCaller = {
 
   async getSubMnemonic(accountNumber) {
     return await SecureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
+  },
+
+  async getCommonTransactions(network, accountNumber, afterTxid, limit) {
+    if (network === NETWORK_BITCOIN) {
+      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof WatchOnlyWallet);
+      await wallet.fetchTransactions();
+      return wallet.getCommonTransactions(afterTxid, limit);
+    } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
+      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof BreezWallet);
+      return await wallet.getCommonTransactions(afterTxid, limit);
+    }
+    return [];
   },
 };

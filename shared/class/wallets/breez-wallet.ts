@@ -4,6 +4,7 @@ import type {
   GetPaymentRequest,
   LightningPaymentLimitsResponse,
   LiquidNetwork,
+  ListPaymentsRequest,
   Payment,
   PrepareReceiveRequest,
   PrepareReceiveResponse,
@@ -15,8 +16,11 @@ import type {
   SendPaymentResponse,
 } from '@breeztech/breez-sdk-liquid';
 import bolt11 from 'bolt11';
-import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET } from '../../types/networks';
+
 import { createLightningInvoiceResponse, InterfaceLightningWallet } from './interface-lightning-wallet';
+import { CommonTokenTransfer, CommonTransaction } from '@shared/types/common-transaction';
+import { getTokenList } from '@shared/models/token-list';
+import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET } from '@shared/types/networks';
 
 export type BreezConnection = {
   mnemonic: string;
@@ -32,6 +36,7 @@ export interface IBreezAdapter {
     prepareSendPayment: (connection: BreezConnection, args: PrepareSendRequest) => Promise<PrepareSendResponse>;
     sendPayment: (connection: BreezConnection, args: SendPaymentRequest) => Promise<SendPaymentResponse>;
     getPayment(connection: BreezConnection, args: GetPaymentRequest): Promise<Payment | undefined>;
+    listPayments(connection: BreezConnection, args: ListPaymentsRequest): Promise<Payment[]>;
   };
 }
 
@@ -83,6 +88,10 @@ export class BreezWallet implements InterfaceLightningWallet {
 
   public async sendPayment(args: SendPaymentRequest) {
     return await this.adapter.api.sendPayment(this.connection, args);
+  }
+
+  public async listPayments(args: ListPaymentsRequest) {
+    return await this.adapter.api.listPayments(this.connection, args);
   }
 
   public async getAddressLiquid() {
@@ -185,35 +194,54 @@ export class BreezWallet implements InterfaceLightningWallet {
 
     return false;
   }
+
+  async getCommonTransactions(afterTxid?: string, limit: number = 10): Promise<CommonTransaction[]> {
+    const payments = await this.listPayments({});
+
+    // convert to common transaction
+    const commonTransactions: CommonTransaction[] = [];
+    for (const payment of payments) {
+      let tokenTransfers: CommonTokenTransfer[] = [];
+      // Make sure it is a token transfer
+      if (payment.details.type === 'liquid' && !Object.values(LBTC_ASSET_IDS).includes(payment.details.assetId)) {
+        const address = payment.details.assetId;
+        let amount = payment.details.assetInfo?.amount ?? null;
+        if (amount === null) {
+          // if assetInfo is not present, we parse `destination` field as URL
+          const url = new URL(payment.details.destination);
+          amount = Number(url.searchParams.get('amount'));
+        }
+        tokenTransfers = [{ address, amount }];
+      }
+
+      commonTransactions.push({
+        txid: payment.txId!,
+        network: NETWORK_LIQUID,
+        timestamp: payment.timestamp,
+        direction: payment.paymentType,
+        amount: payment.amountSat,
+        status: payment.status === 'complete' ? 'confirmed' : 'pending',
+        fee: payment.feesSat,
+        tokenTransfers,
+      });
+    }
+
+    return commonTransactions;
+  }
 }
 
-// Additional assets
-export const assetMetadata: AssetMetadata[] = [
-  {
-    assetId: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49',
-    name: 'Testnet Bitcoin',
-    ticker: 'tBTC',
-    precision: 8,
-  },
-  {
-    assetId: 'ec24f3e4a4993802f901d881ea1bbfc642dfbc25d5fe82af256',
-    name: 'KEK LOL',
-    ticker: 'LOLx',
-    precision: 7,
-  },
-  {
-    assetId: 'ec24f3e4a4993802f901d881ea1bbfc642dfbc25d5fe82af2564ddc59dc025a9',
-    name: 'KEK LOL2',
-    ticker: 'LOLx2',
-    precision: 7,
-  },
-  {
-    assetId: '139768b54fb12cdb732d02d12aba8abb7de8f8f5ae776ca13e2ba10cbf306aa9',
-    name: 'KEK LOL3',
-    ticker: 'LOLx3',
-    precision: 7,
-  },
-];
+export const getAssertMetadata = (liquidNetwork: LiquidNetwork): AssetMetadata[] => {
+  const network = liquidNetwork === 'mainnet' ? NETWORK_LIQUID : NETWORK_LIQUID_TESTNET;
+  // we need to filter out BTC and USDT assets, otherwise we will get an error
+  const filterOut = [LBTC_ASSET_IDS.mainnet, LBTC_ASSET_IDS.testnet, 'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2'];
+  const list = getTokenList(network).filter((token) => !filterOut.includes(token.id));
+  return list.map((token) => ({
+    assetId: token.id,
+    name: token.name,
+    ticker: token.symbol,
+    precision: token.decimals,
+  }));
+};
 
 // L-BTC asset IDs for mainnet and testnet
 export const LBTC_ASSET_IDS = {

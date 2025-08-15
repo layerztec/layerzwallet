@@ -1,0 +1,58 @@
+[
+  {
+    "assetId": "6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d",
+    "name": "Liquid Bitcoin",
+    "symbol": "L-BTC",
+    "decimals": 8,
+    "chainId": 11
+  },
+  {
+    "assetId": "144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49",
+    "name": "Testnet Bitcoin",
+    "symbol": "tBTC",
+    "decimals": 8,
+    "chainId": 12
+  },
+  {
+    "assetId": "ec24f3e4a4993802f901d881ea1bbfc642dfbc25d5fe82af256",
+    "name": "KEK LOL",
+    "symbol": "LOLx",
+    "decimals": 7,
+    "chainId": 12
+  },
+  {
+    "assetId": "ec24f3e4a4993802f901d881ea1bbfc642dfbc25d5fe82af2564ddc59dc025a9",
+    "name": "KEK LOL2",
+    "symbol": "LOLx2",
+    "decimals": 7,
+    "chainId": 12
+  },
+  {
+    "assetId": "139768b54fb12cdb732d02d12aba8abb7de8f8f5ae776ca13e2ba10cbf306aa9",
+    "name": "KEK LOL3",
+    "symbol": "LOLx3",
+    "decimals": 7,
+    "chainId": 12
+  },
+  {
+    "assetId": "ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2",
+    "name": "Tether USDt",
+    "symbol": "USDt",
+    "decimals": 2,
+    "chainId": 11
+  },
+  {
+    "assetId": "3438ecb49fc45c08e687de4749ed628c511e326460ea4336794e1cf02741329e",
+    "name": "JPY Stablecoin",
+    "symbol": "JPYS",
+    "decimals": 2,
+    "chainId": 11
+  },
+  {
+    "assetId": "18729918ab4bca843656f08d4dd877bed6641fbd596a0a963abbf199cfeb3cec",
+    "name": "PEGx EURx",
+    "symbol": "EURx",
+    "decimals": 2,
+    "chainId": 11
+  }
+]
