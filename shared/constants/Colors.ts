@@ -59,7 +59,7 @@ export const Colors = {
     icon: accent1,
     tabIconDefault: neutral,
     tabIconSelected: accent1,
-    buttonPrimary: '#000000',
+    buttonPrimary: 'rgba(255, 255, 255, 0.3)',
     buttonSecondary: 'transparent',
     buttonBorder: '#FFFFFF1A',
     buttonText: '#FFFFFF',
