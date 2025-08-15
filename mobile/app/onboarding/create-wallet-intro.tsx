@@ -16,7 +16,7 @@ export default function CreateWalletIntroScreen() {
   const buttonTransition = useSequentialSpringAnimation(600);
 
   const handleCreateWallet = async () => {
-    router.push('/onboarding/create-wallet-backup-settings');
+    router.push('/onboarding/create-wallet');
   };
 
   return (
