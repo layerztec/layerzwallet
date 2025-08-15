@@ -17,16 +17,6 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 - tapOn: 'Continue'
 - waitForAnimationToEnd
-- scrollUntilVisible:
-    element:
-      id: 'ManualBackupSettingsRow'
-    direction: DOWN
-- tapOn:
-    id: 'ManualBackupSettingsRow'
-- waitForAnimationToEnd
-- tapOn:
-    id: 'ManualBackupContinueButton'
-
 - extendedWaitUntil:
     visible: 'Make sure to write it down as shown here. You have to verify this later.'
     timeout: 150000

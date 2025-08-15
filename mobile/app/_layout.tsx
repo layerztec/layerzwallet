@@ -126,18 +126,6 @@ export default function RootLayout() {
                           }}
                         />
                         <Stack.Screen
-                          name="onboarding/create-wallet-backup-settings"
-                          options={{
-                            ...DefaultNavigatorOptions,
-                          }}
-                        />
-                        <Stack.Screen
-                          name="onboarding/create-wallet-backup-password"
-                          options={{
-                            ...DefaultNavigatorOptions,
-                          }}
-                        />
-                        <Stack.Screen
                           name="manual-backup/intro"
                           options={{
                             ...DefaultNavigatorOptions,
