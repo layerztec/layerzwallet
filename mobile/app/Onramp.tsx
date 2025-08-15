@@ -1,5 +1,6 @@
+import GradientScreen from '@/components/GradientScreen';
 import { Networks } from '@shared/types/networks';
-import { useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import WebView from 'react-native-webview';
 
@@ -14,12 +15,15 @@ const Onramp: React.FC = () => {
 
   // @see https://docs.onramper.com/docs/integrating-in-webviews
   return (
-    <WebView
-      originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
-      allowsInlineMediaPlayback={true}
-      style={{ flex: 1 }}
-      source={{ uri: `https://layerztec.github.io/website/onramp/?address=${address}&network=${network}` }}
-    />
+    <GradientScreen variant={network}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <WebView
+        originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
+        allowsInlineMediaPlayback={true}
+        style={{ flex: 1 }}
+        source={{ uri: `https://layerztec.github.io/website/onramp/?address=${address}&network=${network}` }}
+      />
+    </GradientScreen>
   );
 };
 
