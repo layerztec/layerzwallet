@@ -3,13 +3,11 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, StyleSheet, ViewStyle, TextStyle, ImageStyle, Animated, ActivityIndicator, FlatList, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Colors, gradients } from '@shared/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
-import { saveBackupKit, printTemplate } from '@/utils/backupUtils';
 
 const LoadingWordAnimation: React.FC<{
   targetWord: string;
@@ -58,9 +56,6 @@ export default function CreateWalletScreen() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [shouldAnimateButtons, setShouldAnimateButtons] = useState<boolean>(false);
-
-  const saveButtonAnimation = useSequentialSpringAnimation(shouldAnimateButtons ? 100 : 0);
-  const printButtonAnimation = useSequentialSpringAnimation(shouldAnimateButtons ? 200 : 0);
   const verifyButtonAnimation = useSequentialSpringAnimation(shouldAnimateButtons ? 300 : 0);
 
   useEffect(() => {
@@ -99,14 +94,6 @@ export default function CreateWalletScreen() {
     router.push('/manual-backup/validation-intro');
   };
 
-  const handleSaveBackup = async () => {
-    await saveBackupKit(recoveryPhrase);
-  };
-
-  const handlePrintTemplate = async () => {
-    await printTemplate(recoveryPhrase);
-  };
-
   const wordsData = useMemo(() => {
     const words = recoveryPhrase ? recoveryPhrase.split(' ') : [];
     return Array.from({ length: 12 }, (_, index) => ({
@@ -143,24 +130,6 @@ export default function CreateWalletScreen() {
                 showsVerticalScrollIndicator={false}
                 columnWrapperStyle={styles.flatListRow}
               />
-            )}
-
-            {!isLoading && (
-              <View style={styles.actionButtonsContainer}>
-                <Animated.View style={saveButtonAnimation}>
-                  <TouchableOpacity style={styles.actionButton} onPress={handleSaveBackup}>
-                    <Ionicons name="download" size={20} color="rgba(255, 255, 255, 0.8)" />
-                    <ThemedText style={styles.actionButtonText}>Save your Backup Kit</ThemedText>
-                  </TouchableOpacity>
-                </Animated.View>
-
-                <Animated.View style={printButtonAnimation}>
-                  <TouchableOpacity style={styles.actionButton} onPress={handlePrintTemplate}>
-                    <Ionicons name="print" size={20} color="rgba(255, 255, 255, 0.8)" />
-                    <ThemedText style={styles.actionButtonText}>Print template</ThemedText>
-                  </TouchableOpacity>
-                </Animated.View>
-              </View>
             )}
 
             <View style={styles.bottomButtonContainer}>
