@@ -132,7 +132,7 @@ export default function Home() {
   };
 
   const goToSettings = () => {
-    router.push('/settings');
+    router.push('/Settings');
   };
 
   const handleTransactionHistory = () => {
