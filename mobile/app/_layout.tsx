@@ -168,7 +168,7 @@ export default function RootLayout() {
                           }}
                         />
                         <Stack.Screen name="receive" />
-                        <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
+                        <Stack.Screen name="Settings" options={{ headerShown: false, title: 'Settings' }} />
                         <Stack.Screen name="SeedBackup" options={{ headerShown: true, title: 'Seed Backup' }} />
 
                         <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
