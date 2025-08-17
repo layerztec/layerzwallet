@@ -77,6 +77,7 @@ export default function AskMnemonicScreen() {
           style={[styles.input, { color: textColor, borderColor: tintColor }]}
           secureTextEntry
           placeholder="Enter your password"
+          autoCapitalize="none"
           placeholderTextColor="#888"
           value={password}
           onChangeText={handlePasswordChange}
@@ -95,7 +96,7 @@ export default function AskMnemonicScreen() {
           <Pressable style={[styles.button, styles.buttonCancel, isLoading && styles.buttonDisabled]} onPress={onCancelPress} disabled={isLoading}>
             <Text style={styles.buttonText}>Cancel</Text>
           </Pressable>
-          <Pressable style={[styles.button, styles.buttonConfirm, { backgroundColor: tintColor }, isLoading && styles.buttonDisabled]} onPress={onOkPress} disabled={isLoading}>
+          <Pressable style={[styles.button, styles.buttonConfirm, isLoading && styles.buttonDisabled]} onPress={onOkPress} disabled={isLoading}>
             <Text style={styles.buttonText}>{isLoading ? 'Unlocking...' : 'Unlock'}</Text>
           </Pressable>
         </View>
@@ -158,14 +159,14 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   button: {
-    borderRadius: 5,
+    borderRadius: 10,
     padding: 10,
     elevation: 2,
     minWidth: '40%',
     alignItems: 'center',
   },
   buttonConfirm: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#515f9c',
   },
   buttonCancel: {
     backgroundColor: '#888',
