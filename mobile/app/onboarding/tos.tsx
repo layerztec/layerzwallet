@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, Alert, View, Animated } from 'react-native';
+import { StyleSheet, TouchableOpacity, Alert, View, Animated, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,18 +8,27 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Colors, gradients } from '@shared/constants/Colors';
-import { useSequentialSpringAnimation, useHorizontalSpringTransition } from '@/hooks/useCustomTransitions';
+import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
+import { Image } from 'expo-image';
 
 export default function TermsOfServiceScreen() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [backupChecked, setBackupChecked] = useState(false);
+  const [termsChecked, setTermsChecked] = useState(false);
 
-  const imageTransition = useHorizontalSpringTransition(true, 'forward');
-  const titleTransition = useSequentialSpringAnimation(200);
-  const termsTransition = useSequentialSpringAnimation(400);
-  const buttonTransition = useSequentialSpringAnimation(600);
+  const iconTransition = useSequentialSpringAnimation(200);
+  const titleTransition = useSequentialSpringAnimation(400);
+  const subtitleTransition = useSequentialSpringAnimation(600);
+  const checkboxTransition = useSequentialSpringAnimation(800);
+  const buttonTransition = useSequentialSpringAnimation(1000);
 
   const handleAgree = async () => {
+    if (!backupChecked || !termsChecked) {
+      Alert.alert('Please check both boxes', 'You must confirm that you have backed up your recovery phrase and accept the terms of service to continue.');
+      return;
+    }
+
     setIsLoading(true);
     try {
       // Accept the terms of service
@@ -35,43 +44,77 @@ export default function TermsOfServiceScreen() {
     }
   };
 
+  const handleCheckboxPress = (type: 'backup' | 'terms') => {
+    if (type === 'backup') {
+      setBackupChecked(!backupChecked);
+    } else {
+      setTermsChecked(!termsChecked);
+    }
+  };
+
+  const handleOpenTerms = async () => {
+    try {
+      await Linking.openURL('https://layerzwallet.com/tos');
+    } catch (error) {
+      console.error('Failed to open Terms of Service URL:', error);
+      Alert.alert('Error', 'Failed to open Terms of Service. Please try again.');
+    }
+  };
+
+  const isButtonEnabled = backupChecked && termsChecked && !isLoading;
+
   return (
     <View style={styles.container}>
       <LinearGradient colors={gradients.blueGradient} style={styles.container}>
         <SafeAreaView style={styles.safeAreaView}>
           <View style={styles.logoContainer}>
-            <Animated.View style={[imageTransition]}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="document-text-outline" size={60} color={Colors.dark.buttonText} />
-              </View>
+            <Animated.View style={[iconTransition]}>
+              <Image source={require('@/assets/images/ui/success.png')} style={styles.icon} />
             </Animated.View>
-          </View>
-
+          </View>{' '}
           <View style={styles.content}>
             <Animated.View style={[titleTransition]}>
               <ThemedText type="title" darkColor={Colors.dark.buttonText} textAlign="center">
-                Terms of Service
+                Wallet created{'\n'}successfully
               </ThemedText>
             </Animated.View>
 
             <View style={{ marginVertical: 10 }} />
 
-            <Animated.View style={[styles.termsContainer, termsTransition]}>
-              <ScrollView style={styles.termsScrollView} showsVerticalScrollIndicator={false}>
-                <ThemedText style={styles.termsText} darkColor="rgba(255, 255, 255, 0.9)">
-                  {TERMS_OF_SERVICE}
-                </ThemedText>
-              </ScrollView>
+            <Animated.View style={[subtitleTransition]}>
+              <ThemedText type="paragraph" darkColor="rgba(255, 255, 255, 0.7)" textAlign="center">
+                You are now ready to access your wallet{'\n'}and unlock Bitcoin Layerz 2 potential
+              </ThemedText>
             </Animated.View>
           </View>
-
-          <Animated.View style={[styles.buttonSection, buttonTransition]}>
-            <TouchableOpacity style={[styles.button, isLoading ? styles.buttonDisabled : null]} onPress={handleAgree} disabled={isLoading}>
-              <View style={styles.view}>
-                <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
-                  {isLoading ? 'Processing...' : 'I Agree'}
+          <View style={styles.checkboxSection}>
+            <Animated.View style={[checkboxTransition]}>
+              <TouchableOpacity style={styles.checkboxContainer} onPress={() => handleCheckboxPress('backup')} activeOpacity={0.7} testID="BackupRecoveryPhraseCheckbox">
+                <View style={[styles.checkbox, backupChecked && styles.checkboxChecked]}>{backupChecked && <Ionicons name="checkmark" size={16} />}</View>
+                <ThemedText style={styles.checkboxText} darkColor="rgba(255, 255, 255, 0.9)">
+                  I have backup my recovery phrase and I understand I cannot recover my wallet without it.
                 </ThemedText>
-              </View>
+              </TouchableOpacity>
+            </Animated.View>
+
+            <Animated.View style={[checkboxTransition]}>
+              <TouchableOpacity style={styles.checkboxContainer} onPress={() => handleCheckboxPress('terms')} activeOpacity={0.7} testID="TermsOfServiceCheckbox">
+                <View style={[styles.checkbox, termsChecked && styles.checkboxChecked]}>{termsChecked && <Ionicons name="checkmark" size={16} />}</View>
+                <ThemedText style={styles.checkboxText} darkColor="rgba(255, 255, 255, 0.9)">
+                  I have read and accept the{' '}
+                  <ThemedText style={[styles.checkboxText, styles.linkText]} darkColor="rgba(255, 255, 255, 0.9)" onPress={handleOpenTerms}>
+                    Terms of Service
+                  </ThemedText>{' '}
+                  of Layerz Tec Ltd.
+                </ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+          <Animated.View style={[styles.buttonSection, buttonTransition]}>
+            <TouchableOpacity style={[styles.button, !isButtonEnabled && styles.buttonDisabled]} onPress={handleAgree} disabled={!isButtonEnabled}>
+              <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
+                {isLoading ? 'Processing...' : "Let's go"}
+              </ThemedText>
             </TouchableOpacity>
           </Animated.View>
         </SafeAreaView>
@@ -93,34 +136,50 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  iconContainer: {
+  icon: {
     width: 120,
     height: 120,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   content: {
     flex: 1,
     paddingTop: 10,
     paddingBottom: 20,
   },
-  termsContainer: {
-    flex: 1,
+  checkboxSection: {
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+    paddingVertical: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 16,
   },
-  termsScrollView: {
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 4,
+    marginRight: 12,
+    marginTop: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  checkboxChecked: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  checkboxText: {
     flex: 1,
-    padding: 20,
-  },
-  termsText: {
     fontSize: 14,
-    lineHeight: 22,
+    lineHeight: 20,
+  },
+  linkText: {
+    textDecorationLine: 'underline',
   },
   buttonSection: {
     paddingBottom: 20,
@@ -135,31 +194,8 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.5,
   },
-  view: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  iconBorder: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  arrowIcon: {
-    tintColor: Colors.dark.buttonText,
-  },
   buttonText: {
     fontSize: 16,
     fontWeight: 'bold',
   },
 });
-
-const TERMS_OF_SERVICE = `
-TERMS OF SERVICE
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-
-By clicking "I Agree," you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
-`;
