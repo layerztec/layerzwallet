@@ -53,11 +53,10 @@ export default function CreateWalletScreen() {
     const mnemonic = params.mnemonic as string;
     if (mnemonic) {
       setRecoveryPhrase(mnemonic);
-      setIsLoading(false);
     } else {
       setError('No recovery phrase provided');
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }, [params.mnemonic]);
 
   const handleContinue = () => {

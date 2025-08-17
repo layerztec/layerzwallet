@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHorizontalSpringTransition, useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { sleep } from '@shared/modules/sleep';
 
 export default function CreateWalletIntroScreen() {
   const router = useRouter();
@@ -31,23 +32,17 @@ export default function CreateWalletIntroScreen() {
       setIsLoading(true);
 
       // Give enough time for navigation options to be set and animate
-      setTimeout(async () => {
-        try {
-          const hasMnemonic = await BackgroundExecutor.hasMnemonic();
-          if (!hasMnemonic) {
-            const response = await BackgroundExecutor.createMnemonic();
-            router.push({
-              pathname: '/onboarding/create-wallet',
-              params: { mnemonic: response.mnemonic },
-            });
-          } else {
-            router.push('/onboarding/create-wallet');
-          }
-        } catch (error) {
-          console.error('Error creating wallet:', error);
-          setIsLoading(false);
-        }
-      }, 100);
+      await sleep(100);
+      const hasMnemonic = await BackgroundExecutor.hasMnemonic();
+      if (!hasMnemonic) {
+        const response = await BackgroundExecutor.createMnemonic();
+        router.push({
+          pathname: '/onboarding/create-wallet',
+          params: { mnemonic: response.mnemonic },
+        });
+      } else {
+        router.push('/onboarding/create-wallet');
+      }
     } catch (error) {
       console.error('Error in handleCreateWallet:', error);
       setIsLoading(false);
