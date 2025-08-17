@@ -1,31 +1,17 @@
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, StyleSheet, ViewStyle, TextStyle, ImageStyle, Animated, ActivityIndicator, FlatList, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Colors, gradients } from '@shared/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 
-const LoadingWordAnimation: React.FC<{
+const WordDisplay: React.FC<{
   targetWord: string;
   index: number;
-  isLoading: boolean;
-}> = ({ targetWord, index, isLoading }) => {
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (!isLoading) {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [isLoading, fadeAnim]);
-
+}> = ({ targetWord, index }) => {
   const centerContainerStyle = {
     flex: 1,
     alignItems: 'center' as const,
@@ -38,13 +24,7 @@ const LoadingWordAnimation: React.FC<{
         <ThemedText style={styles.wordNumberText}>{index + 1}</ThemedText>
       </View>
       <View style={centerContainerStyle}>
-        {isLoading ? (
-          <Animated.View style={{ opacity: fadeAnim }}>
-            <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" />
-          </Animated.View>
-        ) : (
-          <ThemedText style={styles.wordText}>{targetWord}</ThemedText>
-        )}
+        <ThemedText style={styles.wordText}>{targetWord}</ThemedText>
       </View>
     </View>
   );
@@ -52,6 +32,7 @@ const LoadingWordAnimation: React.FC<{
 
 export default function CreateWalletScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [recoveryPhrase, setRecoveryPhrase] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
@@ -69,26 +50,15 @@ export default function CreateWalletScreen() {
   }, [isLoading, error, recoveryPhrase]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        setIsLoading(true);
-        setError('');
-
-        const hasMnemonic = await BackgroundExecutor.hasMnemonic();
-        console.log('hasMnemonic', hasMnemonic);
-        if (!hasMnemonic) {
-          const response = await BackgroundExecutor.createMnemonic();
-          console.log('response', response);
-          setRecoveryPhrase(response.mnemonic);
-        }
-      } catch (error: any) {
-        console.error('Error creating wallet:', error);
-        setError(`Error creating wallet: ${error.message}`);
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, []);
+    const mnemonic = params.mnemonic as string;
+    if (mnemonic) {
+      setRecoveryPhrase(mnemonic);
+      setIsLoading(false);
+    } else {
+      setError('No recovery phrase provided');
+      setIsLoading(false);
+    }
+  }, [params.mnemonic]);
 
   const handleContinue = () => {
     router.push('/manual-backup/validation-intro');
@@ -102,7 +72,7 @@ export default function CreateWalletScreen() {
     }));
   }, [recoveryPhrase]);
 
-  const renderWordItem = ({ item }: { item: { id: number; targetWord: string } }) => <LoadingWordAnimation targetWord={item.targetWord} index={item.id} isLoading={isLoading} />;
+  const renderWordItem = ({ item }: { item: { id: number; targetWord: string } }) => <WordDisplay targetWord={item.targetWord} index={item.id} />;
 
   return (
     <View style={styles.container}>
@@ -111,9 +81,9 @@ export default function CreateWalletScreen() {
           <View style={styles.contentContainer}>
             <View style={styles.titleContainer}>
               <ThemedText type="title" style={styles.title}>
-                {isLoading ? 'Creating your wallet...' : 'This is your \nrecovery phrase'}
+                This is your \nrecovery phrase
               </ThemedText>
-              {!isLoading && <ThemedText style={styles.subtitle}>Make sure to write it down as shown here.{'\n'}You have to verify this later.</ThemedText>}
+              <ThemedText style={styles.subtitle}>Make sure to write it down as shown here.{'\n'}You have to verify this later.</ThemedText>
             </View>
 
             {error ? (
@@ -133,7 +103,7 @@ export default function CreateWalletScreen() {
             )}
 
             <View style={styles.bottomButtonContainer}>
-              {!isLoading && !error && recoveryPhrase && (
+              {!error && recoveryPhrase && (
                 <Animated.View style={verifyButtonAnimation}>
                   <TouchableOpacity style={styles.verifyButton} onPress={handleContinue} testID="VerifyButton">
                     <ThemedText style={styles.verifyButtonText}>I wrote it down!</ThemedText>
