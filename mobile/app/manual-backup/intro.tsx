@@ -50,7 +50,6 @@ export default function ManualBackupIntroScreen() {
             <Animated.View style={[styles.buttonContainer, buttonTransition]}>
               <TouchableOpacity style={styles.button} onPress={handleContinue} testID="ManualBackupContinueButton">
                 <View style={styles.view}>
-                  <Image source={require('@/assets/images/ui/arrow-right.png')} style={styles.image} />
                   <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
                     Continue
                   </ThemedText>

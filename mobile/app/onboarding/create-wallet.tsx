@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, StyleSheet, ViewStyle, TextStyle, ImageStyle, Animated, ActivityIndicator, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, ViewStyle, TextStyle, ImageStyle, Animated, ActivityIndicator, FlatList, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
@@ -136,8 +136,7 @@ export default function CreateWalletScreen() {
               {!isLoading && !error && recoveryPhrase && (
                 <Animated.View style={verifyButtonAnimation}>
                   <TouchableOpacity style={styles.verifyButton} onPress={handleContinue} testID="VerifyButton">
-                    <Image source={require('@/assets/images/ui/arrow-right.png')} style={styles.image} />
-                    <ThemedText style={styles.verifyButtonText}>Verify</ThemedText>
+                    <ThemedText style={styles.verifyButtonText}>I wrote it down!</ThemedText>
                   </TouchableOpacity>
                 </Animated.View>
               )}
