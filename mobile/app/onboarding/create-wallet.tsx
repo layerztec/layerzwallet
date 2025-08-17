@@ -80,7 +80,7 @@ export default function CreateWalletScreen() {
           <View style={styles.contentContainer}>
             <View style={styles.titleContainer}>
               <ThemedText type="title" style={styles.title}>
-                This is your \nrecovery phrase
+                {`This is your \nrecovery phrase`}
               </ThemedText>
               <ThemedText style={styles.subtitle}>Make sure to write it down as shown here.{'\n'}You have to verify this later.</ThemedText>
             </View>

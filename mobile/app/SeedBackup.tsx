@@ -1,14 +1,16 @@
 import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
+import GradientScreen from '@/components/GradientScreen';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
 
 export default function SeedBackupScreen() {
+  const { network } = useContext(NetworkContext);
   const router = useRouter();
   const { askMnemonic } = useContext(AskMnemonicContext);
   const [mnemonic, setMnemonic] = useState<string>('');
@@ -30,20 +32,20 @@ export default function SeedBackupScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ThemedView style={styles.container}>
-        <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+    <GradientScreen variant={network}>
+      <ScreenHeader title="Backup Your Wallet" />
+      <View style={styles.container}>
+        <View>
           {!mnemonic ? (
-            <ThemedView style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Backup Your Wallet</ThemedText>
+            <View style={styles.section}>
               <ThemedText style={styles.description}>Your seed phrase is the key to your wallet. Write it down and keep it safe. Anyone with access to this phrase can control your funds.</ThemedText>
 
               <TouchableOpacity style={[styles.button, styles.primaryButton, isLoading && styles.buttonDisabled]} onPress={handleShowSeedPhrase} disabled={isLoading}>
                 <ThemedText style={styles.primaryButtonText}>{isLoading ? 'Loading...' : 'Show Seed Phrase'}</ThemedText>
               </TouchableOpacity>
-            </ThemedView>
+            </View>
           ) : (
-            <ThemedView style={styles.section}>
+            <View style={styles.section}>
               <ThemedText style={styles.sectionTitle}>Your Seed Phrase</ThemedText>
               <ThemedText style={styles.warningText}>⚠️ Write this down and keep it safe. Anyone with access to this phrase can control your funds.</ThemedText>
 
@@ -55,34 +57,18 @@ export default function SeedBackupScreen() {
                 <ThemedText style={styles.seedPhraseLabel}>Seed Phrase:</ThemedText>
                 <ThemedText style={styles.seedPhraseText}>{mnemonic}</ThemedText>
               </View>
-            </ThemedView>
+            </View>
           )}
-        </ScrollView>
-      </ThemedView>
-    </SafeAreaView>
+        </View>
+      </View>
+    </GradientScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
   container: {
     flex: 1,
     padding: 16,
-  },
-  header: {
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
   },
   section: {
     marginBottom: 24,
@@ -95,12 +81,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   description: {
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 20,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   warningText: {
     fontSize: 14,
@@ -111,30 +98,15 @@ const styles = StyleSheet.create({
   },
   button: {
     height: 50,
-    borderRadius: 8,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#515f9c',
   },
   primaryButtonText: {
-    color: 'white',
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    backgroundColor: '#34C759',
-  },
-  secondaryButtonText: {
-    color: 'white',
-    fontWeight: '700',
-  },
-  backButton: {
-    backgroundColor: '#8E8E93',
-    marginTop: 'auto',
-  },
-  backButtonText: {
     color: 'white',
     fontWeight: '700',
   },
@@ -154,6 +126,7 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   seedPhraseLabel: {
+    color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,

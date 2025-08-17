@@ -168,12 +168,11 @@ export default function RootLayout() {
                           }}
                         />
                         <Stack.Screen name="receive" />
-                        <Stack.Screen name="Settings" options={{ headerShown: false, title: 'Settings' }} />
-                        <Stack.Screen name="SeedBackup" options={{ headerShown: true, title: 'Seed Backup' }} />
-
+                        <Stack.Screen name="Settings" options={{ headerShown: false }} />
+                        <Stack.Screen name="SeedBackup" options={{ headerShown: false }} />
                         <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
                         <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
-                        <Stack.Screen name="Swap" options={{ headerShown: false, title: 'Swap' }} />
+                        <Stack.Screen name="Swap" options={{ headerShown: false }} />
                         <Stack.Screen
                           name="SwapTarget"
                           options={{
