@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Image, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
@@ -49,7 +49,6 @@ export default function CreateWalletIntroScreen() {
             <Animated.View style={[styles.buttonContainer, buttonTransition]}>
               <TouchableOpacity style={styles.button} onPress={handleCreateWallet}>
                 <View style={styles.view}>
-                  <Image source={require('@/assets/images/ui/arrow-right.png')} style={styles.image} />
                   <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
                     Continue
                   </ThemedText>

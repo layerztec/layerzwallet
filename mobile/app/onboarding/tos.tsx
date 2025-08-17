@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, Alert, View, Animated, Image } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, Alert, View, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Colors, gradients } from '@shared/constants/Colors';
 import { useSequentialSpringAnimation, useHorizontalSpringTransition } from '@/hooks/useCustomTransitions';
@@ -69,9 +68,6 @@ export default function TermsOfServiceScreen() {
           <Animated.View style={[styles.buttonSection, buttonTransition]}>
             <TouchableOpacity style={[styles.button, isLoading ? styles.buttonDisabled : null]} onPress={handleAgree} disabled={isLoading}>
               <View style={styles.view}>
-                <View style={styles.iconBorder}>
-                  <Image source={require('@/assets/images/ui/arrow-right.png')} style={styles.arrowIcon} />
-                </View>
                 <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
                   {isLoading ? 'Processing...' : 'I Agree'}
                 </ThemedText>
