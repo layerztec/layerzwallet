@@ -7,4 +7,5 @@ export type NetworkInfo = {
   knowMoreUrl?: string;
   isTestnet?: boolean;
   isEVM?: boolean;
+  sortIndex: number;
 };

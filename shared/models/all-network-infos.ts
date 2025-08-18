@@ -24,6 +24,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     explorerUrl: 'https://mempool.space',
     rpcUrl: '',
     isEVM: false,
+    sortIndex: 0,
   },
   [NETWORK_ROOTSTOCK]: {
     chainId: 30,
@@ -33,6 +34,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/rootstock',
     decimals: 18,
     isEVM: true,
+    sortIndex: 60,
   },
   [NETWORK_BOTANIX_TESTNET]: {
     chainId: 3636,
@@ -43,6 +45,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/botanix',
     isTestnet: true,
     isEVM: true,
+    sortIndex: 100,
   },
   [NETWORK_BOTANIX]: {
     chainId: 3637,
@@ -53,6 +56,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/botanix',
     isTestnet: false,
     isEVM: true,
+    sortIndex: 50,
   },
   [NETWORK_ALPEN_TESTNET]: {
     chainId: 2892,
@@ -63,6 +67,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/strata',
     isTestnet: true,
     isEVM: true,
+    sortIndex: 110,
   },
   [NETWORK_SEPOLIA]: {
     chainId: 11155111,
@@ -72,6 +77,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 18,
     isTestnet: true,
     isEVM: true,
+    sortIndex: 1,
   },
   [NETWORK_CITREA_TESTNET]: {
     chainId: 5115,
@@ -82,6 +88,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/citrea',
     isTestnet: true,
     isEVM: true,
+    sortIndex: 90,
   },
   [NETWORK_ARK_MUTINYNET]: {
     chainId: -1,
@@ -92,6 +99,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://arklabs.to/',
     isTestnet: true,
     isEVM: false,
+    sortIndex: 30,
   },
   [NETWORK_LIQUID]: {
     chainId: 11,
@@ -101,6 +109,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 8,
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/liquid',
     isEVM: false,
+    sortIndex: 20,
   },
   [NETWORK_LIQUID_TESTNET]: {
     chainId: 12,
@@ -111,6 +120,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/liquid',
     isTestnet: true,
     isEVM: false,
+    sortIndex: 80,
   },
   [NETWORK_SPARK]: {
     chainId: 13,
@@ -121,6 +131,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/spark',
     isTestnet: false,
     isEVM: false,
+    sortIndex: 40,
   },
   [NETWORK_LIGHTNING]: {
     chainId: 14,
@@ -130,6 +141,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     rpcUrl: '',
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/lightning',
     isEVM: false,
+    sortIndex: 10,
   },
   [NETWORK_LIGHTNING_TESTNET]: {
     chainId: 15,
@@ -140,5 +152,6 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/lightning',
     isTestnet: true,
     isEVM: false,
+    sortIndex: 70,
   },
 };
