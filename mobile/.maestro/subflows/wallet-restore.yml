@@ -55,7 +55,30 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 
 # Accept terms of service
-- tapOn: 'I Agree'
+- extendedWaitUntil:
+    visible: 'Wallet created\nsuccessfully'
+    timeout: 10000
+
+- assertVisible: 'Wallet created\nsuccessfully'
+- assertVisible: 'You are now ready to access your wallet\nand unlock Bitcoin Layerz 2 potential'
+
+# Check the backup recovery phrase checkbox
+- assertVisible:
+    id: 'BackupRecoveryPhraseCheckbox'
+- tapOn:
+    id: 'BackupRecoveryPhraseCheckbox'
+
+# Check the terms of service checkbox
+- assertVisible:
+    id: 'TermsOfServiceCheckbox'
+- tapOn:
+    id: 'TermsOfServiceCheckbox'
+
+# Verify the button is enabled and tap it
+- assertVisible:
+    text: "Let's go"
+    enabled: true
+- tapOn: "Let's go"
 - waitForAnimationToEnd
 
 # Wait for home screen with Send & Receive buttons
