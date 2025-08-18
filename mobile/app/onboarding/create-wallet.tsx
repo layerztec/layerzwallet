@@ -105,7 +105,7 @@ export default function CreateWalletScreen() {
               {!error && recoveryPhrase && (
                 <Animated.View style={verifyButtonAnimation}>
                   <TouchableOpacity style={styles.verifyButton} onPress={handleContinue} testID="VerifyButton">
-                    <ThemedText style={styles.verifyButtonText}>I wrote it down!</ThemedText>
+                    <ThemedText type="button">I wrote it down!</ThemedText>
                   </TouchableOpacity>
                 </Animated.View>
               )}
@@ -221,13 +221,6 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 20,
   } as ViewStyle,
-  verifyButtonText: {
-    ...Typography.buttonText,
-    color: Colors.dark.buttonText,
-    fontSize: 18,
-    fontWeight: '600',
-    marginLeft: 8,
-  } as TextStyle,
   errorContainer: {
     flex: 1,
     alignItems: 'center',

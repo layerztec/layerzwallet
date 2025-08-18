@@ -112,7 +112,7 @@ export default function TermsOfServiceScreen() {
           </View>
           <Animated.View style={[styles.buttonSection, buttonTransition]}>
             <TouchableOpacity style={[styles.button, !isButtonEnabled && styles.buttonDisabled]} onPress={handleAgree} disabled={!isButtonEnabled}>
-              <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
+              <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                 {isLoading ? 'Processing...' : "Let's go"}
               </ThemedText>
             </TouchableOpacity>
@@ -193,9 +193,5 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });

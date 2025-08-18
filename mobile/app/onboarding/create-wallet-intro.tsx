@@ -82,12 +82,12 @@ export default function CreateWalletIntroScreen() {
                   {isLoading ? (
                     <>
                       <ActivityIndicator size="small" color={Colors.dark.buttonText} style={{ marginRight: 8 }} />
-                      <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
+                      <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                         Loading...
                       </ThemedText>
                     </>
                   ) : (
-                    <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
+                    <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                       Continue
                     </ThemedText>
                   )}
@@ -155,9 +155,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-  },
-  buttonText: {
-    fontSize: 16,
-    color: Colors.dark.buttonText,
   },
 });

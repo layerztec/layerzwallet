@@ -28,4 +28,12 @@ export const Typography = {
     lineHeight: 24,
     letterSpacing: 0.05,
   },
+  button: {
+    fontFamily: fontFamily.medium,
+    fontSize: 16,
+    fontWeight: '600',
+    lineHeight: 16,
+    letterSpacing: -0.32,
+    textAlign: 'center' as const,
+  },
 };

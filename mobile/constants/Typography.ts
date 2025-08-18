@@ -23,6 +23,10 @@ export const Typography = {
     ...SharedTypography.paragraph,
     fontFamily: fontFamily.regular,
   },
+  button: {
+    ...SharedTypography.button,
+    fontFamily: fontFamily.medium,
+  },
   logoText: {
     fontSize: 40,
     fontWeight: 'bold' as const,

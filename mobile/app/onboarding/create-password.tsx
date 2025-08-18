@@ -310,7 +310,7 @@ export default function CreatePasswordScreen() {
                   disabled={isLoading || !password || !repeatPassword}
                   testID="CreatePasswordButton"
                 >
-                  <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
+                  <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                     {isLoading ? 'Creating...' : 'Create Password'}
                   </ThemedText>
                 </TouchableOpacity>
@@ -381,9 +381,5 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });

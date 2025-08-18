@@ -124,7 +124,7 @@ export default function ImportWalletScreen() {
                 {isLoading ? (
                   <ActivityIndicator color={Colors.dark.buttonText} size="small" />
                 ) : (
-                  <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText} testID="ImportWalletImportButton">
+                  <ThemedText type="button" darkColor={Colors.dark.buttonText} testID="ImportWalletImportButton">
                     Import
                   </ThemedText>
                 )}
@@ -230,9 +230,5 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5,
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });
