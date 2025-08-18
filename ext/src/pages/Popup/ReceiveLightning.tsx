@@ -46,7 +46,9 @@ const ReceiveLightning: React.FC = () => {
         const wallet = walletRef.current;
         if (!wallet) return;
 
+        console.log('polling for invoice status...');
         const isPaid = await wallet.isInvoicePaid(invoice);
+        console.log('polling for invoice status:', { isPaid });
         if (isPaid) {
           setIsInvoicePaid(true);
           // Clear the interval when payment is detected
@@ -55,13 +57,11 @@ const ReceiveLightning: React.FC = () => {
             pollingIntervalRef.current = null;
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error checking invoice payment status:', error);
+        setError('Error checking invoice payment status: ' + error.message);
       }
     };
-
-    // Start polling immediately
-    pollForPayment();
 
     // Set up interval to poll every 5 seconds
     pollingIntervalRef.current = setInterval(pollForPayment, 3_000);
