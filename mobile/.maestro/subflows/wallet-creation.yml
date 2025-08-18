@@ -16,17 +16,16 @@ appId: com.layerzwallet.mobile
 - tapOn: 'Create Wallet'
 - waitForAnimationToEnd
 - tapOn: 'Continue'
-- waitForAnimationToEnd
-- extendedWaitUntil:
-    visible: 'Make sure to write it down as shown here. You have to verify this later.'
-    timeout: 150000
 
-# First wait for the loading to complete
+# Wait for navigation to complete and the mnemonic screen to appear
 - extendedWaitUntil:
-    notVisible: 'Creating your wallet...'
+    visible: 'This is your \nrecovery phrase'
     timeout: 60000
 
-# Then verify the Continue button is available and enabled
+# Verify we see the instruction text
+- assertVisible: 'Make sure to write it down as shown here. You have to verify this later.'
+
+# Verify the "I wrote it down!" button is available and enabled
 - assertVisible:
     id: 'VerifyButton'
     enabled: true
