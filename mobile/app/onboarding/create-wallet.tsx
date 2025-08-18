@@ -91,7 +91,7 @@ export default function CreateWalletScreen() {
   }, []);
 
   const handleContinue = () => {
-    router.push('/manual-backup/validation-intro');
+    router.push('/onboarding/create-password');
   };
 
   const wordsData = useMemo(() => {
