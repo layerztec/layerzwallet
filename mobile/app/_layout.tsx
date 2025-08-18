@@ -152,7 +152,14 @@ export default function RootLayout() {
                         <Stack.Screen
                           name="onboarding/import-wallet"
                           options={{
-                            headerShown: false,
+                            headerTitle: 'Enter private key or seed phrase',
+                            headerTitleStyle: {
+                              fontFamily: 'Inter',
+                              fontWeight: '400',
+                              fontSize: 24,
+                              color: '#fff',
+                            },
+                            headerTitleAlign: 'center',
                             animation: 'slide_from_right',
                             animationDuration: 350,
                             gestureEnabled: true,
