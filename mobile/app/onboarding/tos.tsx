@@ -71,7 +71,7 @@ export default function TermsOfServiceScreen() {
             <Animated.View style={[iconTransition]}>
               <Image source={require('@/assets/images/ui/success.png')} style={styles.icon} />
             </Animated.View>
-          </View>{' '}
+          </View>
           <View style={styles.content}>
             <Animated.View style={[titleTransition]}>
               <ThemedText type="title" darkColor={Colors.dark.buttonText} textAlign="center">
