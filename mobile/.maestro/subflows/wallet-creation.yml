@@ -35,8 +35,6 @@ appId: com.layerzwallet.mobile
     id: 'VerifyButton'
 
 - waitForAnimationToEnd
-- tapOn:
-    id: 'ValidationIntroContinueButton'
 
 # Now proceed to the enter password screen
 - repeat:

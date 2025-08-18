@@ -203,6 +203,10 @@ export default function CreatePasswordScreen() {
                           inputRange: [0, 1],
                           outputRange: ['rgba(255, 255, 255, 0.2)', '#FF6B6B'],
                         }),
+                        borderWidth: inputBorderAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 1],
+                        }),
                         shadowOpacity: inputBorderAnimation.interpolate({
                           inputRange: [0, 1],
                           outputRange: [0, 0.3],
@@ -239,6 +243,10 @@ export default function CreatePasswordScreen() {
                         borderColor: inputBorderAnimation.interpolate({
                           inputRange: [0, 1],
                           outputRange: ['rgba(255, 255, 255, 0.2)', '#FF6B6B'],
+                        }),
+                        borderWidth: inputBorderAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 1],
                         }),
                         shadowOpacity: inputBorderAnimation.interpolate({
                           inputRange: [0, 1],
@@ -296,7 +304,12 @@ export default function CreatePasswordScreen() {
               </View>
 
               <Animated.View style={[styles.buttonSection, buttonTransition]}>
-                <TouchableOpacity style={[styles.button, isLoading ? styles.buttonDisabled : null]} onPress={handleCreatePassword} disabled={isLoading} testID="CreatePasswordButton">
+                <TouchableOpacity
+                  style={[styles.button, isLoading || !password || !repeatPassword ? styles.buttonDisabled : null]}
+                  onPress={handleCreatePassword}
+                  disabled={isLoading || !password || !repeatPassword}
+                  testID="CreatePasswordButton"
+                >
                   <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
                     {isLoading ? 'Creating...' : 'Create Password'}
                   </ThemedText>
@@ -336,10 +349,9 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
   inputWrapper: {
-    borderWidth: 1,
     borderRadius: 16,
     marginBottom: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   input: {
     height: 56,
