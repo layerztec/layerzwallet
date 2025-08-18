@@ -188,6 +188,10 @@ export class BreezWallet implements InterfaceLightningWallet {
     switch (
       paymentByHash?.status // "created" | "pending" | "complete" | "failed" | "timedOut" | "refundable" | "refundPending" | "waitingFeeAcceptance"
     ) {
+      case 'pending':
+        // theoretically not safe to display this invoice as paid, but we do it for speed (breez sdk __already includes__ amount from this invoice
+        // in main balance after it changes status to `pending`)
+        return true;
       case 'complete':
         return true;
     }
