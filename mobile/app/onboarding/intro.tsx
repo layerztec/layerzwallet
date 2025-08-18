@@ -139,7 +139,7 @@ export default function IntroScreen() {
           >
             <TouchableOpacity style={styles.button} onPress={handleCreateWallet}>
               <View style={styles.view}>
-                <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
+                <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                   Create Wallet
                 </ThemedText>
               </View>
@@ -147,7 +147,7 @@ export default function IntroScreen() {
 
             <TouchableOpacity style={styles.button2} onPress={handleImportWallet}>
               <View style={styles.view}>
-                <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
+                <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                   Import Wallet
                 </ThemedText>
               </View>
@@ -209,9 +209,5 @@ const styles = StyleSheet.create({
   view: {
     alignItems: 'center',
     paddingBottom: 1,
-  },
-  buttonText: {
-    fontSize: 16,
-    color: Colors.dark.buttonText,
   },
 });

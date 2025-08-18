@@ -50,7 +50,7 @@ export default function ManualBackupIntroScreen() {
             <Animated.View style={[styles.buttonContainer, buttonTransition]}>
               <TouchableOpacity style={styles.button} onPress={handleContinue} testID="ManualBackupContinueButton">
                 <View style={styles.view}>
-                  <ThemedText style={styles.buttonText} darkColor={Colors.dark.buttonText}>
+                  <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                     Continue
                   </ThemedText>
                 </View>
@@ -114,9 +114,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-  },
-  buttonText: {
-    fontSize: 16,
-    color: Colors.dark.buttonText,
   },
 });

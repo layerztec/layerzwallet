@@ -31,6 +31,14 @@ const typeStyles: Record<string, React.CSSProperties> = {
     lineHeight: '24px',
     letterSpacing: '0.05px',
   },
+  button: {
+    fontFamily: 'Inter-Medium, sans-serif',
+    fontSize: '16px',
+    fontWeight: '600',
+    lineHeight: '16px',
+    letterSpacing: '-0.32px',
+    textAlign: 'center',
+  },
   defaultSemiBold: {
     fontFamily: 'Inter-Regular, sans-serif',
     fontSize: '16px',
@@ -78,6 +86,11 @@ export const ThemedText: React.FC<ThemedTextProps> = ({ style, lightColor, darkC
     customStyles = {
       ...customStyles,
       ...typeStyles.link,
+    };
+  } else if (type === 'button') {
+    customStyles = {
+      ...customStyles,
+      ...typeStyles.button,
     };
   } else {
     // Map the type to the correct typography key
