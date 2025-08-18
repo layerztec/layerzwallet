@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { getAvailableNetworks, Networks } from '../types/networks';
 import { getIsTestnet } from '../models/network-getters';
 import { useSetting } from './useSettings';
+import { AllNetworkInfos } from '../models/all-network-infos';
 
 /**
  * Hook that returns available networks filtered by testnet settings
@@ -11,7 +12,7 @@ export const useAvailableNetworks = (): Networks[] => {
   const showTestnets = useSetting('showTestnets');
 
   return useMemo(() => {
-    const allNetworks = getAvailableNetworks();
+    const allNetworks = getAvailableNetworks().sort((a, b) => AllNetworkInfos[a].sortIndex - AllNetworkInfos[b].sortIndex);
 
     if (showTestnets === 'ON') {
       return allNetworks;
