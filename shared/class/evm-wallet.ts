@@ -1,18 +1,55 @@
-import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util';
+import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { ethers, TransactionRequest, Wallet } from 'ethers';
+
+import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util';
 import { getChainIdByNetwork, getRpcProvider } from '../models/network-getters';
 import { Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
-import assert from 'assert';
 import { TokenInfo } from '../types/token-info';
 import { hexStr } from '../modules/string-utils';
 import { ICsprng } from '../types/ICsprng';
+import { CommonTransaction, CommonTokenTransfer, TransactionStatus } from '../types/common-transaction';
+import { AllNetworkInfos } from '../models/all-network-infos';
+
+type ExplorerAction = 'txlist' | 'txlistinternal' | 'tokentx';
+
+type ActionData = any; // TODO: type this
+
+/**
+ * Building block for constructing CommonTransaction[]
+ */
+type Building = {
+  txid: string;
+  timestamp?: number;
+  blockHeight?: number;
+  confirmations?: number;
+  status?: TransactionStatus;
+  baseValueDeltaWei: bigint; // net change to wallet in wei (positive if receive)
+  counterparty?: string;
+  tokenTransfers: CommonTokenTransfer[];
+  tokenIn?: boolean;
+  tokenOut?: boolean;
+};
+
+const toNum = (v: any | undefined): number | undefined => (v === undefined || v === null || v === '' ? undefined : Number(v));
+const toBigInt = (v: any | undefined): bigint => {
+  try {
+    return BigInt(v ?? 0);
+  } catch (_) {
+    return 0n;
+  }
+};
 
 export class EvmWallet {
   private static readonly DEFAULT_GAS_LIMIT = 250_000;
   private static readonly SIMPLE_TRANSFER_GAS = 21000;
   private static readonly HD_PATH = "m/44'/60'/0'/0";
+  private explorerProgressCache: Map<ExplorerAction, number> = new Map();
+  private explorerDataCache: Map<ExplorerAction, Record<string, ActionData>> = new Map();
+  public address?: string;
+  public network?: Networks;
+  public etherScanApiUrl?: string;
 
   async createPaymentTransaction(from: string, to: string, amount: StringNumber): Promise<TransactionRequest> {
     return {
@@ -191,6 +228,236 @@ export class EvmWallet {
     }
 
     return calculatedMaxFee;
+  }
+
+  private getActionDataUniqueKey(action: ExplorerAction, r: any): string {
+    if (action === 'txlist') return `${r.hash}:${r.transactionIndex ?? ''}`;
+    if (action === 'txlistinternal') return `${r.transactionHash}:${r.index ?? ''}`;
+    return `${r.hash}:${r.transactionIndex ?? ''}`; // tokentx
+  }
+
+  /**
+   * Fetch latest block number. We can't use etherscan because Botanix blockexplorer(routescan)
+   * doesn't support module: 'block', action: 'eth_block_number'
+   */
+  private async fetchLatestBlockNumberFromExplorer(baseUrl: string): Promise<number> {
+    if (!this.network) throw new Error('Network not set');
+    const rpc = getRpcProvider(this.network);
+    const res = await rpc.send('eth_blockNumber', []);
+    return parseInt(res, 16);
+  }
+
+  /**
+   * Fetch a block segment for an action with pagination up to 10k per page and cache results.
+   */
+  async syncAccountHistorySegment(baseUrl: string, action: ExplorerAction, latestBlockNumber: number): Promise<void> {
+    if (!this.address) throw new Error('Address not set');
+    const address = this.address;
+    const progressKey = action;
+    const dataKey = action;
+    const startBlock = this.explorerProgressCache.get(progressKey) ?? 0;
+    const endBlock = latestBlockNumber;
+
+    let page = 1;
+    let totalNew = 0;
+    let pageCount = 0;
+    const maxPageBatch = 10000;
+
+    const existingMap: Record<string, ActionData> = this.explorerDataCache.get(dataKey) ?? {};
+
+    while (true) {
+      const params: Record<string, string> = {
+        module: 'account',
+        action,
+        address,
+        startblock: String(startBlock),
+        endblock: String(endBlock),
+        sort: 'asc',
+      };
+      if (page > 1) {
+        params.page = String(page);
+        params.offset = String(maxPageBatch);
+      }
+
+      const url = `${baseUrl}?${new URLSearchParams(params).toString()}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      const okMessages = ['OK', 'No transactions found', 'No token transfers found', 'No internal transactions found'];
+      if (!okMessages.includes(data.message)) {
+        throw new Error('Failed to fetch history: ' + data.message);
+      }
+
+      const results: ActionData[] = Array.isArray(data.result) ? data.result : [];
+      // de-duplicate into existingMap using a composite key
+      for (const r of results) {
+        const key = this.getActionDataUniqueKey(action, r);
+        if (!existingMap[key]) {
+          existingMap[key] = r;
+          totalNew += 1;
+        }
+      }
+      pageCount += 1;
+
+      // if we got a full page of 10k, try next page; otherwise this segment is done
+      if (results.length === maxPageBatch) {
+        page += 1;
+        continue;
+      }
+      break;
+    }
+
+    this.explorerDataCache.set(dataKey, existingMap);
+    const nextStart = endBlock + 1;
+    this.explorerProgressCache.set(progressKey, nextStart);
+  }
+
+  async fetchTransactions(): Promise<void> {
+    if (!this.address) throw new Error('Address not set');
+    if (!this.network) throw new Error('Network not set');
+    if (!this.etherScanApiUrl) throw new Error('EtherScan API URL not set');
+    const baseUrl = this.etherScanApiUrl;
+    const latest = await this.fetchLatestBlockNumberFromExplorer(baseUrl);
+
+    await Promise.all([
+      this.syncAccountHistorySegment(baseUrl, 'tokentx', latest),
+      this.syncAccountHistorySegment(baseUrl, 'txlist', latest),
+      this.syncAccountHistorySegment(baseUrl, 'txlistinternal', latest),
+    ]);
+  }
+
+  /**
+   * Construct a list of CommonTransaction from Etherscan-compatible endpoints outputs
+   * in the order: tokentx, txlist, txlistinternal.
+   */
+  getCommonTransactions(): CommonTransaction[] {
+    const tokentx = Object.values(this.explorerDataCache.get('tokentx') ?? {});
+    const txlist = Object.values(this.explorerDataCache.get('txlist') ?? {});
+    const txlistinternal = Object.values(this.explorerDataCache.get('txlistinternal') ?? {});
+
+    const address = this.address?.toLowerCase();
+    if (!address) throw new Error('Address not set');
+    const network = this.network;
+    if (!network) throw new Error('Network not set');
+
+    // Map of txid to Building block
+    const byHash = new Map<string, Building>();
+    const ensure = (hash: string): Building => {
+      let item = byHash.get(hash);
+      if (!item) {
+        item = { txid: hash, baseValueDeltaWei: 0n, tokenTransfers: [] };
+        byHash.set(hash, item);
+      }
+      return item;
+    };
+
+    // txlist: external transactions (native value, gas, status)
+    for (const tx of txlist ?? []) {
+      const hash = String(tx.hash);
+      const item = ensure(hash);
+      item.timestamp = toNum(tx.timeStamp) ?? item.timestamp;
+      item.blockHeight = toNum(tx.blockNumber) ?? item.blockHeight;
+      item.confirmations = toNum(tx.confirmations) ?? item.confirmations;
+      const failed = String(tx.isError ?? tx.txreceipt_status) === '1' ? false : String(tx.isError) === '1' || String(tx.txreceipt_status) === '0';
+      item.status = failed ? 'failed' : 'confirmed';
+
+      const from = String(tx.from || '').toLowerCase();
+      const to = String(tx.to || '').toLowerCase();
+      const valueWei = toBigInt(tx.value);
+      if (from === address) item.baseValueDeltaWei -= valueWei;
+      if (to === address) item.baseValueDeltaWei += valueWei;
+
+      // counterparty for native transfer if any
+      if (!item.counterparty) {
+        if (from === address && to) item.counterparty = to;
+        else if (to === address && from) item.counterparty = from;
+      }
+    }
+
+    // txlistinternal: internal native transfers
+    for (const itx of txlistinternal ?? []) {
+      const hash = String(itx.transactionHash || itx.hash || itx.parentHash || '');
+      if (!hash) continue;
+      const item = ensure(hash);
+      item.timestamp = toNum(itx.timeStamp) ?? item.timestamp;
+      item.blockHeight = toNum(itx.blockNumber) ?? item.blockHeight;
+      item.confirmations = toNum(itx.confirmations) ?? item.confirmations;
+      // internal tx has no explicit status; keep existing
+      const from = String(itx.from || '').toLowerCase();
+      const to = String(itx.to || '').toLowerCase();
+      const valueWei = toBigInt(itx.value);
+      if (from === address) item.baseValueDeltaWei -= valueWei;
+      if (to === address) item.baseValueDeltaWei += valueWei;
+
+      if (!item.counterparty) {
+        if (from === address && to) item.counterparty = to;
+        else if (to === address && from) item.counterparty = from;
+      }
+    }
+
+    // tokentx: token transfers
+    for (const t of tokentx ?? []) {
+      const hash = String(t.hash);
+      const item = ensure(hash);
+      item.timestamp = toNum(t.timeStamp) ?? item.timestamp;
+      item.blockHeight = toNum(t.blockNumber) ?? item.blockHeight;
+      item.confirmations = toNum(t.confirmations) ?? item.confirmations;
+
+      const from = String(t.from || '').toLowerCase();
+      const to = String(t.to || '').toLowerCase();
+      if (!item.counterparty) {
+        if (from === address && to) item.counterparty = to;
+        else if (to === address && from) item.counterparty = from;
+      }
+
+      const transfer: CommonTokenTransfer = {
+        amount: Number(t.value ?? 0), // base units
+        address: from === address ? t.to || '' : t.from || '',
+        tokenId: t.contractAddress || undefined,
+      };
+      item.tokenTransfers.push(transfer);
+      if (from === address) item.tokenOut = true;
+      if (to === address) item.tokenIn = true;
+    }
+
+    // Finalize into CommonTransaction[]
+    const result: CommonTransaction[] = [];
+    for (const item of byHash.values()) {
+      let direction: 'send' | 'receive' | 'other';
+      if (item.baseValueDeltaWei !== 0n) {
+        direction = item.baseValueDeltaWei > 0n ? 'receive' : 'send';
+      } else if (item.tokenTransfers.length > 0) {
+        if (item.tokenIn && !item.tokenOut) {
+          direction = 'receive';
+        } else if (item.tokenOut && !item.tokenIn) {
+          direction = 'send';
+        } else {
+          direction = 'other';
+        }
+      } else {
+        direction = 'other';
+      }
+
+      const amountNative = item.baseValueDeltaWei === 0n ? undefined : Number(item.baseValueDeltaWei < 0n ? -item.baseValueDeltaWei : item.baseValueDeltaWei);
+
+      result.push({
+        txid: item.txid,
+        network,
+        timestamp: item.timestamp ?? 0,
+        direction,
+        amount: amountNative,
+        tokenTransfers: item.tokenTransfers.length ? item.tokenTransfers : undefined,
+        status: item.status,
+        confirmations: item.confirmations,
+        counterparty: item.counterparty,
+        blockHeight: item.blockHeight,
+      });
+    }
+
+    // Sort by timestamp ascending (oldest first) to match typical explorer pagination asc
+    result.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    // now reverse to have the latest first
+    return result.reverse();
   }
 }
 

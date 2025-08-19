@@ -37,13 +37,13 @@ describe('Bitcoin Wallet - getCommonTransactions', () => {
 
     assert.deepEqual(result1, [
       {
-        txid: 'tx3',
+        txid: 'tx1',
         network: NETWORK_BITCOIN,
-        timestamp: 1234567892,
+        timestamp: 1234567890,
         direction: 'receive',
         amount: 100000000,
         tokenTransfers: [],
-        status: 'pending',
+        status: 'confirmed',
       },
       {
         txid: 'tx2',
@@ -55,13 +55,13 @@ describe('Bitcoin Wallet - getCommonTransactions', () => {
         status: 'confirmed',
       },
       {
-        txid: 'tx1',
+        txid: 'tx3',
         network: NETWORK_BITCOIN,
-        timestamp: 1234567890,
+        timestamp: 1234567892,
         direction: 'receive',
         amount: 100000000,
         tokenTransfers: [],
-        status: 'confirmed',
+        status: 'pending',
       },
     ]);
 

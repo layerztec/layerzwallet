@@ -2,7 +2,7 @@
   {
     "symbol": "$",
     "name": "rUSDT",
-    "address": "0xef213441A85dF4d7ACbDaE0Cf78004e1E486bB96",
+    "address": "0xef213441a85df4d7acbdae0cf78004e1e486bb96",
     "decimals": 18,
     "chainId": 30,
     "logoURI": "https://cdn.oku.trade/logos/30/0xef213441a85df4d7acbdae0cf78004e1e486bb96.png"
@@ -10,7 +10,7 @@
   {
     "symbol": "WBTC",
     "name": "Wrapped BTC",
-    "address": "0x321f90864fb21cdcddD0D67FE5e4Cbc812eC9e64",
+    "address": "0x321f90864fb21cdcddd0d67fe5e4cbc812ec9e64",
     "decimals": 18,
     "chainId": 3636,
     "logoURI": "https://cdn.oku.trade/logos/30/0xef213441a85df4d7acbdae0cf78004e1e486bb96.png"
@@ -18,7 +18,7 @@
   {
     "symbol": "USDC",
     "name": "USD Coin",
-    "address": "0xb669dC8cC6D044307Ba45366C0c836eC3c7e31AA",
+    "address": "0xb669dc8cc6d044307ba45366c0c836ec3c7e31aa",
     "decimals": 6,
     "chainId": 5115,
     "logoURI": ""

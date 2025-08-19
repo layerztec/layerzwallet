@@ -16,6 +16,7 @@ import type {
   SendPaymentResponse,
 } from '@breeztech/breez-sdk-liquid';
 import bolt11 from 'bolt11';
+import * as bip21 from 'bip21';
 
 import { createLightningInvoiceResponse, InterfaceLightningWallet } from './interface-lightning-wallet';
 import { CommonTokenTransfer, CommonTransaction } from '@shared/types/common-transaction';
@@ -204,14 +205,24 @@ export class BreezWallet implements InterfaceLightningWallet {
       let tokenTransfers: CommonTokenTransfer[] = [];
       // Make sure it is a token transfer
       if (payment.details.type === 'liquid' && !Object.values(LBTC_ASSET_IDS).includes(payment.details.assetId)) {
-        const address = payment.details.assetId;
-        let amount = payment.details.assetInfo?.amount ?? null;
-        if (amount === null) {
-          // if assetInfo is not present, we parse `destination` field as URL
-          const url = new URL(payment.details.destination);
-          amount = Number(url.searchParams.get('amount'));
+        const tokenId = payment.details.assetId;
+        let amount: number | undefined;
+        let address: string | undefined;
+        if (payment.details.assetInfo?.amount) {
+          amount = payment.details.assetInfo.amount;
         }
-        tokenTransfers = [{ address, amount }];
+        if (payment.details.destination) {
+          const urnScheme = this.n === 'mainnet' ? 'liquid' : 'liquidtestnet';
+          const decoded = bip21.decode(payment.details.destination, urnScheme);
+          if (decoded.address) {
+            address = decoded.address;
+          }
+          if (amount === undefined && decoded.options.amount) {
+            amount = Number(decoded.options.amount);
+          }
+        }
+
+        tokenTransfers = [{ address, amount, tokenId }];
       }
 
       commonTransactions.push({

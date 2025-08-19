@@ -91,9 +91,12 @@ export default function Transaction({ network, transaction }: TransactionProps) 
     return (
       <View style={styles.tokenTransfers}>
         {transaction.tokenTransfers.map((transfer, index) => {
-          const tokenInfo = getTokenInfo(transfer.address);
+          const tokenInfo = getTokenInfo(transfer.tokenId);
           const iconColor = getTokenIconColor(tokenInfo.name);
-          const formattedAmount = transfer.amount;
+          let formattedAmount = '';
+          if (transfer.amount) {
+            formattedAmount = formatBalance(transfer.amount.toString(), tokenInfo.decimals);
+          }
           const isNegative = transaction.direction === 'send';
           const sign = isNegative ? '-' : '';
 
@@ -141,6 +144,8 @@ const styles = StyleSheet.create({
   transactionIcon: {
     width: 24,
     height: 24,
+    marginTop: 8,
+    alignSelf: 'flex-start',
   },
   transactionDetails: {
     flex: 1,

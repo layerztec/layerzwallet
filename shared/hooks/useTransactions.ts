@@ -2,7 +2,22 @@ import useSWR from 'swr';
 
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import {
+  NETWORK_ALPEN_TESTNET,
+  NETWORK_ARK_MUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_BOTANIX,
+  NETWORK_BOTANIX_TESTNET,
+  NETWORK_LIGHTNING,
+  NETWORK_LIGHTNING_TESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_ROOTSTOCK,
+  NETWORK_SPARK,
+  Networks,
+} from '../types/networks';
+import { EvmWallet } from '@shared/class/evm-wallet';
+import { AllNetworkInfos } from '../models/all-network-infos';
 
 interface txFetcherArg {
   cacheKey: string;
@@ -36,11 +51,26 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
     return await backgroundCaller.getCommonTransactions(network, accountNumber);
   }
 
+  if (AllNetworkInfos[network].etherScanApiUrl) {
+    try {
+      const wallet = new EvmWallet();
+      wallet.address = await backgroundCaller.getAddress(network, accountNumber);
+      wallet.network = network;
+      wallet.etherScanApiUrl = AllNetworkInfos[network].etherScanApiUrl;
+      await wallet.fetchTransactions();
+      const txs = wallet.getCommonTransactions();
+      return txs;
+    } catch (error) {
+      console.error('tx fetch error', error);
+      throw error;
+    }
+  }
+
   return [];
 };
 
 export function useTransactions(network: Networks, accountNumber: number, backgroundCaller: IBackgroundCaller) {
-  let refreshInterval = 12_000; // ETH block time
+  let refreshInterval = 60_000; // 1 min
 
   switch (network) {
     case NETWORK_SPARK:

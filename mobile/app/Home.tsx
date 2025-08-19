@@ -88,7 +88,8 @@ export default function Home() {
   const displaySubBalance = `${usdValue} USD`;
 
   // Get latest transactions (limit to 3 for display)
-  const latestTransactions = transactions?.slice(0, 3) || [];
+  // TODO: limit to 3 later
+  const latestTransactions = transactions?.slice(0, 999999) || [];
 
   const handleSend = () => {
     switch (network) {

@@ -1329,7 +1329,7 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
    * @returns CommonTransaction[]
    */
   async getCommonTransactions(afterTxid?: string, limit: number = 10): Promise<CommonTransaction[]> {
-    const txs = this.getTransactions().reverse();
+    const txs = this.getTransactions();
     let filtered: Transaction[] = [];
 
     // filter
