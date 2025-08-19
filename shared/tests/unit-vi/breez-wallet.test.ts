@@ -8,7 +8,7 @@ globalThis.breezAdapter = null;
 
 describe('Breez Wallet - getCommonTransactions', () => {
   it('should return transactions in correct order', async () => {
-    const wallet = new BreezWallet('test mnemonic', 'mainnet');
+    const wallet = new BreezWallet('test mnemonic', 'testnet');
 
     const fakePayments = [
       // BTC
@@ -115,8 +115,9 @@ describe('Breez Wallet - getCommonTransactions', () => {
         amount: 0,
         tokenTransfers: [
           {
-            address: 'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2',
+            address: undefined,
             amount: 0.03,
+            tokenId: 'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2',
           },
         ],
       },
@@ -139,8 +140,9 @@ describe('Breez Wallet - getCommonTransactions', () => {
         timestamp: 1749209827,
         tokenTransfers: [
           {
-            address: 'ec24f3e4a4993802f901d881ea1bbfc642dfbc25d5fe82af2564ddc59dc025a9',
+            address: 'tlq1qqt0ms77xycr0c40jz8rtdsp230vmx8yzczrm5d7fjm95wc89pe6667uzw86jt53684mudx3qha50qwuhyqxtsmdfpyh6pfycx',
             amount: 1e-8,
+            tokenId: 'ec24f3e4a4993802f901d881ea1bbfc642dfbc25d5fe82af2564ddc59dc025a9',
           },
         ],
         txid: '1d9939da15721adbd021d550286fec9f8476c0218073416966e62ef8f4de1f9b',

@@ -7,11 +7,11 @@ export interface CommonTokenTransfer {
   /** Token symbol (e.g., 'USDT', 'DAI') */
   // symbol: string;
   /** Transfer amount in token's base units */
-  amount: number;
+  amount?: number;
   /** Address the transfer is from (for receives) or to (for sends) */
-  address: string;
+  address?: string;
   /** Token contract address (for EVM chains) or identifier (for other chains) */
-  tokenId?: string;
+  tokenId: string;
 }
 
 /**

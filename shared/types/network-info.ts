@@ -4,8 +4,9 @@ export type NetworkInfo = {
   decimals: number;
   explorerUrl: string;
   rpcUrl: string;
+  sortIndex: number;
   knowMoreUrl?: string;
   isTestnet?: boolean;
   isEVM?: boolean;
-  sortIndex: number;
+  etherScanApiUrl?: string;
 };

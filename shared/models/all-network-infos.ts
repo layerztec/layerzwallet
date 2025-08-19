@@ -34,6 +34,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/rootstock',
     decimals: 18,
     isEVM: true,
+    etherScanApiUrl: 'https://rootstock.blockscout.com/api',
     sortIndex: 60,
   },
   [NETWORK_BOTANIX_TESTNET]: {
@@ -45,6 +46,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/botanix',
     isTestnet: true,
     isEVM: true,
+    etherScanApiUrl: 'https://api.routescan.io/v2/network/testnet/evm/3636/etherscan/api',
     sortIndex: 100,
   },
   [NETWORK_BOTANIX]: {
@@ -56,6 +58,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/botanix',
     isTestnet: false,
     isEVM: true,
+    etherScanApiUrl: 'https://api.routescan.io/v2/network/mainnet/evm/3637/etherscan/api',
     sortIndex: 50,
   },
   [NETWORK_ALPEN_TESTNET]: {
@@ -67,6 +70,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/strata',
     isTestnet: true,
     isEVM: true,
+    etherScanApiUrl: 'https://explorer.testnet.alpenlabs.io/api',
     sortIndex: 110,
   },
   [NETWORK_SEPOLIA]: {
@@ -77,6 +81,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     decimals: 18,
     isTestnet: true,
     isEVM: true,
+    etherScanApiUrl: 'https://api-sepolia.etherscan.io/api',
     sortIndex: 1,
   },
   [NETWORK_CITREA_TESTNET]: {
@@ -88,6 +93,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/citrea',
     isTestnet: true,
     isEVM: true,
+    etherScanApiUrl: 'https://explorer.testnet.citrea.xyz/api',
     sortIndex: 90,
   },
   [NETWORK_ARK_MUTINYNET]: {
