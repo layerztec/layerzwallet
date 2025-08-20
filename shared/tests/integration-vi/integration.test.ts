@@ -57,6 +57,9 @@ const backgroundCallerMock2: IBackgroundCaller = {
   getCommonTransactions() {
     throw new Error('Function not implemented.');
   },
+  clear() {
+    throw new Error('Function not implemented.');
+  },
 };
 
 test('can fetch balance', async (context) => {

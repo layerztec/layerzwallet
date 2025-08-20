@@ -2,11 +2,19 @@ import assert from 'assert';
 
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
-import { BreezWallet, getBreezNetwork } from '@shared/class/wallets/breez-wallet';
+import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { lazyInitWallet as lazyInitWalletOrig, sanitizeAndValidateMnemonic, saveBitcoinXpubs, saveSubMnemonics, saveWalletState, TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
+import {
+  lazyInitWallet as lazyInitWalletOrig,
+  sanitizeAndValidateMnemonic,
+  saveBitcoinXpubs,
+  saveSubMnemonics,
+  saveWalletState,
+  TSupportedLazyInitWalletNetworks,
+  clearWalletCache,
+} from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, OpenPopupRequest } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_WHITELIST } from '@shared/types/IStorage';
 import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK } from '@shared/types/networks';
@@ -260,5 +268,9 @@ export const BackgroundExecutor: IBackgroundCaller = {
       return await wallet.getCommonTransactions(afterTxid, limit);
     }
     return [];
+  },
+
+  async clear() {
+    clearWalletCache();
   },
 };

@@ -3,7 +3,7 @@ import { EvmWallet } from '@shared/class/evm-wallet';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { lazyInitWallet, sanitizeAndValidateMnemonic, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
+import { clearWalletCache, lazyInitWallet, sanitizeAndValidateMnemonic, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, MessageType, MessageTypeMap, OpenPopupRequest, ProcessRPCRequest } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC } from '@shared/types/IStorage';
 import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
@@ -19,7 +19,7 @@ type TBackgroundMessage = { [K in keyof MessageTypeMap]: { type: K; params: Mess
 // Function type for sending a response from background
 type TSendResponse = (response: MessageTypeMap[keyof MessageTypeMap]['response'] | { error: true; message: string }) => void;
 // Allowed method names for background executor
-type TMethods = 'getAddress' | 'saveMnemonic' | 'createMnemonic' | 'getBtcBalance' | 'encryptMnemonic' | 'signPersonalMessage' | 'signTypedData' | 'getBtcSendData' | 'getSubMnemonic';
+type TMethods = 'getAddress' | 'saveMnemonic' | 'createMnemonic' | 'getBtcBalance' | 'encryptMnemonic' | 'signPersonalMessage' | 'signTypedData' | 'getBtcSendData' | 'getSubMnemonic' | 'clear';
 
 async function handleOpenPopup([method, params, id, from]: OpenPopupRequest, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) {
   if (!sender.tab?.id) {
@@ -217,6 +217,10 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     }
     return mnemonic;
   },
+
+  async clear() {
+    clearWalletCache();
+  },
 };
 
 const callBackgroundMethod = async (method: Function, params: any, sendResponse: Function) => {
@@ -240,6 +244,7 @@ const MessageHandlerMap = {
   [MessageType.SIGN_TYPED_DATA]: BackgroundExtensionExecutor.signTypedData,
   [MessageType.GET_BTC_SEND_DATA]: BackgroundExtensionExecutor.getBtcSendData,
   [MessageType.GET_SUB_MNEMONIC]: BackgroundExtensionExecutor.getSubMnemonic,
+  [MessageType.CLEAR]: BackgroundExtensionExecutor.clear,
 };
 
 export function handleMessage(msg: TBackgroundMessage, sender: chrome.runtime.MessageSender, sendResponse: TSendResponse) {

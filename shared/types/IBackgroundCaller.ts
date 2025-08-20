@@ -17,6 +17,7 @@ export enum MessageType {
   GET_BTC_SEND_DATA,
   GET_SUB_MNEMONIC,
   GET_COMMON_TRANSACTIONS,
+  CLEAR,
 }
 
 // Message types for background script communication
@@ -68,6 +69,10 @@ export type MessageTypeMap = {
   [MessageType.GET_COMMON_TRANSACTIONS]: {
     params: GetCommonTransactionsRequest;
     response: GetCommonTransactionsResponse;
+  };
+  [MessageType.CLEAR]: {
+    params: [];
+    response: void;
   };
 };
 
@@ -132,4 +137,5 @@ export interface IBackgroundCaller {
   getBtcSendData(...params: GetBtcSendDataRequest): Promise<GetBtcSendDataResponse>;
   getSubMnemonic(...params: GetSubMnemonicRequest): Promise<GetSubMnemonicResponse>;
   getCommonTransactions(...params: GetCommonTransactionsRequest): Promise<GetCommonTransactionsResponse>;
+  clear(): Promise<void>;
 }

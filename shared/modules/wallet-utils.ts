@@ -178,3 +178,9 @@ export const sanitizeAndValidateMnemonic = (mnemonic: string): string => {
 
   return sanitizedMnemonic;
 };
+
+export const clearWalletCache = () => {
+  (Object.keys(cachedWallets) as Array<TSupportedLazyInitWalletNetworks>).forEach((network) => {
+    cachedWallets[network] = {};
+  });
+};

@@ -18,6 +18,7 @@ import { SETTINGS_CONFIG } from '@shared/hooks/SettingsContext';
 import { useSettings } from '@shared/hooks/useSettings';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { STORAGE_KEY_BTC_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -48,6 +49,7 @@ export default function SettingsScreen() {
         onPress: async () => {
           setIsClearing(true);
           try {
+            await BackgroundExecutor.clear();
             await AsyncStorage.clear();
             await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, '');
             Alert.alert('Storage Cleared', 'All app data has been cleared successfully. The app will now restart.', [
