@@ -125,4 +125,8 @@ export const BackgroundCaller: IBackgroundCaller = {
   async getCommonTransactions(...params): Promise<GetCommonTransactionsResponse> {
     return await Messenger.sendGenericMessageToBackground(MessageType.GET_COMMON_TRANSACTIONS, params);
   },
+
+  async clear(...params) {
+    return await Messenger.sendGenericMessageToBackground(MessageType.CLEAR, params);
+  },
 };

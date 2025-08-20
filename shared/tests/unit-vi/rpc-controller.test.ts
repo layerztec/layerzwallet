@@ -88,6 +88,9 @@ const backgroundCallerMock2: IBackgroundCaller = {
   getCommonTransactions() {
     throw new Error('Function not implemented.');
   },
+  clear() {
+    throw new Error('Function not implemented.');
+  },
 };
 
 beforeEach(() => {

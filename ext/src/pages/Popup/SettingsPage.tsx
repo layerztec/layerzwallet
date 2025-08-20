@@ -1,16 +1,18 @@
-import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
-import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
-import { useSettings } from '@shared/hooks/useSettings';
-import { SETTINGS_CONFIG } from '@shared/hooks/SettingsContext';
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router';
+
+import { BackgroundCaller } from '../../modules/background-caller';
+import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
+import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
+import { SETTINGS_CONFIG } from '@shared/hooks/SettingsContext';
+import { useSettings } from '@shared/hooks/useSettings';
 import { Csprng } from '../../class/rng';
+import { ThemedText } from '../../components/ThemedText';
 import { decrypt, encrypt } from '../../modules/encryption';
 import { Button, Select } from './DesignSystem';
-import { ThemedText } from '../../components/ThemedText';
-import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 const pck = require('../../../package.json');
 
@@ -156,6 +158,7 @@ const SettingsPage: React.FC = () => {
 
       <Button
         onClick={async () => {
+          await BackgroundCaller.clear();
           chrome.storage.local.clear();
           localStorage.clear();
           setAccountNumber(-1); // to notify change
