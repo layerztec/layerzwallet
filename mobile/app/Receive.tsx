@@ -139,7 +139,7 @@ export default function ReceiveScreen() {
 
           <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
             <Ionicons name="refresh" size={24} color="rgba(255, 255, 255, 0.8)" />
-            <ThemedText>Refresh</ThemedText>
+            <ThemedText style={{ color: 'white', opacity: 0.8 }}>Refresh</ThemedText>
           </TouchableOpacity>
 
           <View style={styles.actionButtons}>
@@ -198,6 +198,8 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     lineHeight: 25,
     paddingHorizontal: 20,
+    color: 'white',
+    opacity: 0.8,
   },
   refreshButton: {
     flexDirection: 'row',

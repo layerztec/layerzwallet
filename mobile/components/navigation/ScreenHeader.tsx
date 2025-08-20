@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle, TextStyle, StatusBar } from 'react-native';
+import { StyleSheet, View, ViewStyle } from 'react-native';
 import { ThemedText } from '../ThemedText';
 import BackButton from './BackButton';
 
@@ -49,6 +49,8 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: 'center',
+    color: 'white',
+    opacity: 0.8,
   },
 });
 
