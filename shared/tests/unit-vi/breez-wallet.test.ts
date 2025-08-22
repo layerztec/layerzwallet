@@ -48,7 +48,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
         timestamp: 1754384530,
         txId: 'tx2',
       },
-      // Lightning
+      // Lightning, receive
       {
         feesSat: 48,
         paymentType: 'receive',
@@ -68,7 +68,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
         timestamp: 1750158910,
         amountSat: 53,
       },
-      // Unknown asset
+      // Unknown asset, send
       {
         details: {
           type: 'liquid',
@@ -87,6 +87,67 @@ describe('Breez Wallet - getCommonTransactions', () => {
         txId: '1d9939da15721adbd021d550286fec9f8476c0218073416966e62ef8f4de1f9b',
         unblindingData:
           '94,ec24f3e4a4993802f901d881ea1bbfc642dfbc25d5fe82af2564ddc59dc025a9,e8b2ddfc070e0048d2275e3e05545f50a83141472197b6f0f78bad71e2a61606,d18841bb2cda97d31ecc37b563d623f5aa03d37c9d82954cdff30af83579c7c3,298529,144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49,2ab52dc6784b10519928593b94eeee2e06358d45fc26fbc48e6364734420f651,65dbb7f3a40a660a0c7ee9d5a6e684675dbeb048bf48e7196d2df021e3d72e3b,93,ec24f3e4a4993802f901d881ea1bbfc642dfbc25d5fe82af2564ddc59dc025a9,fc39a189b9fbc47bb25e5c27d7e1099e9bab7400aaa8a19e26a5860d45dee11f,6cd220bb2ff7c49faa7f8fc43084c8480666e898e02cf1b495b721bfe624bb71,298489,144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49,20736870a559409d312d463643b82a38ffb7c607cb50366ff4469e3843970718,58f7a90773245a2a79d71b1cdc804280baa08a5e3ca9fb97629f27a46d9c43cc',
+      },
+
+      // Liquid as a destination, receive
+      {
+        feesSat: 0,
+        paymentType: 'receive',
+        timestamp: 1748430250,
+        details: {
+          payerNote: null,
+          description: 'Liquid transfer',
+          destination: 'lq1qqfy8jhv9px5q0v5v0e2m5jltjhj2wjnq5sdf08r0fgldheas52arv56pptlw85vfmgn4vceuatwce0d4tp2xzqhhdjc89acf6',
+          type: 'liquid',
+          assetId: 'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2',
+          assetInfo: {
+            ticker: 'USDt',
+            amount: 1,
+            fees: null,
+            name: 'Tether USD',
+          },
+          lnurlInfo: null,
+          bip353Address: null,
+        },
+        txId: '0031ab92399f87c15cdfe75a8be905263412b9fcce8060669dc41b1e31e87cf3',
+        status: 'complete',
+        swapperFeesSat: null,
+        amountSat: 0,
+        unblindingData:
+          '100000000,ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2,c23f8896d2f9b8668b72a3429840801d284e0c95901fa16c560b63bc99d85828,ff065f5101d6ada4772867a1c2b3ae6286fc09713110b23662848bd03605b6c1',
+        destination: 'lq1qqfy8jhv9px5q0v5v0e2m5jltjhj2wjnq5sdf08r0fgldheas52arv56pptlw85vfmgn4vceuatwce0d4tp2xzqhhdjc89acf6',
+      },
+      // Lightning as a destination, receive
+      {
+        timestamp: 1746798970,
+        status: 'complete',
+        paymentType: 'receive',
+        amountSat: 1183,
+        details: {
+          swapId: '4Hz5YXxQUvYc',
+          preimage: '381adc96015fc3894a79ffa4efead2cc7990f117ecf74a9886f6e7f013a5cd36',
+          type: 'lightning',
+          bolt12Offer: null,
+          liquidExpirationBlockheight: 3369124,
+          paymentHash: '6c7a29a170d322261c49314d551c3a9c8a63138e8a52ea66878a9aaf21e9a8a5',
+          description: 'Payment to BZ wallet',
+          destinationPubkey: '02d96eadea3d780104449aca5c93461ce67c1564e2e1d73225fa67dd3b997a6018',
+          lnurlInfo: null,
+          invoice:
+            'lnbc12340n1p5puzfasp55h6susfzhhy5acxh0jhasywghuh2ndd54jqdlrywugj4jrf7g4cspp5d3azngts6v3zv8zfx9x428p6nj9xxyuw3ffw5e5832d27g0f4zjsdpq2pshjmt9de6zqar0ypp95grhv9kxcet5xqyp2xqcqz95rzjq2h65qettudjx9wacaec92scgjjz07q5fkut3tejqvla85u052vw5zzxeyqq28qqqqqqqqqqqqqqq9gq2y9qyysgq8zhda3tyt4j5ga7n37q5j9az24k5vactakcstxzzlwr5zl7fehxpy4ukgrdaxyphafnzh6gm3x6wkvwgqew854s50e5v86g49u7wpkgq2d2vzm',
+          claimTxId: '7968249135073947e2f396b5cf0ad02ca9c22435063dff895bc80faf0ec6e5f4',
+          refundTxId: null,
+          payerNote: null,
+          refundTxAmountSat: null,
+          bip353Address: null,
+        },
+        unblindingData:
+          '1183,6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d,65d900602d1c8178dae9a1f25c9105b38beb185208c3a6ad94c2c91fd14265b8,53973c669aea02cdcd1ed87e0266bc80b167d4e2b86bcb109f4ac979a036c126',
+        txId: '7968249135073947e2f396b5cf0ad02ca9c22435063dff895bc80faf0ec6e5f4',
+        feesSat: 51,
+        swapperFeesSat: 4,
+        destination:
+          'lnbc12340n1p5puzfasp55h6susfzhhy5acxh0jhasywghuh2ndd54jqdlrywugj4jrf7g4cspp5d3azngts6v3zv8zfx9x428p6nj9xxyuw3ffw5e5832d27g0f4zjsdpq2pshjmt9de6zqar0ypp95grhv9kxcet5xqyp2xqcqz95rzjq2h65qettudjx9wacaec92scgjjz07q5fkut3tejqvla85u052vw5zzxeyqq28qqqqqqqqqqqqqqq9gq2y9qyysgq8zhda3tyt4j5ga7n37q5j9az24k5vactakcstxzzlwr5zl7fehxpy4ukgrdaxyphafnzh6gm3x6wkvwgqew854s50e5v86g49u7wpkgq2d2vzm',
       },
     ] as Payment[];
 
@@ -146,6 +207,32 @@ describe('Breez Wallet - getCommonTransactions', () => {
           },
         ],
         txid: '1d9939da15721adbd021d550286fec9f8476c0218073416966e62ef8f4de1f9b',
+      },
+      {
+        amount: 0,
+        direction: 'receive',
+        fee: 0,
+        network: 'liquid',
+        status: 'confirmed',
+        timestamp: 1748430250,
+        tokenTransfers: [
+          {
+            address: undefined,
+            amount: 1,
+            tokenId: 'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2',
+          },
+        ],
+        txid: '0031ab92399f87c15cdfe75a8be905263412b9fcce8060669dc41b1e31e87cf3',
+      },
+      {
+        amount: 1183,
+        direction: 'receive',
+        fee: 51,
+        network: 'liquid',
+        status: 'confirmed',
+        timestamp: 1746798970,
+        tokenTransfers: [],
+        txid: '7968249135073947e2f396b5cf0ad02ca9c22435063dff895bc80faf0ec6e5f4',
       },
     ]);
   });

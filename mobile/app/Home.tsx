@@ -89,7 +89,7 @@ export default function Home() {
 
   // Get latest transactions (limit to 3 for display)
   // TODO: limit to 3 later
-  const latestTransactions = transactions?.slice(0, 999999) || [];
+  const latestTransactions = transactions?.slice(0, Infinity) || [];
 
   const handleSend = () => {
     switch (network) {
@@ -338,7 +338,8 @@ export default function Home() {
               </View>
             )}
 
-            <Button title="Transaction History" onPress={handleTransactionHistory} variant="dark" />
+            {/* TODO: re-enable this later */}
+            {false && <Button title="Transaction History" onPress={handleTransactionHistory} variant="dark" />}
           </BlurView>
 
           {/* Bottom spacing for navigation */}
