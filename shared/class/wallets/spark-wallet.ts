@@ -1,8 +1,11 @@
-import { ArkWallet } from './ark-wallet';
-import { SparkWallet as SDK } from '@buildonspark/spark-sdk';
-import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
-import bolt11 from 'bolt11';
 import assert from 'assert';
+import bolt11 from 'bolt11';
+import { SparkWallet as SDK } from '@buildonspark/spark-sdk';
+
+import { ArkWallet } from './ark-wallet';
+import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
+import { CommonTransaction } from '@shared/types/common-transaction';
+import { NETWORK_SPARK } from '@shared/types/networks';
 
 export interface ISparkAdapter {
   initialize(...options: Parameters<typeof SDK.initialize>): ReturnType<typeof SDK.initialize>;
@@ -132,5 +135,38 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
         maxSat: 100000000,
       },
     });
+  }
+
+  async getCommonTransactions(afterTxid?: string, limit: number = 10): Promise<CommonTransaction[]> {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+
+    type WalletTransfer = Awaited<ReturnType<typeof this._sdkWallet.getTransfers>>['transfers'][number];
+
+    // fetch all transfers in chunks of 100
+    const transfers: WalletTransfer[] = [];
+    let offset = 0;
+    while (true) {
+      const { transfers: tr } = await this._sdkWallet.getTransfers(100, offset);
+      if (tr.length === 0) break;
+      transfers.push(...tr);
+      offset += 100;
+    }
+
+    const commonTransactions: CommonTransaction[] = [];
+    for (const transfer of transfers) {
+      const timestamp = Math.floor((transfer.updatedTime ?? transfer.createdTime)!.getTime() / 1000);
+      const status = transfer.status === 'TRANSFER_STATUS_COMPLETED' ? 'confirmed' : 'pending';
+
+      commonTransactions.push({
+        network: NETWORK_SPARK,
+        txid: transfer.id,
+        amount: transfer.totalValue,
+        timestamp,
+        status,
+        direction: transfer.transferDirection === 'OUTGOING' ? 'send' : 'receive',
+      });
+    }
+
+    return commonTransactions;
   }
 }

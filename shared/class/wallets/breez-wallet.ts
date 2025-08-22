@@ -205,23 +205,30 @@ export class BreezWallet implements InterfaceLightningWallet {
 
     // convert to common transaction
     const commonTransactions: CommonTransaction[] = [];
-    for (const payment of payments) {
+    for (const p of payments) {
       let tokenTransfers: CommonTokenTransfer[] = [];
       // Make sure it is a token transfer
-      if (payment.details.type === 'liquid' && !Object.values(LBTC_ASSET_IDS).includes(payment.details.assetId)) {
-        const tokenId = payment.details.assetId;
+      if (p.details.type === 'liquid' && !Object.values(LBTC_ASSET_IDS).includes(p.details.assetId)) {
+        const tokenId = p.details.assetId;
         let amount: number | undefined;
         let address: string | undefined;
-        if (payment.details.assetInfo?.amount) {
-          amount = payment.details.assetInfo.amount;
+        if (p.details.assetInfo?.amount) {
+          amount = p.details.assetInfo.amount;
         }
-        if (payment.details.destination) {
-          const urnScheme = this.n === 'mainnet' ? 'liquid' : 'liquidtestnet';
-          const decoded = bip21.decode(payment.details.destination, urnScheme);
-          if (decoded.address) {
+        if (p.details.destination) {
+          const urnScheme = this.n === 'mainnet' ? 'liquidnetwork' : 'liquidtestnet';
+
+          // in some cases, the destination is not a valid BIP21 address,
+          // but a Lightning invoice or Liquid address
+          let decoded;
+          try {
+            decoded = bip21.decode(p.details.destination, urnScheme);
+          } catch (e) {}
+
+          if (decoded?.address) {
             address = decoded.address;
           }
-          if (amount === undefined && decoded.options.amount) {
+          if (amount === undefined && decoded?.options.amount) {
             amount = Number(decoded.options.amount);
           }
         }
@@ -230,13 +237,13 @@ export class BreezWallet implements InterfaceLightningWallet {
       }
 
       commonTransactions.push({
-        txid: payment.txId!,
+        txid: p.txId!,
         network: NETWORK_LIQUID,
-        timestamp: payment.timestamp,
-        direction: payment.paymentType,
-        amount: payment.amountSat,
-        status: payment.status === 'complete' ? 'confirmed' : 'pending',
-        fee: payment.feesSat,
+        timestamp: p.timestamp,
+        direction: p.paymentType,
+        amount: p.amountSat,
+        status: p.status === 'complete' ? 'confirmed' : 'pending',
+        fee: p.feesSat,
         tokenTransfers,
       });
     }
