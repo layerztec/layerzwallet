@@ -34,11 +34,7 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
   const { accountNumber, network, backgroundCaller } = arg;
 
   try {
-    if (network === NETWORK_BITCOIN) {
-      return await backgroundCaller.getCommonTransactions(network, accountNumber);
-    }
-
-    if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
+    if ([NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET].includes(network as any)) {
       return await backgroundCaller.getCommonTransactions(network, accountNumber);
     }
 
@@ -58,13 +54,17 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
       return await wallet.getCommonTransactions();
     }
 
-    if (network === NETWORK_LIGHTNING) {
-      // join Liquid and Spark
-      const liquidTx = await backgroundCaller.getCommonTransactions(NETWORK_LIQUID, accountNumber);
-      const wallet = await backgroundCaller.lazyInitWallet(NETWORK_SPARK, accountNumber);
-      assert(wallet instanceof SparkWallet, 'Not a Spark wallet');
-      const sparkTx = await wallet.getCommonTransactions();
-      return [...liquidTx, ...sparkTx]
+    if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET) {
+      // join Liquid and Spark, but spark is not available on testnet
+      const liquidNetwork = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
+      const tsx = await backgroundCaller.getCommonTransactions(liquidNetwork, accountNumber);
+      if (network === NETWORK_LIGHTNING) {
+        const wallet = await backgroundCaller.lazyInitWallet(NETWORK_SPARK, accountNumber);
+        assert(wallet instanceof SparkWallet, 'Not a Spark wallet');
+        const sparkTx = await wallet.getCommonTransactions();
+        tsx.push(...sparkTx);
+      }
+      return tsx
         .filter((tx) => tx?.amount !== undefined && tx.amount > 0) // filter out token transfers
         .sort((a, b) => b.timestamp - a.timestamp);
     }

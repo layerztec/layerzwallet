@@ -4,8 +4,8 @@ import { SparkWallet as SDK } from '@buildonspark/spark-sdk';
 
 import { ArkWallet } from './ark-wallet';
 import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
-import { CommonTransaction } from '@shared/types/common-transaction';
-import { NETWORK_SPARK } from '@shared/types/networks';
+import { CommonTransaction } from '../../types/common-transaction';
+import { NETWORK_SPARK } from '../../types/networks';
 
 export interface ISparkAdapter {
   initialize(...options: Parameters<typeof SDK.initialize>): ReturnType<typeof SDK.initialize>;
