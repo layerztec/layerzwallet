@@ -45,17 +45,17 @@ export function getTokenList(network: Networks): TokenInfo[] {
   return ret;
 }
 
-export function getTokenInfo(id: string): TokenInfo {
+export function getTokenInfo(id: string | undefined): TokenInfo {
   const token = list.find((t) => t.id === id);
   if (token) {
     return token;
   }
   // if token is not found, we return something
   return {
-    id,
+    id: String(id),
     name: 'Unknown Token',
     decimals: 8,
-    symbol: id.substring(0, 8),
+    symbol: String(id).substring(0, 8),
     chainId: 99999,
   };
 }
