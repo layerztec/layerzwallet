@@ -30,6 +30,7 @@
         "foregroundImage": "./assets/images/android_512x512.png",
         "backgroundColor": "#000000"
       },
+      "launchMode": "singleInstance",
       "intentFilters": [
         {
           "action": "VIEW",
