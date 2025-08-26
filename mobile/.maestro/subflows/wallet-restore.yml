@@ -10,6 +10,7 @@ appId: com.layerzwallet.mobile
     visible: 'Import Wallet'
     timeout: 150000
 - tapOn: 'Import Wallet'
+- waitForAnimationToEnd
 
 # Wrong mnemonic, run this flow only on android. On ios maestro fails with "Input text wrong TEXT FAILED"
 # why it still can enter mnemonic? IDK
@@ -17,10 +18,14 @@ appId: com.layerzwallet.mobile
     when:
       platform: 'android'
     commands:
+      - waitForAnimationToEnd
       - tapOn:
           id: 'ImportWalletMnemonicInput'
+      - eraseText
       - inputText: 'wrong'
-      - tapOn: 'Import wallet' # to remove focus from the keyboard
+      - tapOn:
+          point: 10%,50% # to remove focus from the keyboard
+      - waitForAnimationToEnd
       - tapOn:
           id: 'ImportWalletImportButton'
       - assertVisible: 'Invalid mnemonic seed'
@@ -29,10 +34,14 @@ appId: com.layerzwallet.mobile
       - eraseText
 
 # Correct mnemonic
+- waitForAnimationToEnd
 - tapOn:
     id: 'ImportWalletMnemonicInput'
+- eraseText
 - inputText: ${MNEMONIC}
-- tapOn: 'Import wallet' # to remove focus from the keyboard
+- tapOn:
+    point: 10%,50% # to remove focus from the keyboard
+- waitForAnimationToEnd
 - tapOn:
     id: 'ImportWalletImportButton'
 - extendedWaitUntil:
@@ -42,10 +51,12 @@ appId: com.layerzwallet.mobile
 # Create password
 - tapOn:
     id: 'EnterPasswordInput'
+- eraseText
 - inputText:
     text: '123456'
 - tapOn:
     id: 'RepeatPasswordInput'
+- eraseText
 - inputText:
     text: '123456'
 - tapOn:
