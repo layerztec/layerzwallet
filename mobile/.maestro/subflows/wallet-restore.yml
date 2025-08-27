@@ -29,9 +29,11 @@ appId: com.layerzwallet.mobile
       - tapOn:
           id: 'ImportWalletImportButton'
       - assertVisible: 'Invalid mnemonic seed'
-      - tapOn:
-          id: 'ImportWalletMnemonicInput'
-      - eraseText
+      # now to clean the input field we go back and tap "Import Wallet" again
+      - runFlow:
+          file: back.yml
+      - tapOn: 'Import Wallet'
+      - waitForAnimationToEnd
 
 # Correct mnemonic
 - waitForAnimationToEnd
