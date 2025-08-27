@@ -64,8 +64,8 @@
       "favicon": "./assets/images/favicon.png"
     },
     "splash": {
-      "image": "./assets/images/ios_1024x1024.png",
-      "resizeMode": "cover",
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "native",
       "backgroundColor": "#000000"
     },
     "plugins": [
@@ -73,7 +73,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/ios_1024x1024.png",
+          "image": "./assets/images/splash-icon.png",
           "resizeMode": "native",
           "backgroundColor": "#000000"
         }
