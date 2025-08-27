@@ -1,6 +1,7 @@
 import { Cache } from 'swr';
 import { State } from 'swr/_internal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { serialize, deserialize } from '@shared/class/swr-cache-serializer';
 
 /**
  * In  order to persist our cache between app launches
@@ -13,7 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * @see https://swr.vercel.app/docs/advanced/react-native.en-US
  */
 export class SwrCacheProvider implements Cache<any> {
-  private cachePrefix = 'swr-cache-v3-';
+  private cachePrefix = 'swr-cache-v4-';
   private cache: Map<string, any> = new Map();
 
   constructor() {
@@ -29,7 +30,7 @@ export class SwrCacheProvider implements Cache<any> {
       for (const key of cacheKeys) {
         const value = await AsyncStorage.getItem(key);
         if (value) {
-          const data = JSON.parse(value);
+          const data = deserialize(value);
           const originalKey = key.substring(this.cachePrefix.length);
           this.cache.set(originalKey, data);
         }
@@ -43,21 +44,17 @@ export class SwrCacheProvider implements Cache<any> {
     try {
       const data = this.cache.get(key);
       if (data) {
-        return { data };
+        return data;
       }
     } catch (error) {
-      return { error };
+      return undefined;
     }
-
-    return {};
   }
 
   set(key: string, value: State<any>): void {
-    if (value.data) {
-      this.cache.set(key, value.data);
-      // Persist to AsyncStorage asynchronously
-      AsyncStorage.setItem(`${this.cachePrefix}${key}`, JSON.stringify(value.data)).catch((err) => console.error('Failed to persist SWR cache:', err));
-    }
+    this.cache.set(key, value);
+    // Persist to AsyncStorage asynchronously
+    AsyncStorage.setItem(`${this.cachePrefix}${key}`, serialize(value)).catch((err) => console.error('Failed to persist SWR cache:', err));
   }
 
   delete(key: string): void {
