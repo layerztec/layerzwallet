@@ -1,10 +1,12 @@
-import { SingleKey, Wallet } from '@arkade-os/sdk';
+import { SingleKey, Wallet, TxType } from '@arkade-os/sdk';
 import ecc from '@bitcoinerlab/secp256k1';
 import BIP32Factory from 'bip32';
 import * as bip39 from 'bip39';
 import assert from 'assert';
 
 import { AbstractHDElectrumWallet } from './abstract-hd-electrum-wallet';
+import { CommonTransaction } from '../../types/common-transaction';
+import { NETWORK_ARK_MUTINYNET } from '../../types/networks';
 
 const bip32 = BIP32Factory(ecc);
 
@@ -72,5 +74,26 @@ export class ArkWallet extends AbstractHDElectrumWallet {
 
     const address = await this._wallet.getAddress();
     return address;
+  }
+
+  async getCommonTransactions(): Promise<CommonTransaction[]> {
+    if (!this._wallet) throw new Error('Ark wallet not initialized');
+
+    const transactions = await this._wallet.getTransactionHistory();
+
+    const commonTransactions: CommonTransaction[] = [];
+
+    for (const transaction of transactions) {
+      const timestamp = Math.floor(transaction.createdAt / 1000);
+      commonTransactions.push({
+        network: NETWORK_ARK_MUTINYNET,
+        txid: transaction.key.arkTxid,
+        timestamp,
+        direction: transaction.type === TxType.TxSent ? 'send' : 'receive',
+        amount: transaction.amount,
+      });
+    }
+
+    return commonTransactions;
   }
 }

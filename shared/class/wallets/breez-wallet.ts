@@ -200,7 +200,7 @@ export class BreezWallet implements InterfaceLightningWallet {
     return false;
   }
 
-  async getCommonTransactions(afterTxid?: string, limit: number = 10): Promise<CommonTransaction[]> {
+  async getCommonTransactions(): Promise<CommonTransaction[]> {
     const payments = await this.listPayments({});
 
     // convert to common transaction

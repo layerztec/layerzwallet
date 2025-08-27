@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { expect, describe, it } from 'vitest';
+import { describe, it } from 'vitest';
 import { EvmWallet } from '../../class/evm-wallet';
 import { NETWORK_ROOTSTOCK } from '../../types/networks';
 import { AllNetworkInfos } from '../../models/all-network-infos';

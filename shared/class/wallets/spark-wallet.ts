@@ -137,7 +137,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     });
   }
 
-  async getCommonTransactions(afterTxid?: string, limit: number = 10): Promise<CommonTransaction[]> {
+  async getCommonTransactions(): Promise<CommonTransaction[]> {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
     type WalletTransfer = Awaited<ReturnType<typeof this._sdkWallet.getTransfers>>['transfers'][number];
