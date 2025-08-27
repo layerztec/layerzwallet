@@ -8,7 +8,6 @@ import BIP32Factory, { BIP32Interface } from 'bip32';
 import * as bip39 from 'bip39';
 import * as bitcoin from 'bitcoinjs-lib';
 import { Psbt, Transaction as BTransaction } from 'bitcoinjs-lib';
-// @ts-ignore
 import b58 from 'bs58check';
 import { CoinSelectReturnInput } from 'coinselect';
 import { ECPairFactory } from 'ecpair';

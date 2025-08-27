@@ -3,6 +3,7 @@ import useSWR from 'swr';
 
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { AllNetworkInfos } from '../models/all-network-infos';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
@@ -67,6 +68,12 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
       return tsx
         .filter((tx) => tx?.amount !== undefined && tx.amount > 0) // filter out token transfers
         .sort((a, b) => b.timestamp - a.timestamp);
+    }
+
+    if (network === NETWORK_ARK_MUTINYNET) {
+      const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof ArkWallet, 'Not an Ark wallet');
+      return await wallet.getCommonTransactions();
     }
 
     return [];

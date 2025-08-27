@@ -258,6 +258,8 @@ export const BackgroundExecutor: IBackgroundCaller = {
 
   async getCommonTransactions(network, accountNumber, afterTxid, limit) {
     if (network === NETWORK_BITCOIN) {
+      // electrum is already initialized in getBtcBalance, so we can't call connectMain again
+      await BlueElectrum.waitTillConnected();
       const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(wallet instanceof WatchOnlyWallet);
       await wallet.fetchTransactions();
@@ -265,7 +267,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
     } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
       const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(wallet instanceof BreezWallet);
-      return await wallet.getCommonTransactions(afterTxid, limit);
+      return await wallet.getCommonTransactions();
     }
     return [];
   },
