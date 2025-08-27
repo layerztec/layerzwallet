@@ -4,7 +4,6 @@
     "slug": "layerzwallet",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/ios_1024x1024.png",
     "scheme": ["bitcoin", "liquidnetwork", "layerzwallet"],
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -19,7 +18,11 @@
           }
         ]
       },
-      "icon": "./assets/images/ios_1024x1024.png"
+      "icon": {
+        "dark": "./assets/images/ios-dark.png",
+        "light": "./assets/images/ios-dark.png",
+        "tinted": "./assets/images/ios-tinted.png"
+      }
     },
     "android": {
       "edgeToEdgeEnabled": true,
