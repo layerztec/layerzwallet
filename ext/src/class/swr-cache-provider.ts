@@ -1,5 +1,6 @@
 import { Cache } from 'swr';
 import { State } from 'swr/_internal';
+import { serialize, deserialize } from '@shared/class/swr-cache-serializer';
 
 /**
  * Since every time user opens extension's Popup its treated like a brand-new launch with a brand-new context,
@@ -12,26 +13,21 @@ import { State } from 'swr/_internal';
  * @see https://swr.vercel.app/docs/advanced/cache
  */
 export class SwrCacheProvider implements Cache<any> {
-  private cachePrefix = 'cache-v5-';
+  private cachePrefix = 'cache-v6-';
 
   get(key: string): State<any> | undefined {
     try {
-      let value = localStorage.getItem(key.startsWith(this.cachePrefix) ? key : `${this.cachePrefix}${key}`);
+      const value = localStorage.getItem(key.startsWith(this.cachePrefix) ? key : `${this.cachePrefix}${key}`);
       if (value) {
-        const data = JSON.parse(value);
-        return { data };
+        return deserialize(value);
       }
     } catch (error) {
-      return { error };
+      return undefined;
     }
-
-    return {};
   }
 
   set(key: string, value: State<any>): void {
-    if (value.data) {
-      localStorage.setItem(`${this.cachePrefix}${key}`, JSON.stringify(value.data));
-    }
+    localStorage.setItem(`${this.cachePrefix}${key}`, serialize(value));
   }
 
   delete(key: string): void {
