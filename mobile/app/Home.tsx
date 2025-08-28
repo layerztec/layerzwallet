@@ -15,6 +15,7 @@ import TokensView from '@/components/TokensView';
 
 import Transaction from '@/components/Transaction';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { useAppLock } from '@/src/hooks/useAppLock';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -58,6 +59,15 @@ export default function Home() {
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
   const { transactions, error: transactionsError } = useTransactions(network, accountNumber, BackgroundExecutor);
   const accountItem = accountItems[accountNumber];
+
+  // App lock functionality
+  const { lockState, authenticateWithBiometrics } = useAppLock();
+
+  useEffect(() => {
+    if (lockState.requiresAuth && lockState.isLocked && !lockState.isAuthenticating) {
+      authenticateWithBiometrics();
+    }
+  }, [lockState, authenticateWithBiometrics]);
 
   // Lightning network specific balance logic
   const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET;
@@ -391,6 +401,25 @@ export default function Home() {
           </View>
         )}
       </View>
+
+      {/* Biometric Authentication Lock Screen Overlay */}
+      {lockState.isLocked && lockState.requiresAuth && (
+        <View style={styles.lockScreenOverlay}>
+          <BlurView intensity={50} tint="dark" style={styles.lockScreenBlur}>
+            <View style={styles.lockScreenContent}>
+              <MaterialIcons name="lock" size={80} color="rgba(255, 255, 255, 0.8)" />
+              <ThemedText style={styles.lockScreenTitle}>Wallet Locked</ThemedText>
+              <ThemedText style={styles.lockScreenSubtitle}>{lockState.isAuthenticating ? 'Authenticating...' : 'Tap to unlock with biometric authentication'}</ThemedText>
+              {!lockState.isAuthenticating && (
+                <TouchableOpacity style={styles.unlockButton} onPress={authenticateWithBiometrics} testID="UnlockButton">
+                  <MaterialIcons name="fingerprint" size={24} color="rgba(255, 255, 255, 0.8)" />
+                  <ThemedText style={styles.unlockButtonText}>Unlock</ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
+          </BlurView>
+        </View>
+      )}
     </>
   );
 }
@@ -682,5 +711,50 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     marginLeft: 4,
+  },
+  lockScreenOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+  },
+  lockScreenBlur: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lockScreenContent: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  lockScreenTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  lockScreenSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 22,
+  },
+  unlockButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  unlockButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.8)',
   },
 });

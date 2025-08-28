@@ -9,15 +9,22 @@ interface ScreenHeaderProps {
   onBackPress?: () => void;
   rightComponent?: React.ReactNode;
   style?: ViewStyle;
+  testID?: string;
 }
 
-const ScreenHeader: React.FC<ScreenHeaderProps> = ({ title, showBackButton = true, onBackPress, rightComponent, style }) => {
+const ScreenHeader: React.FC<ScreenHeaderProps> = ({ title, showBackButton = true, onBackPress, rightComponent, style, testID }) => {
   return (
     <View style={[styles.header, style]}>
       <View style={styles.headerContent}>
         <View style={styles.leftContainer}>{showBackButton && <BackButton onPress={onBackPress} />}</View>
 
-        <View style={styles.centerContainer}>{title && <ThemedText style={styles.title}>{title}</ThemedText>}</View>
+        <View style={styles.centerContainer}>
+          {title && (
+            <ThemedText style={styles.title} testID={testID}>
+              {title}
+            </ThemedText>
+          )}
+        </View>
 
         <View style={styles.rightContainer}>{rightComponent}</View>
       </View>

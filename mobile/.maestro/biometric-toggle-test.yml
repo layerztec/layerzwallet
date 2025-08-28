@@ -1,0 +1,53 @@
+appId: com.layerzwallet.mobile
+---
+# Create wallet first
+- runFlow:
+    file: subflows/wallet-creation.yml
+
+# Navigate to Settings and test biometric toggle
+- tapOn:
+    id: SettingsButton
+- assertVisible:
+    id: SettingsScreenTitle
+
+# First scroll down to get to the lower part of settings
+- scroll
+
+# Look directly for the biometric toggle buttons by testID
+# Test toggling biometric auth from OFF to ON (optional)
+- tapOn:
+    id: 'SettingOption-biometricAuth-OFF'
+    optional: true
+
+# Wait for any processing
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Try to toggle to ON
+- tapOn:
+    id: 'SettingOption-biometricAuth-ON'
+    optional: true
+
+# Wait for any processing
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Handle any potential alert dialogs (all optional)
+- tapOn:
+    text: 'Allow'
+    optional: true
+- tapOn:
+    text: 'OK'
+    optional: true
+- tapOn:
+    text: 'Simulating successful biometric setup for testing'
+    optional: true
+- tapOn:
+    text: 'OK'
+    optional: true
+- tapOn:
+    text: 'Biometric Authentication Unavailable'
+    optional: true
+- tapOn:
+    text: 'OK'
+    optional: true
