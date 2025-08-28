@@ -22,4 +22,47 @@ jobs:
         - .maestro/receive.yml
         - .maestro/restore.yml
         - .maestro/swap.yml
-#        - .maestro/browser.yml # always fails on CI, passes locally
+  #        - .maestro/browser.yml # always fails on CI, passes locally
+
+  upload_build_to_appetize:
+    needs: [build_ios_for_e2e]
+
+    steps:
+      - uses: eas/download_build
+        id: download_build
+        with:
+          build_id: ${{ needs.build_ios_for_e2e.outputs.build_id }}
+      - name: Print artifact path
+        run: |
+          echo "Artifact path: ${{ steps.download_build.outputs.artifact_path }}"
+
+      - name: Upload artifact to Appetize
+        run: |
+          set -euo pipefail
+          ARTIFACT="${{ steps.download_build.outputs.artifact_path }}"
+          if [ -z "${APPETIZE_API_KEY:-}" ]; then
+            echo "APPETIZE_API_KEY is not set" >&2
+            exit 1
+          fi
+          echo "Compressing $ARTIFACT to zip..."
+          cd "$(dirname "$ARTIFACT")"
+          zip -r "$(basename "$ARTIFACT").zip" "$(basename "$ARTIFACT")"
+          ZIP_PATH="$(pwd)/$(basename "$ARTIFACT").zip"
+          echo "Uploading $ZIP_PATH to Appetize..."
+          APPETIZE_RESPONSE=$(curl -fSL -X POST https://api.appetize.io/v1/apps \
+            -H "X-API-KEY: $APPETIZE_API_KEY" \
+            -F "file=@${ZIP_PATH}" \
+            -F "platform=ios")
+          echo "Appetize response: $APPETIZE_RESPONSE"
+          APP_URL=$(echo "$APPETIZE_RESPONSE" | jq -r '.appURL')
+          echo "App URL: $APP_URL"
+          if [ -z "${EXPO_EAS_BUILD_UPLOADED_ENDPOINT:-}" ]; then
+            echo "EXPO_EAS_BUILD_UPLOADED_ENDPOINT is not set" >&2
+            exit 1
+          fi
+          echo "posting data to webhook..."
+          echo '{
+            "appURL": "'$APP_URL'",
+            "git_commit_hash": "${{ needs.build_ios_for_e2e.outputs.git_commit_hash }}",
+            "platform": "${{ needs.build_ios_for_e2e.outputs.platform }}"
+          }' | curl -d @- "$EXPO_EAS_BUILD_UPLOADED_ENDPOINT"

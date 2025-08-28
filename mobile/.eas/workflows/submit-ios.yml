@@ -13,7 +13,8 @@ jobs:
   submit_ios:
     name: Submit to Apple App Store
     needs: [build_ios]
-    type: submit
+    type: testflight
     params:
       platform: ios
       build_id: ${{ needs.build_ios.outputs.build_id }}
+      changelog: "${{ github.commit_message || '' }}"
