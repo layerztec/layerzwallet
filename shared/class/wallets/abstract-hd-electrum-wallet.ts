@@ -340,10 +340,10 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
     // now purge all unconfirmed txs from internal hashmaps, since some may be evicted from mempool because they became invalid
     // or replaced. hashmaps are going to be re-populated anyways, since we fetched TXs for addresses with unconfirmed TXs
     for (let c = 0; c < this.next_free_address_index + this.gap_limit; c++) {
-      this._txs_by_external_index[c] = this._txs_by_external_index[c].filter((tx) => !!tx.confirmations);
+      this._txs_by_external_index[c] = (this._txs_by_external_index[c] ?? []).filter((tx) => !!tx.confirmations);
     }
     for (let c = 0; c < this.next_free_change_address_index + this.gap_limit; c++) {
-      this._txs_by_internal_index[c] = this._txs_by_internal_index[c].filter((tx) => !!tx.confirmations);
+      this._txs_by_internal_index[c] = (this._txs_by_internal_index[c] ?? []).filter((tx) => !!tx.confirmations);
     }
     for (const pc of this._receive_payment_codes) {
       for (let c = 0; c < this._getNextFreePaymentCodeIndexReceive(pc) + this.gap_limit; c++) {
@@ -355,11 +355,11 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
     // this._txs_by_internal_index, this._txs_by_external_index & this._txs_by_payment_code_index
 
     for (let c = 0; c < this.next_free_address_index + this.gap_limit; c++) {
+      this._txs_by_external_index[c] = this._txs_by_external_index[c] || [];
       for (const tx of Object.values(txdatas)) {
         for (const vin of tx.vin) {
           if (vin.addresses && vin.addresses.indexOf(this._getExternalAddressByIndex(c)) !== -1) {
             // this TX is related to our address
-            this._txs_by_external_index[c] = this._txs_by_external_index[c] || [];
             const { vin: txVin, vout: txVout, ...txRest } = tx;
             const clonedTx = { ...txRest, inputs: txVin.slice(0), outputs: txVout.slice(0) };
 
@@ -377,7 +377,6 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
         for (const vout of tx.vout) {
           if (vout.scriptPubKey.addresses && vout.scriptPubKey.addresses.indexOf(this._getExternalAddressByIndex(c)) !== -1) {
             // this TX is related to our address
-            this._txs_by_external_index[c] = this._txs_by_external_index[c] || [];
             const { vin: txVin, vout: txVout, ...txRest } = tx;
             const clonedTx = { ...txRest, inputs: txVin.slice(0), outputs: txVout.slice(0) };
 
@@ -396,11 +395,11 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
     }
 
     for (let c = 0; c < this.next_free_change_address_index + this.gap_limit; c++) {
+      this._txs_by_internal_index[c] = this._txs_by_internal_index[c] || [];
       for (const tx of Object.values(txdatas)) {
         for (const vin of tx.vin) {
           if (vin.addresses && vin.addresses.indexOf(this._getInternalAddressByIndex(c)) !== -1) {
             // this TX is related to our address
-            this._txs_by_internal_index[c] = this._txs_by_internal_index[c] || [];
             const { vin: txVin, vout: txVout, ...txRest } = tx;
             const clonedTx = { ...txRest, inputs: txVin.slice(0), outputs: txVout.slice(0) };
 
@@ -418,7 +417,6 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
         for (const vout of tx.vout) {
           if (vout.scriptPubKey.addresses && vout.scriptPubKey.addresses.indexOf(this._getInternalAddressByIndex(c)) !== -1) {
             // this TX is related to our address
-            this._txs_by_internal_index[c] = this._txs_by_internal_index[c] || [];
             const { vin: txVin, vout: txVout, ...txRest } = tx;
             const clonedTx = { ...txRest, inputs: txVin.slice(0), outputs: txVout.slice(0) };
 
