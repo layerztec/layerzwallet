@@ -1,11 +1,14 @@
 import assert from 'assert';
 import bolt11 from 'bolt11';
-import { SparkWallet as SDK } from '@buildonspark/spark-sdk';
+import { SparkWallet as SDK, TokenBalanceMap } from '@buildonspark/spark-sdk';
 
 import { ArkWallet } from './ark-wallet';
 import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
 import { CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_SPARK } from '../../types/networks';
+
+// copypasted from `node_modules/@buildonspark/spark-sdk/dist/...` since its not exported
+type Bech32mTokenIdentifier = `btkn1${string}` | `btknrt1${string}` | `btknt1${string}` | `btkns1${string}` | `btknl1${string}`;
 
 export interface ISparkAdapter {
   initialize(...options: Parameters<typeof SDK.initialize>): ReturnType<typeof SDK.initialize>;
@@ -17,6 +20,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
   public allowLightning: true = true;
 
   protected _bolt11toReceiveRequestId: Record<string, string> = {};
+  private tokenBalances: TokenBalanceMap = new Map();
 
   constructor() {
     super();
@@ -88,7 +92,13 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
   async getOffchainBalance() {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
     const balance = await this._sdkWallet.getBalance();
+    this.tokenBalances = balance.tokenBalances;
     return Number(balance.balance);
+  }
+
+  getTokenBalances(): TokenBalanceMap {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+    return this.tokenBalances;
   }
 
   async createLightningInvoice(amountSats: number, memo: string = ''): Promise<createLightningInvoiceResponse> {
@@ -168,5 +178,11 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     }
 
     return commonTransactions;
+  }
+
+  async transferTokens(tokenIdentifier: string, tokenAmount: bigint, receiverSparkAddress: string): Promise<string> {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+
+    return await this._sdkWallet.transferTokens({ receiverSparkAddress, tokenAmount, tokenIdentifier: tokenIdentifier as Bech32mTokenIdentifier });
   }
 }
