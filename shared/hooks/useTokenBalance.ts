@@ -1,9 +1,11 @@
 import useSWR from 'swr';
-import { NETWORK_BITCOIN, NETWORK_ROOTSTOCK, Networks } from '../types/networks';
+import { NETWORK_BITCOIN, NETWORK_ROOTSTOCK, NETWORK_SPARK, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { ethers } from 'ethers';
-import { getRpcProvider } from '../models/network-getters';
+import { getIsEVM, getRpcProvider } from '../models/network-getters';
+import { SparkWallet } from '../class/wallets/spark-wallet';
+import assert from 'assert';
 
 interface tokenBalanceFetcherArg {
   cacheKey: string;
@@ -23,6 +25,23 @@ export const tokenBalanceFetcher = async (arg: tokenBalanceFetcherArg): Promise<
    */
   if (network === NETWORK_BITCOIN) {
     throw new Error('tokenBalanceFetcher: not supported');
+  }
+
+  if (network === NETWORK_SPARK) {
+    const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
+    assert(wallet instanceof SparkWallet, 'Not a Spark wallet');
+    // Find the token balance where tokenMetadata.tokenPublicKey matches tokenContractAddress
+    const tokenBalances = wallet.getTokenBalances();
+    for (const value of tokenBalances.values()) {
+      if (value.tokenMetadata.tokenPublicKey === tokenContractAddress) {
+        return String(value.balance);
+      }
+    }
+    return undefined;
+  }
+
+  if (!getIsEVM(network)) {
+    throw new Error('tokenBalanceFetcher: attempt to fetch balance on non-EVM network');
   }
 
   const address = await backgroundCaller.getAddress(network, accountNumber);
@@ -55,6 +74,11 @@ export function useTokenBalance(network: Networks, accountNumber: number, tokenC
   switch (network) {
     case NETWORK_ROOTSTOCK:
       refreshInterval = 30_000;
+      break;
+
+    case NETWORK_SPARK:
+      refreshInterval = 2_000;
+      break;
   }
 
   const arg: tokenBalanceFetcherArg = { cacheKey: 'tokenBalanceFetcher', accountNumber, network, tokenContractAddress, backgroundCaller };

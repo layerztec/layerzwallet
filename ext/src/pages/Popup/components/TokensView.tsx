@@ -5,23 +5,36 @@ import { useNavigate } from 'react-router';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
-import { getTokenList } from '@shared/models/token-list';
+import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
+import { NETWORK_SPARK } from '@shared/types/networks';
+import { TokenInfo } from '@shared/types/token-info';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
+
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { SendTokenEvmProps } from '../SendTokenEvm';
+import { SendTokenSparkProps } from '../SendTokenSpark';
 
-const TokenRow: React.FC<{ id: string }> = ({ id }) => {
+const TokenRow: React.FC<{ token: TokenInfo }> = ({ token }) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const navigate = useNavigate();
-  const list = getTokenList(network);
-  const token = list.find((token) => token.id === id);
 
-  const { balance } = useTokenBalance(network, accountNumber, id, BackgroundCaller);
+  const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundCaller);
 
   if (!balance) return null;
 
-  const formattedBalance = formatBalance(balance, token?.decimals ?? 1, 2);
+  const formattedBalance = formatBalance(balance, token.decimals, 2);
+
+  const navigateToSendToken = () => {
+    if (network === NETWORK_SPARK) {
+      const state: SendTokenSparkProps = { tokenPublicKey: token.id };
+      navigate('/send-token-spark', { state });
+      return;
+    }
+
+    const state: SendTokenEvmProps = { contractAddress: token.id };
+    navigate('/send-token-evm', { state });
+  };
 
   // displaying token only if its balance is above the threshold. Threshold is arbitrary atm, probably
   // should be configurable per token
@@ -40,16 +53,16 @@ const TokenRow: React.FC<{ id: string }> = ({ id }) => {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        <span style={{ fontWeight: 700, fontSize: 14 }}>{token?.name}</span>
+        <span style={{ fontWeight: 700, fontSize: 14 }}>{token.name}</span>
         <span style={{ marginLeft: 5, color: '#888', fontSize: 14 }}>({capitalizeFirstLetter(network)})</span>
       </div>
 
       <span style={{ fontSize: 14, marginLeft: 'auto', marginRight: 16 }}>
-        <span style={{ fontWeight: 'bold' }}>{token?.symbol}</span> {balance ? formattedBalance : ''}
+        <span style={{ fontWeight: 'bold' }}>{token.symbol}</span> {balance ? formattedBalance : ''}
       </span>
       <div style={{ display: 'flex', gap: 6 }}>
         <button
-          onClick={() => navigate('/send-token-evm', { state: { contractAddress: token?.id } as SendTokenEvmProps })}
+          onClick={navigateToSendToken}
           title="Send"
           style={{
             border: 'none',
@@ -87,7 +100,17 @@ const TokenRow: React.FC<{ id: string }> = ({ id }) => {
 
 const TokensView: React.FC = () => {
   const { network } = useContext(NetworkContext);
-  const tokenList = getTokenList(network);
+  const { accountNumber } = useContext(AccountNumberContext);
+  const { tokenList, error } = useTokenDiscovery(network, accountNumber, BackgroundCaller);
+
+  if (error) {
+    return (
+      <div style={{ padding: 10, marginTop: 10 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' }}>Tokens</h2>
+        <div style={{ textAlign: 'center', padding: 20, color: 'red' }}>Error: {error.message}</div>
+      </div>
+    );
+  }
 
   if (tokenList.length === 0) {
     return null;
@@ -98,7 +121,7 @@ const TokensView: React.FC = () => {
       <h2 style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' }}>Tokens</h2>
       <div>
         {tokenList.map((token) => (
-          <TokenRow key={token.id} id={token.id} />
+          <TokenRow key={token.id} token={token} />
         ))}
       </div>
     </div>

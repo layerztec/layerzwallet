@@ -8,20 +8,22 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
-import { getTokenList, getTokenIconColor, getTokenInfo } from '@shared/models/token-list';
+import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
+import { NETWORK_SPARK } from '@shared/types/networks';
+import { TokenInfo } from '@shared/types/token-info';
+import { getTokenIconColor } from '@shared/models/token-list';
 import { formatBalance } from '@shared/modules/string-utils';
 
-const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
+const TokenRow: React.FC<{ token: TokenInfo }> = ({ token }) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const router = useRouter();
-  const token = getTokenInfo(tokenAddress);
 
-  const { balance } = useTokenBalance(network, accountNumber, tokenAddress, BackgroundExecutor);
+  const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundExecutor);
 
   if (!balance) return null;
 
-  const formattedBalance = formatBalance(balance, token?.decimals ?? 1, 2);
+  const formattedBalance = formatBalance(balance, token.decimals, 2);
 
   // displaying token only if its balance is above the threshold. Threshold is arbitrary atm, probably
   // should be configurable per token
@@ -30,9 +32,22 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
   const iconColor = getTokenIconColor(token?.name);
 
   const goToSend = () => {
+    if (network === NETWORK_SPARK) {
+      router.push({
+        pathname: '/SendTokenSpark',
+        params: {
+          tokenId: token.id,
+          tokenSymbol: token.symbol,
+          tokenName: token.name,
+          tokenDecimals: token.decimals.toString(),
+        },
+      });
+      return;
+    }
+
     router.push({
       pathname: '/SendTokenEvm',
-      params: { contractAddress: token?.id },
+      params: { contractAddress: token.id },
     });
   };
 
@@ -59,7 +74,17 @@ const TokenRow: React.FC<{ tokenAddress: string }> = ({ tokenAddress }) => {
 
 const TokensView: React.FC = () => {
   const { network } = useContext(NetworkContext);
-  const tokenList = getTokenList(network);
+  const { accountNumber } = useContext(AccountNumberContext);
+  const { tokenList, error } = useTokenDiscovery(network, accountNumber, BackgroundExecutor);
+
+  if (error) {
+    return (
+      <BlurView intensity={50} tint="dark" style={styles.container}>
+        <ThemedText style={styles.title}>Tokens</ThemedText>
+        <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText>
+      </BlurView>
+    );
+  }
 
   if (tokenList.length === 0) {
     return null;
@@ -70,7 +95,7 @@ const TokensView: React.FC = () => {
       <ThemedText style={styles.title}>Tokens</ThemedText>
       <View style={styles.tokensList}>
         {tokenList.map((token) => (
-          <TokenRow key={token.id} tokenAddress={token.id} />
+          <TokenRow key={token.id} token={token} />
         ))}
       </View>
     </BlurView>
@@ -90,6 +115,11 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     marginBottom: 24,
+  },
+  errorText: {
+    fontSize: 16,
+    color: 'rgba(255, 100, 100, 0.8)',
+    textAlign: 'center',
   },
   tokensList: {
     gap: 16,

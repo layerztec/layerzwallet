@@ -14,7 +14,7 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { BreezWallet, getBreezNetwork, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { formatBalance } from '@shared/modules/string-utils';
+import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET } from '@shared/types/networks';
 import assert from 'assert';
 
@@ -271,22 +271,12 @@ const SendLiquid = () => {
   return (
     <GradientScreen variant={network}>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScreenHeader title="Send Liquid" />
+      {selectedAsset ? <ScreenHeader title={`Send ${getAssetName(selectedAsset)}`} /> : null}
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.contentContainer}>
           <View style={[styles.networkBar, { backgroundColor: '#3498db' }]}>
-            <ThemedText style={styles.networkText}>{network?.toUpperCase()} LIQUID</ThemedText>
+            <ThemedText style={styles.networkText}>on {capitalizeFirstLetter(network)} </ThemedText>
           </View>
-
-          {selectedAsset && (
-            <View style={styles.assetInfo}>
-              <ThemedText style={styles.subtitle}>Sending {getAssetName(selectedAsset)}</ThemedText>
-              {selectedAsset.name && <ThemedText style={styles.assetFullName}>({selectedAsset.name})</ThemedText>}
-              <ThemedText style={styles.assetBalance}>
-                Available: {formatBalance(selectedAsset.balanceSat.toString(), 8, 8)} {selectedAsset.ticker}
-              </ThemedText>
-            </View>
-          )}
 
           <ThemedText style={styles.inputLabel}>Recipient Address</ThemedText>
           <View style={styles.addressInputContainer}>
@@ -313,6 +303,11 @@ const SendLiquid = () => {
             onChangeText={handleAmountChange}
             keyboardType="decimal-pad"
           />
+          {selectedAsset && (
+            <ThemedText style={styles.assetBalance}>
+              Available: {formatBalance(selectedAsset.balanceSat.toString(), 8, 8)} {selectedAsset.ticker}
+            </ThemedText>
+          )}
 
           {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
 
@@ -367,6 +362,7 @@ const styles = StyleSheet.create({
   },
   assetBalance: {
     color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 20,
   },
   inputLabel: {
     marginBottom: 12,

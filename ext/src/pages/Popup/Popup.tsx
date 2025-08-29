@@ -36,6 +36,7 @@ import SendEvm from './SendEvm';
 import SendLightning from './SendLightning';
 import SendLiquid from './SendLiquid';
 import SendTokenEvm from './SendTokenEvm';
+import SendTokenSpark from './SendTokenSpark';
 import SettingsPage from './SettingsPage';
 import TestPage from './TestPage';
 import TransactionSuccessEvm from './TransactionSuccessEvm';
@@ -87,6 +88,7 @@ const AppContent: React.FC = () => {
             <Route path="/send-evm" element={<SendEvm />} />
             <Route path="/send-ark" element={<SendArk />} />
             <Route path="/send-token-evm" element={<SendTokenEvm />} />
+            <Route path="/send-token-spark" element={<SendTokenSpark />} />
             <Route path="/send-btc" element={<SendBtc />} />
             <Route path="/send-lightning" element={<SendLightning />} />
             <Route path="/settings" element={<SettingsPage />} />

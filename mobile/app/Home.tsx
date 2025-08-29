@@ -12,6 +12,7 @@ import GradientScreen from '@/components/GradientScreen';
 import LiquidTokensView from '@/components/LiquidTokensView';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
+
 import Transaction from '@/components/Transaction';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
@@ -79,7 +80,6 @@ export default function Home() {
   const canBuyWithFiat = fiatOnRamp?.[network]?.canBuyWithFiat;
 
   // Balance display logic
-  const hasTokens = tokenList.length > 0 || network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET;
   const formattedBalance = formatBalance(balance || '0', decimals);
   const usdValue = exchangeRate ? formatFiatBalance(balance || '0', decimals, exchangeRate) : '0.00';
 
@@ -316,7 +316,7 @@ export default function Home() {
           {isEVM && <Button title="🔍 Explorer" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
 
           {/* Tokens Section */}
-          {hasTokens && <View style={styles.tokensSection}>{network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET ? <LiquidTokensView /> : <TokensView />}</View>}
+          <View style={styles.tokensSection}>{network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET ? <LiquidTokensView /> : <TokensView />}</View>
 
           {/* Transactions Section */}
           <BlurView intensity={25} tint="dark" style={styles.transactionsContainer}>
