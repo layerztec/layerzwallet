@@ -8,6 +8,7 @@ import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
 import {
   lazyInitWallet as lazyInitWalletOrig,
+  lazyInitWalletReady as lazyInitWalletReadyOrig,
   sanitizeAndValidateMnemonic,
   saveBitcoinXpubs,
   saveSubMnemonics,
@@ -32,6 +33,10 @@ import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 export const BackgroundExecutor: IBackgroundCaller = {
   async lazyInitWallet(network: TSupportedLazyInitWalletNetworks, accountNumber: number) {
     return lazyInitWalletOrig(network, accountNumber, LayerzStorage, SecureStorage);
+  },
+
+  lazyInitWalletReady(network: TSupportedLazyInitWalletNetworks, accountNumber: number) {
+    return lazyInitWalletReadyOrig(network, accountNumber);
   },
 
   async getAddress(network, accountNumber) {

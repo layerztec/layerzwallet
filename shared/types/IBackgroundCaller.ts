@@ -118,6 +118,7 @@ export interface ProcessRPCRequest {
 
 export interface IBackgroundCaller {
   lazyInitWallet(network: TSupportedLazyInitWalletNetworks, accountNumber: number): Promise<TLazyInitedWallets>;
+  lazyInitWalletReady(network: TSupportedLazyInitWalletNetworks, accountNumber: number): boolean;
   getAddress(...params: GetAddressParams): Promise<GetAddressResponse>;
   acceptTermsOfService(): Promise<void>;
   hasAcceptedTermsOfService(): Promise<boolean>;

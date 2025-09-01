@@ -11,6 +11,11 @@ export interface TokenInfo {
   };
 }
 
+/* Same as TokenInfo, but with a balance */
+export interface CachedTokenInfo extends TokenInfo {
+  readonly balance: string | undefined;
+}
+
 export interface EVMTokenInfo extends Omit<TokenInfo, 'id'> {
   readonly address: string;
 }

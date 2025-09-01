@@ -7,23 +7,24 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
 import { NETWORK_SPARK } from '@shared/types/networks';
-import { TokenInfo } from '@shared/types/token-info';
+import { CachedTokenInfo } from '@shared/types/token-info';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { SendTokenEvmProps } from '../SendTokenEvm';
 import { SendTokenSparkProps } from '../SendTokenSpark';
+import { LayerzStorage } from '../../../class/layerz-storage';
 
-const TokenRow: React.FC<{ token: TokenInfo }> = ({ token }) => {
+const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const navigate = useNavigate();
 
   const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundCaller);
 
-  if (!balance) return null;
+  if (!balance && !token.balance) return null;
 
-  const formattedBalance = formatBalance(balance, token.decimals, 2);
+  const formattedBalance = formatBalance(balance ?? token.balance ?? '0', token.decimals, 2);
 
   const navigateToSendToken = () => {
     if (network === NETWORK_SPARK) {
@@ -101,7 +102,7 @@ const TokenRow: React.FC<{ token: TokenInfo }> = ({ token }) => {
 const TokensView: React.FC = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { tokenList, error } = useTokenDiscovery(network, accountNumber, BackgroundCaller);
+  const { tokenList, error } = useTokenDiscovery(network, accountNumber, BackgroundCaller, LayerzStorage);
 
   if (error) {
     return (
