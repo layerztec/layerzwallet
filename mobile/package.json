@@ -35,8 +35,8 @@
   "dependencies": {
     "@arkade-os/sdk": "0.2.3",
     "@bitcoinerlab/secp256k1": "1.2.0",
-    "@breeztech/breez-sdk-liquid": "0.10.2",
-    "@breeztech/react-native-breez-sdk-liquid": "0.10.2",
+    "@breeztech/breez-sdk-liquid": "0.11.2",
+    "@breeztech/react-native-breez-sdk-liquid": "0.11.2",
     "@buildonspark/spark-sdk": "0.2.7",
     "@expo/vector-icons": "^14.1.0",
     "@metamask/eth-sig-util": "8.2.0",
