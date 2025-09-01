@@ -41,14 +41,7 @@ export class SwrCacheProvider implements Cache<any> {
   }
 
   get(key: string): State<any> | undefined {
-    try {
-      const data = this.cache.get(key);
-      if (data) {
-        return data;
-      }
-    } catch (error) {
-      return undefined;
-    }
+    return this.cache.get(key);
   }
 
   set(key: string, value: State<any>): void {
