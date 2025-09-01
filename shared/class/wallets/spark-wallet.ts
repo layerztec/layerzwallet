@@ -92,6 +92,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
   async getOffchainBalance() {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
     const balance = await this._sdkWallet.getBalance();
+    this._lastBalanceFetch = Date.now();
     this.tokenBalances = balance.tokenBalances;
     return Number(balance.balance);
   }

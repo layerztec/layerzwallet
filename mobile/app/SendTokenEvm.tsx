@@ -190,7 +190,7 @@ const SendTokenEvm: React.FC = () => {
                   placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 />
                 <TouchableOpacity style={styles.scanButton} onPress={handleScanQr}>
-                  <Ionicons name="qr-code-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
+                  <Ionicons name="scan-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
                 </TouchableOpacity>
               </View>
             </View>

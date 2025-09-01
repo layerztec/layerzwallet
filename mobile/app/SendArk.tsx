@@ -148,7 +148,7 @@ const SendArk = () => {
                   }
                 }}
               >
-                <Ionicons name="qr-code-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
+                <Ionicons name="scan-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
               </TouchableOpacity>
             </View>
           </View>

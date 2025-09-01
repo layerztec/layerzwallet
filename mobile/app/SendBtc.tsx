@@ -191,19 +191,6 @@ const SendBtc: React.FC = () => {
     setCustomFeeRate(Number(text));
   };
 
-  const handleScanQr = async () => {
-    const scanned = await scanQr();
-    if (scanned) {
-      try {
-        const decoded = bip21.decode(scanned);
-        if (decoded?.address) router.setParams({ toAddress: decoded.address });
-        if (decoded?.options?.amount) router.setParams({ amount: String(decoded.options.amount) });
-      } catch {
-        router.setParams({ toAddress: scanned });
-      }
-    }
-  };
-
   if (isSuccess) {
     return (
       <GradientScreen variant={network}>

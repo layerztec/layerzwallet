@@ -10,20 +10,21 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
 import { NETWORK_SPARK } from '@shared/types/networks';
-import { TokenInfo } from '@shared/types/token-info';
+import { CachedTokenInfo } from '@shared/types/token-info';
 import { getTokenIconColor } from '@shared/models/token-list';
 import { formatBalance } from '@shared/modules/string-utils';
+import { LayerzStorage } from '@/src/class/layerz-storage';
 
-const TokenRow: React.FC<{ token: TokenInfo }> = ({ token }) => {
+const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const router = useRouter();
 
   const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundExecutor);
 
-  if (!balance) return null;
+  if (!balance && !token.balance) return null;
 
-  const formattedBalance = formatBalance(balance, token.decimals, 2);
+  const formattedBalance = formatBalance(balance ?? token.balance ?? '0', token.decimals, 2);
 
   // displaying token only if its balance is above the threshold. Threshold is arbitrary atm, probably
   // should be configurable per token
@@ -75,7 +76,7 @@ const TokenRow: React.FC<{ token: TokenInfo }> = ({ token }) => {
 const TokensView: React.FC = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { tokenList, error } = useTokenDiscovery(network, accountNumber, BackgroundExecutor);
+  const { tokenList, error } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
 
   if (error) {
     return (

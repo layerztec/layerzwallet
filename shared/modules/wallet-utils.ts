@@ -163,6 +163,10 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
   return wallet;
 }
 
+export function lazyInitWalletReady(network: TSupportedLazyInitWalletNetworks, accountNumber: number): boolean {
+  return !!cachedWallets[network]?.[accountNumber];
+}
+
 export const sanitizeAndValidateMnemonic = (mnemonic: string): string => {
   // Remove extra spaces and newlines
   const sanitizedMnemonic = mnemonic.replace(/\s+/g, ' ').trim().toLocaleLowerCase();
