@@ -14,36 +14,48 @@ import { serialize, deserialize } from '@shared/class/swr-cache-serializer';
  */
 export class SwrCacheProvider implements Cache<any> {
   private cachePrefix = 'cache-v6-';
+  private cache = new Map();
 
-  get(key: string): State<any> | undefined {
+  constructor() {
+    // Initialize cache from localStorage
+    this.initializeCache();
+  }
+
+  private initializeCache(): void {
     try {
-      const value = localStorage.getItem(key.startsWith(this.cachePrefix) ? key : `${this.cachePrefix}${key}`);
-      if (value) {
-        return deserialize(value);
+      const keys = Object.keys(localStorage);
+      const cacheKeys = keys.filter((k) => k.startsWith(this.cachePrefix));
+
+      for (const key of cacheKeys) {
+        const value = localStorage.getItem(key);
+        if (value) {
+          const data = deserialize(value);
+          const originalKey = key.substring(this.cachePrefix.length);
+          this.cache.set(originalKey, data);
+        }
       }
     } catch (error) {
-      return undefined;
+      console.error('Failed to initialize SWR cache:', error);
     }
   }
 
+  get(key: string): State<any> | undefined {
+    return this.cache.get(key);
+  }
+
   set(key: string, value: State<any>): void {
+    this.cache.set(key, value);
+    // Persist to localStorage
     localStorage.setItem(`${this.cachePrefix}${key}`, serialize(value));
   }
 
   delete(key: string): void {
+    this.cache.delete(key);
+    // Remove from localStorage
     localStorage.removeItem(`${this.cachePrefix}${key}`);
   }
 
   keys(): IterableIterator<string> {
-    const that = this;
-    function* generator() {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith(that.cachePrefix)) {
-          yield key;
-        }
-      }
-    }
-    return generator();
+    return this.cache.keys();
   }
 }
