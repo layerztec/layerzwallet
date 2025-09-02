@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { SwapPair, SwapPlatform, SwapProvider } from '../types/swap';
+import { DoSwapResponse, SwapPair, SwapPlatform, SwapProvider } from '../types/swap';
 import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_ROOTSTOCK, Networks } from '@shared/types/networks';
 
 /**
@@ -29,7 +29,7 @@ export class SwapProviderSideshift implements SwapProvider {
     ];
   }
 
-  swap(from: Networks, setNetwork: (network: Networks) => void, to: Networks, amountIn: number, userWalletAddress: string): Promise<string> {
+  swap(from: Networks, setNetwork: (network: Networks) => void, to: Networks, amountIn: number, userWalletAddress: string): Promise<DoSwapResponse> {
     const supportedPairs = this.getSupportedPairs();
     const isSupported = supportedPairs.some((pair) => pair.from === from && pair.to === to);
     assert(isSupported, `Swap pair ${from}->${to} not supported by ${this.name}`);
@@ -64,8 +64,11 @@ export class SwapProviderSideshift implements SwapProvider {
         throw new Error(`Swap to ${to} not supported by ${this.name}`);
     }
 
-    return Promise.resolve(
-      `https://layerztec.github.io/website/swap/?defaultDepositMethodId=${defaultDepositMethodId}&defaultSettleMethodId=${defaultSettleMethodId}&settleAddress=${userWalletAddress}`
-    );
+    const uri = `https://layerztec.github.io/website/swap/?defaultDepositMethodId=${defaultDepositMethodId}&defaultSettleMethodId=${defaultSettleMethodId}&settleAddress=${userWalletAddress}`;
+
+    return Promise.resolve({
+      uri,
+      action: 'EXTERNAL_BROWSER', // SIDESHIFT does not require smart contract interaction, so we can open in default browser
+    });
   }
 }

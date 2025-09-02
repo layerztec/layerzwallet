@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { SwapPair, SwapPlatform, SwapProvider } from '../types/swap';
+import { DoSwapResponse, SwapPair, SwapPlatform, SwapProvider } from '../types/swap';
 import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_ROOTSTOCK, Networks } from '@shared/types/networks';
 import BigNumber from 'bignumber.js';
 
@@ -11,9 +11,12 @@ export class SwapProviderBoltz implements SwapProvider {
 
   getSupportedPairs(): SwapPair[] {
     return [
+      // btc <-> rsk
       { from: NETWORK_BITCOIN, to: NETWORK_ROOTSTOCK, platform: SwapPlatform.EXT },
       { from: NETWORK_ROOTSTOCK, to: NETWORK_BITCOIN, platform: SwapPlatform.EXT },
-      //
+      { from: NETWORK_BITCOIN, to: NETWORK_ROOTSTOCK, platform: SwapPlatform.MOBILE },
+      { from: NETWORK_ROOTSTOCK, to: NETWORK_BITCOIN, platform: SwapPlatform.MOBILE },
+      // btc <-> liquid
       { from: NETWORK_BITCOIN, to: NETWORK_LIQUID, platform: SwapPlatform.EXT },
       { from: NETWORK_LIQUID, to: NETWORK_BITCOIN, platform: SwapPlatform.EXT },
       { from: NETWORK_BITCOIN, to: NETWORK_LIQUID, platform: SwapPlatform.MOBILE },
@@ -21,11 +24,12 @@ export class SwapProviderBoltz implements SwapProvider {
     ];
   }
 
-  async swap(from: Networks, setNetwork: (network: Networks) => void, to: Networks, amountIn: number, userWalletAddress: string): Promise<string> {
+  async swap(from: Networks, setNetwork: (network: Networks) => void, to: Networks, amountIn: number, userWalletAddress: string): Promise<DoSwapResponse> {
     const supportedPairs = this.getSupportedPairs();
     const isSupported = supportedPairs.some((pair) => pair.from === from && pair.to === to);
     assert(isSupported, `Swap pair ${from}->${to} not supported by ${this.name}`);
 
+    let openInDappBrowser = false;
     let sendAsset;
     switch (from) {
       case NETWORK_BITCOIN:
@@ -35,6 +39,7 @@ export class SwapProviderBoltz implements SwapProvider {
         sendAsset = 'L-BTC';
         break;
       case NETWORK_ROOTSTOCK:
+        openInDappBrowser = true;
         sendAsset = 'RBTC';
         // correction as boltz widget expects it
         amountIn = new BigNumber(amountIn).dividedBy(new BigNumber(10).pow(10)).toNumber();
@@ -49,6 +54,7 @@ export class SwapProviderBoltz implements SwapProvider {
         receiveAsset = 'BTC';
         break;
       case NETWORK_ROOTSTOCK:
+        openInDappBrowser = true;
         receiveAsset = 'RBTC';
         setNetwork(NETWORK_ROOTSTOCK); // switching network, otherwise boltz web app will ask it anyway and will lose data
         await new Promise((resolve) => setTimeout(resolve, 500)); // sleep to propagate
@@ -70,6 +76,10 @@ export class SwapProviderBoltz implements SwapProvider {
     uri += `&ref=lzw`;
 
     console.log('uri', uri);
-    return Promise.resolve(uri);
+
+    return Promise.resolve({
+      uri,
+      action: openInDappBrowser ? 'DAPP_BROWSER' : 'EXTERNAL_BROWSER',
+    });
   }
 }
