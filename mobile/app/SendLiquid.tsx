@@ -148,7 +148,7 @@ const SendLiquid = () => {
         destination: address,
         amount: {
           type: 'asset',
-          assetId: selectedAsset.assetId,
+          toAsset: selectedAsset.assetId,
           receiverAmount: parseFloat(amount),
         },
       };

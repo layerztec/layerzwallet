@@ -40,9 +40,10 @@ const convertPayAmount = (amount?: JSAPI.PayAmount): RNAPI.PayAmount | undefined
     case 'asset':
       return {
         type: RNAPI.PayAmountVariant.ASSET,
-        assetId: amount.assetId,
+        toAsset: amount.toAsset,
         receiverAmount: amount.receiverAmount,
         estimateAssetFees: amount.estimateAssetFees,
+        fromAsset: amount.fromAsset,
       };
     default:
       throw new Error(`Unsupported pay amount type: ${amount.type}`);
