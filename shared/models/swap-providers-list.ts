@@ -4,7 +4,7 @@ import { SwapProviderOnramper } from './swap-provider-onramper';
 import { Networks } from '@shared/types/networks';
 import { SwapProviderSideshift } from './swap-provider-sideshift';
 
-const swapPartnersList: SwapProvider[] = [new SwapProviderOnramper(), new SwapProviderBoltz(), new SwapProviderSideshift()];
+const swapPartnersList: SwapProvider[] = [new SwapProviderOnramper(), new SwapProviderSideshift(), new SwapProviderBoltz()];
 
 /**
  * @returns list of swap providers that can swap FROM provided network (to smth else)

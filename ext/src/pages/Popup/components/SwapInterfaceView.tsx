@@ -51,7 +51,7 @@ const SwapInterfaceView: React.FC = () => {
     const destinationAddress = await BackgroundCaller.getAddress(targetNetwork, accountNumber);
     assert(destinationAddress, 'internal error: no destination address');
 
-    return provider.swap(network, setNetwork, targetNetwork, parseInt(satValue), destinationAddress);
+    return (await provider.swap(network, setNetwork, targetNetwork, parseInt(satValue), destinationAddress)).uri;
   };
 
   return (

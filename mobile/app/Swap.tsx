@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useContext, useState, useEffect } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 
@@ -16,8 +16,9 @@ import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { getTickerByNetwork, getDecimalsByNetwork } from '@shared/models/network-getters';
 import { formatBalance, formatFiatBalance, capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { getSwapPairs, getSwapProvidersList } from '@shared/models/swap-providers-list';
-import { SwapPlatform, SwapPair } from '@shared/types/swap';
+import { SwapPlatform, SwapPair, DoSwapResponse } from '@shared/types/swap';
 import { Networks } from '@shared/types/networks';
+import * as Linking from 'expo-linking';
 
 export default function Swap() {
   const router = useRouter();
@@ -73,7 +74,7 @@ export default function Swap() {
     router.setParams({ amount: maxAmount });
   };
 
-  const handleSwap = async (): Promise<string> => {
+  const handleSwap = async (): Promise<DoSwapResponse> => {
     setError('');
     assert(balance, 'Balance not loaded');
     assert(targetNetwork, 'Target network not selected');
@@ -99,8 +100,18 @@ export default function Swap() {
   const handleExecuteSwap = async () => {
     setIsLoading(true);
     try {
-      const url = await handleSwap();
-      router.push({ pathname: '/DAppBrowser', params: { url } });
+      const swapResponse = await handleSwap();
+
+      switch (true) {
+        case swapResponse.action === 'DAPP_BROWSER':
+          router.push({ pathname: '/DAppBrowser', params: { url: swapResponse.uri } });
+          break;
+        case swapResponse.action === 'EXTERNAL_BROWSER':
+          await Linking.openURL(swapResponse.uri);
+          break;
+        default:
+          Alert.alert('Internal error', 'Unhandled swap action (this should never happen)');
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {

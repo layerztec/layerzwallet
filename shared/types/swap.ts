@@ -11,6 +11,11 @@ export interface SwapPair {
   platform: SwapPlatform;
 }
 
+export interface DoSwapResponse {
+  uri: string;
+  action: 'DAPP_BROWSER' | 'EXTERNAL_BROWSER';
+}
+
 /**
  * Interface to configure each swap provider
  */
@@ -27,5 +32,5 @@ export interface SwapProvider {
    *
    * @returns string url to redirect to the swap partner's website (either in webview or in new tab)
    */
-  swap(from: Networks, setNetwork: (network: Networks) => void, to: Networks, amountIn: number, userWalletAddress: string): Promise<string>;
+  swap(from: Networks, setNetwork: (network: Networks) => void, to: Networks, amountIn: number, userWalletAddress: string): Promise<DoSwapResponse>;
 }
