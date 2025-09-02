@@ -3,6 +3,11 @@ name: e2e-test-android
 on:
   pull_request:
     branches: ['*'] # Run the E2E test workflow on every pull request.
+
+concurrency:
+  cancel_in_progress: true
+  group: ${{ workflow.filename }}-${{ github.ref }}
+
 jobs:
   build_android_for_e2e:
     type: build
@@ -14,7 +19,8 @@ jobs:
     needs: [build_android_for_e2e]
     type: maestro
     params:
-      retries: 3
+      retries: 5
+      shards: 3
       build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
       flow_path:
         - .maestro/home.yml
