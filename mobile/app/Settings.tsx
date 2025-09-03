@@ -11,7 +11,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { SecureStorage } from '@/src/class/secure-storage';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
-import { isMaestroMode } from '@/src/hooks/BiometricAuthContext';
+import { useBiometricAuth, isMaestroMode } from '@/src/hooks/BiometricAuthContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
@@ -34,6 +34,7 @@ export default function SettingsScreen() {
   const { network } = useContext(NetworkContext);
   const [btcXpub, setBtcXpub] = useState('');
   const biometricInfo = useBiometrics();
+  const { enableBiometricAuth, disableBiometricAuth, isUpdatingBiometric } = useBiometricAuth();
 
   useEffect(() => {
     (async () => {
@@ -96,40 +97,11 @@ export default function SettingsScreen() {
       // Special handling for biometric authentication
       if (key === 'biometricAuth') {
         if (value === 'ON') {
-          // Check if we're in test/Maestro mode
-          if (isMaestroMode()) {
-            Alert.alert('Biometric Authentication', 'Simulating successful biometric setup for testing', [
-              {
-                text: 'OK',
-                onPress: async () => {
-                  await updateSetting(key as any, value);
-                },
-              },
-            ]);
-            return;
-          }
-
-          // Check if biometrics are available
-          if (!biometricInfo.isAvailable) {
-            Alert.alert('Biometric Authentication Unavailable', biometricInfo.description);
-            return;
-          }
-
-          // Show confirmation dialog for enabling biometrics
-          Alert.alert('Enable Biometric Authentication', `Use ${biometricInfo.displayName} to unlock your wallet?`, [
-            {
-              text: 'Cancel',
-              style: 'cancel',
-            },
-            {
-              text: 'Enable',
-              onPress: async () => {
-                await updateSetting(key as any, value);
-              },
-            },
-          ]);
-          return;
+          await enableBiometricAuth();
+        } else {
+          await disableBiometricAuth();
         }
+        return;
       }
 
       // Default handling for all other settings
@@ -219,18 +191,25 @@ export default function SettingsScreen() {
                     {formatSettingName(key)}:
                   </ThemedText>
                   <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
-                    {config.options.map((option: string) => (
-                      <TouchableOpacity
-                        key={option}
-                        style={[styles.settingOptionButton, currentValue === option && styles.settingOptionButtonActive]}
-                        onPress={() => handleSettingChange(key, option)}
-                        testID={`SettingOption-${key}-${option}`}
-                      >
-                        <ThemedText style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive]} testID={`SettingOptionText-${key}-${option}`}>
-                          {formatOptionName(option)}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    ))}
+                    {config.options.map((option: string) => {
+                      const isDisabled = key === 'biometricAuth' && isUpdatingBiometric;
+                      return (
+                        <TouchableOpacity
+                          key={option}
+                          style={[styles.settingOptionButton, currentValue === option && styles.settingOptionButtonActive, isDisabled && styles.settingOptionButtonDisabled]}
+                          onPress={() => handleSettingChange(key, option)}
+                          disabled={isDisabled}
+                          testID={`SettingOption-${key}-${option}`}
+                        >
+                          <ThemedText
+                            style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive, isDisabled && styles.settingOptionTextDisabled]}
+                            testID={`SettingOptionText-${key}-${option}`}
+                          >
+                            {formatOptionName(option)}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 </View>
               );
@@ -405,12 +384,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#007AFF',
     borderColor: '#007AFF',
   },
+  settingOptionButtonDisabled: {
+    opacity: 0.5,
+  },
   settingOptionText: {
     fontSize: 14,
     fontWeight: '500',
   },
   settingOptionTextActive: {
     color: 'white',
+  },
+  settingOptionTextDisabled: {
+    opacity: 0.5,
   },
   changelogButton: {
     backgroundColor: '#8A2BE2',

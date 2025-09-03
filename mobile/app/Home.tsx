@@ -61,13 +61,7 @@ export default function Home() {
   const accountItem = accountItems[accountNumber];
 
   // App lock functionality
-  const { lockState, authenticateWithBiometrics } = useAppLock();
-
-  useEffect(() => {
-    if (lockState.requiresAuth && lockState.isLocked && !lockState.isAuthenticating) {
-      authenticateWithBiometrics();
-    }
-  }, [lockState, authenticateWithBiometrics]);
+  const { lockState, authenticateWithBiometrics, clearCanceled } = useAppLock();
 
   // Lightning network specific balance logic
   const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET;
@@ -409,9 +403,16 @@ export default function Home() {
             <View style={styles.lockScreenContent}>
               <MaterialIcons name="lock" size={80} color="rgba(255, 255, 255, 0.8)" />
               <ThemedText style={styles.lockScreenTitle}>Wallet Locked</ThemedText>
-              <ThemedText style={styles.lockScreenSubtitle}>{lockState.isAuthenticating ? 'Authenticating...' : 'Tap to unlock with biometric authentication'}</ThemedText>
+              <ThemedText style={styles.lockScreenSubtitle}>{lockState.isAuthenticating ? 'Authenticating...' : 'Tap the unlock button below to authenticate'}</ThemedText>
               {!lockState.isAuthenticating && (
-                <TouchableOpacity style={styles.unlockButton} onPress={authenticateWithBiometrics} testID="UnlockButton">
+                <TouchableOpacity
+                  style={styles.unlockButton}
+                  onPress={() => {
+                    clearCanceled();
+                    authenticateWithBiometrics();
+                  }}
+                  testID="UnlockButton"
+                >
                   <MaterialIcons name="fingerprint" size={24} color="rgba(255, 255, 255, 0.8)" />
                   <ThemedText style={styles.unlockButtonText}>Unlock</ThemedText>
                 </TouchableOpacity>

@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Alert } from 'react-native';
 import { useBiometrics } from '../../hooks/useBiometrics';
+import { useSettings } from '@shared/hooks/useSettings';
 
 /**
  * Checks if the app is running in Maestro test mode
@@ -23,6 +24,10 @@ interface IBiometricAuthContext {
   handleBiometricAuthComplete: (success: boolean) => void;
   isAuthenticationRequired: boolean;
   setAuthenticationRequired: (required: boolean) => void;
+  enableBiometricAuth: () => Promise<boolean>;
+  disableBiometricAuth: () => Promise<boolean>;
+  isBiometricEnabled: boolean;
+  isUpdatingBiometric: boolean;
 }
 
 export const BiometricAuthContext = createContext<IBiometricAuthContext>({
@@ -30,6 +35,10 @@ export const BiometricAuthContext = createContext<IBiometricAuthContext>({
   handleBiometricAuthComplete: (): void => {},
   isAuthenticationRequired: false,
   setAuthenticationRequired: (): void => {},
+  enableBiometricAuth: (): Promise<boolean> => Promise.reject('enableBiometricAuth: this should never happen'),
+  disableBiometricAuth: (): Promise<boolean> => Promise.reject('disableBiometricAuth: this should never happen'),
+  isBiometricEnabled: false,
+  isUpdatingBiometric: false,
 });
 
 export const useBiometricAuth = () => {
@@ -48,8 +57,12 @@ type ResolverFunction = (resolveValue: boolean) => void;
 export const BiometricAuthContextProvider: React.FC<{ children: ReactNode }> = (props) => {
   const [resolverFunc, setResolverFunc] = useState<ResolverFunction>(() => () => {});
   const [isAuthenticationRequired, setAuthenticationRequired] = useState(false);
+  const [isUpdatingBiometric, setIsUpdatingBiometric] = useState(false);
   const router = useRouter();
   const biometricInfo = useBiometrics();
+  const { settings, updateSetting } = useSettings();
+
+  const isBiometricEnabled = settings.biometricAuth === 'ON';
 
   const authenticateWithBiometrics = useCallback(async (): Promise<boolean> => {
     if (!biometricInfo.isAvailable) {
@@ -93,6 +106,83 @@ export const BiometricAuthContextProvider: React.FC<{ children: ReactNode }> = (
     [resolverFunc]
   );
 
+  const enableBiometricAuth = useCallback(async (): Promise<boolean> => {
+    if (isUpdatingBiometric) {
+      return false;
+    }
+
+    setIsUpdatingBiometric(true);
+
+    try {
+      // Check if we're in test/Maestro mode
+      if (isMaestroMode()) {
+        return new Promise((resolve) => {
+          Alert.alert('Biometric Authentication', 'Simulating successful biometric setup for testing', [
+            {
+              text: 'OK',
+              onPress: async () => {
+                await updateSetting('biometricAuth', 'ON');
+                setIsUpdatingBiometric(false);
+                resolve(true);
+              },
+            },
+          ]);
+        });
+      }
+
+      // Check if biometrics are available
+      if (!biometricInfo.isAvailable) {
+        return new Promise((resolve) => {
+          Alert.alert('Biometric Authentication Unavailable', biometricInfo.description, [
+            {
+              text: 'OK',
+              onPress: () => {
+                setIsUpdatingBiometric(false);
+                resolve(false);
+              },
+            },
+          ]);
+        });
+      }
+
+      // Show confirmation dialog for enabling biometrics
+      return new Promise((resolve) => {
+        Alert.alert('Enable Biometric Authentication', `Use ${biometricInfo.displayName} to unlock your wallet?`, [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              setIsUpdatingBiometric(false);
+              resolve(false);
+            },
+          },
+          {
+            text: 'Enable',
+            onPress: async () => {
+              await updateSetting('biometricAuth', 'ON');
+              setIsUpdatingBiometric(false);
+              resolve(true);
+            },
+          },
+        ]);
+      });
+    } catch (error) {
+      console.error('Error enabling biometric auth:', error);
+      setIsUpdatingBiometric(false);
+      return false;
+    }
+  }, [biometricInfo, isUpdatingBiometric, updateSetting]);
+
+  const disableBiometricAuth = useCallback(async (): Promise<boolean> => {
+    try {
+      await updateSetting('biometricAuth', 'OFF');
+      return true;
+    } catch (error) {
+      console.error('Error disabling biometric auth:', error);
+      return false;
+    }
+  }, [updateSetting]);
+
   return (
     <BiometricAuthContext.Provider
       value={{
@@ -100,6 +190,10 @@ export const BiometricAuthContextProvider: React.FC<{ children: ReactNode }> = (
         handleBiometricAuthComplete,
         isAuthenticationRequired,
         setAuthenticationRequired,
+        enableBiometricAuth,
+        disableBiometricAuth,
+        isBiometricEnabled,
+        isUpdatingBiometric,
       }}
     >
       {props.children}

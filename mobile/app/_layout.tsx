@@ -96,11 +96,11 @@ export default function RootLayout() {
       }}
     >
       <ScanQrContextProvider>
-        <BiometricAuthContextProvider>
-          <AskPasswordContextProvider>
-            <AskMnemonicContextProvider>
-              <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
-                <SettingsContextProvider storage={LayerzStorage}>
+        <AskPasswordContextProvider>
+          <AskMnemonicContextProvider>
+            <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
+              <SettingsContextProvider storage={LayerzStorage}>
+                <BiometricAuthContextProvider>
                   <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                     <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -243,11 +243,11 @@ export default function RootLayout() {
                       </ThemeProvider>
                     </NetworkContextProvider>
                   </AccountNumberContextProvider>
-                </SettingsContextProvider>
-              </InitializationContextProvider>
-            </AskMnemonicContextProvider>
-          </AskPasswordContextProvider>
-        </BiometricAuthContextProvider>
+                </BiometricAuthContextProvider>
+              </SettingsContextProvider>
+            </InitializationContextProvider>
+          </AskMnemonicContextProvider>
+        </AskPasswordContextProvider>
       </ScanQrContextProvider>
     </SWRConfig>
   );
