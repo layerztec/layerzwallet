@@ -11,6 +11,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { SecureStorage } from '@/src/class/secure-storage';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
+import { useBiometricAuth, isMaestroMode } from '@/src/hooks/BiometricAuthContext';
+import { useBiometrics } from '@/hooks/useBiometrics';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -31,6 +33,8 @@ export default function SettingsScreen() {
   const [isClearing, setIsClearing] = useState(false);
   const { network } = useContext(NetworkContext);
   const [btcXpub, setBtcXpub] = useState('');
+  const biometricInfo = useBiometrics();
+  const { enableBiometricAuth, disableBiometricAuth, isUpdatingBiometric } = useBiometricAuth();
 
   useEffect(() => {
     (async () => {
@@ -90,6 +94,17 @@ export default function SettingsScreen() {
 
   const handleSettingChange = async (key: string, value: string) => {
     try {
+      // Special handling for biometric authentication
+      if (key === 'biometricAuth') {
+        if (value === 'ON') {
+          await enableBiometricAuth();
+        } else {
+          await disableBiometricAuth();
+        }
+        return;
+      }
+
+      // Default handling for all other settings
       await updateSetting(key as any, value);
     } catch (error) {
       console.error('Error updating setting:', error);
@@ -113,7 +128,7 @@ export default function SettingsScreen() {
 
   return (
     <GradientScreen variant={network}>
-      <ScreenHeader title="Settings" />
+      <ScreenHeader title="Settings" testID="SettingsScreenTitle" />
 
       <ScrollView style={styles.scrollContainer}>
         <View style={styles.section}>
@@ -158,32 +173,47 @@ export default function SettingsScreen() {
           <ThemedText style={styles.sectionTitle} testID="AppSettingsTitle">
             App Settings
           </ThemedText>
-          {Object.keys(SETTINGS_CONFIG).map((key) => {
-            const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
-            const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
+          {Object.keys(SETTINGS_CONFIG)
+            .filter((key) => {
+              // Filter out biometric setting if not available (unless in test mode)
+              if (key === 'biometricAuth' && !biometricInfo.isAvailable && !isMaestroMode()) {
+                return false;
+              }
+              return true;
+            })
+            .map((key) => {
+              const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
+              const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
 
-            return (
-              <View key={key} style={styles.settingContainer} testID={`SettingContainer-${key}`}>
-                <ThemedText style={styles.settingLabel} testID={`SettingLabel-${key}`}>
-                  {formatSettingName(key)}:
-                </ThemedText>
-                <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
-                  {config.options.map((option: string) => (
-                    <TouchableOpacity
-                      key={option}
-                      style={[styles.settingOptionButton, currentValue === option && styles.settingOptionButtonActive]}
-                      onPress={() => handleSettingChange(key, option)}
-                      testID={`SettingOption-${key}-${option}`}
-                    >
-                      <ThemedText style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive]} testID={`SettingOptionText-${key}-${option}`}>
-                        {formatOptionName(option)}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  ))}
+              return (
+                <View key={key} style={styles.settingContainer} testID={`SettingContainer-${key}`}>
+                  <ThemedText style={styles.settingLabel} testID={`SettingLabel-${key}`}>
+                    {formatSettingName(key)}:
+                  </ThemedText>
+                  <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
+                    {config.options.map((option: string) => {
+                      const isDisabled = key === 'biometricAuth' && isUpdatingBiometric;
+                      return (
+                        <TouchableOpacity
+                          key={option}
+                          style={[styles.settingOptionButton, currentValue === option && styles.settingOptionButtonActive, isDisabled && styles.settingOptionButtonDisabled]}
+                          onPress={() => handleSettingChange(key, option)}
+                          disabled={isDisabled}
+                          testID={`SettingOption-${key}-${option}`}
+                        >
+                          <ThemedText
+                            style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive, isDisabled && styles.settingOptionTextDisabled]}
+                            testID={`SettingOptionText-${key}-${option}`}
+                          >
+                            {formatOptionName(option)}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
-            );
-          })}
+              );
+            })}
         </View>
 
         <View style={styles.section}>
@@ -354,12 +384,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#007AFF',
     borderColor: '#007AFF',
   },
+  settingOptionButtonDisabled: {
+    opacity: 0.5,
+  },
   settingOptionText: {
     fontSize: 14,
     fontWeight: '500',
   },
   settingOptionTextActive: {
     color: 'white',
+  },
+  settingOptionTextDisabled: {
+    opacity: 0.5,
   },
   changelogButton: {
     backgroundColor: '#8A2BE2',
