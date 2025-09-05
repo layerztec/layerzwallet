@@ -212,46 +212,28 @@ export const BiometricAuthContextProvider: React.FC<{ children: ReactNode }> = (
         });
       }
 
-      // Require biometric authentication before disabling
-      return new Promise((resolve) => {
-        Alert.alert('Disable Biometric Authentication', `Please authenticate with ${biometricInfo.displayName} to disable this feature.`, [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-            onPress: () => {
-              setIsUpdatingBiometric(false);
-              resolve(false);
-            },
-          },
-          {
-            text: 'Authenticate',
-            onPress: async () => {
-              // Perform biometric authentication
-              try {
-                const authResult = await LocalAuthentication.authenticateAsync({
-                  promptMessage: 'Authenticate to disable biometric unlock',
-                  fallbackLabel: 'Use Device PIN',
-                  disableDeviceFallback: false,
-                  cancelLabel: 'Cancel',
-                });
+      // Directly trigger biometric authentication without showing unlock screen
+      try {
+        const authResult = await LocalAuthentication.authenticateAsync({
+          promptMessage: 'Authenticate to disable biometric unlock',
+          fallbackLabel: 'Use Device PIN',
+          disableDeviceFallback: false,
+          cancelLabel: 'Cancel',
+        });
 
-                if (authResult.success) {
-                  await updateSetting('biometricAuth', 'OFF');
-                  setIsUpdatingBiometric(false);
-                  resolve(true);
-                } else {
-                  setIsUpdatingBiometric(false);
-                  resolve(false);
-                }
-              } catch (error) {
-                console.error('Error authenticating to disable biometric auth:', error);
-                setIsUpdatingBiometric(false);
-                resolve(false);
-              }
-            },
-          },
-        ]);
-      });
+        if (authResult.success) {
+          await updateSetting('biometricAuth', 'OFF');
+          setIsUpdatingBiometric(false);
+          return true;
+        } else {
+          setIsUpdatingBiometric(false);
+          return false;
+        }
+      } catch (error) {
+        console.error('Error authenticating to disable biometric auth:', error);
+        setIsUpdatingBiometric(false);
+        return false;
+      }
     } catch (error) {
       console.error('Error disabling biometric auth:', error);
       setIsUpdatingBiometric(false);

@@ -2,9 +2,10 @@ import GradientScreen from '@/components/GradientScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Application from 'expo-application';
 import * as Clipboard from 'expo-clipboard';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
@@ -99,7 +100,25 @@ export default function SettingsScreen() {
         if (value === 'ON') {
           await enableBiometricAuth();
         } else {
-          await disableBiometricAuth();
+          // Direct authentication without any UI - bypass all hooks and contexts
+          console.log('Settings: attempting to disable biometric auth directly');
+          try {
+            const authResult = await LocalAuthentication.authenticateAsync({
+              promptMessage: 'Authenticate to disable biometric unlock',
+              fallbackLabel: 'Use Device PIN',
+              disableDeviceFallback: false,
+              cancelLabel: 'Cancel',
+            });
+
+            if (authResult.success) {
+              console.log('Settings: authentication successful, updating setting directly');
+              await updateSetting('biometricAuth', 'OFF');
+            } else {
+              console.log('Settings: authentication failed or canceled');
+            }
+          } catch (error) {
+            console.error('Settings: Error authenticating to disable biometric auth:', error);
+          }
         }
         return;
       }
@@ -185,6 +204,27 @@ export default function SettingsScreen() {
               const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
               const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
 
+              // Special handling for biometric authentication with switch
+              if (key === 'biometricAuth') {
+                return (
+                  <View key={key} style={styles.settingContainer} testID={`SettingContainer-${key}`}>
+                    <View style={styles.switchContainer}>
+                      <ThemedText style={styles.settingLabel} testID={`SettingLabel-${key}`}>
+                        {formatSettingName(key)}
+                      </ThemedText>
+                      <Switch
+                        value={currentValue === 'ON'}
+                        onValueChange={(value) => handleSettingChange(key, value ? 'ON' : 'OFF')}
+                        trackColor={{ false: '#767577', true: '#007AFF' }}
+                        thumbColor={currentValue === 'ON' ? '#fff' : '#f4f3f4'}
+                        testID={`BiometricSwitch`}
+                      />
+                    </View>
+                  </View>
+                );
+              }
+
+              // Default handling for other settings
               return (
                 <View key={key} style={styles.settingContainer} testID={`SettingContainer-${key}`}>
                   <ThemedText style={styles.settingLabel} testID={`SettingLabel-${key}`}>
@@ -360,6 +400,11 @@ const styles = StyleSheet.create({
   },
   settingContainer: {
     marginBottom: 16,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   settingLabel: {
     color: 'rgba(255, 255, 255, 0.8)',

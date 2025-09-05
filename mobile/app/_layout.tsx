@@ -8,6 +8,8 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { useEffect } from 'react';
 import { AppState, AppStateStatus, LogBox, Platform } from 'react-native';
 import 'react-native-reanimated';
+
+import UnlockModalOverlay from '@/components/UnlockModalOverlay';
 import { SWRConfig } from 'swr';
 
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
@@ -240,6 +242,7 @@ export default function RootLayout() {
                           <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
                         </Stack>
                         <StatusBar style="light" />
+                        <UnlockModalOverlay />
                       </ThemeProvider>
                     </NetworkContextProvider>
                   </AccountNumberContextProvider>
