@@ -3,7 +3,7 @@ import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, LayoutAnimation, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { OnrampProps } from '@/app/Onramp';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
@@ -62,6 +62,55 @@ export default function Home() {
 
   // App lock functionality
   const { lockState, authenticateWithBiometrics, clearCanceled } = useAppLock();
+  const [hasAutoTriggered, setHasAutoTriggered] = useState(false);
+
+  useEffect(() => {
+    LayoutAnimation.configureNext({
+      duration: 300,
+      create: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+      update: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+      delete: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+    });
+  }, [lockState.isLocked, lockState.isAuthenticating, lockState.userCanceled, hasAutoTriggered]);
+
+  useEffect(() => {
+    if (lockState.isLocked && lockState.requiresAuth) {
+      LayoutAnimation.configureNext({
+        duration: 400,
+        create: {
+          type: LayoutAnimation.Types.easeInEaseOut,
+          property: LayoutAnimation.Properties.opacity,
+        },
+        update: {
+          type: LayoutAnimation.Types.spring,
+          springDamping: 0.7,
+          property: LayoutAnimation.Properties.scaleXY,
+        },
+      });
+    }
+  }, [lockState.isLocked, lockState.requiresAuth]);
+
+  // Auto-trigger biometric authentication when lock screen first appears
+  useEffect(() => {
+    if (lockState.isLocked && lockState.requiresAuth && !lockState.isAuthenticating && !lockState.userCanceled && !hasAutoTriggered) {
+      setHasAutoTriggered(true);
+      authenticateWithBiometrics();
+    }
+
+    // Reset auto-trigger flag when app is unlocked
+    if (!lockState.isLocked) {
+      setHasAutoTriggered(false);
+    }
+  }, [lockState.isLocked, lockState.requiresAuth, lockState.isAuthenticating, lockState.userCanceled, hasAutoTriggered, authenticateWithBiometrics]);
 
   // Lightning network specific balance logic
   const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET;
@@ -401,13 +450,34 @@ export default function Home() {
         <View style={styles.lockScreenOverlay}>
           <BlurView intensity={50} tint="dark" style={styles.lockScreenBlur}>
             <View style={styles.lockScreenContent}>
-              <MaterialIcons name="lock" size={80} color="rgba(255, 255, 255, 0.8)" />
+              <View style={styles.lockIconContainer}>
+                <MaterialIcons name="lock" size={80} color="rgba(255, 255, 255, 0.8)" />
+              </View>
               <ThemedText style={styles.lockScreenTitle}>Wallet Locked</ThemedText>
-              <ThemedText style={styles.lockScreenSubtitle}>{lockState.isAuthenticating ? 'Authenticating...' : 'Tap the unlock button below to authenticate'}</ThemedText>
-              {!lockState.isAuthenticating && (
+              <ThemedText style={styles.lockScreenSubtitle}>
+                {lockState.isAuthenticating
+                  ? 'Authenticating...'
+                  : lockState.userCanceled
+                    ? 'Authentication was canceled. Tap unlock to try again.'
+                    : hasAutoTriggered
+                      ? 'Tap unlock to authenticate'
+                      : 'Authenticating automatically...'}
+              </ThemedText>
+              {!lockState.isAuthenticating && (lockState.userCanceled || hasAutoTriggered) && (
                 <TouchableOpacity
                   style={styles.unlockButton}
                   onPress={() => {
+                    LayoutAnimation.configureNext({
+                      duration: 200,
+                      create: {
+                        type: LayoutAnimation.Types.easeInEaseOut,
+                        property: LayoutAnimation.Properties.opacity,
+                      },
+                      update: {
+                        type: LayoutAnimation.Types.easeInEaseOut,
+                        property: LayoutAnimation.Properties.opacity,
+                      },
+                    });
                     clearCanceled();
                     authenticateWithBiometrics();
                   }}
@@ -729,6 +799,10 @@ const styles = StyleSheet.create({
   lockScreenContent: {
     alignItems: 'center',
     paddingHorizontal: 20,
+  },
+  lockIconContainer: {
+    marginBottom: 20,
+    transform: [{ scale: 1 }],
   },
   lockScreenTitle: {
     fontSize: 24,
