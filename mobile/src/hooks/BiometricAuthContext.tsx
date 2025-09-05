@@ -174,14 +174,90 @@ export const BiometricAuthContextProvider: React.FC<{ children: ReactNode }> = (
   }, [biometricInfo, isUpdatingBiometric, updateSetting]);
 
   const disableBiometricAuth = useCallback(async (): Promise<boolean> => {
-    try {
-      await updateSetting('biometricAuth', 'OFF');
-      return true;
-    } catch (error) {
-      console.error('Error disabling biometric auth:', error);
+    if (isUpdatingBiometric) {
       return false;
     }
-  }, [updateSetting]);
+
+    setIsUpdatingBiometric(true);
+
+    try {
+      // Check if we're in test/Maestro mode
+      if (isMaestroMode()) {
+        return new Promise((resolve) => {
+          Alert.alert('Biometric Authentication', 'Simulating successful biometric disable for testing', [
+            {
+              text: 'OK',
+              onPress: async () => {
+                await updateSetting('biometricAuth', 'OFF');
+                setIsUpdatingBiometric(false);
+                resolve(true);
+              },
+            },
+          ]);
+        });
+      }
+
+      // Check if biometrics are available
+      if (!biometricInfo.isAvailable) {
+        return new Promise((resolve) => {
+          Alert.alert('Biometric Authentication Unavailable', biometricInfo.description, [
+            {
+              text: 'OK',
+              onPress: () => {
+                setIsUpdatingBiometric(false);
+                resolve(false);
+              },
+            },
+          ]);
+        });
+      }
+
+      // Require biometric authentication before disabling
+      return new Promise((resolve) => {
+        Alert.alert('Disable Biometric Authentication', `Please authenticate with ${biometricInfo.displayName} to disable this feature.`, [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              setIsUpdatingBiometric(false);
+              resolve(false);
+            },
+          },
+          {
+            text: 'Authenticate',
+            onPress: async () => {
+              // Perform biometric authentication
+              try {
+                const authResult = await LocalAuthentication.authenticateAsync({
+                  promptMessage: 'Authenticate to disable biometric unlock',
+                  fallbackLabel: 'Use Device PIN',
+                  disableDeviceFallback: false,
+                  cancelLabel: 'Cancel',
+                });
+
+                if (authResult.success) {
+                  await updateSetting('biometricAuth', 'OFF');
+                  setIsUpdatingBiometric(false);
+                  resolve(true);
+                } else {
+                  setIsUpdatingBiometric(false);
+                  resolve(false);
+                }
+              } catch (error) {
+                console.error('Error authenticating to disable biometric auth:', error);
+                setIsUpdatingBiometric(false);
+                resolve(false);
+              }
+            },
+          },
+        ]);
+      });
+    } catch (error) {
+      console.error('Error disabling biometric auth:', error);
+      setIsUpdatingBiometric(false);
+      return false;
+    }
+  }, [biometricInfo, isUpdatingBiometric, updateSetting]);
 
   return (
     <BiometricAuthContext.Provider
