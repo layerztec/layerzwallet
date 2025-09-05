@@ -237,6 +237,26 @@ export default function RootLayout() {
                               },
                             }}
                           />
+                          <Stack.Screen
+                            name="Transactions"
+                            options={{
+                              ...DefaultNavigatorOptions,
+                            }}
+                          />
+                          <Stack.Screen
+                            name="TransactionDetails"
+                            options={{
+                              presentation: 'formSheet',
+                              sheetAllowedDetents: [0.7],
+                              sheetGrabberVisible: true,
+                              headerTransparent: false,
+                              gestureEnabled: true,
+                              headerShown: false,
+                              contentStyle: {
+                                height: '100%',
+                              },
+                            }}
+                          />
                           <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
                         </Stack>
                         <StatusBar style="light" />
