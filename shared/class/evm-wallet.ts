@@ -439,6 +439,7 @@ export class EvmWallet {
       }
 
       const amountNative = item.baseValueDeltaWei === 0n ? undefined : Number(item.baseValueDeltaWei < 0n ? -item.baseValueDeltaWei : item.baseValueDeltaWei);
+      const explorerBase = AllNetworkInfos[network].explorerUrl;
 
       result.push({
         txid: item.txid,
@@ -451,6 +452,7 @@ export class EvmWallet {
         confirmations: item.confirmations,
         counterparty: item.counterparty,
         blockHeight: item.blockHeight,
+        explorerUrl: `${explorerBase}/tx/${item.txid}`,
       });
     }
 

@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
@@ -13,9 +13,10 @@ import { getTokenIconColor, getTokenInfo } from '@shared/models/token-list';
 interface TransactionProps {
   transaction: CommonTransaction;
   network: Networks;
+  onPress?: () => void;
 }
 
-export default function Transaction({ network, transaction }: TransactionProps) {
+export default function Transaction({ network, transaction, onPress }: TransactionProps) {
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);
   const { exchangeRate } = useExchangeRate(network, 'USD');
@@ -117,7 +118,7 @@ export default function Transaction({ network, transaction }: TransactionProps) 
   };
 
   return (
-    <View style={styles.transactionItem}>
+    <TouchableOpacity style={styles.transactionItem} onPress={onPress}>
       <View style={styles.transactionIcon}>
         <MaterialIcons name={getTransactionIcon()} size={24} color="rgba(255, 255, 255, 0.8)" />
       </View>
@@ -132,7 +133,7 @@ export default function Transaction({ network, transaction }: TransactionProps) 
         <ThemedText style={styles.transactionAmount}>{formatTransactionAmount()}</ThemedText>
         <ThemedText style={styles.transactionUsd}>{formatTransactionUsdAmount()}</ThemedText>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

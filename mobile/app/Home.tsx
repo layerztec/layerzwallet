@@ -27,10 +27,10 @@ import { useTransactions } from '@shared/hooks/useTransactions';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getDecimalsByNetwork, getExplorerUrlByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
-import { getTokenList } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SwapPlatform } from '@shared/types/swap';
+import { CommonTransaction } from '@shared/types/common-transaction';
 
 const logo = require('@/assets/images/ui/logo-main-screen.svg');
 
@@ -128,7 +128,6 @@ export default function Home() {
   const isEVM = getIsEVM(network);
   const networkImage = getNetworkImageAsset(network);
   const networkIconContent = networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null;
-  const tokenList = getTokenList(network);
   const swapPairs = getSwapPairs(network, SwapPlatform.MOBILE);
   const canBuyWithFiat = fiatOnRamp?.[network]?.canBuyWithFiat;
 
@@ -140,9 +139,7 @@ export default function Home() {
   const displayBalance = `${formattedBalance} ${ticker}`;
   const displaySubBalance = `${usdValue} USD`;
 
-  // Get latest transactions (limit to 3 for display)
-  // TODO: limit to 3 later
-  const latestTransactions = transactions?.slice(0, Infinity) || [];
+  const latestTransactions = transactions?.slice(0, 3) || [];
 
   const handleSend = () => {
     switch (network) {
@@ -190,7 +187,7 @@ export default function Home() {
   };
 
   const handleTransactionHistory = () => {
-    Alert.alert('Transaction History', 'Full transaction history will be implemented here');
+    router.push('/Transactions');
   };
 
   const handleExplorer = () => {
@@ -252,6 +249,10 @@ export default function Home() {
     } else {
       router.push({ pathname: '/SendLightning', params: { network: NETWORK_LIQUID } });
     }
+  };
+
+  const handleTransactionDetails = (transaction: CommonTransaction) => {
+    router.push({ pathname: '/TransactionDetails', params: { transaction: JSON.stringify(transaction) } });
   };
 
   const getLightningSendActions = () => [
@@ -378,7 +379,7 @@ export default function Home() {
             {latestTransactions.length > 0 ? (
               <View style={styles.transactionsList}>
                 {latestTransactions.map((transaction) => (
-                  <Transaction key={transaction.txid} network={network} transaction={transaction} />
+                  <Transaction key={transaction.txid} network={network} transaction={transaction} onPress={() => handleTransactionDetails(transaction)} />
                 ))}
               </View>
             ) : transactionsError ? (
@@ -391,8 +392,7 @@ export default function Home() {
               </View>
             )}
 
-            {/* TODO: re-enable this later */}
-            {false && <Button title="Transaction History" onPress={handleTransactionHistory} variant="dark" />}
+            <Button title="Transaction History" onPress={handleTransactionHistory} variant="dark" />
           </BlurView>
 
           {/* Bottom spacing for navigation */}
