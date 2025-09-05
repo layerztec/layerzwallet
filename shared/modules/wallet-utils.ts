@@ -4,16 +4,18 @@ import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
 import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
 import { SparkWallet } from '../class/wallets/spark-wallet';
 import { IStorage, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_BTC_XPUB, getSerializedStorageKey } from '../types/IStorage';
-import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 import { WalletSerializer } from './wallet-serializer';
 import { BreezWallet, getBreezNetwork } from '../class/wallets/breez-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
+import assert from 'assert';
 
 // Cache of wallets by network and account number
 const cachedWallets: Record<TSupportedLazyInitWalletNetworks, Record<number, TLazyInitedWallets>> = {
   [NETWORK_BITCOIN]: {},
   [NETWORK_SPARK]: {},
   [NETWORK_ARK_MUTINYNET]: {},
+  [NETWORK_ARK]: {},
   [NETWORK_LIQUID]: {},
   [NETWORK_LIQUID_TESTNET]: {},
 };
@@ -59,7 +61,13 @@ export async function saveWalletState(storage: IStorage, wallet: WatchOnlyWallet
   }
 }
 
-export type TSupportedLazyInitWalletNetworks = typeof NETWORK_BITCOIN | typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK_MUTINYNET;
+export type TSupportedLazyInitWalletNetworks =
+  | typeof NETWORK_BITCOIN
+  | typeof NETWORK_SPARK
+  | typeof NETWORK_LIQUID
+  | typeof NETWORK_LIQUID_TESTNET
+  | typeof NETWORK_ARK_MUTINYNET
+  | typeof NETWORK_ARK;
 export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkWallet;
 
 /**
@@ -72,13 +80,11 @@ export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | A
  * @returns The initialized wallet instance
  */
 export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, accountNumber: number, storage: IStorage, secureStorage: IStorage): Promise<TLazyInitedWallets> {
-  console.log(`lazyInitWallet ${network}[${accountNumber}]...`);
-  if (![NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ARK_MUTINYNET].includes(network)) {
+  if (![NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ARK_MUTINYNET, NETWORK_ARK].includes(network)) {
     throw new Error(`Unsupported network for lazyInitWallet: ${network}`);
   }
   // cache hit
   if (cachedWallets[network]?.[accountNumber]) {
-    console.log('...cache hit!');
     return cachedWallets[network][accountNumber];
   }
 
@@ -96,9 +102,12 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     }
 
     locks[lockKey] = false; // release lock
-    console.log('...cache hit!');
+    // cache hit
     return cachedWallets[network][accountNumber]; // return wallet
   }
+
+  // cache miss, instantiating the wallet
+  console.log(`lazyInitWallet ${network}[${accountNumber}]...`);
 
   // setting lock:
   locks[lockKey] = true;
@@ -118,6 +127,21 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
     aw.setSecret(submnemonic);
     await aw.init();
+    cachedWallets[network][accountNumber] = aw;
+    return aw;
+  }
+
+  if (network === NETWORK_ARK) {
+    const aw = new ArkWallet();
+    const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
+    aw.setSecret(submnemonic);
+    assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Ark env vars not set');
+    // fixme: can be moved from env vars to hardcode once Ark mainnet goes public
+    aw.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
+    aw.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
+    aw.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
+    await aw.init();
+    await aw.initLightningSwaps(storage);
     cachedWallets[network][accountNumber] = aw;
     return aw;
   }
@@ -184,7 +208,7 @@ export const sanitizeAndValidateMnemonic = (mnemonic: string): string => {
 };
 
 export const clearWalletCache = () => {
-  (Object.keys(cachedWallets) as Array<TSupportedLazyInitWalletNetworks>).forEach((network) => {
+  (Object.keys(cachedWallets) as TSupportedLazyInitWalletNetworks[]).forEach((network) => {
     cachedWallets[network] = {};
   });
 };

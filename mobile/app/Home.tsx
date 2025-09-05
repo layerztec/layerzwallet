@@ -29,7 +29,7 @@ import { getDecimalsByNetwork, getExplorerUrlByNetwork, getIsEVM, getIsTestnet, 
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { getTokenList } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SwapPlatform } from '@shared/types/swap';
 
 const logo = require('@/assets/images/ui/logo-main-screen.svg');
@@ -115,12 +115,15 @@ export default function Home() {
   // Lightning network specific balance logic
   const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET;
   const sparkNetwork = isLightningNetwork ? NETWORK_SPARK : network;
+  const arkNetwork = isLightningNetwork ? NETWORK_ARK : network;
   const liquidNetwork = isLightningNetwork ? (network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID) : network;
 
   // Get additional balances for Lightning networks
   const { balance: sparkBalance } = useBalance(sparkNetwork, accountNumber, BackgroundExecutor);
+  const { balance: arkBalance } = useBalance(arkNetwork, accountNumber, BackgroundExecutor);
   const { balance: liquidBalance } = useBalance(liquidNetwork, accountNumber, BackgroundExecutor);
   const { exchangeRate: sparkExchangeRate } = useExchangeRate(sparkNetwork, 'USD');
+  const { exchangeRate: arkExchangeRate } = useExchangeRate(arkNetwork, 'USD');
   const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, 'USD');
 
   const ticker = getTickerByNetwork(network);
@@ -223,6 +226,14 @@ export default function Home() {
     }
   };
 
+  const handleReceiveOnArk = () => {
+    if (network === NETWORK_LIGHTNING_TESTNET) {
+      Alert.alert('Ark lightning does not have a testnet');
+    } else {
+      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_ARK } });
+    }
+  };
+
   const getLightningReceiveActions = () => [
     {
       label: 'Receive on Spark',
@@ -231,6 +242,10 @@ export default function Home() {
     {
       label: 'Receive on Liquid',
       onClick: handleReceiveOnLiquid,
+    },
+    {
+      label: 'Receive on Ark',
+      onClick: handleReceiveOnArk,
     },
     {
       label: 'Cancel',
@@ -243,6 +258,14 @@ export default function Home() {
       Alert.alert('Spark does not have a testnet');
     } else {
       router.push({ pathname: '/SendLightning', params: { network: NETWORK_SPARK } });
+    }
+  };
+
+  const handleSendViaArk = () => {
+    if (network === NETWORK_LIGHTNING_TESTNET) {
+      Alert.alert('Ark lightning does not have a testnet');
+    } else {
+      router.push({ pathname: '/SendLightning', params: { network: NETWORK_ARK } });
     }
   };
 
@@ -262,6 +285,10 @@ export default function Home() {
     {
       label: 'Send via Liquid',
       onClick: handleSendViaLiquid,
+    },
+    {
+      label: 'Send via Ark',
+      onClick: handleSendViaArk,
     },
     {
       label: 'Cancel',
@@ -324,6 +351,21 @@ export default function Home() {
                       ? '-'
                       : sparkBalance && +sparkBalance > 0 && sparkExchangeRate
                         ? '$' + formatFiatBalance(sparkBalance, Number(getDecimalsByNetwork(NETWORK_SPARK)), Number(sparkExchangeRate))
+                        : '-'}
+                  </ThemedText>
+                </View>
+              </View>
+              <View style={styles.lightningBalanceRow}>
+                <ThemedText style={styles.lightningBalanceLabel}>Ark</ThemedText>
+                <View style={styles.lightningBalanceValues}>
+                  <ThemedText style={styles.lightningBalanceAmount}>
+                    {network === NETWORK_LIGHTNING_TESTNET ? '0' : arkBalance ? formatBalance(arkBalance, Number(getDecimalsByNetwork(NETWORK_ARK)), 8) : '0'} {getTickerByNetwork(NETWORK_ARK)}
+                  </ThemedText>
+                  <ThemedText style={styles.lightningBalanceFiat}>
+                    {network === NETWORK_LIGHTNING_TESTNET
+                      ? '-'
+                      : arkBalance && +arkBalance > 0 && arkExchangeRate
+                        ? '$' + formatFiatBalance(arkBalance, Number(getDecimalsByNetwork(NETWORK_ARK)), Number(arkExchangeRate))
                         : '-'}
                   </ThemedText>
                 </View>

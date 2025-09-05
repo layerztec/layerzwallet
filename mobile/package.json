@@ -33,6 +33,7 @@
     "preset": "jest-expo"
   },
   "dependencies": {
+    "@arkade-os/boltz-swap": "0.1.8",
     "@arkade-os/sdk": "0.2.3",
     "@bitcoinerlab/secp256k1": "1.2.0",
     "@breeztech/breez-sdk-liquid": "0.11.2",

@@ -7,7 +7,7 @@ import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { AllNetworkInfos } from '../models/all-network-infos';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 
 interface txFetcherArg {
   cacheKey: string;
@@ -70,7 +70,7 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
         .sort((a, b) => b.timestamp - a.timestamp);
     }
 
-    if (network === NETWORK_ARK_MUTINYNET) {
+    if (network === NETWORK_ARK_MUTINYNET || network === NETWORK_ARK) {
       const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
       assert(wallet instanceof ArkWallet, 'Not an Ark wallet');
       return await wallet.getCommonTransactions();
