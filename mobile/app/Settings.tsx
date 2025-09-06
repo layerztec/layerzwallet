@@ -20,6 +20,7 @@ import { SETTINGS_CONFIG } from '@shared/hooks/SettingsContext';
 import { useSettings } from '@shared/hooks/useSettings';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { STORAGE_KEY_BTC_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { NETWORK_ROOTSTOCK } from '@shared/types/networks';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 
 const gitCommitHash = require('../git_commit_hash.json');
@@ -231,6 +232,16 @@ export default function SettingsScreen() {
           >
             <ThemedText style={styles.selfTestButtonText}>ScanQr</ThemedText>
           </TouchableOpacity>
+
+          {network === NETWORK_ROOTSTOCK && (
+            <TouchableOpacity
+              style={[styles.button, styles.selfTestButton]}
+              onPress={() => router.push('/SignMessage')}
+              testID="SignMessageButton"
+            >
+              <ThemedText style={styles.selfTestButtonText}>Sign Message</ThemedText>
+            </TouchableOpacity>
+          )}
         </View>
 
         <ThemedText style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.8)' }}>
