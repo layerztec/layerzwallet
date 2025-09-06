@@ -22,7 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import assert from 'assert';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { LIGHTNING_MAX_FEE_PERCENT } from '@shared/config';
+import { LIGHTNING_MAX_FEE_PERCENT, LIGHTNING_MIN_FEE_SATS } from '@shared/config';
 
 export type SendLightningProps = {
   network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET;
@@ -78,7 +78,7 @@ const SendLightning: React.FC = () => {
       }
 
       const feeBN = new BigNumber(decoded.satoshis).dividedBy(100).multipliedBy(LIGHTNING_MAX_FEE_PERCENT).toNumber();
-      setFeeSats(Math.max(Math.round(feeBN), 1));
+      setFeeSats(Math.max(Math.round(feeBN), LIGHTNING_MIN_FEE_SATS));
       setError('');
     } catch (error: any) {
       setError(error.message);
