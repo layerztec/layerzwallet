@@ -22,13 +22,12 @@ import { Ionicons } from '@expo/vector-icons';
 import assert from 'assert';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { LIGHTNING_MAX_FEE_PERCENT } from '@shared/config';
 
 export type SendLightningProps = {
   network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET;
   invoice?: string;
 };
-
-const maxFeePercent = 5; // hardcoded at the moment. might give user option to adjust later
 
 const SendLightning: React.FC = () => {
   const params = useLocalSearchParams<SendLightningProps>();
@@ -78,7 +77,7 @@ const SendLightning: React.FC = () => {
         setMemo(String(memoTag.data));
       }
 
-      const feeBN = new BigNumber(decoded.satoshis).dividedBy(100).multipliedBy(maxFeePercent).toNumber();
+      const feeBN = new BigNumber(decoded.satoshis).dividedBy(100).multipliedBy(LIGHTNING_MAX_FEE_PERCENT).toNumber();
       setFeeSats(Math.max(Math.round(feeBN), 1));
       setError('');
     } catch (error: any) {
@@ -135,7 +134,7 @@ const SendLightning: React.FC = () => {
       await new Promise((r) => setTimeout(r, 200)); // propagate
 
       // Send payment
-      const paymentResponse = await walletRef.current.payLightningInvoice(invoice, maxFeePercent);
+      const paymentResponse = await walletRef.current.payLightningInvoice(invoice, LIGHTNING_MAX_FEE_PERCENT);
 
       if (paymentResponse) {
         setSendState('success');

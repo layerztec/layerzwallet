@@ -21,6 +21,7 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_ARK_MUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { LIGHTNING_MAX_FEE_PERCENT } from '@shared/config';
 
 export type SendArkParams = {
   toAddress?: string;
@@ -80,7 +81,7 @@ const SendArk = () => {
         }
         
         const sparkWallet = arkWallet.current as SparkWallet;
-        const success = await sparkWallet.payLightningInvoice(toAddress, 1); // 1% max fee
+        const success = await sparkWallet.payLightningInvoice(toAddress, LIGHTNING_MAX_FEE_PERCENT);
         
         if (!success) {
           throw new Error('Lightning payment failed');
