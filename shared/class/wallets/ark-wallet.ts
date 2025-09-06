@@ -16,6 +16,13 @@ export class ArkWallet extends AbstractHDElectrumWallet {
   private _arkServerPublicKey: string = '03fa73c6e4876ffb2dfc961d763cca9abc73d4b88efcb8f5e7ff92dc55e9aa553d';
   private _accountNumber: number = 0;
 
+  /**
+   * Check if this wallet supports Lightning payments
+   */
+  get isLightningSupported(): boolean {
+    return false; // Base ArkWallet doesn't support Lightning
+  }
+
   setAccountNumber(value: number) {
     this._accountNumber = value;
   }

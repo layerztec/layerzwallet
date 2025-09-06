@@ -20,6 +20,13 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
   protected adapter: ISparkAdapter;
   public allowLightning: true = true;
 
+  /**
+   * Check if this wallet supports Lightning payments
+   */
+  get isLightningSupported(): boolean {
+    return true; // SparkWallet supports Lightning
+  }
+
   protected _bolt11toReceiveRequestId: Record<string, string> = {};
   private tokenBalances: TokenBalanceMap = new Map();
 

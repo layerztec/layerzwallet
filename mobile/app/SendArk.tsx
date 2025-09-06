@@ -22,6 +22,7 @@ import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_ARK_MUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { LIGHTNING_MAX_FEE_PERCENT } from '@shared/config';
+import { InterfaceLightningWallet } from '@shared/class/wallets/interface-lightning-wallet';
 
 export type SendArkParams = {
   toAddress?: string;
@@ -75,13 +76,13 @@ const SendArk = () => {
       const isLightningInvoice = toAddress.toLowerCase().startsWith('lnbc') || toAddress.toLowerCase().startsWith('lntb');
       
       if (isLightningInvoice) {
-        // Handle Lightning payment through SparkWallet
-        if (!arkWallet.current || !(arkWallet.current instanceof SparkWallet)) {
-          throw new Error('Lightning payments require Spark wallet');
+        // Handle Lightning payment
+        if (!arkWallet.current || !arkWallet.current.isLightningSupported) {
+          throw new Error('Lightning payments require a wallet with Lightning support');
         }
         
-        const sparkWallet = arkWallet.current as SparkWallet;
-        const success = await sparkWallet.payLightningInvoice(toAddress, LIGHTNING_MAX_FEE_PERCENT);
+        const lightningWallet = arkWallet.current as InterfaceLightningWallet;
+        const success = await lightningWallet.payLightningInvoice(toAddress, LIGHTNING_MAX_FEE_PERCENT);
         
         if (!success) {
           throw new Error('Lightning payment failed');
