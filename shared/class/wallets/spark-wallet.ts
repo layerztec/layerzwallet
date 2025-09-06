@@ -56,7 +56,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     const decoded = bolt11.decode(invoice);
     if (!decoded.satoshis) throw new Error('Cant pay zero-amount invoices');
 
-    const maxFeeSats = Math.ceil((decoded.satoshis / 100) * masFeePercentage);
+    const maxFeeSats = Math.max(2, Math.ceil((decoded.satoshis / 100) * masFeePercentage));
 
     const payment_response = await this._sdkWallet.payLightningInvoice({
       invoice,

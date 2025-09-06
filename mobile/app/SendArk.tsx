@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
+import * as bolt11 from 'bolt11';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useContext, useRef, useState } from 'react';
+import React, { useContext, useRef, useState, useEffect } from 'react';
 import { View, ScrollView, ActivityIndicator, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 
 import GradientScreen from '@/components/GradientScreen';
@@ -38,31 +39,71 @@ const SendArk = () => {
   const [isPrepared, setIsPrepared] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [isSending, setIsSending] = useState<boolean>(false);
+  const [lightningInvoiceDetails, setLightningInvoiceDetails] = useState<any>(null);
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const arkWallet = useRef<ArkWallet | undefined>(undefined);
 
+  // Check if it's a Lightning invoice and decode it
+  useEffect(() => {
+    if (toAddress.toLowerCase().startsWith('lnbc') || toAddress.toLowerCase().startsWith('lntb')) {
+      try {
+        const decoded = bolt11.decode(toAddress);
+        setLightningInvoiceDetails(decoded);
+        // Set amount from invoice if available
+        if (decoded.satoshis && !amount) {
+          router.setParams({ amount: (decoded.satoshis / 100000000).toString() });
+        }
+      } catch (e) {
+        setLightningInvoiceDetails(null);
+      }
+    } else {
+      setLightningInvoiceDetails(null);
+    }
+  }, [toAddress]);
+
   const actualSend = async () => {
     let startTs = Date.now();
     try {
       setIsSending(true);
       await new Promise((resolve) => setTimeout(resolve, 100)); // sleep to propagate
-      const satValueBN = new BigNumber(amount);
-      const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString(10);
+      
+      // Check if it's a Lightning invoice
+      const isLightningInvoice = toAddress.toLowerCase().startsWith('lnbc') || toAddress.toLowerCase().startsWith('lntb');
+      
+      if (isLightningInvoice) {
+        // Handle Lightning payment through SparkWallet
+        if (!arkWallet.current || !(arkWallet.current instanceof SparkWallet)) {
+          throw new Error('Lightning payments require Spark wallet');
+        }
+        
+        const sparkWallet = arkWallet.current as SparkWallet;
+        const success = await sparkWallet.payLightningInvoice(toAddress, 1); // 1% max fee
+        
+        if (!success) {
+          throw new Error('Lightning payment failed');
+        }
+        
+        setIsSuccess(true);
+      } else {
+        // Regular Spark/Ark payment
+        const satValueBN = new BigNumber(amount);
+        const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString(10);
 
-      if (!arkWallet) {
-        throw new Error('Internal error: ArkWallet is not set');
+        if (!arkWallet) {
+          throw new Error('Internal error: ArkWallet is not set');
+        }
+        console.log('actual value to send:', +satValue);
+
+        startTs = Date.now();
+        const transactionId = await arkWallet.current?.pay(toAddress, +satValue);
+        assert(transactionId, 'Internal error: ArkWallet.pay() failed');
+        console.log('submitted txid:', transactionId);
+
+        setIsSuccess(true);
       }
-      console.log('actual value to send:', +satValue);
-
-      startTs = Date.now();
-      const transactionId = await arkWallet.current?.pay(toAddress, +satValue);
-      assert(transactionId, 'Internal error: ArkWallet.pay() failed');
-      console.log('submitted txid:', transactionId);
-
-      setIsSuccess(true);
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -129,12 +170,14 @@ const SendArk = () => {
           ) : null}
 
           <View style={styles.inputSection}>
-            <ThemedText style={styles.inputLabel}>Recipient</ThemedText>
+            <ThemedText style={styles.inputLabel}>
+              {lightningInvoiceDetails ? '⚡ Lightning Invoice' : 'Recipient'}
+            </ThemedText>
             <View style={styles.addressInputContainer}>
               <TextInput
                 style={styles.input}
                 testID="recipient-address-input"
-                placeholder="Enter the recipient's address"
+                placeholder="Enter the recipient's address or Lightning invoice"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 onChangeText={(text) => router.setParams({ toAddress: text })}
                 value={toAddress}
