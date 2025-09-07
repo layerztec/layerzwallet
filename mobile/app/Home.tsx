@@ -12,6 +12,7 @@ import GradientScreen from '@/components/GradientScreen';
 import LiquidTokensView from '@/components/LiquidTokensView';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
+import { DappBrowserProps } from '@/app/DAppBrowser';
 
 import Transaction from '@/components/Transaction';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -199,7 +200,8 @@ export default function Home() {
     } else {
       const explorerUrl = getExplorerUrlByNetwork(network);
       if (explorerUrl) {
-        router.push({ pathname: '/DAppBrowser', params: { url: explorerUrl } });
+        const params: DappBrowserProps = { url: explorerUrl };
+        router.push({ pathname: '/DAppBrowser', params });
       } else {
         Alert.alert('Explorer', 'Explorer not available for this network');
       }

@@ -1,4 +1,4 @@
-import { Networks, NETWORK_BITCOIN, NETWORK_BOTANIX_TESTNET, NETWORK_CITREA_TESTNET, NETWORK_ARK_MUTINYNET, NETWORK_BOTANIX } from '../types/networks';
+import { Networks, NETWORK_BITCOIN, NETWORK_BOTANIX_TESTNET, NETWORK_CITREA_TESTNET, NETWORK_ARK_MUTINYNET, NETWORK_BOTANIX, NETWORK_ROOTSTOCK } from '../types/networks';
 import { PartnerInfo } from '../types/partner-info';
 
 const partnersList: PartnerInfo[] = [
@@ -20,14 +20,14 @@ const partnersList: PartnerInfo[] = [
     name: 'Keystone',
     network: NETWORK_BITCOIN,
     url: 'https://bit.ly/3Q6Rz5m',
-    imgUrl: '',
+    imgUrl: 'https://pbs.twimg.com/profile_images/1787649407963574272/eHYwt7dk_400x400.jpg',
     description: 'Secure Cold Wallet for Effortless Transactions',
   },
   {
     name: 'Check out Botanix Dapps',
-    network: NETWORK_BOTANIX_TESTNET,
-    url: 'https://botanixlabs.xyz/en/testnet',
-    imgUrl: '',
+    network: NETWORK_BOTANIX,
+    url: 'https://botanixlabs.com/use',
+    imgUrl: 'https://bridge.botanixlabs.com/images/white-logo.png',
     description: '',
   },
   {
@@ -45,18 +45,25 @@ const partnersList: PartnerInfo[] = [
     description: '',
   },
   {
-    name: 'Arkade',
-    network: NETWORK_ARK_MUTINYNET,
-    url: 'https://arkade.money/',
-    imgUrl: '',
-    description: 'Progressive web-app to manage Ark bitcoins on the go',
-  },
-  {
     name: 'Bridge',
     network: NETWORK_BOTANIX,
     url: 'https://bridge.botanixlabs.com',
-    imgUrl: '',
+    imgUrl: 'https://yield.botanixlabs.com/images/white-logo.png',
     description: 'Bridge Bitcoin to Botanix',
+  },
+  {
+    name: 'Yield',
+    network: NETWORK_BOTANIX,
+    url: 'https://yield.botanixlabs.com/',
+    imgUrl: 'https://bridge.botanixlabs.com/images/white-logo.png',
+    description: 'Bitcoin in - More Bitcoin out. Backed by economic activity',
+  },
+  {
+    name: 'Oku Trade',
+    network: NETWORK_ROOTSTOCK,
+    url: 'https://oku.trade/?inputChain=rootstock',
+    imgUrl: '',
+    description: '',
   },
 ];
 
