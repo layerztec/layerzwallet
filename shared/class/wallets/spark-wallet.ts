@@ -17,7 +17,6 @@ export interface ISparkAdapter {
 export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
   private _sdkWallet: SDK | undefined = undefined;
   protected adapter: ISparkAdapter;
-  public allowLightning: true = true;
 
   protected _bolt11toReceiveRequestId: Record<string, string> = {};
   private tokenBalances: TokenBalanceMap = new Map();
@@ -185,5 +184,9 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
     return await this._sdkWallet.transferTokens({ receiverSparkAddress, tokenAmount, tokenIdentifier: tokenIdentifier as Bech32mTokenIdentifier });
+  }
+
+  allowLightning() {
+    return true;
   }
 }

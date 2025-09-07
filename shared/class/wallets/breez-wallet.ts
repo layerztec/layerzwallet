@@ -45,7 +45,6 @@ export class BreezWallet implements InterfaceLightningWallet {
   public m: string;
   public n: LiquidNetwork;
   public adapter: IBreezAdapter;
-  public allowLightning: true = true;
 
   constructor(mnemonic: string, network: LiquidNetwork) {
     this.m = mnemonic;
@@ -249,6 +248,10 @@ export class BreezWallet implements InterfaceLightningWallet {
     }
 
     return commonTransactions;
+  }
+
+  allowLightning() {
+    return true;
   }
 }
 

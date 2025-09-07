@@ -23,7 +23,6 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   private _arkServerPublicKey: string = '03fa73c6e4876ffb2dfc961d763cca9abc73d4b88efcb8f5e7ff92dc55e9aa553d';
   private _boltzApiUrl: string = '';
   private _accountNumber: number = 0;
-  public allowLightning: true = true;
 
   setAccountNumber(value: number) {
     this._accountNumber = value;
@@ -103,15 +102,6 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
       apiUrl: this._boltzApiUrl,
       network: 'bitcoin',
     });
-
-    // const identity = this._getIdentity();
-
-    // @ts-ignore remove when its fixed in Ark dep
-    // this._wallet.sign = identity.sign.bind(identity);
-    // @ts-ignore remove when its fixed in Ark dep
-    // this._wallet.xOnlyPublicKey = identity.xOnlyPublicKey.bind(identity);
-    // @ts-ignore remove when its fixed in Ark dep
-    // this._wallet.signerSession = identity.signerSession.bind(identity);
 
     // Create the ArkadeLightning instance
     this._arkadeLightning = new ArkadeLightning({
@@ -253,5 +243,9 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     console.log('Preimage:', paymentResult.preimage);
     console.log('Transaction ID:', paymentResult.txid);
     return true;
+  }
+
+  allowLightning() {
+    return !!this._arkadeLightning;
   }
 }

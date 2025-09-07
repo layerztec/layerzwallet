@@ -2,6 +2,22 @@ import assert from 'assert';
 import { test } from 'vitest';
 import { ArkWallet } from '../../class/wallets/ark-wallet';
 import { IStorage } from '../../types/IStorage';
+import fs from 'fs';
+
+// const _cache: Record<string, string> = {};
+const storageMock: IStorage = {
+  async setItem(key: string, value: string) {
+    console.log('setItem', key, value);
+    fs.writeFileSync('/tmp/ark-swap-storage' + key, value);
+    // _cache[key] = value;
+  },
+
+  async getItem(key: string) {
+    console.log('getItem', key);
+    return fs.readFileSync('/tmp/ark-swap-storage' + key).toString('utf8');
+    // return _cache[key];
+  },
+};
 
 test('ark', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
@@ -24,29 +40,18 @@ test.skip('ark can create lightning invoice', async (context) => {
     return;
   }
 
+  if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
+    context.skip();
+    return;
+  }
+
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
   w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
   w.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
+
   await w.init();
-  await w.initLightningSwaps();
-
-  // const _cache: Record<string, string> = {};
-  const fs = require('fs');
-  const storageMock: IStorage = {
-    async setItem(key: string, value: string) {
-      console.log('setItem', key, value);
-      fs.writeFileSync('/tmp/ark-swap-storage' + key, value);
-      // _cache[key] = value;
-    },
-
-    async getItem(key: string) {
-      console.log('getItem', key);
-      return fs.readFileSync('/tmp/ark-swap-storage' + key).toString('utf8');
-      // return _cache[key];
-    },
-  };
 
   const start = Date.now();
   await w.initLightningSwaps(storageMock);
@@ -74,29 +79,17 @@ test.skip('ark can pay lightning invoice', async (context) => {
     return;
   }
 
+  if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
+    context.skip();
+    return;
+  }
+
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
   w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
   w.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
   await w.init();
-  await w.initLightningSwaps({});
-
-  // const _cache: Record<string, string> = {};
-  const fs = require('fs');
-  const storageMock: IStorage = {
-    async setItem(key: string, value: string) {
-      console.log('setItem', key, value);
-      fs.writeFileSync('/tmp/ark-swap-storage' + key, value);
-      // _cache[key] = value;
-    },
-
-    async getItem(key: string) {
-      console.log('getItem', key);
-      return fs.readFileSync('/tmp/ark-swap-storage' + key).toString('utf8');
-      // return _cache[key];
-    },
-  };
 
   const start = Date.now();
   await w.initLightningSwaps(storageMock);
