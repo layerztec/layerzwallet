@@ -1,7 +1,7 @@
 import { Asset } from 'expo-asset';
 import { readAsStringAsync } from 'expo-file-system';
 import * as Linking from 'expo-linking';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View, Alert, TextInput } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import { Stack, useLocalSearchParams } from 'expo-router';
@@ -11,14 +11,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
+
+export type DappBrowserProps = {
+  url?: string;
+};
 
 const DAppBrowser: React.FC = () => {
+  const { network } = useContext(NetworkContext);
   const webviewRef = useRef<WebView>(null);
   const browserBridgeRef = useRef<BrowserBridge>(null);
   const [js, setJs] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const params = useLocalSearchParams<{ url?: string }>();
-  const uri = params.url || 'https://metamask.github.io/test-dapp/'; // https://eip6963.org/ also useful for testing
+  const params = useLocalSearchParams<DappBrowserProps>();
+  const uri = params.url || 'https://layerztec.github.io/website/explore/?network=' + network; // to test: https://metamask.github.io/test-dapp/ & https://eip6963.org/
   const [currentUrl, setCurrentUrl] = useState<string>(uri);
   const [addressInput, setAddressInput] = useState<string>(uri);
   const [canGoBack, setCanGoBack] = useState<boolean>(false);
@@ -157,6 +163,7 @@ const DAppBrowser: React.FC = () => {
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
+          testID="DappBrowserAddressBar"
           returnKeyType="go"
         />
         <TouchableOpacity style={styles.goButton} onPress={navigateToAddress}>
