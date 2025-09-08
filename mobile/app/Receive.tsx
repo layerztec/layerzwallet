@@ -210,7 +210,17 @@ export default function ReceiveScreen() {
                   <ThemedText style={styles.loadingText}>Loading address...</ThemedText>
                 </View>
               ) : address ? (
-                <QRCode testID="AddressQrCode" value={address} size={280} backgroundColor="white" color="black" />
+                <QRCode
+                  testID="AddressQrCode"
+                  value={address}
+                  size={280}
+                  backgroundColor="white"
+                  color="black"
+                  logo={require('@/assets/images/splash-icon.png')}
+                  logoSize={60}
+                  logoBackgroundColor="white"
+                  logoBorderRadius={8}
+                />
               ) : (
                 <View style={styles.qrPlaceholder}>
                   <ThemedText style={styles.errorText}>No address available</ThemedText>
