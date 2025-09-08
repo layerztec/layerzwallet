@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, ViewStyle, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { gradients } from '@shared/constants/Colors';
+import { getGradientColors } from '@/utils/gradientUtils';
 
 interface GradientScreenProps {
   children: React.ReactNode;
@@ -12,17 +12,7 @@ interface GradientScreenProps {
 }
 
 const GradientScreen: React.FC<GradientScreenProps> = ({ children, style, variant = 'base', scroll = false }) => {
-  let id: keyof typeof gradients = 'base';
-
-  for (const key of Object.keys(gradients)) {
-    if (key.startsWith(variant)) {
-      // this will work for liquid-testnet, for example.
-      id = key as keyof typeof gradients;
-      break;
-    }
-  }
-
-  const gradientColors = gradients[id];
+  const gradientColors = getGradientColors(variant);
   return (
     <LinearGradient colors={gradientColors} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.gradient}>
       {scroll ? (
