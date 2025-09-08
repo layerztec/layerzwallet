@@ -20,6 +20,7 @@ const Onramp: React.FC = () => {
       <WebView
         originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
         allowsInlineMediaPlayback={true}
+        enableApplePay={true}
         style={{ flex: 1 }}
         source={{ uri: `https://layerztec.github.io/website/onramp/?address=${address}&network=${network}` }}
       />

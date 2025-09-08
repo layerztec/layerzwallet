@@ -2,11 +2,13 @@ import { Asset } from 'expo-asset';
 import { readAsStringAsync } from 'expo-file-system';
 import * as Linking from 'expo-linking';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View, Alert, TextInput } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Alert, TextInput, Platform } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
+import CookieManager from '@react-native-cookies/cookies';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
@@ -29,6 +31,52 @@ const DAppBrowser: React.FC = () => {
   const [addressInput, setAddressInput] = useState<string>(uri);
   const [canGoBack, setCanGoBack] = useState<boolean>(false);
   const [canGoForward, setCanGoForward] = useState<boolean>(false);
+  const [cookiesLoaded, setCookiesLoaded] = useState<boolean>(false);
+
+  // Cookie persistence functions
+  const saveCookies = useCallback(async () => {
+    if (Platform.OS === 'ios') {
+      try {
+        const cookies = await CookieManager.getAll();
+        await AsyncStorage.setItem('dapp_browser_cookies', JSON.stringify(cookies));
+        console.log('Cookies saved:', Object.keys(cookies).length);
+      } catch (error) {
+        console.error('Failed to save cookies:', error);
+      }
+    }
+  }, []);
+
+  const restoreCookies = useCallback(async () => {
+    if (Platform.OS === 'ios') {
+      try {
+        const savedCookies = await AsyncStorage.getItem('dapp_browser_cookies');
+        if (savedCookies) {
+          const cookies = JSON.parse(savedCookies);
+          for (const [domain, cookieList] of Object.entries(cookies)) {
+            for (const cookie of cookieList as any[]) {
+              await CookieManager.set(cookie.domain, {
+                name: cookie.name,
+                value: cookie.value,
+                path: cookie.path || '/',
+                secure: cookie.secure,
+                httpOnly: cookie.httpOnly,
+                expires: cookie.expires,
+              });
+            }
+          }
+          console.log('Cookies restored:', Object.keys(cookies).length);
+          setCookiesLoaded(true);
+        } else {
+          setCookiesLoaded(true);
+        }
+      } catch (error) {
+        console.error('Failed to restore cookies:', error);
+        setCookiesLoaded(true);
+      }
+    } else {
+      setCookiesLoaded(true);
+    }
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -42,6 +90,18 @@ const DAppBrowser: React.FC = () => {
       }
     })();
   }, []);
+
+  // Restore cookies on component mount
+  useEffect(() => {
+    restoreCookies();
+  }, [restoreCookies]);
+
+  // Save cookies on component unmount
+  useEffect(() => {
+    return () => {
+      saveCookies();
+    };
+  }, [saveCookies]);
 
   const callbackRef = useCallback((r: WebView | null) => {
     if (r === null) {
@@ -121,10 +181,12 @@ const DAppBrowser: React.FC = () => {
     );
   }
 
-  if (!js) {
+  const loadingText = Platform.OS === 'ios' && !cookiesLoaded ? 'Restoring session...' : 'Loading DApp browser...';
+
+  if (!js || (Platform.OS === 'ios' && !cookiesLoaded)) {
     return (
       <View style={styles.loadingContainer}>
-        <ThemedText style={styles.loadingText}>Loading DApp browser...</ThemedText>
+        <ThemedText style={styles.loadingText}>{loadingText}</ThemedText>
       </View>
     );
   }
@@ -180,6 +242,20 @@ const DAppBrowser: React.FC = () => {
         onNavigationStateChange={handleNavigationStateChange}
         injectedJavaScriptBeforeContentLoaded={js}
         webviewDebuggingEnabled={true}
+        sharedCookiesEnabled={Platform.OS === 'android'}
+        thirdPartyCookiesEnabled={true}
+        onLoadStart={() => {
+          // Save cookies periodically when navigation starts
+          if (Platform.OS === 'ios') {
+            setTimeout(saveCookies, 1000);
+          }
+        }}
+        onLoadEnd={() => {
+          // Save cookies when page finishes loading
+          if (Platform.OS === 'ios') {
+            setTimeout(saveCookies, 2000);
+          }
+        }}
       />
     </SafeAreaView>
   );
