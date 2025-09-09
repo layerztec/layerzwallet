@@ -37,9 +37,66 @@ const DAppBrowser: React.FC = () => {
   const saveCookies = useCallback(async () => {
     if (Platform.OS === 'ios') {
       try {
-        const cookies = await CookieManager.getAll();
-        await AsyncStorage.setItem('dapp_browser_cookies', JSON.stringify(cookies));
-        console.log('Cookies saved:', Object.keys(cookies).length);
+        // Get cookies from WebView's JavaScript context
+        webviewRef.current?.injectJavaScript(`
+          try {
+            const cookies = document.cookie.split(';').map(c => c.trim()).filter(c => c.length > 0);
+            const cookieData = {};
+            cookies.forEach(cookie => {
+              const parts = cookie.split(';').map(p => p.trim());
+              const [name, value] = parts[0].split('=');
+              if (name && value) {
+                cookieData[name] = {
+                  name: name,
+                  value: decodeURIComponent(value),
+                  domain: window.location.hostname,
+                  path: '/',
+                  secure: window.location.protocol === 'https:',
+                  httpOnly: false
+                };
+
+                // Parse additional attributes
+                for (let i = 1; i < parts.length; i++) {
+                  const [key, val] = parts[i].split('=');
+                  if (key && val) {
+                    const lowerKey = key.toLowerCase();
+                    if (lowerKey === 'path') {
+                      cookieData[name].path = val;
+                    } else if (lowerKey === 'domain') {
+                      cookieData[name].domain = val;
+                    } else if (lowerKey === 'expires') {
+                      cookieData[name].expires = val;
+                    } else if (lowerKey === 'max-age') {
+                      cookieData[name].expires = new Date(Date.now() + parseInt(val) * 1000).toISOString();
+                    } else if (lowerKey === 'secure') {
+                      cookieData[name].secure = true;
+                    } else if (lowerKey === 'httponly') {
+                      cookieData[name].httpOnly = true;
+                    } else if (lowerKey === 'samesite') {
+                      cookieData[name].samesite = val;
+                    }
+                  } else if (key) {
+                    const lowerKey = key.toLowerCase();
+                    if (lowerKey === 'secure') {
+                      cookieData[name].secure = true;
+                    } else if (lowerKey === 'httponly') {
+                      cookieData[name].httpOnly = true;
+                    }
+                  }
+                }
+              }
+            });
+
+            console.log('Extracted cookies:', Object.keys(cookieData).length);
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'COOKIE_DATA',
+              cookies: cookieData
+            }));
+          } catch (e) {
+            console.error('Failed to extract cookies:', e);
+          }
+          true;
+        `);
       } catch (error) {
         console.error('Failed to save cookies:', error);
       }
@@ -51,20 +108,22 @@ const DAppBrowser: React.FC = () => {
       try {
         const savedCookies = await AsyncStorage.getItem('dapp_browser_cookies');
         if (savedCookies) {
-          const cookies = JSON.parse(savedCookies);
-          for (const [domain, cookieList] of Object.entries(cookies)) {
-            for (const cookie of cookieList as any[]) {
-              await CookieManager.set(cookie.domain, {
-                name: cookie.name,
-                value: cookie.value,
-                path: cookie.path || '/',
-                secure: cookie.secure,
-                httpOnly: cookie.httpOnly,
-                expires: cookie.expires,
-              });
-            }
-          }
-          console.log('Cookies restored:', Object.keys(cookies).length);
+          const cookieData = JSON.parse(savedCookies);
+          console.log('Cookies restored from storage:', Object.keys(cookieData).length);
+
+          // Create JavaScript to inject cookies into WebView
+          const cookieInjectionJS = Object.values(cookieData)
+            .map((cookie: any) => {
+              const expiration = cookie.expires ? `; expires=${new Date(cookie.expires).toUTCString()}` : '';
+              const secure = cookie.secure ? '; secure' : '';
+              const httpOnly = cookie.httpOnly ? '; HttpOnly' : '';
+              const sameSite = cookie.samesite ? `; SameSite=${cookie.samesite}` : '';
+              return `document.cookie = "${cookie.name}=${cookie.value}; path=${cookie.path || '/'}; domain=${cookie.domain}${expiration}${secure}${httpOnly}${sameSite}";`;
+            })
+            .join('\n');
+
+          // Store the injection script for later use
+          setCookieInjectionScript(cookieInjectionJS);
           setCookiesLoaded(true);
         } else {
           setCookiesLoaded(true);
@@ -77,6 +136,9 @@ const DAppBrowser: React.FC = () => {
       setCookiesLoaded(true);
     }
   }, []);
+
+  // Add state for cookie injection script
+  const [cookieInjectionScript, setCookieInjectionScript] = useState<string>('');
 
   useEffect(() => {
     (async () => {
@@ -99,9 +161,23 @@ const DAppBrowser: React.FC = () => {
   // Save cookies on component unmount
   useEffect(() => {
     return () => {
-      saveCookies();
+      if (Platform.OS === 'ios') {
+        // Force save cookies before unmounting
+        saveCookies();
+      }
     };
   }, [saveCookies]);
+
+  // Add a periodic cookie save while component is active
+  useEffect(() => {
+    if (Platform.OS === 'ios' && cookiesLoaded) {
+      const interval = setInterval(() => {
+        saveCookies();
+      }, 30000); // Save every 30 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [cookiesLoaded, saveCookies]);
 
   const callbackRef = useCallback((r: WebView | null) => {
     if (r === null) {
@@ -142,7 +218,21 @@ const DAppBrowser: React.FC = () => {
   };
 
   const handleMessage = useCallback((event: WebViewMessageEvent) => {
-    browserBridgeRef.current?.handleMessage(event);
+    try {
+      const message = JSON.parse(event.nativeEvent.data);
+      if (message.type === 'COOKIE_DATA' && Platform.OS === 'ios') {
+        // Save cookies to AsyncStorage
+        AsyncStorage.setItem('dapp_browser_cookies', JSON.stringify(message.cookies))
+          .then(() => console.log('Cookies saved to storage:', Object.keys(message.cookies).length))
+          .catch((error) => console.error('Failed to save cookies to storage:', error));
+      } else {
+        // Handle other messages through browser bridge
+        browserBridgeRef.current?.handleMessage(event);
+      }
+    } catch (error) {
+      // If it's not JSON, handle as regular browser bridge message
+      browserBridgeRef.current?.handleMessage(event);
+    }
   }, []);
 
   const handleNavigationStateChange = useCallback((navState: WebViewNavigation) => {
@@ -183,6 +273,9 @@ const DAppBrowser: React.FC = () => {
 
   const loadingText = Platform.OS === 'ios' && !cookiesLoaded ? 'Restoring session...' : 'Loading DApp browser...';
 
+  // Combine injected JavaScript with cookie restoration
+  const combinedInjectedJS = Platform.OS === 'ios' && cookieInjectionScript && js ? `${cookieInjectionScript}\n${js}` : js || '';
+
   if (!js || (Platform.OS === 'ios' && !cookiesLoaded)) {
     return (
       <View style={styles.loadingContainer}>
@@ -205,6 +298,11 @@ const DAppBrowser: React.FC = () => {
         <TouchableOpacity style={styles.iconButton} onPress={refresh}>
           <Ionicons name="refresh" size={16} color="white" />
         </TouchableOpacity>
+        {Platform.OS === 'ios' && (
+          <TouchableOpacity style={styles.iconButton} onPress={() => saveCookies()}>
+            <Ionicons name="save" size={16} color="white" />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={[styles.button, styles.unwhitelistButton]} onPress={unwhitelistCurrentDapp}>
           <ThemedText style={styles.buttonText}>unwhitelist</ThemedText>
         </TouchableOpacity>
@@ -240,20 +338,26 @@ const DAppBrowser: React.FC = () => {
         source={{ uri }}
         onMessage={handleMessage}
         onNavigationStateChange={handleNavigationStateChange}
-        injectedJavaScriptBeforeContentLoaded={js}
+        injectedJavaScriptBeforeContentLoaded={combinedInjectedJS}
         webviewDebuggingEnabled={true}
         sharedCookiesEnabled={Platform.OS === 'android'}
         thirdPartyCookiesEnabled={true}
         onLoadStart={() => {
-          // Save cookies periodically when navigation starts
+          // Save cookies when navigation starts
           if (Platform.OS === 'ios') {
-            setTimeout(saveCookies, 1000);
+            setTimeout(() => saveCookies(), 500);
           }
         }}
         onLoadEnd={() => {
           // Save cookies when page finishes loading
           if (Platform.OS === 'ios') {
-            setTimeout(saveCookies, 2000);
+            setTimeout(() => saveCookies(), 1000);
+          }
+        }}
+        onLoadProgress={({ nativeEvent }) => {
+          // Save cookies during loading progress
+          if (Platform.OS === 'ios' && nativeEvent.progress > 0.8) {
+            setTimeout(() => saveCookies(), 500);
           }
         }}
       />
