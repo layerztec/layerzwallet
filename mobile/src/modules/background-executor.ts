@@ -17,7 +17,15 @@ import {
   clearWalletCache,
 } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, OpenPopupRequest } from '@shared/types/IBackgroundCaller';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_WHITELIST } from '@shared/types/IStorage';
+import {
+  ENCRYPTED_PREFIX,
+  STORAGE_KEY_ACCEPTED_TOS,
+  STORAGE_KEY_EVM_XPUB,
+  STORAGE_KEY_MNEMONIC,
+  STORAGE_KEY_SUB_MNEMONIC,
+  STORAGE_KEY_WHITELIST,
+  STORAGE_KEY_SEED_VERIFIED,
+} from '@shared/types/IStorage';
 import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK } from '@shared/types/networks';
 import { BrowserBridge } from '../class/browser-bridge';
 import { LayerzStorage } from '../class/layerz-storage';
@@ -81,6 +89,23 @@ export const BackgroundExecutor: IBackgroundCaller = {
   async hasEncryptedMnemonic() {
     const mnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
     return !!mnemonic && mnemonic.startsWith(ENCRYPTED_PREFIX);
+  },
+
+  async hasSeedVerified() {
+    return !!(await LayerzStorage.getItem(STORAGE_KEY_SEED_VERIFIED));
+  },
+
+  async setSeedVerified() {
+    await LayerzStorage.setItem(STORAGE_KEY_SEED_VERIFIED, 'true');
+  },
+
+  async getMnemonicForVerification() {
+    const mnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
+    // During onboarding, mnemonic should not be encrypted yet
+    if (mnemonic && !mnemonic.startsWith(ENCRYPTED_PREFIX)) {
+      return mnemonic;
+    }
+    return null;
   },
 
   async saveMnemonic(mnemonic) {

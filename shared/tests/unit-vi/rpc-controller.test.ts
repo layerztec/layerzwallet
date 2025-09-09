@@ -92,6 +92,15 @@ const backgroundCallerMock2: IBackgroundCaller = {
   clear() {
     throw new Error('Function not implemented.');
   },
+  hasSeedVerified() {
+    return Promise.resolve(false);
+  },
+  setSeedVerified() {
+    return Promise.resolve();
+  },
+  getMnemonicForVerification() {
+    return Promise.resolve(null);
+  },
 };
 
 beforeEach(() => {

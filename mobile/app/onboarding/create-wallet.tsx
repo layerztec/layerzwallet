@@ -1,6 +1,6 @@
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, StyleSheet, ViewStyle, TextStyle, ImageStyle, Animated, ActivityIndicator, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, StyleSheet, Animated, FlatList, TouchableOpacity, ViewStyle, TextStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
@@ -63,6 +63,9 @@ export default function CreateWalletScreen() {
     router.push('/onboarding/create-password');
   };
 
+  const handleVerify = () => {
+    router.push('/onboarding/verify-recovery-phrase');
+  };
   const wordsData = useMemo(() => {
     const words = recoveryPhrase ? recoveryPhrase.split(' ') : [];
     return Array.from({ length: 12 }, (_, index) => ({
@@ -104,8 +107,16 @@ export default function CreateWalletScreen() {
             <View style={styles.bottomButtonContainer}>
               {!error && recoveryPhrase && (
                 <Animated.View style={verifyButtonAnimation}>
-                  <TouchableOpacity style={styles.verifyButton} onPress={handleContinue} testID="VerifyButton">
-                    <ThemedText type="button">I wrote it down!</ThemedText>
+                  <TouchableOpacity style={styles.skipButton} onPress={handleContinue} testID="SkipButton">
+                    <ThemedText type="button">Skip</ThemedText>
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
+
+              {!error && recoveryPhrase && (
+                <Animated.View style={verifyButtonAnimation}>
+                  <TouchableOpacity style={styles.verifyButton} onPress={handleVerify} testID="VerifyButton">
+                    <ThemedText type="button">Verify</ThemedText>
                   </TouchableOpacity>
                 </Animated.View>
               )}
@@ -168,7 +179,7 @@ const styles = StyleSheet.create({
   image: {
     alignSelf: 'center',
     marginRight: 8,
-  } as ImageStyle,
+  } as ViewStyle,
   wordNumber: {
     width: 24,
     height: 24,
@@ -182,12 +193,12 @@ const styles = StyleSheet.create({
     ...Typography.buttonText,
     color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '600' as '600',
   } as TextStyle,
   wordText: {
     ...Typography.paragraph,
     color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '500',
+    fontWeight: '500' as '500',
     flex: 1,
   } as TextStyle,
   actionButtonsContainer: {
@@ -211,6 +222,17 @@ const styles = StyleSheet.create({
   } as TextStyle,
   bottomButtonContainer: {
     marginBottom: 20,
+    gap: 12,
+  } as ViewStyle,
+  skipButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.dark.buttonBorder,
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
   } as ViewStyle,
   verifyButton: {
     flexDirection: 'row',

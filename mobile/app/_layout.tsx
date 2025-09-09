@@ -143,6 +143,12 @@ export default function RootLayout() {
                             }}
                           />
                           <Stack.Screen
+                            name="manual-backup/verify-recovery-phrase"
+                            options={{
+                              ...DefaultNavigatorOptions,
+                            }}
+                          />
+                          <Stack.Screen
                             name="onboarding/tos"
                             options={{
                               headerShown: false,
@@ -169,6 +175,15 @@ export default function RootLayout() {
                           />
                           <Stack.Screen
                             name="onboarding/create-wallet"
+                            options={{
+                              headerShown: false,
+                              animation: 'slide_from_right',
+                              animationDuration: 350,
+                              gestureEnabled: true,
+                            }}
+                          />
+                          <Stack.Screen
+                            name="onboarding/verify-recovery-phrase"
                             options={{
                               headerShown: false,
                               animation: 'slide_from_right',
