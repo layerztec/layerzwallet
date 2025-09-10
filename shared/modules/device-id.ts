@@ -2,7 +2,7 @@ import { IStorage } from '../types/IStorage';
 import { generateUUID } from './string-utils';
 import { ICsprng } from '../types/ICsprng';
 
-const STORAGE_KEY_DEVICEID = 'STORAGE_KEY_DEVICEID';
+export const STORAGE_KEY_DEVICEID = 'STORAGE_KEY_DEVICEID';
 
 export async function getDeviceID(secureStorage: IStorage, csprng: ICsprng): Promise<string> {
   try {

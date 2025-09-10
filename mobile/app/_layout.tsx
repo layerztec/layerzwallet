@@ -5,7 +5,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as NavigationBar from 'expo-navigation-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AppState, AppStateStatus, LogBox, Platform } from 'react-native';
 import 'react-native-reanimated';
 import { SWRConfig } from 'swr';
@@ -24,6 +24,10 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Messenger } from '@/src/modules/messenger';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
 import { InitializationContextProvider } from '@shared/hooks/InitializationContext';
+import * as SecureStore from 'expo-secure-store';
+import { STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC } from '@shared/types/IStorage';
+import { STORAGE_KEY_DEVICEID } from '@shared/modules/device-id';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
 
@@ -46,6 +50,7 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+  const [keychainCleanupDone, setKeychainCleanupDone] = useState(false);
 
   useEffect(() => {
     if (Platform.OS === 'android') {
@@ -60,7 +65,36 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  if (!loaded) {
+  // First-launch secure storage cleanup for iOS re-installs where Keychain may persist
+  useEffect(() => {
+    (async () => {
+      try {
+        const firstRunKey = 'layerz_has_run_before';
+        const hasRunBefore = await AsyncStorage.getItem(firstRunKey);
+        if (!hasRunBefore) {
+          const keysToWipe: string[] = [
+            STORAGE_KEY_MNEMONIC,
+            STORAGE_KEY_DEVICEID,
+            // sub-mnemonics 0-5 as used by wallet utils
+            ...Array.from({ length: 6 }, (_, i) => `${STORAGE_KEY_SUB_MNEMONIC}${i}`),
+          ];
+          await Promise.all(
+            keysToWipe.map(async (k) => {
+              try {
+                await SecureStore.deleteItemAsync(k);
+              } catch {}
+            })
+          );
+          await AsyncStorage.setItem(firstRunKey, 'true');
+        }
+      } catch {}
+      finally {
+        setKeychainCleanupDone(true);
+      }
+    })();
+  }, []);
+
+  if (!loaded || !keychainCleanupDone) {
     return null;
   }
 
