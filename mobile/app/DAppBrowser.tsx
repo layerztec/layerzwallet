@@ -4,7 +4,6 @@ import * as Linking from 'expo-linking';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View, Alert, TextInput, Platform } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
-import CookieManager from '@react-native-cookies/cookies';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -37,11 +36,12 @@ const DAppBrowser: React.FC = () => {
   const saveCookies = useCallback(async () => {
     if (Platform.OS === 'ios') {
       try {
-        // Get cookies from WebView's JavaScript context
+        // Inject JavaScript to extract all cookies from the current page
         webviewRef.current?.injectJavaScript(`
           try {
             const cookies = document.cookie.split(';').map(c => c.trim()).filter(c => c.length > 0);
             const cookieData = {};
+
             cookies.forEach(cookie => {
               const parts = cookie.split(';').map(p => p.trim());
               const [name, value] = parts[0].split('=');
@@ -52,7 +52,8 @@ const DAppBrowser: React.FC = () => {
                   domain: window.location.hostname,
                   path: '/',
                   secure: window.location.protocol === 'https:',
-                  httpOnly: false
+                  httpOnly: false,
+                  samesite: 'Lax'
                 };
 
                 // Parse additional attributes
@@ -68,10 +69,6 @@ const DAppBrowser: React.FC = () => {
                       cookieData[name].expires = val;
                     } else if (lowerKey === 'max-age') {
                       cookieData[name].expires = new Date(Date.now() + parseInt(val) * 1000).toISOString();
-                    } else if (lowerKey === 'secure') {
-                      cookieData[name].secure = true;
-                    } else if (lowerKey === 'httponly') {
-                      cookieData[name].httpOnly = true;
                     } else if (lowerKey === 'samesite') {
                       cookieData[name].samesite = val;
                     }
@@ -87,7 +84,7 @@ const DAppBrowser: React.FC = () => {
               }
             });
 
-            console.log('Extracted cookies:', Object.keys(cookieData).length);
+            console.log('Extracted cookies from page:', Object.keys(cookieData).length);
             window.ReactNativeWebView.postMessage(JSON.stringify({
               type: 'COOKIE_DATA',
               cookies: cookieData
@@ -103,6 +100,8 @@ const DAppBrowser: React.FC = () => {
     }
   }, []);
 
+  const [cookieInjectionScript, setCookieInjectionScript] = useState<string>('');
+
   const restoreCookies = useCallback(async () => {
     if (Platform.OS === 'ios') {
       try {
@@ -111,24 +110,23 @@ const DAppBrowser: React.FC = () => {
           const cookieData = JSON.parse(savedCookies);
           console.log('Cookies restored from storage:', Object.keys(cookieData).length);
 
-          // Create JavaScript to inject cookies into WebView
+          // Create JavaScript to inject cookies into WebView before content loads
           const cookieInjectionJS = Object.values(cookieData)
             .map((cookie: any) => {
               const expiration = cookie.expires ? `; expires=${new Date(cookie.expires).toUTCString()}` : '';
               const secure = cookie.secure ? '; secure' : '';
               const httpOnly = cookie.httpOnly ? '; HttpOnly' : '';
-              const sameSite = cookie.samesite ? `; SameSite=${cookie.samesite}` : '';
-              return `document.cookie = "${cookie.name}=${cookie.value}; path=${cookie.path || '/'}; domain=${cookie.domain}${expiration}${secure}${httpOnly}${sameSite}";`;
+              const sameSite = cookie.samesite ? `; SameSite=${cookie.samesite}` : '; SameSite=Lax';
+              const cookieValue = encodeURIComponent(cookie.value);
+              return `document.cookie = "${cookie.name}=${cookieValue}; path=${cookie.path || '/'}; domain=${cookie.domain}${expiration}${secure}${httpOnly}${sameSite}";`;
             })
             .join('\n');
 
-          // Store the injection script for later use
           setCookieInjectionScript(cookieInjectionJS);
-          setCookiesLoaded(true);
-        } else {
-          setCookiesLoaded(true);
+          console.log('Cookie injection script created');
         }
-      } catch (error) {
+        setCookiesLoaded(true);
+      } catch (error: any) {
         console.error('Failed to restore cookies:', error);
         setCookiesLoaded(true);
       }
@@ -136,9 +134,6 @@ const DAppBrowser: React.FC = () => {
       setCookiesLoaded(true);
     }
   }, []);
-
-  // Add state for cookie injection script
-  const [cookieInjectionScript, setCookieInjectionScript] = useState<string>('');
 
   useEffect(() => {
     (async () => {
@@ -213,6 +208,24 @@ const DAppBrowser: React.FC = () => {
     }
   };
 
+  const clearCookies = async () => {
+    if (Platform.OS === 'ios') {
+      try {
+        await AsyncStorage.removeItem('dapp_browser_cookies');
+        setCookieInjectionScript('');
+        webviewRef.current?.injectJavaScript(`
+          document.cookie.split(";").forEach(c => {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+          });
+          true;
+        `);
+        Alert.alert('Cookies Cleared', 'All cookies have been cleared. Refresh the page.');
+      } catch (error: any) {
+        console.error('Failed to clear cookies:', error);
+      }
+    }
+  };
+
   const openInExternalBrowser = () => {
     Linking.openURL(currentUrl);
   };
@@ -229,7 +242,7 @@ const DAppBrowser: React.FC = () => {
         // Handle other messages through browser bridge
         browserBridgeRef.current?.handleMessage(event);
       }
-    } catch (error) {
+    } catch (error: any) {
       // If it's not JSON, handle as regular browser bridge message
       browserBridgeRef.current?.handleMessage(event);
     }
@@ -301,6 +314,11 @@ const DAppBrowser: React.FC = () => {
         {Platform.OS === 'ios' && (
           <TouchableOpacity style={styles.iconButton} onPress={() => saveCookies()}>
             <Ionicons name="save" size={16} color="white" />
+          </TouchableOpacity>
+        )}
+        {Platform.OS === 'ios' && (
+          <TouchableOpacity style={[styles.button, styles.unwhitelistButton]} onPress={clearCookies}>
+            <ThemedText style={styles.buttonText}>clear cookies</ThemedText>
           </TouchableOpacity>
         )}
         <TouchableOpacity style={[styles.button, styles.unwhitelistButton]} onPress={unwhitelistCurrentDapp}>
