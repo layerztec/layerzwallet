@@ -100,8 +100,6 @@ const DAppBrowser: React.FC = () => {
     }
   }, []);
 
-  const [cookieInjectionScript, setCookieInjectionScript] = useState<string>('');
-
   const restoreCookies = useCallback(async () => {
     if (Platform.OS === 'ios') {
       try {
@@ -110,20 +108,40 @@ const DAppBrowser: React.FC = () => {
           const cookieData = JSON.parse(savedCookies);
           console.log('Cookies restored from storage:', Object.keys(cookieData).length);
 
-          // Create JavaScript to inject cookies into WebView before content loads
-          const cookieInjectionJS = Object.values(cookieData)
-            .map((cookie: any) => {
-              const expiration = cookie.expires ? `; expires=${new Date(cookie.expires).toUTCString()}` : '';
-              const secure = cookie.secure ? '; secure' : '';
-              const httpOnly = cookie.httpOnly ? '; HttpOnly' : '';
-              const sameSite = cookie.samesite ? `; SameSite=${cookie.samesite}` : '; SameSite=Lax';
-              const cookieValue = encodeURIComponent(cookie.value);
-              return `document.cookie = "${cookie.name}=${cookieValue}; path=${cookie.path || '/'}; domain=${cookie.domain}${expiration}${secure}${httpOnly}${sameSite}";`;
-            })
-            .join('\n');
+          // Try to inject cookies using a more reliable method
+          // We'll inject them after the page loads instead of before
+          setTimeout(() => {
+            if (webviewRef.current && cookieData) {
+              const cookieInjectionJS = Object.values(cookieData)
+                .map((cookie: any) => {
+                  const expiration = cookie.expires ? `; expires=${new Date(cookie.expires).toUTCString()}` : '';
+                  const secure = cookie.secure ? '; secure' : '';
+                  const httpOnly = cookie.httpOnly ? '; HttpOnly' : '';
+                  const sameSite = cookie.samesite ? `; SameSite=${cookie.samesite}` : '; SameSite=Lax';
+                  const cookieValue = encodeURIComponent(cookie.value);
+                  return `document.cookie = "${cookie.name}=${cookieValue}; path=${cookie.path || '/'}; domain=${cookie.domain}${expiration}${secure}${httpOnly}${sameSite}";`;
+                })
+                .join('\n');
 
-          setCookieInjectionScript(cookieInjectionJS);
-          console.log('Cookie injection script created');
+              webviewRef.current.injectJavaScript(`
+                try {
+                  ${cookieInjectionJS}
+                  console.log('Cookies injected successfully');
+                  window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'COOKIES_INJECTED',
+                    count: Object.keys(${JSON.stringify(cookieData)}).length
+                  }));
+                } catch (e) {
+                  console.error('Failed to inject cookies:', e);
+                  window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'COOKIE_INJECTION_FAILED',
+                    error: e.message
+                  }));
+                }
+                true;
+              `);
+            }
+          }, 2000); // Wait 2 seconds after component mount
         }
         setCookiesLoaded(true);
       } catch (error: any) {
@@ -212,7 +230,7 @@ const DAppBrowser: React.FC = () => {
     if (Platform.OS === 'ios') {
       try {
         await AsyncStorage.removeItem('dapp_browser_cookies');
-        setCookieInjectionScript('');
+        // Cookie injection script is no longer used
         webviewRef.current?.injectJavaScript(`
           document.cookie.split(";").forEach(c => {
             document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
@@ -238,6 +256,13 @@ const DAppBrowser: React.FC = () => {
         AsyncStorage.setItem('dapp_browser_cookies', JSON.stringify(message.cookies))
           .then(() => console.log('Cookies saved to storage:', Object.keys(message.cookies).length))
           .catch((error) => console.error('Failed to save cookies to storage:', error));
+      } else if (message.type === 'COOKIES_INJECTED' && Platform.OS === 'ios') {
+        console.log('Cookies successfully injected:', message.count);
+      } else if (message.type === 'COOKIE_INJECTION_FAILED' && Platform.OS === 'ios') {
+        console.error('Cookie injection failed:', message.error);
+      } else if (message.type === 'DEBUG_COOKIES' && Platform.OS === 'ios') {
+        console.log('Debug: Current WebView cookies:', message.cookies);
+        Alert.alert('Current Cookies', message.cookies || 'No cookies found');
       } else {
         // Handle other messages through browser bridge
         browserBridgeRef.current?.handleMessage(event);
@@ -286,9 +311,6 @@ const DAppBrowser: React.FC = () => {
 
   const loadingText = Platform.OS === 'ios' && !cookiesLoaded ? 'Restoring session...' : 'Loading DApp browser...';
 
-  // Combine injected JavaScript with cookie restoration
-  const combinedInjectedJS = Platform.OS === 'ios' && cookieInjectionScript && js ? `${cookieInjectionScript}\n${js}` : js || '';
-
   if (!js || (Platform.OS === 'ios' && !cookiesLoaded)) {
     return (
       <View style={styles.loadingContainer}>
@@ -317,8 +339,73 @@ const DAppBrowser: React.FC = () => {
           </TouchableOpacity>
         )}
         {Platform.OS === 'ios' && (
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={async () => {
+              // Manual cookie injection
+              try {
+                const savedCookies = await AsyncStorage.getItem('dapp_browser_cookies');
+                if (savedCookies && webviewRef.current) {
+                  const cookieData = JSON.parse(savedCookies);
+                  const cookieInjectionJS = Object.values(cookieData)
+                    .map((cookie: any) => {
+                      const expiration = cookie.expires ? `; expires=${new Date(cookie.expires).toUTCString()}` : '';
+                      const secure = cookie.secure ? '; secure' : '';
+                      const httpOnly = cookie.httpOnly ? '; HttpOnly' : '';
+                      const sameSite = cookie.samesite ? `; SameSite=${cookie.samesite}` : '; SameSite=Lax';
+                      const cookieValue = encodeURIComponent(cookie.value);
+                      return `document.cookie = "${cookie.name}=${cookieValue}; path=${cookie.path || '/'}; domain=${cookie.domain}${expiration}${secure}${httpOnly}${sameSite}";`;
+                    })
+                    .join('\n');
+
+                  webviewRef.current.injectJavaScript(`
+                    try {
+                      ${cookieInjectionJS}
+                      console.log('Manual cookie injection attempted');
+                      alert('Cookies injected manually. Refresh the page.');
+                    } catch (e) {
+                      console.error('Manual injection failed:', e);
+                      alert('Manual injection failed: ' + e.message);
+                    }
+                    true;
+                  `);
+                } else {
+                  Alert.alert('No Cookies', 'No saved cookies found to inject');
+                }
+              } catch (error: any) {
+                Alert.alert('Error', 'Failed to inject cookies: ' + error.message);
+              }
+            }}
+          >
+            <Ionicons name="download" size={16} color="white" />
+          </TouchableOpacity>
+        )}
+        {Platform.OS === 'ios' && (
+          <TouchableOpacity
+            style={[styles.button, styles.externalButton]}
+            onPress={() => {
+              // Debug: Check current cookies
+              webviewRef.current?.injectJavaScript(`
+                try {
+                  const cookies = document.cookie;
+                  console.log('Current document cookies:', cookies);
+                  window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'DEBUG_COOKIES',
+                    cookies: cookies
+                  }));
+                } catch (e) {
+                  console.error('Failed to get current cookies:', e);
+                }
+                true;
+              `);
+            }}
+          >
+            <ThemedText style={styles.buttonText}>debug</ThemedText>
+          </TouchableOpacity>
+        )}
+        {Platform.OS === 'ios' && (
           <TouchableOpacity style={[styles.button, styles.unwhitelistButton]} onPress={clearCookies}>
-            <ThemedText style={styles.buttonText}>clear cookies</ThemedText>
+            <ThemedText style={styles.buttonText}>clear</ThemedText>
           </TouchableOpacity>
         )}
         <TouchableOpacity style={[styles.button, styles.unwhitelistButton]} onPress={unwhitelistCurrentDapp}>
@@ -356,7 +443,7 @@ const DAppBrowser: React.FC = () => {
         source={{ uri }}
         onMessage={handleMessage}
         onNavigationStateChange={handleNavigationStateChange}
-        injectedJavaScriptBeforeContentLoaded={combinedInjectedJS}
+        injectedJavaScriptBeforeContentLoaded={js}
         webviewDebuggingEnabled={true}
         sharedCookiesEnabled={Platform.OS === 'android'}
         thirdPartyCookiesEnabled={true}
@@ -366,10 +453,93 @@ const DAppBrowser: React.FC = () => {
             setTimeout(() => saveCookies(), 500);
           }
         }}
-        onLoadEnd={() => {
-          // Save cookies when page finishes loading
+        onLoadEnd={async () => {
+          // Try to inject saved cookies on iOS after page loads
           if (Platform.OS === 'ios') {
-            setTimeout(() => saveCookies(), 1000);
+            try {
+              const savedCookies = await AsyncStorage.getItem('dapp_browser_cookies');
+              if (savedCookies && webviewRef.current) {
+                const cookieData = JSON.parse(savedCookies);
+                console.log('Injecting cookies after page load:', Object.keys(cookieData).length);
+
+                // Inject cookies with a delay to ensure DOM is ready
+                setTimeout(() => {
+                  if (webviewRef.current) {
+                    const cookieInjectionJS = Object.values(cookieData)
+                      .map((cookie: any) => {
+                        const expiration = cookie.expires ? `; expires=${new Date(cookie.expires).toUTCString()}` : '';
+                        const secure = cookie.secure ? '; secure' : '';
+                        const httpOnly = cookie.httpOnly ? '; HttpOnly' : '';
+                        const sameSite = cookie.samesite ? `; SameSite=${cookie.samesite}` : '; SameSite=Lax';
+                        const cookieValue = encodeURIComponent(cookie.value);
+                        return `document.cookie = "${cookie.name}=${cookieValue}; path=${cookie.path || '/'}; domain=${cookie.domain}${expiration}${secure}${httpOnly}${sameSite}";`;
+                      })
+                      .join('\n');
+
+                    webviewRef.current.injectJavaScript(`
+                      try {
+                        // Method 1: Try document.cookie approach
+                        ${cookieInjectionJS}
+
+                        // Method 2: Also try to set cookies using a different approach
+                        // This might work better on iOS WebView
+                        setTimeout(() => {
+                          try {
+                            // Check if cookies were set
+                            const currentCookies = document.cookie;
+                            if (currentCookies && currentCookies.length > 0) {
+                              console.log('Cookies appear to be set via document.cookie');
+                            } else {
+                              console.log('No cookies found after injection, trying alternative method');
+
+                              // Alternative: Try setting cookies via fetch with credentials
+                              // This is a fallback that might work better on iOS
+                              const cookieData = ${JSON.stringify(cookieData)};
+                              Object.values(cookieData).forEach(cookie => {
+                                try {
+                                  // Create a small fetch request to set the cookie
+                                  fetch(window.location.origin + '/set-cookie-' + Date.now(), {
+                                    method: 'GET',
+                                    credentials: 'include',
+                                    headers: {
+                                      'Cookie': \`\${cookie.name}=\${encodeURIComponent(cookie.value)}; path=\${cookie.path || '/'}; domain=\${cookie.domain}\`
+                                    }
+                                  }).catch(() => {
+                                    // Ignore fetch errors, this is just to set cookies
+                                  });
+                                } catch (e) {
+                                  console.error('Alternative cookie setting failed:', e);
+                                }
+                              });
+                            }
+                          } catch (e) {
+                            console.error('Cookie verification failed:', e);
+                          }
+                        }, 500);
+
+                        console.log('Cookies injected after page load');
+                        window.ReactNativeWebView.postMessage(JSON.stringify({
+                          type: 'COOKIES_INJECTED',
+                          count: Object.keys(${JSON.stringify(cookieData)}).length
+                        }));
+                      } catch (e) {
+                        console.error('Failed to inject cookies after load:', e);
+                        window.ReactNativeWebView.postMessage(JSON.stringify({
+                          type: 'COOKIE_INJECTION_FAILED',
+                          error: e.message
+                        }));
+                      }
+                      true;
+                    `);
+                  }
+                }, 1000); // Wait 1 second for DOM to be ready
+              }
+            } catch (error: any) {
+              console.error('Failed to inject cookies on load end:', error);
+            }
+
+            // Also save cookies after page loads
+            setTimeout(() => saveCookies(), 2000);
           }
         }}
         onLoadProgress={({ nativeEvent }) => {
