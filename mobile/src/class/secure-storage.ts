@@ -8,9 +8,9 @@ const FIRST_LAUNCH_KEY = 'FIRST_LAUNCH_AFTER_INSTALL';
 // Check if this is the first launch after a fresh install and clear secure data if needed
 const checkAndClearOnFreshInstall = async () => {
   try {
-    const isFirstLaunch = await AsyncStorage.getItem(FIRST_LAUNCH_KEY);
+    const hasLaunchedBefore = await AsyncStorage.getItem(FIRST_LAUNCH_KEY);
     
-    if (isFirstLaunch === null) {
+    if (hasLaunchedBefore === null) {
       // This is the first launch after install
       if (Platform.OS === 'ios') {
         // On iOS, keychain data persists across app installations
@@ -20,7 +20,7 @@ const checkAndClearOnFreshInstall = async () => {
       }
       
       // Mark that the app has been launched at least once
-      await AsyncStorage.setItem(FIRST_LAUNCH_KEY, 'false');
+      await AsyncStorage.setItem(FIRST_LAUNCH_KEY, 'true');
     }
   } catch (error) {
     console.error('Error checking first launch:', error);
