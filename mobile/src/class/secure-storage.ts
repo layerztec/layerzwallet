@@ -73,8 +73,4 @@ export const SecureStorage: IStorage = {
       return '';
     }
   },
-
-  async clear() {
-    await clearAllSecureData();
-  },
 };

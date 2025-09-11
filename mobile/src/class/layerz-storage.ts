@@ -14,8 +14,4 @@ export const LayerzStorage: IStorage = {
       return '';
     }
   },
-
-  async clear() {
-    return AsyncStorage.clear();
-  },
 };
