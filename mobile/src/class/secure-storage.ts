@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 export const SecureStorage: IStorage = {
   async setItem(key: string, value: string) {
-    await SecureStore.setItemAsync(key, value);
+    await SecureStore.setItemAsync(key, value, { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY });
   },
 
   async getItem(key: string): Promise<string> {
