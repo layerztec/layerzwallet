@@ -1,4 +1,4 @@
-import { IStorage } from '@shared/types/IStorage';
+import { IStorage, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
@@ -33,28 +33,7 @@ const checkAndClearOnFreshInstall = async () => {
 // Clear all secure storage data
 const clearAllSecureData = async () => {
   try {
-    // Get all possible secure storage keys and clear them
-    const keysToCheck = [
-      'STORAGE_KEY_MNEMONIC',
-      'STORAGE_KEY_SUB_MNEMONIC0',
-      'STORAGE_KEY_SUB_MNEMONIC1',
-      'STORAGE_KEY_SUB_MNEMONIC2',
-      'STORAGE_KEY_SUB_MNEMONIC3',
-      'STORAGE_KEY_SUB_MNEMONIC4',
-      'STORAGE_KEY_SUB_MNEMONIC5',
-      'STORAGE_KEY_SUB_MNEMONIC6',
-      'STORAGE_KEY_SUB_MNEMONIC7',
-      'STORAGE_KEY_SUB_MNEMONIC8',
-      'STORAGE_KEY_SUB_MNEMONIC9',
-    ];
-    
-    for (const key of keysToCheck) {
-      try {
-        await SecureStore.deleteItemAsync(key);
-      } catch {
-        // Key might not exist, ignore error
-      }
-    }
+    await SecureStore.deleteItemAsync(STORAGE_KEY_MNEMONIC);
   } catch (error) {
     console.error('Error clearing secure data:', error);
   }
