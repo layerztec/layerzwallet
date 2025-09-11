@@ -3,12 +3,12 @@ import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const FIRST_LAUNCH_KEY = 'FIRST_LAUNCH_AFTER_INSTALL';
+const HAS_LAUNCHED_KEY = 'HAS_LAUNCHED_BEFORE';
 
 // Check if this is the first launch after a fresh install and clear secure data if needed
 const checkAndClearOnFreshInstall = async () => {
   try {
-    const hasLaunchedBefore = await AsyncStorage.getItem(FIRST_LAUNCH_KEY);
+    const hasLaunchedBefore = await AsyncStorage.getItem(HAS_LAUNCHED_KEY);
     
     if (hasLaunchedBefore === null) {
       // This is the first launch after install
@@ -20,7 +20,7 @@ const checkAndClearOnFreshInstall = async () => {
       }
       
       // Mark that the app has been launched at least once
-      await AsyncStorage.setItem(FIRST_LAUNCH_KEY, 'true');
+      await AsyncStorage.setItem(HAS_LAUNCHED_KEY, 'true');
     }
   } catch (error) {
     console.error('Error checking first launch:', error);
