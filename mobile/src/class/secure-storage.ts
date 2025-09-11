@@ -5,6 +5,9 @@ import { Platform } from 'react-native';
 
 const HAS_LAUNCHED_KEY = 'HAS_LAUNCHED_BEFORE';
 
+// Promise to track if the first launch check has completed
+let firstLaunchCheckPromise: Promise<void> | null = null;
+
 // Check if this is the first launch after a fresh install and clear secure data if needed
 const checkAndClearOnFreshInstall = async () => {
   try {
@@ -58,14 +61,23 @@ const clearAllSecureData = async () => {
 };
 
 // Initialize the first launch check
-checkAndClearOnFreshInstall();
+firstLaunchCheckPromise = checkAndClearOnFreshInstall();
+
+// Ensure the first launch check completes before any storage operations
+const ensureFirstLaunchCheckComplete = async () => {
+  if (firstLaunchCheckPromise) {
+    await firstLaunchCheckPromise;
+  }
+};
 
 export const SecureStorage: IStorage = {
   async setItem(key: string, value: string) {
+    await ensureFirstLaunchCheckComplete();
     await SecureStore.setItemAsync(key, value, { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY });
   },
 
   async getItem(key: string): Promise<string> {
+    await ensureFirstLaunchCheckComplete();
     try {
       let result = await SecureStore.getItemAsync(key);
       return result || '';
