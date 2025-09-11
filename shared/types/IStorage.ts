@@ -11,6 +11,7 @@ export const STORAGE_KEY_SETTINGS = 'STORAGE_KEY_SETTINGS';
 export interface IStorage {
   setItem(key: string, value: string): Promise<void>;
   getItem(key: string): Promise<string>;
+  clear?(): Promise<void>;
 }
 
 export const getSerializedStorageKey = (network: string, accountNumber: number) => {
