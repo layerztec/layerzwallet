@@ -11,10 +11,18 @@ export interface SwapPair {
   platform: SwapPlatform;
 }
 
-export interface DoSwapResponse {
+interface URIResponse {
   uri: string;
   action: 'DAPP_BROWSER' | 'EXTERNAL_BROWSER';
 }
+
+interface InternalScreenResponse {
+  screen: string;
+  params: { [key: string]: string };
+  action: 'INTERNAL_SCREEN';
+}
+
+export type DoSwapResponse = URIResponse | InternalScreenResponse;
 
 /**
  * Interface to configure each swap provider

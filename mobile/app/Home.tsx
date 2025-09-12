@@ -12,6 +12,7 @@ import GradientScreen from '@/components/GradientScreen';
 import LiquidTokensView from '@/components/LiquidTokensView';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
+import SwapList from '@/components/SwapList';
 import { DappBrowserProps } from '@/app/DAppBrowser';
 
 import Transaction from '@/components/Transaction';
@@ -370,6 +371,9 @@ export default function Home() {
 
           {/* Explorer Button for EVM networks */}
           {isEVM && <Button title="🔍 Explorer" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
+
+          {/* Swap List Section */}
+          <SwapList />
 
           {/* Tokens Section */}
           <View style={styles.tokensSection}>{network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET ? <LiquidTokensView /> : <TokensView />}</View>

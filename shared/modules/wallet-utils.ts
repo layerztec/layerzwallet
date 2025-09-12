@@ -72,13 +72,11 @@ export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | A
  * @returns The initialized wallet instance
  */
 export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, accountNumber: number, storage: IStorage, secureStorage: IStorage): Promise<TLazyInitedWallets> {
-  console.log(`lazyInitWallet ${network}[${accountNumber}]...`);
   if (![NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ARK_MUTINYNET].includes(network)) {
     throw new Error(`Unsupported network for lazyInitWallet: ${network}`);
   }
   // cache hit
   if (cachedWallets[network]?.[accountNumber]) {
-    console.log('...cache hit!');
     return cachedWallets[network][accountNumber];
   }
 
@@ -96,7 +94,6 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     }
 
     locks[lockKey] = false; // release lock
-    console.log('...cache hit!');
     return cachedWallets[network][accountNumber]; // return wallet
   }
 

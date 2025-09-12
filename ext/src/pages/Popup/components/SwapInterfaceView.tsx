@@ -51,7 +51,14 @@ const SwapInterfaceView: React.FC = () => {
     const destinationAddress = await BackgroundCaller.getAddress(targetNetwork, accountNumber);
     assert(destinationAddress, 'internal error: no destination address');
 
-    return (await provider.swap(network, setNetwork, targetNetwork, parseInt(satValue), destinationAddress)).uri;
+    const swapResponse = await provider.swap(network, setNetwork, targetNetwork, parseInt(satValue), destinationAddress);
+
+    if (swapResponse.action === 'EXTERNAL_BROWSER') {
+      return swapResponse.uri;
+    }
+
+    // Internal screen is not supported yet by the extension
+    throw new Error('Unhandled swap action (this should never happen)');
   };
 
   return (

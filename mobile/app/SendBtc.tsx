@@ -26,6 +26,7 @@ import { formatBalance } from '@shared/modules/string-utils';
 type TFeeRateOptions = { [rate: number]: number };
 
 export type SendBtcParams = {
+  addressLock?: string; // if true, the address input will be locked
   toAddress?: string;
   amount?: string;
 };
@@ -33,6 +34,7 @@ const SendBtc: React.FC = () => {
   const { scanQr } = useContext(ScanQrContext);
   const params = useLocalSearchParams<SendBtcParams>();
   const router = useRouter();
+  const addressLock = params.addressLock === 'true' ? true : false;
   const toAddress = params.toAddress ?? '';
   const amount = params.amount ?? '';
   const [error, setError] = useState<string>('');
@@ -191,6 +193,19 @@ const SendBtc: React.FC = () => {
     setCustomFeeRate(Number(text));
   };
 
+  const handleScanQR = async () => {
+    const scanned = await scanQr();
+    if (scanned) {
+      try {
+        const decoded = bip21.decode(scanned);
+        if (decoded?.address) router.setParams({ toAddress: decoded.address });
+        if (decoded?.options?.amount) router.setParams({ amount: String(decoded.options.amount) });
+      } catch {
+        router.setParams({ toAddress: scanned });
+      }
+    }
+  };
+
   if (isSuccess) {
     return (
       <GradientScreen variant={network}>
@@ -202,7 +217,7 @@ const SendBtc: React.FC = () => {
               <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
               <ThemedText style={styles.successMessage}>Transaction Sent!</ThemedText>
               <ThemedText style={styles.successSubMessage}>Your {getTickerByNetwork(network)} are on their way</ThemedText>
-              <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/Home')}>
                 <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
               </TouchableOpacity>
             </View>
@@ -222,29 +237,16 @@ const SendBtc: React.FC = () => {
             <ThemedText style={styles.inputLabel}>Recipient Address</ThemedText>
             <View style={styles.inputContainer}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, addressLock && styles.inputDisabled]}
                 placeholder="Enter the recipient's address"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 autoCapitalize="none"
                 autoCorrect={false}
                 onChangeText={(text) => router.setParams({ toAddress: text })}
                 value={toAddress}
+                editable={!addressLock}
               />
-              <TouchableOpacity
-                style={styles.scanButton}
-                onPress={async () => {
-                  const scanned = await scanQr();
-                  if (scanned) {
-                    try {
-                      const decoded = bip21.decode(scanned);
-                      if (decoded?.address) router.setParams({ toAddress: decoded.address });
-                      if (decoded?.options?.amount) router.setParams({ amount: String(decoded.options.amount) });
-                    } catch {
-                      router.setParams({ toAddress: scanned });
-                    }
-                  }
-                }}
-              >
+              <TouchableOpacity style={[styles.scanButton, addressLock && styles.inputDisabled]} disabled={addressLock} onPress={handleScanQR}>
                 <Ionicons name="scan-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
               </TouchableOpacity>
             </View>
@@ -419,6 +421,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 16,
     color: 'rgba(255, 255, 255, 0.9)',
+  },
+  inputDisabled: {
+    opacity: 0.5,
   },
   scanButton: {
     width: 50,
