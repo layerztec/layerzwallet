@@ -1,5 +1,5 @@
 import { Asset } from 'expo-asset';
-import { readAsStringAsync } from 'expo-file-system';
+import { File } from 'expo-file-system';
 import * as Linking from 'expo-linking';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View, Alert, TextInput } from 'react-native';
@@ -35,7 +35,8 @@ const DAppBrowser: React.FC = () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const [{ localUri }] = await Asset.loadAsync(require('assets/js/inpage-bridge.jstxt'));
-        const r = await readAsStringAsync(localUri || '');
+        const file = new File(localUri || '');
+        const r = await file.text();
         setJs(r);
       } catch (error: any) {
         setError('Failed to load DApp browser script: ' + error.message);
