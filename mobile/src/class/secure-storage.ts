@@ -12,7 +12,7 @@ let firstLaunchCheckPromise: Promise<void> | null = null;
 const checkAndClearOnFreshInstall = async () => {
   try {
     const hasLaunchedBefore = await AsyncStorage.getItem(HAS_LAUNCHED_KEY);
-    
+
     if (hasLaunchedBefore === null) {
       // This is the first launch after install
       if (Platform.OS === 'ios') {
@@ -21,7 +21,7 @@ const checkAndClearOnFreshInstall = async () => {
         console.log('First launch detected on iOS - clearing secure storage');
         await clearAllSecureData();
       }
-      
+
       // Mark that the app has been launched at least once
       await AsyncStorage.setItem(HAS_LAUNCHED_KEY, 'true');
     }
