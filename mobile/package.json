@@ -107,7 +107,8 @@
     "timers-browserify": "^2.0.12",
     "uint8array-extras": "^1.4.0",
     "url": "^0.11.4",
-    "react-native-worklets": "0.5.1"
+    "react-native-worklets": "0.5.1",
+    "expo-dev-client": "~6.0.12"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
