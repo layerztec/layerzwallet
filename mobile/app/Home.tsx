@@ -369,7 +369,7 @@ export default function Home() {
           )}
 
           {/* Explorer Button for EVM networks */}
-          {isEVM && <Button title="🔍 Explorer" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
+          {isEVM && <Button title="🔍 Explore" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
 
           {/* Tokens Section */}
           <View style={styles.tokensSection}>{network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET ? <LiquidTokensView /> : <TokensView />}</View>
