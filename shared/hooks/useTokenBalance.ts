@@ -19,53 +19,59 @@ export const tokenBalanceFetcher = async (arg: tokenBalanceFetcherArg): Promise<
   const { accountNumber, network, tokenContractAddress, backgroundCaller } = arg;
   if (typeof accountNumber === 'undefined' || !network) return undefined;
 
-  /**
-   * EVM chains can get the balance on the spot (inside context of a Popup) since its a single api call
-   * for a single address. For Bitcoin, we pass the call to a background script (and we ignore address argument)
-   */
-  if (network === NETWORK_BITCOIN) {
-    throw new Error('tokenBalanceFetcher: not supported');
-  }
-
-  if (network === NETWORK_SPARK) {
-    const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
-    assert(wallet instanceof SparkWallet, 'Not a Spark wallet');
-    // Find the token balance where tokenMetadata.tokenPublicKey matches tokenContractAddress
-    const tokenBalances = wallet.getTokenBalances();
-    for (const value of tokenBalances.values()) {
-      if (value.tokenMetadata.tokenPublicKey === tokenContractAddress) {
-        return String(value.balance);
-      }
+  try {
+    /**
+     * EVM chains can get the balance on the spot (inside context of a Popup) since its a single api call
+     * for a single address. For Bitcoin, we pass the call to a background script (and we ignore address argument)
+     */
+    if (network === NETWORK_BITCOIN) {
+      throw new Error('tokenBalanceFetcher: not supported');
     }
+
+    if (network === NETWORK_SPARK) {
+      const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof SparkWallet, 'Not a Spark wallet');
+      // Find the token balance where tokenMetadata.tokenPublicKey matches tokenContractAddress
+      const tokenBalances = wallet.getTokenBalances();
+      for (const value of tokenBalances.values()) {
+        if (value.tokenMetadata.tokenPublicKey === tokenContractAddress) {
+          return String(value.balance);
+        }
+      }
+      return undefined;
+    }
+
+    if (!getIsEVM(network)) {
+      throw new Error('tokenBalanceFetcher: attempt to fetch balance on non-EVM network');
+    }
+
+    const address = await backgroundCaller.getAddress(network, accountNumber);
+    const rpc = getRpcProvider(network);
+
+    // Define the ERC-20 token contract ABI (Application Binary Interface)
+    const abi = ['function balanceOf(address owner) view returns (uint256)', 'function name() view returns (string)', 'function symbol() view returns (string)'];
+    const checksummedAddress = ethers.getAddress(tokenContractAddress.toLowerCase());
+
+    const contract = new ethers.Contract(checksummedAddress, abi, rpc);
+
+    // Fetch the token balance
+    const balance = await contract.balanceOf(ethers.getAddress(address));
+
+    /*
+    // Fetch token name and symbol for better readability
+    const name = await contract.name();
+    const symbol = await contract.symbol();
+
+    // Format the balance to display it correctly (assuming 18 decimals)
+    const formattedBalance = ethers.formatUnits(balance, 18);
+    console.log(`Balance of ${address}: ${balance}`);
+    */
+
+    return String(balance);
+  } catch (error: any) {
+    console.log('tokenBalanceFetcher error = ', error.message);
     return undefined;
   }
-
-  if (!getIsEVM(network)) {
-    throw new Error('tokenBalanceFetcher: attempt to fetch balance on non-EVM network');
-  }
-
-  const address = await backgroundCaller.getAddress(network, accountNumber);
-  const rpc = getRpcProvider(network);
-
-  // Define the ERC-20 token contract ABI (Application Binary Interface)
-  const abi = ['function balanceOf(address owner) view returns (uint256)', 'function name() view returns (string)', 'function symbol() view returns (string)'];
-
-  // Create a contract instance
-  const contract = new ethers.Contract(tokenContractAddress, abi, rpc);
-
-  // Fetch the token balance
-  const balance = await contract.balanceOf(address);
-
-  /*// Fetch token name and symbol for better readability
-  const name = await contract.name();
-  const symbol = await contract.symbol();
-
-  // Format the balance to display it correctly (assuming 18 decimals)
-  const formattedBalance = ethers.formatUnits(balance, 18);
-
-  console.log(`Balance of ${address} for ${name} (${symbol}): ${formattedBalance}`);*/
-
-  return String(balance);
 };
 
 export function useTokenBalance(network: Networks, accountNumber: number, tokenContractAddress: string, backgroundCaller: IBackgroundCaller) {
