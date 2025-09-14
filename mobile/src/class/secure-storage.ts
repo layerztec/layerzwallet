@@ -1,32 +1,29 @@
-import { IStorage, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { IStorage, STORAGE_KEY_MNEMONIC, STORAGE_KEY_EVM_XPUB } from '@shared/types/IStorage';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const HAS_LAUNCHED_KEY = 'HAS_LAUNCHED_BEFORE';
-
 // Promise to track if the first launch check has completed
 let firstLaunchCheckPromise: Promise<void>;
 
-// Check if this is the first launch after a fresh install and clear secure data if needed
+// Check if this is a fresh install and clear secure data if needed
 const checkAndClearOnFreshInstall = async () => {
   try {
-    const hasLaunchedBefore = await AsyncStorage.getItem(HAS_LAUNCHED_KEY);
+    if (Platform.OS === 'ios') {
+      // Check if user has existing EVM xpub - this indicates they're not a fresh install
+      const evmXpub = await AsyncStorage.getItem(STORAGE_KEY_EVM_XPUB);
 
-    if (hasLaunchedBefore === null) {
-      // This is the first launch after install
-      if (Platform.OS === 'ios') {
-        // On iOS, keychain data persists across app installations
-        // Clear all secure storage data on first launch
-        console.log('First launch detected on iOS - clearing secure storage');
+      if (!evmXpub) {
+        // No EVM xpub found - this is a fresh install, clear secure storage
+        console.log('Fresh install detected on iOS - clearing secure storage');
         await clearAllSecureData();
+      } else {
+        // EVM xpub exists - this is an existing user, preserve their data
+        console.log('Existing user detected on iOS - preserving secure storage');
       }
-
-      // Mark that the app has been launched at least once
-      await AsyncStorage.setItem(HAS_LAUNCHED_KEY, 'true');
     }
   } catch (error) {
-    console.error('Error checking first launch:', error);
+    console.error('Error checking fresh install:', error);
   }
 };
 
