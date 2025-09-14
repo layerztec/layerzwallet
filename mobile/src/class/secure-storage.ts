@@ -12,7 +12,7 @@ const checkAndClearOnFreshInstall = async () => {
     if (Platform.OS === 'ios') {
       // Check if user has existing EVM xpub - this indicates they're not a fresh install
       const evmXpub = await AsyncStorage.getItem(STORAGE_KEY_EVM_XPUB);
-      
+
       if (!evmXpub) {
         // No EVM xpub found - this is a fresh install, clear secure storage
         console.log('Fresh install detected on iOS - clearing secure storage');
