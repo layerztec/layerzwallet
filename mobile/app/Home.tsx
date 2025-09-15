@@ -370,7 +370,7 @@ export default function Home() {
           )}
 
           {/* Explorer Button for EVM networks */}
-          {isEVM && <Button title="🔍 Explorer" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
+          {isEVM && <Button title="🔍 Explore" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
 
           {/* Swap List Section */}
           <SwapList />
