@@ -1,4 +1,4 @@
-import { ArrowUpDown, ExternalLink } from 'lucide-react';
+import { ArrowUpDown } from 'lucide-react';
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -40,9 +40,10 @@ const SwapItem: React.FC<SwapItemProps> = ({ swap }) => {
   };
 
   const handleClaim = () => {
-    if (swap.network !== NETWORK_SPARK || swap.status !== 'claimable') return;
-    const params: SwapSparkClaimParams = { swapId: swap.id, amountIn: swap.amount.toString() };
-    navigate('/swap-spark-claim', { state: params });
+    if (swap.network === NETWORK_SPARK && swap.status === 'claimable') {
+      const params: SwapSparkClaimParams = { swapId: swap.id, amountIn: swap.amount.toString() };
+      navigate('/swap-spark-claim', { state: params });
+    }
   };
 
   const handleSwapPress = () => {

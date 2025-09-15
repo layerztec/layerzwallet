@@ -36,9 +36,10 @@ const SwapItem = ({ swap }: { swap: CommonSwap }) => {
   };
 
   const handleClaim = () => {
-    if (swap.network !== NETWORK_SPARK && swap.status !== 'claimable') return;
-    const params: SwapSparkClaimParams = { swapId: swap.id, amountIn: swap.amount.toString() };
-    router.push({ pathname: '/SwapSparkClaim', params });
+    if (swap.network === NETWORK_SPARK && swap.status === 'claimable') {
+      const params: SwapSparkClaimParams = { swapId: swap.id, amountIn: swap.amount.toString() };
+      router.push({ pathname: '/SwapSparkClaim', params });
+    }
   };
 
   const handleSwapPress = () => {

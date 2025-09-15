@@ -282,6 +282,6 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
       satsPerVbyteFee: fees.fast,
     });
 
-    BlueElectrum.broadcastV2(hex);
+    await BlueElectrum.broadcastV2(hex);
   }
 }
