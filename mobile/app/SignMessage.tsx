@@ -10,21 +10,37 @@ import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_ROOTSTOCK } from '@shared/types/networks';
+import { getIsEVM } from '@shared/models/network-getters';
 
 const SignMessage = () => {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { askPassword } = useContext(AskPasswordContext);
-  
+
   const [message, setMessage] = useState('');
   const [signature, setSignature] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [address, setAddress] = useState<string>('');
 
-  // This screen should only be accessible from Rootstock network
-  // But we'll handle it gracefully if accessed from elsewhere
-  const isRootstock = network === NETWORK_ROOTSTOCK;
+  // This screen is available for all EVM-compatible networks
+  // But we'll handle it gracefully if accessed from non-EVM networks
+  const isEVMNetwork = network ? getIsEVM(network) : false;
+
+  // Fetch the EVM address when component mounts or network/account changes
+  React.useEffect(() => {
+    const fetchAddress = async () => {
+      if (isEVMNetwork && network) {
+        try {
+          const evmAddress = await BackgroundExecutor.getAddress(network, accountNumber);
+          setAddress(evmAddress);
+        } catch (error) {
+          console.error('Failed to fetch EVM address:', error);
+        }
+      }
+    };
+    fetchAddress();
+  }, [network, accountNumber, isEVMNetwork]);
 
   const handleSign = async () => {
     if (!message.trim()) {
@@ -32,8 +48,8 @@ const SignMessage = () => {
       return;
     }
 
-    if (!isRootstock) {
-      Alert.alert('Error', 'Message signing is only available on Rootstock network');
+    if (!isEVMNetwork) {
+      Alert.alert('Error', 'Message signing is only available on EVM-compatible networks');
       return;
     }
 
@@ -41,7 +57,7 @@ const SignMessage = () => {
     try {
       const password = await askPassword();
       
-      // Use EVM signing for Rootstock (it's an EVM-compatible chain)
+      // Use EVM signing for all EVM-compatible chains
       const result = await BackgroundExecutor.signPersonalMessage(
         message,
         accountNumber,
@@ -75,12 +91,30 @@ const SignMessage = () => {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.contentContainer}>
-          {isRootstock ? (
+          {isEVMNetwork ? (
             <>
               <ThemedText style={styles.description}>
-                Sign a message with your Rootstock private key. This creates a cryptographic proof 
-                that you control this wallet address on the Rootstock network.
+                Sign a message with your EVM private key. This creates a cryptographic proof
+                that you control this wallet address on the {network} network.
               </ThemedText>
+
+              <View style={styles.inputSection}>
+                <ThemedText style={styles.inputLabel}>Signing Address</ThemedText>
+                <View style={styles.addressContainer}>
+                  <Text style={styles.addressText}>{address || 'Loading...'}</Text>
+                  {address && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        Clipboard.setString(address);
+                        Alert.alert('Copied', 'Address copied to clipboard');
+                      }}
+                      style={styles.copyIcon}
+                    >
+                      <Ionicons name="copy-outline" size={16} color="rgba(255, 255, 255, 0.6)" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
 
               <View style={styles.inputSection}>
                 <ThemedText style={styles.inputLabel}>Message to Sign</ThemedText>
@@ -108,7 +142,7 @@ const SignMessage = () => {
 
               {signature ? (
                 <View style={styles.resultSection}>
-                  <ThemedText style={styles.resultLabel}>Rootstock Signature:</ThemedText>
+                  <ThemedText style={styles.resultLabel}>EVM Signature:</ThemedText>
                   <View style={styles.signatureContainer}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                       <Text style={styles.signatureText}>{signature}</Text>
@@ -124,7 +158,7 @@ const SignMessage = () => {
               <View style={styles.infoSection}>
                 <Ionicons name="information-circle-outline" size={20} color="rgba(255, 255, 255, 0.6)" />
                 <ThemedText style={styles.infoText}>
-                  This signature proves you control the private key for account #{accountNumber} on the Rootstock network without revealing the key itself.
+                  This signature proves you control the private key for account #{accountNumber} on the {network} network without revealing the key itself.
                 </ThemedText>
               </View>
             </>
@@ -132,10 +166,10 @@ const SignMessage = () => {
             <View style={styles.unsupportedSection}>
               <Ionicons name="alert-circle-outline" size={48} color="rgba(255, 255, 255, 0.4)" />
               <ThemedText style={styles.unsupportedText}>
-                Message signing is only available when using the Rootstock network.
+                Message signing is only available on EVM-compatible networks.
               </ThemedText>
               <ThemedText style={styles.unsupportedSubtext}>
-                Please switch to Rootstock from the home screen to use this feature.
+                Please switch to an EVM-compatible network (Rootstock, Botanix, etc.) from the home screen to use this feature.
               </ThemedText>
             </View>
           )}
@@ -166,6 +200,26 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     marginBottom: 10,
     fontWeight: '500',
+  },
+  addressContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    padding: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  addressText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 13,
+    fontFamily: 'monospace',
+    flex: 1,
+  },
+  copyIcon: {
+    marginLeft: 10,
+    padding: 4,
   },
   messageInput: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
