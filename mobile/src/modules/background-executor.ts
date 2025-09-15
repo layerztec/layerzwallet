@@ -230,6 +230,44 @@ export const BackgroundExecutor: IBackgroundCaller = {
     }
   },
 
+  async signSparkMessage(message, accountNumber, password) {
+    try {
+      // Get the submnemonic for the account
+      const submnemonic = await SecureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
+
+      if (!submnemonic) {
+        return {
+          success: false,
+          signature: '',
+          message: 'No submnemonic found for this account. Please reinstall the app.',
+        };
+      }
+
+      // Get or initialize the Spark wallet
+      const wallet = await BackgroundExecutor.lazyInitWallet(NETWORK_SPARK, accountNumber);
+
+      if (!(wallet instanceof SparkWallet)) {
+        return {
+          success: false,
+          signature: '',
+          message: 'Failed to initialize Spark wallet',
+        };
+      }
+
+      // Sign the message with the identity key
+      const signature = await wallet.signMessageWithIdentityKey(message);
+
+      return { success: true, signature };
+    } catch (error: any) {
+      console.error('Error signing Spark message:', error);
+      return {
+        success: false,
+        signature: '',
+        message: error.message || 'Failed to sign message with Spark wallet',
+      };
+    }
+  },
+
   async openPopup(...params: OpenPopupRequest) {
     const bridge = BrowserBridge.getInstance();
     if (bridge) {

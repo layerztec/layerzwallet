@@ -186,4 +186,49 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
 
     return await this._sdkWallet.transferTokens({ receiverSparkAddress, tokenAmount, tokenIdentifier: tokenIdentifier as Bech32mTokenIdentifier });
   }
+
+  /**
+   * Sign a message with the wallet's identity key
+   * @param message - The message to sign (string or Uint8Array)
+   * @param compact - Whether to use compact signature format (default: true)
+   * @returns The signature as a hex string
+   */
+  async signMessageWithIdentityKey(message: string | Uint8Array, compact: boolean = true): Promise<string> {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+
+    // Convert string to Uint8Array if needed
+    const messageBytes = typeof message === 'string'
+      ? new TextEncoder().encode(message)
+      : message;
+
+    // Sign the message using the SDK's signMessageWithIdentityKey method
+    const signature = await this._sdkWallet.signMessageWithIdentityKey(messageBytes, compact);
+
+    // Convert signature to hex string if it's a Uint8Array
+    if (signature instanceof Uint8Array) {
+      return Buffer.from(signature).toString('hex');
+    }
+
+    return signature;
+  }
+
+  /**
+   * Validate a message signature against the identity key
+   * @param message - The original message
+   * @param signature - The signature to validate
+   * @returns True if the signature is valid
+   */
+  async validateMessageWithIdentityKey(message: string | Uint8Array, signature: string | Uint8Array): Promise<boolean> {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+
+    const messageBytes = typeof message === 'string'
+      ? new TextEncoder().encode(message)
+      : message;
+
+    const signatureBytes = typeof signature === 'string'
+      ? Buffer.from(signature, 'hex')
+      : signature;
+
+    return await this._sdkWallet.validateMessageWithIdentityKey(messageBytes, signatureBytes);
+  }
 }
