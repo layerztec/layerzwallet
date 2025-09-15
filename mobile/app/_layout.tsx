@@ -139,7 +139,8 @@ export default function RootLayout() {
                               headerShown: false,
                               animation: 'slide_from_right',
                               animationDuration: 350,
-                              gestureEnabled: true,
+                              gestureEnabled: false,
+                              fullScreenGestureEnabled: false,
                             }}
                           />
                           <Stack.Screen
@@ -187,8 +188,8 @@ export default function RootLayout() {
                             options={{
                               headerShown: false,
                               animation: 'slide_from_right',
-                              animationDuration: 350,
-                              gestureEnabled: true,
+                              gestureEnabled: false,
+                              fullScreenGestureEnabled: false,
                             }}
                           />
                           <Stack.Screen name="receive" />

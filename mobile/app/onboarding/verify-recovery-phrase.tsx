@@ -51,7 +51,7 @@ const SelectableWordDisplay: React.FC<{
   };
 
   return (
-    <TouchableOpacity style={getWordStyle()} onPress={() => onPress(wordItem)} disabled={wordItem.isSelected}>
+    <TouchableOpacity style={getWordStyle()} onPress={() => onPress(wordItem)} disabled={wordItem.isSelected || showError}>
       <View style={getNumberStyle()}>
         <ThemedText style={styles.wordNumberText}>{wordItem.isSelected && wordItem.selectedOrder !== undefined ? wordItem.selectedOrder + 1 : ''}</ThemedText>
       </View>
@@ -145,7 +145,7 @@ export default function VerifyRecoveryPhrase() {
   }, [params.mnemonic]);
 
   const handleWordPress = (wordItem: WordItem) => {
-    if (wordItem.isSelected || verificationComplete) return;
+    if (wordItem.isSelected || verificationComplete || showError) return;
 
     const expectedWordIndex = selectedWords.length;
     const correctWord = recoveryPhrase.split(' ')[expectedWordIndex];
@@ -167,11 +167,14 @@ export default function VerifyRecoveryPhrase() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setShowError(true);
 
+      // Reset UI state immediately
+      const resetScrambledWords = scrambledWords.map((item) => ({ ...item, isSelected: false, selectedOrder: undefined }));
+      setScrambledWords(resetScrambledWords);
+      setSelectedWords([]);
+
+      // Hide error message after a timeout
       setTimeout(() => {
         setShowError(false);
-        const resetScrambledWords = scrambledWords.map((item) => ({ ...item, isSelected: false, selectedOrder: undefined }));
-        setScrambledWords(resetScrambledWords);
-        setSelectedWords([]);
       }, 2000);
     }
   };
