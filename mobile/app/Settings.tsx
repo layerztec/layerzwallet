@@ -21,6 +21,7 @@ import { useSettings } from '@shared/hooks/useSettings';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { STORAGE_KEY_BTC_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { getIsEVM } from '@shared/models/network-getters';
+import { NETWORK_SPARK } from '@shared/types/networks';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 
 const gitCommitHash = require('../git_commit_hash.json');
@@ -233,7 +234,7 @@ export default function SettingsScreen() {
             <ThemedText style={styles.selfTestButtonText}>ScanQr</ThemedText>
           </TouchableOpacity>
 
-          {network && getIsEVM(network) && (
+          {network && (getIsEVM(network) || network === NETWORK_SPARK) && (
             <TouchableOpacity
               style={[styles.button, styles.selfTestButton]}
               onPress={() => router.push('/SignMessage')}

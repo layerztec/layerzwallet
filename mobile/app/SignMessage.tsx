@@ -11,6 +11,7 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getIsEVM } from '@shared/models/network-getters';
+import { NETWORK_SPARK } from '@shared/types/networks';
 
 const SignMessage = () => {
   const router = useRouter();
@@ -23,24 +24,26 @@ const SignMessage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [address, setAddress] = useState<string>('');
 
-  // This screen is available for all EVM-compatible networks
-  // But we'll handle it gracefully if accessed from non-EVM networks
+  // This screen is available for all EVM-compatible networks and Spark
+  // But we'll handle it gracefully if accessed from unsupported networks
   const isEVMNetwork = network ? getIsEVM(network) : false;
+  const isSparkNetwork = network === NETWORK_SPARK;
+  const isSupported = isEVMNetwork || isSparkNetwork;
 
-  // Fetch the EVM address when component mounts or network/account changes
+  // Fetch the address when component mounts or network/account changes
   React.useEffect(() => {
     const fetchAddress = async () => {
-      if (isEVMNetwork && network) {
+      if (isSupported && network) {
         try {
-          const evmAddress = await BackgroundExecutor.getAddress(network, accountNumber);
-          setAddress(evmAddress);
+          const walletAddress = await BackgroundExecutor.getAddress(network, accountNumber);
+          setAddress(walletAddress);
         } catch (error) {
-          console.error('Failed to fetch EVM address:', error);
+          console.error('Failed to fetch address:', error);
         }
       }
     };
     fetchAddress();
-  }, [network, accountNumber, isEVMNetwork]);
+  }, [network, accountNumber, isSupported]);
 
   const handleSign = async () => {
     if (!message.trim()) {
@@ -48,24 +51,33 @@ const SignMessage = () => {
       return;
     }
 
-    if (!isEVMNetwork) {
-      Alert.alert('Error', 'Message signing is only available on EVM-compatible networks');
+    if (!isSupported) {
+      Alert.alert('Error', 'Message signing is only available on EVM-compatible networks and Spark');
       return;
     }
 
     setIsLoading(true);
     try {
-      const password = await askPassword();
-      
-      // Use EVM signing for all EVM-compatible chains
-      const result = await BackgroundExecutor.signPersonalMessage(
-        message,
-        accountNumber,
-        password
-      );
+      let result;
+      if (isSparkNetwork) {
+        // Spark doesn't need password as it uses unencrypted submnemonics
+        result = await BackgroundExecutor.signSparkMessage(
+          message,
+          accountNumber,
+          null // No password needed for Spark
+        );
+      } else {
+        // EVM chains need password to decrypt the mnemonic
+        const password = await askPassword();
+        result = await BackgroundExecutor.signPersonalMessage(
+          message,
+          accountNumber,
+          password
+        );
+      }
 
-      if (result.success) {
-        setSignature(result.bytes);
+      if (result?.success) {
+        setSignature(result.bytes || result.signature);
         Alert.alert('Success', 'Message signed successfully!');
       } else {
         throw new Error(result.message || 'Failed to sign message');
@@ -91,10 +103,10 @@ const SignMessage = () => {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.contentContainer}>
-          {isEVMNetwork ? (
+          {isSupported ? (
             <>
               <ThemedText style={styles.description}>
-                Sign a message with your EVM private key. This creates a cryptographic proof
+                Sign a message with your {isSparkNetwork ? 'Spark identity' : 'EVM private'} key. This creates a cryptographic proof
                 that you control this wallet address on the {network} network.
               </ThemedText>
 
@@ -142,7 +154,7 @@ const SignMessage = () => {
 
               {signature ? (
                 <View style={styles.resultSection}>
-                  <ThemedText style={styles.resultLabel}>EVM Signature:</ThemedText>
+                  <ThemedText style={styles.resultLabel}>{isSparkNetwork ? 'Spark' : 'EVM'} Signature:</ThemedText>
                   <View style={styles.signatureContainer}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                       <Text style={styles.signatureText}>{signature}</Text>
@@ -166,10 +178,10 @@ const SignMessage = () => {
             <View style={styles.unsupportedSection}>
               <Ionicons name="alert-circle-outline" size={48} color="rgba(255, 255, 255, 0.4)" />
               <ThemedText style={styles.unsupportedText}>
-                Message signing is only available on EVM-compatible networks.
+                Message signing is only available on EVM-compatible networks and Spark.
               </ThemedText>
               <ThemedText style={styles.unsupportedSubtext}>
-                Please switch to an EVM-compatible network (Rootstock, Botanix, etc.) from the home screen to use this feature.
+                Please switch to a supported network (Rootstock, Botanix, Spark, etc.) from the home screen to use this feature.
               </ThemedText>
             </View>
           )}
