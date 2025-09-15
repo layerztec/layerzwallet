@@ -8,12 +8,36 @@
     "logoURI": "https://cdn.oku.trade/logos/30/0xef213441a85df4d7acbdae0cf78004e1e486bb96.png"
   },
   {
+    "symbol": "$",
+    "name": "USDT",
+    "address": "0xAF368c91793cb22739386DFCBbB2f1A9E4bcBEBf",
+    "decimals": 6,
+    "chainId": 30,
+    "logoURI": ""
+  },
+  {
+    "symbol": "$",
+    "name": "USD₮0",
+    "address": "0x779dED0C9e1022225F8e0630b35A9B54Be713736",
+    "decimals": 6,
+    "chainId": 30,
+    "logoURI": ""
+  },
+  {
+    "symbol": "WBTC",
+    "name": "Wrapped BTC",
+    "address": "0x542FDA317318eBf1d3DeAF76E0B632741a7e677d",
+    "decimals": 18,
+    "chainId": 30,
+    "logoURI": ""
+  },
+  {
     "symbol": "WBTC",
     "name": "Wrapped BTC",
     "address": "0x321f90864fb21cdcddd0d67fe5e4cbc812ec9e64",
     "decimals": 18,
     "chainId": 3636,
-    "logoURI": "https://cdn.oku.trade/logos/30/0xef213441a85df4d7acbdae0cf78004e1e486bb96.png"
+    "logoURI": ""
   },
   {
     "symbol": "USDC",
