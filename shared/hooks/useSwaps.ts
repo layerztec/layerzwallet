@@ -1,7 +1,7 @@
 import assert from 'assert';
 import useSWR from 'swr';
 
-import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { SparkWallet } from '../class/wallets/spark-wallet';
 import { CommonSwap } from '../types/common-swap';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { NETWORK_SPARK, Networks } from '../types/networks';

@@ -1,6 +1,6 @@
 import assert from 'assert';
 
-import { NETWORK_BITCOIN, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_SPARK, Networks } from '../types/networks';
 import { DoSwapResponse, SwapPair, SwapPlatform, SwapProvider } from '../types/swap';
 
 export class SwapProviderSpark implements SwapProvider {

@@ -1,4 +1,4 @@
-import { Networks } from '@shared/types/networks';
+import { Networks } from '../types/networks';
 import { SwapPair, SwapPlatform, SwapProvider } from '../types/swap';
 import { SwapProviderSpark } from './swap-provider-spark';
 import { SwapProviderBoltz } from './swap-provider-boltz';

@@ -26,7 +26,7 @@ import { formatBalance } from '@shared/modules/string-utils';
 type TFeeRateOptions = { [rate: number]: number };
 
 export type SendBtcParams = {
-  addressLock?: string; // if true, the address input will be locked
+  addressLock?: 'true' | 'false'; // if true, the address input will be locked
   toAddress?: string;
   amount?: string;
 };

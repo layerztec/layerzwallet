@@ -7,9 +7,9 @@ import { ArkWallet } from './ark-wallet';
 import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
 import { CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_BITCOIN, NETWORK_SPARK } from '../../types/networks';
-import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
-import { CommonSwap } from '@shared/types/common-swap';
-import { AllNetworkInfos } from '@shared/models/all-network-infos';
+import * as BlueElectrum from '../../blue_modules/BlueElectrum';
+import { CommonSwap } from '../../types/common-swap';
+import { AllNetworkInfos } from '../../models/all-network-infos';
 
 // copypasted from `node_modules/@buildonspark/spark-sdk/dist/...` since its not exported
 type Bech32mTokenIdentifier = `btkn1${string}` | `btknrt1${string}` | `btknt1${string}` | `btkns1${string}` | `btknl1${string}`;
@@ -218,7 +218,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
       return {
         network: NETWORK_SPARK,
         id: output.txid,
-        status: tx?.confirmations && tx.confirmations > 3 ? 'claimable' : 'pending', // claimable after 3 confirmations
+        status: tx?.confirmations && tx.confirmations >= 3 ? 'claimable' : 'pending', // claimable after 3 confirmations
         amount: output.value,
         timestamp,
         direction: 'receive',

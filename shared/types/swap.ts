@@ -18,7 +18,7 @@ interface URIResponse {
 
 interface InternalScreenResponse {
   screen: string;
-  params: { [key: string]: string };
+  params: Record<string, string>;
   action: 'INTERNAL_SCREEN';
 }
 

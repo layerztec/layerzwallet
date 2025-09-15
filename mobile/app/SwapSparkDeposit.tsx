@@ -11,6 +11,7 @@ import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { NETWORK_SPARK } from '@shared/types/networks';
+import { getDecimalsByNetwork } from '@shared/models/network-getters';
 
 export type SwapSparkDepositParams = {
   amountIn: string;
@@ -31,7 +32,7 @@ export default function SwapSparkDeposit() {
         const wallet = await BackgroundExecutor.lazyInitWallet(NETWORK_SPARK, accountNumber);
         assert(wallet instanceof SparkWallet);
         const toAddress = await wallet.getOnchainDepositAddress();
-        const amount = new BigNumber(params.amountIn).dividedBy(100000000).toString(10);
+        const amount = new BigNumber(params.amountIn).dividedBy(10 ** getDecimalsByNetwork(network)).toString(10);
         router.replace({ pathname: '/SendBtc', params: { toAddress, amount, addressLock: 'true' } });
       } catch (error: any) {
         setError(error.message);
@@ -40,7 +41,7 @@ export default function SwapSparkDeposit() {
       }
     };
     redirect();
-  }, [router, params.amountIn, accountNumber]);
+  }, [router, params.amountIn, accountNumber, network]);
 
   return (
     <GradientScreen variant={network} scroll={true}>

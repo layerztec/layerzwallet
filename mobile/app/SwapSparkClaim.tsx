@@ -59,7 +59,6 @@ const SwapSparkClaim = () => {
     try {
       await wallet.current.claimDeposit(quote);
       setClaimSuccess(true);
-      //   router.back();
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -74,7 +73,6 @@ const SwapSparkClaim = () => {
       const destinationAddress = await BackgroundExecutor.getAddress(NETWORK_BITCOIN, accountNumber);
       await wallet.current.refundDeposit(quote.transactionId, destinationAddress);
       setRefundSuccess(true);
-      //   router.back();
     } catch (error: any) {
       setError(error.message);
     } finally {
