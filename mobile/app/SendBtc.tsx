@@ -131,6 +131,9 @@ const SendBtc: React.FC = () => {
 
   const broadcast = async () => {
     try {
+      if (!BlueElectrum.mainConnected) {
+        await BlueElectrum.connectMain();
+      }
       const result = await BlueElectrum.broadcastV2(txhex);
       if (!result) {
         throw new Error('Transaction failed');
