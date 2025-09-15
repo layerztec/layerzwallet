@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -13,8 +14,10 @@ import BigNumber from 'bignumber.js';
 import { Loader2 } from 'lucide-react';
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { Button, Input } from '../DesignSystem';
+import { SwapSparkDepositParams } from '../SwapSparkDeposit';
 
 const SwapInterfaceView: React.FC = () => {
+  const navigate = useNavigate();
   const [amount, setAmount] = useState<string>('');
   const [targetNetwork, setTargetNetwork] = useState<Networks>();
   const { network, setNetwork } = useContext(NetworkContext);
@@ -28,7 +31,7 @@ const SwapInterfaceView: React.FC = () => {
     setSwapPairs(getSwapPairs(network, SwapPlatform.EXT));
   }, [network]);
 
-  const handleSwap = async (): Promise<string> => {
+  const handleSwap = async (): Promise<void> => {
     setError('');
     assert(balance, 'internal error: balance not loaded');
     assert(targetNetwork, 'internal error: target network not selected');
@@ -54,11 +57,22 @@ const SwapInterfaceView: React.FC = () => {
     const swapResponse = await provider.swap(network, setNetwork, targetNetwork, parseInt(satValue), destinationAddress);
 
     if (swapResponse.action === 'EXTERNAL_BROWSER') {
-      return swapResponse.uri;
+      window.open(swapResponse.uri, '_blank');
+      return;
     }
 
-    // Internal screen is not supported yet by the extension
-    throw new Error('Unhandled swap action (this should never happen)');
+    if (swapResponse.action === 'INTERNAL_SCREEN') {
+      // Handle internal screens
+      if (swapResponse.screen === 'SwapSparkDeposit') {
+        const params: SwapSparkDepositParams = {
+          amountIn: swapResponse.params.amountIn,
+        };
+        navigate('/swap-spark-deposit', { state: params });
+        return;
+      }
+    }
+
+    throw new Error('Unhandled swap action');
   };
 
   return (
@@ -101,7 +115,6 @@ const SwapInterfaceView: React.FC = () => {
             onClick={() => {
               setIsLoading(true);
               handleSwap()
-                .then((url) => window.open(url, '_blank'))
                 .catch((e) => setError(e.message))
                 .finally(() => setIsLoading(false));
             }}

@@ -38,6 +38,9 @@ import SendLiquid from './SendLiquid';
 import SendTokenEvm from './SendTokenEvm';
 import SendTokenSpark from './SendTokenSpark';
 import SettingsPage from './SettingsPage';
+import SwapDetails from './SwapDetails';
+import SwapSparkClaim from './SwapSparkClaim';
+import SwapSparkDeposit from './SwapSparkDeposit';
 import TestPage from './TestPage';
 import TransactionSuccessEvm from './TransactionSuccessEvm';
 
@@ -91,6 +94,9 @@ const AppContent: React.FC = () => {
             <Route path="/send-token-spark" element={<SendTokenSpark />} />
             <Route path="/send-btc" element={<SendBtc />} />
             <Route path="/send-lightning" element={<SendLightning />} />
+            <Route path="/swap-details" element={<SwapDetails />} />
+            <Route path="/swap-spark-deposit" element={<SwapSparkDeposit />} />
+            <Route path="/swap-spark-claim" element={<SwapSparkClaim />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/transaction-success" element={<TransactionSuccessEvm />} />
             <Route path="/action" element={<Action />} />
