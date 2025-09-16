@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, StyleSheet, ViewStyle, TextStyle, Animated, FlatList, TouchableOpacity, LayoutAnimation, Platform } from 'react-native';
+import { View, StyleSheet, Animated, FlatList, TouchableOpacity, LayoutAnimation, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors, gradients } from '@shared/constants/Colors';
 import { Typography } from '@/constants/Typography';
@@ -87,7 +88,6 @@ export default function VerifyRecoveryPhrase() {
   const [showError, setShowError] = useState<boolean>(false);
   const [shouldAnimateButtons, setShouldAnimateButtons] = useState<boolean>(false);
   const [verificationComplete, setVerificationComplete] = useState<boolean>(false);
-  const [isColdBoot, setIsColdBoot] = useState<boolean>(false);
   const verifyButtonAnimation = useSequentialSpringAnimation(shouldAnimateButtons ? BUTTON_ANIMATION_DELAY_MS : 0);
   const buttonOpacity = useRef(new Animated.Value(ENABLED_OPACITY)).current;
 
@@ -146,7 +146,6 @@ export default function VerifyRecoveryPhrase() {
         const storedMnemonic = await BackgroundExecutor.getMnemonicForVerification();
         if (storedMnemonic) {
           setRecoveryPhrase(storedMnemonic);
-          setIsColdBoot(true);
         } else {
           setError('Unable to load recovery phrase for verification. Please try again.');
         }
@@ -206,15 +205,9 @@ export default function VerifyRecoveryPhrase() {
     }
   }, [verificationComplete, router]);
 
-  const handleSkip = useCallback(async () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await BackgroundExecutor.setSeedVerified();
-      router.push('/onboarding/create-password');
-    } catch (err) {
-      console.error('Error skipping verification:', err);
-      setError('Failed to skip verification');
-    }
+  const handleSkip = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push('/onboarding/create-password');
   }, [router]);
 
   const renderWordItem = useCallback(
@@ -231,20 +224,25 @@ export default function VerifyRecoveryPhrase() {
       <View style={styles.container}>
         <LinearGradient colors={gradients.blueGradient} style={styles.gradient}>
           <SafeAreaView style={styles.safeArea}>
-            <View style={styles.successContainer}>
-              <View style={styles.successIconContainer}>
-                <ThemedText style={styles.successIcon}>🛡️</ThemedText>
+            <View style={styles.content}>
+              <View style={styles.successContainer}>
+                <View style={styles.successIconContainer}>
+                  <Image source={require('@/assets/images/ui/success.png')} style={styles.successIcon} />
+                </View>
+                <ThemedText type="title" style={styles.successTitle}>
+                  Your backup is complete
+                </ThemedText>
+                <ThemedText style={styles.successSubtitle}>You should now have your recovery phrase written down for future reference.</ThemedText>
               </View>
-              <ThemedText type="title" style={styles.successTitle}>
-                Your backup is complete
-              </ThemedText>
-              <ThemedText style={styles.successSubtitle}>You should now have your recovery phrase written down for future reference.</ThemedText>
-              <Animated.View style={verifyButtonAnimation}>
-                <TouchableOpacity style={styles.continueButton} onPress={handleContinue} testID="ContinueButton">
-                  <ThemedText style={styles.buttonText}>Continue</ThemedText>
-                </TouchableOpacity>
-              </Animated.View>
             </View>
+
+            <Animated.View style={[styles.buttonSection, verifyButtonAnimation]}>
+              <TouchableOpacity style={styles.successButton} onPress={handleContinue} testID="ContinueButton">
+                <ThemedText type="button" darkColor={Colors.dark.buttonText}>
+                  Continue
+                </ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
           </SafeAreaView>
         </LinearGradient>
       </View>
@@ -255,58 +253,46 @@ export default function VerifyRecoveryPhrase() {
     <View style={styles.container}>
       <LinearGradient colors={gradients.blueGradient} style={styles.gradient}>
         <SafeAreaView style={styles.safeArea}>
-          <View style={styles.contentContainer}>
+          <View style={styles.content}>
             <View style={styles.titleContainer}>
               <ThemedText type="title" style={styles.title}>
                 Tap the words in the correct order
               </ThemedText>
             </View>
 
-            {error ? (
-              <View style={styles.errorContainer}>
-                <ThemedText style={styles.errorText}>Error: {error}</ThemedText>
-              </View>
-            ) : (
-              <>
-                <FlatList
-                  data={scrambledWords}
-                  renderItem={renderWordItem}
-                  numColumns={2}
-                  keyExtractor={(item) => item.id.toString()}
-                  contentContainerStyle={styles.wordsContentContainer}
-                  showsVerticalScrollIndicator={false}
-                  columnWrapperStyle={styles.flatListRow}
-                />
-                {showError && (
-                  <View style={styles.errorMessageContainer}>
-                    <ThemedText style={styles.errorMessage}>✗ Sorry, that's not the correct order. Give it another try.</ThemedText>
-                  </View>
-                )}
-              </>
-            )}
-
-            <View style={styles.bottomButtonContainer}>
-              {isColdBoot ? (
-                <Animated.View style={verifyButtonAnimation}>
-                  {verificationComplete ? (
-                    <TouchableOpacity style={styles.continueButton} onPress={handleContinue} testID="ContinueButton">
-                      <ThemedText style={styles.buttonText}>Continue</ThemedText>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity style={styles.skipButton} onPress={handleSkip} testID="SkipButton">
-                      <ThemedText style={styles.buttonText}>Skip Verification</ThemedText>
-                    </TouchableOpacity>
-                  )}
-                </Animated.View>
+            <View style={styles.scrollableContent}>
+              {error ? (
+                <View style={styles.errorContainer}>
+                  <ThemedText style={styles.errorText}>Error: {error}</ThemedText>
+                </View>
               ) : (
-                <Animated.View style={verifyButtonAnimation}>
-                  <TouchableOpacity style={[styles.continueButton, !verificationComplete && styles.disabledButton]} onPress={handleContinue} disabled={!verificationComplete} testID="ContinueButton">
-                    <ThemedText style={[styles.buttonText, !verificationComplete && styles.disabledButtonText]}>Continue</ThemedText>
-                  </TouchableOpacity>
-                </Animated.View>
+                <>
+                  <FlatList
+                    data={scrambledWords}
+                    renderItem={renderWordItem}
+                    numColumns={2}
+                    keyExtractor={(item) => item.id.toString()}
+                    contentContainerStyle={styles.wordsContentContainer}
+                    showsVerticalScrollIndicator={false}
+                    columnWrapperStyle={styles.flatListRow}
+                  />
+                  {showError && (
+                    <View style={styles.errorMessageContainer}>
+                      <ThemedText style={styles.errorMessage}>✗ Sorry, that's not the correct order. Give it another try.</ThemedText>
+                    </View>
+                  )}
+                </>
               )}
             </View>
           </View>
+
+          <Animated.View style={[styles.buttonSection, verifyButtonAnimation]}>
+            <Animated.View style={{ opacity: buttonOpacity }}>
+              <TouchableOpacity style={styles.skipButton} onPress={handleSkip} disabled={showError} testID="SkipButton">
+                <ThemedText style={[styles.buttonText, showError && styles.disabledButtonText]}>Skip Verify</ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
+          </Animated.View>
         </SafeAreaView>
       </LinearGradient>
     </View>
@@ -316,52 +302,44 @@ export default function VerifyRecoveryPhrase() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  } as ViewStyle,
+  },
   gradient: {
     flex: 1,
-  } as ViewStyle,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: 'transparent',
-  } as ViewStyle,
+    paddingHorizontal: 20,
+  },
+  content: {
+    flex: 1,
+  },
   contentContainer: {
     flex: 1,
-    paddingHorizontal: 20,
-  } as ViewStyle,
+  },
+  scrollableContent: {
+    flex: 1,
+  },
+
   titleContainer: {
     alignItems: 'center',
-    marginVertical: 30,
-  } as ViewStyle,
-  title: {
-    ...Typography.headline,
-    color: 'rgba(255, 255, 255, 0.95)',
-    textAlign: 'center',
-    marginBottom: 16,
-  } as TextStyle,
-  subtitle: {
-    ...Typography.paragraph,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-  } as TextStyle,
-  errorMessage: {
-    ...Typography.paragraph,
-    color: '#FF6B6B',
-    textAlign: 'center',
-    marginTop: 8,
-  } as TextStyle,
+    marginTop: 20,
+    marginBottom: 30,
+  },
   errorMessageContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
     paddingHorizontal: 20,
-  } as ViewStyle,
+  },
   wordsContentContainer: {
     paddingBottom: 20,
-  } as ViewStyle,
+  },
   flatListRow: {
     justifyContent: 'space-between',
     paddingHorizontal: 0,
-  } as ViewStyle,
+  },
+
   wordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -372,22 +350,23 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     width: '48%',
     minHeight: 50,
-  } as ViewStyle,
+  },
   selectedWordContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.3)',
-  } as ViewStyle,
+  },
   correctWordContainer: {
     backgroundColor: 'rgba(76, 175, 80, 0.3)',
     borderWidth: 2,
     borderColor: '#4CAF50',
-  } as ViewStyle,
+  },
   errorWordContainer: {
     backgroundColor: 'rgba(244, 67, 54, 0.3)',
     borderWidth: 2,
     borderColor: '#F44336',
-  } as ViewStyle,
+  },
+
   wordNumber: {
     width: 24,
     height: 24,
@@ -396,36 +375,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-  } as ViewStyle,
+  },
   selectedWordNumber: {
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  } as ViewStyle,
+  },
   correctWordNumber: {
     backgroundColor: '#4CAF50',
-  } as ViewStyle,
+  },
   errorWordNumber: {
     backgroundColor: '#F44336',
-  } as ViewStyle,
-  wordNumberText: {
-    ...Typography.buttonText,
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 12,
-    fontWeight: '600',
-  } as TextStyle,
+  },
   wordTextContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  } as ViewStyle,
-  wordText: {
-    ...Typography.paragraph,
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '500',
-    flex: 1,
-  } as TextStyle,
+  },
+
   bottomButtonContainer: {
-    marginBottom: 20,
-  } as ViewStyle,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
   verifyButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -436,16 +405,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 18,
     paddingHorizontal: 20,
-  } as ViewStyle,
+  },
   continueButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.dark.buttonPrimary,
     borderRadius: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-  } as ViewStyle,
+    height: 56,
+    marginHorizontal: 16,
+  },
   skipButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -455,54 +424,100 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 18,
     paddingHorizontal: 20,
-  } as ViewStyle,
+  },
   disabledButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
-  } as ViewStyle,
-  disabledButtonText: {
-    color: 'rgba(255, 255, 255, 0.5)',
-  } as TextStyle,
+  },
+
   errorContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 40,
-  } as ViewStyle,
-  errorText: {
-    ...Typography.paragraph,
-    color: '#FF6B6B',
-    textAlign: 'center',
-  } as TextStyle,
+  },
   successContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-  } as ViewStyle,
+  },
   successIconContainer: {
     marginBottom: 30,
-  } as ViewStyle,
-  successIcon: {
-    fontSize: 60,
+  },
+  successButton: {
+    backgroundColor: Colors.dark.buttonPrimary,
+    borderRadius: 16,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 16,
+  },
+  buttonSection: {
+    paddingBottom: 20,
+    gap: 12,
+  },
+
+  // Text styles - these need explicit typing due to Typography spread
+  title: {
+    ...Typography.headline,
+    color: 'rgba(255, 255, 255, 0.95)',
     textAlign: 'center',
-  } as TextStyle,
+    marginBottom: 16,
+  } as const,
+  subtitle: {
+    ...Typography.paragraph,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    marginBottom: 40,
+  } as const,
+  errorMessage: {
+    ...Typography.paragraph,
+    color: '#FF6B6B',
+    textAlign: 'center',
+    marginTop: 8,
+  } as const,
+  wordNumberText: {
+    ...Typography.buttonText,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 12,
+    fontWeight: '600',
+  } as const,
+  wordText: {
+    ...Typography.paragraph,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
+    flex: 1,
+  } as const,
+  disabledButtonText: {
+    color: 'rgba(255, 255, 255, 0.5)',
+  } as const,
+  errorText: {
+    ...Typography.paragraph,
+    color: '#FF6B6B',
+    textAlign: 'center',
+  } as const,
   successTitle: {
     ...Typography.headline,
     color: 'rgba(255, 255, 255, 0.95)',
     textAlign: 'center',
     marginBottom: 16,
-  } as TextStyle,
+  } as const,
   successSubtitle: {
     ...Typography.paragraph,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginBottom: 40,
-  } as TextStyle,
+  } as const,
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.8)',
-  } as TextStyle,
+  } as const,
+
+  successIcon: {
+    width: 120,
+    height: 120,
+  },
 });

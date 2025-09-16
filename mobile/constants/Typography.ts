@@ -35,5 +35,6 @@ export const Typography = {
   buttonText: {
     fontSize: 16,
     fontFamily: fontFamily.medium,
+    fontWeight: '500' as const,
   },
 };
