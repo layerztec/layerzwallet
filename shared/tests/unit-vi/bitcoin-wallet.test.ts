@@ -44,7 +44,7 @@ describe('Bitcoin Wallet - getCommonTransactions', () => {
         amount: 100000000,
         tokenTransfers: [],
         status: 'confirmed',
-        explorerUrl: 'https://mempool.space/tx/tx1',
+        explorerUrl: 'https://layerz.mempool.space/tx/tx1',
       },
       {
         txid: 'tx2',
@@ -54,7 +54,7 @@ describe('Bitcoin Wallet - getCommonTransactions', () => {
         amount: -50000000,
         tokenTransfers: [],
         status: 'confirmed',
-        explorerUrl: 'https://mempool.space/tx/tx2',
+        explorerUrl: 'https://layerz.mempool.space/tx/tx2',
       },
       {
         txid: 'tx3',
@@ -64,7 +64,7 @@ describe('Bitcoin Wallet - getCommonTransactions', () => {
         amount: 100000000,
         tokenTransfers: [],
         status: 'pending',
-        explorerUrl: 'https://mempool.space/tx/tx3',
+        explorerUrl: 'https://layerz.mempool.space/tx/tx3',
       },
     ]);
 
@@ -80,7 +80,7 @@ describe('Bitcoin Wallet - getCommonTransactions', () => {
         amount: 100000000,
         tokenTransfers: [],
         status: 'pending',
-        explorerUrl: 'https://mempool.space/tx/tx3',
+        explorerUrl: 'https://layerz.mempool.space/tx/tx3',
       },
     ]);
   });
