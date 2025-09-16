@@ -195,7 +195,7 @@ const SendLiquid = () => {
         <View style={styles.successContainer}>
           <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
           <ThemedText style={styles.successText}>Transaction Sent!</ThemedText>
-          <TouchableOpacity style={styles.button} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.button} onPress={() => router.replace('/Home')}>
             <ThemedText style={styles.buttonText}>Back to Wallet</ThemedText>
           </TouchableOpacity>
         </View>

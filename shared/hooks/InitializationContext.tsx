@@ -5,10 +5,9 @@ import { IStorage } from '../types/IStorage';
 export enum EStep {
   LOADING = 1,
   INTRO = 2,
-  SEED_VERIFICATION = 3,
-  PASSWORD = 4,
-  TOS = 5,
-  READY = 6,
+  PASSWORD = 3,
+  TOS = 4,
+  READY = 5,
 }
 
 interface IInitializationContext {
@@ -40,12 +39,9 @@ export const InitializationContextProvider: React.FC<InitializationProviderProps
       const hasAcceptedTermsOfService = await backgroundCaller.hasAcceptedTermsOfService();
       const hasMnemonic = await backgroundCaller.hasMnemonic();
       const hasEncryptedMnemonic = await backgroundCaller.hasEncryptedMnemonic();
-      const hasSeedVerified = await backgroundCaller.hasSeedVerified();
 
       if (!hasMnemonic) {
         s = EStep.INTRO;
-      } else if (!hasSeedVerified) {
-        s = EStep.SEED_VERIFICATION;
       } else if (!hasEncryptedMnemonic) {
         s = EStep.PASSWORD;
       } else if (!hasAcceptedTermsOfService) {

@@ -10,8 +10,6 @@ export default function IndexScreen() {
     return <Redirect href="/onboarding/intro" />;
   } else if (step === EStep.PASSWORD) {
     return <Redirect href="/onboarding/create-password" />;
-  } else if (step === EStep.SEED_VERIFICATION) {
-    return <Redirect href="/onboarding/verify-recovery-phrase" />;
   } else if (step === EStep.TOS) {
     return <Redirect href="/onboarding/tos" />;
   } else {

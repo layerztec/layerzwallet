@@ -18,6 +18,7 @@ import { ActionPopupButton, Button, Switch } from './DesignSystem';
 import LiquidTokensView from './components/LiquidTokensView';
 import SwapInterfaceView from './components/SwapInterfaceView';
 import BalanceView from './components/BalanceView';
+import SwapListView from './components/SwapListView';
 import { ReceiveLightningProps } from './ReceiveLightning';
 import { SendLightningProps } from './SendLightning';
 
@@ -29,10 +30,6 @@ const Home: React.FC = () => {
   const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
   const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
   const availableNetworks = useAvailableNetworks();
-
-  useEffect(() => {
-    setShowSwapInterface(false);
-  }, [network]);
 
   useEffect(() => {
     setSwapPairs(getSwapPairs(network, SwapPlatform.EXT));
@@ -146,6 +143,7 @@ const Home: React.FC = () => {
       )}
 
       <br />
+      <SwapListView />
       <br />
 
       {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
