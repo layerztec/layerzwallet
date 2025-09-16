@@ -137,8 +137,6 @@ export default function RootLayout() {
                             name="onboarding/create-password"
                             options={{
                               headerShown: false,
-                              animation: 'slide_from_right',
-                              animationDuration: 350,
                               gestureEnabled: false,
                               fullScreenGestureEnabled: false,
                             }}

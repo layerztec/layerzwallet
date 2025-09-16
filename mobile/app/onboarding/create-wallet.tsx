@@ -108,7 +108,7 @@ export default function CreateWalletScreen() {
               {!error && recoveryPhrase && (
                 <Animated.View style={verifyButtonAnimation}>
                   <TouchableOpacity style={styles.skipButton} onPress={handleContinue} testID="SkipButton">
-                    <ThemedText type="button">Skip</ThemedText>
+                    <ThemedText style={styles.buttonText}>Skip</ThemedText>
                   </TouchableOpacity>
                 </Animated.View>
               )}
@@ -116,7 +116,7 @@ export default function CreateWalletScreen() {
               {!error && recoveryPhrase && (
                 <Animated.View style={verifyButtonAnimation}>
                   <TouchableOpacity style={styles.verifyButton} onPress={handleVerify} testID="VerifyButton">
-                    <ThemedText type="button">Verify</ThemedText>
+                    <ThemedText style={styles.buttonText}>Verify</ThemedText>
                   </TouchableOpacity>
                 </Animated.View>
               )}
@@ -253,5 +253,10 @@ const styles = StyleSheet.create({
     ...Typography.paragraph,
     color: '#FF6B6B',
     textAlign: 'center',
+  } as TextStyle,
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.8)',
   } as TextStyle,
 });

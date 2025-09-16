@@ -1,5 +1,5 @@
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, StyleSheet, ViewStyle, TextStyle, Animated, FlatList, TouchableOpacity, LayoutAnimation, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,6 +9,14 @@ import { Colors, gradients } from '@shared/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+
+// Constants
+const TOTAL_WORDS = 12;
+const ERROR_TIMEOUT_MS = 2000;
+const BUTTON_ANIMATION_DELAY_MS = 300;
+const OPACITY_ANIMATION_DURATION_MS = 200;
+const DISABLED_OPACITY = 0.5;
+const ENABLED_OPACITY = 1;
 
 interface WordItem {
   id: number;
@@ -23,48 +31,54 @@ const SelectableWordDisplay: React.FC<{
   onPress: (wordItem: WordItem) => void;
   isCorrect?: boolean;
   showError?: boolean;
-}> = ({ wordItem, onPress, isCorrect, showError }) => {
-  const getWordStyle = () => {
-    if (wordItem.isSelected) {
-      if (isCorrect) {
-        return [styles.wordContainer, styles.correctWordContainer];
-      } else if (showError) {
-        return [styles.wordContainer, styles.errorWordContainer];
-      } else {
-        return [styles.wordContainer, styles.selectedWordContainer];
-      }
-    }
-    return styles.wordContainer;
-  };
+  buttonOpacity: Animated.Value;
+}> = React.memo(({ wordItem, onPress, isCorrect, showError, buttonOpacity }) => {
+  const wordStyle = useMemo(() => {
+    if (!wordItem.isSelected) return styles.wordContainer;
 
-  const getNumberStyle = () => {
-    if (wordItem.isSelected) {
-      if (isCorrect) {
-        return [styles.wordNumber, styles.correctWordNumber];
-      } else if (showError) {
-        return [styles.wordNumber, styles.errorWordNumber];
-      } else {
-        return [styles.wordNumber, styles.selectedWordNumber];
-      }
-    }
-    return styles.wordNumber;
-  };
+    if (isCorrect) return [styles.wordContainer, styles.correctWordContainer];
+    if (showError) return [styles.wordContainer, styles.errorWordContainer];
+    return [styles.wordContainer, styles.selectedWordContainer];
+  }, [wordItem.isSelected, isCorrect, showError]);
+
+  const numberStyle = useMemo(() => {
+    if (!wordItem.isSelected) return styles.wordNumber;
+
+    if (isCorrect) return [styles.wordNumber, styles.correctWordNumber];
+    if (showError) return [styles.wordNumber, styles.errorWordNumber];
+    return [styles.wordNumber, styles.selectedWordNumber];
+  }, [wordItem.isSelected, isCorrect, showError]);
+
+  const animatedViewStyle = useMemo(
+    () => ({
+      opacity: !wordItem.isSelected ? buttonOpacity : ENABLED_OPACITY,
+      flex: 1,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+    }),
+    [wordItem.isSelected, buttonOpacity]
+  );
+
+  const handlePress = useCallback(() => onPress(wordItem), [onPress, wordItem]);
 
   return (
-    <TouchableOpacity style={getWordStyle()} onPress={() => onPress(wordItem)} disabled={wordItem.isSelected || showError}>
-      <View style={getNumberStyle()}>
-        <ThemedText style={styles.wordNumberText}>{wordItem.isSelected && wordItem.selectedOrder !== undefined ? wordItem.selectedOrder + 1 : ''}</ThemedText>
-      </View>
-      <View style={styles.wordTextContainer}>
-        <ThemedText style={styles.wordText}>{wordItem.word}</ThemedText>
-      </View>
+    <TouchableOpacity style={wordStyle} onPress={handlePress} disabled={wordItem.isSelected || showError}>
+      <Animated.View style={animatedViewStyle}>
+        <View style={numberStyle}>
+          <ThemedText style={styles.wordNumberText}>{wordItem.isSelected && wordItem.selectedOrder !== undefined ? wordItem.selectedOrder + 1 : ''}</ThemedText>
+        </View>
+        <View style={styles.wordTextContainer}>
+          <ThemedText style={styles.wordText}>{wordItem.word}</ThemedText>
+        </View>
+      </Animated.View>
     </TouchableOpacity>
   );
-};
+});
+
+SelectableWordDisplay.displayName = 'SelectableWordDisplay';
 
 export default function VerifyRecoveryPhrase() {
   const router = useRouter();
-  const params = useLocalSearchParams();
   const [recoveryPhrase, setRecoveryPhrase] = useState<string>('');
   const [scrambledWords, setScrambledWords] = useState<WordItem[]>([]);
   const [selectedWords, setSelectedWords] = useState<WordItem[]>([]);
@@ -74,16 +88,17 @@ export default function VerifyRecoveryPhrase() {
   const [shouldAnimateButtons, setShouldAnimateButtons] = useState<boolean>(false);
   const [verificationComplete, setVerificationComplete] = useState<boolean>(false);
   const [isColdBoot, setIsColdBoot] = useState<boolean>(false);
-  const verifyButtonAnimation = useSequentialSpringAnimation(shouldAnimateButtons ? 300 : 0);
+  const verifyButtonAnimation = useSequentialSpringAnimation(shouldAnimateButtons ? BUTTON_ANIMATION_DELAY_MS : 0);
+  const buttonOpacity = useRef(new Animated.Value(ENABLED_OPACITY)).current;
 
-  const shuffleArray = <T,>(array: T[]): T[] => {
+  const shuffleArray = useCallback(<T,>(array: T[]): T[] => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
-  };
+  }, []);
 
   useEffect(() => {
     if (recoveryPhrase) {
@@ -99,13 +114,13 @@ export default function VerifyRecoveryPhrase() {
       const shuffled = shuffleArray(wordsWithData);
       setScrambledWords(shuffled);
     }
-  }, [recoveryPhrase]);
+  }, [recoveryPhrase, shuffleArray]);
 
   useEffect(() => {
     if (!isLoading && !error && recoveryPhrase) {
       const timer = setTimeout(() => {
         setShouldAnimateButtons(true);
-      }, 300);
+      }, BUTTON_ANIMATION_DELAY_MS);
 
       return () => clearTimeout(timer);
     }
@@ -118,20 +133,22 @@ export default function VerifyRecoveryPhrase() {
   }, [showError, verificationComplete, selectedWords.length]);
 
   useEffect(() => {
+    Animated.timing(buttonOpacity, {
+      toValue: showError ? DISABLED_OPACITY : ENABLED_OPACITY,
+      duration: OPACITY_ANIMATION_DURATION_MS,
+      useNativeDriver: true,
+    }).start();
+  }, [showError, buttonOpacity]);
+
+  useEffect(() => {
     const loadMnemonic = async () => {
       try {
-        const mnemonic = params.mnemonic as string;
-        if (mnemonic) {
-          setRecoveryPhrase(mnemonic);
-          setIsColdBoot(false);
+        const storedMnemonic = await BackgroundExecutor.getMnemonicForVerification();
+        if (storedMnemonic) {
+          setRecoveryPhrase(storedMnemonic);
+          setIsColdBoot(true);
         } else {
-          const storedMnemonic = await BackgroundExecutor.getMnemonicForVerification();
-          if (storedMnemonic) {
-            setRecoveryPhrase(storedMnemonic);
-            setIsColdBoot(true);
-          } else {
-            setError('Unable to load recovery phrase for verification. Please try again.');
-          }
+          setError('Unable to load recovery phrase for verification. Please try again.');
         }
       } catch (err) {
         console.error('Error loading mnemonic:', err);
@@ -142,51 +159,54 @@ export default function VerifyRecoveryPhrase() {
     };
 
     loadMnemonic();
-  }, [params.mnemonic]);
+  }, []);
 
-  const handleWordPress = (wordItem: WordItem) => {
-    if (wordItem.isSelected || verificationComplete || showError) return;
+  const handleWordPress = useCallback(
+    (wordItem: WordItem) => {
+      if (wordItem.isSelected || verificationComplete || showError) return;
 
-    const expectedWordIndex = selectedWords.length;
-    const correctWord = recoveryPhrase.split(' ')[expectedWordIndex];
+      const expectedWordIndex = selectedWords.length;
+      const correctWord = recoveryPhrase.split(' ')[expectedWordIndex];
 
-    if (wordItem.word === correctWord) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (wordItem.word === correctWord) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      const updatedScrambledWords = scrambledWords.map((item) => (item.id === wordItem.id ? { ...item, isSelected: true, selectedOrder: expectedWordIndex } : item));
+        const updatedScrambledWords = scrambledWords.map((item) => (item.id === wordItem.id ? { ...item, isSelected: true, selectedOrder: expectedWordIndex } : item));
 
-      setScrambledWords(updatedScrambledWords);
-      setSelectedWords([...selectedWords, { ...wordItem, selectedOrder: expectedWordIndex }]);
-      setShowError(false);
-
-      if (expectedWordIndex === 11) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setVerificationComplete(true);
-      }
-    } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setShowError(true);
-
-      // Reset UI state immediately
-      const resetScrambledWords = scrambledWords.map((item) => ({ ...item, isSelected: false, selectedOrder: undefined }));
-      setScrambledWords(resetScrambledWords);
-      setSelectedWords([]);
-
-      // Hide error message after a timeout
-      setTimeout(() => {
+        setScrambledWords(updatedScrambledWords);
+        setSelectedWords([...selectedWords, { ...wordItem, selectedOrder: expectedWordIndex }]);
         setShowError(false);
-      }, 2000);
-    }
-  };
 
-  const handleContinue = () => {
+        if (expectedWordIndex === TOTAL_WORDS - 1) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          setVerificationComplete(true);
+        }
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        setShowError(true);
+
+        // Reset UI state immediately
+        const resetScrambledWords = scrambledWords.map((item) => ({ ...item, isSelected: false, selectedOrder: undefined }));
+        setScrambledWords(resetScrambledWords);
+        setSelectedWords([]);
+
+        // Hide error message after a timeout
+        setTimeout(() => {
+          setShowError(false);
+        }, ERROR_TIMEOUT_MS);
+      }
+    },
+    [verificationComplete, showError, selectedWords, recoveryPhrase, scrambledWords]
+  );
+
+  const handleContinue = useCallback(() => {
     if (verificationComplete) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       router.push('/onboarding/create-password');
     }
-  };
+  }, [verificationComplete, router]);
 
-  const handleSkip = async () => {
+  const handleSkip = useCallback(async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await BackgroundExecutor.setSeedVerified();
@@ -195,15 +215,16 @@ export default function VerifyRecoveryPhrase() {
       console.error('Error skipping verification:', err);
       setError('Failed to skip verification');
     }
-  };
+  }, [router]);
 
-  const renderWordItem = ({ item }: { item: WordItem }) => {
-    const expectedIndex = selectedWords.length;
-    const correctWord = recoveryPhrase.split(' ')[expectedIndex];
-    const isCorrect = item.isSelected && item.word === recoveryPhrase.split(' ')[item.selectedOrder || 0];
+  const renderWordItem = useCallback(
+    ({ item }: { item: WordItem }) => {
+      const isCorrect = item.isSelected && item.word === recoveryPhrase.split(' ')[item.selectedOrder || 0];
 
-    return <SelectableWordDisplay wordItem={item} onPress={handleWordPress} isCorrect={isCorrect} showError={showError && !item.isSelected} />;
-  };
+      return <SelectableWordDisplay wordItem={item} onPress={handleWordPress} isCorrect={isCorrect} showError={showError && !item.isSelected} buttonOpacity={buttonOpacity} />;
+    },
+    [handleWordPress, showError, buttonOpacity, recoveryPhrase]
+  );
 
   if (verificationComplete) {
     return (
@@ -220,7 +241,7 @@ export default function VerifyRecoveryPhrase() {
               <ThemedText style={styles.successSubtitle}>You should now have your recovery phrase written down for future reference.</ThemedText>
               <Animated.View style={verifyButtonAnimation}>
                 <TouchableOpacity style={styles.continueButton} onPress={handleContinue} testID="ContinueButton">
-                  <ThemedText type="button">Continue</ThemedText>
+                  <ThemedText style={styles.buttonText}>Continue</ThemedText>
                 </TouchableOpacity>
               </Animated.View>
             </View>
@@ -269,20 +290,18 @@ export default function VerifyRecoveryPhrase() {
                 <Animated.View style={verifyButtonAnimation}>
                   {verificationComplete ? (
                     <TouchableOpacity style={styles.continueButton} onPress={handleContinue} testID="ContinueButton">
-                      <ThemedText type="button">Continue</ThemedText>
+                      <ThemedText style={styles.buttonText}>Continue</ThemedText>
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity style={styles.skipButton} onPress={handleSkip} testID="SkipButton">
-                      <ThemedText type="button">Skip Verification</ThemedText>
+                      <ThemedText style={styles.buttonText}>Skip Verification</ThemedText>
                     </TouchableOpacity>
                   )}
                 </Animated.View>
               ) : (
                 <Animated.View style={verifyButtonAnimation}>
                   <TouchableOpacity style={[styles.continueButton, !verificationComplete && styles.disabledButton]} onPress={handleContinue} disabled={!verificationComplete} testID="ContinueButton">
-                    <ThemedText type="button" style={!verificationComplete && styles.disabledButtonText}>
-                      Continue
-                    </ThemedText>
+                    <ThemedText style={[styles.buttonText, !verificationComplete && styles.disabledButtonText]}>Continue</ThemedText>
                   </TouchableOpacity>
                 </Animated.View>
               )}
@@ -480,5 +499,10 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginBottom: 40,
+  } as TextStyle,
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.8)',
   } as TextStyle,
 });
