@@ -95,7 +95,8 @@ const AppContent: React.FC = () => {
             <Route path="/send-btc" element={<SendBtc />} />
             <Route path="/send-lightning" element={<SendLightning />} />
             <Route path="/swap-details" element={<SwapDetails />} />
-            <Route path="/swap-spark-deposit" element={<SwapSparkDeposit />} />
+            {/* we are using camel case because screen name matches one in the mobile app */}
+            <Route path="/SwapSparkDeposit" element={<SwapSparkDeposit />} />
             <Route path="/swap-spark-claim" element={<SwapSparkClaim />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/transaction-success" element={<TransactionSuccessEvm />} />

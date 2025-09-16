@@ -34,7 +34,7 @@ const SendBtc: React.FC = () => {
   const { scanQr } = useContext(ScanQrContext);
   const params = useLocalSearchParams<SendBtcParams>();
   const router = useRouter();
-  const addressLock = params.addressLock === 'true' ? true : false;
+  const addressLock = params.addressLock === 'true';
   const toAddress = params.toAddress ?? '';
   const amount = params.amount ?? '';
   const [error, setError] = useState<string>('');

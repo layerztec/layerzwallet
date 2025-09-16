@@ -56,23 +56,17 @@ const SwapInterfaceView: React.FC = () => {
 
     const swapResponse = await provider.swap(network, setNetwork, targetNetwork, parseInt(satValue), destinationAddress);
 
-    if (swapResponse.action === 'EXTERNAL_BROWSER') {
-      window.open(swapResponse.uri, '_blank');
-      return;
-    }
-
-    if (swapResponse.action === 'INTERNAL_SCREEN') {
-      // Handle internal screens
-      if (swapResponse.screen === 'SwapSparkDeposit') {
-        const params: SwapSparkDepositParams = {
-          amountIn: swapResponse.params.amountIn,
-        };
-        navigate('/swap-spark-deposit', { state: params });
+    switch (swapResponse.action) {
+      case 'DAPP_BROWSER':
+      case 'EXTERNAL_BROWSER':
+        window.open(swapResponse.uri, '_blank');
         return;
-      }
+      case 'INTERNAL_SCREEN':
+        navigate('/SwapSparkDeposit', { state: swapResponse.params });
+        return;
+      default:
+        throw new Error('Unhandled swap action');
     }
-
-    throw new Error('Unhandled swap action');
   };
 
   return (
