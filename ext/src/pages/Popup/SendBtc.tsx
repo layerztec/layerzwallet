@@ -3,7 +3,7 @@ import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
 import { Scan, SendIcon } from 'lucide-react';
 import { default as React, useContext, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useLocation } from 'react-router';
 
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { TFeeEstimate } from '@shared/blue_modules/BlueElectrum';
@@ -24,11 +24,19 @@ import ClipboardBackdoor from './components/ClipboardBackdoor';
 
 type TFeeRateOptions = { [rate: number]: number };
 
+export interface SendBtcParams {
+  toAddress?: string;
+  amount?: string;
+  addressLock?: boolean;
+}
+
 const SendBtc: React.FC = () => {
   const scanQr = useScanQR();
   const navigate = useNavigate();
+  const location = useLocation();
   const [toAddress, setToAddress] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
+  const [addressLocked, setAddressLocked] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [sendState, setSendState] = useState<'idle' | 'preparing' | 'prepared' | 'success'>('idle');
   const [customFeeRate, setCustomFeeRate] = useState<number | undefined>(); // fee rate that user selected
@@ -41,6 +49,21 @@ const SendBtc: React.FC = () => {
   const { askMnemonic } = useContext(AskMnemonicContext);
   const { balance } = useBalance(network, accountNumber, BackgroundCaller);
   const [showFeeModal, setShowFeeModal] = useState(false);
+
+  // Handle parameters from location state (e.g., from swap flow)
+  useEffect(() => {
+    const state = location.state as SendBtcParams;
+    if (!state) return;
+    if (state.toAddress) {
+      setToAddress(state.toAddress);
+    }
+    if (state.amount) {
+      setAmount(state.amount);
+    }
+    if (state.addressLock) {
+      setAddressLocked(true);
+    }
+  }, [location.state]);
 
   const feeRate = useMemo(() => {
     if (customFeeRate !== undefined) return customFeeRate;
@@ -223,7 +246,8 @@ const SendBtc: React.FC = () => {
             placeholder="Enter the recipient's address"
             onChange={(event) => setToAddress(event.target.value)}
             value={toAddress}
-            style={{ flexGrow: 1, marginRight: '10px' }}
+            disabled={addressLocked}
+            style={{ flexGrow: 1, marginRight: '10px', backgroundColor: addressLocked ? '#f0f0f0' : 'white' }}
           />
           <Button
             style={{

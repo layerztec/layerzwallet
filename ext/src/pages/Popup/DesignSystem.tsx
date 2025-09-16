@@ -521,6 +521,7 @@ export const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div
     style={{
       width: '95%',
+      height: '100%',
       backgroundColor: 'white',
       border: '1px solid #ebebeb',
       borderRadius: '10px',
