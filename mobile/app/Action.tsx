@@ -13,7 +13,6 @@ import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { Colors } from '@shared/constants/Colors';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { EvmRpcMethod } from '@shared/types/evm-rpc-method';
