@@ -214,15 +214,19 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     const txs1 = await BlueElectrum.multiGetTransactionByTxid([...UTXOs[address].map((output) => output.txid)], true);
     const unclaimedSwaps: CommonSwap[] = UTXOs[address].map((output) => {
       const tx = txs1[output.txid];
-      const timestamp = tx?.blocktime ? tx.blocktime * 1000 : new Date().getTime();
+      const timestamp = tx.blocktime ? tx.blocktime * 1000 : new Date().getTime();
+      const claimable = tx.confirmations >= 3; // according to Spark docs, 3 confirmations are needed to claim a swap
       return {
         network: NETWORK_SPARK,
         id: output.txid,
-        status: tx?.confirmations && tx.confirmations >= 3 ? 'claimable' : 'pending', // claimable after 3 confirmations
+        status: claimable ? 'claimable' : 'pending',
         amount: output.value,
         timestamp,
         direction: 'receive',
         explorerUrl: `${explorerBase}/tx/${output.txid}`,
+        // we only want to show confirmations for 'pending' swaps
+        confirmations: !claimable ? tx.confirmations : undefined,
+        targetConfirmations: !claimable ? 3 : undefined,
       };
     });
     swaps.push(...unclaimedSwaps);

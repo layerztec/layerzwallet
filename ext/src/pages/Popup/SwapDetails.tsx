@@ -28,7 +28,7 @@ const SwapDetails: React.FC = () => {
 
   const [formattedDate, formattedDateWithTime] = useMemo(() => {
     if (!swap.timestamp) return ['—', '—'];
-    const d = new Date(swap.timestamp * 1000);
+    const d = new Date(swap.timestamp);
     const dateStr = d.toLocaleDateString('en-US', {
       month: 'long',
       day: '2-digit',
@@ -101,6 +101,7 @@ const SwapDetails: React.FC = () => {
   };
 
   const showClaimButton = swap.network === NETWORK_SPARK && swap.status === 'claimable';
+  const showConfirmations = Boolean(swap.targetConfirmations);
 
   return (
     <div style={{ padding: '0 4px' }}>
@@ -277,11 +278,22 @@ const SwapDetails: React.FC = () => {
             style={{
               display: 'flex',
               justifyContent: 'space-between',
+              ...(showConfirmations ? { paddingBottom: '8px', borderBottom: '1px solid #e0e0e0' } : {}),
             }}
           >
             <span style={{ color: '#666', fontSize: '14px' }}>Status</span>
             <span style={{ fontSize: '14px' }}>{capitalizeFirstLetter(swap.status)}</span>
           </div>
+
+          {/* Confirmations */}
+          {showConfirmations && (
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: '#666', fontSize: '14px' }}>Confirmations</span>
+              <span style={{ fontSize: '14px' }}>
+                {swap.confirmations} / {swap.targetConfirmations}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

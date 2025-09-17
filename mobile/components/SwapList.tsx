@@ -55,6 +55,11 @@ const SwapItem = ({ swap }: { swap: CommonSwap }) => {
       <View style={styles.swapDetails}>
         <ThemedText style={styles.swapType}>{amount}</ThemedText>
         <ThemedText style={styles.swapDate}>{formatSwapDate()}</ThemedText>
+        {swap.targetConfirmations && (
+          <ThemedText style={styles.swapDate}>
+            {swap.confirmations} / {swap.targetConfirmations} confirmations
+          </ThemedText>
+        )}
       </View>
 
       <View style={styles.swapAmounts}>
