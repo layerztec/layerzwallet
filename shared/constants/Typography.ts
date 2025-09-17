@@ -4,7 +4,7 @@ const fontFamily = {
   medium: 'Inter-Medium',
   bold: 'Inter-Bold',
   black: 'Inter-Black',
-};
+} as const;
 
 export const Typography = {
   headline: {
@@ -36,4 +36,4 @@ export const Typography = {
     letterSpacing: -0.32,
     textAlign: 'center' as const,
   },
-};
+} as const;
