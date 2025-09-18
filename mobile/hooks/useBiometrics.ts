@@ -20,8 +20,13 @@ export const useBiometrics = (): BiometricInfo => {
   useEffect(() => {
     const checkBiometricCapabilities = async () => {
       try {
+        console.log('🔐 Biometric Check: Starting capability check...');
+
         const isAvailable = await LocalAuthentication.hasHardwareAsync();
+        console.log('🔐 Biometric Check: Hardware available:', isAvailable);
+
         if (!isAvailable) {
+          console.log('🔐 Biometric Check: No hardware available');
           setBiometricInfo({
             isAvailable: false,
             biometricType: null,
@@ -32,7 +37,10 @@ export const useBiometrics = (): BiometricInfo => {
         }
 
         const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+        console.log('🔐 Biometric Check: Enrolled:', isEnrolled);
+
         if (!isEnrolled) {
+          console.log('🔐 Biometric Check: No biometrics enrolled');
           setBiometricInfo({
             isAvailable: false,
             biometricType: null,
@@ -43,6 +51,7 @@ export const useBiometrics = (): BiometricInfo => {
         }
 
         const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+        console.log('🔐 Biometric Check: Supported types:', supportedTypes);
 
         let biometricType: BiometricInfo['biometricType'] = null;
 
@@ -78,6 +87,12 @@ export const useBiometrics = (): BiometricInfo => {
 
         const { displayName, description } = getBiometricDisplayInfo(biometricType);
 
+        console.log('🔐 Biometric Check: Final result:', {
+          isAvailable: biometricType !== null,
+          biometricType,
+          displayName,
+        });
+
         setBiometricInfo({
           isAvailable: biometricType !== null,
           biometricType,
@@ -85,7 +100,7 @@ export const useBiometrics = (): BiometricInfo => {
           description,
         });
       } catch (error) {
-        console.error('Error checking biometric capabilities:', error);
+        console.error('🔐 Biometric Check: Error checking biometric capabilities:', error);
         setBiometricInfo({
           isAvailable: false,
           biometricType: null,

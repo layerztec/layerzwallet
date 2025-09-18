@@ -1,7 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as NavigationBar from 'expo-navigation-bar';
@@ -19,6 +17,7 @@ import { SwrCacheProvider } from '@/src/class/swr-cache-provider';
 import { AskMnemonicContextProvider } from '@/src/hooks/AskMnemonicContext';
 import { AskPasswordContextProvider } from '@/src/hooks/AskPasswordContext';
 import { BiometricAuthContextProvider } from '@/src/hooks/BiometricAuthContext';
+import { AuthStateProvider } from '@/src/hooks/AuthStateContext';
 import { ScanQrContextProvider } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Messenger } from '@/src/modules/messenger';
@@ -26,20 +25,11 @@ import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext
 import { InitializationContextProvider } from '@shared/hooks/InitializationContext';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
+import { ProtectedRouteStack } from '@/components/ProtectedRouteStack';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 LogBox.ignoreLogs(['Open debugger to view warnings.']);
-const DefaultNavigatorOptions: NativeStackNavigationOptions = {
-  headerTitle: '',
-  headerTintColor: '#fff',
-  headerBackButtonDisplayMode: 'minimal',
-  headerTransparent: true,
-  headerBackImageSource: require('@/assets/images/ui/headerBackImage.png'),
-  gestureEnabled: true,
-  gestureDirection: 'horizontal',
-  animationDuration: 350,
-};
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -101,183 +91,16 @@ export default function RootLayout() {
             <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
               <SettingsContextProvider storage={LayerzStorage}>
                 <BiometricAuthContextProvider>
-                  <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
-                    <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
-                      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                        <Stack
-                          screenOptions={{
-                            ...DefaultNavigatorOptions,
-                            fullScreenGestureEnabled: true,
-                          }}
-                        >
-                          <Stack.Screen name="index" options={{ headerShown: false, title: 'Index' }} />
-                          <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'none' }} />
-                          <Stack.Screen
-                            name="onboarding/intro"
-                            options={{
-                              headerTitle: '',
-                              headerTransparent: true,
-                              animation: 'fade',
-                              animationDuration: 300,
-                            }}
-                          />
-                          <Stack.Screen
-                            name="onboarding/create-wallet-intro"
-                            options={{
-                              ...DefaultNavigatorOptions,
-                            }}
-                          />
-                          <Stack.Screen
-                            name="manual-backup/intro"
-                            options={{
-                              ...DefaultNavigatorOptions,
-                            }}
-                          />
-                          <Stack.Screen
-                            name="onboarding/create-password"
-                            options={{
-                              headerShown: false,
-                              animation: 'slide_from_right',
-                              animationDuration: 350,
-                              gestureEnabled: true,
-                            }}
-                          />
-                          <Stack.Screen
-                            name="onboarding/tos"
-                            options={{
-                              headerShown: false,
-                              animation: 'slide_from_right',
-                              animationDuration: 350,
-                              gestureEnabled: true,
-                            }}
-                          />
-                          <Stack.Screen
-                            name="onboarding/import-wallet"
-                            options={{
-                              headerTitle: 'Enter private key or seed phrase',
-                              headerTitleStyle: {
-                                fontFamily: 'Inter',
-                                fontWeight: '400',
-                                fontSize: 24,
-                                color: '#fff',
-                              },
-                              headerTitleAlign: 'center',
-                              animation: 'slide_from_right',
-                              animationDuration: 350,
-                              gestureEnabled: true,
-                            }}
-                          />
-                          <Stack.Screen
-                            name="onboarding/create-wallet"
-                            options={{
-                              headerShown: false,
-                              animation: 'slide_from_right',
-                              animationDuration: 350,
-                              gestureEnabled: true,
-                            }}
-                          />
-                          <Stack.Screen name="receive" />
-                          <Stack.Screen name="Settings" options={{ headerShown: false }} />
-                          <Stack.Screen name="BiometricAuth" options={{ headerShown: false, presentation: 'modal' }} />
-                          <Stack.Screen name="BackdoorBiometricSwitcher" options={{ headerShown: false }} />
-                          <Stack.Screen name="Changelog" options={{ headerShown: false }} />
-                          <Stack.Screen name="SeedBackup" options={{ headerShown: false }} />
-                          <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
-                          <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
-                          <Stack.Screen name="Swap" options={{ headerShown: false }} />
-                          <Stack.Screen
-                            name="SwapTarget"
-                            options={{
-                              presentation: 'formSheet',
-                              sheetAllowedDetents: [0.6],
-                              sheetGrabberVisible: true,
-                              headerTransparent: false,
-                              gestureEnabled: true,
-                              headerShown: false,
-                              contentStyle: {
-                                height: '100%',
-                                backgroundColor: 'rgb(24, 32, 82)',
-                              },
-                            }}
-                          />
-                          <Stack.Screen name="SwapSparkDeposit" options={{ headerShown: false }} />
-                          <Stack.Screen
-                            name="SwapDetails"
-                            options={{
-                              presentation: 'formSheet',
-                              sheetAllowedDetents: [0.8],
-                              sheetGrabberVisible: true,
-                              headerTransparent: false,
-                              gestureEnabled: true,
-                              headerShown: false,
-                              contentStyle: {
-                                height: '100%',
-                              },
-                            }}
-                          />
-                          <Stack.Screen name="Onramp" options={{ headerShown: true }} />
-                          <Stack.Screen name="AskPassword" options={{ presentation: 'modal', headerShown: false }} />
-                          <Stack.Screen name="AskMnemonic" options={{ presentation: 'modal', headerShown: false }} />
-                          <Stack.Screen name="DAppBrowser" options={{ headerShown: true, title: 'Browser' }} />
-                          <Stack.Screen
-                            name="NetworkSelector"
-                            options={{
-                              presentation: 'transparentModal',
-                              sheetAllowedDetents: [0.66, 1.0],
-                              headerShown: false,
-                              animation: 'fade',
-                            }}
-                          />
-                          <Stack.Screen
-                            name="Action"
-                            options={{
-                              presentation: 'formSheet',
-                              sheetAllowedDetents: [0.95],
-                              sheetGrabberVisible: true,
-                              headerTransparent: false,
-                              gestureEnabled: true,
-                            }}
-                          />
-                          <Stack.Screen
-                            name="PocketSwitch"
-                            options={{
-                              presentation: 'formSheet',
-                              sheetAllowedDetents: [0.7],
-                              sheetGrabberVisible: true,
-                              headerTransparent: false,
-                              gestureEnabled: true,
-                              headerShown: false,
-                              contentStyle: {
-                                height: '100%',
-                              },
-                            }}
-                          />
-                          <Stack.Screen
-                            name="Transactions"
-                            options={{
-                              ...DefaultNavigatorOptions,
-                            }}
-                          />
-                          <Stack.Screen
-                            name="TransactionDetails"
-                            options={{
-                              presentation: 'formSheet',
-                              sheetAllowedDetents: [0.7],
-                              sheetGrabberVisible: true,
-                              headerTransparent: false,
-                              gestureEnabled: true,
-                              headerShown: false,
-                              contentStyle: {
-                                height: '100%',
-                              },
-                            }}
-                          />
-                          <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
-                        </Stack>
-                        <StatusBar style="light" />
-                      </ThemeProvider>
-                    </NetworkContextProvider>
-                  </AccountNumberContextProvider>
+                  <AuthStateProvider>
+                    <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
+                      <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
+                        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                          <ProtectedRouteStack />
+                          <StatusBar style="light" />
+                        </ThemeProvider>
+                      </NetworkContextProvider>
+                    </AccountNumberContextProvider>
+                  </AuthStateProvider>
                 </BiometricAuthContextProvider>
               </SettingsContextProvider>
             </InitializationContextProvider>

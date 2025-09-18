@@ -11,7 +11,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { SecureStorage } from '@/src/class/secure-storage';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
-import { useBiometricAuth, isMaestroMode } from '@/src/hooks/BiometricAuthContext';
+import { useAuthState, isMaestroMode } from '@/src/hooks/AuthStateContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
@@ -34,7 +34,7 @@ export default function SettingsScreen() {
   const { network } = useContext(NetworkContext);
   const [btcXpub, setBtcXpub] = useState('');
   const biometricInfo = useBiometrics();
-  const { enableBiometricAuth, disableBiometricAuth, isUpdatingBiometric } = useBiometricAuth();
+  const { enableBiometricAuth, disableBiometricAuth, isUpdatingBiometric, lockApp } = useAuthState();
 
   useEffect(() => {
     (async () => {
@@ -230,6 +230,34 @@ export default function SettingsScreen() {
             }}
           >
             <ThemedText style={styles.selfTestButtonText}>ScanQr</ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        {/* Security Section */}
+        <View style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>Security</ThemedText>
+
+          <TouchableOpacity
+            style={[styles.button, styles.primaryButton]}
+            onPress={() => {
+              Alert.alert('Lock App', 'Are you sure you want to lock the app?', [
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                },
+                {
+                  text: 'Lock',
+                  onPress: () => lockApp(),
+                },
+              ]);
+            }}
+            testID="LockAppButton"
+          >
+            <ThemedText style={styles.primaryButtonText}>Lock App</ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.button, styles.dangerButton]} onPress={handleClearStorage} disabled={isClearing} testID="ClearStorageButton">
+            <ThemedText style={styles.dangerButtonText}>{isClearing ? 'Clearing...' : 'Clear Storage'}</ThemedText>
           </TouchableOpacity>
         </View>
 

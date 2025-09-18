@@ -39,6 +39,7 @@ export const SETTING_OPTIONS = Object.fromEntries(
 
 interface ISettingsContext {
   settings: AppSettings;
+  isSettingsLoaded: boolean;
   updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => Promise<void>;
   resetToDefaults: () => Promise<void>;
   getSetting: <K extends keyof AppSettings>(key: K) => AppSettings[K];
@@ -46,6 +47,7 @@ interface ISettingsContext {
 
 export const SettingsContext = createContext<ISettingsContext>({
   settings: DEFAULT_SETTINGS,
+  isSettingsLoaded: false,
   updateSetting: async () => {
     throw new Error('SettingsContext.updateSetting(): This should never happen');
   },
@@ -64,6 +66,7 @@ interface SettingsContextProviderProps {
 
 export const SettingsContextProvider: React.FC<SettingsContextProviderProps> = (props) => {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [isSettingsLoaded, setIsSettingsLoaded] = useState<boolean>(false);
 
   // Load settings from storage on initialization
   useEffect(() => {
@@ -79,9 +82,11 @@ export const SettingsContextProvider: React.FC<SettingsContextProviderProps> = (
           // No settings stored, use defaults
           setSettings(DEFAULT_SETTINGS);
         }
+        setIsSettingsLoaded(true);
       } catch (error) {
         console.error('Error loading settings, using defaults:', error);
         setSettings(DEFAULT_SETTINGS);
+        setIsSettingsLoaded(true);
       }
     })();
   }, [props.storage]);
@@ -116,6 +121,7 @@ export const SettingsContextProvider: React.FC<SettingsContextProviderProps> = (
     <SettingsContext.Provider
       value={{
         settings,
+        isSettingsLoaded,
         updateSetting,
         resetToDefaults,
         getSetting,
