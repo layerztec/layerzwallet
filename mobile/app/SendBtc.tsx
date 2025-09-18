@@ -19,6 +19,7 @@ import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wal
 import { CreateTransactionTarget, CreateTransactionUtxo } from '@shared/class/wallets/types';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { NETWORK_SPARK } from '@shared/types/networks';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
@@ -26,7 +27,7 @@ import { formatBalance } from '@shared/modules/string-utils';
 type TFeeRateOptions = { [rate: number]: number };
 
 export type SendBtcParams = {
-  addressLock?: 'true' | 'false'; // if true, the address input will be locked
+  sparkSwap?: 'true' | 'false'; // if true, this is a spark swap transaction
   toAddress?: string;
   amount?: string;
 };
@@ -34,7 +35,7 @@ const SendBtc: React.FC = () => {
   const { scanQr } = useContext(ScanQrContext);
   const params = useLocalSearchParams<SendBtcParams>();
   const router = useRouter();
-  const addressLock = params.addressLock === 'true';
+  const sparkSwap = params.sparkSwap === 'true';
   const toAddress = params.toAddress ?? '';
   const amount = params.amount ?? '';
   const [error, setError] = useState<string>('');
@@ -46,7 +47,7 @@ const SendBtc: React.FC = () => {
   const [sendData, setSendData] = useState<undefined | { utxos: CreateTransactionUtxo[]; changeAddress: string }>(undefined);
   const [txhex, setTxhex] = useState<string>('');
   const [actualFee, setActualFee] = useState<number>();
-  const { network } = useContext(NetworkContext);
+  const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
@@ -209,6 +210,20 @@ const SendBtc: React.FC = () => {
     }
   };
 
+  const handleAmountChange = (text: string) => {
+    const normalized = text.replace(',', '.');
+    if (normalized === '' || /^\d*\.?\d*$/.test(normalized)) {
+      router.setParams({ amount: normalized });
+    }
+  };
+
+  const handleBack = () => {
+    if (sparkSwap) {
+      setNetwork(NETWORK_SPARK);
+    }
+    router.replace('/Home');
+  };
+
   if (isSuccess) {
     return (
       <GradientScreen variant={network}>
@@ -219,8 +234,12 @@ const SendBtc: React.FC = () => {
             <View style={styles.successContainer}>
               <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
               <ThemedText style={styles.successMessage}>Transaction Sent!</ThemedText>
-              <ThemedText style={styles.successSubMessage}>Your {getTickerByNetwork(network)} are on their way</ThemedText>
-              <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/Home')}>
+              {sparkSwap ? (
+                <ThemedText style={styles.successSubMessage}>Spark swap initiated! Wait for 3 confirmations, then you will be able to claim the funds on the Spark network.</ThemedText>
+              ) : (
+                <ThemedText style={styles.successSubMessage}>Your {getTickerByNetwork(network)} are on their way</ThemedText>
+              )}
+              <TouchableOpacity style={styles.backButton} onPress={handleBack}>
                 <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
               </TouchableOpacity>
             </View>
@@ -240,16 +259,16 @@ const SendBtc: React.FC = () => {
             <ThemedText style={styles.inputLabel}>Recipient Address</ThemedText>
             <View style={styles.inputContainer}>
               <TextInput
-                style={[styles.input, addressLock && styles.inputDisabled]}
+                style={[styles.input, sparkSwap && styles.inputDisabled]}
                 placeholder="Enter the recipient's address"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 autoCapitalize="none"
                 autoCorrect={false}
                 onChangeText={(text) => router.setParams({ toAddress: text })}
                 value={toAddress}
-                editable={!addressLock}
+                editable={!sparkSwap}
               />
-              <TouchableOpacity style={[styles.scanButton, addressLock && styles.inputDisabled]} disabled={addressLock} onPress={handleScanQR}>
+              <TouchableOpacity style={[styles.scanButton, sparkSwap && styles.inputDisabled]} disabled={sparkSwap} onPress={handleScanQR}>
                 <Ionicons name="scan-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
               </TouchableOpacity>
             </View>
@@ -257,19 +276,7 @@ const SendBtc: React.FC = () => {
 
           <View style={styles.inputSection}>
             <ThemedText style={styles.inputLabel}>Amount</ThemedText>
-            <TextInput
-              style={styles.input}
-              placeholder="0.00"
-              placeholderTextColor="rgba(255, 255, 255, 0.6)"
-              keyboardType="decimal-pad"
-              onChangeText={(text) => {
-                const normalized = text.replace(',', '.');
-                if (normalized === '' || /^\d*\.?\d*$/.test(normalized)) {
-                  router.setParams({ amount: normalized });
-                }
-              }}
-              value={amount}
-            />
+            <TextInput style={styles.input} placeholder="0.00" placeholderTextColor="rgba(255, 255, 255, 0.6)" keyboardType="decimal-pad" onChangeText={handleAmountChange} value={amount} />
             <ThemedText style={styles.balanceText}>
               Available balance: {balance ? formatBalance(balance, getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
             </ThemedText>

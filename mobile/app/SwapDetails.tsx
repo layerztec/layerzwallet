@@ -29,7 +29,7 @@ export default function SwapDetails() {
 
   const [formattedDate, formattedDateWithTime] = useMemo(() => {
     if (!swap.timestamp) return ['—', '—'];
-    const d = new Date(swap.timestamp * 1000);
+    const d = new Date(swap.timestamp);
     const dateStr = d.toLocaleDateString('en-US', {
       month: 'long',
       day: '2-digit',
@@ -157,6 +157,15 @@ export default function SwapDetails() {
             <ThemedText style={styles.detailLabel}>Status</ThemedText>
             <ThemedText style={styles.detailValue}>{capitalizeFirstLetter(swap.status)}</ThemedText>
           </View>
+
+          {swap.targetConfirmations && (
+            <View style={styles.detailRow}>
+              <ThemedText style={styles.detailLabel}>Confirmations</ThemedText>
+              <ThemedText style={styles.detailValue}>
+                {swap.confirmations} / {swap.targetConfirmations}
+              </ThemedText>
+            </View>
+          )}
         </View>
 
         {/* Action buttons */}

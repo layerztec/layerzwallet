@@ -68,6 +68,11 @@ const SwapItem: React.FC<SwapItemProps> = ({ swap }) => {
       <div style={{ flex: 1, marginLeft: '12px' }}>
         <div style={{ fontSize: '14px', fontWeight: '500' }}>{amount}</div>
         <div style={{ fontSize: '12px', color: '#666' }}>{formatSwapDate()}</div>
+        {swap.targetConfirmations && (
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            {swap.confirmations} / {swap.targetConfirmations} confirmations
+          </div>
+        )}
       </div>
 
       <div style={{ textAlign: 'right' }}>

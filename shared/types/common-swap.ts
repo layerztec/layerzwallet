@@ -31,4 +31,10 @@ export interface CommonSwap {
 
   /** Explorer URL for the transaction */
   explorerUrl?: string;
+
+  /** current confirmations */
+  confirmations?: number;
+
+  /** target confirmations. Confirmations needed to process the swap */
+  targetConfirmations?: number;
 }

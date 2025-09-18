@@ -14,7 +14,6 @@ import BigNumber from 'bignumber.js';
 import { Loader2 } from 'lucide-react';
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { Button, Input } from '../DesignSystem';
-import { SwapSparkDepositParams } from '../SwapSparkDeposit';
 
 const SwapInterfaceView: React.FC = () => {
   const navigate = useNavigate();
