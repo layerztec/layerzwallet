@@ -1,13 +1,4 @@
-import { Typography as SharedTypography } from '@shared/constants/Typography';
-import { Platform } from 'react-native';
-
-const fontFamily = {
-  light: Platform.select({ ios: 'Inter-Light', android: 'Inter-Light' }),
-  regular: Platform.select({ ios: 'Inter-Regular', android: 'Inter-Regular' }),
-  medium: Platform.select({ ios: 'Inter-Medium', android: 'Inter-Medium' }),
-  bold: Platform.select({ ios: 'Inter-Bold', android: 'Inter-Bold' }),
-  black: Platform.select({ ios: 'Inter-Black', android: 'Inter-Black' }),
-};
+import { Typography as SharedTypography, fontFamily } from '@shared/constants/Typography';
 
 export const Typography = {
   ...SharedTypography,
@@ -29,11 +20,12 @@ export const Typography = {
   },
   logoText: {
     fontSize: 40,
-    fontWeight: 'bold' as const,
+    fontWeight: 'bold',
     fontFamily: fontFamily.bold,
   },
   buttonText: {
     fontSize: 16,
     fontFamily: fontFamily.medium,
+    fontWeight: '500',
   },
 } as const;

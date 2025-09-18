@@ -139,4 +139,7 @@ export interface IBackgroundCaller {
   getSubMnemonic(...params: GetSubMnemonicRequest): Promise<GetSubMnemonicResponse>;
   getCommonTransactions(...params: GetCommonTransactionsRequest): Promise<GetCommonTransactionsResponse>;
   clear(): Promise<void>;
+  hasSeedVerified(): Promise<boolean>;
+  setSeedVerified(): Promise<void>;
+  getMnemonicForVerification(): Promise<string | null>;
 }

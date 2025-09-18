@@ -137,9 +137,14 @@ export default function RootLayout() {
                             name="onboarding/create-password"
                             options={{
                               headerShown: false,
-                              animation: 'slide_from_right',
-                              animationDuration: 350,
-                              gestureEnabled: true,
+                              gestureEnabled: false,
+                              fullScreenGestureEnabled: false,
+                            }}
+                          />
+                          <Stack.Screen
+                            name="manual-backup/verify-recovery-phrase"
+                            options={{
+                              ...DefaultNavigatorOptions,
                             }}
                           />
                           <Stack.Screen
@@ -174,6 +179,15 @@ export default function RootLayout() {
                               animation: 'slide_from_right',
                               animationDuration: 350,
                               gestureEnabled: true,
+                            }}
+                          />
+                          <Stack.Screen
+                            name="onboarding/verify-recovery-phrase"
+                            options={{
+                              headerShown: false,
+                              animation: 'slide_from_right',
+                              gestureEnabled: false,
+                              fullScreenGestureEnabled: false,
                             }}
                           />
                           <Stack.Screen name="receive" />

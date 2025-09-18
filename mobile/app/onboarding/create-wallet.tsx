@@ -1,7 +1,7 @@
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, StyleSheet, Animated, FlatList, TouchableOpacity, ViewStyle, TextStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import { Animated, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -62,6 +62,9 @@ export default function CreateWalletScreen() {
     router.push('/onboarding/create-password');
   };
 
+  const handleVerify = () => {
+    router.push('/onboarding/verify-recovery-phrase');
+  };
   const wordsData = useMemo(() => {
     const words = recoveryPhrase ? recoveryPhrase.split(' ') : [];
     return Array.from({ length: 12 }, (_, index) => ({
@@ -103,8 +106,16 @@ export default function CreateWalletScreen() {
             <View style={styles.bottomButtonContainer}>
               {!error && recoveryPhrase && (
                 <Animated.View style={verifyButtonAnimation}>
-                  <TouchableOpacity style={styles.verifyButton} onPress={handleContinue} testID="VerifyButton">
-                    <ThemedText type="button">I wrote it down!</ThemedText>
+                  <TouchableOpacity style={styles.skipButton} onPress={handleContinue} testID="SkipButton">
+                    <ThemedText style={styles.buttonText}>Skip</ThemedText>
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
+
+              {!error && recoveryPhrase && (
+                <Animated.View style={verifyButtonAnimation}>
+                  <TouchableOpacity style={styles.verifyButton} onPress={handleVerify} testID="VerifyButton">
+                    <ThemedText style={styles.buttonText}>Verify</ThemedText>
                   </TouchableOpacity>
                 </Animated.View>
               )}
@@ -215,6 +226,17 @@ const styles = StyleSheet.create({
   },
   bottomButtonContainer: {
     marginBottom: 20,
+    gap: 12,
+  },
+  skipButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.dark.buttonBorder,
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
   },
   verifyButton: {
     flexDirection: 'row',
@@ -235,5 +257,10 @@ const styles = StyleSheet.create({
     ...Typography.paragraph,
     color: '#FF6B6B',
     textAlign: 'center',
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.8)',
   },
 });
