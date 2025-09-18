@@ -1,5 +1,5 @@
 import { BrowserBridge } from '@/src/class/browser-bridge';
-import { Eip1193CustomEventCallback, Eip1193CustomEventResponse } from '@shared/types/eip1193-custom-event';
+import { Eip1193CustomEventResponse } from '@shared/types/eip1193-custom-event';
 import { MessageTypeMap } from '@shared/types/IBackgroundCaller';
 import { IMessenger } from '@shared/modules/messenger';
 

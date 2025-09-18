@@ -4,7 +4,6 @@ import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
-import { Colors } from '@shared/constants/Colors';
 
 interface SwitchEthereumChainArgs {
   params: any[];

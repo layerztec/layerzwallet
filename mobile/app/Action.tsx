@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useMemo } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
@@ -11,7 +10,6 @@ import { SwitchEthereumChain } from '@/components/action/SwitchEthereumChain';
 import { WalletRequestPermissions } from '@/components/action/WalletRequestPermissions';
 import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
-import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -30,7 +28,6 @@ const Action: React.FC = () => {
   const routeParams = useLocalSearchParams<ActionRouteParams>();
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { askPassword } = useContext(AskPasswordContext);
 
   const { id, method, from, params } = useMemo(() => {
     let parsedParams: any[] = [];
