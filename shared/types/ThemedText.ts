@@ -1,5 +1,3 @@
-import { Typography } from '@shared/constants/Typography';
-
 export type TypographyKey = 'headline' | 'subHeadline' | 'paragraph' | 'button';
 export type TextType = 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'headline' | 'subHeadline' | 'paragraph' | 'button' | TypographyKey;
 export type WebTextAlign = 'start' | 'end' | 'left' | 'right' | 'center' | 'justify' | 'match-parent';

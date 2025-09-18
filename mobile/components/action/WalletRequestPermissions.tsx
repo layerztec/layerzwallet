@@ -6,7 +6,6 @@ import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { DappPermissions, PermissionRequest } from '@shared/class/dapp-permissions';
-import { Colors } from '@shared/constants/Colors';
 
 interface WalletRequestPermissionsArgs {
   params: any[];

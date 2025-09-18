@@ -6,7 +6,6 @@ import { ThemedText } from '@/components/ThemedText';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { BrowserBridge } from '@/src/class/browser-bridge';
-import { Colors } from '@shared/constants/Colors';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 
 interface PersonalSignArgs {
@@ -73,7 +72,7 @@ export function PersonalSign(args: PersonalSignArgs) {
           if (payload.startsWith('0x')) {
             payload = Buffer.from(payload.replace('0x', ''), 'hex').toString('utf8');
           }
-        } catch (_) {
+        } catch {
           payload = params.join('\n');
         }
       }
