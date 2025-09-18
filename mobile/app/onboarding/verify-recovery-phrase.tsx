@@ -22,7 +22,6 @@ const ENABLED_OPACITY = 1;
 interface WordItem {
   id: number;
   word: string;
-  originalIndex: number;
   isSelected: boolean;
   selectedOrder?: number;
 }
@@ -106,7 +105,6 @@ export default function VerifyRecoveryPhrase() {
       const wordsWithData: WordItem[] = words.map((word, index) => ({
         id: index,
         word,
-        originalIndex: index,
         isSelected: false,
       }));
 
@@ -183,11 +181,6 @@ export default function VerifyRecoveryPhrase() {
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setShowError(true);
-
-        // Reset UI state immediately
-        const resetScrambledWords = scrambledWords.map((item) => ({ ...item, isSelected: false, selectedOrder: undefined }));
-        setScrambledWords(resetScrambledWords);
-        setSelectedWords([]);
 
         // Hide error message after a timeout
         setTimeout(() => {
@@ -459,62 +452,88 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 
-  // Text styles - these need explicit typing due to Typography spread
+  // Text styles
   title: {
-    ...Typography.headline,
+    fontFamily: Typography.headline.fontFamily,
+    fontSize: Typography.headline.fontSize,
+    fontWeight: '300',
+    lineHeight: Typography.headline.lineHeight,
+    letterSpacing: Typography.headline.letterSpacing,
     color: 'rgba(255, 255, 255, 0.95)',
     textAlign: 'center',
     marginBottom: 16,
-  } as const,
+  },
   subtitle: {
-    ...Typography.paragraph,
+    fontFamily: Typography.paragraph.fontFamily,
+    fontSize: Typography.paragraph.fontSize,
+    fontWeight: '400',
+    lineHeight: Typography.paragraph.lineHeight,
+    letterSpacing: Typography.paragraph.letterSpacing,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginBottom: 40,
-  } as const,
+  },
   errorMessage: {
-    ...Typography.paragraph,
+    fontFamily: Typography.paragraph.fontFamily,
+    fontSize: Typography.paragraph.fontSize,
+    fontWeight: '400',
+    lineHeight: Typography.paragraph.lineHeight,
+    letterSpacing: Typography.paragraph.letterSpacing,
     color: '#FF6B6B',
     textAlign: 'center',
     marginTop: 8,
-  } as const,
+  },
   wordNumberText: {
-    ...Typography.buttonText,
-    color: 'rgba(255, 255, 255, 0.9)',
+    fontFamily: Typography.buttonText.fontFamily,
     fontSize: 12,
     fontWeight: '600',
-  } as const,
-  wordText: {
-    ...Typography.paragraph,
     color: 'rgba(255, 255, 255, 0.9)',
+  },
+  wordText: {
+    fontFamily: Typography.paragraph.fontFamily,
+    fontSize: Typography.paragraph.fontSize,
     fontWeight: '500',
-    flex: 1,
-  } as const,
+    lineHeight: Typography.paragraph.lineHeight,
+    letterSpacing: Typography.paragraph.letterSpacing,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
   disabledButtonText: {
     color: 'rgba(255, 255, 255, 0.5)',
-  } as const,
+  },
   errorText: {
-    ...Typography.paragraph,
+    fontFamily: Typography.paragraph.fontFamily,
+    fontSize: Typography.paragraph.fontSize,
+    fontWeight: '400',
+    lineHeight: Typography.paragraph.lineHeight,
+    letterSpacing: Typography.paragraph.letterSpacing,
     color: '#FF6B6B',
     textAlign: 'center',
-  } as const,
+  },
   successTitle: {
-    ...Typography.headline,
+    fontFamily: Typography.headline.fontFamily,
+    fontSize: Typography.headline.fontSize,
+    fontWeight: '300',
+    lineHeight: Typography.headline.lineHeight,
+    letterSpacing: Typography.headline.letterSpacing,
     color: 'rgba(255, 255, 255, 0.95)',
     textAlign: 'center',
     marginBottom: 16,
-  } as const,
+  },
   successSubtitle: {
-    ...Typography.paragraph,
+    fontFamily: Typography.paragraph.fontFamily,
+    fontSize: Typography.paragraph.fontSize,
+    fontWeight: '400',
+    lineHeight: Typography.paragraph.lineHeight,
+    letterSpacing: Typography.paragraph.letterSpacing,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginBottom: 40,
-  } as const,
+  },
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.8)',
-  } as const,
+  },
 
   successIcon: {
     width: 120,
