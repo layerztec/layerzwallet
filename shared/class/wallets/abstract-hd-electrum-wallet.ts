@@ -22,6 +22,7 @@ import { CreateTransactionResult, CreateTransactionTarget, CreateTransactionUtxo
 import { ICsprng } from '../../types/ICsprng';
 import { CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_BITCOIN } from '../../types/networks';
+import { AllNetworkInfos } from '../../models/all-network-infos';
 
 const ECPair = ECPairFactory(ecc);
 const bip32 = BIP32Factory(ecc);
@@ -1347,6 +1348,7 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
     const commonTransactions: CommonTransaction[] = [];
     for (const tx of filtered) {
       const direction = tx?.value ? (tx.value > 0 ? 'receive' : 'send') : 'other';
+      const baseExplorer = AllNetworkInfos[NETWORK_BITCOIN].explorerUrl;
       commonTransactions.push({
         txid: tx.txid,
         network: NETWORK_BITCOIN,
@@ -1355,6 +1357,7 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
         amount: tx?.value,
         tokenTransfers: [],
         status: tx.confirmations > 3 ? 'confirmed' : 'pending',
+        explorerUrl: `${baseExplorer}/tx/${tx.txid}`,
       });
     }
 

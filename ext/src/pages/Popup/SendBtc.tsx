@@ -3,7 +3,7 @@ import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
 import { Scan, SendIcon } from 'lucide-react';
 import { default as React, useContext, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useLocation } from 'react-router';
 
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { TFeeEstimate } from '@shared/blue_modules/BlueElectrum';
@@ -11,6 +11,7 @@ import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wal
 import { CreateTransactionTarget, CreateTransactionUtxo } from '@shared/class/wallets/types';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { NETWORK_SPARK } from '@shared/types/networks';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
@@ -24,11 +25,19 @@ import ClipboardBackdoor from './components/ClipboardBackdoor';
 
 type TFeeRateOptions = { [rate: number]: number };
 
+export interface SendBtcParams {
+  toAddress?: string;
+  amount?: string;
+  sparkSwap?: boolean;
+}
+
 const SendBtc: React.FC = () => {
   const scanQr = useScanQR();
   const navigate = useNavigate();
+  const location = useLocation();
   const [toAddress, setToAddress] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
+  const [sparkSwap, setSparkSwap] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [sendState, setSendState] = useState<'idle' | 'preparing' | 'prepared' | 'success'>('idle');
   const [customFeeRate, setCustomFeeRate] = useState<number | undefined>(); // fee rate that user selected
@@ -36,11 +45,26 @@ const SendBtc: React.FC = () => {
   const [sendData, setSendData] = useState<undefined | { utxos: CreateTransactionUtxo[]; changeAddress: string }>(undefined);
   const [txhex, setTxhex] = useState<string>('');
   const [actualFee, setActualFee] = useState<number>();
-  const { network } = useContext(NetworkContext);
+  const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
   const { balance } = useBalance(network, accountNumber, BackgroundCaller);
   const [showFeeModal, setShowFeeModal] = useState(false);
+
+  // Handle parameters from location state (e.g., from swap flow)
+  useEffect(() => {
+    const state = location.state as SendBtcParams;
+    if (!state) return;
+    if (state.toAddress) {
+      setToAddress(state.toAddress);
+    }
+    if (state.amount) {
+      setAmount(state.amount);
+    }
+    if (state.sparkSwap) {
+      setSparkSwap(true);
+    }
+  }, [location.state]);
 
   const feeRate = useMemo(() => {
     if (customFeeRate !== undefined) return customFeeRate;
@@ -195,6 +219,13 @@ const SendBtc: React.FC = () => {
     setCustomFeeRate(Number(e.target.value));
   };
 
+  const handleBack = () => {
+    if (sparkSwap) {
+      setNetwork(NETWORK_SPARK);
+    }
+    navigate('/');
+  };
+
   if (sendState === 'success') {
     return (
       <div style={{ textAlign: 'center', padding: '20px' }}>
@@ -202,8 +233,12 @@ const SendBtc: React.FC = () => {
         <ThemedText type="headline" style={{ color: '#4CAF50', marginBottom: '15px' }}>
           Sent!
         </ThemedText>
-        <ThemedText style={{ color: '#666', marginBottom: '20px' }}>Your {getTickerByNetwork(network)} are on their way</ThemedText>
-        <WideButton onClick={() => navigate('/')}>
+        {sparkSwap ? (
+          <ThemedText style={{ color: '#666', marginBottom: '20px' }}>Spark swap initiated! Wait for 3 confirmations, then you will be able to claim the funds on the Spark network.</ThemedText>
+        ) : (
+          <ThemedText style={{ color: '#666', marginBottom: '20px' }}>Your {getTickerByNetwork(network)} are on their way</ThemedText>
+        )}
+        <WideButton onClick={handleBack}>
           <ThemedText>Back to Wallet</ThemedText>
         </WideButton>
       </div>
@@ -223,7 +258,8 @@ const SendBtc: React.FC = () => {
             placeholder="Enter the recipient's address"
             onChange={(event) => setToAddress(event.target.value)}
             value={toAddress}
-            style={{ flexGrow: 1, marginRight: '10px' }}
+            disabled={sparkSwap}
+            style={{ flexGrow: 1, marginRight: '10px', backgroundColor: sparkSwap ? '#f0f0f0' : 'white' }}
           />
           <Button
             style={{

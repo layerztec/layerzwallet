@@ -36,4 +36,4 @@ export const Typography = {
     fontSize: 16,
     fontFamily: fontFamily.medium,
   },
-};
+} as const;

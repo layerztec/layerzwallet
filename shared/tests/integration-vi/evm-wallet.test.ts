@@ -166,6 +166,7 @@ describe('EvmWallet getHistory', () => {
         blockHeight: 7883106,
         confirmations: 28,
         counterparty: '0x62174765444ddf44ee2058f593d0267e38709092',
+        explorerUrl: 'https://rootstock.blockscout.com/tx/0xea34f46b7270bd2fc059e9934ffd0785ea3397a058ea3bb5ce1b7744f604c3e2',
         direction: 'receive',
         network: 'rootstock',
         status: 'confirmed',
@@ -190,6 +191,7 @@ describe('EvmWallet getHistory', () => {
         confirmations: Number('47'),
         counterparty: '0x62174765444ddf44ee2058f593d0267e38709092',
         blockHeight: Number('7883083'),
+        explorerUrl: 'https://rootstock.blockscout.com/tx/0x13454c93cb2e8789d71aa38ecd23ec0d838de4df8e2eb7d40d2c0268cb00e299',
       },
       {
         txid: '0x54b0fb3b46e3bef31ba5f90f10fe7d7cc1461f2a041a922184df67d63c8e1f7a',
@@ -208,6 +210,7 @@ describe('EvmWallet getHistory', () => {
         confirmations: Number('58'),
         counterparty: '0xef213441a85df4d7acbdae0cf78004e1e486bb96',
         blockHeight: Number('7883072'),
+        explorerUrl: 'https://rootstock.blockscout.com/tx/0x54b0fb3b46e3bef31ba5f90f10fe7d7cc1461f2a041a922184df67d63c8e1f7a',
       },
       {
         txid: '0x27309296f66f705ced55707025b73c9d359741045996c61a0a637a15e7bd3b6a',
@@ -220,6 +223,7 @@ describe('EvmWallet getHistory', () => {
         confirmations: Number('71'),
         counterparty: '0x62174765444ddf44ee2058f593d0267e38709092',
         blockHeight: Number('7883063'),
+        explorerUrl: 'https://rootstock.blockscout.com/tx/0x27309296f66f705ced55707025b73c9d359741045996c61a0a637a15e7bd3b6a',
       },
       {
         txid: '0x91efda92ddab6a703e7ccb80ff23f55c34bdc78c5952570f74ea6a1fea5c9fea',
@@ -232,6 +236,7 @@ describe('EvmWallet getHistory', () => {
         confirmations: undefined,
         counterparty: '0x3d607b13c8ce127f15bb983589e5797cc9ad235a',
         blockHeight: Number('7638124'),
+        explorerUrl: 'https://rootstock.blockscout.com/tx/0x91efda92ddab6a703e7ccb80ff23f55c34bdc78c5952570f74ea6a1fea5c9fea',
       },
     ];
 

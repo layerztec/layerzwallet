@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -15,6 +16,7 @@ import { BackgroundCaller } from '../../../modules/background-caller';
 import { Button, Input } from '../DesignSystem';
 
 const SwapInterfaceView: React.FC = () => {
+  const navigate = useNavigate();
   const [amount, setAmount] = useState<string>('');
   const [targetNetwork, setTargetNetwork] = useState<Networks>();
   const { network, setNetwork } = useContext(NetworkContext);
@@ -28,7 +30,7 @@ const SwapInterfaceView: React.FC = () => {
     setSwapPairs(getSwapPairs(network, SwapPlatform.EXT));
   }, [network]);
 
-  const handleSwap = async (): Promise<string> => {
+  const handleSwap = async (): Promise<void> => {
     setError('');
     assert(balance, 'internal error: balance not loaded');
     assert(targetNetwork, 'internal error: target network not selected');
@@ -51,7 +53,19 @@ const SwapInterfaceView: React.FC = () => {
     const destinationAddress = await BackgroundCaller.getAddress(targetNetwork, accountNumber);
     assert(destinationAddress, 'internal error: no destination address');
 
-    return (await provider.swap(network, setNetwork, targetNetwork, parseInt(satValue), destinationAddress)).uri;
+    const swapResponse = await provider.swap(network, setNetwork, targetNetwork, parseInt(satValue), destinationAddress);
+
+    switch (swapResponse.action) {
+      case 'DAPP_BROWSER':
+      case 'EXTERNAL_BROWSER':
+        window.open(swapResponse.uri, '_blank');
+        return;
+      case 'INTERNAL_SCREEN':
+        navigate('/SwapSparkDeposit', { state: swapResponse.params });
+        return;
+      default:
+        throw new Error('Unhandled swap action');
+    }
   };
 
   return (
@@ -94,7 +108,6 @@ const SwapInterfaceView: React.FC = () => {
             onClick={() => {
               setIsLoading(true);
               handleSwap()
-                .then((url) => window.open(url, '_blank'))
                 .catch((e) => setError(e.message))
                 .finally(() => setIsLoading(false));
             }}

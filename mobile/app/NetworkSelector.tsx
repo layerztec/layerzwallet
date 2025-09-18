@@ -34,7 +34,7 @@ const NetworkSelector: React.FC = () => {
         usdValue: isTestnet ? 'Testnet' : 'Mainnet',
         color: gradientColors[0],
         icon: networkIcon,
-        tags: isTestnet ? ['Testnet'] : ['Mainnet'],
+        tags: isTestnet ? ['Testnet'] : [],
         tokenCount: 0,
         networkId: network,
         isSelected: currentNetwork === network,

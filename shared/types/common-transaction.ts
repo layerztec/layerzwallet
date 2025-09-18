@@ -59,4 +59,7 @@ export interface CommonTransaction {
 
   /** Block height where transaction was included (not applicable to Lightning) */
   blockHeight?: number;
+
+  /** Explorer URL for the transaction */
+  explorerUrl?: string;
 }

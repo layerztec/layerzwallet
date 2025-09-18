@@ -200,6 +200,21 @@ export default function RootLayout() {
                               },
                             }}
                           />
+                          <Stack.Screen name="SwapSparkDeposit" options={{ headerShown: false }} />
+                          <Stack.Screen
+                            name="SwapDetails"
+                            options={{
+                              presentation: 'formSheet',
+                              sheetAllowedDetents: [0.8],
+                              sheetGrabberVisible: true,
+                              headerTransparent: false,
+                              gestureEnabled: true,
+                              headerShown: false,
+                              contentStyle: {
+                                height: '100%',
+                              },
+                            }}
+                          />
                           <Stack.Screen name="Onramp" options={{ headerShown: true }} />
                           <Stack.Screen name="AskPassword" options={{ presentation: 'modal', headerShown: false }} />
                           <Stack.Screen name="AskMnemonic" options={{ presentation: 'modal', headerShown: false }} />
@@ -225,6 +240,26 @@ export default function RootLayout() {
                           />
                           <Stack.Screen
                             name="PocketSwitch"
+                            options={{
+                              presentation: 'formSheet',
+                              sheetAllowedDetents: [0.7],
+                              sheetGrabberVisible: true,
+                              headerTransparent: false,
+                              gestureEnabled: true,
+                              headerShown: false,
+                              contentStyle: {
+                                height: '100%',
+                              },
+                            }}
+                          />
+                          <Stack.Screen
+                            name="Transactions"
+                            options={{
+                              ...DefaultNavigatorOptions,
+                            }}
+                          />
+                          <Stack.Screen
+                            name="TransactionDetails"
                             options={{
                               presentation: 'formSheet',
                               sheetAllowedDetents: [0.7],
