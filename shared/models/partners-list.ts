@@ -1,4 +1,4 @@
-import { Networks, NETWORK_BITCOIN, NETWORK_BOTANIX_TESTNET, NETWORK_CITREA_TESTNET, NETWORK_ARK_MUTINYNET, NETWORK_BOTANIX, NETWORK_ROOTSTOCK } from '../types/networks';
+import { Networks, NETWORK_BITCOIN, NETWORK_CITREA_TESTNET, NETWORK_BOTANIX, NETWORK_ROOTSTOCK } from '../types/networks';
 import { PartnerInfo } from '../types/partner-info';
 
 const partnersList: PartnerInfo[] = [

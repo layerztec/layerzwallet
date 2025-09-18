@@ -135,7 +135,7 @@ export default function ImportWalletScreen() {
 
       try {
         sanitizeAndValidateMnemonic(mnemonic);
-      } catch (validationError) {
+      } catch {
         setError('Invalid mnemonic seed');
         return;
       }

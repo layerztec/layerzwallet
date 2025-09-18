@@ -6,7 +6,6 @@ import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { EvmWallet } from '@shared/class/evm-wallet';
-import { Colors } from '@shared/constants/Colors';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
@@ -35,7 +34,7 @@ export function SendTransaction(args: SendTransactionArgs) {
     try {
       const json = args.params;
       return json?.[0];
-    } catch (_) {
+    } catch {
       return undefined;
     }
   };
@@ -52,7 +51,7 @@ export function SendTransaction(args: SendTransactionArgs) {
         let baseFee;
         try {
           baseFee = await e.getBaseFeePerGas(network);
-        } catch (_) {
+        } catch {
           baseFee = 0n;
         }
         const prepared = await e.prepareTransaction(tx, network, feeData, BigInt(overpayMultiplier));

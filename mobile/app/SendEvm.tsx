@@ -4,7 +4,7 @@ import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, ScrollView } from 'react-native';
+import { Keyboard, StyleSheet, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
 
 import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
