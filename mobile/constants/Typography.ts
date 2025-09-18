@@ -1,12 +1,4 @@
-import { Typography as SharedTypography } from '@shared/constants/Typography';
-
-const fontFamily = {
-  light: 'Inter-Light',
-  regular: 'Inter-Regular',
-  medium: 'Inter-Medium',
-  bold: 'Inter-Bold',
-  black: 'Inter-Black',
-} as const;
+import { Typography as SharedTypography, fontFamily } from '@shared/constants/Typography';
 
 export const Typography = {
   ...SharedTypography,
