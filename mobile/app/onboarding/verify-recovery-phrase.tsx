@@ -50,12 +50,13 @@ const SelectableWordDisplay: React.FC<{
   }, [wordItem.isSelected, isCorrect, showError]);
 
   const animatedViewStyle = useMemo(
-    () => ({
-      opacity: !wordItem.isSelected ? buttonOpacity : ENABLED_OPACITY,
-      flex: 1,
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-    }),
+    () =>
+      ({
+        opacity: !wordItem.isSelected ? buttonOpacity : ENABLED_OPACITY,
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }) as const,
     [wordItem.isSelected, buttonOpacity]
   );
 
@@ -439,6 +440,10 @@ const styles = StyleSheet.create({
   successIconContainer: {
     marginBottom: 30,
   },
+  successIcon: {
+    width: 120,
+    height: 120,
+  },
   successButton: {
     backgroundColor: Colors.dark.buttonPrimary,
     borderRadius: 16,
@@ -454,31 +459,19 @@ const styles = StyleSheet.create({
 
   // Text styles
   title: {
-    fontFamily: Typography.headline.fontFamily,
-    fontSize: Typography.headline.fontSize,
-    fontWeight: '300',
-    lineHeight: Typography.headline.lineHeight,
-    letterSpacing: Typography.headline.letterSpacing,
+    ...Typography.headline,
     color: 'rgba(255, 255, 255, 0.95)',
     textAlign: 'center',
     marginBottom: 16,
   },
   subtitle: {
-    fontFamily: Typography.paragraph.fontFamily,
-    fontSize: Typography.paragraph.fontSize,
-    fontWeight: '400',
-    lineHeight: Typography.paragraph.lineHeight,
-    letterSpacing: Typography.paragraph.letterSpacing,
+    ...Typography.paragraph,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginBottom: 40,
   },
   errorMessage: {
-    fontFamily: Typography.paragraph.fontFamily,
-    fontSize: Typography.paragraph.fontSize,
-    fontWeight: '400',
-    lineHeight: Typography.paragraph.lineHeight,
-    letterSpacing: Typography.paragraph.letterSpacing,
+    ...Typography.paragraph,
     color: '#FF6B6B',
     textAlign: 'center',
     marginTop: 8,
@@ -490,41 +483,25 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
   },
   wordText: {
-    fontFamily: Typography.paragraph.fontFamily,
-    fontSize: Typography.paragraph.fontSize,
-    fontWeight: '500',
-    lineHeight: Typography.paragraph.lineHeight,
-    letterSpacing: Typography.paragraph.letterSpacing,
+    ...Typography.paragraph,
     color: 'rgba(255, 255, 255, 0.9)',
   },
   disabledButtonText: {
     color: 'rgba(255, 255, 255, 0.5)',
   },
   errorText: {
-    fontFamily: Typography.paragraph.fontFamily,
-    fontSize: Typography.paragraph.fontSize,
-    fontWeight: '400',
-    lineHeight: Typography.paragraph.lineHeight,
-    letterSpacing: Typography.paragraph.letterSpacing,
+    ...Typography.paragraph,
     color: '#FF6B6B',
     textAlign: 'center',
   },
   successTitle: {
-    fontFamily: Typography.headline.fontFamily,
-    fontSize: Typography.headline.fontSize,
-    fontWeight: '300',
-    lineHeight: Typography.headline.lineHeight,
-    letterSpacing: Typography.headline.letterSpacing,
+    ...Typography.headline,
     color: 'rgba(255, 255, 255, 0.95)',
     textAlign: 'center',
     marginBottom: 16,
   },
   successSubtitle: {
-    fontFamily: Typography.paragraph.fontFamily,
-    fontSize: Typography.paragraph.fontSize,
-    fontWeight: '400',
-    lineHeight: Typography.paragraph.lineHeight,
-    letterSpacing: Typography.paragraph.letterSpacing,
+    ...Typography.paragraph,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginBottom: 40,
@@ -533,10 +510,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.8)',
-  },
-
-  successIcon: {
-    width: 120,
-    height: 120,
   },
 });
