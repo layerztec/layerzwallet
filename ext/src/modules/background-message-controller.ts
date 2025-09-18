@@ -1,3 +1,5 @@
+import assert from 'assert';
+
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
@@ -12,7 +14,6 @@ import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
 import { decrypt, encrypt } from '../modules/encryption';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
-import assert from 'assert';
 
 // All possible background messages with their params
 type TBackgroundMessage = { [K in keyof MessageTypeMap]: { type: K; params: MessageTypeMap[K]['params'] } }[keyof MessageTypeMap];
