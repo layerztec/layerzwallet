@@ -1,8 +1,5 @@
 import { SingleKey, Wallet, TxType } from '@arkade-os/sdk';
-import { ArkadeLightning, BoltzSwapProvider, StorageProvider, decodeInvoice } from '@arkade-os/boltz-swap';
-// import { AsyncStorage as RNAsyncStorageAdapter  } from '@arkade-os/boltz-swap';
-// @ts-ignore fixme
-import { Storage } from '@arkade-os/boltz-swap';
+import { ArkadeLightning, BoltzSwapProvider, decodeInvoice } from '@arkade-os/boltz-swap';
 import ecc from '@bitcoinerlab/secp256k1';
 import BIP32Factory from 'bip32';
 import * as bip39 from 'bip39';
@@ -61,21 +58,10 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     return SingleKey.fromHex(hex);
   }
 
-  async init() {
+  async init(layerzStorage: IStorage) {
     const identity = this._getIdentity();
 
-    this._wallet = await Wallet.create({
-      identity,
-      arkServerUrl: this._arkServerUrl,
-      arkServerPublicKey: this._arkServerPublicKey,
-    });
-  }
-
-  async initLightningSwaps(layerzStorage: IStorage) {
-    assert(this._wallet, 'Ark wallet must be initialized first');
-    assert(this._boltzApiUrl, 'Boltz Api Url is not set');
-
-    class MyCustomStorage implements Storage {
+    class ArkCustomStorage {
       async getItem(key: string): Promise<string | null> {
         return await layerzStorage.getItem(key);
       }
@@ -93,9 +79,19 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
       }
     }
 
-    const customStorage = new MyCustomStorage();
-    // @ts-ignore fixme
-    const storageProvider = new StorageProvider(customStorage);
+    const storage = new ArkCustomStorage();
+
+    this._wallet = await Wallet.create({
+      storage,
+      identity,
+      arkServerUrl: this._arkServerUrl,
+      arkServerPublicKey: this._arkServerPublicKey,
+    });
+  }
+
+  async initLightningSwaps() {
+    assert(this._wallet, 'Ark wallet must be initialized first');
+    assert(this._boltzApiUrl, 'Boltz Api Url is not set');
 
     // Initialize the Lightning swap provider
     const swapProvider = new BoltzSwapProvider({
@@ -107,7 +103,6 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     this._arkadeLightning = new ArkadeLightning({
       wallet: this._wallet,
       swapProvider,
-      storageProvider, // optional
     });
   }
 
@@ -116,7 +111,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
 
     if (this._arkadeLightning) {
       // lets try to claim all pending incoming swaps
-      const pendingReverseSwaps = this._arkadeLightning.getPendingReverseSwaps();
+      const pendingReverseSwaps = await this._arkadeLightning.getPendingReverseSwaps();
       if ((pendingReverseSwaps ?? []).length > 0) console.log('got', pendingReverseSwaps?.length ?? [], 'pending swaps');
 
       for (const swap of pendingReverseSwaps ?? []) {
@@ -187,12 +182,6 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     console.log('Payment Hash:', result.paymentHash);
     console.log('Pending swap', result.pendingSwap);
     console.log('Preimage', result.preimage);
-
-    // Monitor the payment, it will resolve when the payment is received
-    // console.log('calling waitAndClaim...');
-    // const receivalResult = await this._arkadeLightning.waitAndClaim(result.pendingSwap);
-    // console.log('Receival successful!');
-    // console.log('Transaction ID:', receivalResult.txid);
 
     return {
       invoice: result.invoice,

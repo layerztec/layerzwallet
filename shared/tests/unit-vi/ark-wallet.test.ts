@@ -3,23 +3,35 @@ import { test, vi } from 'vitest';
 import { ArkTransaction, TxType } from '@arkade-os/sdk';
 
 import { ArkWallet } from '../../class/wallets/ark-wallet';
+import { IStorage } from '@shared/types/IStorage';
+
+const _cache: Record<string, string> = {};
+const storageMock: IStorage = {
+  async setItem(key: string, value: string) {
+    _cache[key] = value;
+  },
+
+  async getItem(key: string) {
+    return _cache[key];
+  },
+};
 
 test('ArkWallet', async () => {
   const w = new ArkWallet();
   w.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
   // acc number 0
-  await w.init();
+  await w.init(storageMock);
 
   const receive0 = await w.getOffchainReceiveAddress();
   assert.ok(receive0);
 
   w.setAccountNumber(1);
-  await w.init();
+  await w.init(storageMock);
   assert.ok(await w.getOffchainReceiveAddress());
   assert.ok(receive0 !== (await w.getOffchainReceiveAddress()));
 
   w.setAccountNumber(0);
-  await w.init();
+  await w.init(storageMock);
 
   assert.ok(receive0 === (await w.getOffchainReceiveAddress()));
 });
@@ -27,7 +39,7 @@ test('ArkWallet', async () => {
 test('ArkWallet - getCommonTransactions', async () => {
   const w = new ArkWallet();
   w.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
-  await w.init();
+  await w.init(storageMock);
 
   const transfers: ArkTransaction[] = [
     {

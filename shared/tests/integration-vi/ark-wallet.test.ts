@@ -7,14 +7,18 @@ import fs from 'fs';
 // const _cache: Record<string, string> = {};
 const storageMock: IStorage = {
   async setItem(key: string, value: string) {
-    console.log('setItem', key, value);
+    console.log('setItem', key, '....');
     fs.writeFileSync('/tmp/ark-swap-storage' + key, value);
     // _cache[key] = value;
   },
 
   async getItem(key: string) {
     console.log('getItem', key);
-    return fs.readFileSync('/tmp/ark-swap-storage' + key).toString('utf8');
+    try {
+      return fs.readFileSync('/tmp/ark-swap-storage' + key).toString('utf8');
+    } catch {
+      return '';
+    }
     // return _cache[key];
   },
 };
@@ -27,14 +31,38 @@ test('ark', async (context) => {
 
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
-  await w.init();
+  await w.init(storageMock);
 
   const offchainBalance = await w.getOffchainBalance();
 
   assert.ok(offchainBalance >= 666);
 });
 
-test.skip('ark can create lightning invoice', async (context) => {
+test('ark mainnet', async (context) => {
+  if (!process.env.TEST_MNEMONIC) {
+    context.skip();
+    return;
+  }
+
+  if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
+    console.warn('skipped');
+    context.skip();
+    return;
+  }
+
+  const w = new ArkWallet();
+  w.setSecret(process.env.TEST_MNEMONIC);
+  w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
+  w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
+  w.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
+  await w.init(storageMock);
+
+  const offchainBalance = await w.getOffchainBalance();
+
+  assert.ok(offchainBalance >= 666);
+});
+
+test.only('ark can create lightning invoice', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
     context.skip();
     return;
@@ -51,12 +79,8 @@ test.skip('ark can create lightning invoice', async (context) => {
   w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
   w.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
 
-  await w.init();
-
-  const start = Date.now();
-  await w.initLightningSwaps(storageMock);
-  const end = Date.now();
-  console.log((end - start) / 1000, 'sec');
+  await w.init(storageMock);
+  await w.initLightningSwaps();
 
   const offchainBalance = await w.getOffchainBalance();
   console.log({ offchainBalance });
@@ -89,10 +113,10 @@ test.skip('ark can pay lightning invoice', async (context) => {
   w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
   w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
   w.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
-  await w.init();
+  await w.init(storageMock);
 
   const start = Date.now();
-  await w.initLightningSwaps(storageMock);
+  await w.initLightningSwaps();
   const end = Date.now();
   console.log((end - start) / 1000, 'sec');
 

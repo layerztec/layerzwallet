@@ -126,7 +126,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     const aw = new ArkWallet();
     const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
     aw.setSecret(submnemonic);
-    await aw.init();
+    await aw.init(storage);
     cachedWallets[network][accountNumber] = aw;
     return aw;
   }
@@ -140,8 +140,8 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     aw.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
     aw.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
     aw.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
-    await aw.init();
-    await aw.initLightningSwaps(storage);
+    await aw.init(storage);
+    await aw.initLightningSwaps();
     cachedWallets[network][accountNumber] = aw;
     return aw;
   }
