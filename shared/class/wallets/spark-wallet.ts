@@ -193,6 +193,10 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     return await this._sdkWallet.transferTokens({ receiverSparkAddress, tokenAmount, tokenIdentifier: tokenIdentifier as Bech32mTokenIdentifier });
   }
 
+  allowLightning() {
+    return true;
+  }
+
   async getOnchainDepositAddress(): Promise<string> {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
@@ -286,9 +290,5 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     });
 
     await BlueElectrum.broadcastV2(hex);
-  }
-
-  allowLightning() {
-    return true;
   }
 }

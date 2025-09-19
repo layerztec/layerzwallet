@@ -1,4 +1,5 @@
 import { BIP85 } from 'bip85';
+import assert from 'assert';
 
 import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
 import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
@@ -8,7 +9,6 @@ import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NE
 import { WalletSerializer } from './wallet-serializer';
 import { BreezWallet, getBreezNetwork } from '../class/wallets/breez-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
-import assert from 'assert';
 
 // Cache of wallets by network and account number
 const cachedWallets: Record<TSupportedLazyInitWalletNetworks, Record<number, TLazyInitedWallets>> = {
