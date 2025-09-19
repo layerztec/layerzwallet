@@ -1,6 +1,6 @@
 {
   "extends": ["react-app", "prettier", "plugin:prettier/recommended"],
-  "ignorePatterns": ["**/node_modules/", "build/"],
+  "ignorePatterns": ["**/node_modules/", "build/", "playwright-report/"],
   "globals": {
     "chrome": "readonly",
     "globalThis": "readonly"

@@ -33,7 +33,7 @@ export default function SwapSparkDeposit() {
         assert(wallet instanceof SparkWallet);
         const toAddress = await wallet.getOnchainDepositAddress();
         const amount = new BigNumber(params.amountIn).dividedBy(10 ** getDecimalsByNetwork(network)).toString(10);
-        router.replace({ pathname: '/SendBtc', params: { toAddress, amount, addressLock: 'true' } });
+        router.replace({ pathname: '/SendBtc', params: { toAddress, amount, sparkSwap: 'true' } });
       } catch (error: any) {
         setError(error.message);
       } finally {

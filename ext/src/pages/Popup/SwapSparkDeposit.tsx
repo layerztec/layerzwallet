@@ -37,7 +37,7 @@ const SwapSparkDeposit: React.FC = () => {
           state: {
             toAddress,
             amount,
-            addressLock: true,
+            sparkSwap: true,
           },
         });
       } catch (error: any) {

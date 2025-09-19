@@ -7,7 +7,7 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { Networks, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET } from '@shared/types/networks';
+import { Networks } from '@shared/types/networks';
 import { getTokenIconColor, getTokenInfo } from '@shared/models/token-list';
 
 interface TransactionProps {

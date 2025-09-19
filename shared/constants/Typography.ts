@@ -1,10 +1,10 @@
-const fontFamily = {
+export const fontFamily = {
   light: 'Inter-Light',
   regular: 'Inter-Regular',
   medium: 'Inter-Medium',
   bold: 'Inter-Bold',
   black: 'Inter-Black',
-};
+} as const;
 
 export const Typography = {
   headline: {
@@ -34,6 +34,6 @@ export const Typography = {
     fontWeight: '600',
     lineHeight: 16,
     letterSpacing: -0.32,
-    textAlign: 'center' as const,
+    textAlign: 'center',
   },
-};
+} as const;

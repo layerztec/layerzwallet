@@ -1,6 +1,6 @@
 import { Messenger } from './messenger';
 import { GetSubMnemonicResponse, GetBtcSendDataResponse, IBackgroundCaller, MessageType, GetCommonTransactionsResponse } from '@shared/types/IBackgroundCaller';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SEED_VERIFIED } from '@shared/types/IStorage';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
 import { NETWORK_SPARK } from '@shared/types/networks';
@@ -132,5 +132,22 @@ export const BackgroundCaller: IBackgroundCaller = {
 
   async clear(...params) {
     return await Messenger.sendGenericMessageToBackground(MessageType.CLEAR, params);
+  },
+
+  async hasSeedVerified() {
+    return !!(await LayerzStorage.getItem(STORAGE_KEY_SEED_VERIFIED));
+  },
+
+  async setSeedVerified() {
+    await LayerzStorage.setItem(STORAGE_KEY_SEED_VERIFIED, 'true');
+  },
+
+  async getMnemonicForVerification() {
+    const mnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
+    // During onboarding, mnemonic should not be encrypted yet
+    if (mnemonic && !mnemonic.startsWith(ENCRYPTED_PREFIX)) {
+      return mnemonic;
+    }
+    return null;
   },
 };

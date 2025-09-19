@@ -1,7 +1,6 @@
 import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useNavigation } from '@react-navigation/native';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import * as bolt11 from 'bolt11';
@@ -37,7 +36,6 @@ const SendLightning: React.FC = () => {
   const invoice = params.invoice ?? '';
   const { scanQr } = useContext(ScanQrContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
-  const navigation = useNavigation();
   const [error, setError] = useState<string>('');
   const [sendState, setSendState] = useState<'idle' | 'preparing' | 'prepared' | 'sending' | 'success'>('idle');
   const [feeSats, setFeeSats] = useState<number | null>(null);
@@ -64,7 +62,7 @@ const SendLightning: React.FC = () => {
           router.setParams({ invoice: bip21decoded?.options?.lightning });
           return; // useEffect will re-run with the correct parsed invoice
         }
-      } catch (_) {}
+      } catch {}
 
       const decoded = bolt11.decode(params.invoice);
       setAmountToSend(decoded.satoshis ? String(decoded.satoshis) : '');

@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
 import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -11,7 +10,6 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 
 export default function SeedBackupScreen() {
   const { network } = useContext(NetworkContext);
-  const router = useRouter();
   const { askMnemonic } = useContext(AskMnemonicContext);
   const [mnemonic, setMnemonic] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
