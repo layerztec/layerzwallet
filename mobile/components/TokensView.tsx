@@ -24,7 +24,12 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
 
   if (!balance && !token.balance) return null;
 
-  const formattedBalance = formatBalance(balance ?? token.balance ?? '0', token.decimals, 2);
+  let decimalPlaces = 3;
+  if (token.name.includes('USD')) {
+    decimalPlaces = 2;
+  }
+
+  const formattedBalance = formatBalance(balance ?? token.balance ?? '0', token.decimals, decimalPlaces);
 
   // displaying token only if its balance is above the threshold. Threshold is arbitrary atm, probably
   // should be configurable per token

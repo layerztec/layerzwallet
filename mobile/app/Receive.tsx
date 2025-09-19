@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import BigNumber from 'bignumber.js';
 import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 import { Stack } from 'expo-router';
-import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Pressable, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import GradientScreen from '@/components/GradientScreen';
@@ -18,6 +19,7 @@ import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-uti
 import { StringNumber } from '@shared/types/string-number';
 import { NETWORK_SPARK } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { getGradientPrimaryColor } from '@/utils/gradientUtils';
 
 export default function ReceiveScreen() {
   const { network } = useContext(NetworkContext);
@@ -25,6 +27,10 @@ export default function ReceiveScreen() {
   const [address, setAddress] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [oldBalance, setOldBalance] = useState<StringNumber>('');
+  const [isCopied, setIsCopied] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const opacityAnim = useRef(new Animated.Value(1)).current;
+  const pressScaleAnim = useRef(new Animated.Value(1)).current;
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const [sparkTokenReceiveInfo, setSparkTokenReceiveInfo] = useState<{
     symbol: string;
@@ -49,13 +55,11 @@ export default function ReceiveScreen() {
 
   useEffect(() => {
     if (!oldBalance && balance) {
-      // initial update
       setOldBalance(balance);
       return;
     }
   }, [balance, oldBalance]);
 
-  // Spark token polling: cache initial holdings and detect increases
   useEffect(() => {
     if (network !== NETWORK_SPARK) {
       return;
@@ -127,31 +131,97 @@ export default function ReceiveScreen() {
     fetchAddress();
   }, [accountNumber, network, fetchAddress]);
 
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `My ${capitalizeFirstLetter(network)} address: ${address}`,
-      });
-    } catch {
-      Alert.alert('Error', 'Failed to share address');
-    }
+  const handleShare = () => {
+    Share.share({
+      message: `My ${capitalizeFirstLetter(network)} address: ${address}`,
+    });
   };
 
   const handleCopyAddress = async () => {
     if (address) {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      Animated.timing(opacityAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => {
+        setIsCopied(true);
+
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }).start();
+      });
+
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 0.95,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
       await Clipboard.setStringAsync(address);
-      Alert.alert('Copied', 'Address copied to clipboard');
+      setTimeout(() => {
+        Animated.timing(opacityAnim, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }).start(() => {
+          setIsCopied(false);
+
+          Animated.timing(opacityAnim, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+          }).start();
+        });
+      }, 2000);
     }
   };
 
-  const handleRefresh = () => {
-    fetchAddress();
+  const handlePressIn = () => {
+    Animated.timing(pressScaleAnim, {
+      toValue: 0.98,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
   };
 
-  // Split into groups of 4 characters with spaces
-  const formatAddressDisplay = (addr: string): string => {
-    if (!addr) return '';
-    return addr.match(/.{1,4}/g)?.join('  ') || addr;
+  const handlePressOut = () => {
+    Animated.timing(pressScaleAnim, {
+      toValue: 1,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const formatAddressWithOpacity = (addr: string) => {
+    if (!addr) return null;
+    const groups = addr.match(/.{1,4}/g) || [];
+
+    return (
+      <>
+        {groups.map((group, index) => {
+          const isFirstOrLast = index === 0 || index === groups.length - 1;
+          const opacity = isFirstOrLast ? 1 : 0.6;
+
+          return (
+            <ThemedText key={index} style={[styles.addressDisplay, { opacity }]}>
+              {group}
+              {index < groups.length - 1 && '  '}
+            </ThemedText>
+          );
+        })}
+      </>
+    );
   };
 
   if (network === NETWORK_SPARK && sparkTokenReceiveInfo) {
@@ -203,42 +273,73 @@ export default function ReceiveScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.contentContainer}>
           <View style={styles.qrSection}>
-            <View style={styles.qrContainer} testID="QrContainer">
-              {isLoading ? (
-                <View style={styles.qrPlaceholder} testID="LoadingPlaceholder">
-                  <ActivityIndicator size="large" color="#ffffff" />
-                  <ThemedText style={styles.loadingText}>Loading address...</ThemedText>
-                </View>
-              ) : address ? (
-                <QRCode testID="AddressQrCode" value={address} size={280} backgroundColor="white" color="black" />
-              ) : (
-                <View style={styles.qrPlaceholder}>
-                  <ThemedText style={styles.errorText}>No address available</ThemedText>
-                </View>
-              )}
-            </View>
+            {!isLoading && address ? (
+              <Pressable onPress={handleCopyAddress} onPressIn={handlePressIn} onPressOut={handlePressOut} testID="CopyAddressButton" disabled={!address || isCopied}>
+                <Animated.View style={[styles.qrAndAddressContainer, { transform: [{ scale: pressScaleAnim }] }]}>
+                  <View style={styles.qrContainer} testID="QrContainer">
+                    <QRCode
+                      testID="AddressQrCode"
+                      value={address}
+                      size={320}
+                      backgroundColor={'#ffffff'}
+                      color="black"
+                      logo={require('@/assets/images/splash-icon.png')}
+                      logoSize={70}
+                      logoBackgroundColor={getGradientPrimaryColor(network)}
+                      logoBorderRadius={10}
+                    />
+                  </View>
 
-            {!isLoading && address && (
-              <ThemedText style={styles.addressDisplay} testID="AddressText">
-                {formatAddressDisplay(address)}
-              </ThemedText>
+                  <View style={styles.addressContainer}>
+                    {isCopied ? (
+                      <Animated.View
+                        style={{
+                          transform: [{ scale: scaleAnim }],
+                          opacity: opacityAnim,
+                        }}
+                      >
+                        <ThemedText style={styles.addressDisplay} testID="AddressText">
+                          Copied ✓
+                        </ThemedText>
+                      </Animated.View>
+                    ) : (
+                      <Animated.View
+                        style={[
+                          styles.addressTextContainer,
+                          {
+                            transform: [{ scale: scaleAnim }],
+                            opacity: opacityAnim,
+                          },
+                        ]}
+                        testID="AddressText"
+                      >
+                        {formatAddressWithOpacity(address)}
+                      </Animated.View>
+                    )}
+                  </View>
+                </Animated.View>
+              </Pressable>
+            ) : (
+              <>
+                <View style={styles.qrContainer} testID="QrContainer">
+                  {isLoading ? (
+                    <View style={styles.qrPlaceholder} testID="LoadingPlaceholder">
+                      <ActivityIndicator size="large" color="#ffffff" />
+                      <ThemedText style={styles.loadingText}>Loading address...</ThemedText>
+                    </View>
+                  ) : (
+                    <View style={styles.qrPlaceholder}>
+                      <ThemedText style={styles.errorText}>No address available</ThemedText>
+                    </View>
+                  )}
+                </View>
+              </>
             )}
           </View>
 
-          <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
-            <Ionicons name="refresh" size={24} color="rgba(255, 255, 255, 0.8)" />
-            <ThemedText style={{ color: 'white', opacity: 0.8 }}>Refresh</ThemedText>
-          </TouchableOpacity>
-
           <View style={styles.actionButtons}>
             <TouchableOpacity testID="ShareButton" onPress={handleShare} style={styles.shareButton} disabled={!address}>
-              <Ionicons name="share-outline" size={28} color="rgba(255, 255, 255, 0.8)" />
-              <ThemedText style={styles.shareButtonText}>Share address</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity testID="CopyAddressButton" onPress={handleCopyAddress} style={styles.copyButton} disabled={!address}>
-              <Ionicons testID="CopyIcon" name="copy-outline" size={22} color="rgba(255, 255, 255, 0.8)" />
-              <ThemedText style={styles.copyButtonText}>Copy address</ThemedText>
+              <ThemedText style={styles.shareButtonText}>Share...</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -255,23 +356,27 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'space-between', // This will push share button to bottom
   },
   qrSection: {
     alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 30,
+    marginTop: 60,
+    marginBottom: 40,
+  },
+  qrAndAddressContainer: {
+    alignItems: 'center',
   },
   qrContainer: {
-    marginBottom: 30,
-    padding: 20,
+    padding: 24,
     backgroundColor: 'white',
-    borderRadius: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   qrPlaceholder: {
-    width: 280,
-    height: 280,
+    width: 320,
+    height: 320,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f0f0f0',
@@ -282,12 +387,36 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#666',
   },
+  addressContainer: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderBottomRightRadius: 16,
+    borderBottomLeftRadius: 16,
+    padding: 16,
+    width: 368,
+    minHeight: 100,
+    justifyContent: 'center',
+  },
+  addressContainerPressed: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    transform: [{ scale: 0.98 }],
+  },
   addressDisplay: {
-    textAlign: 'left',
-    lineHeight: 25,
-    paddingHorizontal: 20,
+    textAlign: 'center',
+    lineHeight: 24,
     color: 'white',
-    opacity: 0.8,
+    fontSize: 14,
+  },
+  addressTextContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addressCopyText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
   },
   refreshButton: {
     flexDirection: 'row',
@@ -305,18 +434,21 @@ const styles = StyleSheet.create({
   actionButtons: {
     width: '100%',
     gap: 8,
+    marginBottom: 20, // Add some margin from the bottom edge
   },
   shareButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#000000',
-    paddingVertical: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: 18,
     borderRadius: 16,
     gap: 12,
   },
   shareButtonText: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   copyButton: {
     flexDirection: 'row',

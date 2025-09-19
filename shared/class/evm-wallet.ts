@@ -259,8 +259,6 @@ export class EvmWallet {
     const endBlock = latestBlockNumber;
 
     let page = 1;
-    let totalNew = 0;
-    let pageCount = 0;
     const maxPageBatch = 10000;
 
     const existingMap: Record<string, ActionData> = this.explorerDataCache.get(dataKey) ?? {};
@@ -294,10 +292,8 @@ export class EvmWallet {
         const key = this.getActionDataUniqueKey(action, r);
         if (!existingMap[key]) {
           existingMap[key] = r;
-          totalNew += 1;
         }
       }
-      pageCount += 1;
 
       // if we got a full page of 10k, try next page; otherwise this segment is done
       if (results.length === maxPageBatch) {
@@ -439,6 +435,7 @@ export class EvmWallet {
       }
 
       const amountNative = item.baseValueDeltaWei === 0n ? undefined : Number(item.baseValueDeltaWei < 0n ? -item.baseValueDeltaWei : item.baseValueDeltaWei);
+      const explorerBase = AllNetworkInfos[network].explorerUrl;
 
       result.push({
         txid: item.txid,
@@ -451,6 +448,7 @@ export class EvmWallet {
         confirmations: item.confirmations,
         counterparty: item.counterparty,
         blockHeight: item.blockHeight,
+        explorerUrl: `${explorerBase}/tx/${item.txid}`,
       });
     }
 

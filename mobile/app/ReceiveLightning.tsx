@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Alert, ScrollView, Share, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -24,7 +24,6 @@ export type ReceiveLightningProps = {
 };
 
 export default function ReceiveLightningScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams<ReceiveLightningProps>();
   const network = params.network;
   const { accountNumber } = useContext(AccountNumberContext);

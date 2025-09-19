@@ -1,7 +1,6 @@
 import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useNavigation } from '@react-navigation/native';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import * as bolt11 from 'bolt11';
@@ -38,7 +37,6 @@ const SendLightning: React.FC = () => {
   const invoice = params.invoice ?? '';
   const { scanQr } = useContext(ScanQrContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
-  const navigation = useNavigation();
   const [error, setError] = useState<string>('');
   const [sendState, setSendState] = useState<'idle' | 'preparing' | 'prepared' | 'sending' | 'success'>('idle');
   const [feeSats, setFeeSats] = useState<number | null>(null);
@@ -65,7 +63,7 @@ const SendLightning: React.FC = () => {
           router.setParams({ invoice: bip21decoded?.options?.lightning });
           return; // useEffect will re-run with the correct parsed invoice
         }
-      } catch (_) {}
+      } catch {}
 
       const decoded = bolt11.decode(params.invoice);
       setAmountToSend(decoded.satoshis ? String(decoded.satoshis) : '');
@@ -80,7 +78,7 @@ const SendLightning: React.FC = () => {
       }
 
       const feeBN = new BigNumber(decoded.satoshis).dividedBy(100).multipliedBy(maxFeePercent).toNumber();
-      setFeeSats(Math.max(Math.round(feeBN), 1));
+      setFeeSats(Math.max(Math.round(feeBN), 2));
       setError('');
     } catch (error: any) {
       setError(error.message);
@@ -163,7 +161,7 @@ const SendLightning: React.FC = () => {
           <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
           <ThemedText style={styles.successMessage}>Payment Sent!</ThemedText>
           <ThemedText style={styles.successSubMessage}>{amountToSend ? formatBalance(amountToSend, 8, 8) : ''} sats</ThemedText>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/Home')}>
             <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
           </TouchableOpacity>
         </View>

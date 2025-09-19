@@ -165,6 +165,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
         fee: 0,
         amount: 1123,
         tokenTransfers: [],
+        explorerUrl: 'https://liquid.network/testnet/tx/095cf834f56cc032708bb2465463ae348164b4d498b181f52fd98d0097c08629',
       },
       {
         txid: 'tx2',
@@ -181,6 +182,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
             tokenId: 'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2',
           },
         ],
+        explorerUrl: 'https://liquid.network/testnet/tx/tx2',
       },
       {
         amount: 53,
@@ -191,6 +193,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
         timestamp: 1750158910,
         tokenTransfers: [],
         txid: 'tx3',
+        explorerUrl: 'https://liquid.network/testnet/tx/tx3',
       },
       {
         amount: 1,
@@ -207,6 +210,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
           },
         ],
         txid: '1d9939da15721adbd021d550286fec9f8476c0218073416966e62ef8f4de1f9b',
+        explorerUrl: 'https://liquid.network/testnet/tx/1d9939da15721adbd021d550286fec9f8476c0218073416966e62ef8f4de1f9b',
       },
       {
         amount: 0,
@@ -223,6 +227,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
           },
         ],
         txid: '0031ab92399f87c15cdfe75a8be905263412b9fcce8060669dc41b1e31e87cf3',
+        explorerUrl: 'https://liquid.network/testnet/tx/0031ab92399f87c15cdfe75a8be905263412b9fcce8060669dc41b1e31e87cf3',
       },
       {
         amount: 1183,
@@ -233,6 +238,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
         timestamp: 1746798970,
         tokenTransfers: [],
         txid: '7968249135073947e2f396b5cf0ad02ca9c22435063dff895bc80faf0ec6e5f4',
+        explorerUrl: 'https://liquid.network/testnet/tx/7968249135073947e2f396b5cf0ad02ca9c22435063dff895bc80faf0ec6e5f4',
       },
     ]);
   });

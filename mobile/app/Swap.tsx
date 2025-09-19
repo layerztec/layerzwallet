@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState } from 'react';
 import { StyleSheet, TextInput, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
+import { type Href } from 'expo-router';
+import * as Linking from 'expo-linking';
 
 import Button from '@/components/Button';
 import GradientScreen from '@/components/GradientScreen';
@@ -18,7 +20,6 @@ import { formatBalance, formatFiatBalance, capitalizeFirstLetter } from '@shared
 import { getSwapPairs, getSwapProvidersList } from '@shared/models/swap-providers-list';
 import { SwapPlatform, SwapPair, DoSwapResponse } from '@shared/types/swap';
 import { Networks } from '@shared/types/networks';
-import * as Linking from 'expo-linking';
 
 export default function Swap() {
   const router = useRouter();
@@ -41,27 +42,24 @@ export default function Swap() {
   const { exchangeRate } = useCachedExchangeRate(network, 'USD');
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
 
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);
 
-  // Update swap pairs when network changes
-  useEffect(() => {
-    setSwapPairs(getSwapPairs(network, SwapPlatform.MOBILE));
-  }, [network]);
-
   // Format balance for display
   const formattedBalance = formatBalance(balance || '0', decimals);
-  const usdValue = exchangeRate && typeof exchangeRate === 'number' ? formatFiatBalance(balance || '0', decimals, exchangeRate) : '0.00';
+  const usdValue = exchangeRate ? formatFiatBalance(amount || '0', 0, Number(exchangeRate)) : '—';
 
   const handleClose = () => {
     router.back();
   };
 
   const handleAmountChange = (text: string) => {
-    setInternalAmount(text);
-    router.setParams({ amount: text });
+    const normalized = text.replace(',', '.');
+    if (normalized === '' || /^\d*\.?\d*$/.test(normalized)) {
+      setInternalAmount(normalized);
+      router.setParams({ amount: normalized });
+    }
   };
 
   const handleToTokenSelect = () => {
@@ -109,6 +107,12 @@ export default function Swap() {
         case swapResponse.action === 'EXTERNAL_BROWSER':
           await Linking.openURL(swapResponse.uri);
           break;
+        case swapResponse.action === 'INTERNAL_SCREEN': {
+          // unfortunately, we can't type swapResponse as it is shared with ext
+          const href = { pathname: swapResponse.screen, params: swapResponse.params } as Href;
+          router.push(href);
+          break;
+        }
         default:
           Alert.alert('Internal error', 'Unhandled swap action (this should never happen)');
       }
@@ -308,7 +312,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    minHeight: 56,
   },
   targetButtonText: {
     fontSize: 16,

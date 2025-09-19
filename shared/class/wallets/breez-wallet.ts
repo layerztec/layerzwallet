@@ -235,6 +235,7 @@ export class BreezWallet implements InterfaceLightningWallet {
         tokenTransfers = [{ address, amount, tokenId }];
       }
 
+      const explorerBase = this.n === 'mainnet' ? 'https://liquid.network' : 'https://liquid.network/testnet';
       commonTransactions.push({
         txid: p.txId!,
         network: NETWORK_LIQUID,
@@ -244,6 +245,7 @@ export class BreezWallet implements InterfaceLightningWallet {
         status: p.status === 'complete' ? 'confirmed' : 'pending',
         fee: p.feesSat,
         tokenTransfers,
+        explorerUrl: `${explorerBase}/tx/${p.txId}`,
       });
     }
 

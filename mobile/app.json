@@ -28,12 +28,12 @@
       "edgeToEdgeEnabled": true,
       "permissions": ["android.permission.CAMERA"],
       "package": "com.layerzwallet.mobile",
+      "allowBackup": false,
       "icon": "./assets/images/android_512x512.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android_512x512.png",
         "backgroundColor": "#000000"
       },
-      "launchMode": "singleInstance",
       "intentFilters": [
         {
           "action": "VIEW",
@@ -65,7 +65,7 @@
     },
     "splash": {
       "image": "./assets/images/splash-icon.png",
-      "resizeMode": "native",
+      "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
     "plugins": [
@@ -74,7 +74,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "resizeMode": "native",
+          "resizeMode": "contain",
           "backgroundColor": "#000000"
         }
       ],

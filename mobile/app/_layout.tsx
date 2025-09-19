@@ -137,9 +137,14 @@ export default function RootLayout() {
                             name="onboarding/create-password"
                             options={{
                               headerShown: false,
-                              animation: 'slide_from_right',
-                              animationDuration: 350,
-                              gestureEnabled: true,
+                              gestureEnabled: false,
+                              fullScreenGestureEnabled: false,
+                            }}
+                          />
+                          <Stack.Screen
+                            name="manual-backup/verify-recovery-phrase"
+                            options={{
+                              ...DefaultNavigatorOptions,
                             }}
                           />
                           <Stack.Screen
@@ -176,6 +181,15 @@ export default function RootLayout() {
                               gestureEnabled: true,
                             }}
                           />
+                          <Stack.Screen
+                            name="onboarding/verify-recovery-phrase"
+                            options={{
+                              headerShown: false,
+                              animation: 'slide_from_right',
+                              gestureEnabled: false,
+                              fullScreenGestureEnabled: false,
+                            }}
+                          />
                           <Stack.Screen name="receive" />
                           <Stack.Screen name="Settings" options={{ headerShown: false }} />
                           <Stack.Screen name="BiometricAuth" options={{ headerShown: false, presentation: 'modal' }} />
@@ -197,6 +211,21 @@ export default function RootLayout() {
                               contentStyle: {
                                 height: '100%',
                                 backgroundColor: 'rgb(24, 32, 82)',
+                              },
+                            }}
+                          />
+                          <Stack.Screen name="SwapSparkDeposit" options={{ headerShown: false }} />
+                          <Stack.Screen
+                            name="SwapDetails"
+                            options={{
+                              presentation: 'formSheet',
+                              sheetAllowedDetents: [0.8],
+                              sheetGrabberVisible: true,
+                              headerTransparent: false,
+                              gestureEnabled: true,
+                              headerShown: false,
+                              contentStyle: {
+                                height: '100%',
                               },
                             }}
                           />
@@ -225,6 +254,26 @@ export default function RootLayout() {
                           />
                           <Stack.Screen
                             name="PocketSwitch"
+                            options={{
+                              presentation: 'formSheet',
+                              sheetAllowedDetents: [0.7],
+                              sheetGrabberVisible: true,
+                              headerTransparent: false,
+                              gestureEnabled: true,
+                              headerShown: false,
+                              contentStyle: {
+                                height: '100%',
+                              },
+                            }}
+                          />
+                          <Stack.Screen
+                            name="Transactions"
+                            options={{
+                              ...DefaultNavigatorOptions,
+                            }}
+                          />
+                          <Stack.Screen
+                            name="TransactionDetails"
                             options={{
                               presentation: 'formSheet',
                               sheetAllowedDetents: [0.7],

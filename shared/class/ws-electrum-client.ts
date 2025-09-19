@@ -28,12 +28,14 @@ export class WsElectrumClient {
   public path: string;
   public isConnected: boolean = false;
   public timeLastCall: number = 0;
-  public timeout: number = 30000;
+  public timeout: number = 9_000;
 
   private socket: WebSocket;
   private requestId: number = 0;
   private callbackMessageQueue: Record<any, [(result: any) => void, (error: any) => void, ReturnType<typeof setTimeout>]> = {}; // element 0 - success callback, element 1 - error callback
   private buffer: string = '';
+
+  onCloseCallbacks: any[] = [];
 
   /**
    *  tries to connect to WSS on the spot
@@ -134,6 +136,8 @@ export class WsElectrumClient {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         delete this.callbackMessageQueue[id];
+        console.warn('Closing socket');
+        this.close();
         reject(new Error(`Electrum request timeout. request ID: ${id} (${method})`));
       }, this.timeout);
       this.callbackMessageQueue[id] = [resolve, reject, timeout];
@@ -178,6 +182,8 @@ export class WsElectrumClient {
       const id = this.requestId;
       const timeout = setTimeout(() => {
         delete this.callbackMessageQueue[id];
+        console.warn('Closing socket');
+        this.close();
         reject(new Error(`Electrum request timeout. request ID: ${id} (${method})`));
       }, this.timeout);
       this.callbackMessageQueue[id] = [resolveWrapper, reject, timeout];
@@ -249,6 +255,9 @@ export class WsElectrumClient {
   }
 
   close(): void {
+    for (const cb of this.onCloseCallbacks) {
+      cb();
+    }
     this.socket.close();
     this.isConnected = false;
   }
@@ -258,6 +267,8 @@ export class WsElectrumClient {
   }
 
   onClose(callback: (error: any) => void): void {
+    this.onCloseCallbacks = this.onCloseCallbacks || [];
+    this.onCloseCallbacks.push(callback);
     this.socket.addEventListener('close', callback);
   }
 

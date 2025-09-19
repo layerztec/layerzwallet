@@ -1,11 +1,15 @@
 import assert from 'assert';
 import bolt11 from 'bolt11';
 import { SparkWallet as SDK, TokenBalanceMap } from '@buildonspark/spark-sdk';
+import BigNumber from 'bignumber.js';
 
 import { ArkWallet } from './ark-wallet';
 import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
 import { CommonTransaction } from '../../types/common-transaction';
-import { NETWORK_SPARK } from '../../types/networks';
+import { NETWORK_BITCOIN, NETWORK_SPARK } from '../../types/networks';
+import * as BlueElectrum from '../../blue_modules/BlueElectrum';
+import { CommonSwap } from '../../types/common-swap';
+import { AllNetworkInfos } from '../../models/all-network-infos';
 
 // copypasted from `node_modules/@buildonspark/spark-sdk/dist/...` since its not exported
 type Bech32mTokenIdentifier = `btkn1${string}` | `btknrt1${string}` | `btknt1${string}` | `btkns1${string}` | `btknl1${string}`;
@@ -13,6 +17,9 @@ type Bech32mTokenIdentifier = `btkn1${string}` | `btknrt1${string}` | `btknt1${s
 export interface ISparkAdapter {
   initialize(...options: Parameters<typeof SDK.initialize>): ReturnType<typeof SDK.initialize>;
 }
+
+// not exposed in the SDK
+export type StaticDepositQuoteOutput = Awaited<ReturnType<SDK['getClaimStaticDepositQuote']>>;
 
 export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
   private _sdkWallet: SDK | undefined = undefined;
@@ -55,7 +62,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     const decoded = bolt11.decode(invoice);
     if (!decoded.satoshis) throw new Error('Cant pay zero-amount invoices');
 
-    const maxFeeSats = Math.ceil((decoded.satoshis / 100) * masFeePercentage);
+    const maxFeeSats = Math.max(2, Math.ceil((decoded.satoshis / 100) * masFeePercentage));
 
     const payment_response = await this._sdkWallet.payLightningInvoice({
       invoice,
@@ -184,6 +191,101 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
     return await this._sdkWallet.transferTokens({ receiverSparkAddress, tokenAmount, tokenIdentifier: tokenIdentifier as Bech32mTokenIdentifier });
+  }
+
+  async getOnchainDepositAddress(): Promise<string> {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+
+    return await this._sdkWallet.getStaticDepositAddress();
+  }
+
+  async getUnclaimedSwaps(): Promise<CommonSwap[]> {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+
+    const address = await this.getOnchainDepositAddress();
+    if (!BlueElectrum.mainConnected) await BlueElectrum.connectMain();
+
+    const explorerBase = AllNetworkInfos[NETWORK_BITCOIN].explorerUrl;
+    const swaps: CommonSwap[] = [];
+
+    // at first we get unclaimed swaps. This is our UTXOs
+    const UTXOs = await BlueElectrum.multiGetUtxoByAddress([address]);
+    const txs1 = await BlueElectrum.multiGetTransactionByTxid([...UTXOs[address].map((output) => output.txid)], true);
+    const unclaimedSwaps: CommonSwap[] = UTXOs[address].map((output) => {
+      const tx = txs1[output.txid];
+      const timestamp = tx.blocktime ? tx.blocktime * 1000 : new Date().getTime();
+      const claimable = tx.confirmations >= 3; // according to Spark docs, 3 confirmations are needed to claim a swap
+      return {
+        network: NETWORK_SPARK,
+        id: output.txid,
+        status: claimable ? 'claimable' : 'pending',
+        amount: output.value,
+        timestamp,
+        direction: 'receive',
+        explorerUrl: `${explorerBase}/tx/${output.txid}`,
+        // we only want to show confirmations for 'pending' swaps
+        confirmations: !claimable ? tx.confirmations : undefined,
+        targetConfirmations: !claimable ? 3 : undefined,
+      };
+    });
+    swaps.push(...unclaimedSwaps);
+
+    // now we need to get sent transactions. This is our claimed swaps
+    const txsByAddress = await BlueElectrum.getTransactionsByAddress(address);
+    const txs2 = await BlueElectrum.multiGetTransactionByTxid([...txsByAddress.map((tx) => tx.tx_hash)], true);
+    const filteredTxs = Object.values(txs2) // TODO: distinguish between Claim and Refund. How to do this?
+      // filter out incoming transactions
+      .filter((tx) => !tx.vout.some((output) => output.scriptPubKey.addresses.some((a) => a === address)))
+      // only include transactions with one input and one output
+      .filter((tx) => tx.vin.length === 1 && tx.vout.length === 1);
+    const claimedSwaps: CommonSwap[] = filteredTxs.map((tx) => {
+      const timestamp = tx.blocktime ? tx.blocktime * 1000 : new Date().getTime();
+      return {
+        network: NETWORK_SPARK,
+        id: tx.txid,
+        status: 'confirmed',
+        timestamp,
+        amount: BigNumber(tx.vout[0].value).multipliedBy(100000000).toNumber(),
+        direction: 'receive',
+        explorerUrl: `${explorerBase}/tx/${tx.txid}`,
+      };
+    });
+    swaps.push(...claimedSwaps);
+
+    swaps.sort((a, b) => b.timestamp! - a.timestamp!);
+
+    return swaps;
+  }
+
+  async getDepositQuote(txid: string): Promise<StaticDepositQuoteOutput> {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+
+    return await this._sdkWallet.getClaimStaticDepositQuote(txid);
+  }
+
+  async claimDeposit(quote: StaticDepositQuoteOutput): Promise<void> {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+
+    await this._sdkWallet.claimStaticDeposit({
+      transactionId: quote.transactionId,
+      creditAmountSats: quote.creditAmountSats,
+      sspSignature: quote.signature,
+    });
+  }
+
+  async refundDeposit(txid: string, destinationAddress: string): Promise<void> {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+
+    if (!BlueElectrum.mainConnected) await BlueElectrum.connectMain();
+    const fees = await BlueElectrum.estimateFees();
+
+    const hex = await this._sdkWallet.refundStaticDeposit({
+      depositTransactionId: txid,
+      destinationAddress,
+      satsPerVbyteFee: fees.fast,
+    });
+
+    await BlueElectrum.broadcastV2(hex);
   }
 
   allowLightning() {
