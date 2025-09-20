@@ -4,7 +4,7 @@ import * as Application from 'expo-application';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View, Switch } from 'react-native';
 
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
@@ -185,6 +185,21 @@ export default function SettingsScreen() {
               const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
               const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
 
+              if (key === 'biometricAuth') {
+                const isDisabled = isUpdatingBiometric;
+                const isEnabled = currentValue === 'ON';
+
+                return (
+                  <View key={key} style={styles.settingContainer} testID={`SettingContainer-${key}`}>
+                    <ThemedText style={styles.settingLabel} testID={`SettingLabel-${key}`}>
+                      {formatSettingName(key)}:
+                    </ThemedText>
+                    <Switch testID={`SettingSwitch-${key}`} value={isEnabled} onValueChange={(value) => handleSettingChange(key, value ? 'ON' : 'OFF')} disabled={isDisabled} />
+                  </View>
+                );
+              }
+
+              // Default handling for other settings - render as buttons
               return (
                 <View key={key} style={styles.settingContainer} testID={`SettingContainer-${key}`}>
                   <ThemedText style={styles.settingLabel} testID={`SettingLabel-${key}`}>
@@ -192,19 +207,14 @@ export default function SettingsScreen() {
                   </ThemedText>
                   <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
                     {config.options.map((option: string) => {
-                      const isDisabled = key === 'biometricAuth' && isUpdatingBiometric;
                       return (
                         <TouchableOpacity
                           key={option}
-                          style={[styles.settingOptionButton, currentValue === option && styles.settingOptionButtonActive, isDisabled && styles.settingOptionButtonDisabled]}
+                          style={[styles.settingOptionButton, currentValue === option && styles.settingOptionButtonActive]}
                           onPress={() => handleSettingChange(key, option)}
-                          disabled={isDisabled}
                           testID={`SettingOption-${key}-${option}`}
                         >
-                          <ThemedText
-                            style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive, isDisabled && styles.settingOptionTextDisabled]}
-                            testID={`SettingOptionText-${key}-${option}`}
-                          >
+                          <ThemedText style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive]} testID={`SettingOptionText-${key}-${option}`}>
                             {formatOptionName(option)}
                           </ThemedText>
                         </TouchableOpacity>

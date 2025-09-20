@@ -65,8 +65,9 @@ export const BiometricAuthContextProvider: React.FC<{ children: ReactNode }> = (
   const isBiometricEnabled = settings.biometricAuth === 'ON';
 
   const authenticateWithBiometrics = useCallback(async (): Promise<boolean> => {
+    // Don't show unavailable alert if biometrics are still being checked
     if (!biometricInfo.isAvailable) {
-      Alert.alert('Biometric Authentication Unavailable', biometricInfo.description);
+      console.log('🔐 BiometricAuth: Biometrics not available:', biometricInfo.description);
       return false;
     }
 

@@ -7,6 +7,7 @@ export interface BiometricInfo {
   biometricType: 'FaceID' | 'TouchID' | 'Fingerprint' | 'Iris' | 'Biometrics' | null;
   displayName: string;
   description: string;
+  isLoading: boolean;
 }
 
 export const useBiometrics = (): BiometricInfo => {
@@ -15,43 +16,51 @@ export const useBiometrics = (): BiometricInfo => {
     biometricType: null,
     displayName: 'Biometrics',
     description: 'Use biometric authentication to secure your wallet.',
+    isLoading: true,
   });
 
   useEffect(() => {
-    const checkBiometricCapabilities = async () => {
+    const checkBiometricCapabilities = async (retryCount = 0) => {
       try {
-        console.log('🔐 Biometric Check: Starting capability check...');
+        // Add a small delay during cold boot to ensure hardware is ready
+        if (retryCount === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
 
         const isAvailable = await LocalAuthentication.hasHardwareAsync();
-        console.log('🔐 Biometric Check: Hardware available:', isAvailable);
 
         if (!isAvailable) {
-          console.log('🔐 Biometric Check: No hardware available');
+          // During cold boot, hardware might not be immediately available
+          // Retry up to 3 times with increasing delays
+          if (retryCount < 3) {
+            setTimeout(() => checkBiometricCapabilities(retryCount + 1), (retryCount + 1) * 1000);
+            return;
+          }
+
           setBiometricInfo({
             isAvailable: false,
             biometricType: null,
             displayName: 'Biometrics',
             description: 'Biometric authentication is not available on this device.',
+            isLoading: false,
           });
           return;
         }
 
         const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-        console.log('🔐 Biometric Check: Enrolled:', isEnrolled);
 
         if (!isEnrolled) {
-          console.log('🔐 Biometric Check: No biometrics enrolled');
           setBiometricInfo({
             isAvailable: false,
             biometricType: null,
             displayName: 'Biometrics',
             description: 'No biometric authentication methods are set up on this device.',
+            isLoading: false,
           });
           return;
         }
 
         const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
-        console.log('🔐 Biometric Check: Supported types:', supportedTypes);
 
         let biometricType: BiometricInfo['biometricType'] = null;
 
@@ -87,25 +96,27 @@ export const useBiometrics = (): BiometricInfo => {
 
         const { displayName, description } = getBiometricDisplayInfo(biometricType);
 
-        console.log('🔐 Biometric Check: Final result:', {
-          isAvailable: biometricType !== null,
-          biometricType,
-          displayName,
-        });
-
         setBiometricInfo({
           isAvailable: biometricType !== null,
           biometricType,
           displayName,
           description,
+          isLoading: false,
         });
       } catch (error) {
-        console.error('🔐 Biometric Check: Error checking biometric capabilities:', error);
+        // During cold boot, API calls might fail temporarily
+        // Retry up to 3 times with increasing delays
+        if (retryCount < 3) {
+          setTimeout(() => checkBiometricCapabilities(retryCount + 1), (retryCount + 1) * 1000);
+          return;
+        }
+
         setBiometricInfo({
           isAvailable: false,
           biometricType: null,
           displayName: 'Biometrics',
           description: 'Unable to check biometric capabilities.',
+          isLoading: false,
         });
       }
     };

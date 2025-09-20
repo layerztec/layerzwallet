@@ -66,7 +66,8 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'background' || nextAppState === 'inactive') {
-        if (isBiometricEnabled && isAuthenticated) {
+        // Don't auto-lock if we're currently updating biometric settings
+        if (isBiometricEnabled && isAuthenticated && !isUpdatingBiometric) {
           setIsAuthenticated(false);
         }
       }
@@ -74,26 +75,31 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
-  }, [isBiometricEnabled, isAuthenticated]);
+  }, [isBiometricEnabled, isAuthenticated, isUpdatingBiometric]);
 
   // Set initial authentication state based on biometric settings (only once)
   useEffect(() => {
     if (isInitialized && isSettingsLoaded && !hasInitializedAuth) {
       setHasInitializedAuth(true);
 
-      if (isBiometricEnabled) {
+      // Capture the biometric setting at initialization time
+      const biometricEnabledAtInit = settings.biometricAuth === 'ON';
+
+      if (biometricEnabledAtInit) {
         // If biometrics are enabled, start unauthenticated (require auth)
+        // The ProtectedRouteStack will show BiometricLogin screen which auto-triggers authentication
         setIsAuthenticated(false);
       } else {
         // If biometrics are disabled, start authenticated (no auth required)
         setIsAuthenticated(true);
       }
     }
-  }, [isBiometricEnabled, isInitialized, isSettingsLoaded, isAuthenticated, hasInitializedAuth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInitialized, isSettingsLoaded, hasInitializedAuth]);
 
   const authenticateWithBiometrics = useCallback(async (): Promise<boolean> => {
+    // Don't show unavailable alert if biometrics are still being checked
     if (!biometricInfo.isAvailable) {
-      Alert.alert('Biometric Authentication Unavailable', biometricInfo.description);
       return false;
     }
 
@@ -112,7 +118,6 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
         return false;
       }
     } catch (error) {
-      console.error('Biometric authentication error:', error);
       return false;
     }
   }, [biometricInfo]);
@@ -129,14 +134,14 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
       if (isMaestroMode()) {
         await updateSetting('biometricAuth', 'ON');
         setIsUpdatingBiometric(false);
-        setIsAuthenticated(false); // Force re-authentication with new biometric setting
         return true;
       }
 
       // Check if biometrics are available
       if (!biometricInfo.isAvailable) {
-        Alert.alert('Biometric Authentication Unavailable', biometricInfo.description);
         setIsUpdatingBiometric(false);
+        // Show alert only when user explicitly tries to enable (not during initialization)
+        Alert.alert('Biometric Authentication Unavailable', biometricInfo.description);
         return false;
       }
 
@@ -151,14 +156,12 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
       if (authResult.success) {
         await updateSetting('biometricAuth', 'ON');
         setIsUpdatingBiometric(false);
-        setIsAuthenticated(false); // Force re-authentication with new biometric setting
         return true;
       } else {
         setIsUpdatingBiometric(false);
         return false;
       }
     } catch (error) {
-      console.error('Error enabling biometric auth:', error);
       setIsUpdatingBiometric(false);
       return false;
     }
@@ -182,8 +185,8 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
 
       // Check if biometrics are available
       if (!biometricInfo.isAvailable) {
-        Alert.alert('Biometric Authentication Unavailable', biometricInfo.description);
         setIsUpdatingBiometric(false);
+        Alert.alert('Biometric Authentication Unavailable', biometricInfo.description);
         return false;
       }
 
@@ -205,7 +208,6 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
         return false;
       }
     } catch (error) {
-      console.error('Error disabling biometric auth:', error);
       setIsUpdatingBiometric(false);
       return false;
     }

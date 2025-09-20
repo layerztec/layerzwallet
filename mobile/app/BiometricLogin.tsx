@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useContext } from 'react';
-import { View, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
@@ -14,38 +14,51 @@ export default function BiometricLoginScreen() {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [hasTriedInitialAuth, setHasTriedInitialAuth] = useState(false);
 
-  const performAuthentication = useCallback(async () => {
-    if (isAuthenticating) return;
+  const performAuthentication = useCallback(
+    async (isInitialAuth = false) => {
+      if (isAuthenticating) return;
 
-    setIsAuthenticating(true);
+      setIsAuthenticating(true);
 
-    try {
-      const success = await authenticateWithBiometrics();
-      if (!success) {
+      try {
+        const success = await authenticateWithBiometrics();
+        if (!success) {
+          setIsAuthenticating(false);
+          // Only set hasTriedInitialAuth to true after the first authentication attempt completes
+          if (isInitialAuth) {
+            setHasTriedInitialAuth(true);
+          }
+        }
+      } catch (error) {
         setIsAuthenticating(false);
+        // Only set hasTriedInitialAuth to true after the first authentication attempt completes
+        if (isInitialAuth) {
+          setHasTriedInitialAuth(true);
+        }
+        Alert.alert('Authentication Error', 'Failed to authenticate. Please try again.');
       }
-      // If successful, the auth state will change and this screen will be unmounted
-    } catch (error) {
-      console.error('Authentication error:', error);
-      setIsAuthenticating(false);
-      Alert.alert('Authentication Error', 'Failed to authenticate. Please try again.');
-    }
-  }, [isAuthenticating, authenticateWithBiometrics]);
+    },
+    [isAuthenticating, authenticateWithBiometrics]
+  );
 
-  // Auto-trigger authentication when screen loads
   useEffect(() => {
-    if (!hasTriedInitialAuth) {
-      setHasTriedInitialAuth(true);
-      // Trigger immediately when screen loads
-      performAuthentication();
+    if (!hasTriedInitialAuth && !biometricInfo.isLoading && biometricInfo.isAvailable) {
+      // Add a small delay to ensure the screen is fully mounted and biometric hardware is ready
+      setTimeout(() => {
+        performAuthentication(true); // Pass true to indicate this is the initial auth
+      }, 500);
     }
-  }, [performAuthentication, hasTriedInitialAuth]);
+  }, [performAuthentication, hasTriedInitialAuth, biometricInfo.isLoading, biometricInfo.isAvailable]);
 
   const handleAuthenticate = () => {
-    performAuthentication();
+    performAuthentication(false); // Pass false for manual authentication
   };
 
   const getBiometricIcon = () => {
+    if (!biometricInfo.isAvailable || !biometricInfo.biometricType) {
+      return 'security';
+    }
+
     switch (biometricInfo.biometricType) {
       case 'FaceID':
         return 'face';
@@ -57,23 +70,48 @@ export default function BiometricLoginScreen() {
     }
   };
 
+  const getBiometricText = () => {
+    if (!biometricInfo.isAvailable || !biometricInfo.biometricType) {
+      return 'Use biometric authentication to unlock your wallet';
+    }
+
+    return biometricInfo.displayName ? `Use ${biometricInfo.displayName} to unlock your wallet` : 'Use biometric authentication to unlock your wallet';
+  };
+
+  const getButtonText = () => {
+    if (isAuthenticating) return 'Authenticating...';
+    if (hasTriedInitialAuth) return 'Try Again';
+
+    if (biometricInfo.biometricType === 'FaceID') return 'Use Face ID';
+    if (biometricInfo.biometricType === 'TouchID') return 'Use Touch ID';
+    if (biometricInfo.biometricType === 'Fingerprint') return 'Use Fingerprint';
+
+    return 'Unlock';
+  };
+
   return (
     <GradientScreen variant={network}>
       <View style={[styles.container, { backgroundColor: 'transparent' }]}>
-        <View style={styles.content}>
-          <View style={styles.iconContainer}>
-            <MaterialIcons name={getBiometricIcon() as any} size={80} color="rgba(255, 255, 255, 0.8)" />
+        {biometricInfo.isLoading ? (
+          <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
+        ) : (
+          <View style={styles.content}>
+            <View style={styles.iconContainer}>
+              <MaterialIcons name={getBiometricIcon() as any} size={80} color="rgba(255, 255, 255, 0.8)" />
+            </View>
+
+            <ThemedText style={styles.title}>Unlock Layerz Wallet</ThemedText>
+
+            <ThemedText style={styles.subtitle}>{getBiometricText()}</ThemedText>
+
+            {(hasTriedInitialAuth || !biometricInfo.isAvailable) && (
+              <TouchableOpacity style={styles.retryButton} onPress={handleAuthenticate} disabled={isAuthenticating}>
+                <MaterialIcons name="refresh" size={24} color="rgba(255, 255, 255, 0.8)" />
+                <ThemedText style={styles.retryButtonText}>{getButtonText()}</ThemedText>
+              </TouchableOpacity>
+            )}
           </View>
-
-          <ThemedText style={styles.title}>Unlock Layerz Wallet</ThemedText>
-
-          <ThemedText style={styles.subtitle}>{biometricInfo.displayName ? `Use ${biometricInfo.displayName} to unlock your wallet` : 'Use biometric authentication to unlock your wallet'}</ThemedText>
-
-          <TouchableOpacity style={styles.retryButton} onPress={handleAuthenticate} disabled={isAuthenticating}>
-            <MaterialIcons name="refresh" size={24} color="rgba(255, 255, 255, 0.8)" />
-            <ThemedText style={styles.retryButtonText}>{isAuthenticating ? 'Authenticating...' : 'Try Again'}</ThemedText>
-          </TouchableOpacity>
-        </View>
+        )}
       </View>
     </GradientScreen>
   );
@@ -92,6 +130,9 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     marginBottom: 30,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: 24,
