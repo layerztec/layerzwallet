@@ -109,6 +109,7 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
         fallbackLabel: 'Use Device PIN',
         disableDeviceFallback: false,
         cancelLabel: 'Cancel',
+        requireConfirmation: false, // Don't require confirmation after successful biometric auth
       });
 
       if (result.success) {
@@ -151,6 +152,7 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
         fallbackLabel: 'Use Device PIN',
         disableDeviceFallback: false,
         cancelLabel: 'Cancel',
+        requireConfirmation: false,
       });
 
       if (authResult.success) {
@@ -196,6 +198,7 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
         fallbackLabel: 'Use Device PIN',
         disableDeviceFallback: false,
         cancelLabel: 'Cancel',
+        requireConfirmation: false,
       });
 
       if (authResult.success) {

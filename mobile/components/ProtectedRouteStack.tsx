@@ -15,7 +15,7 @@ const DefaultNavigatorOptions: NativeStackNavigationOptions = {
 };
 
 export function ProtectedRouteStack() {
-  const { isAuthenticated, isInitialized } = useAuthState();
+  const { isAuthenticated, isInitialized, isBiometricEnabled } = useAuthState();
 
   return (
     <Stack
@@ -87,13 +87,13 @@ export function ProtectedRouteStack() {
         />
       </Stack.Protected>
 
-      {/* Biometric authentication screen - shown when initialized but not authenticated */}
-      <Stack.Protected guard={isInitialized && !isAuthenticated}>
+      {/* Biometric authentication screen - shown when initialized, not authenticated, and biometrics are enabled */}
+      <Stack.Protected guard={isInitialized && !isAuthenticated && isBiometricEnabled}>
         <Stack.Screen name="BiometricLogin" options={{ headerShown: false }} />
       </Stack.Protected>
 
-      {/* Protected app screens - shown when authenticated */}
-      <Stack.Protected guard={isAuthenticated}>
+      {/* Protected app screens - shown when authenticated OR when biometrics are disabled */}
+      <Stack.Protected guard={isAuthenticated || (isInitialized && !isBiometricEnabled)}>
         <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'none' }} />
         <Stack.Screen name="Receive" />
         <Stack.Screen name="Settings" options={{ headerShown: false }} />

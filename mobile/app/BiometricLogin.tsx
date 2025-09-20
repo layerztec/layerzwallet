@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback, useContext } from 'react';
-import { View, StyleSheet, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useCallback, useContext, useRef } from 'react';
+import { View, StyleSheet, Alert, TouchableOpacity, ActivityIndicator, Image, Linking, AppState, AppStateStatus } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
@@ -8,17 +8,27 @@ import GradientScreen from '@/components/GradientScreen';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 
 export default function BiometricLoginScreen() {
-  const { authenticateWithBiometrics } = useAuthState();
+  const { authenticateWithBiometrics, isBiometricEnabled, disableBiometricAuth } = useAuthState();
   const biometricInfo = useBiometrics();
   const { network } = useContext(NetworkContext);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [hasTriedInitialAuth, setHasTriedInitialAuth] = useState(false);
+  const appState = useRef(AppState.currentState);
+  const lastAuthAttempt = useRef<number>(0);
+  const authCooldownMs = 2000; // 2 second cooldown to prevent loops
 
   const performAuthentication = useCallback(
     async (isInitialAuth = false) => {
       if (isAuthenticating) return;
 
+      // Prevent rapid re-authentication attempts (e.g., after user cancellation)
+      const now = Date.now();
+      if (now - lastAuthAttempt.current < authCooldownMs) {
+        return;
+      }
+
       setIsAuthenticating(true);
+      lastAuthAttempt.current = now;
 
       try {
         const success = await authenticateWithBiometrics();
@@ -38,7 +48,7 @@ export default function BiometricLoginScreen() {
         Alert.alert('Authentication Error', 'Failed to authenticate. Please try again.');
       }
     },
-    [isAuthenticating, authenticateWithBiometrics]
+    [isAuthenticating, authenticateWithBiometrics, authCooldownMs]
   );
 
   useEffect(() => {
@@ -50,7 +60,36 @@ export default function BiometricLoginScreen() {
     }
   }, [performAuthentication, hasTriedInitialAuth, biometricInfo.isLoading, biometricInfo.isAvailable]);
 
+  // Auto-trigger authentication when app returns from background
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      // If app is coming from background to foreground and biometrics are available
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        if (!biometricInfo.isLoading && biometricInfo.isAvailable && !isAuthenticating) {
+          // Check cooldown to prevent loops after user cancellation
+          const now = Date.now();
+          if (now - lastAuthAttempt.current >= authCooldownMs) {
+            // Small delay to ensure the screen is ready
+            setTimeout(() => {
+              performAuthentication(false);
+            }, 300);
+          }
+        }
+      }
+      appState.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, [performAuthentication, biometricInfo.isLoading, biometricInfo.isAvailable, isAuthenticating, authCooldownMs]);
+
   const handleAuthenticate = () => {
+    // Handle case where biometrics are enabled in app but not available on device
+    if (isBiometricEnabled && !biometricInfo.isAvailable) {
+      Linking.openSettings();
+      return;
+    }
+
     performAuthentication(false); // Pass false for manual authentication
   };
 
@@ -71,22 +110,33 @@ export default function BiometricLoginScreen() {
   };
 
   const getBiometricText = () => {
+    // Check if biometrics are enabled in app but not available on device
+    if (isBiometricEnabled && !biometricInfo.isAvailable) {
+      return 'Your wallet is protected with biometric authentication. Please re-enable biometric authentication in your device settings to access your wallet.';
+    }
+
     if (!biometricInfo.isAvailable || !biometricInfo.biometricType) {
       return 'Use biometric authentication to unlock your wallet';
     }
 
-    return biometricInfo.displayName ? `Use ${biometricInfo.displayName} to unlock your wallet` : 'Use biometric authentication to unlock your wallet';
+    const authMethod = biometricInfo.displayName || 'biometric authentication';
+    return `Use ${authMethod} or device PIN to unlock your wallet`;
   };
 
   const getButtonText = () => {
+    // Handle case where biometrics are enabled in app but not available on device
+    if (isBiometricEnabled && !biometricInfo.isAvailable) {
+      return 'Open Settings';
+    }
+
     if (isAuthenticating) return 'Authenticating...';
     if (hasTriedInitialAuth) return 'Try Again';
 
-    if (biometricInfo.biometricType === 'FaceID') return 'Use Face ID';
-    if (biometricInfo.biometricType === 'TouchID') return 'Use Touch ID';
-    if (biometricInfo.biometricType === 'Fingerprint') return 'Use Fingerprint';
+    if (biometricInfo.biometricType === 'FaceID') return 'Use Face ID or PIN';
+    if (biometricInfo.biometricType === 'TouchID') return 'Use Touch ID or PIN';
+    if (biometricInfo.biometricType === 'Fingerprint') return 'Use Fingerprint or PIN';
 
-    return 'Unlock';
+    return 'Unlock with Biometrics or PIN';
   };
 
   return (
@@ -97,7 +147,11 @@ export default function BiometricLoginScreen() {
         ) : (
           <View style={styles.content}>
             <View style={styles.iconContainer}>
-              <MaterialIcons name={getBiometricIcon() as any} size={80} color="rgba(255, 255, 255, 0.8)" />
+              {isBiometricEnabled && !biometricInfo.isAvailable ? (
+                <MaterialIcons name="warning" size={80} color="rgba(255, 193, 7, 0.8)" />
+              ) : (
+                <Image source={require('@/assets/images/splash-icon.png')} style={styles.splashIcon} resizeMode="contain" />
+              )}
             </View>
 
             <ThemedText style={styles.title}>Unlock Layerz Wallet</ThemedText>
@@ -106,7 +160,7 @@ export default function BiometricLoginScreen() {
 
             {(hasTriedInitialAuth || !biometricInfo.isAvailable) && (
               <TouchableOpacity style={styles.retryButton} onPress={handleAuthenticate} disabled={isAuthenticating}>
-                <MaterialIcons name="refresh" size={24} color="rgba(255, 255, 255, 0.8)" />
+                <MaterialIcons name={isBiometricEnabled && !biometricInfo.isAvailable ? 'settings' : 'refresh'} size={24} color="rgba(255, 255, 255, 0.8)" />
                 <ThemedText style={styles.retryButtonText}>{getButtonText()}</ThemedText>
               </TouchableOpacity>
             )}
@@ -162,5 +216,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
     fontWeight: '500',
+  },
+  splashIcon: {
+    width: 80,
+    height: 80,
+    opacity: 0.8,
   },
 });
