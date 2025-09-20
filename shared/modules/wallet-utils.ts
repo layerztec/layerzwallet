@@ -112,79 +112,86 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
   // setting lock:
   locks[lockKey] = true;
 
-  if (network === NETWORK_SPARK) {
-    // we dont save it to storage
-    const sw = new SparkWallet();
-    const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
-    sw.setSecret(submnemonic);
-    await sw.init();
-    cachedWallets[network][accountNumber] = sw;
-    return sw;
-  }
-
-  if (network === NETWORK_ARK_MUTINYNET) {
-    const aw = new ArkWallet();
-    const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
-    aw.setSecret(submnemonic);
-    await aw.init(storage);
-    cachedWallets[network][accountNumber] = aw;
-    return aw;
-  }
-
-  if (network === NETWORK_ARK) {
-    const aw = new ArkWallet();
-    const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
-    aw.setSecret(submnemonic);
-    assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Ark env vars not set');
-    // fixme: can be moved from env vars to hardcode once Ark mainnet goes public
-    aw.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
-    aw.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
-    aw.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
-    await aw.init(storage);
-    await aw.initLightningSwaps();
-    cachedWallets[network][accountNumber] = aw;
-    return aw;
-  }
-
-  if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
-    // we dont save it to storage
-    const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
-    const bNetwork = getBreezNetwork(network);
-
-    const bw = new BreezWallet(submnemonic, bNetwork);
-    cachedWallets[network][accountNumber] = bw;
-    return bw;
-  }
-
-  // try to restore wallet from the storage
-  const storageKey = getSerializedStorageKey(network, accountNumber);
   try {
-    const serializedData = await storage.getItem(storageKey);
-    if (serializedData) {
-      const wallet = await WalletSerializer.deserialize(serializedData);
-      cachedWallets[network][accountNumber] = wallet;
-      return wallet;
+    if (network === NETWORK_SPARK) {
+      // we dont save it to storage
+      const sw = new SparkWallet();
+      const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
+      sw.setSecret(submnemonic);
+      await sw.init();
+      cachedWallets[network][accountNumber] = sw;
+      return sw;
     }
+
+    if (network === NETWORK_ARK_MUTINYNET) {
+      const aw = new ArkWallet();
+      const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
+      aw.setSecret(submnemonic);
+      await aw.init(storage);
+      cachedWallets[network][accountNumber] = aw;
+      return aw;
+    }
+
+    if (network === NETWORK_ARK) {
+      const aw = new ArkWallet();
+      const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
+      aw.setSecret(submnemonic);
+      assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Ark env vars not set');
+      // fixme: can be moved from env vars to hardcode once Ark mainnet goes public
+      aw.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
+      aw.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
+      aw.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
+      await aw.init(storage);
+      await aw.initLightningSwaps();
+      cachedWallets[network][accountNumber] = aw;
+      return aw;
+    }
+
+    if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
+      // we dont save it to storage
+      const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
+      const bNetwork = getBreezNetwork(network);
+
+      const bw = new BreezWallet(submnemonic, bNetwork);
+      cachedWallets[network][accountNumber] = bw;
+      return bw;
+    }
+
+    // try to restore wallet from the storage
+    const storageKey = getSerializedStorageKey(network, accountNumber);
+    try {
+      const serializedData = await storage.getItem(storageKey);
+      if (serializedData) {
+        const wallet = await WalletSerializer.deserialize(serializedData);
+        cachedWallets[network][accountNumber] = wallet;
+        return wallet;
+      }
+    } catch (e) {
+      console.error(`Failed to deserialize wallet for ${network} account ${accountNumber}:`, e);
+    }
+    // create brand new wallet instance
+    let wallet: WatchOnlyWallet;
+    switch (network) {
+      case NETWORK_BITCOIN: {
+        const xpub = await storage.getItem(STORAGE_KEY_BTC_XPUB + accountNumber);
+        if (!xpub) throw new Error('No xpub for this account number');
+        wallet = new WatchOnlyWallet();
+        wallet.setSecret(xpub);
+        wallet.init();
+        break;
+      }
+      default:
+        throw new Error(`Unsupported network: ${network}`);
+    }
+    cachedWallets[network][accountNumber] = wallet;
+    await saveWalletState(storage, wallet, network, accountNumber);
+    return wallet;
   } catch (e) {
-    console.error(`Failed to deserialize wallet for ${network} account ${accountNumber}:`, e);
+    console.error(`Failed to initialize wallet for ${network} account ${accountNumber}:`, e);
+    throw e;
+  } finally {
+    locks[lockKey] = false;
   }
-  // create brand new wallet instance
-  let wallet: WatchOnlyWallet;
-  switch (network) {
-    case NETWORK_BITCOIN: {
-      const xpub = await storage.getItem(STORAGE_KEY_BTC_XPUB + accountNumber);
-      if (!xpub) throw new Error('No xpub for this account number');
-      wallet = new WatchOnlyWallet();
-      wallet.setSecret(xpub);
-      wallet.init();
-      break;
-    }
-    default:
-      throw new Error(`Unsupported network: ${network}`);
-  }
-  cachedWallets[network][accountNumber] = wallet;
-  await saveWalletState(storage, wallet, network, accountNumber);
-  return wallet;
 }
 
 export function lazyInitWalletReady(network: TSupportedLazyInitWalletNetworks, accountNumber: number): boolean {
