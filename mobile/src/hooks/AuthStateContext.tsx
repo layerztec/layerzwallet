@@ -104,13 +104,26 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
     }
 
     try {
-      const result = await LocalAuthentication.authenticateAsync({
+      console.log('🔐 AuthState: Starting LocalAuthentication.authenticateAsync...');
+
+      // Add timeout to prevent hanging on "Try Face ID Again"
+      const authPromise = LocalAuthentication.authenticateAsync({
         promptMessage: 'Unlock Layerz Wallet',
         fallbackLabel: 'Use Device PIN',
         disableDeviceFallback: false,
         cancelLabel: 'Cancel',
         requireConfirmation: false, // Don't require confirmation after successful biometric auth
       });
+
+      const timeoutPromise = new Promise<any>((resolve) => {
+        setTimeout(() => {
+          console.log('🔐 AuthState: LocalAuthentication timeout after 8 seconds');
+          resolve({ success: false, error: 'timeout' });
+        }, 8000);
+      });
+
+      const result = await Promise.race([authPromise, timeoutPromise]);
+      console.log('🔐 AuthState: LocalAuthentication result:', result);
 
       if (result.success) {
         setIsAuthenticated(true);
@@ -119,6 +132,7 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
         return false;
       }
     } catch (error) {
+      console.error('🔐 AuthState: LocalAuthentication error:', error);
       return false;
     }
   }, [biometricInfo]);

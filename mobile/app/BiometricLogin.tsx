@@ -1,10 +1,8 @@
 import React, { useEffect, useState, useCallback, useContext, useRef } from 'react';
-import { View, StyleSheet, Alert, TouchableOpacity, ActivityIndicator, Image, Linking, AppState, AppStateStatus } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { ThemedText } from '@/components/ThemedText';
+import { View, StyleSheet, Alert, Pressable, Image, Linking, AppState, AppStateStatus, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
-import GradientScreen from '@/components/GradientScreen';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 
 export default function BiometricLoginScreen() {
@@ -13,25 +11,47 @@ export default function BiometricLoginScreen() {
   const { network } = useContext(NetworkContext);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [hasTriedInitialAuth, setHasTriedInitialAuth] = useState(false);
-  const appState = useRef(AppState.currentState);
+  const [shouldShowRetryButton, setShouldShowRetryButton] = useState(false);
+  const [isAlertShowing, setIsAlertShowing] = useState(false);
   const lastAuthAttempt = useRef<number>(0);
   const authCooldownMs = 2000; // 2 second cooldown to prevent loops
+  const appState = useRef(AppState.currentState);
 
   const performAuthentication = useCallback(
     async (isInitialAuth = false) => {
+      console.log('🔐 BiometricLogin: performAuthentication called:', { isInitialAuth, isAuthenticating });
+
       if (isAuthenticating) return;
 
       // Prevent rapid re-authentication attempts (e.g., after user cancellation)
       const now = Date.now();
       if (now - lastAuthAttempt.current < authCooldownMs) {
+        console.log('🔐 BiometricLogin: Skipping due to cooldown');
         return;
       }
 
       setIsAuthenticating(true);
       lastAuthAttempt.current = now;
 
+      // Set retry button to show immediately when authentication starts
+      // This prevents flickering when user dismisses biometric prompt
+      setShouldShowRetryButton(true);
+
       try {
-        const success = await authenticateWithBiometrics();
+        console.log('🔐 BiometricLogin: Starting authenticateWithBiometrics...');
+
+        // Add a timeout to prevent hanging authentication
+        const authPromise = authenticateWithBiometrics();
+        const timeoutPromise = new Promise<boolean>((resolve) => {
+          setTimeout(() => {
+            console.log('🔐 BiometricLogin: Authentication timeout after 8 seconds');
+            resolve(false);
+          }, 8000);
+        });
+
+        const success = await Promise.race([authPromise, timeoutPromise]);
+        console.log('🔐 BiometricLogin: Authentication result:', success);
+
         if (!success) {
           setIsAuthenticating(false);
           // Only set hasTriedInitialAuth to true after the first authentication attempt completes
@@ -39,7 +59,10 @@ export default function BiometricLoginScreen() {
             setHasTriedInitialAuth(true);
           }
         }
+        // If success is true, the authentication succeeded and the screen should be navigated away
+        // so we don't need to handle that case here
       } catch (error) {
+        console.error('🔐 BiometricLogin: Authentication error:', error);
         setIsAuthenticating(false);
         // Only set hasTriedInitialAuth to true after the first authentication attempt completes
         if (isInitialAuth) {
@@ -51,37 +74,10 @@ export default function BiometricLoginScreen() {
     [isAuthenticating, authenticateWithBiometrics, authCooldownMs]
   );
 
-  useEffect(() => {
-    if (!hasTriedInitialAuth && !biometricInfo.isLoading && biometricInfo.isAvailable) {
-      // Add a small delay to ensure the screen is fully mounted and biometric hardware is ready
-      setTimeout(() => {
-        performAuthentication(true); // Pass true to indicate this is the initial auth
-      }, 500);
-    }
-  }, [performAuthentication, hasTriedInitialAuth, biometricInfo.isLoading, biometricInfo.isAvailable]);
-
-  // Auto-trigger authentication when app returns from background
-  useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      // If app is coming from background to foreground and biometrics are available
-      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-        if (!biometricInfo.isLoading && biometricInfo.isAvailable && !isAuthenticating) {
-          // Check cooldown to prevent loops after user cancellation
-          const now = Date.now();
-          if (now - lastAuthAttempt.current >= authCooldownMs) {
-            // Small delay to ensure the screen is ready
-            setTimeout(() => {
-              performAuthentication(false);
-            }, 300);
-          }
-        }
-      }
-      appState.current = nextAppState;
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => subscription.remove();
-  }, [performAuthentication, biometricInfo.isLoading, biometricInfo.isAvailable, isAuthenticating, authCooldownMs]);
+  const showBiometricSettingsAlert = useCallback(() => {
+    // Just set the alert showing state - text will be displayed in UI
+    setIsAlertShowing(true);
+  }, []);
 
   const handleAuthenticate = () => {
     // Handle case where biometrics are enabled in app but not available on device
@@ -93,19 +89,63 @@ export default function BiometricLoginScreen() {
     performAuthentication(false); // Pass false for manual authentication
   };
 
+  useEffect(() => {
+    console.log('🔐 BiometricLogin: Initial auth check:', {
+      hasTriedInitialAuth,
+      isLoading: biometricInfo.isLoading,
+      isAvailable: biometricInfo.isAvailable,
+      biometricType: biometricInfo.biometricType,
+    });
+
+    if (!hasTriedInitialAuth && !biometricInfo.isLoading && biometricInfo.isAvailable) {
+      console.log('🔐 BiometricLogin: Triggering initial authentication');
+      // Add a small delay to ensure the screen is fully mounted and biometric hardware is ready
+      setTimeout(() => {
+        performAuthentication(true); // Pass true to indicate this is the initial auth
+      }, 500);
+    }
+  }, [performAuthentication, hasTriedInitialAuth, biometricInfo.isLoading, biometricInfo.isAvailable, biometricInfo.biometricType]);
+
+  // Auto-trigger settings alert when biometrics are enabled but not available
+  useEffect(() => {
+    if (!biometricInfo.isLoading && isBiometricEnabled && !biometricInfo.isAvailable) {
+      // Small delay to ensure the screen is ready and avoid conflicts with auth attempts
+      setTimeout(() => {
+        showBiometricSettingsAlert();
+      }, 300);
+    }
+  }, [biometricInfo.isLoading, isBiometricEnabled, biometricInfo.isAvailable, showBiometricSettingsAlert]);
+
+  // Auto-dismiss alert when app goes to background
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (appState.current === 'active' && nextAppState.match(/inactive|background/)) {
+        // App is going to background, dismiss any showing alert
+        if (isAlertShowing) {
+          setIsAlertShowing(false);
+          // Alert will be auto-dismissed by the system when app backgrounds
+        }
+      }
+      appState.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, [isAlertShowing]);
+
   const getBiometricIcon = () => {
     if (!biometricInfo.isAvailable || !biometricInfo.biometricType) {
-      return 'security';
+      return 'shield-outline';
     }
 
     switch (biometricInfo.biometricType) {
       case 'FaceID':
-        return 'face';
+        return 'scan-outline';
       case 'TouchID':
       case 'Fingerprint':
-        return 'fingerprint';
+        return 'finger-print-outline';
       default:
-        return 'security';
+        return 'shield-outline';
     }
   };
 
@@ -140,86 +180,99 @@ export default function BiometricLoginScreen() {
   };
 
   return (
-    <GradientScreen variant={network}>
-      <View style={[styles.container, { backgroundColor: 'transparent' }]}>
-        {biometricInfo.isLoading ? (
-          <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
-        ) : (
-          <View style={styles.content}>
-            <View style={styles.iconContainer}>
-              {isBiometricEnabled && !biometricInfo.isAvailable ? (
-                <MaterialIcons name="warning" size={80} color="rgba(255, 193, 7, 0.8)" />
-              ) : (
-                <Image source={require('@/assets/images/splash-icon.png')} style={styles.splashIcon} resizeMode="contain" />
-              )}
-            </View>
+    <View style={styles.container}>
+      <View style={styles.content}>
+        {/* Main splash icon - always visible */}
+        <View style={styles.splashContainer}>
+          <Image source={require('@/assets/images/splash-icon.png')} style={styles.splashIcon} resizeMode="contain" />
+        </View>
 
-            <ThemedText style={styles.title}>Unlock Layerz Wallet</ThemedText>
+        {/* Show text and button when biometrics are enabled but not available */}
+        {!biometricInfo.isLoading && isBiometricEnabled && !biometricInfo.isAvailable && (
+          <View style={styles.settingsContainer}>
+            <Text style={styles.settingsText}>Your wallet is protected with biometric authentication. Please enable biometric authentication in your device settings to access your wallet.</Text>
+            <Pressable style={styles.settingsButton} onPress={handleAuthenticate}>
+              <Text style={styles.settingsButtonText}>Open Settings</Text>
+            </Pressable>
+          </View>
+        )}
 
-            <ThemedText style={styles.subtitle}>{getBiometricText()}</ThemedText>
-
-            {(hasTriedInitialAuth || !biometricInfo.isAvailable) && (
-              <TouchableOpacity style={styles.retryButton} onPress={handleAuthenticate} disabled={isAuthenticating}>
-                <MaterialIcons name={isBiometricEnabled && !biometricInfo.isAvailable ? 'settings' : 'refresh'} size={24} color="rgba(255, 255, 255, 0.8)" />
-                <ThemedText style={styles.retryButtonText}>{getButtonText()}</ThemedText>
-              </TouchableOpacity>
-            )}
+        {/* Show retry button for normal authentication scenarios */}
+        {shouldShowRetryButton && !isAuthenticating && !(isBiometricEnabled && !biometricInfo.isAvailable) && (
+          <View style={styles.buttonContainer}>
+            <Pressable style={styles.retryButton} onPress={handleAuthenticate}>
+              <Ionicons name={getBiometricIcon()} size={24} color="rgba(255, 255, 255, 0.8)" />
+            </Pressable>
           </View>
         )}
       </View>
-    </GradientScreen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000000', // Same as splash screen
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
   },
   content: {
-    alignItems: 'center',
-    maxWidth: 300,
-  },
-  iconContainer: {
-    marginBottom: 30,
-    height: 80,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 40,
-    color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 22,
-  },
-  retryButton: {
-    flexDirection: 'row',
+  splashContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 25,
-    marginBottom: 20,
-  },
-  retryButtonText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
+    position: 'relative',
   },
   splashIcon: {
-    width: 80,
-    height: 80,
-    opacity: 0.8,
+    width: 120,
+    height: 120,
+    opacity: 0.9,
+  },
+  buttonContainer: {
+    position: 'absolute',
+    bottom: 80,
+    alignItems: 'center',
+  },
+  retryButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    padding: 16,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  retryButtonDisabled: {
+    opacity: 0.4,
+  },
+  settingsContainer: {
+    position: 'absolute',
+    bottom: 120,
+    paddingHorizontal: 40,
+    alignItems: 'center',
+  },
+  settingsText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  settingsButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  settingsButtonText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
