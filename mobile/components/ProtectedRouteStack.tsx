@@ -17,6 +17,22 @@ const DefaultNavigatorOptions: NativeStackNavigationOptions = {
 export function ProtectedRouteStack() {
   const { isAuthenticated, isInitialized, isBiometricEnabled } = useAuthState();
 
+  // Debug: Log the current auth state (only in development)
+  if (__DEV__) {
+    console.log('ProtectedRouteStack state:', {
+      isAuthenticated,
+      isInitialized,
+      isBiometricEnabled,
+      shouldShowBiometricLogin: isBiometricEnabled && isInitialized && !isAuthenticated,
+      shouldShowMainApp: !isBiometricEnabled || isAuthenticated,
+    });
+  }
+
+  // Extract guard conditions for clarity
+  // If biometrics are not enabled, always allow access to main app (bypass all guards)
+  const shouldShowBiometricLogin = isBiometricEnabled && isInitialized && !isAuthenticated;
+  const shouldShowMainApp = !isBiometricEnabled || isAuthenticated;
+
   return (
     <Stack
       screenOptions={{
@@ -91,14 +107,14 @@ export function ProtectedRouteStack() {
           1. App is initialized
           2. User is not authenticated 
           3. Biometrics are enabled at APP level (regardless of device capabilities) */}
-      <Stack.Protected guard={isInitialized && !isAuthenticated && isBiometricEnabled}>
+      <Stack.Protected guard={shouldShowBiometricLogin}>
         <Stack.Screen name="BiometricLogin" options={{ headerShown: false }} />
       </Stack.Protected>
 
       {/* Protected app screens - shown when:
           1. User is authenticated, OR
           2. App is initialized AND biometrics are disabled at APP level */}
-      <Stack.Protected guard={isAuthenticated || (isInitialized && !isBiometricEnabled)}>
+      <Stack.Protected guard={shouldShowMainApp}>
         <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'none' }} />
         <Stack.Screen name="Receive" />
         <Stack.Screen name="Settings" options={{ headerShown: false }} />
