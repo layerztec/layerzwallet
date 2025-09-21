@@ -87,12 +87,17 @@ export function ProtectedRouteStack() {
         />
       </Stack.Protected>
 
-      {/* Biometric authentication screen - shown when initialized, not authenticated, and biometrics are enabled */}
+      {/* Biometric authentication screen - only shown when:
+          1. App is initialized
+          2. User is not authenticated 
+          3. Biometrics are enabled at APP level (regardless of device capabilities) */}
       <Stack.Protected guard={isInitialized && !isAuthenticated && isBiometricEnabled}>
         <Stack.Screen name="BiometricLogin" options={{ headerShown: false }} />
       </Stack.Protected>
 
-      {/* Protected app screens - shown when authenticated OR when biometrics are disabled */}
+      {/* Protected app screens - shown when:
+          1. User is authenticated, OR
+          2. App is initialized AND biometrics are disabled at APP level */}
       <Stack.Protected guard={isAuthenticated || (isInitialized && !isBiometricEnabled)}>
         <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'none' }} />
         <Stack.Screen name="Receive" />
