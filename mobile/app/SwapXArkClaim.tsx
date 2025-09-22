@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useContext, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import GradientScreen from '@/components/GradientScreen';
@@ -10,22 +10,26 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { SparkWallet, StaticDepositQuoteOutput } from '@shared/class/wallets/spark-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_BITCOIN, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_SPARK } from '@shared/types/networks';
 import { formatBalance } from '@shared/modules/string-utils';
 import { getDecimalsByNetwork } from '@shared/models/network-getters';
+import { CommonSwap } from '@shared/types/common-swap';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 
 const decimals = getDecimalsByNetwork(NETWORK_SPARK);
 
-export type SwapSparkClaimParams = {
-  swapId: string;
-  amountIn: string;
+export type SwapXArkClaimParams = {
+  swapJson: string;
 };
 
-const SwapSparkClaim = () => {
+// for BTC -> Spark swap we can get a quote.
+// but for BTC -> Ark we can not, so we just show the confirmation.
+
+const SwapXArkClaim = () => {
   const router = useRouter();
-  const wallet = useRef<SparkWallet>(null);
+  const wallet = useRef<SparkWallet | ArkWallet>(null);
   const { network } = useContext(NetworkContext);
-  const params = useLocalSearchParams<SwapSparkClaimParams>();
+  const params = useLocalSearchParams<SwapXArkClaimParams>();
   const { accountNumber } = useContext(AccountNumberContext);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -35,15 +39,18 @@ const SwapSparkClaim = () => {
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [refundSuccess, setRefundSuccess] = useState(false);
 
-  // get the Spark deposit address and redirect to SendBtc
+  const swap = useMemo(() => JSON.parse(params.swapJson) as CommonSwap, [params.swapJson]);
+
   useEffect(() => {
     const getQuote = async () => {
       try {
-        const w = await BackgroundExecutor.lazyInitWallet(NETWORK_SPARK, accountNumber);
-        assert(w instanceof SparkWallet);
+        const w = await BackgroundExecutor.lazyInitWallet(swap.network as any, accountNumber);
+        assert(w instanceof SparkWallet || w instanceof ArkWallet, 'Not a XArk wallet');
         wallet.current = w;
-        const quote = await w.getDepositQuote(params.swapId);
-        setQuote(quote);
+        if (w instanceof SparkWallet) {
+          const quote = await w.getDepositQuote(swap.id);
+          setQuote(quote);
+        }
       } catch (error: any) {
         setError(error.message);
       } finally {
@@ -51,13 +58,27 @@ const SwapSparkClaim = () => {
       }
     };
     getQuote();
-  }, [router, params.swapId, accountNumber]);
+  }, [router, swap, accountNumber]);
 
-  const handleClaim = async () => {
-    if (!wallet.current || !quote) return;
+  const handleClaimArk = async () => {
+    assert(wallet.current instanceof ArkWallet, 'Not an Ark wallet');
     setIsClaiming(true);
     try {
-      await wallet.current.claimDeposit(quote);
+      await wallet.current.claimDepositArk(swap.id);
+      setClaimSuccess(true);
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setIsClaiming(false);
+    }
+  };
+
+  const handleClaimSpark = async () => {
+    if (!quote) return;
+    assert(wallet.current instanceof SparkWallet, 'Not a Spark wallet');
+    setIsClaiming(true);
+    try {
+      await wallet.current.claimDepositSpark(quote);
       setClaimSuccess(true);
     } catch (error: any) {
       setError(error.message);
@@ -71,6 +92,7 @@ const SwapSparkClaim = () => {
     setIsRefunding(true);
     try {
       const destinationAddress = await BackgroundExecutor.getAddress(NETWORK_BITCOIN, accountNumber);
+      assert(wallet.current instanceof SparkWallet, 'Not a Spark wallet');
       await wallet.current.refundDeposit(quote.transactionId, destinationAddress);
       setRefundSuccess(true);
     } catch (error: any) {
@@ -85,8 +107,6 @@ const SwapSparkClaim = () => {
   };
 
   const disabled = isClaiming || isRefunding;
-
-  const networkFee = quote ? parseInt(params.amountIn) - quote.creditAmountSats : 0;
 
   // Success screen for claim
   if (claimSuccess) {
@@ -128,6 +148,25 @@ const SwapSparkClaim = () => {
     );
   }
 
+  let quote2;
+  if (!isLoading && quote) {
+    const networkFee = swap.amount - quote.creditAmountSats;
+
+    quote2 = (
+      <>
+        <View style={styles.detailRow}>
+          <ThemedText style={styles.detailLabel}>Network Fee:</ThemedText>
+          <ThemedText style={styles.detailValue}>{formatBalance(networkFee.toString(), decimals)} BTC</ThemedText>
+        </View>
+
+        <View style={styles.detailRow}>
+          <ThemedText style={styles.detailLabel}>You will receive:</ThemedText>
+          <ThemedText style={styles.detailValue}>{formatBalance(quote.creditAmountSats.toString(), decimals)} BTC</ThemedText>
+        </View>
+      </>
+    );
+  }
+
   return (
     <GradientScreen variant={network}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -139,36 +178,30 @@ const SwapSparkClaim = () => {
             </View>
           )}
 
-          {quote && !isLoading && (
+          {!isLoading && (
             <>
               <View style={styles.quoteContainer}>
                 <ThemedText style={styles.quoteTitle}>Swap Details</ThemedText>
                 <View style={styles.detailsCard}>
                   <View style={styles.detailRow}>
                     <ThemedText style={styles.detailLabel}>Amount In:</ThemedText>
-                    <ThemedText style={styles.detailValue}>{formatBalance(params.amountIn, decimals)} BTC</ThemedText>
+                    <ThemedText style={styles.detailValue}>{formatBalance(swap.amount.toString(), decimals)} BTC</ThemedText>
                   </View>
 
-                  <View style={styles.detailRow}>
-                    <ThemedText style={styles.detailLabel}>Network Fee:</ThemedText>
-                    <ThemedText style={styles.detailValue}>{formatBalance(networkFee.toString(), decimals)} BTC</ThemedText>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <ThemedText style={styles.detailLabel}>You will receive:</ThemedText>
-                    <ThemedText style={styles.detailValue}>{formatBalance(quote.creditAmountSats.toString(), decimals)} BTC</ThemedText>
-                  </View>
+                  {quote2}
 
                   <View style={styles.detailRow}>
                     <ThemedText style={styles.detailLabel}>Destination:</ThemedText>
-                    <ThemedText style={styles.detailValue}>Spark Balance</ThemedText>
+                    <ThemedText style={styles.detailValue}>{swap.network === NETWORK_SPARK ? 'Spark Balance' : 'Ark Balance'}</ThemedText>
                   </View>
                 </View>
-                <ThemedText style={styles.infoText}>You can claim this swap to receive Bitcoin on your Spark balance, or refund it to get your sats back to your Bitcoin wallet.</ThemedText>
+                <ThemedText style={styles.infoText}>
+                  You can claim this swap to receive Bitcoin on your {swap.network === NETWORK_SPARK ? 'Spark' : 'Ark'} balance, or refund it to get your sats back to your Bitcoin wallet.
+                </ThemedText>
               </View>
 
               <View style={styles.buttonContainer}>
-                <TouchableOpacity style={[styles.primaryButton, disabled && styles.disabledButton]} onPress={handleClaim} disabled={disabled}>
+                <TouchableOpacity style={[styles.primaryButton, disabled && styles.disabledButton]} onPress={swap.network === NETWORK_SPARK ? handleClaimSpark : handleClaimArk} disabled={disabled}>
                   {isClaiming && <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.9)" />}
                   <ThemedText style={styles.primaryButtonText}>{isClaiming ? 'Claiming...' : 'Claim Swap'}</ThemedText>
                 </TouchableOpacity>
@@ -193,7 +226,7 @@ const SwapSparkClaim = () => {
   );
 };
 
-export default SwapSparkClaim;
+export default SwapXArkClaim;
 
 const styles = StyleSheet.create({
   scrollContent: {

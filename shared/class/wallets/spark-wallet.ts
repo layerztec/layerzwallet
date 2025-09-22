@@ -203,7 +203,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     return await this._sdkWallet.getStaticDepositAddress();
   }
 
-  async getUnclaimedSwaps(): Promise<CommonSwap[]> {
+  async getCommonSwaps(): Promise<CommonSwap[]> {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
     const address = await this.getOnchainDepositAddress();
@@ -267,7 +267,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     return await this._sdkWallet.getClaimStaticDepositQuote(txid);
   }
 
-  async claimDeposit(quote: StaticDepositQuoteOutput): Promise<void> {
+  async claimDepositSpark(quote: StaticDepositQuoteOutput): Promise<void> {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
     await this._sdkWallet.claimStaticDeposit({

@@ -1,4 +1,4 @@
-import { SingleKey, Wallet, TxType } from '@arkade-os/sdk';
+import { SingleKey, Wallet, TxType, Ramps } from '@arkade-os/sdk';
 import { ArkadeLightning, BoltzSwapProvider, decodeInvoice } from '@arkade-os/boltz-swap';
 import ecc from '@bitcoinerlab/secp256k1';
 import BIP32Factory from 'bip32';
@@ -7,9 +7,11 @@ import assert from 'assert';
 
 import { AbstractHDElectrumWallet } from './abstract-hd-electrum-wallet';
 import { CommonTransaction } from '../../types/common-transaction';
-import { NETWORK_ARK_MUTINYNET } from '../../types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET } from '../../types/networks';
 import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
 import { IStorage } from '@shared/types/IStorage';
+import { CommonSwap } from '@shared/types/common-swap';
+import * as BlueElectrum from '../../blue_modules/BlueElectrum';
 
 const bip32 = BIP32Factory(ecc);
 
@@ -155,7 +157,10 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     const commonTransactions: CommonTransaction[] = [];
 
     for (const transaction of transactions) {
-      const timestamp = Math.floor(transaction.createdAt / 1000);
+      if (!transaction.key.arkTxid) continue; // here we only show ark transactions
+
+      const createdAt = transaction.createdAt || new Date().getTime(); // createdAt is 0 if tx is unconfirmed
+      const timestamp = Math.floor(createdAt / 1000);
       commonTransactions.push({
         network: NETWORK_ARK_MUTINYNET,
         txid: transaction.key.arkTxid,
@@ -236,5 +241,66 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
 
   allowLightning() {
     return !!this._arkadeLightning;
+  }
+
+  async getOnchainDepositAddress(): Promise<string> {
+    if (!this._wallet) throw new Error('Ark wallet not initialized');
+
+    return await this._wallet.getBoardingAddress();
+  }
+
+  async getCommonSwaps(): Promise<CommonSwap[]> {
+    if (!this._wallet) throw new Error('Ark wallet not initialized');
+    if (!BlueElectrum.mainConnected) await BlueElectrum.connectMain();
+
+    const swaps: CommonSwap[] = [];
+    const network = this._arkServerUrl.includes('mutinynet') ? NETWORK_ARK_MUTINYNET : NETWORK_ARK;
+    const transactions = await this._wallet.getTransactionHistory();
+
+    // unclaimed swaps
+    const unclaimedTxs = transactions.filter((tx) => tx.key.boardingTxid && !tx.settled);
+    const txs1 = await BlueElectrum.multiGetTransactionByTxid([...unclaimedTxs.map((tx) => tx.key.boardingTxid)], true);
+    const unclaimedSwaps: CommonSwap[] = unclaimedTxs.map((tx) => {
+      const txDetails = txs1[tx.key.boardingTxid];
+      const timestamp = tx.createdAt || new Date().getTime();
+      const claimable = txDetails.confirmations >= 1; // can be claimed once it's unconfirmed
+      return {
+        network,
+        id: tx.key.boardingTxid,
+        status: claimable ? 'claimable' : 'pending',
+        amount: tx.amount,
+        timestamp,
+        direction: 'receive',
+        // we only want to show confirmations for 'pending' swaps
+        confirmations: !claimable ? txDetails.confirmations : undefined,
+        targetConfirmations: !claimable ? 1 : undefined,
+      };
+    });
+    swaps.push(...unclaimedSwaps);
+
+    // claimed swaps
+    const claimedTxs = transactions.filter((tx) => tx.key.boardingTxid && tx.settled);
+    const claimedSwaps: CommonSwap[] = claimedTxs.map((tx) => {
+      const timestamp = tx.createdAt || new Date().getTime();
+      return {
+        network,
+        id: tx.key.boardingTxid,
+        status: 'confirmed',
+        timestamp,
+        amount: tx.amount,
+        direction: 'receive',
+      };
+    });
+    swaps.push(...claimedSwaps);
+
+    return swaps;
+  }
+
+  async claimDepositArk(txid: string): Promise<void> {
+    if (!this._wallet) throw new Error('Ark wallet not initialized');
+
+    const boardingUtxos = (await this._wallet.getBoardingUtxos()).filter((utxo) => utxo.txid === txid);
+
+    await new Ramps(this._wallet).onboard(boardingUtxos);
   }
 }
