@@ -37,7 +37,6 @@ export function EthSignTypedData(args: EthSignTypedDataArgs) {
       }
 
       BrowserBridge.instance?.sendMessage({ for: 'webpage', id: args.id, response: signedResponse.bytes });
-      Alert.alert('Success', 'Typed data signed');
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to sign typed data');
@@ -53,7 +52,6 @@ export function EthSignTypedData(args: EthSignTypedDataArgs) {
         id: args.id,
         error: { code: 4001, message: 'User rejected the request.' },
       });
-      Alert.alert('Rejected', 'User rejected the request');
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to reject request');
