@@ -98,32 +98,18 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
   }, [isInitialized, isSettingsLoaded, hasInitializedAuth]);
 
   const authenticateWithBiometrics = useCallback(async (): Promise<boolean> => {
-    // Don't show unavailable alert if biometrics are still being checked
     if (!biometricInfo.isAvailable) {
       return false;
     }
 
     try {
-      console.log('🔐 AuthState: Starting LocalAuthentication.authenticateAsync...');
-
-      // Add timeout to prevent hanging on "Try Face ID Again"
-      const authPromise = LocalAuthentication.authenticateAsync({
+      const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Unlock Layerz Wallet',
         fallbackLabel: 'Use Device PIN',
         disableDeviceFallback: false,
         cancelLabel: 'Cancel',
-        requireConfirmation: false, // Don't require confirmation after successful biometric auth
+        requireConfirmation: false,
       });
-
-      const timeoutPromise = new Promise<any>((resolve) => {
-        setTimeout(() => {
-          console.log('🔐 AuthState: LocalAuthentication timeout after 8 seconds');
-          resolve({ success: false, error: 'timeout' });
-        }, 8000);
-      });
-
-      const result = await Promise.race([authPromise, timeoutPromise]);
-      console.log('🔐 AuthState: LocalAuthentication result:', result);
 
       if (result.success) {
         setIsAuthenticated(true);
@@ -132,7 +118,6 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
         return false;
       }
     } catch (error) {
-      console.error('🔐 AuthState: LocalAuthentication error:', error);
       return false;
     }
   }, [biometricInfo]);
@@ -152,10 +137,8 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
         return true;
       }
 
-      // Check if biometrics are available
       if (!biometricInfo.isAvailable) {
         setIsUpdatingBiometric(false);
-        // Show alert only when user explicitly tries to enable (not during initialization)
         Alert.alert('Biometric Authentication Unavailable', biometricInfo.description);
         return false;
       }
