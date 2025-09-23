@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     width: '100%',
-    height: 400,
+    height: 300,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     padding: 16,
