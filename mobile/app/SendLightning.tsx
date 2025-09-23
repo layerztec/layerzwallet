@@ -24,7 +24,7 @@ import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 
 export type SendLightningProps = {
-  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_SPARK | typeof NETWORK_ARK;
+  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK;
   invoice?: string;
 };
 
