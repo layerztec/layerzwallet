@@ -70,7 +70,9 @@ export function EthSignTypedData(args: EthSignTypedDataArgs) {
 
       return (
         <View style={styles.messageContainer}>
-          <ThemedText style={styles.messageText}>{typedData}</ThemedText>
+          <ScrollView style={styles.messageScrollView} contentContainerStyle={styles.messageScrollContent}>
+            <ThemedText style={styles.messageText}>{typedData}</ThemedText>
+          </ScrollView>
         </View>
       );
     } catch (error: any) {
@@ -80,7 +82,7 @@ export function EthSignTypedData(args: EthSignTypedDataArgs) {
 
   return (
     <View style={styles.container} collapsable={true}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.contentContainer}>
           <ThemedText style={styles.title}>Sign Typed Data</ThemedText>
           <ThemedText style={styles.subtitle}>
@@ -145,6 +147,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  messageScrollView: {
+    maxHeight: 400,
+  },
+  messageScrollContent: {
+    paddingVertical: 8,
   },
   messageText: {
     fontSize: 14,
