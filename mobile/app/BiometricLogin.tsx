@@ -3,75 +3,79 @@ import { View, StyleSheet, Alert, Pressable, Image, Linking, AppState, AppStateS
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
+import { isDevicePasscodeEnabled } from '@/utils/deviceSecurity';
 
 export default function BiometricLoginScreen() {
   const { authenticateWithBiometrics, isBiometricEnabled } = useAuthState();
   const biometricInfo = useBiometrics();
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [hasTriedInitialAuth, setHasTriedInitialAuth] = useState(false);
-  const [shouldShowRetryButton, setShouldShowRetryButton] = useState(false);
+
+  const [authState, setAuthState] = useState({
+    isAuthenticating: false,
+    hasTriedInitial: false,
+    showRetryButton: false,
+    isFromBackground: false,
+    hasAutoTriggered: false,
+  });
+
   const [isAlertShowing, setIsAlertShowing] = useState(false);
-  const [isReturnFromBackground, setIsReturnFromBackground] = useState(false);
-  const [hasAutoTriggeredFromBackground, setHasAutoTriggeredFromBackground] = useState(false);
+  const [hasDevicePasscode, setHasDevicePasscode] = useState<boolean | null>(null);
   const lastAuthAttemptTime = useRef<number>(0);
   const appState = useRef(AppState.currentState);
 
   const performAuthentication = useCallback(
     async (isInitialAuth = false) => {
-      if (isAuthenticating) return;
+      if (authState.isAuthenticating) return;
 
-      // Record the time of this authentication attempt
       lastAuthAttemptTime.current = Date.now();
 
-      setIsAuthenticating(true);
-
-      // Don't show retry button immediately if this is an auto-trigger from background
-      if (!isReturnFromBackground) {
-        setShouldShowRetryButton(true);
-      }
+      setAuthState((prev) => ({
+        ...prev,
+        isAuthenticating: true,
+        showRetryButton: !prev.isFromBackground,
+      }));
 
       try {
-        // Set up a timeout that will reset the authenticating state
-        // This is a safety mechanism, not a race condition
         const timeoutId = setTimeout(() => {
-          console.log('🔐 BiometricLogin: Authentication timeout - resetting state');
-          setIsAuthenticating(false);
-          setShouldShowRetryButton(true);
-          setIsReturnFromBackground(false);
-        }, 30000); // 30 second safety timeout
+          console.debug('BiometricLogin: Authentication timeout - resetting state');
+          setAuthState((prev) => ({
+            ...prev,
+            isAuthenticating: false,
+            showRetryButton: true,
+            isFromBackground: false,
+          }));
+        }, 30000);
 
         const success = await authenticateWithBiometrics();
 
-        // Clear the timeout since authentication completed
         clearTimeout(timeoutId);
 
         if (!success) {
-          setIsAuthenticating(false);
-          if (isInitialAuth) {
-            setHasTriedInitialAuth(true);
-          }
-
-          // If user dismissed the native UI (from background or manual), show the retry button
-          setShouldShowRetryButton(true);
-          setIsReturnFromBackground(false);
+          setAuthState((prev) => ({
+            ...prev,
+            isAuthenticating: false,
+            hasTriedInitial: isInitialAuth ? true : prev.hasTriedInitial,
+            showRetryButton: true,
+            isFromBackground: false,
+          }));
         } else {
-          // Authentication succeeded
-          setIsReturnFromBackground(false);
-          setHasAutoTriggeredFromBackground(false);
+          setAuthState((prev) => ({
+            ...prev,
+            isFromBackground: false,
+            hasAutoTriggered: false,
+          }));
         }
       } catch (error) {
-        setIsAuthenticating(false);
-        if (isInitialAuth) {
-          setHasTriedInitialAuth(true);
-        }
-
-        // On error, show the retry button
-        setShouldShowRetryButton(true);
-        setIsReturnFromBackground(false);
+        setAuthState((prev) => ({
+          ...prev,
+          isAuthenticating: false,
+          hasTriedInitial: isInitialAuth ? true : prev.hasTriedInitial,
+          showRetryButton: true,
+          isFromBackground: false,
+        }));
         Alert.alert('Authentication Error', 'Failed to authenticate. Please try again.');
       }
     },
-    [isAuthenticating, authenticateWithBiometrics, isReturnFromBackground]
+    [authState.isAuthenticating, authenticateWithBiometrics]
   );
 
   const showBiometricSettingsAlert = useCallback(() => {
@@ -80,25 +84,34 @@ export default function BiometricLoginScreen() {
 
   const handleAuthenticate = () => {
     if (isBiometricEnabled && !biometricInfo.isAvailable) {
-      Linking.openSettings();
-      return;
+      // If biometric is enabled in app but not available on device, check if device has passcode
+      if (hasDevicePasscode) {
+        // Trigger passcode authentication
+        performAuthentication(false);
+        return;
+      } else {
+        // No passcode either, open settings
+        Linking.openSettings();
+        return;
+      }
     }
 
-    // Reset background-related states when user manually triggers
-    setIsReturnFromBackground(false);
-    setHasAutoTriggeredFromBackground(false);
-    // Reset the cooldown timer for manual triggers
+    setAuthState((prev) => ({
+      ...prev,
+      isFromBackground: false,
+      hasAutoTriggered: false,
+    }));
     lastAuthAttemptTime.current = 0;
     performAuthentication(false);
   };
 
   useEffect(() => {
-    if (!hasTriedInitialAuth && !biometricInfo.isLoading && biometricInfo.isAvailable) {
+    if (!authState.hasTriedInitial && !biometricInfo.isLoading && (biometricInfo.isAvailable || hasDevicePasscode)) {
       setTimeout(() => {
         performAuthentication(true);
       }, 500);
     }
-  }, [performAuthentication, hasTriedInitialAuth, biometricInfo.isLoading, biometricInfo.isAvailable, biometricInfo.biometricType]);
+  }, [performAuthentication, authState.hasTriedInitial, biometricInfo.isLoading, biometricInfo.isAvailable, biometricInfo.biometricType, hasDevicePasscode]);
 
   useEffect(() => {
     if (!biometricInfo.isLoading && isBiometricEnabled && !biometricInfo.isAvailable) {
@@ -109,39 +122,48 @@ export default function BiometricLoginScreen() {
   }, [biometricInfo.isLoading, isBiometricEnabled, biometricInfo.isAvailable, showBiometricSettingsAlert]);
 
   useEffect(() => {
+    const checkDevicePasscode = async () => {
+      const enabled = await isDevicePasscodeEnabled();
+      setHasDevicePasscode(enabled);
+    };
+    checkDevicePasscode();
+  }, []);
+
+  useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (appState.current === 'active' && nextAppState.match(/inactive|background/)) {
         if (isAlertShowing) {
           setIsAlertShowing(false);
         }
-        // Reset the auto-trigger flag when going to background
-        setHasAutoTriggeredFromBackground(false);
+        setAuthState((prev) => ({
+          ...prev,
+          hasAutoTriggered: false,
+        }));
       }
 
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
         const now = Date.now();
         const timeSinceLastAuth = now - lastAuthAttemptTime.current;
-        const cooldownPeriod = 5000; // 5 seconds cooldown
+        const cooldownPeriod = 5000;
 
-        // Only auto-trigger if:
-        // 1. Biometrics are available
-        // 2. Not currently authenticating
-        // 3. Haven't auto-triggered for this background session
-        // 4. Enough time has passed since last authentication attempt (cooldown)
-        if (biometricInfo.isAvailable && !isAuthenticating && !hasAutoTriggeredFromBackground && timeSinceLastAuth > cooldownPeriod) {
-          console.log('🔐 BiometricLogin: Auto-triggering from background');
-          setIsReturnFromBackground(true);
-          setShouldShowRetryButton(false);
-          setHasAutoTriggeredFromBackground(true);
+        if ((biometricInfo.isAvailable || hasDevicePasscode) && !authState.isAuthenticating && !authState.hasAutoTriggered && timeSinceLastAuth > cooldownPeriod) {
+          console.debug('BiometricLogin: Auto-triggering from background');
+          setAuthState((prev) => ({
+            ...prev,
+            isFromBackground: true,
+            showRetryButton: false,
+            hasAutoTriggered: true,
+          }));
           biometricInfo.refresh();
           setTimeout(() => {
             performAuthentication(false);
           }, 500);
         } else {
-          console.log('🔐 BiometricLogin: Skipping auto-trigger', {
-            isAvailable: biometricInfo.isAvailable,
-            isAuthenticating,
-            hasAutoTriggered: hasAutoTriggeredFromBackground,
+          console.debug('BiometricLogin: Skipping auto-trigger', {
+            biometricAvailable: biometricInfo.isAvailable,
+            hasDevicePasscode,
+            isAuthenticating: authState.isAuthenticating,
+            hasAutoTriggered: authState.hasAutoTriggered,
             timeSinceLastAuth,
             cooldownPeriod,
           });
@@ -153,10 +175,14 @@ export default function BiometricLoginScreen() {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
-  }, [isAlertShowing, biometricInfo, isAuthenticating, hasAutoTriggeredFromBackground, performAuthentication]);
+  }, [isAlertShowing, biometricInfo, authState.isAuthenticating, authState.hasAutoTriggered, hasDevicePasscode, performAuthentication]);
 
   const getBiometricIcon = () => {
     if (!biometricInfo.isAvailable || !biometricInfo.biometricType) {
+      // If biometrics not available but device has passcode, show lock icon
+      if (hasDevicePasscode) {
+        return 'lock-closed-outline';
+      }
       return 'shield-outline';
     }
 
@@ -178,16 +204,18 @@ export default function BiometricLoginScreen() {
           <Image source={require('@/assets/images/splash-icon.png')} style={styles.splashIcon} resizeMode="contain" />
         </View>
 
-        {!biometricInfo.isLoading && isBiometricEnabled && !biometricInfo.isAvailable && (
+        {!biometricInfo.isLoading && !biometricInfo.isAvailable && hasDevicePasscode === false && (
           <View style={styles.settingsContainer}>
-            <Text style={styles.settingsText}>Your wallet is protected with biometric authentication. Please enable biometric authentication in your device settings to access your wallet.</Text>
+            <Text style={styles.settingsText}>
+              Your wallet requires device security. Please enable biometric authentication or a device passcode/PIN in your device settings to access your wallet.
+            </Text>
             <Pressable style={styles.settingsButton} onPress={handleAuthenticate}>
               <Text style={styles.settingsButtonText}>Open Settings</Text>
             </Pressable>
           </View>
         )}
 
-        {shouldShowRetryButton && !isAuthenticating && !isReturnFromBackground && !(isBiometricEnabled && !biometricInfo.isAvailable) && (
+        {authState.showRetryButton && !authState.isAuthenticating && !authState.isFromBackground && !(hasDevicePasscode === false && !biometricInfo.isAvailable) && (
           <View style={styles.buttonContainer}>
             <Pressable style={styles.retryButton} onPress={handleAuthenticate}>
               <Ionicons name={getBiometricIcon()} size={24} color="rgba(255, 255, 255, 0.8)" />

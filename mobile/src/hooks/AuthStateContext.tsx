@@ -98,10 +98,6 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
   }, [isInitialized, isSettingsLoaded, hasInitializedAuth]);
 
   const authenticateWithBiometrics = useCallback(async (): Promise<boolean> => {
-    if (!biometricInfo.isAvailable) {
-      return false;
-    }
-
     try {
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Unlock Layerz Wallet',
@@ -120,7 +116,7 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
     } catch (error) {
       return false;
     }
-  }, [biometricInfo]);
+  }, []);
 
   const enableBiometricAuth = useCallback(async (): Promise<boolean> => {
     if (isUpdatingBiometric) {
