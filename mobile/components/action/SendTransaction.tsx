@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Slider from '@react-native-community/slider';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
@@ -143,9 +144,11 @@ export function SendTransaction(args: SendTransactionArgs) {
     const isSmartContractInteraction = params?.data; // probably also need to check length of data so its not just 0x0
     if (params) {
       return (
-        <View style={styles.messageContainer}>
-          <ThemedText style={styles.messageText}>{JSON.stringify(params, null, 2)}</ThemedText>
-          <View style={styles.transactionDetails}>
+        <>
+          <ScrollView style={styles.messageContainer} showsVerticalScrollIndicator={true} bounces={true}>
+            <ThemedText style={styles.messageText}>{JSON.stringify(params, null, 2)}</ThemedText>
+          </ScrollView>
+          <View>
             {params?.to ? <ThemedText style={styles.detailText}>To: {params.to}</ThemedText> : null}
             {isSmartContractInteraction ? <ThemedText style={styles.detailText}>(smart contract interaction)</ThemedText> : null}
             {params?.value && hexToDec(params?.value) > 0 ? (
@@ -154,7 +157,7 @@ export function SendTransaction(args: SendTransactionArgs) {
               </ThemedText>
             ) : null}
           </View>
-        </View>
+        </>
       );
     } else {
       return <ThemedText style={styles.errorText}>Error: Invalid transaction parameters</ThemedText>;
@@ -178,23 +181,18 @@ export function SendTransaction(args: SendTransactionArgs) {
     if (!bytes) {
       return (
         <View style={styles.feeMultiplierContainer}>
-          <ThemedText style={styles.feeMultiplierLabel}>Fee Priority:</ThemedText>
-          <View style={styles.feeMultiplierInputContainer}>
-            <TextInput
-              style={styles.feeMultiplierInput}
-              value={overpayMultiplier.toString()}
-              onChangeText={(text) => {
-                const value = parseFloat(text);
-                if (!isNaN(value) && value > 0) {
-                  setOverpayMultiplier(value);
-                }
-              }}
-              keyboardType="numeric"
-              placeholder="1.0"
-              placeholderTextColor="rgba(255, 255, 255, 0.3)"
-            />
-            <ThemedText style={styles.feeMultiplierSuffix}>x</ThemedText>
-          </View>
+          <ThemedText style={styles.feeMultiplierLabel}>Fee Priority: {overpayMultiplier}x</ThemedText>
+          <Slider
+            style={styles.feeMultiplierSlider}
+            minimumValue={1}
+            maximumValue={5}
+            step={1}
+            value={overpayMultiplier}
+            onValueChange={setOverpayMultiplier}
+            minimumTrackTintColor="rgba(255, 255, 255, 0.8)"
+            maximumTrackTintColor="rgba(255, 255, 255, 0.3)"
+            thumbTintColor="rgba(255, 255, 255, 0.9)"
+          />
         </View>
       );
     }
@@ -237,23 +235,21 @@ export function SendTransaction(args: SendTransactionArgs) {
 
   return (
     <View style={styles.container} collapsable={true}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.contentContainer}>
-          <ThemedText style={styles.title}>Send Transaction</ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Dapp <ThemedText style={styles.highlight}>{args.from}</ThemedText> wants to send a transaction
-          </ThemedText>
-          {renderParams()}
-          {renderFeeMultiplier()}
-          {renderFeeInfo()}
-          {error ? (
-            <View style={styles.errorContainer}>
-              <ThemedText style={styles.errorText}>{error}</ThemedText>
-            </View>
-          ) : null}
-        </View>
-        {renderActionButtons()}
-      </ScrollView>
+      <View style={styles.contentContainer}>
+        <ThemedText style={styles.title}>Send Transaction</ThemedText>
+        <ThemedText style={styles.subtitle}>
+          Dapp <ThemedText style={styles.highlight}>{args.from}</ThemedText> wants to send a transaction
+        </ThemedText>
+        {renderParams()}
+        {renderFeeMultiplier()}
+        {renderFeeInfo()}
+        {error ? (
+          <View style={styles.errorContainer}>
+            <ThemedText style={styles.errorText}>{error}</ThemedText>
+          </View>
+        ) : null}
+      </View>
+      {renderActionButtons()}
     </View>
   );
 }
@@ -262,14 +258,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.95)',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 24,
-    alignItems: 'center',
-    paddingVertical: 20,
   },
   contentContainer: {
     width: '100%',
@@ -295,6 +283,7 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     width: '100%',
+    height: 400,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     padding: 16,
@@ -307,12 +296,6 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceMono',
     color: 'rgba(255, 255, 255, 0.9)',
     lineHeight: 20,
-  },
-  transactionDetails: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   detailText: {
     fontSize: 14,
@@ -402,25 +385,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
+    marginBottom: 12,
   },
-  feeMultiplierInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  feeMultiplierInput: {
-    flex: 1,
+  feeMultiplierSlider: {
+    width: '100%',
     height: 40,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 8,
-    padding: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
-    backgroundColor: 'transparent',
-  },
-  feeMultiplierSuffix: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginLeft: 8,
   },
 });
