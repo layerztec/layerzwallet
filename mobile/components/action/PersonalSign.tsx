@@ -36,7 +36,6 @@ export function PersonalSign(args: PersonalSignArgs) {
       }
 
       BrowserBridge.instance?.sendMessage({ for: 'webpage', id: args.id, response: signedResponse.bytes });
-      Alert.alert('Success', 'Message signed');
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to sign message');
@@ -52,7 +51,6 @@ export function PersonalSign(args: PersonalSignArgs) {
         id: args.id,
         error: { code: 4001, message: 'User rejected the request.' },
       });
-      Alert.alert('Rejected', 'User rejected the request');
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to reject request');

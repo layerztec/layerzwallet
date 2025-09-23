@@ -107,7 +107,6 @@ export function SendTransaction(args: SendTransactionArgs) {
         id: args.id,
         error: { code: 4001, message: 'User rejected the request.' },
       });
-      Alert.alert('Rejected', 'User rejected the request');
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to reject request');
@@ -133,7 +132,6 @@ export function SendTransaction(args: SendTransactionArgs) {
         response: txid,
       });
 
-      Alert.alert('Success', 'Transaction sent successfully');
       router.back();
     } catch (error: any) {
       setError(error.message);
