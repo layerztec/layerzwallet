@@ -17,7 +17,6 @@ import { DappBrowserProps } from '@/app/DAppBrowser';
 
 import Transaction from '@/components/Transaction';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { useAppLock } from '@/src/hooks/useAppLock';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -61,58 +60,6 @@ export default function Home() {
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
   const { transactions, error: transactionsError } = useTransactions(network, accountNumber, BackgroundExecutor);
   const accountItem = accountItems[accountNumber];
-
-  // App lock functionality
-  const { lockState, authenticateWithBiometrics, clearCanceled } = useAppLock();
-  const [hasAutoTriggered, setHasAutoTriggered] = useState(false);
-
-  useEffect(() => {
-    LayoutAnimation.configureNext({
-      duration: 300,
-      create: {
-        type: LayoutAnimation.Types.easeInEaseOut,
-        property: LayoutAnimation.Properties.opacity,
-      },
-      update: {
-        type: LayoutAnimation.Types.easeInEaseOut,
-        property: LayoutAnimation.Properties.opacity,
-      },
-      delete: {
-        type: LayoutAnimation.Types.easeInEaseOut,
-        property: LayoutAnimation.Properties.opacity,
-      },
-    });
-  }, [lockState.isLocked, lockState.isAuthenticating, lockState.userCanceled, hasAutoTriggered]);
-
-  useEffect(() => {
-    if (lockState.isLocked && lockState.requiresAuth) {
-      LayoutAnimation.configureNext({
-        duration: 400,
-        create: {
-          type: LayoutAnimation.Types.easeInEaseOut,
-          property: LayoutAnimation.Properties.opacity,
-        },
-        update: {
-          type: LayoutAnimation.Types.spring,
-          springDamping: 0.7,
-          property: LayoutAnimation.Properties.scaleXY,
-        },
-      });
-    }
-  }, [lockState.isLocked, lockState.requiresAuth]);
-
-  // Auto-trigger biometric authentication when lock screen first appears
-  useEffect(() => {
-    if (lockState.isLocked && lockState.requiresAuth && !lockState.isAuthenticating && !lockState.userCanceled && !hasAutoTriggered) {
-      setHasAutoTriggered(true);
-      authenticateWithBiometrics();
-    }
-
-    // Reset auto-trigger flag when app is unlocked
-    if (!lockState.isLocked) {
-      setHasAutoTriggered(false);
-    }
-  }, [lockState.isLocked, lockState.requiresAuth, lockState.isAuthenticating, lockState.userCanceled, hasAutoTriggered, authenticateWithBiometrics]);
 
   // Lightning network specific balance logic
   const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET;
@@ -450,53 +397,6 @@ export default function Home() {
           </View>
         )}
       </View>
-
-      {/* Biometric Authentication Lock Screen Overlay */}
-      {lockState.isLocked && lockState.requiresAuth && (
-        <View style={styles.lockScreenOverlay}>
-          <BlurView intensity={50} tint="dark" style={styles.lockScreenBlur}>
-            <View style={styles.lockScreenContent}>
-              <View style={styles.lockIconContainer}>
-                <MaterialIcons name="lock" size={80} color="rgba(255, 255, 255, 0.8)" />
-              </View>
-              <ThemedText style={styles.lockScreenTitle}>Wallet Locked</ThemedText>
-              <ThemedText style={styles.lockScreenSubtitle}>
-                {lockState.isAuthenticating
-                  ? 'Authenticating...'
-                  : lockState.userCanceled
-                    ? 'Authentication was canceled. Tap unlock to try again.'
-                    : hasAutoTriggered
-                      ? 'Tap unlock to authenticate'
-                      : 'Authenticating automatically...'}
-              </ThemedText>
-              {!lockState.isAuthenticating && (lockState.userCanceled || hasAutoTriggered) && (
-                <TouchableOpacity
-                  style={styles.unlockButton}
-                  onPress={() => {
-                    LayoutAnimation.configureNext({
-                      duration: 200,
-                      create: {
-                        type: LayoutAnimation.Types.easeInEaseOut,
-                        property: LayoutAnimation.Properties.opacity,
-                      },
-                      update: {
-                        type: LayoutAnimation.Types.easeInEaseOut,
-                        property: LayoutAnimation.Properties.opacity,
-                      },
-                    });
-                    clearCanceled();
-                    authenticateWithBiometrics();
-                  }}
-                  testID="UnlockButton"
-                >
-                  <MaterialIcons name="fingerprint" size={24} color="rgba(255, 255, 255, 0.8)" />
-                  <ThemedText style={styles.unlockButtonText}>Unlock</ThemedText>
-                </TouchableOpacity>
-              )}
-            </View>
-          </BlurView>
-        </View>
-      )}
     </>
   );
 }
@@ -788,54 +688,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     marginLeft: 4,
-  },
-  lockScreenOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1000,
-  },
-  lockScreenBlur: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  lockScreenContent: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  lockIconContainer: {
-    marginBottom: 20,
-    transform: [{ scale: 1 }],
-  },
-  lockScreenTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  lockScreenSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 22,
-  },
-  unlockButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 8,
-  },
-  unlockButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
   },
 });

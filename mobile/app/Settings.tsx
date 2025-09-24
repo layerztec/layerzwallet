@@ -4,14 +4,14 @@ import * as Application from 'expo-application';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View, Switch } from 'react-native';
 
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { SecureStorage } from '@/src/class/secure-storage';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
-import { useBiometricAuth, isMaestroMode } from '@/src/hooks/BiometricAuthContext';
+import { useAuthState, isMaestroMode } from '@/src/hooks/AuthStateContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
@@ -34,7 +34,7 @@ export default function SettingsScreen() {
   const { network } = useContext(NetworkContext);
   const [btcXpub, setBtcXpub] = useState('');
   const biometricInfo = useBiometrics();
-  const { enableBiometricAuth, disableBiometricAuth, isUpdatingBiometric } = useBiometricAuth();
+  const { enableBiometricAuth, disableBiometricAuth, isUpdatingBiometric, lockApp } = useAuthState();
 
   useEffect(() => {
     (async () => {
@@ -185,6 +185,21 @@ export default function SettingsScreen() {
               const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
               const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
 
+              if (key === 'biometricAuth') {
+                const isDisabled = isUpdatingBiometric;
+                const isEnabled = currentValue === 'ON';
+
+                return (
+                  <View key={key} style={styles.settingContainer} testID={`SettingContainer-${key}`}>
+                    <ThemedText style={styles.settingLabel} testID={`SettingLabel-${key}`}>
+                      {formatSettingName(key)}:
+                    </ThemedText>
+                    <Switch testID={`SettingSwitch-${key}`} value={isEnabled} onValueChange={(value) => handleSettingChange(key, value ? 'ON' : 'OFF')} disabled={isDisabled} />
+                  </View>
+                );
+              }
+
+              // Default handling for other settings - render as buttons
               return (
                 <View key={key} style={styles.settingContainer} testID={`SettingContainer-${key}`}>
                   <ThemedText style={styles.settingLabel} testID={`SettingLabel-${key}`}>
@@ -192,19 +207,14 @@ export default function SettingsScreen() {
                   </ThemedText>
                   <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
                     {config.options.map((option: string) => {
-                      const isDisabled = key === 'biometricAuth' && isUpdatingBiometric;
                       return (
                         <TouchableOpacity
                           key={option}
-                          style={[styles.settingOptionButton, currentValue === option && styles.settingOptionButtonActive, isDisabled && styles.settingOptionButtonDisabled]}
+                          style={[styles.settingOptionButton, currentValue === option && styles.settingOptionButtonActive]}
                           onPress={() => handleSettingChange(key, option)}
-                          disabled={isDisabled}
                           testID={`SettingOption-${key}-${option}`}
                         >
-                          <ThemedText
-                            style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive, isDisabled && styles.settingOptionTextDisabled]}
-                            testID={`SettingOptionText-${key}-${option}`}
-                          >
+                          <ThemedText style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive]} testID={`SettingOptionText-${key}-${option}`}>
                             {formatOptionName(option)}
                           </ThemedText>
                         </TouchableOpacity>
@@ -230,6 +240,34 @@ export default function SettingsScreen() {
             }}
           >
             <ThemedText style={styles.selfTestButtonText}>ScanQr</ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        {/* Security Section */}
+        <View style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>Security</ThemedText>
+
+          <TouchableOpacity
+            style={[styles.button, styles.primaryButton]}
+            onPress={() => {
+              Alert.alert('Lock App', 'Are you sure you want to lock the app?', [
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                },
+                {
+                  text: 'Lock',
+                  onPress: () => lockApp(),
+                },
+              ]);
+            }}
+            testID="LockAppButton"
+          >
+            <ThemedText style={styles.primaryButtonText}>Lock App</ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.button, styles.dangerButton]} onPress={handleClearStorage} disabled={isClearing} testID="ClearStorageButton">
+            <ThemedText style={styles.dangerButtonText}>{isClearing ? 'Clearing...' : 'Clear Storage'}</ThemedText>
           </TouchableOpacity>
         </View>
 
