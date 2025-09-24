@@ -58,7 +58,6 @@ const Action: React.FC = () => {
           const addressResponse = await BackgroundExecutor.getAddress(network, accountNumber);
           await BackgroundExecutor.whitelistDapp(from);
           BrowserBridge.instance?.sendMessage({ for: 'webpage', id, response: [addressResponse] });
-          Alert.alert('Success', 'Account access granted');
           router.back();
           return;
         }

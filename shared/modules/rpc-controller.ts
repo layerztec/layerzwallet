@@ -120,6 +120,13 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
       await sendResponse({ for: 'webpage', id, response: 'LayerzWallet/1.0.0' });
       return { success: true };
 
+    case 'wallet_getCapabilities':
+      // TODO: not supported. not sure if we need it..?
+      // @see https://eips.ethereum.org/EIPS/eip-5792
+      // @see https://docs.metamask.io/wallet/reference/json-rpc-methods/wallet_getcapabilities
+      await sendResponse({ for: 'webpage', id, response: {} });
+      return { success: true };
+
     // Forward these RPC calls directly to the provider without user confirmation
     case 'eth_maxPriorityFeePerGas':
     case 'eth_getBalance':

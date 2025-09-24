@@ -22,7 +22,7 @@ export interface ISparkAdapter {
 export type StaticDepositQuoteOutput = Awaited<ReturnType<SDK['getClaimStaticDepositQuote']>>;
 
 export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
-  private _sdkWallet: SDK | undefined = undefined;
+  private _sdkWallet: Awaited<ReturnType<typeof SDK.initialize>>['wallet'] | undefined = undefined;
   protected adapter: ISparkAdapter;
   public allowLightning: true = true;
 
@@ -43,8 +43,8 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
       },
     });
 
-    wallet.on('transfer:claimed', (transferId: string, balance: number) => {
-      console.log(`Transfer ${transferId} claimed. New balance: ${balance}`);
+    wallet.on('transfer:claimed', (transferId: string, updatedBalance: bigint) => {
+      console.log(`Transfer ${transferId} claimed. New balance: ${updatedBalance}`);
     });
 
     this._sdkWallet = wallet;

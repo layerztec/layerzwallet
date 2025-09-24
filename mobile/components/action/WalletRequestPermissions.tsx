@@ -28,7 +28,6 @@ export function WalletRequestPermissions(args: WalletRequestPermissionsArgs) {
       const dp = new DappPermissions(String(from), LayerzStorage);
       const response = await dp.addPermissions(permissions[0]);
       BrowserBridge.instance?.sendMessage({ for: 'webpage', id, response });
-      Alert.alert('Success', 'Permissions granted');
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to grant permissions');
@@ -44,7 +43,6 @@ export function WalletRequestPermissions(args: WalletRequestPermissionsArgs) {
         id: args.id,
         error: { code: 4001, message: 'User rejected the request.' },
       });
-      Alert.alert('Rejected', 'User rejected the request');
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to reject request');

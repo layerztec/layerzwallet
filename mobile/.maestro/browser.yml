@@ -33,7 +33,41 @@ appId: com.layerzwallet.mobile
 - scroll # Extend the popup
 - tapOn: 'Allow'
 - waitForAnimationToEnd
+- assertNotVisible: 'Account Access Request'
 
-- extendedWaitUntil: # Wait for Success message
-    visible: 'Success'
-- tapOn: 'Ok'
+# signing v4
+
+- scrollUntilVisible:
+    element: Sign Typed Data V4
+    timeout: 90000
+    speed: 50
+    centerElement: true
+- copyTextFrom:
+    id: signTypedDataV4Result
+- evalScript: ${console.log(JSON.stringify(maestro.copiedText));}
+- assertTrue: ${maestro.copiedText == ""}
+- tapOn:
+    id: signTypedDataV4
+- scrollUntilVisible:
+    element: Allow
+- tapOn: Allow
+- inputText:
+    text: '123456'
+- tapOn: OK
+- extendedWaitUntil:
+    notVisible: 'Processing...'
+    timeout: 60000
+
+# instead of sleeping (maestro doesnt have sleep) we scroll to make the element centered
+# (we are waiting for signature to be complete and provided to a webpage)
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: signTypedDataV4Result
+    centerElement: true
+- waitForAnimationToEnd
+
+- copyTextFrom:
+    id: signTypedDataV4Result
+- evalScript: ${console.log(JSON.stringify(maestro.copiedText));}
+- assertTrue: ${maestro.copiedText != ""}
