@@ -30,6 +30,7 @@ import './Popup.css';
 import Receive from './Receive';
 import ReceiveLightning from './ReceiveLightning';
 import SeedBackup from './SeedBackup';
+import ViewSubmnemonic from './ViewSubmnemonic';
 import SendArk from './SendArk';
 import SendBtc from './SendBtc';
 import SendEvm from './SendEvm';
@@ -87,6 +88,7 @@ const AppContent: React.FC = () => {
             <Route path="/receive" element={<Receive />} />
             <Route path="/receive-lightning" element={<ReceiveLightning />} />
             <Route path="/seed-backup" element={<SeedBackup />} />
+            <Route path="/ViewSubmnemonic" element={<ViewSubmnemonic />} />
             <Route path="/send-liquid" element={<SendLiquid />} />
             <Route path="/send-evm" element={<SendEvm />} />
             <Route path="/send-ark" element={<SendArk />} />

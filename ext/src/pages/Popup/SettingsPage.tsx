@@ -173,6 +173,10 @@ const SettingsPage: React.FC = () => {
       <Button onClick={() => navigate('/seed-backup')} style={{ marginBottom: '10px' }}>
         Seed Backup
       </Button>
+      <span> </span>
+      <Button onClick={() => navigate('/ViewSubmnemonic')} style={{ marginBottom: '10px' }}>
+        View derived seed
+      </Button>
 
       <div id="messages" data-testid="messages"></div>
     </div>
