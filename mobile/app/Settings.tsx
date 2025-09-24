@@ -92,6 +92,10 @@ export default function SettingsScreen() {
     router.push('/SeedBackup');
   };
 
+  const handleNavigateToViewSubmnemonic = () => {
+    router.push('/ViewSubmnemonic');
+  };
+
   const handleSettingChange = async (key: string, value: string) => {
     try {
       // Special handling for biometric authentication
@@ -136,6 +140,10 @@ export default function SettingsScreen() {
 
           <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={handleNavigateToSeedBackup}>
             <ThemedText style={styles.primaryButtonText}>Backup Seed Phrase</ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={handleNavigateToViewSubmnemonic}>
+            <ThemedText style={styles.primaryButtonText}>View derived seed</ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.button, styles.dangerButton, isClearing && styles.buttonDisabled]} onPress={handleClearStorage} disabled={isClearing}>
