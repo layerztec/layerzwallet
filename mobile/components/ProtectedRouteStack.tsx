@@ -1,5 +1,5 @@
 import React from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 
@@ -16,6 +16,13 @@ const DefaultNavigatorOptions: NativeStackNavigationOptions = {
 
 export function ProtectedRouteStack() {
   const { isAuthenticated, isInitialized, isBiometricEnabled } = useAuthState();
+  const segments = useSegments();
+
+  // Determine if user has ever been to main app screens (indicates they've authenticated before)
+  const isInMainApp = segments.some((segment) => ['Home', 'Settings', 'Swap', 'Receive', 'SendArk', 'Transactions'].includes(segment as string));
+
+  // User has completed initial auth if they're currently in main app or have been there before
+  const hasCompletedInitialAuth = isInMainApp;
 
   // Debug: Log the current auth state (only in development)
   if (__DEV__) {
@@ -23,15 +30,19 @@ export function ProtectedRouteStack() {
       isAuthenticated,
       isInitialized,
       isBiometricEnabled,
-      shouldShowBiometricLogin: isBiometricEnabled && isInitialized && !isAuthenticated,
-      shouldShowMainApp: !isBiometricEnabled || isAuthenticated,
+      segments,
+      isInMainApp,
+      hasCompletedInitialAuth,
+      shouldShowBiometricLogin: isBiometricEnabled && isInitialized && !isAuthenticated && !hasCompletedInitialAuth,
+      shouldShowMainApp: !isBiometricEnabled || isAuthenticated || hasCompletedInitialAuth,
     });
   }
 
   // Extract guard conditions for clarity
-  // If biometrics are not enabled, always allow access to main app (bypass all guards)
-  const shouldShowBiometricLogin = isBiometricEnabled && isInitialized && !isAuthenticated;
-  const shouldShowMainApp = !isBiometricEnabled || isAuthenticated;
+  // Show fullscreen biometric login only on first authentication attempt (never been to main app)
+  const shouldShowBiometricLogin = isBiometricEnabled && isInitialized && !isAuthenticated && !hasCompletedInitialAuth;
+  // Show main app if biometrics are disabled, user is authenticated, or user has been to main app before
+  const shouldShowMainApp = !isBiometricEnabled || isAuthenticated || hasCompletedInitialAuth;
 
   return (
     <Stack
@@ -103,10 +114,7 @@ export function ProtectedRouteStack() {
         />
       </Stack.Protected>
 
-      {/* Biometric authentication screen - only shown when:
-          1. App is initialized
-          2. User is not authenticated 
-          3. Biometrics are enabled at APP level (regardless of device capabilities) */}
+      {/* Biometric authentication screen - shown for first-time authentication only */}
       <Stack.Protected guard={shouldShowBiometricLogin}>
         <Stack.Screen
           name="BiometricLogin"
@@ -117,9 +125,10 @@ export function ProtectedRouteStack() {
         />
       </Stack.Protected>
 
-      {/* Protected app screens - shown when:
+      {/* Protected app screens - shown when app is initialized and either:
           1. User is authenticated, OR
-          2. App is initialized AND biometrics are disabled at APP level */}
+          2. User has been authenticated at least once (subsequent modal auth), OR
+          3. Biometrics are disabled */}
       <Stack.Protected guard={shouldShowMainApp}>
         <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'fade' }} />
         <Stack.Screen name="Receive" />

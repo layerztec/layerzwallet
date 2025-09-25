@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, StyleSheet, Alert, Pressable, Image, Linking, AppState, AppStateStatus, Text } from 'react-native';
+import { View, StyleSheet, Alert, Pressable, Image, Linking, AppState, AppStateStatus, Text, Modal } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
+import { useSegments } from 'expo-router';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
 import { isDevicePasscodeEnabled } from '@/utils/deviceSecurity';
@@ -37,6 +39,7 @@ export default function BiometricLoginScreen() {
       try {
         const timeoutId = setTimeout(() => {
           console.debug('BiometricLogin: Authentication timeout - resetting state');
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
           setAuthState((prev) => ({
             ...prev,
             isAuthenticating: false,
@@ -50,6 +53,7 @@ export default function BiometricLoginScreen() {
         clearTimeout(timeoutId);
 
         if (!success) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           setAuthState((prev) => ({
             ...prev,
             isAuthenticating: false,
@@ -58,6 +62,7 @@ export default function BiometricLoginScreen() {
             isFromBackground: false,
           }));
         } else {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           setAuthState((prev) => ({
             ...prev,
             isFromBackground: false,
@@ -65,6 +70,7 @@ export default function BiometricLoginScreen() {
           }));
         }
       } catch (error) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setAuthState((prev) => ({
           ...prev,
           isAuthenticating: false,
@@ -83,6 +89,8 @@ export default function BiometricLoginScreen() {
   }, []);
 
   const handleAuthenticate = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
     if (isBiometricEnabled && !biometricInfo.isAvailable) {
       // If biometric is enabled in app but not available on device, check if device has passcode
       if (hasDevicePasscode) {
@@ -106,12 +114,12 @@ export default function BiometricLoginScreen() {
   };
 
   useEffect(() => {
-    if (!authState.hasTriedInitial && !biometricInfo.isLoading && (biometricInfo.isAvailable || hasDevicePasscode)) {
+    if (!authState.hasTriedInitial && !authState.isAuthenticating && !biometricInfo.isLoading && (biometricInfo.isAvailable || hasDevicePasscode)) {
       setTimeout(() => {
         performAuthentication(true);
       }, 500);
     }
-  }, [performAuthentication, authState.hasTriedInitial, biometricInfo.isLoading, biometricInfo.isAvailable, biometricInfo.biometricType, hasDevicePasscode]);
+  }, [performAuthentication, authState.hasTriedInitial, authState.isAuthenticating, biometricInfo.isLoading, biometricInfo.isAvailable, biometricInfo.biometricType, hasDevicePasscode]);
 
   useEffect(() => {
     if (!biometricInfo.isLoading && isBiometricEnabled && !biometricInfo.isAvailable) {
@@ -146,7 +154,8 @@ export default function BiometricLoginScreen() {
         const timeSinceLastAuth = now - lastAuthAttemptTime.current;
         const cooldownPeriod = 5000;
 
-        if ((biometricInfo.isAvailable || hasDevicePasscode) && !authState.isAuthenticating && !authState.hasAutoTriggered && timeSinceLastAuth > cooldownPeriod) {
+        // Only trigger from background if we've already tried initial auth (prevents double trigger on mount)
+        if ((biometricInfo.isAvailable || hasDevicePasscode) && !authState.isAuthenticating && !authState.hasAutoTriggered && authState.hasTriedInitial && timeSinceLastAuth > cooldownPeriod) {
           console.debug('BiometricLogin: Auto-triggering from background');
           setAuthState((prev) => ({
             ...prev,
@@ -164,6 +173,7 @@ export default function BiometricLoginScreen() {
             hasDevicePasscode,
             isAuthenticating: authState.isAuthenticating,
             hasAutoTriggered: authState.hasAutoTriggered,
+            hasTriedInitial: authState.hasTriedInitial,
             timeSinceLastAuth,
             cooldownPeriod,
           });
@@ -175,7 +185,7 @@ export default function BiometricLoginScreen() {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
-  }, [isAlertShowing, biometricInfo, authState.isAuthenticating, authState.hasAutoTriggered, hasDevicePasscode, performAuthentication]);
+  }, [isAlertShowing, biometricInfo, authState.isAuthenticating, authState.hasAutoTriggered, authState.hasTriedInitial, hasDevicePasscode, performAuthentication]);
 
   const getBiometricIcon = () => {
     if (!biometricInfo.isAvailable || !biometricInfo.biometricType) {
@@ -209,7 +219,13 @@ export default function BiometricLoginScreen() {
             <Text style={styles.settingsText}>
               Your wallet requires device security. Please enable biometric authentication or a device passcode/PIN in your device settings to access your wallet.
             </Text>
-            <Pressable style={styles.settingsButton} onPress={handleAuthenticate}>
+            <Pressable
+              style={({ pressed }) => [styles.settingsButton, pressed && styles.settingsButtonPressed]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                handleAuthenticate();
+              }}
+            >
               <Text style={styles.settingsButtonText}>Open Settings</Text>
             </Pressable>
           </View>
@@ -217,7 +233,7 @@ export default function BiometricLoginScreen() {
 
         {authState.showRetryButton && !authState.isAuthenticating && !authState.isFromBackground && !(hasDevicePasscode === false && !biometricInfo.isAvailable) && (
           <View style={styles.buttonContainer}>
-            <Pressable style={styles.retryButton} onPress={handleAuthenticate}>
+            <Pressable style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]} onPress={handleAuthenticate}>
               <Ionicons name={getBiometricIcon()} size={24} color="rgba(255, 255, 255, 0.8)" />
             </Pressable>
           </View>
@@ -262,6 +278,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
+  retryButtonPressed: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    opacity: 0.8,
+  },
   retryButtonDisabled: {
     opacity: 0.4,
   },
@@ -286,10 +306,66 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
+  settingsButtonPressed: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    opacity: 0.8,
+  },
   settingsButtonText: {
     color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
+  },
+});
+
+// Modal handler component that shows the modal when needed
+export function BiometricModalHandler() {
+  const { isAuthenticated, isBiometricEnabled, isUpdatingBiometric } = useAuthState();
+  const segments = useSegments();
+
+  // Determine if user is currently in main app (indicates they've authenticated before)
+  const isInMainApp = segments.some((segment) => ['Home', 'Settings', 'Swap', 'Receive', 'SendArk', 'Transactions'].includes(segment as string));
+
+  // Show modal when user has been to main app before but is now locked
+  const shouldShowBiometricModal = isBiometricEnabled && isInMainApp && !isAuthenticated && !isUpdatingBiometric;
+
+  if (!shouldShowBiometricModal) {
+    return null;
+  }
+
+  return <BiometricModalScreen />;
+}
+
+// Modal screen component for biometric authentication
+export function BiometricModalScreen() {
+  const { isAuthenticated, isBiometricEnabled, isUpdatingBiometric } = useAuthState();
+  const segments = useSegments();
+
+  // Determine if user is currently in main app (indicates they've authenticated before)
+  const isInMainApp = segments.some((segment) => ['Home', 'Settings', 'Swap', 'Receive', 'SendArk', 'Transactions'].includes(segment as string));
+
+  // Show modal when user has been to main app before but is now locked
+  const shouldShowBiometricModal = isBiometricEnabled && isInMainApp && !isAuthenticated && !isUpdatingBiometric;
+
+  return (
+    <Modal
+      visible={shouldShowBiometricModal}
+      animationType="fade"
+      presentationStyle="fullScreen"
+      onRequestClose={() => {
+        // Modal should not be dismissible via back button or gestures
+      }}
+    >
+      <View style={modalStyles.container}>
+        <BiometricLoginScreen />
+      </View>
+    </Modal>
+  );
+}
+
+const modalStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'rgb(24, 32, 82)',
   },
 });
