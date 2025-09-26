@@ -124,9 +124,15 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     }
 
     if (network === NETWORK_ARK_MUTINYNET) {
+      assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Ark env vars not set');
       const aw = new ArkWallet();
       const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
       aw.setSecret(submnemonic);
+      // FIXME: temporarily while mutinynet arkd is down we make this wallet work with mainnet:
+      aw.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
+      aw.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
+      aw.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
+      //
       await aw.init(storage);
       cachedWallets[network][accountNumber] = aw;
       return aw;

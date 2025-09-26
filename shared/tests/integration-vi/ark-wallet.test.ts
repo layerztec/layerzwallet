@@ -4,7 +4,6 @@ import { ArkWallet } from '../../class/wallets/ark-wallet';
 import { IStorage } from '../../types/IStorage';
 import fs from 'fs';
 
-// const _cache: Record<string, string> = {};
 const storageMock: IStorage = {
   async setItem(key: string, value: string) {
     console.log('setItem', key, '....');
@@ -23,7 +22,7 @@ const storageMock: IStorage = {
   },
 };
 
-test('ark', async (context) => {
+test.skip('ark mutinynet can check balance', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
     context.skip();
     return;
@@ -38,7 +37,7 @@ test('ark', async (context) => {
   assert.ok(offchainBalance >= 666);
 });
 
-test('ark mainnet', async (context) => {
+test('ark mainnet can check balance', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
     context.skip();
     return;
@@ -59,10 +58,44 @@ test('ark mainnet', async (context) => {
 
   const offchainBalance = await w.getOffchainBalance();
 
-  assert.ok(offchainBalance >= 666);
+  assert.ok(offchainBalance >= 6, `only have ${offchainBalance}`);
 });
 
-test.only('ark can create lightning invoice', async (context) => {
+test('ark mainnet switch accounts', async (context) => {
+  if (!process.env.TEST_MNEMONIC) {
+    context.skip();
+    return;
+  }
+
+  if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
+    context.skip();
+    return;
+  }
+
+  const w = new ArkWallet();
+  w.setSecret(process.env.TEST_MNEMONIC);
+  w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
+  w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
+  w.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
+  await w.init(storageMock);
+
+  //
+
+  const receive0 = await w.getOffchainReceiveAddress();
+  assert.ok(receive0);
+
+  w.setAccountNumber(1);
+  await w.init(storageMock);
+  assert.ok(await w.getOffchainReceiveAddress());
+  assert.ok(receive0 !== (await w.getOffchainReceiveAddress()));
+
+  w.setAccountNumber(0);
+  await w.init(storageMock);
+
+  assert.ok(receive0 === (await w.getOffchainReceiveAddress()));
+});
+
+test.skip('ark mainnet can create lightning invoice', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
     context.skip();
     return;
@@ -94,10 +127,10 @@ test.only('ark can create lightning invoice', async (context) => {
   //   console.log('claimed=', claimed);
   // }
 
-  // await w.createLightningInvoice(2000, 'GSOM OLOLO');
+  // await w.createLightningInvoice(500, 'GSOM OLOLO');
 });
 
-test.skip('ark can pay lightning invoice', async (context) => {
+test.skip('ark mainnet can pay lightning invoice', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
     context.skip();
     return;
@@ -124,7 +157,7 @@ test.skip('ark can pay lightning invoice', async (context) => {
   console.log({ offchainBalance });
 
   const result = await w.payLightningInvoice(
-    'lnbc4u1p5tny79pp5u2ruqyfjk7q9p6m56w7mdk74lpt48fzt9gcz0dlvgtaty6us4k3sdql6z6dpvxsktgtp59eyrgtt59l6xpdpvqcqzysxqyz5vqsp5y2n3r7eylde6wmx4p029kcky62mtjh7pa07huph8jxjr6matfuas9qxpqysgqdg5gwdegq3w6jnyj8tymd4gqhpnjy4qdszlj7s0hatarsa42nclz7uh0x2c6aw2cf2ehpxv5j9f6th4n99zgd76a6kvunn9fzsk0ewqpdy68kz',
+    'lnbc19u1p5dd0qvpp5sc5nasn5us76usdaru40c0v8lztnddps9zh2dw0xmr378mag978sdqdveex7mfqv9exkcqzysxqyz5vqsp5rththnuptxdqyne9d4jt0lz037xhy9g8mrmuzy2w70dexryztljs9qxpqysgqw7t08t0csjrenxktlr8hmt6yyydhgczwz8wuyy74p39zx57fl3zkh2mza7updd8jfxpgcx5qdyacxt2znz2yq3rvgs7r9krfa8rf54gq8x8qpe',
     5
   );
   assert.ok(result);

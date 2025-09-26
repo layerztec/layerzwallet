@@ -16,29 +16,22 @@ const storageMock: IStorage = {
   },
 };
 
-test('ArkWallet', async () => {
+test('ark mainnet can getCommonTransactions', async (context) => {
+  if (!process.env.TEST_MNEMONIC) {
+    context.skip();
+    return;
+  }
+
+  if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
+    context.skip();
+    return;
+  }
+
   const w = new ArkWallet();
-  w.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
-  // acc number 0
-  await w.init(storageMock);
-
-  const receive0 = await w.getOffchainReceiveAddress();
-  assert.ok(receive0);
-
-  w.setAccountNumber(1);
-  await w.init(storageMock);
-  assert.ok(await w.getOffchainReceiveAddress());
-  assert.ok(receive0 !== (await w.getOffchainReceiveAddress()));
-
-  w.setAccountNumber(0);
-  await w.init(storageMock);
-
-  assert.ok(receive0 === (await w.getOffchainReceiveAddress()));
-});
-
-test('ArkWallet - getCommonTransactions', async () => {
-  const w = new ArkWallet();
-  w.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
+  w.setSecret(process.env.TEST_MNEMONIC);
+  w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
+  w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
+  w.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
   await w.init(storageMock);
 
   const transfers: ArkTransaction[] = [

@@ -55,9 +55,8 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     const path = `m/86'/0'/${accountNumber}'/${internal}/${index}`;
     const child = root.derivePath(path);
     assert(child.privateKey, 'Internal error: no private key for child');
-    const hex = child.privateKey?.toString('hex');
 
-    return SingleKey.fromHex(hex);
+    return SingleKey.fromPrivateKey(child.privateKey);
   }
 
   async init(layerzStorage: IStorage) {
