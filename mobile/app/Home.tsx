@@ -232,21 +232,12 @@ export default function Home() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      
-      {/* Sticky Header */}
-      <StickyHeader 
-        scrollY={scrollY}
-        onSettingsPress={goToSettings}
-        accountBalance={accountBalance ? Number(accountBalance) : 0}
-      />
-      
-      <GradientScreen 
-        variant={network} 
-        scroll={true}
-        onScroll={handleScroll}
-      >
-        <View style={[styles.root, styles.contentWithHeader]}>
 
+      {/* Sticky Header */}
+      <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} accountBalance={accountBalance ? Number(accountBalance) : 0} />
+
+      <GradientScreen variant={network} scroll={true} onScroll={handleScroll}>
+        <View style={[styles.root, styles.contentWithHeader]}>
           {/* Network Selector */}
           <View style={styles.networkSelectorContainer}>
             <TouchableOpacity testID="NetworkSwitcherTrigger" style={styles.networkSelector} onPress={handleNetworkSelect} activeOpacity={0.8}>

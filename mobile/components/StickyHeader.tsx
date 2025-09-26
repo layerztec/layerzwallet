@@ -18,11 +18,7 @@ interface StickyHeaderProps {
   accountBalance?: number;
 }
 
-const StickyHeader: React.FC<StickyHeaderProps> = ({ 
-  scrollY, 
-  onSettingsPress, 
-  accountBalance 
-}) => {
+const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress, accountBalance }) => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { accountNumber } = React.useContext(AccountNumberContext);
@@ -57,45 +53,31 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Blur Background */}
       <Animated.View style={[styles.blurBackground, { opacity: blurOpacity }]}>
-        <BlurView 
-          intensity={50} 
-          tint="dark" 
-          style={styles.blurView}
-        />
+        <BlurView intensity={50} tint="dark" style={styles.blurView} />
       </Animated.View>
-      
+
       {/* Animated Border */}
-      <Animated.View 
+      <Animated.View
         style={[
           styles.border,
-          { 
+          {
             opacity: borderOpacity,
-            borderBottomColor: 'rgba(255, 255, 255, 0.1)'
-          }
-        ]} 
+            borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+          },
+        ]}
       />
-      
+
       {/* Header Content */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.logoContainer} 
-          onPress={onSettingsPress} 
-          testID="SettingsButton" 
-          activeOpacity={0.8}
-        >
+        <TouchableOpacity style={styles.logoContainer} onPress={onSettingsPress} testID="SettingsButton" activeOpacity={0.8}>
           <Image source={logo} style={styles.logo} contentFit="contain" />
         </TouchableOpacity>
 
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.pocket} onPress={handlePocketPress}>
-            <ThemedText style={styles.pocketLabel}>
-              {accountItem.name} pocket
-            </ThemedText>
+            <ThemedText style={styles.pocketLabel}>{accountItem.name} pocket</ThemedText>
             <ThemedText style={styles.pocketAmount}>
-              {accountBalance 
-                ? formatBalance(accountBalance, Number(getDecimalsByNetwork(NETWORK_BITCOIN)), 8) 
-                : '0'
-              } {getTickerByNetwork(NETWORK_BITCOIN)}
+              {accountBalance ? formatBalance(accountBalance, Number(getDecimalsByNetwork(NETWORK_BITCOIN)), 8) : '0'} {getTickerByNetwork(NETWORK_BITCOIN)}
             </ThemedText>
           </TouchableOpacity>
         </View>
