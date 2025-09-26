@@ -111,23 +111,29 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     if (!this._wallet) throw new Error('Ark wallet not initialized');
 
     if (this._arkadeLightning) {
-      // lets try to claim all pending incoming swaps
-      const pendingReverseSwaps = await this._arkadeLightning.getPendingReverseSwaps();
-      if ((pendingReverseSwaps ?? []).length > 0) console.log('got', pendingReverseSwaps?.length ?? [], 'pending swaps');
-
-      for (const swap of pendingReverseSwaps ?? []) {
-        console.log('claiming...');
-        try {
-          await this._arkadeLightning.claimVHTLC(swap);
-          console.log('claimed!');
-        } catch (error: any) {
-          console.log('could not claim:', error.message);
-        }
-      }
+      await this._attemptToClaimPendingVHTLCs();
     }
 
     const balance = await this._wallet.getBalance();
     return balance.available;
+  }
+
+  async _attemptToClaimPendingVHTLCs() {
+    assert(this._wallet, 'Ark wallet not initialized');
+    assert(this._arkadeLightning, 'Ark Lightning not initialized');
+
+    const pendingReverseSwaps = await this._arkadeLightning.getPendingReverseSwaps();
+    if ((pendingReverseSwaps ?? []).length > 0) console.log('got', pendingReverseSwaps?.length ?? [], 'pending swaps');
+
+    for (const swap of pendingReverseSwaps ?? []) {
+      console.log('claiming...');
+      try {
+        await this._arkadeLightning.claimVHTLC(swap);
+        console.log('claimed!');
+      } catch (error: any) {
+        console.log('could not claim:', error.message);
+      }
+    }
   }
 
   async pay(address: string, amount: number): Promise<string> {
@@ -161,7 +167,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
       const createdAt = transaction.createdAt || new Date().getTime(); // createdAt is 0 if tx is unconfirmed
       const timestamp = Math.floor(createdAt / 1000);
       commonTransactions.push({
-        network: NETWORK_ARK_MUTINYNET,
+        network: this._arkServerUrl.includes('mutiny') ? NETWORK_ARK_MUTINYNET : NETWORK_ARK, // hacky
         txid: transaction.key.arkTxid,
         timestamp,
         direction: transaction.type === TxType.TxSent ? 'send' : 'receive',
@@ -209,9 +215,16 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     });
   }
 
-  isInvoicePaid(invoice: string): Promise<boolean> {
-    // todo: iterate through `this._arkadeLightning.getPendingReverseSwaps();` and find the record that has our invoice string and `status === "invoice.settled"`
-    // throw new Error('Not implemented');
+  async isInvoicePaid(invoice: string): Promise<boolean> {
+    assert(this._arkadeLightning, 'Ark Lightning not initialized');
+
+    await this._attemptToClaimPendingVHTLCs();
+
+    for (const swap of (await this._arkadeLightning.getSwapHistory()) ?? []) {
+      if (swap.status === 'invoice.settled' && swap.type === 'reverse' && swap.response.invoice === invoice) {
+        return true;
+      }
+    }
     return Promise.resolve(false);
   }
 
