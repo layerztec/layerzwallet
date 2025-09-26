@@ -43,7 +43,7 @@ export const AuthStateContext = createContext<IAuthState>({
 export const useAuthState = () => {
   const context = useContext(AuthStateContext);
   if (!context) {
-    throw new Error('useAuthState must be used within AuthStateProvider');
+    throw new Error('useAuthState must be used within AuthStateContextProvider');
   }
   return context;
 };
@@ -51,7 +51,7 @@ export const useAuthState = () => {
 /**
  * This provider manages the authentication state for protected routes.
  */
-export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
+export const AuthStateContextProvider: React.FC<{ children: ReactNode }> = (props) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isUpdatingBiometric, setIsUpdatingBiometric] = useState(false);
   const [hasInitializedAuth, setHasInitializedAuth] = useState(false);
@@ -86,8 +86,7 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
       const biometricEnabledAtInit = settings.biometricAuth === 'ON';
 
       if (biometricEnabledAtInit) {
-        // If biometrics are enabled, start unauthenticated (require auth)
-        // The ProtectedRouteStack will show BiometricLogin screen which auto-triggers authentication
+        // If biometrics are enabled, start unauthenticated
         setIsAuthenticated(false);
       } else {
         // If biometrics are disabled, start authenticated (no auth required)
@@ -118,7 +117,7 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
     }
   }, []);
 
-  const enableBiometricAuth = useCallback(async (): Promise<boolean> => {
+  const enableBiometricAuth = async (): Promise<boolean> => {
     if (isUpdatingBiometric) {
       return false;
     }
@@ -160,9 +159,9 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
       setIsUpdatingBiometric(false);
       return false;
     }
-  }, [biometricInfo, isUpdatingBiometric, updateSetting]);
+  };
 
-  const disableBiometricAuth = useCallback(async (): Promise<boolean> => {
+  const disableBiometricAuth = async (): Promise<boolean> => {
     if (isUpdatingBiometric) {
       return false;
     }
@@ -207,7 +206,7 @@ export const AuthStateProvider: React.FC<{ children: ReactNode }> = (props) => {
       setIsUpdatingBiometric(false);
       return false;
     }
-  }, [biometricInfo, isUpdatingBiometric, updateSetting]);
+  };
 
   const lockApp = useCallback(() => {
     setIsAuthenticated(false);
