@@ -275,7 +275,8 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     const unclaimedSwaps: CommonSwap[] = unclaimedTxs.map((tx) => {
       const txDetails = txs1[tx.key.boardingTxid];
       const timestamp = tx.createdAt || new Date().getTime();
-      const claimable = txDetails.confirmations >= 1; // can be claimed once it's unconfirmed
+      const confirmations = txDetails.confirmations ?? 0;
+      const claimable = confirmations >= 1; // can be claimed once it's unconfirmed
       return {
         network,
         id: tx.key.boardingTxid,
@@ -284,7 +285,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
         timestamp,
         direction: 'receive',
         // we only want to show confirmations for 'pending' swaps
-        confirmations: !claimable ? txDetails.confirmations : undefined,
+        confirmations: !claimable ? confirmations : undefined,
         targetConfirmations: !claimable ? 1 : undefined,
       };
     });

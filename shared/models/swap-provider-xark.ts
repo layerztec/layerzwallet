@@ -11,9 +11,7 @@ export class SwapProviderXArk implements SwapProvider {
       { from: NETWORK_BITCOIN, to: NETWORK_SPARK, platform: SwapPlatform.EXT },
       { from: NETWORK_BITCOIN, to: NETWORK_SPARK, platform: SwapPlatform.MOBILE },
       { from: NETWORK_BITCOIN, to: NETWORK_ARK, platform: SwapPlatform.EXT },
-      { from: NETWORK_BITCOIN, to: NETWORK_ARK_MUTINYNET, platform: SwapPlatform.EXT },
       { from: NETWORK_BITCOIN, to: NETWORK_ARK, platform: SwapPlatform.MOBILE },
-      { from: NETWORK_BITCOIN, to: NETWORK_ARK_MUTINYNET, platform: SwapPlatform.MOBILE },
     ];
   }
 
