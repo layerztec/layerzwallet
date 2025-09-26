@@ -414,11 +414,11 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   contentWithHeader: {
-    paddingTop: 90, // Reduced padding to match smaller header
+    paddingTop: 90,
   },
   networkSelectorContainer: {
     alignSelf: 'flex-start',
-    marginTop: 0, // No gap between sticky header and network selector
+    marginTop: 0,
   },
   networkSelector: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
