@@ -6,7 +6,7 @@ import { SparkWallet } from '../../class/wallets/spark-wallet';
 describe('SparkWallet', () => {
   test('can get balance', async (context) => {
     if (!process.env.TEST_MNEMONIC) {
-      console.log('TEST_MNEMONIC not set, skipping');
+      console.warn('TEST_MNEMONIC not set, skipping');
       context.skip();
       return;
     }
@@ -22,7 +22,7 @@ describe('SparkWallet', () => {
 
   test('can get txs', async (context) => {
     if (!process.env.TEST_MNEMONIC) {
-      console.log('TEST_MNEMONIC not set, skipping');
+      console.warn('TEST_MNEMONIC not set, skipping');
       context.skip();
       return;
     }
@@ -37,7 +37,7 @@ describe('SparkWallet', () => {
 
   test.skip('can send spark payment', async (context) => {
     if (!process.env.TEST_MNEMONIC) {
-      console.log('TEST_MNEMONIC not set, skipping');
+      console.warn('TEST_MNEMONIC not set, skipping');
       context.skip();
       return;
     }
@@ -53,7 +53,7 @@ describe('SparkWallet', () => {
 
   test.skip('can pay ln', async (context) => {
     if (!process.env.TEST_MNEMONIC) {
-      console.log('TEST_MNEMONIC not set, skipping');
+      console.warn('TEST_MNEMONIC not set, skipping');
       context.skip();
       return;
     }
@@ -69,7 +69,7 @@ describe('SparkWallet', () => {
 
   test.skip('can receive ln', async (context) => {
     if (!process.env.TEST_MNEMONIC) {
-      console.log('TEST_MNEMONIC not set, skipping');
+      console.warn('TEST_MNEMONIC not set, skipping');
       context.skip();
       return;
     }
@@ -83,7 +83,7 @@ describe('SparkWallet', () => {
 
   test('can check if issued invoice is paid', async (context) => {
     if (!process.env.TEST_MNEMONIC) {
-      console.log('TEST_MNEMONIC not set, skipping');
+      console.warn('TEST_MNEMONIC not set, skipping');
       context.skip();
       return;
     }

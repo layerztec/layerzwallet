@@ -238,10 +238,9 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
 
     const maxFeeSats = Math.ceil((invoiceDetails.amountSats / 100) * masFeePercentage);
 
-    // Pay the Lightning invoice from your Arkade wallet
     const paymentResult = await this._arkadeLightning.sendLightningPayment({
-      invoice, // Lightning invoice string
-      maxFeeSats, // Optional: Maximum fee you're willing to pay (in sats)
+      invoice,
+      maxFeeSats,
     });
 
     console.log('Payment successful!');

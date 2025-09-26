@@ -7,7 +7,6 @@ import fs from 'fs';
 const storageMock: IStorage = {
   async setItem(key: string, value: string) {
     fs.writeFileSync('/tmp/ark-swap-storage' + key, value);
-    // _cache[key] = value;
   },
 
   async getItem(key: string) {
@@ -16,12 +15,12 @@ const storageMock: IStorage = {
     } catch {
       return '';
     }
-    // return _cache[key];
   },
 };
 
 test.skip('ark mutinynet can check balance', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
     return;
   }
@@ -37,12 +36,13 @@ test.skip('ark mutinynet can check balance', async (context) => {
 
 test('ark mainnet can check balance', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
     return;
   }
 
   if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
-    console.warn('skipped');
+    console.warn('env not set, skipping');
     context.skip();
     return;
   }
@@ -61,12 +61,13 @@ test('ark mainnet can check balance', async (context) => {
 
 test('ark mainnet can check if our invoice is paid', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
     return;
   }
 
   if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
-    console.warn('skipped');
+    console.warn('env not set, skipping');
     context.skip();
     return;
   }
@@ -136,11 +137,13 @@ test('ark mainnet can check if our invoice is paid', async (context) => {
 
 test('ark mainnet switch accounts', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
     return;
   }
 
   if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
+    console.warn('env not set, skipping');
     context.skip();
     return;
   }
@@ -170,11 +173,13 @@ test('ark mainnet switch accounts', async (context) => {
 
 test.skip('ark mainnet can create lightning invoice', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
     return;
   }
 
   if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
+    console.warn('env not set, skipping');
     context.skip();
     return;
   }
@@ -191,25 +196,18 @@ test.skip('ark mainnet can create lightning invoice', async (context) => {
   const offchainBalance = await w.getOffchainBalance();
   console.log({ offchainBalance });
 
-  // const pendingReverseSwaps = await w.getPendingReverseSwaps();
-  // console.log('got', pendingReverseSwaps?.length ?? [], 'pending swaps');
-  //
-  // for (const swap of pendingReverseSwaps ?? []) {
-  //   console.log('claiming...');
-  //   const claimed = await w.claimVHTLC(swap);
-  //   console.log('claimed=', claimed);
-  // }
-
-  // await w.createLightningInvoice(500, 'GSOM OLOLO');
+  await w.createLightningInvoice(500, 'GSOM OLOLO');
 });
 
 test.skip('ark mainnet can pay lightning invoice', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
     return;
   }
 
   if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
+    console.warn('env not set, skipping');
     context.skip();
     return;
   }
