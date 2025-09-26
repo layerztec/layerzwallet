@@ -77,7 +77,7 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress, a
           <TouchableOpacity style={styles.pocket} onPress={handlePocketPress}>
             <ThemedText style={styles.pocketLabel}>{accountItem.name} pocket</ThemedText>
             <ThemedText style={styles.pocketAmount}>
-              {accountBalance ? formatBalance(accountBalance, Number(getDecimalsByNetwork(NETWORK_BITCOIN)), 8) : '0'} {getTickerByNetwork(NETWORK_BITCOIN)}
+              {accountBalance ? formatBalance(accountBalance.toString(), Number(getDecimalsByNetwork(NETWORK_BITCOIN)), 8) : '0'} {getTickerByNetwork(NETWORK_BITCOIN)}
             </ThemedText>
           </TouchableOpacity>
         </View>
