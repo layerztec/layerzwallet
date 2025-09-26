@@ -2,8 +2,8 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useContext, useEffect, useState } from 'react';
-import { Alert, LayoutAnimation, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useContext, useEffect, useState, useRef } from 'react';
+import { Alert, LayoutAnimation, StyleSheet, TouchableOpacity, View, Animated } from 'react-native';
 
 import { OnrampProps } from '@/app/Onramp';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
@@ -13,6 +13,7 @@ import LiquidTokensView from '@/components/LiquidTokensView';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
 import SwapList from '@/components/SwapList';
+import StickyHeader from '@/components/StickyHeader';
 import { DappBrowserProps } from '@/app/DAppBrowser';
 
 import Transaction from '@/components/Transaction';
@@ -60,6 +61,9 @@ export default function Home() {
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
   const { transactions, error: transactionsError } = useTransactions(network, accountNumber, BackgroundExecutor);
   const accountItem = accountItems[accountNumber];
+
+  // Scroll animation for sticky header
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   // Lightning network specific balance logic
   const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET;
@@ -220,26 +224,28 @@ export default function Home() {
     },
   ];
 
+  // Handle scroll events for sticky header animation
+  const handleScroll = (event: any) => {
+    scrollY.setValue(event.nativeEvent.contentOffset.y);
+  };
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <GradientScreen variant={network} scroll={true}>
-        <View style={styles.root}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.logoContainer} onPress={goToSettings} testID="SettingsButton" activeOpacity={0.8}>
-              <Image source={logo} style={styles.logo} contentFit="contain" />
-            </TouchableOpacity>
-
-            <View style={styles.headerRight}>
-              <TouchableOpacity style={styles.pocket} onPress={() => router.push('/PocketSwitch')}>
-                <ThemedText style={styles.pocketLabel}>{accountItem.name} pocket</ThemedText>
-                <ThemedText style={styles.pocketAmount}>
-                  {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : '0'} {getTickerByNetwork(NETWORK_BITCOIN)}
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-          </View>
+      
+      {/* Sticky Header */}
+      <StickyHeader 
+        scrollY={scrollY}
+        onSettingsPress={goToSettings}
+        accountBalance={accountBalance ? Number(accountBalance) : 0}
+      />
+      
+      <GradientScreen 
+        variant={network} 
+        scroll={true}
+        onScroll={handleScroll}
+      >
+        <View style={[styles.root, styles.contentWithHeader]}>
 
           {/* Network Selector */}
           <View style={styles.networkSelectorContainer}>
@@ -407,39 +413,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingBottom: 100,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 30,
-    marginTop: 16,
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: -5,
-  },
-  logo: {
-    width: 130,
-    height: 50,
-  },
-  pocket: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  pocketLabel: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: -6,
-  },
-  pocketAmount: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+  contentWithHeader: {
+    paddingTop: 90, // Reduced padding to match smaller header
   },
   networkSelectorContainer: {
     alignSelf: 'flex-start',
+    marginTop: 0, // No gap between sticky header and network selector
   },
   networkSelector: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -629,11 +608,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#F59E0B',
     fontWeight: '500',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
   },
   lightningBalanceContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
