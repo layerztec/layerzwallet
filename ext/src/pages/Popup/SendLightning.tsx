@@ -39,32 +39,33 @@ const SendLightning: React.FC = () => {
   const { accountNumber } = useContext(AccountNumberContext);
   const walletRef = useRef<TLightningWallet | null>(null);
   const [lnurl, setLnurl] = useState<Lnurl | undefined>();
-  const [isPayingToLightningAddress, setIsPayingToLightningAddress] = useState<boolean>(false);
-  const [lnurlPayServicePayload, setLnurlPayServicePayload] = useState<LnurlPayServicePayload | undefined>(undefined);
+  const [lnurlPayServicePayload, setLnurlPayServicePayload] = useState<{ [key: string]: LnurlPayServicePayload }>({});
   const [lnAddressAmountToSend, setLnAddressAmountToSend] = useState<string>('');
+
+  const isPayingToLightningAddress = Boolean(lnurlPayServicePayload[invoice]);
 
   const onInvoiceInput = async (raw: string) => {
     const scanned = raw.trim().replace('lightning:', '').replace('LIGHTNING:', '');
     setInvoice(scanned);
     setError('');
     setLnurl(undefined);
-    setIsPayingToLightningAddress(false);
-    setLnurlPayServicePayload(undefined);
     setLnAddressAmountToSend('');
 
     try {
       if (Lnurl.isLightningAddress(scanned)) {
-        const ln = new Lnurl(scanned);
-        const response = await ln.callLnurlPayService();
-        if (response) {
-          setLnurl(ln);
-          setIsPayingToLightningAddress(true);
-          setLnurlPayServicePayload(response);
-          if (response.min && response.min === response.max) {
-            setLnAddressAmountToSend(String(response.min));
+        try {
+          const ln = new Lnurl(scanned);
+          const response = await ln.callLnurlPayService();
+          if (response) {
+            setLnurl(ln);
+            setLnurlPayServicePayload((prev) => ({ ...prev, [scanned]: response }));
+            if (response.min && response.min === response.max) {
+              setLnAddressAmountToSend(String(response.min));
+            }
           }
-          return;
-        }
+          // ignore LN decode errors, otherwise it will throw while user is typing
+        } catch {}
+        return;
       }
 
       try {
@@ -207,8 +208,7 @@ const SendLightning: React.FC = () => {
     setInvoice('');
     setError('');
     setLnurl(undefined);
-    setIsPayingToLightningAddress(false);
-    setLnurlPayServicePayload(undefined);
+    setLnurlPayServicePayload({});
     setLnAddressAmountToSend('');
     setSendState('idle');
   };
@@ -281,19 +281,19 @@ const SendLightning: React.FC = () => {
         {isPayingToLightningAddress && (
           <div style={{ backgroundColor: '#f5f5f5', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
             <h3 style={{ marginTop: 0, marginBottom: '15px' }}>Paying to Lightning Address</h3>
-            {lnurlPayServicePayload?.description ? (
+            {lnurlPayServicePayload[invoice].description ? (
               <div style={{ marginBottom: '10px' }}>
                 <span>Description: </span>
-                <strong>{lnurlPayServicePayload.description}</strong>
+                <strong>{lnurlPayServicePayload[invoice].description}</strong>
               </div>
             ) : null}
-            {lnurlPayServicePayload?.min && lnurlPayServicePayload?.max && (
+            {lnurlPayServicePayload[invoice].min && lnurlPayServicePayload[invoice].max && (
               <Input
                 type="number"
                 value={lnAddressAmountToSend}
                 onChange={(e) => setLnAddressAmountToSend(e.target.value)}
-                placeholder={`Enter amount between ${lnurlPayServicePayload.min} and ${lnurlPayServicePayload.max} sats`}
-                disabled={!!lnurlPayServicePayload?.fixed}
+                placeholder={`Enter amount between ${lnurlPayServicePayload[invoice].min} and ${lnurlPayServicePayload[invoice].max} sats`}
+                disabled={!!lnurlPayServicePayload[invoice].fixed}
               />
             )}
           </div>
