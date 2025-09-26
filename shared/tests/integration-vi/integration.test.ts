@@ -74,6 +74,7 @@ const backgroundCallerMock2: IBackgroundCaller = {
 
 test('can fetch balance', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
     return;
   }
@@ -92,6 +93,7 @@ test('can fetch balance', async (context) => {
 
 test('can fetch ALPEN balance', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
     return;
   }
@@ -110,6 +112,7 @@ test('can fetch ALPEN balance', async (context) => {
 
 test('can fetch token balance', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
     return;
   }
@@ -148,6 +151,7 @@ test('can fetch exchange rate', async (context) => {
 
 test('can send ETH', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
     return;
   }
@@ -182,6 +186,7 @@ test('can send ETH', async (context) => {
 
 test('can send RSK', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
     return;
   }
@@ -211,6 +216,7 @@ test('can send RSK', async (context) => {
 
 test('transfer ERC-20 token', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
     return;
   }

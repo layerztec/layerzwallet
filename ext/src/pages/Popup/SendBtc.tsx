@@ -11,7 +11,7 @@ import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wal
 import { CreateTransactionTarget, CreateTransactionUtxo } from '@shared/class/wallets/types';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
@@ -28,7 +28,7 @@ type TFeeRateOptions = { [rate: number]: number };
 export interface SendBtcParams {
   toAddress?: string;
   amount?: string;
-  sparkSwap?: boolean;
+  xArkSwapTo?: Networks;
 }
 
 const SendBtc: React.FC = () => {
@@ -37,7 +37,8 @@ const SendBtc: React.FC = () => {
   const location = useLocation();
   const [toAddress, setToAddress] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
-  const [sparkSwap, setSparkSwap] = useState<boolean>(false);
+  const [xArkSwapTo, setXArkSwapTo] = useState<Networks | undefined>(undefined);
+  const xArkSwap = Boolean(xArkSwapTo);
   const [error, setError] = useState<string>('');
   const [sendState, setSendState] = useState<'idle' | 'preparing' | 'prepared' | 'success'>('idle');
   const [customFeeRate, setCustomFeeRate] = useState<number | undefined>(); // fee rate that user selected
@@ -61,8 +62,8 @@ const SendBtc: React.FC = () => {
     if (state.amount) {
       setAmount(state.amount);
     }
-    if (state.sparkSwap) {
-      setSparkSwap(true);
+    if (state.xArkSwapTo) {
+      setXArkSwapTo(state.xArkSwapTo);
     }
   }, [location.state]);
 
@@ -220,8 +221,8 @@ const SendBtc: React.FC = () => {
   };
 
   const handleBack = () => {
-    if (sparkSwap) {
-      setNetwork(NETWORK_SPARK);
+    if (xArkSwap && xArkSwapTo) {
+      setNetwork(xArkSwapTo);
     }
     navigate('/');
   };
@@ -233,8 +234,11 @@ const SendBtc: React.FC = () => {
         <ThemedText type="headline" style={{ color: '#4CAF50', marginBottom: '15px' }}>
           Sent!
         </ThemedText>
-        {sparkSwap ? (
-          <ThemedText style={{ color: '#666', marginBottom: '20px' }}>Spark swap initiated! Wait for 3 confirmations, then you will be able to claim the funds on the Spark network.</ThemedText>
+        {xArkSwap && xArkSwapTo ? (
+          <ThemedText style={{ color: '#666', marginBottom: '20px' }}>
+            {xArkSwapTo === NETWORK_SPARK ? 'Spark' : 'Ark'} swap initiated! Wait for 3 confirmations, then you will be able to claim the funds on the {xArkSwapTo === NETWORK_SPARK ? 'Spark' : 'Ark'}{' '}
+            network.
+          </ThemedText>
         ) : (
           <ThemedText style={{ color: '#666', marginBottom: '20px' }}>Your {getTickerByNetwork(network)} are on their way</ThemedText>
         )}
@@ -258,8 +262,8 @@ const SendBtc: React.FC = () => {
             placeholder="Enter the recipient's address"
             onChange={(event) => setToAddress(event.target.value)}
             value={toAddress}
-            disabled={sparkSwap}
-            style={{ flexGrow: 1, marginRight: '10px', backgroundColor: sparkSwap ? '#f0f0f0' : 'white' }}
+            disabled={xArkSwap}
+            style={{ flexGrow: 1, marginRight: '10px', backgroundColor: xArkSwap ? '#f0f0f0' : 'white' }}
           />
           <Button
             style={{

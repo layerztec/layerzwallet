@@ -5,7 +5,7 @@ import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
 import { getRpcProvider } from '../models/network-getters';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
 import assert from 'assert';
 
@@ -68,7 +68,7 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
     return virtualBalance.toString(10);
   }
 
-  if (network === NETWORK_ARK_MUTINYNET) {
+  if (network === NETWORK_ARK_MUTINYNET || network === NETWORK_ARK) {
     const start = +new Date();
     const aw = await backgroundCaller.lazyInitWallet(network, accountNumber);
     assert(aw instanceof ArkWallet);

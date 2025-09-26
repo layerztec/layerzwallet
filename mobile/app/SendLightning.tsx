@@ -11,7 +11,7 @@ import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -21,10 +21,11 @@ import { Ionicons } from '@expo/vector-icons';
 import assert from 'assert';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import Lnurl, { LnurlPayServicePayload } from '@shared/class/lnurl';
 
 export type SendLightningProps = {
-  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET;
+  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK;
   invoice?: string;
 };
 
@@ -121,7 +122,7 @@ const SendLightning: React.FC = () => {
     const initializeWallet = async () => {
       try {
         const w = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-        assert(w instanceof BreezWallet || w instanceof SparkWallet);
+        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkWallet);
         walletRef.current = w;
       } catch (err) {
         console.error('Failed to initialize wallet:', err);

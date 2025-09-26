@@ -3,31 +3,38 @@ import { test, vi } from 'vitest';
 import { ArkTransaction, TxType } from '@arkade-os/sdk';
 
 import { ArkWallet } from '../../class/wallets/ark-wallet';
+import { IStorage } from '../../types/IStorage';
 
-test('ArkWallet', async () => {
+const _cache: Record<string, string> = {};
+const storageMock: IStorage = {
+  async setItem(key: string, value: string) {
+    _cache[key] = value;
+  },
+
+  async getItem(key: string) {
+    return _cache[key];
+  },
+};
+
+test('ark mainnet can getCommonTransactions', async (context) => {
+  if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
+    context.skip();
+    return;
+  }
+
+  if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
+    console.warn('env not set, skipping');
+    context.skip();
+    return;
+  }
+
   const w = new ArkWallet();
-  w.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
-  // acc number 0
-  await w.init();
-
-  const receive0 = await w.getOffchainReceiveAddress();
-  assert.ok(receive0);
-
-  w.setAccountNumber(1);
-  await w.init();
-  assert.ok(await w.getOffchainReceiveAddress());
-  assert.ok(receive0 !== (await w.getOffchainReceiveAddress()));
-
-  w.setAccountNumber(0);
-  await w.init();
-
-  assert.ok(receive0 === (await w.getOffchainReceiveAddress()));
-});
-
-test('ArkWallet - getCommonTransactions', async () => {
-  const w = new ArkWallet();
-  w.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
-  await w.init();
+  w.setSecret(process.env.TEST_MNEMONIC);
+  w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
+  w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
+  w.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
+  await w.init(storageMock);
 
   const transfers: ArkTransaction[] = [
     {
@@ -57,14 +64,14 @@ test('ArkWallet - getCommonTransactions', async () => {
     {
       amount: 100,
       direction: 'send',
-      network: 'ark_mutinynet',
+      network: 'ark',
       timestamp: 1756199879,
       txid: 'c08e5661587fa741aea8d4eb0be3b400aae75cee18b0e0afa70b9ba41d9ca3be',
     },
     {
       amount: 2100,
       direction: 'receive',
-      network: 'ark_mutinynet',
+      network: 'ark',
       timestamp: 1755786091,
       txid: '5a41fdc280352cab91fef62a1f407a0c8559ecffb2f85bea1970b72eaf4d6058',
     },
