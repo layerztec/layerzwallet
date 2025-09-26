@@ -2,8 +2,8 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useContext, useEffect, useState } from 'react';
-import { Alert, LayoutAnimation, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useContext, useEffect, useState, useRef } from 'react';
+import { Alert, LayoutAnimation, StyleSheet, TouchableOpacity, View, Animated } from 'react-native';
 
 import { OnrampProps } from '@/app/Onramp';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
@@ -13,11 +13,11 @@ import LiquidTokensView from '@/components/LiquidTokensView';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
 import SwapList from '@/components/SwapList';
+import StickyHeader from '@/components/StickyHeader';
 import { DappBrowserProps } from '@/app/DAppBrowser';
 
 import Transaction from '@/components/Transaction';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { useAppLock } from '@/src/hooks/useAppLock';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -62,57 +62,8 @@ export default function Home() {
   const { transactions, error: transactionsError } = useTransactions(network, accountNumber, BackgroundExecutor);
   const accountItem = accountItems[accountNumber];
 
-  // App lock functionality
-  const { lockState, authenticateWithBiometrics, clearCanceled } = useAppLock();
-  const [hasAutoTriggered, setHasAutoTriggered] = useState(false);
-
-  useEffect(() => {
-    LayoutAnimation.configureNext({
-      duration: 300,
-      create: {
-        type: LayoutAnimation.Types.easeInEaseOut,
-        property: LayoutAnimation.Properties.opacity,
-      },
-      update: {
-        type: LayoutAnimation.Types.easeInEaseOut,
-        property: LayoutAnimation.Properties.opacity,
-      },
-      delete: {
-        type: LayoutAnimation.Types.easeInEaseOut,
-        property: LayoutAnimation.Properties.opacity,
-      },
-    });
-  }, [lockState.isLocked, lockState.isAuthenticating, lockState.userCanceled, hasAutoTriggered]);
-
-  useEffect(() => {
-    if (lockState.isLocked && lockState.requiresAuth) {
-      LayoutAnimation.configureNext({
-        duration: 400,
-        create: {
-          type: LayoutAnimation.Types.easeInEaseOut,
-          property: LayoutAnimation.Properties.opacity,
-        },
-        update: {
-          type: LayoutAnimation.Types.spring,
-          springDamping: 0.7,
-          property: LayoutAnimation.Properties.scaleXY,
-        },
-      });
-    }
-  }, [lockState.isLocked, lockState.requiresAuth]);
-
-  // Auto-trigger biometric authentication when lock screen first appears
-  useEffect(() => {
-    if (lockState.isLocked && lockState.requiresAuth && !lockState.isAuthenticating && !lockState.userCanceled && !hasAutoTriggered) {
-      setHasAutoTriggered(true);
-      authenticateWithBiometrics();
-    }
-
-    // Reset auto-trigger flag when app is unlocked
-    if (!lockState.isLocked) {
-      setHasAutoTriggered(false);
-    }
-  }, [lockState.isLocked, lockState.requiresAuth, lockState.isAuthenticating, lockState.userCanceled, hasAutoTriggered, authenticateWithBiometrics]);
+  // Scroll animation for sticky header
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   // Lightning network specific balance logic
   const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET;
@@ -300,27 +251,20 @@ export default function Home() {
     },
   ];
 
+  // Handle scroll events for sticky header animation
+  const handleScroll = (event: any) => {
+    scrollY.setValue(event.nativeEvent.contentOffset.y);
+  };
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <GradientScreen variant={network} scroll={true}>
-        <View style={styles.root}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.logoContainer} onPress={goToSettings} testID="SettingsButton" activeOpacity={0.8}>
-              <Image source={logo} style={styles.logo} contentFit="contain" />
-            </TouchableOpacity>
 
-            <View style={styles.headerRight}>
-              <TouchableOpacity style={styles.pocket} onPress={() => router.push('/PocketSwitch')}>
-                <ThemedText style={styles.pocketLabel}>{accountItem.name} pocket</ThemedText>
-                <ThemedText style={styles.pocketAmount}>
-                  {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : '0'} {getTickerByNetwork(NETWORK_BITCOIN)}
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-          </View>
+      {/* Sticky Header */}
+      <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} accountBalance={accountBalance ? Number(accountBalance) : 0} />
 
+      <GradientScreen variant={network} scroll={true} onScroll={handleScroll}>
+        <View style={[styles.root, styles.contentWithHeader]}>
           {/* Network Selector */}
           <View style={styles.networkSelectorContainer}>
             <TouchableOpacity testID="NetworkSwitcherTrigger" style={styles.networkSelector} onPress={handleNetworkSelect} activeOpacity={0.8}>
@@ -492,53 +436,6 @@ export default function Home() {
           </View>
         )}
       </View>
-
-      {/* Biometric Authentication Lock Screen Overlay */}
-      {lockState.isLocked && lockState.requiresAuth && (
-        <View style={styles.lockScreenOverlay}>
-          <BlurView intensity={50} tint="dark" style={styles.lockScreenBlur}>
-            <View style={styles.lockScreenContent}>
-              <View style={styles.lockIconContainer}>
-                <MaterialIcons name="lock" size={80} color="rgba(255, 255, 255, 0.8)" />
-              </View>
-              <ThemedText style={styles.lockScreenTitle}>Wallet Locked</ThemedText>
-              <ThemedText style={styles.lockScreenSubtitle}>
-                {lockState.isAuthenticating
-                  ? 'Authenticating...'
-                  : lockState.userCanceled
-                    ? 'Authentication was canceled. Tap unlock to try again.'
-                    : hasAutoTriggered
-                      ? 'Tap unlock to authenticate'
-                      : 'Authenticating automatically...'}
-              </ThemedText>
-              {!lockState.isAuthenticating && (lockState.userCanceled || hasAutoTriggered) && (
-                <TouchableOpacity
-                  style={styles.unlockButton}
-                  onPress={() => {
-                    LayoutAnimation.configureNext({
-                      duration: 200,
-                      create: {
-                        type: LayoutAnimation.Types.easeInEaseOut,
-                        property: LayoutAnimation.Properties.opacity,
-                      },
-                      update: {
-                        type: LayoutAnimation.Types.easeInEaseOut,
-                        property: LayoutAnimation.Properties.opacity,
-                      },
-                    });
-                    clearCanceled();
-                    authenticateWithBiometrics();
-                  }}
-                  testID="UnlockButton"
-                >
-                  <MaterialIcons name="fingerprint" size={24} color="rgba(255, 255, 255, 0.8)" />
-                  <ThemedText style={styles.unlockButtonText}>Unlock</ThemedText>
-                </TouchableOpacity>
-              )}
-            </View>
-          </BlurView>
-        </View>
-      )}
     </>
   );
 }
@@ -549,39 +446,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingBottom: 100,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 30,
-    marginTop: 16,
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: -5,
-  },
-  logo: {
-    width: 130,
-    height: 50,
-  },
-  pocket: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  pocketLabel: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: -6,
-  },
-  pocketAmount: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+  contentWithHeader: {
+    paddingTop: 90,
   },
   networkSelectorContainer: {
     alignSelf: 'flex-start',
+    marginTop: 0,
   },
   networkSelector: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -772,11 +642,6 @@ const styles = StyleSheet.create({
     color: '#F59E0B',
     fontWeight: '500',
   },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
   lightningBalanceContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 16,
@@ -830,54 +695,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     marginLeft: 4,
-  },
-  lockScreenOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1000,
-  },
-  lockScreenBlur: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  lockScreenContent: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  lockIconContainer: {
-    marginBottom: 20,
-    transform: [{ scale: 1 }],
-  },
-  lockScreenTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  lockScreenSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 22,
-  },
-  unlockButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 8,
-  },
-  unlockButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
   },
 });

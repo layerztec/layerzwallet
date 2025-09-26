@@ -6,6 +6,7 @@ import { EStep, InitializationContext } from '@shared/hooks/InitializationContex
 export default function IndexScreen() {
   const { step } = useContext(InitializationContext);
 
+  // Handle the initial routing based on the initialization step
   if (step === EStep.INTRO) {
     return <Redirect href="/onboarding/intro" />;
   } else if (step === EStep.PASSWORD) {
@@ -13,6 +14,7 @@ export default function IndexScreen() {
   } else if (step === EStep.TOS) {
     return <Redirect href="/onboarding/tos" />;
   } else {
+    // If the app is ready, redirect to Home - the protected routes will handle auth
     return <Redirect href="/Home" />;
   }
 }
