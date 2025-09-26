@@ -46,9 +46,10 @@ const SendLightning: React.FC = () => {
   const walletRef = useRef<TLightningWallet | null>(null);
 
   const [lnurl, setLnurl] = useState<Lnurl | undefined>();
-  const [isPayingToLightningAddress, setIsPayingToLightningAddress] = useState<boolean>(false);
-  const [lnurlPayServicePayload, setLnurlPayServicePayload] = useState<LnurlPayServicePayload | undefined>(undefined);
+  const [lnurlPayServicePayload, setLnurlPayServicePayload] = useState<{ [key: string]: LnurlPayServicePayload }>({});
   const [lnAddressAmountToSend, setLnAddressAmountToSend] = useState<string>('');
+
+  const isPayingToLightningAddress = Boolean(lnurlPayServicePayload[invoice]);
 
   const onInvoiceInput = async (scanned: string) => {
     const scanned2use = scanned.trim().replace('lightning:', '').replace('LIGHTNING:', ''); // sanitize
@@ -57,28 +58,30 @@ const SendLightning: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      if (params.invoice) console.log('got invoice in useEffect params!', params.invoice);
-      if (!params.invoice) return;
+      if (invoice) console.log('got invoice in useEffect params!', invoice);
+      if (!invoice) return;
 
       try {
         setError('');
-        if (Lnurl.isLightningAddress(params.invoice)) {
-          // need to fetch details, like minimum and maximum sat payment
-          const ln = new Lnurl(params.invoice);
-          const response = await ln.callLnurlPayService();
-          if (response) {
-            setLnurl(ln);
-            setIsPayingToLightningAddress(true);
-            setLnurlPayServicePayload(response);
-            if (response.min && response.min === response.max) {
-              setLnAddressAmountToSend(String(response.min));
+        if (Lnurl.isLightningAddress(invoice)) {
+          try {
+            // need to fetch details, like minimum and maximum sat payment
+            const ln = new Lnurl(invoice);
+            const response = await ln.callLnurlPayService();
+            if (response) {
+              setLnurl(ln);
+              setLnurlPayServicePayload((prev) => ({ ...prev, [invoice]: response }));
+              if (response.min && response.min === response.max) {
+                setLnAddressAmountToSend(String(response.min));
+              }
+              return;
             }
-            return;
-          }
+          } catch {}
+          return;
         }
 
         try {
-          const bip21decoded = bip21.decode(params.invoice);
+          const bip21decoded = bip21.decode(invoice);
           // @ts-ignore `lightning` is not part of bip21 spec, but a valid extension of bip21 thats widely used
           if (bip21decoded?.options?.lightning) {
             // @ts-ignore
@@ -87,7 +90,7 @@ const SendLightning: React.FC = () => {
           }
         } catch {}
 
-        const decoded = bolt11.decode(params.invoice);
+        const decoded = bolt11.decode(invoice);
         setAmountToSend(decoded.satoshis ? String(decoded.satoshis) : '');
 
         if (!decoded.satoshis) {
@@ -106,7 +109,7 @@ const SendLightning: React.FC = () => {
         setError(error.message);
       }
     })();
-  }, [params.invoice, router]);
+  }, [invoice, router]);
 
   const handleQRScan = async () => {
     const scanned = await scanQr();
@@ -161,7 +164,7 @@ const SendLightning: React.FC = () => {
 
       if (bolt11payload && bolt11payload.pr) {
         setSendState('prepared');
-        onInvoiceInput(bolt11payload.pr);
+        await onInvoiceInput(bolt11payload.pr);
       } else {
         throw new Error('Fetching invoice from LNURL service failed');
       }
@@ -227,6 +230,11 @@ const SendLightning: React.FC = () => {
   };
 
   const handleCancel = () => {
+    router.setParams({ invoice: '' });
+    setError('');
+    setLnurl(undefined);
+    setLnurlPayServicePayload({});
+    setLnAddressAmountToSend('');
     setSendState('idle');
   };
 
@@ -292,17 +300,19 @@ const SendLightning: React.FC = () => {
               <View style={styles.detailsContainer}>
                 <ThemedText style={styles.detailsTitle}>Paying to Lightning Address</ThemedText>
 
-                {lnurlPayServicePayload?.min && lnurlPayServicePayload?.max && (
+                {lnurlPayServicePayload[invoice]?.min && lnurlPayServicePayload[invoice]?.max && (
                   <>
-                    {lnurlPayServicePayload?.description ? <ThemedText style={[styles.detailValue, { marginBottom: 10 }]}>Description: {lnurlPayServicePayload.description}</ThemedText> : null}
+                    {lnurlPayServicePayload[invoice]?.description ? (
+                      <ThemedText style={[styles.detailValue, { marginBottom: 10 }]}>Description: {lnurlPayServicePayload[invoice]?.description}</ThemedText>
+                    ) : null}
                     <TextInput
                       placeholderTextColor="rgba(255, 255, 255, 0.6)"
                       style={styles.invoiceInput}
                       onChangeText={setLnAddressAmountToSend}
                       value={lnAddressAmountToSend}
                       keyboardType="numeric"
-                      editable={!lnurlPayServicePayload?.fixed}
-                      placeholder={`Enter amount between ${lnurlPayServicePayload.min} and ${lnurlPayServicePayload.max} sats`}
+                      editable={!lnurlPayServicePayload[invoice]?.fixed}
+                      placeholder={`Enter amount between ${lnurlPayServicePayload[invoice]?.min} and ${lnurlPayServicePayload[invoice]?.max} sats`}
                     />
                   </>
                 )}
