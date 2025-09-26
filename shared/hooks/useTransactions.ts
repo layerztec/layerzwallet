@@ -60,10 +60,14 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
       const liquidNetwork = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
       const tsx = await backgroundCaller.getCommonTransactions(liquidNetwork, accountNumber);
       if (network === NETWORK_LIGHTNING) {
-        const wallet = await backgroundCaller.lazyInitWallet(NETWORK_SPARK, accountNumber);
-        assert(wallet instanceof SparkWallet, 'Not a Spark wallet');
-        const sparkTx = await wallet.getCommonTransactions();
+        const sparkWallet = await backgroundCaller.lazyInitWallet(NETWORK_SPARK, accountNumber);
+        assert(sparkWallet instanceof SparkWallet, 'Not a Spark wallet');
+        const sparkTx = await sparkWallet.getCommonTransactions();
         tsx.push(...sparkTx);
+        const arkWallet = await backgroundCaller.lazyInitWallet(NETWORK_ARK, accountNumber);
+        assert(arkWallet instanceof ArkWallet, 'Not an Ark wallet');
+        const arkTx = await arkWallet.getCommonTransactions();
+        tsx.push(...arkTx);
       }
       return tsx
         .filter((tx) => tx?.amount !== undefined && tx.amount > 0) // filter out token transfers
