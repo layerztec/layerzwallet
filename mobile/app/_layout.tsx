@@ -16,8 +16,7 @@ import { LayerzStorage } from '@/src/class/layerz-storage';
 import { SwrCacheProvider } from '@/src/class/swr-cache-provider';
 import { AskMnemonicContextProvider } from '@/src/hooks/AskMnemonicContext';
 import { AskPasswordContextProvider } from '@/src/hooks/AskPasswordContext';
-import { BiometricAuthContextProvider } from '@/src/hooks/BiometricAuthContext';
-import { AuthStateProvider } from '@/src/hooks/AuthStateContext';
+import { AuthStateContextProvider } from '@/src/hooks/AuthStateContext';
 import { ScanQrContextProvider } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Messenger } from '@/src/modules/messenger';
@@ -26,6 +25,7 @@ import { InitializationContextProvider } from '@shared/hooks/InitializationConte
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
 import { ProtectedRouteStack } from '@/components/ProtectedRouteStack';
+import { BiometricModalHandler } from '@/app/BiometricLogin';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -90,18 +90,17 @@ export default function RootLayout() {
           <AskMnemonicContextProvider>
             <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
               <SettingsContextProvider storage={LayerzStorage}>
-                <BiometricAuthContextProvider>
-                  <AuthStateProvider>
-                    <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
-                      <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
-                        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                          <ProtectedRouteStack />
-                          <StatusBar style="light" />
-                        </ThemeProvider>
-                      </NetworkContextProvider>
-                    </AccountNumberContextProvider>
-                  </AuthStateProvider>
-                </BiometricAuthContextProvider>
+                <AuthStateContextProvider>
+                  <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
+                    <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
+                      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                        <ProtectedRouteStack />
+                        <BiometricModalHandler />
+                        <StatusBar style="light" />
+                      </ThemeProvider>
+                    </NetworkContextProvider>
+                  </AccountNumberContextProvider>
+                </AuthStateContextProvider>
               </SettingsContextProvider>
             </InitializationContextProvider>
           </AskMnemonicContextProvider>
