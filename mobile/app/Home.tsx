@@ -102,6 +102,7 @@ export default function Home() {
       case NETWORK_BITCOIN:
         router.push('/SendBtc');
         break;
+      case NETWORK_ARK:
       case NETWORK_SPARK:
       case NETWORK_ARK_MUTINYNET:
         router.push('/SendArk');
