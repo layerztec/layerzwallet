@@ -144,7 +144,7 @@ export function ProtectedRouteStack() {
           name="SwapTarget"
           options={{
             presentation: 'formSheet',
-            sheetAllowedDetents: [0.6],
+            sheetAllowedDetents: [0.6, 1.0],
             sheetGrabberVisible: true,
             headerTransparent: false,
             gestureEnabled: true,

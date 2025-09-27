@@ -6,16 +6,17 @@ import { ThemedText } from '../../components/ThemedText';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { AddressBubble, Input, WideButton } from './DesignSystem';
 import { TLightningWallet } from '@shared/types/TWallet';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import assert from 'assert';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 
 export interface ReceiveLightningProps {
-  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET;
+  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK;
 }
 
 const ReceiveLightning: React.FC = () => {
@@ -109,7 +110,7 @@ const ReceiveLightning: React.FC = () => {
     const initializeWallet = async () => {
       try {
         const w = await BackgroundCaller.lazyInitWallet(network, accountNumber);
-        assert(w instanceof BreezWallet || w instanceof SparkWallet);
+        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkWallet);
         walletRef.current = w;
         setIsWalletInitialized(true);
 
@@ -185,9 +186,9 @@ const ReceiveLightning: React.FC = () => {
       setFeesSat(response.serviceFeeSat);
       setInvoice(response.invoice);
       setImgSrc(qrGifDataUrl(response.invoice));
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to generate invoice:', err);
-      setError('Failed to generate invoice. Please try again.');
+      setError('Failed to generate invoice: ' + err.message);
     } finally {
       setIsGenerating(false);
     }
@@ -232,11 +233,7 @@ const ReceiveLightning: React.FC = () => {
             <Input type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Amount (sats)" value={amount} onChange={handleAmountChange} style={{ fontSize: '18px', textAlign: 'center' }} />
           </div>
 
-          {error && (
-            <div style={{ color: 'red', textAlign: 'center', margin: '10px 0' }}>
-              <ThemedText>{error}</ThemedText>
-            </div>
-          )}
+          {error && <ThemedText style={{ color: 'red', textAlign: 'center', margin: '10px 0' }}>{error}</ThemedText>}
 
           <WideButton onClick={generateInvoice} disabled={isGenerating || !isWalletInitialized}>
             <ThemedText>{isGenerating ? 'Generating...' : !isWalletInitialized ? 'Initializing...' : 'Generate Invoice'}</ThemedText>

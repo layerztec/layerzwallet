@@ -9,7 +9,7 @@ import { getKnowMoreUrl } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { SwapPair, SwapPlatform } from '@shared/types/swap';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
-import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 
 import { BackgroundCaller } from '../../modules/background-caller';
 import PartnersView from './components/PartnersView';
@@ -47,6 +47,7 @@ const Home: React.FC = () => {
         break;
       case NETWORK_SPARK:
       case NETWORK_ARK_MUTINYNET:
+      case NETWORK_ARK:
         navigate('/send-ark');
         break;
       case NETWORK_LIQUID:
@@ -71,12 +72,30 @@ const Home: React.FC = () => {
     navigate('/receive-lightning', { state });
   };
 
+  const handleReceiveLightningOnArk = () => {
+    if (network === NETWORK_LIGHTNING_TESTNET) {
+      alert('Ark lightning has no testnet');
+      return;
+    }
+    const state: ReceiveLightningProps = { network: NETWORK_ARK };
+    navigate('/receive-lightning', { state });
+  };
+
   const handleSendLightningOnSpark = () => {
     if (network === NETWORK_LIGHTNING_TESTNET) {
       alert('Spark has no testnet');
       return;
     }
     const state: SendLightningProps = { network: NETWORK_SPARK };
+    navigate('/send-lightning', { state });
+  };
+
+  const handleSendLightningOnArk = () => {
+    if (network === NETWORK_LIGHTNING_TESTNET) {
+      alert('Ark lightning has no testnet');
+      return;
+    }
+    const state: SendLightningProps = { network: NETWORK_ARK };
     navigate('/send-lightning', { state });
   };
 
@@ -157,6 +176,10 @@ const Home: React.FC = () => {
               label: 'Send via Liquid',
               onClick: handleSendLightningOnLiquid,
             },
+            {
+              label: 'Send via Ark',
+              onClick: handleSendLightningOnArk,
+            },
             { label: 'Cancel', onClick: () => {} },
           ]}
         >
@@ -180,6 +203,10 @@ const Home: React.FC = () => {
             {
               label: 'Receive on Liquid',
               onClick: handleReceiveLightningOnLiquid,
+            },
+            {
+              label: 'Receive on Ark',
+              onClick: handleReceiveLightningOnArk,
             },
             { label: 'Cancel', onClick: () => {} },
           ]}

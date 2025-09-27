@@ -1,12 +1,12 @@
 import { Networks } from '../types/networks';
 import { SwapPair, SwapPlatform, SwapProvider } from '../types/swap';
-import { SwapProviderSpark } from './swap-provider-spark';
 import { SwapProviderBoltz } from './swap-provider-boltz';
 import { SwapProviderOnramper } from './swap-provider-onramper';
 import { SwapProviderSideshift } from './swap-provider-sideshift';
 import { SwapProviderGardenFinance } from './swap-provider-gardenfinance';
+import { SwapProviderXArk } from './swap-provider-xark';
 
-const swapPartnersList: SwapProvider[] = [new SwapProviderOnramper(), new SwapProviderSideshift(), new SwapProviderBoltz(), new SwapProviderSpark(), new SwapProviderGardenFinance()];
+const swapPartnersList: SwapProvider[] = [new SwapProviderOnramper(), new SwapProviderSideshift(), new SwapProviderBoltz(), new SwapProviderGardenFinance(), new SwapProviderXArk()];
 
 /**
  * @returns list of swap providers that can swap FROM provided network (to smth else)

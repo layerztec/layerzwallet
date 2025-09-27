@@ -1,5 +1,5 @@
 import { useSWRConfig } from 'swr';
-import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_ARK, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
 
 /**
@@ -25,7 +25,7 @@ export function useCachedBalance(network: Networks, accountNumber: number): { ba
     }
 
     if (network === NETWORK_LIGHTNING) {
-      // special case, lightning balance consists of several balances (currently spark and liquid)
+      // special case, lightning balance consists of several balances (currently spark, ark, and liquid)
 
       if (key.includes(`balanceFetcher`) && key.includes(`accountNumber:${accountNumber}`) && key.includes(`network:"${NETWORK_SPARK}"`)) {
         const balance = cache.get(key);
@@ -34,6 +34,12 @@ export function useCachedBalance(network: Networks, accountNumber: number): { ba
       }
 
       if (key.includes(`balanceFetcher`) && key.includes(`accountNumber:${accountNumber}`) && key.includes(`network:"${NETWORK_LIQUID}"`)) {
+        const balance = cache.get(key);
+        sum += parseInt(balance?.data ?? 0);
+        cacheHit = true;
+      }
+
+      if (key.includes(`balanceFetcher`) && key.includes(`accountNumber:${accountNumber}`) && key.includes(`network:"${NETWORK_ARK}"`)) {
         const balance = cache.get(key);
         sum += parseInt(balance?.data ?? 0);
         cacheHit = true;

@@ -8,7 +8,7 @@ import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
-import { NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 
 import { Button } from '../DesignSystem';
 import { IBackgroundCaller } from '@shared/types/IBackgroundCaller';
@@ -29,10 +29,13 @@ const BalanceView: React.FC<BalanceViewProps> = ({ network, accountNumber, Backg
   // no extra requests to backend will be made
   const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET;
   const sparkNetwork = isLightningNetwork ? NETWORK_SPARK : network;
+  const arkNetwork = isLightningNetwork ? NETWORK_ARK : network;
   const liquidNetwork = isLightningNetwork ? (network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID) : network;
   const { balance: sparkBalance } = useBalance(sparkNetwork, accountNumber, BackgroundCaller);
+  const { balance: arkBalance } = useBalance(arkNetwork, accountNumber, BackgroundCaller);
   const { balance: liquidBalance } = useBalance(liquidNetwork, accountNumber, BackgroundCaller);
   const { exchangeRate: sparkExchangeRate } = useExchangeRate(sparkNetwork, 'USD');
+  const { exchangeRate: arkExchangeRate } = useExchangeRate(arkNetwork, 'USD');
   const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, 'USD');
 
   const handleBuyClick = () => {
@@ -65,6 +68,19 @@ const BalanceView: React.FC<BalanceViewProps> = ({ network, accountNumber, Backg
                     ? '-'
                     : sparkBalance && +sparkBalance > 0 && sparkExchangeRate
                       ? '$' + formatFiatBalance(sparkBalance, getDecimalsByNetwork(NETWORK_SPARK), sparkExchangeRate)
+                      : '-'}
+                </td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #eee' }}>
+                <td style={{ padding: '8px', fontSize: '14px' }}>Ark</td>
+                <td style={{ textAlign: 'right', padding: '8px', fontSize: '14px' }}>
+                  {network === NETWORK_LIGHTNING_TESTNET ? '0' : arkBalance ? formatBalance(arkBalance, getDecimalsByNetwork(NETWORK_ARK), 8) : '0'} {getTickerByNetwork(NETWORK_ARK)}
+                </td>
+                <td style={{ textAlign: 'right', padding: '8px', fontSize: '14px' }}>
+                  {network === NETWORK_LIGHTNING_TESTNET
+                    ? '-'
+                    : arkBalance && +arkBalance > 0 && arkExchangeRate
+                      ? '$' + formatFiatBalance(arkBalance, getDecimalsByNetwork(NETWORK_ARK), arkExchangeRate)
                       : '-'}
                 </td>
               </tr>
