@@ -1,14 +1,16 @@
 import { BarcodeScanningResult, CameraType, CameraView, useCameraPermissions } from 'expo-camera';
-import React, { createContext, ReactNode, useState } from 'react';
-import { Button, Dimensions, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { createContext, ReactNode, useState, useEffect, useRef } from 'react';
+import { Button, Dimensions, Modal, StyleSheet, TouchableOpacity, View, AppState, AppStateStatus } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 
 interface IScanQrContext {
   scanQr: () => Promise<string>;
+  dismissScanner: () => void;
 }
 
 export const ScanQrContext = createContext<IScanQrContext>({
   scanQr: (): Promise<string> => Promise.reject('scanQr: this should never happen'),
+  dismissScanner: (): void => {},
 });
 
 type ResolverFunction = (resolveValue: string) => void;
@@ -22,6 +24,7 @@ export const ScanQrContextProvider: React.FC<{ children: ReactNode }> = (props) 
   const [resolverFunc, setResolverFunc] = React.useState<ResolverFunction>(() => () => {});
   const facing: CameraType = 'back';
   const [permission, requestPermission] = useCameraPermissions();
+  const appState = useRef(AppState.currentState);
 
   /**
    * function that is exposed outside and requested by user
@@ -39,6 +42,24 @@ export const ScanQrContextProvider: React.FC<{ children: ReactNode }> = (props) 
     setIsScanningQr(false);
     resolverFunc('');
   }
+
+  // Dismiss QR scanner when app goes to background
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (appState.current === 'active' && nextAppState.match(/inactive|background/)) {
+        // App is going to background, dismiss QR scanner if active
+        if (isScanningQr) {
+          console.debug('ScanQrContext: Dismissing QR scanner due to app backgrounding');
+          setIsScanningQr(false);
+          resolverFunc('');
+        }
+      }
+      appState.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, [isScanningQr, resolverFunc]);
 
   const renderCameraFeed = () => {
     if (!permission) {
@@ -75,7 +96,7 @@ export const ScanQrContextProvider: React.FC<{ children: ReactNode }> = (props) 
   };
 
   return (
-    <ScanQrContext.Provider value={{ scanQr }}>
+    <ScanQrContext.Provider value={{ scanQr, dismissScanner: cancelCamera }}>
       {props.children}
       <Modal visible={isScanningQr} animationType="slide" transparent={true} onRequestClose={cancelCamera}>
         <View style={styles.modalOverlay}>

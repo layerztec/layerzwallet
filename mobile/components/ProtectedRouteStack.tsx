@@ -19,7 +19,34 @@ export function ProtectedRouteStack() {
   const segments = useSegments();
 
   // Determine if user has ever been to main app screens (indicates they've authenticated before)
-  const isInMainApp = segments.some((segment) => ['Home', 'Settings', 'Swap', 'Receive', 'SendArk', 'Transactions'].includes(segment as string));
+  const isInMainApp = segments.some((segment) =>
+    [
+      'Home',
+      'Settings',
+      'Swap',
+      'Receive',
+      'SendArk',
+      'SendBtc',
+      'SendEvm',
+      'Transactions',
+      'BackdoorNetworkSwitcher',
+      'Changelog',
+      'SeedBackup',
+      'ViewSubmnemonic',
+      'selftest',
+      'SwapTarget',
+      'SwapSparkDeposit',
+      'SwapDetails',
+      'Onramp',
+      'AskPassword',
+      'AskMnemonic',
+      'DAppBrowser',
+      'NetworkSelector',
+      'Action',
+      'PocketSwitch',
+      'TransactionDetails',
+    ].includes(segment as string)
+  );
 
   // User has completed initial auth if they're currently in main app or have been there before
   const hasCompletedInitialAuth = isInMainApp;
@@ -139,6 +166,8 @@ export function ProtectedRouteStack() {
         <Stack.Screen name="ViewSubmnemonic" options={{ headerShown: false }} />
         <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
         <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
+        <Stack.Screen name="SendBtc" options={{ title: 'Send BTC' }} />
+        <Stack.Screen name="SendEvm" options={{ title: 'Send' }} />
         <Stack.Screen name="Swap" options={{ headerShown: false }} />
         <Stack.Screen
           name="SwapTarget"
