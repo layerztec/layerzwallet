@@ -3,7 +3,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as NavigationBar from 'expo-navigation-bar';
-import { useEffect } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { AppState, AppStateStatus, LogBox, Platform } from 'react-native';
 import 'react-native-reanimated';
 import { SWRConfig } from 'swr';
@@ -46,7 +46,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded) {
-      SplashScreen.hideAsync();
+      // Small delay to ensure the app is fully rendered before hiding splash
+      setTimeout(() => {
+        SplashScreen.hideAsync();
+      }, 100);
     }
   }, [loaded]);
 
