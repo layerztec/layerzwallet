@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useContext } from 'react';
 import { View, StyleSheet, Alert, Pressable, Image, Linking, AppState, AppStateStatus, Text, Modal } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,6 +6,8 @@ import { useSegments } from 'expo-router';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
 import { isDevicePasscodeEnabled } from '@/utils/deviceSecurity';
+import { ScanQrContext } from '@/src/hooks/ScanQrContext';
+import { isInMainApp } from '@/src/utils/navigationUtils';
 
 export default function BiometricLoginScreen() {
   const { authenticateWithBiometrics, isBiometricEnabled } = useAuthState();
@@ -322,12 +324,20 @@ const styles = StyleSheet.create({
 export function BiometricModalHandler() {
   const { isAuthenticated, isBiometricEnabled, isUpdatingBiometric } = useAuthState();
   const segments = useSegments();
+  const { dismissScanner } = useContext(ScanQrContext);
 
   // Determine if user is currently in main app (indicates they've authenticated before)
-  const isInMainApp = segments.some((segment) => ['Home', 'Settings', 'Swap', 'Receive', 'SendArk', 'Transactions'].includes(segment as string));
+  const userIsInMainApp = isInMainApp(segments);
 
   // Show modal when user has been to main app before but is now locked
-  const shouldShowBiometricModal = isBiometricEnabled && isInMainApp && !isAuthenticated && !isUpdatingBiometric;
+  const shouldShowBiometricModal = isBiometricEnabled && userIsInMainApp && !isAuthenticated && !isUpdatingBiometric;
+
+  // Dismiss only React Native Modal components when we need to show the biometric modal
+  useEffect(() => {
+    if (shouldShowBiometricModal) {
+      dismissScanner();
+    }
+  }, [shouldShowBiometricModal, dismissScanner]);
 
   if (!shouldShowBiometricModal) {
     return null;
@@ -342,10 +352,10 @@ export function BiometricModalScreen() {
   const segments = useSegments();
 
   // Determine if user is currently in main app (indicates they've authenticated before)
-  const isInMainApp = segments.some((segment) => ['Home', 'Settings', 'Swap', 'Receive', 'SendArk', 'Transactions'].includes(segment as string));
+  const userIsInMainApp = isInMainApp(segments);
 
   // Show modal when user has been to main app before but is now locked
-  const shouldShowBiometricModal = isBiometricEnabled && isInMainApp && !isAuthenticated && !isUpdatingBiometric;
+  const shouldShowBiometricModal = isBiometricEnabled && userIsInMainApp && !isAuthenticated && !isUpdatingBiometric;
 
   return (
     <Modal

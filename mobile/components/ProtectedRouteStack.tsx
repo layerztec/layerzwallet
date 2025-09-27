@@ -2,6 +2,7 @@ import React from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
+import { isInMainApp } from '@/src/utils/navigationUtils';
 
 const DefaultNavigatorOptions: NativeStackNavigationOptions = {
   headerTitle: '',
@@ -19,10 +20,10 @@ export function ProtectedRouteStack() {
   const segments = useSegments();
 
   // Determine if user has ever been to main app screens (indicates they've authenticated before)
-  const isInMainApp = segments.some((segment) => ['Home', 'Settings', 'Swap', 'Receive', 'SendArk', 'Transactions'].includes(segment as string));
+  const userIsInMainApp = isInMainApp(segments);
 
   // User has completed initial auth if they're currently in main app or have been there before
-  const hasCompletedInitialAuth = isInMainApp;
+  const hasCompletedInitialAuth = userIsInMainApp;
 
   // Debug: Log the current auth state (only in development)
   if (__DEV__) {
@@ -31,7 +32,7 @@ export function ProtectedRouteStack() {
       isInitialized,
       isBiometricEnabled,
       segments,
-      isInMainApp,
+      isInMainApp: userIsInMainApp,
       hasCompletedInitialAuth,
       shouldShowBiometricLogin: isBiometricEnabled && isInitialized && !isAuthenticated && !hasCompletedInitialAuth,
       shouldShowMainApp: !isBiometricEnabled || isAuthenticated || hasCompletedInitialAuth,
@@ -139,6 +140,8 @@ export function ProtectedRouteStack() {
         <Stack.Screen name="ViewSubmnemonic" options={{ headerShown: false }} />
         <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
         <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
+        <Stack.Screen name="SendBtc" options={{ title: 'Send BTC' }} />
+        <Stack.Screen name="SendEvm" options={{ title: 'Send' }} />
         <Stack.Screen name="Swap" options={{ headerShown: false }} />
         <Stack.Screen
           name="SwapTarget"
