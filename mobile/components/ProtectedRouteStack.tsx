@@ -2,6 +2,7 @@ import React from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
+import { isInMainApp } from '@/src/utils/navigationUtils';
 
 const DefaultNavigatorOptions: NativeStackNavigationOptions = {
   headerTitle: '',
@@ -19,37 +20,10 @@ export function ProtectedRouteStack() {
   const segments = useSegments();
 
   // Determine if user has ever been to main app screens (indicates they've authenticated before)
-  const isInMainApp = segments.some((segment) =>
-    [
-      'Home',
-      'Settings',
-      'Swap',
-      'Receive',
-      'SendArk',
-      'SendBtc',
-      'SendEvm',
-      'Transactions',
-      'BackdoorNetworkSwitcher',
-      'Changelog',
-      'SeedBackup',
-      'ViewSubmnemonic',
-      'selftest',
-      'SwapTarget',
-      'SwapSparkDeposit',
-      'SwapDetails',
-      'Onramp',
-      'AskPassword',
-      'AskMnemonic',
-      'DAppBrowser',
-      'NetworkSelector',
-      'Action',
-      'PocketSwitch',
-      'TransactionDetails',
-    ].includes(segment as string)
-  );
+  const userIsInMainApp = isInMainApp(segments);
 
   // User has completed initial auth if they're currently in main app or have been there before
-  const hasCompletedInitialAuth = isInMainApp;
+  const hasCompletedInitialAuth = userIsInMainApp;
 
   // Debug: Log the current auth state (only in development)
   if (__DEV__) {
@@ -58,7 +32,7 @@ export function ProtectedRouteStack() {
       isInitialized,
       isBiometricEnabled,
       segments,
-      isInMainApp,
+      isInMainApp: userIsInMainApp,
       hasCompletedInitialAuth,
       shouldShowBiometricLogin: isBiometricEnabled && isInitialized && !isAuthenticated && !hasCompletedInitialAuth,
       shouldShowMainApp: !isBiometricEnabled || isAuthenticated || hasCompletedInitialAuth,
