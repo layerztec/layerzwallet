@@ -8,6 +8,8 @@ export interface BiometricInfo {
   displayName: string;
   description: string;
   isLoading: boolean;
+  securityLevel: LocalAuthentication.SecurityLevel | null;
+  supportedTypes: LocalAuthentication.AuthenticationType[];
   refresh: () => void;
 }
 
@@ -18,6 +20,8 @@ export const useBiometrics = (): BiometricInfo => {
     displayName: 'Biometrics',
     description: 'Use biometric authentication to secure your wallet.',
     isLoading: true,
+    securityLevel: null,
+    supportedTypes: [],
   });
 
   const appStateRef = useRef(AppState.currentState);
@@ -45,6 +49,8 @@ export const useBiometrics = (): BiometricInfo => {
           displayName: 'Biometrics',
           description: 'Biometric authentication is not available on this device.',
           isLoading: false,
+          securityLevel: LocalAuthentication.SecurityLevel.NONE,
+          supportedTypes: [],
         });
         return;
       }
@@ -58,10 +64,13 @@ export const useBiometrics = (): BiometricInfo => {
           displayName: 'Biometrics',
           description: 'No biometric authentication methods are set up on this device.',
           isLoading: false,
+          securityLevel: LocalAuthentication.SecurityLevel.NONE,
+          supportedTypes: [],
         });
         return;
       }
 
+      const securityLevel = await LocalAuthentication.getEnrolledLevelAsync();
       const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
 
       let biometricType: BiometricInfo['biometricType'] = null;
@@ -76,27 +85,58 @@ export const useBiometrics = (): BiometricInfo => {
         biometricType = 'Biometrics';
       }
 
-      const getBiometricDisplayInfo = (type: BiometricInfo['biometricType']) => {
+      const getBiometricDisplayInfo = (type: BiometricInfo['biometricType'], secLevel: LocalAuthentication.SecurityLevel) => {
+        const getSecurityDescription = (level: LocalAuthentication.SecurityLevel) => {
+          switch (level) {
+            case LocalAuthentication.SecurityLevel.BIOMETRIC_STRONG:
+              return ' (Strong Security)';
+            case LocalAuthentication.SecurityLevel.BIOMETRIC_WEAK:
+              return ' (Standard Security)';
+            case LocalAuthentication.SecurityLevel.SECRET:
+              return ' (PIN/Pattern)';
+            default:
+              return '';
+          }
+        };
+
+        const securitySuffix = getSecurityDescription(secLevel);
+
         switch (type) {
           case 'FaceID':
-            return { displayName: 'Face ID', description: 'Use Face ID to secure your wallet access.' };
+            return {
+              displayName: 'Face ID',
+              description: `Use Face ID to secure your wallet access${securitySuffix}.`,
+            };
           case 'TouchID':
-            return { displayName: 'Touch ID', description: 'Use Touch ID to secure your wallet access.' };
+            return {
+              displayName: 'Touch ID',
+              description: `Use Touch ID to secure your wallet access${securitySuffix}.`,
+            };
           case 'Fingerprint':
-            return { displayName: 'Fingerprint', description: 'Use fingerprint authentication to secure your wallet access.' };
+            return {
+              displayName: 'Fingerprint',
+              description: `Use fingerprint authentication to secure your wallet access${securitySuffix}.`,
+            };
           case 'Iris':
-            return { displayName: 'Iris Scan', description: 'Use iris scanning to secure your wallet access.' };
+            return {
+              displayName: 'Iris Scan',
+              description: `Use iris scanning to secure your wallet access${securitySuffix}.`,
+            };
           case 'Biometrics':
             return {
               displayName: Platform.OS === 'ios' ? 'Biometrics' : 'Face Recognition',
-              description: Platform.OS === 'ios' ? 'Use biometric authentication to secure your wallet access.' : 'Use face recognition to secure your wallet access.',
+              description:
+                Platform.OS === 'ios' ? `Use biometric authentication to secure your wallet access${securitySuffix}.` : `Use face recognition to secure your wallet access${securitySuffix}.`,
             };
           default:
-            return { displayName: 'Biometrics', description: 'Use biometric authentication to secure your wallet.' };
+            return {
+              displayName: 'Biometrics',
+              description: `Use biometric authentication to secure your wallet${securitySuffix}.`,
+            };
         }
       };
 
-      const { displayName, description } = getBiometricDisplayInfo(biometricType);
+      const { displayName, description } = getBiometricDisplayInfo(biometricType, securityLevel);
 
       setBiometricInfo({
         isAvailable: biometricType !== null,
@@ -104,6 +144,8 @@ export const useBiometrics = (): BiometricInfo => {
         displayName,
         description,
         isLoading: false,
+        securityLevel,
+        supportedTypes,
       });
     } catch (error) {
       // During cold boot, API calls might fail temporarily
@@ -119,6 +161,8 @@ export const useBiometrics = (): BiometricInfo => {
         displayName: 'Biometrics',
         description: 'Unable to check biometric capabilities.',
         isLoading: false,
+        securityLevel: LocalAuthentication.SecurityLevel.NONE,
+        supportedTypes: [],
       });
     }
   }, []);

@@ -23,7 +23,7 @@ interface IAuthState {
   isInitialized: boolean;
   isBiometricEnabled: boolean;
   isUpdatingBiometric: boolean;
-  authenticateWithBiometrics: () => Promise<boolean>;
+  authenticateWithBiometrics: () => Promise<LocalAuthentication.LocalAuthenticationResult>;
   enableBiometricAuth: () => Promise<boolean>;
   disableBiometricAuth: () => Promise<boolean>;
   lockApp: () => void;
@@ -34,7 +34,7 @@ export const AuthStateContext = createContext<IAuthState>({
   isInitialized: false,
   isBiometricEnabled: false,
   isUpdatingBiometric: false,
-  authenticateWithBiometrics: (): Promise<boolean> => Promise.reject('authenticateWithBiometrics: this should never happen'),
+  authenticateWithBiometrics: (): Promise<LocalAuthentication.LocalAuthenticationResult> => Promise.reject('authenticateWithBiometrics: this should never happen'),
   enableBiometricAuth: (): Promise<boolean> => Promise.reject('enableBiometricAuth: this should never happen'),
   disableBiometricAuth: (): Promise<boolean> => Promise.reject('disableBiometricAuth: this should never happen'),
   lockApp: (): void => {},
@@ -96,7 +96,7 @@ export const AuthStateContextProvider: React.FC<{ children: ReactNode }> = (prop
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInitialized, isSettingsLoaded, hasInitializedAuth]);
 
-  const authenticateWithBiometrics = useCallback(async (): Promise<boolean> => {
+  const authenticateWithBiometrics = useCallback(async (): Promise<LocalAuthentication.LocalAuthenticationResult> => {
     try {
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Unlock Layerz Wallet',
@@ -104,16 +104,20 @@ export const AuthStateContextProvider: React.FC<{ children: ReactNode }> = (prop
         disableDeviceFallback: false,
         cancelLabel: 'Cancel',
         requireConfirmation: false,
+        biometricsSecurityLevel: 'strong',
       });
 
       if (result.success) {
         setIsAuthenticated(true);
-        return true;
-      } else {
-        return false;
       }
+
+      return result;
     } catch (error) {
-      return false;
+      console.error('BiometricAuth: Authentication error:', error);
+      return {
+        success: false,
+        error: 'unknown',
+      };
     }
   }, []);
 
@@ -141,10 +145,13 @@ export const AuthStateContextProvider: React.FC<{ children: ReactNode }> = (prop
       // Directly trigger device biometric UI to confirm enabling
       const authResult = await LocalAuthentication.authenticateAsync({
         promptMessage: `Enable ${biometricInfo.displayName} to unlock your wallet?`,
+        promptSubtitle: 'Secure your wallet with biometric authentication',
         fallbackLabel: 'Use Device PIN',
         disableDeviceFallback: false,
         cancelLabel: 'Cancel',
         requireConfirmation: false,
+        // Use strong biometrics on Android for wallet security
+        biometricsSecurityLevel: 'strong',
       });
 
       if (authResult.success) {
@@ -187,10 +194,12 @@ export const AuthStateContextProvider: React.FC<{ children: ReactNode }> = (prop
       // Directly trigger device biometric UI to confirm disabling
       const authResult = await LocalAuthentication.authenticateAsync({
         promptMessage: `Authenticate with ${biometricInfo.displayName} to disable biometric unlock`,
+        promptSubtitle: 'Confirm to disable biometric security',
         fallbackLabel: 'Use Device PIN',
         disableDeviceFallback: false,
         cancelLabel: 'Cancel',
         requireConfirmation: false,
+        biometricsSecurityLevel: 'strong',
       });
 
       if (authResult.success) {
