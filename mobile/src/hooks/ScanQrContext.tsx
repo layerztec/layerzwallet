@@ -1,16 +1,16 @@
-import { BarcodeScanningResult, CameraType, CameraView, useCameraPermissions } from 'expo-camera';
-import React, { createContext, ReactNode, useState, useEffect, useRef } from 'react';
-import { Button, Dimensions, Modal, StyleSheet, TouchableOpacity, View, AppState, AppStateStatus } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
+import React, { createContext, ReactNode, useState, useRef } from 'react';
+import { useRouter } from 'expo-router';
 
 interface IScanQrContext {
   scanQr: () => Promise<string>;
   dismissScanner: () => void;
+  handleQrScanned: (data: string) => void;
 }
 
 export const ScanQrContext = createContext<IScanQrContext>({
   scanQr: (): Promise<string> => Promise.reject('scanQr: this should never happen'),
   dismissScanner: (): void => {},
+  handleQrScanned: (): void => {},
 });
 
 type ResolverFunction = (resolveValue: string) => void;
@@ -20,133 +20,35 @@ type ResolverFunction = (resolveValue: string) => void;
  * resolved to a string with QR code content
  */
 export const ScanQrContextProvider: React.FC<{ children: ReactNode }> = (props) => {
-  const [isScanningQr, setIsScanningQr] = useState<boolean>(false);
-  const [resolverFunc, setResolverFunc] = React.useState<ResolverFunction>(() => () => {});
-  const facing: CameraType = 'back';
-  const [permission, requestPermission] = useCameraPermissions();
-  const appState = useRef(AppState.currentState);
+  const router = useRouter();
+  const [resolverFunc, setResolverFunc] = useState<ResolverFunction>(() => () => {});
 
   /**
    * function that is exposed outside and requested by user
    */
   const scanQr = async (): Promise<string> => {
-    setIsScanningQr(true);
-
     return new Promise((resolve) => {
       // saving reference to a resolver so we can trigger it later (when we scanned qr)
       setResolverFunc(() => resolve);
+
+      // Navigate to the QR scanner screen
+      router.push('/ScanQr');
     });
   };
 
-  function cancelCamera() {
-    setIsScanningQr(false);
-    resolverFunc('');
-  }
-
-  // Dismiss QR scanner when app goes to background
-  useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (appState.current === 'active' && nextAppState.match(/inactive|background/)) {
-        // App is going to background, dismiss QR scanner if active
-        if (isScanningQr) {
-          console.debug('ScanQrContext: Dismissing QR scanner due to app backgrounding');
-          setIsScanningQr(false);
-          resolverFunc('');
-        }
-      }
-      appState.current = nextAppState;
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => subscription.remove();
-  }, [isScanningQr, resolverFunc]);
-
-  const renderCameraFeed = () => {
-    if (!permission) {
-      // Camera permissions are still loading.
-      return <View />;
-    }
-
-    if (!permission.granted) {
-      // Camera permissions are not granted yet.
-      return (
-        <View style={styles.container}>
-          <ThemedText style={styles.message}>We need your permission to show the camera</ThemedText>
-          <Button onPress={requestPermission} title="grant permission" />
-        </View>
-      );
-    }
-
-    function onBarcodeScanned(scanningResult: BarcodeScanningResult): void {
-      setIsScanningQr(false);
-      resolverFunc(scanningResult.data);
-    }
-
-    return (
-      <View style={styles.container}>
-        <CameraView style={styles.camera} facing={facing} onBarcodeScanned={onBarcodeScanned} barcodeScannerSettings={{ barcodeTypes: ['qr'] }} autofocus={'on'}>
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.button} onPress={cancelCamera}>
-              <ThemedText style={styles.text}>Cancel</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </CameraView>
-      </View>
-    );
+  /**
+   * Function called by the QR scanner screen when a QR code is scanned
+   */
+  const handleQrScanned = (data: string): void => {
+    resolverFunc(data);
   };
 
-  return (
-    <ScanQrContext.Provider value={{ scanQr, dismissScanner: cancelCamera }}>
-      {props.children}
-      <Modal visible={isScanningQr} animationType="slide" transparent={true} onRequestClose={cancelCamera}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>{isScanningQr && renderCameraFeed()}</View>
-        </View>
-      </Modal>
-    </ScanQrContext.Provider>
-  );
+  /**
+   * Function to dismiss the scanner and resolve with empty string
+   */
+  const dismissScanner = (): void => {
+    resolverFunc('');
+  };
+
+  return <ScanQrContext.Provider value={{ scanQr, dismissScanner, handleQrScanned }}>{props.children}</ScanQrContext.Provider>;
 };
-
-const { height } = Dimensions.get('window');
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  message: {
-    textAlign: 'center',
-    paddingBottom: 10,
-  },
-  camera: {
-    flex: 1,
-  },
-  buttonContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
-    margin: 64,
-  },
-  button: {
-    flex: 1,
-    alignSelf: 'flex-end',
-    alignItems: 'center',
-  },
-  text: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: 'white',
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-  modalContent: {
-    height: height * 0.67, // Takes up approximately 2/3 of the screen
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
-  },
-});
