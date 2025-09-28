@@ -262,7 +262,7 @@ export default function Home() {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Sticky Header */}
-      <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} accountBalance={accountBalance ? Number(accountBalance) : 0} />
+      <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} />
 
       <GradientScreen variant={network} scroll={true} onScroll={handleScroll}>
         <View style={[styles.root, styles.contentWithHeader]}>
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   contentWithHeader: {
-    paddingTop: 90,
+    paddingTop: 80,
   },
   networkSelectorContainer: {
     alignSelf: 'flex-start',
