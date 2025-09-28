@@ -100,9 +100,7 @@ export const AuthStateContextProvider: React.FC<{ children: ReactNode }> = (prop
     try {
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Unlock Layerz Wallet',
-        fallbackLabel: 'Use Device PIN',
         disableDeviceFallback: false,
-        cancelLabel: 'Cancel',
         requireConfirmation: false,
         biometricsSecurityLevel: 'strong',
       });
@@ -194,10 +192,7 @@ export const AuthStateContextProvider: React.FC<{ children: ReactNode }> = (prop
       // Directly trigger device biometric UI to confirm disabling
       const authResult = await LocalAuthentication.authenticateAsync({
         promptMessage: `Authenticate with ${biometricInfo.displayName} to disable biometric unlock`,
-        promptSubtitle: 'Confirm to disable biometric security',
-        fallbackLabel: 'Use Device PIN',
         disableDeviceFallback: false,
-        cancelLabel: 'Cancel',
         requireConfirmation: false,
         biometricsSecurityLevel: 'strong',
       });

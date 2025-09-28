@@ -45,9 +45,7 @@ export const useAppLock = () => {
     try {
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Unlock Layerz Wallet',
-        fallbackLabel: 'Use Device PIN',
         disableDeviceFallback: false,
-        cancelLabel: 'Cancel',
       });
 
       if (result.success) {

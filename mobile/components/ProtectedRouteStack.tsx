@@ -2,6 +2,7 @@ import React from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
+import { useBiometricModal } from '@/src/hooks/useBiometricModal';
 import { isInMainApp } from '@/src/utils/navigationUtils';
 
 const DefaultNavigatorOptions: NativeStackNavigationOptions = {
@@ -18,6 +19,8 @@ const DefaultNavigatorOptions: NativeStackNavigationOptions = {
 export function ProtectedRouteStack() {
   const { isAuthenticated, isInitialized, isBiometricEnabled } = useAuthState();
   const segments = useSegments();
+
+  useBiometricModal();
 
   // Determine if user has ever been to main app screens (indicates they've authenticated before)
   const userInMainApp = isInMainApp(segments);
