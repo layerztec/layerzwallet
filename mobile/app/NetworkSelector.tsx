@@ -58,10 +58,9 @@ const NetworkSelector: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <PlatformBlurView intensity={30} tint="dark" style={styles.backgroundBlur}/>
+      <PlatformBlurView intensity={30} tint="dark" style={styles.backgroundBlur} />
       <DashboardTiles cards={networkCards} onCardPress={handleCardPress} onClose={handleClose} />
     </View>
-
   );
 };
 
