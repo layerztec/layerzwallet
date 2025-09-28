@@ -25,7 +25,7 @@ export default function Button({ title, onPress, variant = 'normal', disabled = 
     return baseStyle;
   };
 
-  const getBlurViewStyle = () => {
+  const getBlurViewStyle = (): ViewStyle => {
     switch (variant) {
       case 'high':
         return styles.blurHigh;
@@ -76,9 +76,14 @@ export default function Button({ title, onPress, variant = 'normal', disabled = 
     );
   }
 
+  const blurStyle = {
+    ...styles.blurContainer,
+    ...getBlurViewStyle(),
+  };
+
   return (
     <TouchableOpacity style={getButtonStyle()} onPress={onPress} disabled={disabled || loading} activeOpacity={activeOpacity} {...restProps}>
-      <PlatformBlurView intensity={25} tint="dark" style={[styles.blurContainer, getBlurViewStyle()]}>
+      <PlatformBlurView intensity={25} tint="dark" style={blurStyle}>
         {renderContent()}
       </PlatformBlurView>
     </TouchableOpacity>
