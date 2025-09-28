@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useContext } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { BlurView } from 'expo-blur';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -85,10 +84,10 @@ const TokensView: React.FC = () => {
 
   if (error) {
     return (
-      <BlurView intensity={50} tint="dark" style={styles.container}>
+      <View style={styles.container}>
         <ThemedText style={styles.title}>Tokens</ThemedText>
         <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText>
-      </BlurView>
+      </View>
     );
   }
 
@@ -97,20 +96,20 @@ const TokensView: React.FC = () => {
   }
 
   return (
-    <BlurView intensity={50} tint="dark" style={styles.container}>
+    <View style={styles.container}>
       <ThemedText style={styles.title}>Tokens</ThemedText>
       <View style={styles.tokensList}>
         {tokenList.map((token) => (
           <TokenRow key={token.id} token={token} />
         ))}
       </View>
-    </BlurView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
     borderRadius: 20,
     padding: 16,
     overflow: 'hidden',

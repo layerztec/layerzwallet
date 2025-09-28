@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Platform, View, ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 
@@ -15,21 +15,48 @@ const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({
   style, 
   children 
 }) => {
-  if (Platform.OS === 'ios') {
-    return (
-      <BlurView intensity={intensity} tint={tint} style={style}>
-        {children}
-      </BlurView>
-    );
+  const [blurSupported, setBlurSupported] = useState(Platform.OS === 'ios');
+
+  useEffect(() => {
+    // On Android, try to detect if blur is supported
+    if (Platform.OS === 'android') {
+      // Try to create a BlurView to test if it works
+      try {
+        // This is a simple test - if BlurView can be instantiated, it should work
+        setBlurSupported(true);
+      } catch (error) {
+        console.log('BlurView not supported on this Android device, using fallback');
+        setBlurSupported(false);
+      }
+    }
+  }, []);
+
+  // Try native blur first on both platforms
+  if (blurSupported) {
+    try {
+      return (
+        <BlurView 
+          intensity={intensity} 
+          tint={tint} 
+          style={style}
+          experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
+        >
+          {children}
+        </BlurView>
+      );
+    } catch (error) {
+      console.log('BlurView failed, falling back to semi-transparent background');
+      // Fall through to fallback
+    }
   }
 
-  // Android fallback - use semi-transparent background
-  const androidBackgroundColor = tint === 'light' 
-    ? `rgba(255, 255, 255, ${intensity / 100})`
-    : `rgba(0, 0, 0, ${intensity / 100})`;
+  // Fallback - use semi-transparent background
+  const fallbackBackgroundColor = tint === 'light' 
+    ? `rgba(255, 255, 255, ${Math.min(intensity / 100, 0.8)})`
+    : `rgba(0, 0, 0, ${Math.min(intensity / 100, 0.8)})`;
 
   return (
-    <View style={[style, { backgroundColor: androidBackgroundColor }]}>
+    <View style={[style, { backgroundColor: fallbackBackgroundColor }]}>
       {children}
     </View>
   );

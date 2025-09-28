@@ -1,5 +1,5 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+import PlatformBlurView from '@/components/PlatformBlurView';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState, useRef } from 'react';
@@ -366,7 +366,7 @@ export default function Home() {
           <View style={styles.tokensSection}>{network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET ? <LiquidTokensView /> : <TokensView />}</View>
 
           {/* Transactions Section */}
-          <BlurView intensity={25} tint="dark" style={styles.transactionsContainer}>
+          <View style={styles.transactionsContainer}>
             <ThemedText style={styles.transactionsTitle}>Latest Transactions</ThemedText>
 
             {latestTransactions.length > 0 ? (
@@ -386,7 +386,7 @@ export default function Home() {
             )}
 
             <Button title="Transaction History" onPress={handleTransactionHistory} variant="dark" />
-          </BlurView>
+          </View>
 
           {/* Bottom spacing for navigation */}
           <View style={styles.bottomSpacer} />
@@ -396,7 +396,7 @@ export default function Home() {
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
         <View style={styles.navContainer}>
-          <BlurView intensity={20} tint="dark" style={styles.navBlur} />
+          <PlatformBlurView intensity={20} tint="dark" style={styles.navBlur} />
 
           {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
             <ActionPopupButton actions={getLightningSendActions()}>
@@ -429,7 +429,7 @@ export default function Home() {
 
         {swapPairs.length > 0 && (
           <View style={styles.swapButton}>
-            <BlurView intensity={40} tint="light" style={styles.navBlur} />
+            <PlatformBlurView intensity={40} tint="light" style={styles.navBlur} />
             <TouchableOpacity style={styles.swapButtonInner} onPress={handleSwap} activeOpacity={0.8} testID="SwapButton">
               <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
               <ThemedText style={styles.navButtonText}>Swap</ThemedText>
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
   },
   transactionsContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
     borderRadius: 20,
     padding: 16,
     marginBottom: 20,
