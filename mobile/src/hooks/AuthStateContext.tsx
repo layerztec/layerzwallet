@@ -143,10 +143,7 @@ export const AuthStateContextProvider: React.FC<{ children: ReactNode }> = (prop
       // Directly trigger device biometric UI to confirm enabling
       const authResult = await LocalAuthentication.authenticateAsync({
         promptMessage: `Enable ${biometricInfo.displayName} to unlock your wallet?`,
-        promptSubtitle: 'Secure your wallet with biometric authentication',
-        fallbackLabel: 'Use Device PIN',
         disableDeviceFallback: false,
-        cancelLabel: 'Cancel',
         requireConfirmation: false,
         // Use strong biometrics on Android for wallet security
         biometricsSecurityLevel: 'strong',
