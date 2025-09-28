@@ -17,17 +17,15 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
   const { authenticateWithBiometrics, isBiometricEnabled, isAuthenticated } = useAuthState();
   const biometricInfo = useBiometrics();
   const router = useRouter();
-  const segments = useSegments();
 
   const [authState, setAuthState] = useState({
     isAuthenticating: false,
     hasAutoTriggered: false,
     userCancelled: false,
+    hasAttemptedAuth: false,
   });
 
   const [hasDevicePasscode, setHasDevicePasscode] = useState<boolean | null>(null);
-  const lastAuthAttemptTime = useRef<number>(0);
-  const authenticationTimeoutRef = useRef<number | null>(null);
   const appStateRef = useRef(AppState.currentState);
   const wasInBackground = useRef<boolean>(false);
 
@@ -67,11 +65,10 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
     async (isInitialAuth = false) => {
       if (authState.isAuthenticating) return;
 
-      lastAuthAttemptTime.current = Date.now();
-
       setAuthState((prev) => ({
         ...prev,
         isAuthenticating: true,
+        hasAttemptedAuth: true,
       }));
 
       console.debug('BiometricLogin: Starting authentication', {
@@ -80,27 +77,7 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
       });
 
       try {
-        authenticationTimeoutRef.current = setTimeout(async () => {
-          console.debug('BiometricLogin: Authentication timeout - canceling and resetting state');
-          try {
-            await LocalAuthentication.cancelAuthenticate();
-          } catch (cancelError) {
-            console.debug('BiometricLogin: Error canceling authentication:', cancelError);
-          }
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-          setAuthState((prev) => ({
-            ...prev,
-            isAuthenticating: false,
-          }));
-          authenticationTimeoutRef.current = null;
-        }, 30000);
-
         const result = await authenticateWithBiometrics();
-
-        if (authenticationTimeoutRef.current) {
-          clearTimeout(authenticationTimeoutRef.current);
-          authenticationTimeoutRef.current = null;
-        }
 
         console.debug('BiometricLogin: Authentication completed', {
           success: result.success,
@@ -199,12 +176,12 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
     const isReady = !biometricInfo.isLoading && !authState.isAuthenticating;
 
     const shouldAutoTrigger =
-      (lastAuthAttemptTime.current === 0 && isReady && hasValidAuth && !authState.userCancelled) || (autoTrigger && isReady && hasValidAuth && !authState.hasAutoTriggered && !authState.userCancelled);
+      (!authState.hasAttemptedAuth && isReady && hasValidAuth && !authState.userCancelled) || (autoTrigger && isReady && hasValidAuth && !authState.hasAutoTriggered && !authState.userCancelled);
 
     if (shouldAutoTrigger) {
       console.debug('BiometricLogin: Auto-triggering authentication', {
         autoTrigger,
-        lastAuthAttemptTime: lastAuthAttemptTime.current,
+        hasAttemptedAuth: authState.hasAttemptedAuth,
         hasValidAuth,
         biometricAvailable: biometricInfo.isAvailable,
         hasDevicePasscode,
@@ -220,21 +197,13 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
     authState.isAuthenticating,
     authState.hasAutoTriggered,
     authState.userCancelled,
+    authState.hasAttemptedAuth,
     biometricInfo.isLoading,
     biometricInfo.isAvailable,
     biometricInfo.securityLevel,
     isBiometricEnabled,
     hasDevicePasscode,
   ]);
-
-  useEffect(() => {
-    return () => {
-      if (authenticationTimeoutRef.current) {
-        clearTimeout(authenticationTimeoutRef.current);
-        LocalAuthentication.cancelAuthenticate().catch(() => {});
-      }
-    };
-  }, []);
 
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
@@ -254,18 +223,15 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
       }
 
       if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active' && wasInBackground.current) {
-        const now = Date.now();
-        const timeSinceLastAuth = now - lastAuthAttemptTime.current;
         const hasValidAuth = biometricInfo.isAvailable || hasDevicePasscode;
 
         console.debug('BiometricLogin: App returned from true background', {
-          timeSinceLastAuth,
           hasValidAuth,
           isAuthenticating: authState.isAuthenticating,
           userCancelled: authState.userCancelled,
         });
 
-        if (hasValidAuth && !authState.isAuthenticating && timeSinceLastAuth > 2000) {
+        if (hasValidAuth && !authState.isAuthenticating) {
           console.debug('BiometricLogin: Auto-triggering on true background return');
           wasInBackground.current = false;
 
@@ -280,8 +246,6 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
             hasValidAuth,
             isAuthenticating: authState.isAuthenticating,
             userCancelled: authState.userCancelled,
-            timeSinceLastAuth,
-            minimumTime: 2000,
           });
           wasInBackground.current = false;
         }
@@ -298,7 +262,7 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
     useCallback(() => {
       return () => {
         wasInBackground.current = false;
-        setAuthState((prev) => ({ ...prev, hasAutoTriggered: false, userCancelled: false }));
+        setAuthState((prev) => ({ ...prev, hasAutoTriggered: false, userCancelled: false, hasAttemptedAuth: false }));
       };
     }, [])
   );
@@ -346,7 +310,7 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
           </View>
         )}
 
-        {lastAuthAttemptTime.current > 0 && !authState.isAuthenticating && !(hasDevicePasscode === false && !biometricInfo.isAvailable) && (
+        {authState.hasAttemptedAuth && !authState.isAuthenticating && !(hasDevicePasscode === false && !biometricInfo.isAvailable) && (
           <View style={styles.buttonContainer}>
             <Pressable style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]} onPress={handleAuthenticate}>
               <Ionicons name={getBiometricIcon()} size={24} color="rgba(255, 255, 255, 0.8)" />
