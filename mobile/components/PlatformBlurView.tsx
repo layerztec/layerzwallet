@@ -9,11 +9,11 @@ interface PlatformBlurViewProps {
   children?: React.ReactNode;
 }
 
-const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({ 
-  intensity = 50, 
-  tint = 'dark', 
-  style, 
-  children 
+const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({
+  intensity = 50,
+  tint = 'dark',
+  style,
+  children,
 }) => {
   const [blurSupported, setBlurSupported] = useState(Platform.OS === 'ios');
 
@@ -35,9 +35,9 @@ const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({
   if (blurSupported) {
     try {
       return (
-        <BlurView 
-          intensity={intensity} 
-          tint={tint} 
+        <BlurView
+          intensity={intensity}
+          tint={tint}
           style={style}
           experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
         >
@@ -51,9 +51,10 @@ const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({
   }
 
   // Fallback - use semi-transparent background
-  const fallbackBackgroundColor = tint === 'light' 
-    ? `rgba(255, 255, 255, ${Math.min(intensity / 100, 0.8)})`
-    : `rgba(0, 0, 0, ${Math.min(intensity / 100, 0.8)})`;
+  const fallbackBackgroundColor =
+    tint === 'light'
+      ? `rgba(255, 255, 255, ${Math.min(intensity / 100, 0.8)})`
+      : `rgba(0, 0, 0, ${Math.min(intensity / 100, 0.8)})`;
 
   return (
     <View style={[style, { backgroundColor: fallbackBackgroundColor }]}>

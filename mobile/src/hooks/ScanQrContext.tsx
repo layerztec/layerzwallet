@@ -100,14 +100,14 @@ export const ScanQrContextProvider: React.FC<{ children: ReactNode }> = (props) 
       // Camera permissions are not granted yet.
       return (
         <View style={styles.container}>
-          <TouchableOpacity 
-            style={[styles.closeButton, { top: insets.top + 10 }]} 
+          <TouchableOpacity
+            style={[styles.closeButton, { top: insets.top + 10 }]}
             onPress={cancelCamera}
             testID="CloseCameraButton"
           >
-            <PlatformBlurView 
-              intensity={80} 
-              tint="dark" 
+            <PlatformBlurView
+              intensity={80}
+              tint="dark"
               style={styles.closeButtonBlur}
             >
               <Ionicons name="close" size={24} color="white" />
@@ -140,14 +140,14 @@ export const ScanQrContextProvider: React.FC<{ children: ReactNode }> = (props) 
       <View style={styles.container}>
         <CameraView style={styles.camera} facing={facing} onBarcodeScanned={onBarcodeScanned} barcodeScannerSettings={{ barcodeTypes: ['qr'] }} autofocus={'on'}>
           {/* Close button in top right corner */}
-          <TouchableOpacity 
-            style={[styles.closeButton, { top: insets.top + 10 }]} 
+          <TouchableOpacity
+            style={[styles.closeButton, { top: insets.top + 10 }]}
             onPress={cancelCamera}
             testID="CloseCameraButton"
           >
-            <PlatformBlurView 
-              intensity={80} 
-              tint="dark" 
+            <PlatformBlurView
+              intensity={80}
+              tint="dark"
               style={styles.closeButtonBlur}
             >
               <Ionicons name="close" size={24} color="white" />
