@@ -1,5 +1,4 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import React, { useContext } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -87,7 +86,7 @@ const SwapList = () => {
   }
 
   return (
-    <BlurView intensity={25} tint="dark" style={styles.swapsContainer}>
+    <View style={styles.swapsContainer}>
       <ThemedText style={styles.swapsTitle}>Swaps</ThemedText>
 
       <View style={styles.swapsList}>
@@ -95,7 +94,7 @@ const SwapList = () => {
           <SwapItem key={swap.id} swap={swap} />
         ))}
       </View>
-    </BlurView>
+    </View>
   );
 };
 
@@ -103,7 +102,7 @@ export default SwapList;
 
 const styles = StyleSheet.create({
   swapsContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
     borderRadius: 20,
     padding: 16,
     marginBottom: 20,

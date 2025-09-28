@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, TouchableOpacityProps, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
-import { BlurView } from 'expo-blur';
+import PlatformBlurView from './PlatformBlurView';
 import { ThemedText } from './ThemedText';
 
 export interface ButtonProps extends TouchableOpacityProps {
@@ -25,7 +25,7 @@ export default function Button({ title, onPress, variant = 'normal', disabled = 
     return baseStyle;
   };
 
-  const getBlurViewStyle = () => {
+  const getBlurViewStyle = (): ViewStyle => {
     switch (variant) {
       case 'high':
         return styles.blurHigh;
@@ -76,11 +76,16 @@ export default function Button({ title, onPress, variant = 'normal', disabled = 
     );
   }
 
+  const blurStyle = {
+    ...styles.blurContainer,
+    ...getBlurViewStyle(),
+  };
+
   return (
     <TouchableOpacity style={getButtonStyle()} onPress={onPress} disabled={disabled || loading} activeOpacity={activeOpacity} {...restProps}>
-      <BlurView intensity={25} tint="dark" style={[styles.blurContainer, getBlurViewStyle()]}>
+      <PlatformBlurView intensity={25} tint="dark" style={blurStyle}>
         {renderContent()}
-      </BlurView>
+      </PlatformBlurView>
     </TouchableOpacity>
   );
 }
