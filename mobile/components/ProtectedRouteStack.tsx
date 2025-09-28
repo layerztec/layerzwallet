@@ -27,7 +27,7 @@ export function ProtectedRouteStack() {
 
   // Debug: Log the current auth state (only in development)
   if (__DEV__) {
-    console.log('ProtectedRouteStack state:', {
+    console.debug('ProtectedRouteStack state:', {
       isAuthenticated,
       isInitialized,
       isBiometricEnabled,
@@ -214,6 +214,20 @@ export function ProtectedRouteStack() {
           name="Transactions"
           options={{
             ...DefaultNavigatorOptions,
+          }}
+        />
+        <Stack.Screen
+          name="ScanQr"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.8],
+            sheetGrabberVisible: true,
+            headerTransparent: false,
+            gestureEnabled: true,
+            headerShown: false,
+            contentStyle: {
+              height: '100%',
+            },
           }}
         />
         <Stack.Screen
