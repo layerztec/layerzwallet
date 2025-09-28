@@ -7,12 +7,14 @@ import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { usePreventScreenCapture } from 'expo-screen-capture';
 
 export default function SeedBackupScreen() {
   const { network } = useContext(NetworkContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
   const [mnemonic, setMnemonic] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  usePreventScreenCapture();
 
   const handleShowSeedPhrase = async () => {
     setIsLoading(true);
