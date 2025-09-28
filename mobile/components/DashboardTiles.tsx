@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { getAvailableNetworks, NETWORK_BITCOIN, Networks } from '@shared/types/networks';
 import { getNetworkGradient, gradients as sharedGradients } from '@shared/constants/Colors';
 import { getIsTestnet, getTickerByNetwork, getDecimalsByNetwork } from '@shared/models/network-getters';
@@ -235,8 +234,6 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.container}>
-        <BlurView intensity={50} tint="dark" style={styles.backgroundBlur} pointerEvents="none" />
-
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Select Layer</Text>
           {onClose && (
@@ -285,9 +282,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backgroundBlur: {
-    ...StyleSheet.absoluteFillObject,
-  },
   header: {
     position: 'absolute',
     top: 60,
@@ -326,7 +320,7 @@ const styles = StyleSheet.create({
   list: {
     flex: 1,
     width: '100%',
-    marginTop: height * 0.12,
+    marginTop: height * 0.03,
   },
   listContent: {
     alignItems: 'center',

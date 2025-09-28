@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useContext, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
+import PlatformBlurView from '@/components/PlatformBlurView';
 import { Networks } from '@shared/types/networks';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
@@ -57,15 +58,20 @@ const NetworkSelector: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <PlatformBlurView intensity={30} tint="dark" style={styles.backgroundBlur}/>
       <DashboardTiles cards={networkCards} onCardPress={handleCardPress} onClose={handleClose} />
     </View>
+
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)', // Transparent dark overlay
+  },
+  backgroundBlur: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
 });
 
