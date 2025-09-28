@@ -25,7 +25,6 @@ import { InitializationContextProvider } from '@shared/hooks/InitializationConte
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
 import { ProtectedRouteStack } from '@/components/ProtectedRouteStack';
-import { useBiometricModal } from '@/src/hooks/useBiometricModal';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -33,7 +32,6 @@ LogBox.ignoreLogs(['Open debugger to view warnings.']);
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -44,6 +42,15 @@ export default function RootLayout() {
       NavigationBar.setStyle(style);
     }
   }, [colorScheme]);
+
+  useEffect(() => {
+    if (loaded) {
+      // Small delay to ensure the app is fully rendered before hiding splash
+      setTimeout(() => {
+        SplashScreen.hideAsync();
+      }, 100);
+    }
+  }, [loaded]);
 
   if (!loaded) {
     return null;

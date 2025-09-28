@@ -2,14 +2,12 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, StyleSheet, Alert, Pressable, Image, Linking, Text, AppState, AppStateStatus } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as LocalAuthentication from 'expo-local-authentication';
-import * as SplashScreen from 'expo-splash-screen';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useSegments } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
 import { isDevicePasscodeEnabled } from '@/utils/deviceSecurity';
-import { isInMainApp } from '@/src/utils/navigationUtils';
 
 interface BiometricLoginScreenProps {
   autoTrigger?: boolean;
@@ -26,13 +24,6 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
     hasAutoTriggered: false,
     userCancelled: false,
   });
-
-  useEffect(() => {
-    const userInMainApp = isInMainApp(segments);
-    if (!userInMainApp) {
-      SplashScreen.hideAsync();
-    }
-  }, [segments]);
 
   const [hasDevicePasscode, setHasDevicePasscode] = useState<boolean | null>(null);
   const lastAuthAttemptTime = useRef<number>(0);
