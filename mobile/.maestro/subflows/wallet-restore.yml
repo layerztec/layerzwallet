@@ -21,7 +21,6 @@ appId: com.layerzwallet.mobile
       - waitForAnimationToEnd
       - tapOn:
           id: 'ImportWalletMnemonicInput'
-      - eraseText
       - inputText: 'wrong'
       - tapOn:
           point: 10%,50% # to remove focus from the keyboard
@@ -46,31 +45,11 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 - tapOn:
     id: 'ImportWalletImportButton'
-- extendedWaitUntil:
-    visible: 'Create Password'
-    timeout: 300_000 # 5 min
-
-# Create password
-- tapOn:
-    id: 'EnterPasswordInput'
-- eraseText
-- inputText:
-    text: '123456'
-- tapOn:
-    id: 'RepeatPasswordInput'
-- eraseText
-- inputText:
-    text: '123456'
-- tapOn:
-    point: 10%,10% # to remove focus from the keyboard
-- tapOn:
-    id: 'CreatePasswordButton'
-- waitForAnimationToEnd
 
 # Accept terms of service
 - extendedWaitUntil:
     visible: 'Wallet created\nsuccessfully'
-    timeout: 10000
+    timeout: 300_000 # 5 min
 
 - assertVisible: 'Wallet created\nsuccessfully'
 - assertVisible: 'You are now ready to access your wallet\nand unlock Bitcoin Layerz 2 potential'

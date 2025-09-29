@@ -35,8 +35,13 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
 
   async init() {
     assert(this.secret, 'Internal error: cant init Spark wallet, secret is not set.');
+
     const { wallet } = await this.adapter.initialize({
       mnemonicOrSeed: this.secret,
+      // >> "If no account number is provided, our JS-SDK defaults accountNumber to 1 to support
+      // >> backwards compatability for mainnet wallets created with earlier versions of the SDK."
+      // @see https://docs.spark.money/wallet/documentation/api-reference
+      accountNumber: this._accountNumber + 1, // see comment above, we need to add 1 because Spark basically starts counting at 1
       options: {
         network: 'MAINNET',
       },

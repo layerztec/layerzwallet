@@ -21,7 +21,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   private _arkServerUrl: string = 'https://mutinynet.arkade.sh';
   private _arkServerPublicKey: string = '03fa73c6e4876ffb2dfc961d763cca9abc73d4b88efcb8f5e7ff92dc55e9aa553d';
   private _boltzApiUrl: string = '';
-  private _accountNumber: number = 0;
+  protected _accountNumber: number = 0;
 
   setAccountNumber(value: number) {
     this._accountNumber = value;

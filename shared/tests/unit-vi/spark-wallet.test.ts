@@ -68,8 +68,8 @@ const transfers: WalletTransfer[] = [
   },
 ];
 
-describe('Spark Wallet - getCommonTransactions', () => {
-  it('should return transactions', async () => {
+describe('Spark Wallet', () => {
+  it('getCommonTransactions - should return transactions', async () => {
     const wallet = new SparkWallet();
 
     (wallet as any)._sdkWallet = {
@@ -130,5 +130,36 @@ describe('Spark Wallet - getCommonTransactions', () => {
     assert.strictEqual(calls.length, 2);
     assert.deepEqual(calls[0], [100, 0]);
     assert.deepEqual(calls[1], [100, 100]);
+  });
+
+  it('can get offchain receive address (no account set)', async () => {
+    const wallet = new SparkWallet();
+    wallet.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
+    await wallet.init();
+    const address = await wallet.getOffchainReceiveAddress();
+    assert.strictEqual(address, 'sp1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym094800574233rzd');
+  });
+
+  it('can get offchain receive address (account 0)', async () => {
+    const wallet = new SparkWallet();
+    wallet.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
+    wallet.setAccountNumber(0);
+    await wallet.init();
+    const address = await wallet.getOffchainReceiveAddress();
+    assert.strictEqual(address, 'sp1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym094800574233rzd');
+  });
+
+  it('can set account number', async () => {
+    const addressesHashmap: Record<string, number> = {};
+    for (let i = 0; i < 5; i++) {
+      const wallet = new SparkWallet();
+      wallet.setAccountNumber(i);
+      wallet.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
+      await wallet.init();
+
+      addressesHashmap[await wallet.getOffchainReceiveAddress()] = i;
+    }
+
+    assert.strictEqual(Object.keys(addressesHashmap).length, 5, 'addressesHashmap: ' + JSON.stringify(addressesHashmap));
   });
 });

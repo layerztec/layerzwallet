@@ -198,13 +198,13 @@ export default function VerifyRecoveryPhrase() {
   const handleContinue = useCallback(() => {
     if (verificationComplete) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      router.push('/onboarding/create-password');
+      router.push('/onboarding/tos');
     }
   }, [verificationComplete, router]);
 
   const handleSkip = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/onboarding/create-password');
+    router.push('/onboarding/tos');
   }, [router]);
 
   const renderWordItem = useCallback(

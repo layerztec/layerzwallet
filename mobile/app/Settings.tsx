@@ -21,10 +21,14 @@ import { useSettings } from '@shared/hooks/useSettings';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { STORAGE_KEY_BTC_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 
 const gitCommitHash = require('../git_commit_hash.json');
 
+type TSettingsKey = keyof typeof SETTINGS_CONFIG;
+
 export default function SettingsScreen() {
+  const { askMnemonic } = useContext(AskMnemonicContext);
   const router = useRouter();
   const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
   const { scanQr } = useContext(ScanQrContext);
@@ -42,6 +46,16 @@ export default function SettingsScreen() {
       setBtcXpub(xpub);
     })();
   }, [accountNumber]);
+
+  // loading if master seed is encrypted
+  useEffect(() => {
+    (async () => {
+      const encrypted = await BackgroundExecutor.hasEncryptedMnemonic();
+      await updateSetting('seedEncrypted', encrypted ? 'ON' : 'OFF');
+    })();
+    // it will go to endless loop if we include updateSetting
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleClearStorage = async () => {
     Alert.alert('Clear Storage', 'Are you sure you want to clear all app data? This action cannot be undone.', [
@@ -92,11 +106,7 @@ export default function SettingsScreen() {
     router.push('/SeedBackup');
   };
 
-  const handleNavigateToViewSubmnemonic = () => {
-    router.push('/ViewSubmnemonic');
-  };
-
-  const handleSettingChange = async (key: string, value: string) => {
+  const handleSettingChange = async (key: TSettingsKey, value: (typeof SETTINGS_CONFIG)[TSettingsKey]['options'][number]) => {
     try {
       // Special handling for biometric authentication
       if (key === 'biometricAuth') {
@@ -108,8 +118,31 @@ export default function SettingsScreen() {
         return;
       }
 
+      if (key === 'seedEncrypted') {
+        const hasEncryptedMnemonic = await BackgroundExecutor.hasEncryptedMnemonic();
+        if (value === 'ON') {
+          if (hasEncryptedMnemonic) {
+            // nop
+            return;
+          }
+          router.push('/onboarding/create-password');
+        } else {
+          if (!hasEncryptedMnemonic) {
+            // nop
+            return;
+          }
+          const mnemonic = await askMnemonic();
+          setTimeout(async () => {
+            // let it execute in the back, its heavy a operation
+            await BackgroundExecutor.saveMnemonic(mnemonic);
+          }, 100);
+          await updateSetting(key, value);
+        }
+        return;
+      }
+
       // Default handling for all other settings
-      await updateSetting(key as any, value);
+      await updateSetting(key, value);
     } catch (error) {
       console.error('Error updating setting:', error);
     }
@@ -140,10 +173,6 @@ export default function SettingsScreen() {
 
           <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={handleNavigateToSeedBackup}>
             <ThemedText style={styles.primaryButtonText}>Backup Seed Phrase</ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={handleNavigateToViewSubmnemonic}>
-            <ThemedText style={styles.primaryButtonText}>View derived seed</ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.button, styles.dangerButton, isClearing && styles.buttonDisabled]} onPress={handleClearStorage} disabled={isClearing}>
@@ -181,7 +210,7 @@ export default function SettingsScreen() {
           <ThemedText style={styles.sectionTitle} testID="AppSettingsTitle">
             App Settings
           </ThemedText>
-          {Object.keys(SETTINGS_CONFIG)
+          {(Object.keys(SETTINGS_CONFIG) as TSettingsKey[])
             .filter((key) => {
               // Filter out biometric setting if not available (unless in test mode)
               if (key === 'biometricAuth' && !biometricInfo.isAvailable && !isMaestroMode()) {
@@ -214,7 +243,7 @@ export default function SettingsScreen() {
                     {formatSettingName(key)}:
                   </ThemedText>
                   <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
-                    {config.options.map((option: string) => {
+                    {config.options.map((option) => {
                       return (
                         <TouchableOpacity
                           key={option}

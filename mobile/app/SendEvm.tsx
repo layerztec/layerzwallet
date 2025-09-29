@@ -10,7 +10,6 @@ import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
-import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { EvmWallet } from '@shared/class/evm-wallet';
@@ -44,7 +43,6 @@ export default function SendScreen() {
   const [bytes, setBytes] = useState('');
   const [fees, setFees] = useState<StringNumber>(); // min fees user will have to pay for the transaction
   const [maxFees, setMaxFees] = useState<StringNumber>(); // max fees user will have to pay for the transaction
-  const { askMnemonic } = useContext(AskMnemonicContext);
 
   // loading OUR address
   useEffect(() => {
@@ -201,7 +199,8 @@ export default function SendScreen() {
       console.log('calculatedFee=', calculatedMinFee);
       console.log('calculatedMaxFee=', calculatedMaxFee);
 
-      const mnemonic = await askMnemonic();
+      const mnemonic = await BackgroundExecutor.getMasterSeed();
+      assert(mnemonic, 'Internal error: master seed not loaded');
       const bytes = await e.signTransaction(prepared, mnemonic, accountNumber);
       setBytes(bytes);
       setScreenState('prepared');

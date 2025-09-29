@@ -38,26 +38,10 @@ appId: com.layerzwallet.mobile
 # Now proceed to the enter password screen
 - repeat:
     while:
-      notVisible:
-        id: 'EnterPasswordInput'
+      notVisible: 'Wallet created\nsuccessfully'
     commands:
       - tapOn: 'Continue'
       - waitForAnimationToEnd
-
-# Create password
-- tapOn:
-    id: 'EnterPasswordInput'
-- inputText:
-    text: '123456' # Password
-- tapOn:
-    id: 'RepeatPasswordInput'
-- inputText:
-    text: '123456' # Confirm password
-- tapOn:
-    point: 10%,10% # to remove focus from the keyboard
-- tapOn:
-    id: 'CreatePasswordButton'
-- waitForAnimationToEnd
 
 # Accept terms of service
 - extendedWaitUntil:

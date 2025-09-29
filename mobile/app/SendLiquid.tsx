@@ -8,7 +8,6 @@ import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
-import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { BreezWallet, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
@@ -33,7 +32,6 @@ const SendLiquid = () => {
   const network = (params.network ?? networkFromContext) as typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET;
   const { accountNumber } = useContext(AccountNumberContext);
   const { scanQr } = useContext(ScanQrContext);
-  const { askMnemonic } = useContext(AskMnemonicContext);
 
   const address = params.toAddress ?? '';
   const amount = params.amount ?? '';
@@ -175,7 +173,6 @@ const SendLiquid = () => {
     setError('');
 
     try {
-      await askMnemonic(); // verify password
       const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(wallet instanceof BreezWallet);
       await wallet.sendPayment({ prepareResponse: prepareResult });

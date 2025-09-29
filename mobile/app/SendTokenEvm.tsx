@@ -9,7 +9,6 @@ import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import Slider from '@react-native-community/slider';
 
-import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { EvmWallet } from '@shared/class/evm-wallet';
@@ -53,7 +52,6 @@ const SendTokenEvm: React.FC = () => {
   const [screenState, setScreenState] = useState<'init' | 'preparing' | 'prepared'>('init');
   const [fees, setFees] = useState<StringNumber>(); // min fees user will have to pay for the transaction
   const [maxFees, setMaxFees] = useState<StringNumber>(); // max fees user will have to pay for the transaction
-  const { askMnemonic } = useContext(AskMnemonicContext);
   const [feeMultiplier, setFeeMultiplier] = useState<number>(1);
 
   const formatBalanceNativeCoin = (balance: StringNumber, network: Networks): string => {
@@ -157,7 +155,8 @@ const SendTokenEvm: React.FC = () => {
       console.log('calculatedFee=', calculatedMinFee);
       console.log('calculatedMaxFee=', calculatedMaxFee);
 
-      const mnemonic = await askMnemonic();
+      const mnemonic = await BackgroundExecutor.getMasterSeed();
+      assert(mnemonic, 'Internal error: master seed not loaded');
       const bytes = await e.signTransaction(prepared, mnemonic, accountNumber);
       setBytes(bytes);
       setScreenState('prepared');

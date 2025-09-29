@@ -161,8 +161,8 @@ test('open popup and perform a personal sign', async ({ page, extensionId }) => 
   await sleep(3000); // allow page to actually open
 
   await getPopupPage(page).getByRole('button', { name: 'Allow' }).click(); // allow signature
-  await getPopupPage(page).getByTestId('password-provider-input').fill('qwerty');
-  await getPopupPage(page).getByText(/OK/).click();
+  await getPopupPage(page).getByTestId('password-provider-input2').fill('qwerty');
+  await getPopupPage(page).getByText('Unlock', { exact: true }).click();
   await sleep(9000); // allow it to make a signature and post message back to Dapp
 
   const spanLocator = page.locator('span[id="personalSignResult"]');

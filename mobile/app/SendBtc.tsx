@@ -10,7 +10,6 @@ import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
-import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
@@ -19,7 +18,7 @@ import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wal
 import { CreateTransactionTarget, CreateTransactionUtxo } from '@shared/class/wallets/types';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_ARK, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
@@ -51,7 +50,6 @@ const SendBtc: React.FC = () => {
   const [actualFee, setActualFee] = useState<number>();
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { askMnemonic } = useContext(AskMnemonicContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const [showFeeModal, setShowFeeModal] = useState(false);
   const wallet = useRef(new HDSegwitBech32Wallet());
@@ -168,7 +166,8 @@ const SendBtc: React.FC = () => {
         throw new Error('recipient address is not valid');
       }
 
-      const mnemonic = await askMnemonic();
+      const mnemonic = await BackgroundExecutor.getMasterSeed();
+      assert(mnemonic, 'Internal error: master seed not loaded');
       w.setSecret(mnemonic);
       w.setDerivationPath(`m/84'/0'/${accountNumber}'`);
 

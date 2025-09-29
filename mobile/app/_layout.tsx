@@ -90,7 +90,7 @@ export default function RootLayout() {
       <ScanQrContextProvider>
         <AskPasswordContextProvider>
           <AskMnemonicContextProvider>
-            <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor}>
+            <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} platform={'MOBILE'}>
               <SettingsContextProvider storage={LayerzStorage}>
                 <AuthStateContextProvider>
                   <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>

@@ -33,6 +33,7 @@ export default function OnboardingImport() {
       setError('Invalid mnemonic seed');
       return;
     } else {
+      await BackgroundCaller.setMasterSeed(value);
       setStep(EStep.PASSWORD);
     }
   };

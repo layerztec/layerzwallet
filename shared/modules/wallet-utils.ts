@@ -1,14 +1,16 @@
-import { BIP85 } from 'bip85';
 import assert from 'assert';
 
 import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
 import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
 import { SparkWallet } from '../class/wallets/spark-wallet';
-import { IStorage, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_BTC_XPUB, getSerializedStorageKey } from '../types/IStorage';
+import { IStorage, STORAGE_KEY_BTC_XPUB, getSerializedStorageKey } from '../types/IStorage';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 import { WalletSerializer } from './wallet-serializer';
 import { BreezWallet, getBreezNetwork } from '../class/wallets/breez-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
+
+// cache of master seed after it was decrypted from the storage (with user's password).
+let masterSeed: string = '';
 
 // Cache of wallets by network and account number
 const cachedWallets: Record<TSupportedLazyInitWalletNetworks, Record<number, TLazyInitedWallets>> = {
@@ -23,6 +25,20 @@ const cachedWallets: Record<TSupportedLazyInitWalletNetworks, Record<number, TLa
 const locks: Record<string, boolean> = {};
 
 /**
+ * Set the master seed after it was decrypted from the storage (with user's password).
+ */
+export function setMasterSeed(seed: string) {
+  masterSeed = seed;
+}
+
+/**
+ * Get the cached master seed
+ */
+export function getMasterSeed() {
+  return masterSeed;
+}
+
+/**
  * Save Bitcoin XPUBs for accounts 0-5 to storage.
  * @param storage Storage instance (LayerzStorage or compatible)
  * @param mnemonic The mnemonic to derive XPUBs from
@@ -34,20 +50,6 @@ export async function saveBitcoinXpubs(storage: IStorage, mnemonic: string) {
     btcWallet.setDerivationPath(`m/84'/0'/${accountNum}'`); // BIP84
     const btcXpub = btcWallet.getXpub();
     await storage.setItem(STORAGE_KEY_BTC_XPUB + accountNum, btcXpub);
-  }
-}
-
-/**
- * Generate and save sub mnemonics using bip85 for accounts 0-5 to storage.
- * @param storage Storage instance (LayerzStorage or compatible)
- * @param mnemonic The mnemonic to derive sub mnemonics from
- */
-export async function saveSubMnemonics(storage: IStorage, mnemonic: string) {
-  const masterSeed = BIP85.fromMnemonic(mnemonic);
-  for (let accountNum = 0; accountNum <= 5; accountNum++) {
-    const child = masterSeed.deriveBIP39(0, 12, accountNum); // 0 is English, 12 is 12 words
-    const newMnemonic = child.toMnemonic();
-    await storage.setItem(STORAGE_KEY_SUB_MNEMONIC + accountNum, newMnemonic);
   }
 }
 
@@ -83,6 +85,15 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
   if (![NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ARK_MUTINYNET, NETWORK_ARK].includes(network)) {
     throw new Error(`Unsupported network for lazyInitWallet: ${network}`);
   }
+
+  if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
+    // breez sdk doesnt support account numbers, so we hardcode it to 0 so all liquid wallets
+    // across accounts are the same
+    // @see https://github.com/breez/breez-sdk-liquid/issues/1021
+    // FIXME: remove once breez implements it ^^^
+    accountNumber = 0;
+  }
+
   // cache hit
   if (cachedWallets[network]?.[accountNumber]) {
     return cachedWallets[network][accountNumber];
@@ -115,9 +126,10 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
   try {
     if (network === NETWORK_SPARK) {
       // we dont save it to storage
+      assert(masterSeed, 'Master seed is not available');
       const sw = new SparkWallet();
-      const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
-      sw.setSecret(submnemonic);
+      sw.setSecret(masterSeed);
+      sw.setAccountNumber(accountNumber);
       await sw.init();
       cachedWallets[network][accountNumber] = sw;
       return sw;
@@ -125,9 +137,11 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
 
     if (network === NETWORK_ARK_MUTINYNET) {
       assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Ark env vars not set');
+      assert(masterSeed, 'Master seed is not available');
       const aw = new ArkWallet();
-      const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
-      aw.setSecret(submnemonic);
+      aw.setSecret(masterSeed);
+      aw.setAccountNumber(accountNumber);
+
       // FIXME: temporarily while mutinynet arkd is down we make this wallet work with mainnet:
       aw.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
       aw.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
@@ -139,9 +153,10 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     }
 
     if (network === NETWORK_ARK) {
+      assert(masterSeed, 'Master seed is not available');
       const aw = new ArkWallet();
-      const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
-      aw.setSecret(submnemonic);
+      aw.setSecret(masterSeed);
+      aw.setAccountNumber(accountNumber);
       assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Ark env vars not set');
       // fixme: can be moved from env vars to hardcode once Ark mainnet goes public
       aw.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
@@ -155,10 +170,11 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
 
     if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
       // we dont save it to storage
-      const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
+      assert(masterSeed, 'Master seed is not available');
       const bNetwork = getBreezNetwork(network);
 
-      const bw = new BreezWallet(submnemonic, bNetwork);
+      const bw = new BreezWallet(masterSeed, bNetwork);
+      // FIXME: account number!!!!!!!!!!!!!!
       cachedWallets[network][accountNumber] = bw;
       return bw;
     }
@@ -213,9 +229,6 @@ export const sanitizeAndValidateMnemonic = (mnemonic: string): string => {
   if (words.length < 12 || words.length > 24) {
     throw new Error('Invalid mnemonic length. It should be 12 to 24 words.');
   }
-
-  // Check if we can import it
-  BIP85.fromMnemonic(sanitizedMnemonic);
 
   return sanitizedMnemonic;
 };

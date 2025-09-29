@@ -54,7 +54,6 @@
     "bip21": "3.0.0",
     "bip32": "4.0.0",
     "bip39": "3.1.0",
-    "bip85": "0.0.3",
     "bitcoinjs-lib": "^6.1.7",
     "bitcoinjs-message": "^2.2.0",
     "bolt11": "^1.4.1",
@@ -83,6 +82,7 @@
     "expo-local-authentication": "~17.0.7",
     "expo-navigation-bar": "~5.0.8",
     "expo-router": "~6.0.4",
+    "expo-screen-capture": "~8.0.8",
     "expo-secure-store": "~15.0.7",
     "expo-splash-screen": "~31.0.10",
     "expo-status-bar": "~3.0.8",
@@ -110,8 +110,7 @@
     "swr": "2.3.6",
     "timers-browserify": "^2.0.12",
     "uint8array-extras": "^1.4.0",
-    "url": "^0.11.4",
-    "expo-screen-capture": "~8.0.8"
+    "url": "^0.11.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

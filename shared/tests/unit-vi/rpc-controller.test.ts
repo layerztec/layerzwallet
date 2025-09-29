@@ -42,6 +42,8 @@ const storageMock: IStorage = {
 };
 
 const backgroundCallerMock2: IBackgroundCaller = {
+  setMasterSeed: () => Promise.resolve(),
+  getMasterSeed: () => Promise.resolve(''),
   lazyInitWallet: () => Promise.reject(),
   lazyInitWalletReady: () => false,
   log: () => Promise.resolve(),
@@ -74,16 +76,7 @@ const backgroundCallerMock2: IBackgroundCaller = {
   unwhitelistDapp() {
     throw new Error('Function not implemented.');
   },
-  signPersonalMessage() {
-    throw new Error('Function not implemented.');
-  },
-  signTypedData() {
-    throw new Error('Function not implemented.');
-  },
   getBtcSendData() {
-    throw new Error('Function not implemented.');
-  },
-  getSubMnemonic() {
     throw new Error('Function not implemented.');
   },
   getCommonTransactions() {
