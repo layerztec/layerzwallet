@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { View, StyleSheet, Animated, FlatList, TouchableOpacity, ViewStyle, TextStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { usePreventScreenCapture } from 'expo-screen-capture';
 import { ThemedText } from '@/components/ThemedText';
 import { Typography } from '@/constants/Typography';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
@@ -37,6 +37,8 @@ export default function CreateWalletScreen() {
   const [error, setError] = useState<string>('');
   const [shouldAnimateButtons, setShouldAnimateButtons] = useState<boolean>(false);
   const verifyButtonAnimation = useSequentialSpringAnimation(shouldAnimateButtons ? 300 : 0);
+
+  usePreventScreenCapture();
 
   useEffect(() => {
     if (!isLoading && !error && recoveryPhrase) {
