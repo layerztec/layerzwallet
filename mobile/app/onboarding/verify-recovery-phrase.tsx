@@ -10,6 +10,7 @@ import { Colors, gradients } from '@shared/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { usePreventScreenCapture } from 'expo-screen-capture';
 
 // Constants
 const TOTAL_WORDS = 12;
@@ -90,6 +91,8 @@ export default function VerifyRecoveryPhrase() {
   const [verificationComplete, setVerificationComplete] = useState<boolean>(false);
   const verifyButtonAnimation = useSequentialSpringAnimation(shouldAnimateButtons ? BUTTON_ANIMATION_DELAY_MS : 0);
   const buttonOpacity = useRef(new Animated.Value(ENABLED_OPACITY)).current;
+
+  usePreventScreenCapture();
 
   const shuffleArray = useCallback(<T,>(array: T[]): T[] => {
     const shuffled = [...array];
