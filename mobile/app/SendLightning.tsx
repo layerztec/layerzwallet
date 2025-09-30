@@ -23,6 +23,7 @@ import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import Lnurl, { LnurlPayServicePayload } from '@shared/class/lnurl';
+import { convertMerchantQRToLightningAddress } from '@shared/modules/merchants';
 
 export type SendLightningProps = {
   network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK;
@@ -35,7 +36,6 @@ const SendLightning: React.FC = () => {
   const params = useLocalSearchParams<SendLightningProps>();
   const router = useRouter();
   const network = params.network;
-  const invoice = params.invoice ?? '';
   const { scanQr } = useContext(ScanQrContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
   const [error, setError] = useState<string>('');
@@ -43,6 +43,7 @@ const SendLightning: React.FC = () => {
   const [feeSats, setFeeSats] = useState<number | null>(null);
   const [amountToSend, setAmountToSend] = useState<string>('');
   const [memo, setMemo] = useState<string>('');
+  const [invoice, setInvoice] = useState<string>(params.invoice ?? '');
   const { accountNumber } = useContext(AccountNumberContext);
   const walletRef = useRef<TLightningWallet | null>(null);
 
@@ -54,44 +55,54 @@ const SendLightning: React.FC = () => {
 
   const onInvoiceInput = async (scanned: string) => {
     const scanned2use = scanned.trim().replace('lightning:', '').replace('LIGHTNING:', ''); // sanitize
-    router.setParams({ invoice: scanned2use });
+    setInvoice(scanned2use);
   };
 
   useEffect(() => {
     (async () => {
-      if (invoice) console.log('got invoice in useEffect params!', invoice);
-      if (!invoice) return;
+      let invoice2use = invoice;
+      if (invoice2use) console.log('got invoice in useEffect params!', invoice2use);
+      if (!invoice2use) return;
 
       try {
         setError('');
-        if (Lnurl.isLightningAddress(invoice)) {
+
+        const merchantLightningAddress = convertMerchantQRToLightningAddress({ qrContent: invoice2use, network: 'mainnet' });
+        if (merchantLightningAddress) {
+          invoice2use = merchantLightningAddress;
+        }
+
+        if (Lnurl.isLightningAddress(invoice2use)) {
           try {
             // need to fetch details, like minimum and maximum sat payment
-            const ln = new Lnurl(invoice);
+            const ln = new Lnurl(invoice2use);
             const response = await ln.callLnurlPayService();
             if (response) {
               setLnurl(ln);
-              setLnurlPayServicePayload((prev) => ({ ...prev, [invoice]: response }));
+              setLnurlPayServicePayload((prev) => ({ ...prev, [invoice]: response, [invoice2use]: response }));
               if (response.min && response.min === response.max) {
                 setLnAddressAmountToSend(String(response.min));
               }
               return;
             }
-          } catch {}
+          } catch (error: any) {
+            console.log('Lightning Address fetch error:', error.message);
+            setError('Lightning Address fetch error: ' + error.message);
+          }
           return;
         }
 
         try {
-          const bip21decoded = bip21.decode(invoice);
+          const bip21decoded = bip21.decode(invoice2use);
           // @ts-ignore `lightning` is not part of bip21 spec, but a valid extension of bip21 thats widely used
           if (bip21decoded?.options?.lightning) {
             // @ts-ignore
-            router.setParams({ invoice: bip21decoded?.options?.lightning });
+            setInvoice(bip21decoded?.options?.lightning);
             return; // useEffect will re-run with the correct parsed invoice
           }
         } catch {}
 
-        const decoded = bolt11.decode(invoice);
+        const decoded = bolt11.decode(invoice2use);
         setAmountToSend(decoded.satoshis ? String(decoded.satoshis) : '');
 
         if (!decoded.satoshis) {
@@ -110,7 +121,7 @@ const SendLightning: React.FC = () => {
         setError(error.message);
       }
     })();
-  }, [invoice, router]);
+  }, [invoice, params.invoice, router]);
 
   const handleQRScan = async () => {
     const scanned = await scanQr();
@@ -165,6 +176,7 @@ const SendLightning: React.FC = () => {
 
       if (bolt11payload && bolt11payload.pr) {
         setSendState('prepared');
+        setLnurlPayServicePayload((prev) => ({ ...prev, [bolt11payload.pr]: prev[invoice] }));
         await onInvoiceInput(bolt11payload.pr);
       } else {
         throw new Error('Fetching invoice from LNURL service failed');
@@ -231,7 +243,7 @@ const SendLightning: React.FC = () => {
   };
 
   const handleCancel = () => {
-    router.setParams({ invoice: '' });
+    setInvoice('');
     setError('');
     setLnurl(undefined);
     setLnurlPayServicePayload({});
@@ -303,9 +315,7 @@ const SendLightning: React.FC = () => {
 
                 {lnurlPayServicePayload[invoice]?.min && lnurlPayServicePayload[invoice]?.max && (
                   <>
-                    {lnurlPayServicePayload[invoice]?.description ? (
-                      <ThemedText style={[styles.detailValue, { marginBottom: 10 }]}>Description: {lnurlPayServicePayload[invoice]?.description}</ThemedText>
-                    ) : null}
+                    {lnurlPayServicePayload[invoice]?.description ? <ThemedText style={[styles.detailValue, { marginBottom: 10 }]}>{lnurlPayServicePayload[invoice]?.description}</ThemedText> : null}
                     <TextInput
                       placeholderTextColor="rgba(255, 255, 255, 0.6)"
                       style={styles.invoiceInput}
