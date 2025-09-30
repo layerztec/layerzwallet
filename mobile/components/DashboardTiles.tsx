@@ -450,10 +450,4 @@ const styles = StyleSheet.create({
     width: 120,
     height: 60,
   },
-  selectedNetworkIndicator: {
-    position: 'absolute',
-    top: 140,
-    right: 20,
-    padding: 10,
-  },
 });

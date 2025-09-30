@@ -1,4 +1,5 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import PlatformBlurView from '@/components/PlatformBlurView';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -415,7 +416,7 @@ export default function Home() {
         {/* Draggable Header */}
         <PanGestureHandler onGestureEvent={onPanGestureEvent} onHandlerStateChange={onPanHandlerStateChange} activeOffsetY={[-10, 10]} failOffsetX={[-50, 50]}>
           <Animated.View style={styles.draggableHeader}>
-            <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} accountBalance={accountBalance ? Number(accountBalance) : 0} />
+            <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} />
           </Animated.View>
         </PanGestureHandler>
 
@@ -434,58 +435,37 @@ export default function Home() {
               </TouchableOpacity>
             </View>
 
-          {/* Explorer Button for EVM networks */}
-          {isEVM && <Button title="🔍 Explore" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
+            {/* Explorer Button for EVM networks */}
+            {isEVM && <Button title="🔍 Explore" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
 
-          {/* Swap List Section */}
-          <SwapList />
+            {/* Swap List Section */}
+            <SwapList />
 
-          {/* Tokens Section */}
-          <View style={styles.tokensSection}>{network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET ? <LiquidTokensView /> : <TokensView />}</View>
+            {/* Tokens Section */}
+            <View style={styles.tokensSection}>{network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET ? <LiquidTokensView /> : <TokensView />}</View>
 
-          {/* Transactions Section */}
-          <View style={styles.transactionsContainer}>
-            <ThemedText style={styles.transactionsTitle}>Latest Transactions</ThemedText>
+            {/* Transactions Section */}
+            <View style={styles.transactionsContainer}>
+              <ThemedText style={styles.transactionsTitle}>Latest Transactions</ThemedText>
 
-            {latestTransactions.length > 0 ? (
-              <View style={styles.transactionsList}>
-                {latestTransactions.map((transaction) => (
-                  <Transaction key={transaction.txid} network={network} transaction={transaction} onPress={() => handleTransactionDetails(transaction)} />
-                ))}
-              </View>
-            ) : transactionsError ? (
-              <View style={styles.transactionsList}>
-                <ThemedText style={styles.transactionDate}>Error loading transactions</ThemedText>
-              </View>
-            ) : (
-              <View style={styles.transactionsList}>
-                <ThemedText style={styles.transactionDate}>No transactions yet</ThemedText>
-              </View>
-            )}
+              {latestTransactions.length > 0 ? (
+                <View style={styles.transactionsList}>
+                  {latestTransactions.map((transaction) => (
+                    <Transaction key={transaction.txid} network={network} transaction={transaction} onPress={() => handleTransactionDetails(transaction)} />
+                  ))}
+                </View>
+              ) : transactionsError ? (
+                <View style={styles.transactionsList}>
+                  <ThemedText style={styles.transactionDate}>Error loading transactions</ThemedText>
+                </View>
+              ) : (
+                <View style={styles.transactionsList}>
+                  <ThemedText style={styles.transactionDate}>No transactions yet</ThemedText>
+                </View>
+              )}
 
-            <Button title="Transaction History" onPress={handleTransactionHistory} variant="dark" />
-          </View>
-
-                {canBuyWithFiat && (
-                  <TouchableOpacity style={styles.buyButton} onPress={handleBuyClick} activeOpacity={0.8}>
-                    <ThemedText style={styles.buyButtonText}>Buy Bitcoin</ThemedText>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNavigation}>
-        <View style={styles.navContainer}>
-          <PlatformBlurView intensity={20} tint="dark" style={styles.navBlur} />
-
-        {swapPairs.length > 0 && (
-          <View style={styles.swapButton}>
-            <PlatformBlurView intensity={40} tint="light" style={styles.navBlur} />
-            <TouchableOpacity style={styles.swapButtonInner} onPress={handleSwap} activeOpacity={0.8} testID="SwapButton">
-              <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
-              <ThemedText style={styles.navButtonText}>Swap</ThemedText>
-            </TouchableOpacity>
+              <Button title="Transaction History" onPress={handleTransactionHistory} variant="dark" />
+            </View>
           </View>
         </GradientScreen>
 
