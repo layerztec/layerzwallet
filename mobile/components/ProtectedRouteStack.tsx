@@ -2,6 +2,7 @@ import React from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
+import { useBiometricModal } from '@/src/hooks/useBiometricModal';
 import { isInMainApp } from '@/src/utils/navigationUtils';
 
 const DefaultNavigatorOptions: NativeStackNavigationOptions = {
@@ -19,11 +20,13 @@ export function ProtectedRouteStack() {
   const { isAuthenticated, isInitialized, isBiometricEnabled } = useAuthState();
   const segments = useSegments();
 
+  useBiometricModal();
+
   // Determine if user has ever been to main app screens (indicates they've authenticated before)
-  const userIsInMainApp = isInMainApp(segments);
+  const userInMainApp = isInMainApp(segments);
 
   // User has completed initial auth if they're currently in main app or have been there before
-  const hasCompletedInitialAuth = userIsInMainApp;
+  const hasCompletedInitialAuth = userInMainApp;
 
   // Debug: Log the current auth state (only in development)
   if (__DEV__) {
@@ -32,7 +35,7 @@ export function ProtectedRouteStack() {
       isInitialized,
       isBiometricEnabled,
       segments,
-      isInMainApp: userIsInMainApp,
+      userInMainApp,
       hasCompletedInitialAuth,
       shouldShowBiometricLogin: isBiometricEnabled && isInitialized && !isAuthenticated && !hasCompletedInitialAuth,
       shouldShowMainApp: !isBiometricEnabled || isAuthenticated || hasCompletedInitialAuth,
@@ -115,22 +118,21 @@ export function ProtectedRouteStack() {
         />
       </Stack.Protected>
 
-      {/* Biometric authentication screen - shown for first-time authentication only */}
-      <Stack.Protected guard={shouldShowBiometricLogin}>
-        <Stack.Screen
-          name="BiometricLogin"
-          options={{
-            headerShown: false,
-            animation: 'none',
-          }}
-        />
-      </Stack.Protected>
-
       {/* Protected app screens - shown when app is initialized and either:
           1. User is authenticated, OR
           2. User has been authenticated at least once (subsequent modal auth), OR
-          3. Biometrics are disabled */}
-      <Stack.Protected guard={shouldShowMainApp}>
+          3. Biometrics are disabled, OR
+          4. User needs biometric authentication (first time or re-auth) */}
+      <Stack.Protected guard={shouldShowMainApp || shouldShowBiometricLogin}>
+        <Stack.Screen
+          name="BiometricLogin"
+          options={{
+            presentation: 'fullScreenModal',
+            headerShown: false,
+            gestureEnabled: false,
+            animation: 'none',
+          }}
+        />
         <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'fade' }} />
         <Stack.Screen name="Receive" />
         <Stack.Screen name="Settings" options={{ headerShown: false }} />
@@ -158,7 +160,6 @@ export function ProtectedRouteStack() {
             },
           }}
         />
-        <Stack.Screen name="SwapSparkDeposit" options={{ headerShown: false }} />
         <Stack.Screen
           name="SwapDetails"
           options={{

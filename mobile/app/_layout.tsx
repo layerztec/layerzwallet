@@ -25,7 +25,6 @@ import { InitializationContextProvider } from '@shared/hooks/InitializationConte
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
 import { ProtectedRouteStack } from '@/components/ProtectedRouteStack';
-import { BiometricModalHandler } from '@/app/BiometricLogin';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -98,7 +97,6 @@ export default function RootLayout() {
                     <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
                         <ProtectedRouteStack />
-                        <BiometricModalHandler />
                         <StatusBar style="light" />
                       </ThemeProvider>
                     </NetworkContextProvider>
