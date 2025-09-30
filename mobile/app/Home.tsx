@@ -556,7 +556,7 @@ export default function Home() {
         <View style={styles.bottomNavigationContainer}>
           <View style={styles.bottomNavigation}>
             <View style={styles.navContainer}>
-              <BlurView intensity={20} tint="dark" style={styles.navBlur} />
+              <PlatformBlurView intensity={20} tint="dark" style={styles.navBlur} />
 
               {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
                 <ActionPopupButton actions={getLightningSendActions()}>
@@ -589,7 +589,7 @@ export default function Home() {
 
             {swapPairs.length > 0 && (
               <View style={styles.swapButton}>
-                <BlurView intensity={40} tint="light" style={styles.navBlur} />
+                <PlatformBlurView intensity={40} tint="light" style={styles.navBlur} />
                 <TouchableOpacity style={styles.swapButtonInner} onPress={handleSwap} activeOpacity={0.8} testID="SwapButton">
                   <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
                   <ThemedText style={styles.navButtonText}>Swap</ThemedText>
