@@ -435,6 +435,86 @@ export default function Home() {
               </TouchableOpacity>
             </View>
 
+            {/* Testnet Warning */}
+            {getIsTestnet(network) && (
+              <View style={styles.testnetWarning}>
+                <ThemedText style={styles.testnetWarningText}>Warning: You are using a testnet, coins have no value</ThemedText>
+              </View>
+            )}
+
+            {/* Balance Section */}
+            {isLightningNetwork ? (
+              <View style={styles.lightningBalanceContainer}>
+                <View style={styles.lightningBalanceRow}>
+                  <ThemedText style={styles.lightningBalanceLabel}>Spark</ThemedText>
+                  <View style={styles.lightningBalanceValues}>
+                    <ThemedText style={styles.lightningBalanceAmount}>
+                      {network === NETWORK_LIGHTNING_TESTNET ? '0' : sparkBalance ? formatBalance(sparkBalance, Number(getDecimalsByNetwork(NETWORK_SPARK)), 8) : '0'}{' '}
+                      {getTickerByNetwork(NETWORK_SPARK)}
+                    </ThemedText>
+                    <ThemedText style={styles.lightningBalanceFiat}>
+                      {network === NETWORK_LIGHTNING_TESTNET
+                        ? '-'
+                        : sparkBalance && +sparkBalance > 0 && sparkExchangeRate
+                          ? '$' + formatFiatBalance(sparkBalance, Number(getDecimalsByNetwork(NETWORK_SPARK)), Number(sparkExchangeRate))
+                          : '-'}
+                    </ThemedText>
+                  </View>
+                </View>
+                <View style={styles.lightningBalanceRow}>
+                  <ThemedText style={styles.lightningBalanceLabel}>Ark</ThemedText>
+                  <View style={styles.lightningBalanceValues}>
+                    <ThemedText style={styles.lightningBalanceAmount}>
+                      {network === NETWORK_LIGHTNING_TESTNET ? '0' : arkBalance ? formatBalance(arkBalance, Number(getDecimalsByNetwork(NETWORK_ARK)), 8) : '0'} {getTickerByNetwork(NETWORK_ARK)}
+                    </ThemedText>
+                    <ThemedText style={styles.lightningBalanceFiat}>
+                      {network === NETWORK_LIGHTNING_TESTNET
+                        ? '-'
+                        : arkBalance && +arkBalance > 0 && arkExchangeRate
+                          ? '$' + formatFiatBalance(arkBalance, Number(getDecimalsByNetwork(NETWORK_ARK)), Number(arkExchangeRate))
+                          : '-'}
+                    </ThemedText>
+                  </View>
+                </View>
+                <View style={[styles.lightningBalanceRow, { borderBottomWidth: 0 }]}>
+                  <ThemedText style={styles.lightningBalanceLabel}>Liquid</ThemedText>
+                  <View style={styles.lightningBalanceValues}>
+                    <ThemedText style={styles.lightningBalanceAmount}>
+                      {liquidBalance ? formatBalance(liquidBalance, Number(getDecimalsByNetwork(NETWORK_LIQUID)), 8) : '0'} {getTickerByNetwork(NETWORK_LIQUID)}
+                    </ThemedText>
+                    <ThemedText style={styles.lightningBalanceFiat}>
+                      {liquidBalance && +liquidBalance > 0 && liquidExchangeRate
+                        ? '$' + formatFiatBalance(liquidBalance, Number(getDecimalsByNetwork(NETWORK_LIQUID)), Number(liquidExchangeRate))
+                        : '-'}
+                    </ThemedText>
+                  </View>
+                </View>
+                {canBuyWithFiat && (
+                  <View style={styles.lightningBuyButtonContainer}>
+                    <TouchableOpacity style={styles.lightningBuyButton} onPress={handleBuyClick} activeOpacity={0.8}>
+                      <Ionicons name="cart-outline" size={16} color="white" />
+                      <ThemedText style={styles.lightningBuyButtonText}>Buy</ThemedText>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View style={styles.balanceSection} testID="LayerBalance">
+                <View style={styles.balanceContainer}>
+                  <ThemedText style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
+                    {balance ? displayBalance : '???'}
+                  </ThemedText>
+                  <ThemedText style={styles.balanceUsd}>{displaySubBalance}</ThemedText>
+                </View>
+
+                {canBuyWithFiat && (
+                  <TouchableOpacity style={styles.buyButton} onPress={handleBuyClick} activeOpacity={0.8}>
+                    <ThemedText style={styles.buyButtonText}>Buy Bitcoin</ThemedText>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
             {/* Explorer Button for EVM networks */}
             {isEVM && <Button title="🔍 Explore" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
 
