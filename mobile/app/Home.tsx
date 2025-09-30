@@ -2,12 +2,14 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import PlatformBlurView from '@/components/PlatformBlurView';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useContext, useEffect, useState, useRef } from 'react';
-import { Alert, LayoutAnimation, StyleSheet, TouchableOpacity, View, Animated } from 'react-native';
+import React, { useContext, useEffect, useState, useRef, useMemo } from 'react';
+import { Alert, StyleSheet, TouchableOpacity, View, Animated, Dimensions } from 'react-native';
+import { PanGestureHandler, GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { OnrampProps } from '@/app/Onramp';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import Button from '@/components/Button';
+import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
 import GradientScreen from '@/components/GradientScreen';
 import LiquidTokensView from '@/components/LiquidTokensView';
 import { ThemedText } from '@/components/ThemedText';
@@ -21,20 +23,23 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { useAccountBalance } from '@shared/hooks/useAccountBalance';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
+import { useAccountBalance } from '@shared/hooks/useAccountBalance';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { useTransactions } from '@shared/hooks/useTransactions';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getDecimalsByNetwork, getExplorerUrlByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
+import { getNetworkGradient } from '@shared/constants/Colors';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SwapPlatform } from '@shared/types/swap';
 import { CommonTransaction } from '@shared/types/common-transaction';
 
-const logo = require('@/assets/images/ui/logo-main-screen.svg');
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const MODAL_MIN_HEIGHT = 120; // Height when dragged down (header + some content)
+const MODAL_MAX_HEIGHT = SCREEN_HEIGHT; // Full height modal
 
 export default function Home() {
   const { network } = useContext(NetworkContext);
@@ -64,6 +69,10 @@ export default function Home() {
 
   // Scroll animation for sticky header
   const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Modal state and animations
+  const [modalHeight, setModalHeight] = useState(MODAL_MAX_HEIGHT);
+  const modalTranslateY = useRef(new Animated.Value(0)).current;
 
   // Lightning network specific balance logic
   const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET;
@@ -97,6 +106,30 @@ export default function Home() {
 
   const latestTransactions = transactions?.slice(0, 3) || [];
 
+  // Network cards for the black background area
+  const networks = useAvailableNetworks();
+  const { setNetwork } = useContext(NetworkContext);
+
+  const networkCards: LayerCard[] = useMemo(() => {
+    return networks.map((networkItem) => {
+      const isTestnet = getIsTestnet(networkItem);
+      const gradientColors = getNetworkGradient(networkItem);
+      const networkIcon = getNetworkImageAsset(networkItem);
+
+      return {
+        networkId: networkItem,
+        name: capitalizeFirstLetter(networkItem),
+        ticker: getTickerByNetwork(networkItem),
+        balance: network === networkItem ? 'Selected' : 'Available',
+        usdValue: isTestnet ? 'Testnet' : 'Mainnet',
+        color: gradientColors[0],
+        icon: networkIcon,
+        tags: isTestnet ? ['Testnet'] : [],
+        tokenCount: 0,
+      };
+    });
+  }, [networks, network]);
+
   const handleSend = () => {
     switch (network) {
       case NETWORK_BITCOIN:
@@ -128,6 +161,42 @@ export default function Home() {
     router.push('/Swap');
   };
 
+  // Handle network card selection in black background area
+  const handleNetworkCardPress = (index: number) => {
+    if (index >= 0 && index < networks.length) {
+      const selectedNetwork = networks[index];
+
+      // Create white flash transition effect
+      const flashDuration = 150;
+
+      // Flash to white
+      Animated.timing(whiteFlashAnim, {
+        toValue: 1,
+        duration: flashDuration,
+        useNativeDriver: true, // Better performance for opacity
+      }).start(() => {
+        // Change network during white flash
+        setNetwork(selectedNetwork);
+
+        // Flash back to transparent
+        Animated.timing(whiteFlashAnim, {
+          toValue: 0,
+          duration: flashDuration,
+          useNativeDriver: true, // Better performance for opacity
+        }).start(() => {
+          // After flash animation completes, expand modal to full height
+          currentModalPosition.current = 0;
+          Animated.timing(modalTranslateY, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true, // Better performance for transform
+          }).start();
+          setModalHeight(MODAL_MAX_HEIGHT);
+        });
+      });
+    }
+  };
+
   const handleBuyClick = () => {
     BackgroundExecutor.getAddress(network, accountNumber).then((address) => {
       const params: OnrampProps = { address, network };
@@ -136,7 +205,15 @@ export default function Home() {
   };
 
   const handleNetworkSelect = () => {
-    router.push('/NetworkSelector');
+    // Minimize modal to show network tiles in black background area
+    const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
+    currentModalPosition.current = maxTranslate;
+    Animated.timing(modalTranslateY, {
+      toValue: maxTranslate,
+      duration: 300,
+      useNativeDriver: true, // Better performance for transform
+    }).start();
+    setModalHeight(MODAL_MIN_HEIGHT);
   };
 
   const goToSettings = () => {
@@ -257,104 +334,105 @@ export default function Home() {
     scrollY.setValue(event.nativeEvent.contentOffset.y);
   };
 
+  // Track current modal position
+  const currentModalPosition = useRef(0);
+
+  // Animation for white flash transition
+  const whiteFlashAnim = useRef(new Animated.Value(0)).current;
+
+  // Modal gesture handling with bounds
+  const onPanGestureEvent = (event: any) => {
+    const { translationY } = event.nativeEvent;
+    const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
+
+    // Calculate new position based on current position + translation
+    const newPosition = currentModalPosition.current + translationY;
+
+    // Constrain position between 0 and maxTranslate
+    let constrainedPosition = newPosition;
+    if (newPosition < 0) {
+      constrainedPosition = 0;
+    } else if (newPosition > maxTranslate) {
+      constrainedPosition = maxTranslate;
+    }
+
+    modalTranslateY.setValue(constrainedPosition);
+  };
+
+  const onPanHandlerStateChange = (event: any) => {
+    if (event.nativeEvent.state === 5) {
+      // END
+      const { translationY, velocityY } = event.nativeEvent;
+      const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
+
+      // Update current position
+      currentModalPosition.current = Math.max(0, Math.min(maxTranslate, currentModalPosition.current + translationY));
+
+      // Determine if we should snap to min or max based on velocity and position
+      const shouldSnapToMin = translationY > 100 || velocityY > 500;
+
+      if (shouldSnapToMin) {
+        // Snap to minimized state (translate down so only header is visible)
+        currentModalPosition.current = maxTranslate;
+        Animated.timing(modalTranslateY, {
+          toValue: maxTranslate,
+          duration: 300,
+          useNativeDriver: true, // Better performance for transform
+        }).start();
+        setModalHeight(MODAL_MIN_HEIGHT);
+      } else {
+        // Snap to expanded state (translate back to original position)
+        currentModalPosition.current = 0;
+        Animated.timing(modalTranslateY, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true, // Better performance for transform
+        }).start();
+        setModalHeight(MODAL_MAX_HEIGHT);
+      }
+    }
+  };
+
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Sticky Header */}
-      <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} />
+      {/* Black Background with Network Tiles */}
+      <View style={styles.blackBackground}>
+        <DashboardTiles cards={networkCards} onCardPress={handleNetworkCardPress} showTitle={false} showLogo={true} />
+      </View>
 
-      <GradientScreen variant={network} scroll={true} onScroll={handleScroll}>
-        <View style={[styles.root, styles.contentWithHeader]}>
-          {/* Network Selector */}
-          <View style={styles.networkSelectorContainer}>
-            <TouchableOpacity testID="NetworkSwitcherTrigger" style={styles.networkSelector} onPress={handleNetworkSelect} activeOpacity={0.8}>
-              <View testID={`selectedNetwork-${network}`} style={styles.networkIcon}>
-                {networkIconContent}
-              </View>
-              <ThemedText style={styles.networkName}>{capitalizeFirstLetter(network)}</ThemedText>
-              <TouchableOpacity onPress={handleNetworkSelect} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
-                <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
-            </TouchableOpacity>
-          </View>
+      {/* Modal Container */}
+      <Animated.View
+        style={[
+          styles.modalContainer,
+          {
+            height: MODAL_MAX_HEIGHT,
+            transform: [{ translateY: modalTranslateY }],
+          },
+        ]}
+      >
+        {/* Draggable Header */}
+        <PanGestureHandler onGestureEvent={onPanGestureEvent} onHandlerStateChange={onPanHandlerStateChange} activeOffsetY={[-10, 10]} failOffsetX={[-50, 50]}>
+          <Animated.View style={styles.draggableHeader}>
+            <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} accountBalance={accountBalance ? Number(accountBalance) : 0} />
+          </Animated.View>
+        </PanGestureHandler>
 
-          {/* Testnet Warning */}
-          {getIsTestnet(network) && (
-            <View style={styles.testnetWarning}>
-              <ThemedText style={styles.testnetWarningText}>Warning: You are using a testnet, coins have no value</ThemedText>
-            </View>
-          )}
-
-          {/* Balance Section */}
-          {isLightningNetwork ? (
-            <View style={styles.lightningBalanceContainer}>
-              <View style={styles.lightningBalanceRow}>
-                <ThemedText style={styles.lightningBalanceLabel}>Spark</ThemedText>
-                <View style={styles.lightningBalanceValues}>
-                  <ThemedText style={styles.lightningBalanceAmount}>
-                    {network === NETWORK_LIGHTNING_TESTNET ? '0' : sparkBalance ? formatBalance(sparkBalance, Number(getDecimalsByNetwork(NETWORK_SPARK)), 8) : '0'} {getTickerByNetwork(NETWORK_SPARK)}
-                  </ThemedText>
-                  <ThemedText style={styles.lightningBalanceFiat}>
-                    {network === NETWORK_LIGHTNING_TESTNET
-                      ? '-'
-                      : sparkBalance && +sparkBalance > 0 && sparkExchangeRate
-                        ? '$' + formatFiatBalance(sparkBalance, Number(getDecimalsByNetwork(NETWORK_SPARK)), Number(sparkExchangeRate))
-                        : '-'}
-                  </ThemedText>
+        <GradientScreen variant={network} scroll={true} onScroll={handleScroll}>
+          <View style={[styles.root, styles.contentWithHeader]}>
+            {/* Network Selector */}
+            <View style={styles.networkSelectorContainer}>
+              <TouchableOpacity testID="NetworkSwitcherTrigger" style={styles.networkSelector} onPress={handleNetworkSelect} activeOpacity={0.8}>
+                <View testID={`selectedNetwork-${network}`} style={styles.networkIcon}>
+                  {networkIconContent}
                 </View>
-              </View>
-              <View style={styles.lightningBalanceRow}>
-                <ThemedText style={styles.lightningBalanceLabel}>Ark</ThemedText>
-                <View style={styles.lightningBalanceValues}>
-                  <ThemedText style={styles.lightningBalanceAmount}>
-                    {network === NETWORK_LIGHTNING_TESTNET ? '0' : arkBalance ? formatBalance(arkBalance, Number(getDecimalsByNetwork(NETWORK_ARK)), 8) : '0'} {getTickerByNetwork(NETWORK_ARK)}
-                  </ThemedText>
-                  <ThemedText style={styles.lightningBalanceFiat}>
-                    {network === NETWORK_LIGHTNING_TESTNET
-                      ? '-'
-                      : arkBalance && +arkBalance > 0 && arkExchangeRate
-                        ? '$' + formatFiatBalance(arkBalance, Number(getDecimalsByNetwork(NETWORK_ARK)), Number(arkExchangeRate))
-                        : '-'}
-                  </ThemedText>
-                </View>
-              </View>
-              <View style={[styles.lightningBalanceRow, { borderBottomWidth: 0 }]}>
-                <ThemedText style={styles.lightningBalanceLabel}>Liquid</ThemedText>
-                <View style={styles.lightningBalanceValues}>
-                  <ThemedText style={styles.lightningBalanceAmount}>
-                    {liquidBalance ? formatBalance(liquidBalance, Number(getDecimalsByNetwork(NETWORK_LIQUID)), 8) : '0'} {getTickerByNetwork(NETWORK_LIQUID)}
-                  </ThemedText>
-                  <ThemedText style={styles.lightningBalanceFiat}>
-                    {liquidBalance && +liquidBalance > 0 && liquidExchangeRate ? '$' + formatFiatBalance(liquidBalance, Number(getDecimalsByNetwork(NETWORK_LIQUID)), Number(liquidExchangeRate)) : '-'}
-                  </ThemedText>
-                </View>
-              </View>
-              {canBuyWithFiat && (
-                <View style={styles.lightningBuyButtonContainer}>
-                  <TouchableOpacity style={styles.lightningBuyButton} onPress={handleBuyClick} activeOpacity={0.8}>
-                    <Ionicons name="cart-outline" size={16} color="white" />
-                    <ThemedText style={styles.lightningBuyButtonText}>Buy</ThemedText>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          ) : (
-            <View style={styles.balanceSection} testID="LayerBalance">
-              <View style={styles.balanceContainer}>
-                <ThemedText style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
-                  {balance ? displayBalance : '???'}
-                </ThemedText>
-                <ThemedText style={styles.balanceUsd}>{displaySubBalance}</ThemedText>
-              </View>
-
-              {canBuyWithFiat && (
-                <TouchableOpacity style={styles.buyButton} onPress={handleBuyClick} activeOpacity={0.8}>
-                  <ThemedText style={styles.buyButtonText}>Buy Bitcoin</ThemedText>
+                <ThemedText style={styles.networkName}>{capitalizeFirstLetter(network)}</ThemedText>
+                <TouchableOpacity onPress={handleNetworkSelect} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
+                  <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.8)" />
                 </TouchableOpacity>
-              )}
+              </TouchableOpacity>
             </View>
-          )}
 
           {/* Explorer Button for EVM networks */}
           {isEVM && <Button title="🔍 Explore" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
@@ -388,44 +466,18 @@ export default function Home() {
             <Button title="Transaction History" onPress={handleTransactionHistory} variant="dark" />
           </View>
 
-          {/* Bottom spacing for navigation */}
-          <View style={styles.bottomSpacer} />
-        </View>
-      </GradientScreen>
+                {canBuyWithFiat && (
+                  <TouchableOpacity style={styles.buyButton} onPress={handleBuyClick} activeOpacity={0.8}>
+                    <ThemedText style={styles.buyButtonText}>Buy Bitcoin</ThemedText>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
         <View style={styles.navContainer}>
           <PlatformBlurView intensity={20} tint="dark" style={styles.navBlur} />
-
-          {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
-            <ActionPopupButton actions={getLightningSendActions()}>
-              <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" activeOpacity={0.8}>
-                <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
-                <ThemedText style={styles.navButtonText}>Send</ThemedText>
-              </TouchableOpacity>
-            </ActionPopupButton>
-          ) : (
-            <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" onPress={handleSend} activeOpacity={0.8}>
-              <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
-              <ThemedText style={styles.navButtonText}>Send</ThemedText>
-            </TouchableOpacity>
-          )}
-
-          {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
-            <ActionPopupButton actions={getLightningReceiveActions()}>
-              <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
-                <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
-                <ThemedText style={styles.navButtonText}>Receive</ThemedText>
-              </TouchableOpacity>
-            </ActionPopupButton>
-          ) : (
-            <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" onPress={handleReceive} activeOpacity={0.8}>
-              <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
-              <ThemedText style={styles.navButtonText}>Receive</ThemedText>
-            </TouchableOpacity>
-          )}
-        </View>
 
         {swapPairs.length > 0 && (
           <View style={styles.swapButton}>
@@ -435,13 +487,103 @@ export default function Home() {
               <ThemedText style={styles.navButtonText}>Swap</ThemedText>
             </TouchableOpacity>
           </View>
-        )}
-      </View>
-    </>
+        </GradientScreen>
+
+        {/* White Flash Overlay for Network Transition */}
+        <Animated.View style={[styles.whiteFlashOverlay, { opacity: whiteFlashAnim }]} pointerEvents="none" />
+
+        {/* Bottom Navigation - Fixed to modal bottom */}
+        <View style={styles.bottomNavigationContainer}>
+          <View style={styles.bottomNavigation}>
+            <View style={styles.navContainer}>
+              <BlurView intensity={20} tint="dark" style={styles.navBlur} />
+
+              {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
+                <ActionPopupButton actions={getLightningSendActions()}>
+                  <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" activeOpacity={0.8}>
+                    <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
+                    <ThemedText style={styles.navButtonText}>Send</ThemedText>
+                  </TouchableOpacity>
+                </ActionPopupButton>
+              ) : (
+                <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" onPress={handleSend} activeOpacity={0.8}>
+                  <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
+                  <ThemedText style={styles.navButtonText}>Send</ThemedText>
+                </TouchableOpacity>
+              )}
+
+              {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
+                <ActionPopupButton actions={getLightningReceiveActions()}>
+                  <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
+                    <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
+                    <ThemedText style={styles.navButtonText}>Receive</ThemedText>
+                  </TouchableOpacity>
+                </ActionPopupButton>
+              ) : (
+                <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" onPress={handleReceive} activeOpacity={0.8}>
+                  <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
+                  <ThemedText style={styles.navButtonText}>Receive</ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {swapPairs.length > 0 && (
+              <View style={styles.swapButton}>
+                <BlurView intensity={40} tint="light" style={styles.navBlur} />
+                <TouchableOpacity style={styles.swapButtonInner} onPress={handleSwap} activeOpacity={0.8} testID="SwapButton">
+                  <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
+                  <ThemedText style={styles.navButtonText}>Swap</ThemedText>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </Animated.View>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  blackBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'black',
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  modalContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  whiteFlashOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'white',
+    zIndex: 1000,
+  },
+  draggableHeader: {
+    width: '100%',
+    zIndex: 10,
+  },
   root: {
     flex: 1,
     paddingHorizontal: 18,
@@ -572,14 +714,16 @@ const styles = StyleSheet.create({
   bottomSpacer: {
     height: 20,
   },
-  bottomNavigation: {
+  bottomNavigationContainer: {
     position: 'absolute',
-    bottom: 0,
-    left: 18,
-    right: 18,
+    bottom: 34, // Safe area padding
+    left: 0,
+    right: 0,
+  },
+  bottomNavigation: {
+    paddingHorizontal: 18,
     flexDirection: 'row',
     gap: 8,
-    paddingBottom: 34, // Safe area padding
   },
   navContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
