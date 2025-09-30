@@ -129,6 +129,7 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
                   <Text style={styles.iconPlaceholderText}>{displayCard.ticker.charAt(0)}</Text>
                 </View>
               )}
+              <Text style={styles.cardName}>{displayCard.name}</Text>
             </View>
             <View style={styles.tagsContainer}>
               {displayCard.tokenCount && displayCard.tokenCount > 0 ? (
@@ -149,10 +150,9 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
           </View>
 
           <View style={styles.bottomRow}>
-            <Text style={styles.cardName}>{displayCard.name}</Text>
             <View style={styles.cardBalanceContainer}>
               <Text style={styles.cardBalance}>
-                {displayCard.balance || '0'} {displayCard.ticker}
+                {displayCard.balance || '0'} <Text style={styles.cardTicker}>{displayCard.ticker}</Text>
               </Text>
               <Text style={styles.cardUsdValue}>{displayCard.usdValue || '0.00'}</Text>
             </View>
@@ -370,6 +370,7 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   cardIcon: {
     width: 44,
@@ -385,13 +386,13 @@ const styles = StyleSheet.create({
   },
   cardName: {
     color: 'white',
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
+    marginLeft: 12,
     flex: 1,
-    marginRight: 12,
   },
   cardBalanceContainer: {
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
     flex: 1,
     justifyContent: 'flex-end',
   },
@@ -399,13 +400,18 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
-    textAlign: 'right',
+    textAlign: 'left',
+  },
+  cardTicker: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 14,
+    fontWeight: '500',
   },
   cardUsdValue: {
     color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 16,
     marginTop: 4,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   tagsContainer: {
     flexDirection: 'row',
