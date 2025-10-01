@@ -1,7 +1,7 @@
 import { getGradientColors } from '@/utils/gradientUtils';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import React, { useRef, useState, useEffect, cloneElement, ReactElement, useContext } from 'react';
-import { View, TouchableOpacity, Text, Modal, StyleSheet, Dimensions, Animated, TouchableOpacityProps } from 'react-native';
+import React, { useState, cloneElement, ReactElement, useContext } from 'react';
+import { View, TouchableOpacity, Text, Modal, StyleSheet, Dimensions, TouchableOpacityProps } from 'react-native';
 
 interface Action {
   onClick: () => void;
@@ -21,10 +21,7 @@ const ACTIONS_PADDING = 16;
 
 export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, actions, title }) => {
   const [showPopup, setShowPopup] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const progressAnimation = useRef(new Animated.Value(0)).current;
   const { network } = useContext(NetworkContext);
   const backgroundColor = getGradientColors(network)[1];
 
@@ -40,57 +37,18 @@ export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, 
     const popupY = screenHeight - popupHeight - 50; // 50px from bottom for safe area
 
     setPopupPosition({ x: popupX, y: popupY });
-
     setShowPopup(true);
-    setProgress(0);
-    progressAnimation.setValue(0);
-
-    // Start progress for default button (first action)
-    intervalRef.current = setInterval(() => {
-      setProgress((prevProgress) => {
-        if (prevProgress < 100) {
-          const newProgress = prevProgress + (100 * 10) / 2000; // 2 sec
-          progressAnimation.setValue(newProgress);
-          return newProgress;
-        }
-        clearInterval(intervalRef.current!);
-        // Trigger default action when progress reaches 100%
-        setTimeout(() => actions[0]?.onClick(), 200); // propagate
-        setShowPopup(false);
-        return 100;
-      });
-    }, 10);
   };
 
   const handleActionPress = (action: () => void) => {
-    // Clear the progress interval
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
     // Trigger the clicked action
     action();
     setShowPopup(false);
-    setProgress(0);
-    progressAnimation.setValue(0);
   };
 
   const handleClose = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
     setShowPopup(false);
-    setProgress(0);
-    progressAnimation.setValue(0);
   };
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, []);
 
   const enhancedChild = cloneElement(children, {
     onPress: handlePressWithRef,
@@ -121,21 +79,7 @@ export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, 
                 </View>
               )}
               {actions.map((action, index) => (
-                <TouchableOpacity key={index} onPress={() => handleActionPress(action.onClick)} style={[styles.actionItem, index === 0 && styles.defaultActionItem]} activeOpacity={0.8}>
-                  {index === 0 && progress > 0 && (
-                    <Animated.View
-                      style={[
-                        styles.progressBar,
-                        {
-                          width: progressAnimation.interpolate({
-                            inputRange: [0, 100],
-                            outputRange: ['0%', '100%'],
-                          }),
-                        },
-                      ]}
-                    />
-                  )}
-
+                <TouchableOpacity key={index} onPress={() => handleActionPress(action.onClick)} style={styles.actionItem} activeOpacity={0.8}>
                   <View style={styles.actionContent}>{action.children}</View>
                 </TouchableOpacity>
               ))}
@@ -185,21 +129,11 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
-  defaultActionItem: {
-    // Additional styles for the default action if needed
-  },
   actionContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     height: ACTION_ITEM_HEIGHT,
     paddingHorizontal: 16,
-  },
-  progressBar: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
 });
