@@ -419,6 +419,9 @@ export default function Home() {
           </Animated.View>
         </PanGestureHandler>
 
+        {/* Invisible Settings Button for Maestro Testing */}
+        <TouchableOpacity style={styles.maestroSettingsButton} onPress={goToSettings} testID="SettingsButton" accessibilityLabel="Settings" />
+
         <GradientScreen variant={network} scroll={true} onScroll={handleScroll}>
           <View style={[styles.root, styles.contentWithHeader]}>
             {/* Network Selector */}
@@ -899,5 +902,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     marginLeft: 4,
+  },
+  maestroSettingsButton: {
+    position: 'absolute',
+    top: 60, // Position below the header
+    right: 16,
+    width: 40,
+    height: 40,
+    opacity: 0.01, // Nearly invisible but still detectable
+    zIndex: 9999,
   },
 });
