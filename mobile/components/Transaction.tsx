@@ -7,19 +7,17 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { Networks } from '@shared/types/networks';
 import { getTokenIconColor, getTokenInfo } from '@shared/models/token-list';
 
 interface TransactionProps {
   transaction: CommonTransaction;
-  network: Networks;
   onPress?: () => void;
 }
 
-export default function Transaction({ network, transaction, onPress }: TransactionProps) {
-  const ticker = getTickerByNetwork(network);
-  const decimals = getDecimalsByNetwork(network);
-  const { exchangeRate } = useExchangeRate(network, 'USD');
+export default function Transaction({ transaction, onPress }: TransactionProps) {
+  const { exchangeRate } = useExchangeRate(transaction.network, 'USD');
+  const decimals = getDecimalsByNetwork(transaction.network);
+  const ticker = getTickerByNetwork(transaction.network);
 
   // Helper function to format transaction amount
   const formatTransactionAmount = () => {

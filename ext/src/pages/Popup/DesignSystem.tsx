@@ -39,9 +39,10 @@ export const ActionPopupButton: React.FC<{
 
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
+      const y = actions.length * 20;
       setPopupPosition({
         x: rect.left,
-        y: rect.top - 150,
+        y: rect.top - 150 - y,
       });
     }
     setShowPopup(true);

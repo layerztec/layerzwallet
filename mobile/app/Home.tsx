@@ -1,40 +1,59 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import PlatformBlurView from '@/components/PlatformBlurView';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useContext, useEffect, useState, useRef } from 'react';
-import { Alert, LayoutAnimation, StyleSheet, TouchableOpacity, View, Animated } from 'react-native';
+import React, { useContext, useEffect, useRef } from 'react';
+import { Alert, Animated, StyleSheet, TouchableOpacity, View } from 'react-native';
 
+import { DappBrowserProps } from '@/app/DAppBrowser';
 import { OnrampProps } from '@/app/Onramp';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
+import Balance from '@/components/Balance';
 import Button from '@/components/Button';
 import GradientScreen from '@/components/GradientScreen';
-import LiquidTokensView from '@/components/LiquidTokensView';
+import PlatformBlurView from '@/components/PlatformBlurView';
+import StickyHeader from '@/components/StickyHeader';
+import SwapList from '@/components/SwapList';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
-import SwapList from '@/components/SwapList';
-import StickyHeader from '@/components/StickyHeader';
-import { DappBrowserProps } from '@/app/DAppBrowser';
-
 import Transaction from '@/components/Transaction';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
-import { AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { useAccountBalance } from '@shared/hooks/useAccountBalance';
-import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
-import { useBalance } from '@shared/hooks/useBalance';
-import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { useTransactions } from '@shared/hooks/useTransactions';
-import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
-import { getDecimalsByNetwork, getExplorerUrlByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
+import { getExplorerUrlByNetwork, getIsEVM, getIsTestnet } from '@shared/models/network-getters';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
-import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
-import { SwapPlatform } from '@shared/types/swap';
+import { USDT_TOKENS } from '@shared/models/token-list';
+import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
+import {
+  NETWORK_ARK,
+  NETWORK_ARK_MUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_LIGHTNING,
+  NETWORK_LIGHTNING_TESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_ROOTSTOCK,
+  NETWORK_SPARK,
+  NETWORK_USDT,
+  Networks,
+} from '@shared/types/networks';
+import { SwapPlatform } from '@shared/types/swap';
+import { ReceiveTokenProps } from './Receive';
+import { SendLiquidParams } from './SendLiquid';
+import { SendTokenEvmProps } from './SendTokenEvm';
 
-const logo = require('@/assets/images/ui/logo-main-screen.svg');
+const Action = ({ network, text }: { network?: Networks; text: string }) => {
+  const networkImage = network ? getNetworkImageAsset(network) : null;
+  const networkIconContent = networkImage ? <Image source={networkImage} style={styles.actionIconImage} contentFit="contain" /> : null;
+  return (
+    <View style={styles.action}>
+      {networkIconContent && <View style={styles.actionIcon}>{networkIconContent}</View>}
+      <ThemedText style={styles.actionText}>{text}</ThemedText>
+    </View>
+  );
+};
 
 export default function Home() {
   const { network } = useContext(NetworkContext);
@@ -46,6 +65,7 @@ export default function Home() {
     toNetwork?: string;
     amount?: string;
   }>();
+  const { transactions, error: transactionsError } = useTransactions(network, accountNumber, BackgroundExecutor);
 
   // URL parameter handling
   useEffect(() => {
@@ -54,46 +74,13 @@ export default function Home() {
     }
   }, [params.showSwapInterface, router]);
 
-  // Get balance data
-  const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
-  const { exchangeRate } = useExchangeRate(network, 'USD');
-  const availableNetworks = useAvailableNetworks();
-  const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
-  const { transactions, error: transactionsError } = useTransactions(network, accountNumber, BackgroundExecutor);
-  const accountItem = accountItems[accountNumber];
-
   // Scroll animation for sticky header
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // Lightning network specific balance logic
-  const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET;
-  const sparkNetwork = isLightningNetwork ? NETWORK_SPARK : network;
-  const arkNetwork = isLightningNetwork ? NETWORK_ARK : network;
-  const liquidNetwork = isLightningNetwork ? (network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID) : network;
-
-  // Get additional balances for Lightning networks
-  const { balance: sparkBalance } = useBalance(sparkNetwork, accountNumber, BackgroundExecutor);
-  const { balance: arkBalance } = useBalance(arkNetwork, accountNumber, BackgroundExecutor);
-  const { balance: liquidBalance } = useBalance(liquidNetwork, accountNumber, BackgroundExecutor);
-  const { exchangeRate: sparkExchangeRate } = useExchangeRate(sparkNetwork, 'USD');
-  const { exchangeRate: arkExchangeRate } = useExchangeRate(arkNetwork, 'USD');
-  const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, 'USD');
-
-  const ticker = getTickerByNetwork(network);
-  const decimals = getDecimalsByNetwork(network);
   const isEVM = getIsEVM(network);
   const networkImage = getNetworkImageAsset(network);
   const networkIconContent = networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null;
   const swapPairs = getSwapPairs(network, SwapPlatform.MOBILE);
-  const canBuyWithFiat = fiatOnRamp?.[network]?.canBuyWithFiat;
-
-  // Balance display logic
-  const formattedBalance = formatBalance(balance || '0', decimals);
-  const usdValue = exchangeRate ? formatFiatBalance(balance || '0', decimals, exchangeRate) : '0.00';
-
-  // Always show native token balance as main balance, USD as sub-balance
-  const displayBalance = `${formattedBalance} ${ticker}`;
-  const displaySubBalance = `${usdValue} USD`;
 
   const latestTransactions = transactions?.slice(0, 3) || [];
 
@@ -126,13 +113,6 @@ export default function Home() {
 
   const handleSwap = () => {
     router.push('/Swap');
-  };
-
-  const handleBuyClick = () => {
-    BackgroundExecutor.getAddress(network, accountNumber).then((address) => {
-      const params: OnrampProps = { address, network };
-      router.push({ pathname: '/Onramp', params });
-    });
   };
 
   const handleNetworkSelect = () => {
@@ -171,11 +151,8 @@ export default function Home() {
   };
 
   const handleReceiveOnLiquid = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_LIQUID_TESTNET } });
-    } else {
-      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_LIQUID } });
-    }
+    const n = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
+    router.push({ pathname: '/ReceiveLightning', params: { network: n } });
   };
 
   const handleReceiveOnArk = () => {
@@ -186,23 +163,11 @@ export default function Home() {
     }
   };
 
-  const getLightningReceiveActions = () => [
-    {
-      label: 'Receive on Spark',
-      onClick: handleReceiveOnSpark,
-    },
-    {
-      label: 'Receive on Liquid',
-      onClick: handleReceiveOnLiquid,
-    },
-    {
-      label: 'Receive on Ark',
-      onClick: handleReceiveOnArk,
-    },
-    {
-      label: 'Cancel',
-      onClick: () => {},
-    },
+  const lightningReceiveActions = [
+    { children: <Action network={NETWORK_SPARK} text="Receive on Spark" />, onClick: handleReceiveOnSpark },
+    { children: <Action network={NETWORK_LIQUID} text="Receive on Liquid" />, onClick: handleReceiveOnLiquid },
+    { children: <Action network={NETWORK_ARK} text="Receive on Ark" />, onClick: handleReceiveOnArk },
+    { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
   const handleSendViaSpark = () => {
@@ -222,34 +187,54 @@ export default function Home() {
   };
 
   const handleSendViaLiquid = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      router.push({ pathname: '/SendLightning', params: { network: NETWORK_LIQUID_TESTNET } });
-    } else {
-      router.push({ pathname: '/SendLightning', params: { network: NETWORK_LIQUID } });
-    }
+    const n = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
+    router.push({ pathname: '/SendLightning', params: { network: n } });
   };
 
   const handleTransactionDetails = (transaction: CommonTransaction) => {
     router.push({ pathname: '/TransactionDetails', params: { transaction: JSON.stringify(transaction) } });
   };
 
-  const getLightningSendActions = () => [
-    {
-      label: 'Send via Spark',
-      onClick: handleSendViaSpark,
-    },
-    {
-      label: 'Send via Liquid',
-      onClick: handleSendViaLiquid,
-    },
-    {
-      label: 'Send via Ark',
-      onClick: handleSendViaArk,
-    },
-    {
-      label: 'Cancel',
-      onClick: () => {},
-    },
+  const lightningSendActions = [
+    { children: <Action network={NETWORK_SPARK} text="Send via Spark" />, onClick: handleSendViaSpark },
+    { children: <Action network={NETWORK_LIQUID} text="Send via Liquid" />, onClick: handleSendViaLiquid },
+    { children: <Action network={NETWORK_ARK} text="Send via Ark" />, onClick: handleSendViaArk },
+    { children: <Action text="Cancel" />, onClick: () => {} },
+  ];
+
+  const handleSendUSDTViaRootstock = (contractAddress: string) => () => {
+    const params: SendTokenEvmProps = { contractAddress, network: NETWORK_ROOTSTOCK };
+    router.push({ pathname: '/SendTokenEvm', params });
+  };
+
+  const handleSendUSDTViaLiquid = () => {
+    const params: SendLiquidParams = { assetId: USDT_TOKENS[NETWORK_LIQUID][0], network: NETWORK_LIQUID };
+    router.push({ pathname: '/SendLiquid', params });
+  };
+
+  // USDT send and receive actions
+  const usdtSendActions = [
+    { children: <Action network={NETWORK_ROOTSTOCK} text="Send USDT via Rootstock" />, onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][0]) },
+    { children: <Action network={NETWORK_ROOTSTOCK} text="Send USDT0 via Rootstock" />, onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][1]) },
+    { children: <Action network={NETWORK_ROOTSTOCK} text="Send rUSDT via Rootstock" />, onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][2]) },
+    { children: <Action network={NETWORK_LIQUID} text="Send USDT via Liquid" />, onClick: handleSendUSDTViaLiquid },
+    { children: <Action text="Cancel" />, onClick: () => {} },
+  ];
+
+  const handleReceiveTokenViaRootstock = () => {
+    const params: ReceiveTokenProps = { network: NETWORK_ROOTSTOCK };
+    router.push({ pathname: '/Receive', params });
+  };
+
+  const handleReceiveTokenViaLiquid = () => {
+    const params: ReceiveTokenProps = { network: NETWORK_LIQUID };
+    router.push({ pathname: '/Receive', params });
+  };
+
+  const usdtReceiveActions = [
+    { children: <Action network={NETWORK_ROOTSTOCK} text="Receive via Rootstock" />, onClick: handleReceiveTokenViaRootstock },
+    { children: <Action network={NETWORK_LIQUID} text="Receive via Liquid" />, onClick: handleReceiveTokenViaLiquid },
+    { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
   // Handle scroll events for sticky header animation
@@ -287,74 +272,7 @@ export default function Home() {
           )}
 
           {/* Balance Section */}
-          {isLightningNetwork ? (
-            <View style={styles.lightningBalanceContainer}>
-              <View style={styles.lightningBalanceRow}>
-                <ThemedText style={styles.lightningBalanceLabel}>Spark</ThemedText>
-                <View style={styles.lightningBalanceValues}>
-                  <ThemedText style={styles.lightningBalanceAmount}>
-                    {network === NETWORK_LIGHTNING_TESTNET ? '0' : sparkBalance ? formatBalance(sparkBalance, Number(getDecimalsByNetwork(NETWORK_SPARK)), 8) : '0'} {getTickerByNetwork(NETWORK_SPARK)}
-                  </ThemedText>
-                  <ThemedText style={styles.lightningBalanceFiat}>
-                    {network === NETWORK_LIGHTNING_TESTNET
-                      ? '-'
-                      : sparkBalance && +sparkBalance > 0 && sparkExchangeRate
-                        ? '$' + formatFiatBalance(sparkBalance, Number(getDecimalsByNetwork(NETWORK_SPARK)), Number(sparkExchangeRate))
-                        : '-'}
-                  </ThemedText>
-                </View>
-              </View>
-              <View style={styles.lightningBalanceRow}>
-                <ThemedText style={styles.lightningBalanceLabel}>Ark</ThemedText>
-                <View style={styles.lightningBalanceValues}>
-                  <ThemedText style={styles.lightningBalanceAmount}>
-                    {network === NETWORK_LIGHTNING_TESTNET ? '0' : arkBalance ? formatBalance(arkBalance, Number(getDecimalsByNetwork(NETWORK_ARK)), 8) : '0'} {getTickerByNetwork(NETWORK_ARK)}
-                  </ThemedText>
-                  <ThemedText style={styles.lightningBalanceFiat}>
-                    {network === NETWORK_LIGHTNING_TESTNET
-                      ? '-'
-                      : arkBalance && +arkBalance > 0 && arkExchangeRate
-                        ? '$' + formatFiatBalance(arkBalance, Number(getDecimalsByNetwork(NETWORK_ARK)), Number(arkExchangeRate))
-                        : '-'}
-                  </ThemedText>
-                </View>
-              </View>
-              <View style={[styles.lightningBalanceRow, { borderBottomWidth: 0 }]}>
-                <ThemedText style={styles.lightningBalanceLabel}>Liquid</ThemedText>
-                <View style={styles.lightningBalanceValues}>
-                  <ThemedText style={styles.lightningBalanceAmount}>
-                    {liquidBalance ? formatBalance(liquidBalance, Number(getDecimalsByNetwork(NETWORK_LIQUID)), 8) : '0'} {getTickerByNetwork(NETWORK_LIQUID)}
-                  </ThemedText>
-                  <ThemedText style={styles.lightningBalanceFiat}>
-                    {liquidBalance && +liquidBalance > 0 && liquidExchangeRate ? '$' + formatFiatBalance(liquidBalance, Number(getDecimalsByNetwork(NETWORK_LIQUID)), Number(liquidExchangeRate)) : '-'}
-                  </ThemedText>
-                </View>
-              </View>
-              {canBuyWithFiat && (
-                <View style={styles.lightningBuyButtonContainer}>
-                  <TouchableOpacity style={styles.lightningBuyButton} onPress={handleBuyClick} activeOpacity={0.8}>
-                    <Ionicons name="cart-outline" size={16} color="white" />
-                    <ThemedText style={styles.lightningBuyButtonText}>Buy</ThemedText>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          ) : (
-            <View style={styles.balanceSection} testID="LayerBalance">
-              <View style={styles.balanceContainer}>
-                <ThemedText style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
-                  {balance ? displayBalance : '???'}
-                </ThemedText>
-                <ThemedText style={styles.balanceUsd}>{displaySubBalance}</ThemedText>
-              </View>
-
-              {canBuyWithFiat && (
-                <TouchableOpacity style={styles.buyButton} onPress={handleBuyClick} activeOpacity={0.8}>
-                  <ThemedText style={styles.buyButtonText}>Buy Bitcoin</ThemedText>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+          <Balance />
 
           {/* Explorer Button for EVM networks */}
           {isEVM && <Button title="🔍 Explore" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
@@ -363,7 +281,7 @@ export default function Home() {
           <SwapList />
 
           {/* Tokens Section */}
-          <View style={styles.tokensSection}>{network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET ? <LiquidTokensView /> : <TokensView />}</View>
+          <TokensView />
 
           {/* Transactions Section */}
           <View style={styles.transactionsContainer}>
@@ -372,7 +290,7 @@ export default function Home() {
             {latestTransactions.length > 0 ? (
               <View style={styles.transactionsList}>
                 {latestTransactions.map((transaction) => (
-                  <Transaction key={transaction.txid} network={network} transaction={transaction} onPress={() => handleTransactionDetails(transaction)} />
+                  <Transaction key={transaction.txid} transaction={transaction} onPress={() => handleTransactionDetails(transaction)} />
                 ))}
               </View>
             ) : transactionsError ? (
@@ -399,7 +317,14 @@ export default function Home() {
           <PlatformBlurView intensity={20} tint="dark" style={styles.navBlur} />
 
           {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
-            <ActionPopupButton actions={getLightningSendActions()}>
+            <ActionPopupButton actions={lightningSendActions} title="Layer to send">
+              <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" activeOpacity={0.8}>
+                <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
+                <ThemedText style={styles.navButtonText}>Send</ThemedText>
+              </TouchableOpacity>
+            </ActionPopupButton>
+          ) : network === NETWORK_USDT ? (
+            <ActionPopupButton actions={usdtSendActions} title="Layer to send">
               <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" activeOpacity={0.8}>
                 <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
                 <ThemedText style={styles.navButtonText}>Send</ThemedText>
@@ -413,7 +338,14 @@ export default function Home() {
           )}
 
           {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
-            <ActionPopupButton actions={getLightningReceiveActions()}>
+            <ActionPopupButton actions={lightningReceiveActions} title="Layer to receive">
+              <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
+                <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
+                <ThemedText style={styles.navButtonText}>Receive</ThemedText>
+              </TouchableOpacity>
+            </ActionPopupButton>
+          ) : network === NETWORK_USDT ? (
+            <ActionPopupButton actions={usdtReceiveActions} title="Layer to receive">
               <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
                 <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
                 <ThemedText style={styles.navButtonText}>Receive</ThemedText>
@@ -474,49 +406,15 @@ const styles = StyleSheet.create({
   networkName: {
     fontSize: 18,
     color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
-    marginHorizontal: 16,
+    fontWeight: '600',
+    marginHorizontal: 8,
   },
   networkImage: {
     width: 24,
     height: 24,
   },
-  balanceSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  balanceContainer: {
-    flex: 1,
-  },
-  balanceAmount: {
-    fontSize: 36,
-    lineHeight: 40, // Add proper line height for better text rendering
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginRight: 4,
-  },
-  balanceUsd: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
   explorerButton: {
     marginBottom: 20,
-  },
-  tokensSection: {
-    marginBottom: 20,
-  },
-  buyButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  buyButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.8)',
   },
   transactionsContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.15)',
@@ -527,7 +425,8 @@ const styles = StyleSheet.create({
   },
   transactionsTitle: {
     fontSize: 20,
-    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '500',
+    color: 'white',
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -643,58 +542,80 @@ const styles = StyleSheet.create({
     color: '#F59E0B',
     fontWeight: '500',
   },
-  lightningBalanceContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    marginBottom: 32,
-    padding: 16,
-  },
-  lightningBalanceRow: {
+  headerRight: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    gap: 12,
   },
-  lightningBalanceLabel: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 16,
+  lockScreenOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+  },
+  lockScreenBlur: {
     flex: 1,
-    fontWeight: '500',
-  },
-  lightningBalanceValues: {
-    alignItems: 'flex-end',
-    flex: 1,
-  },
-  lightningBalanceAmount: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 16,
-    textAlign: 'right',
-    fontWeight: '500',
-  },
-  lightningBalanceFiat: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 14,
-    textAlign: 'right',
-  },
-  lightningBuyButtonContainer: {
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  lightningBuyButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row',
-    paddingHorizontal: 16,
   },
-  lightningBuyButtonText: {
+  lockScreenContent: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  lockIconContainer: {
+    marginBottom: 20,
+    transform: [{ scale: 1 }],
+  },
+  lockScreenTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  lockScreenSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 22,
+  },
+  unlockButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  unlockButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 4,
+  },
+  action: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionText: {
+    fontSize: 16,
+    color: 'white',
+  },
+  actionIcon: {
+    width: 36,
+    height: 36,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionIconImage: {
+    width: 24,
+    height: 24,
+    color: 'white',
   },
 });

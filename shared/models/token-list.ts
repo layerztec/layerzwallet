@@ -1,4 +1,4 @@
-import { Networks } from '../types/networks';
+import { NETWORK_LIQUID, NETWORK_ROOTSTOCK, Networks } from '../types/networks';
 import { TokenInfo, EVMTokenInfo, LiquidTokenInfo } from '../types/token-info';
 import { getChainIdByNetwork } from './network-getters';
 import { hexToDec } from '../modules/string-utils';
@@ -46,7 +46,7 @@ export function getTokenList(network: Networks): TokenInfo[] {
 }
 
 export function getTokenInfo(id: string | undefined): TokenInfo {
-  const token = list.find((t) => t.id === id);
+  const token = list.find((t) => t.id.toLowerCase() === id?.toLowerCase());
   if (token) {
     return token;
   }
@@ -81,3 +81,14 @@ export const getTokenIconColor = (name?: string): string => {
   const key = name.toUpperCase();
   return colorMap[key] || '#8A92B2'; // Default gray
 };
+
+export const USDT_TOKENS = {
+  [NETWORK_ROOTSTOCK]: [
+    '0xAF368c91793cb22739386DFCBbB2f1A9E4bcBEBf', // USDT
+    '0x779dED0C9e1022225F8e0630b35A9B54Be713736', // USDT0
+    '0xEf213441a85DF4d7acBdAe0Cf78004E1e486BB96', // rUSDT
+  ],
+  [NETWORK_LIQUID]: [
+    'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2', // USDT
+  ],
+} as const;

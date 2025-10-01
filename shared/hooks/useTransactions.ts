@@ -7,7 +7,20 @@ import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { AllNetworkInfos } from '../models/all-network-infos';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import {
+  NETWORK_ARK,
+  NETWORK_ARK_MUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_LIGHTNING,
+  NETWORK_LIGHTNING_TESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_ROOTSTOCK,
+  NETWORK_SPARK,
+  NETWORK_USDT,
+  Networks,
+} from '../types/networks';
+import { USDT_TOKENS } from '@shared/models/token-list';
 
 interface txFetcherArg {
   cacheKey: string;
@@ -78,6 +91,27 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
       const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
       assert(wallet instanceof ArkWallet, 'Not an Ark wallet');
       return await wallet.getCommonTransactions();
+    }
+
+    if (network === NETWORK_USDT) {
+      // join Liquid and Rootstock, filter by token transactions
+      const liquidTxs = await backgroundCaller.getCommonTransactions(NETWORK_LIQUID, accountNumber);
+      const rootstockWallet = new EvmWallet();
+      rootstockWallet.address = await backgroundCaller.getAddress(network, accountNumber);
+      rootstockWallet.network = NETWORK_ROOTSTOCK;
+      rootstockWallet.etherScanApiUrl = AllNetworkInfos[NETWORK_ROOTSTOCK].etherScanApiUrl;
+      await rootstockWallet.fetchTransactions();
+      const rootstockTxs = rootstockWallet.getCommonTransactions();
+      const tsx = [...liquidTxs, ...rootstockTxs];
+      const USDT_IDS = Object.values(USDT_TOKENS)
+        .flatMap((network) => network)
+        .map((id) => id.toLowerCase());
+      return tsx
+        .filter((tx) => {
+          // show token transfers only
+          return tx.tokenTransfers?.some((token) => USDT_IDS.includes(token.tokenId.toLowerCase()));
+        })
+        .sort((a, b) => b.timestamp - a.timestamp);
     }
 
     return [];

@@ -1,11 +1,13 @@
 import useSWR from 'swr';
-import { NETWORK_BITCOIN, NETWORK_ROOTSTOCK, NETWORK_SPARK, Networks } from '../types/networks';
+import assert from 'assert';
+import { ethers } from 'ethers';
+
+import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { ethers } from 'ethers';
 import { getIsEVM, getRpcProvider } from '../models/network-getters';
 import { SparkWallet } from '../class/wallets/spark-wallet';
-import assert from 'assert';
+import { BreezWallet } from '../class/wallets/breez-wallet';
 
 interface tokenBalanceFetcherArg {
   cacheKey: string;
@@ -36,6 +38,16 @@ export const tokenBalanceFetcher = async (arg: tokenBalanceFetcherArg): Promise<
       for (const value of tokenBalances.values()) {
         if (value.tokenMetadata.tokenPublicKey === tokenContractAddress) {
           return String(value.balance);
+        }
+      }
+      return undefined;
+    } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
+      const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof BreezWallet, 'Not a Breez wallet');
+      const balances = await wallet.getAssetBalances();
+      for (const balance of balances) {
+        if (balance.assetId === tokenContractAddress) {
+          return String(balance.balanceSat);
         }
       }
       return undefined;

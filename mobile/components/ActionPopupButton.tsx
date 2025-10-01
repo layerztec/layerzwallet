@@ -1,39 +1,45 @@
-import React, { useRef, useState, useEffect, cloneElement, ReactElement } from 'react';
+import { getGradientColors } from '@/utils/gradientUtils';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
+import React, { useRef, useState, useEffect, cloneElement, ReactElement, useContext } from 'react';
 import { View, TouchableOpacity, Text, Modal, StyleSheet, Dimensions, Animated, TouchableOpacityProps } from 'react-native';
 
 interface Action {
-  label: string;
   onClick: () => void;
+  children: ReactElement;
 }
 
 interface ActionPopupButtonProps {
   children: ReactElement<TouchableOpacityProps>;
   actions: Action[];
+  title?: string;
 }
 
-export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, actions }) => {
+const ACTION_ITEM_HEIGHT = 68;
+const ACTION_ITEM_GAP = 22;
+const TITLE_HEIGHT = 32;
+const ACTIONS_PADDING = 16;
+
+export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, actions, title }) => {
   const [showPopup, setShowPopup] = useState(false);
   const [progress, setProgress] = useState(0);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressAnimation = useRef(new Animated.Value(0)).current;
+  const { network } = useContext(NetworkContext);
+  const backgroundColor = getGradientColors(network)[1];
 
-  // Clone the original component and inject onPress for multiple actions
-  const handlePressWithRef = (event: any) => {
-    // Get the target from the press event for positioning
-    const target = event.target || event.currentTarget;
-    if (target && target.measureInWindow) {
-      target.measureInWindow((x: number, y: number, width: number, height: number) => {
-        const screenWidth = Dimensions.get('window').width;
-        const popupWidth = 200; // Approximate popup width
+  // Handle press to show popup at bottom of screen
+  const handlePressWithRef = () => {
+    const screenWidth = Dimensions.get('window').width;
+    const screenHeight = Dimensions.get('window').height;
+    const popupWidth = Math.min(370, screenWidth - 32); // Max 370px or screen width minus margins
+    const popupHeight = actions.length * ACTION_ITEM_HEIGHT + (title ? TITLE_HEIGHT : 0) + (actions.length - 1 + (title ? 1 : 0)) * ACTION_ITEM_GAP + ACTIONS_PADDING * 2;
 
-        // Center the popup above the button
-        const popupX = Math.max(10, Math.min(x + width / 2 - popupWidth / 2, screenWidth - popupWidth - 10));
-        const popupY = y - 200; // Position above the button
+    // Center the popup horizontally at the bottom of the screen
+    const popupX = (screenWidth - popupWidth) / 2;
+    const popupY = screenHeight - popupHeight - 50; // 50px from bottom for safe area
 
-        setPopupPosition({ x: popupX, y: popupY });
-      });
-    }
+    setPopupPosition({ x: popupX, y: popupY });
 
     setShowPopup(true);
     setProgress(0);
@@ -103,27 +109,37 @@ export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, 
                 position: 'absolute',
                 top: popupPosition.y,
                 left: popupPosition.x,
+                width: Math.min(370, Dimensions.get('window').width - 32),
+                backgroundColor,
               },
             ]}
           >
-            {actions.map((action, index) => (
-              <TouchableOpacity key={index} onPress={() => handleActionPress(action.onClick)} style={[styles.actionButton, index === 0 && styles.defaultActionButton]} activeOpacity={0.7}>
-                {index === 0 && progress > 0 && (
-                  <Animated.View
-                    style={[
-                      styles.progressBar,
-                      {
-                        width: progressAnimation.interpolate({
-                          inputRange: [0, 100],
-                          outputRange: ['0%', '100%'],
-                        }),
-                      },
-                    ]}
-                  />
-                )}
-                <Text style={styles.actionButtonText}>{action.label}</Text>
-              </TouchableOpacity>
-            ))}
+            <View style={styles.actionsContainer}>
+              {title && (
+                <View style={styles.titleContainer}>
+                  <Text style={styles.title}>{title}</Text>
+                </View>
+              )}
+              {actions.map((action, index) => (
+                <TouchableOpacity key={index} onPress={() => handleActionPress(action.onClick)} style={[styles.actionItem, index === 0 && styles.defaultActionItem]} activeOpacity={0.8}>
+                  {index === 0 && progress > 0 && (
+                    <Animated.View
+                      style={[
+                        styles.progressBar,
+                        {
+                          width: progressAnimation.interpolate({
+                            inputRange: [0, 100],
+                            outputRange: ['0%', '100%'],
+                          }),
+                        },
+                      ]}
+                    />
+                  )}
+
+                  <View style={styles.actionContent}>{action.children}</View>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -134,52 +150,56 @@ export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, 
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   popupContainer: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 40,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 8,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
-    minWidth: 200,
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+    overflow: 'hidden',
     zIndex: 1000,
   },
-  actionButton: {
-    backgroundColor: '#282c34',
-    borderWidth: 1,
-    borderColor: 'white',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 5,
+  titleContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
+    height: TITLE_HEIGHT,
+  },
+  title: {
+    color: 'white',
+    fontSize: 20,
+  },
+  actionsContainer: {
+    padding: ACTIONS_PADDING,
+    gap: ACTION_ITEM_GAP,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  actionItem: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    borderRadius: 24,
     position: 'relative',
     overflow: 'hidden',
   },
-  defaultActionButton: {
-    // Additional styles for the default button if needed
+  defaultActionItem: {
+    // Additional styles for the default action if needed
   },
-  actionButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '500',
-    zIndex: 1,
+  actionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: ACTION_ITEM_HEIGHT,
+    paddingHorizontal: 16,
   },
   progressBar: {
     position: 'absolute',
+    top: 0,
     bottom: 0,
     left: 0,
-    height: 5,
-    backgroundColor: 'white',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
 });

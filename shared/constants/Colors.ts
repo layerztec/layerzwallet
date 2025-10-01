@@ -8,6 +8,10 @@ import {
   NETWORK_LIQUID_TESTNET,
   NETWORK_ROOTSTOCK,
   NETWORK_ALPEN_TESTNET,
+  NETWORK_USDT,
+  NETWORK_LIGHTNING,
+  NETWORK_LIGHTNING_TESTNET,
+  NETWORK_SPARK,
 } from '../types/networks';
 
 const primaryColor = '#011474';
@@ -33,9 +37,11 @@ export const gradients = {
   [NETWORK_ALPEN_TESTNET]: ['#7C2D12', '#EA580C'] as const, // Dark orange to orange
   [NETWORK_CITREA_TESTNET]: ['#92400E', '#EA580C'] as const, // Orange/red gradient
   [NETWORK_ARK_MUTINYNET]: ['#1F2937', '#374151'] as const, // Dark gray gradient
-  lightning: ['#581C87', '#7C3AED'] as const, // Purple gradient
+  [NETWORK_LIGHTNING]: ['#581C87', '#7C3AED'] as const, // Purple gradient
+  [NETWORK_LIGHTNING_TESTNET]: ['#581C87', '#7C3AED'] as const, // Purple gradient
+  [NETWORK_USDT]: ['#058787', '#22AAAA'] as const,
   strata: ['#C2410C', '#EA580C'] as const, // Orange gradient
-  spark: ['#6B7280', '#9CA3AF'] as const, // Light gray gradient
+  [NETWORK_SPARK]: ['#6B7280', '#9CA3AF'] as const, // Light gray gradient
 };
 
 export const Colors = {

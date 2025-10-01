@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import BigNumber from 'bignumber.js';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Pressable, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -17,12 +17,18 @@ import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 import { StringNumber } from '@shared/types/string-number';
-import { NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { getGradientPrimaryColor } from '@/utils/gradientUtils';
 
+export type ReceiveTokenProps = {
+  network: Networks;
+};
+
 export default function ReceiveScreen() {
-  const { network } = useContext(NetworkContext);
+  const { network: networkFromContext } = useContext(NetworkContext);
+  const params = useLocalSearchParams<ReceiveTokenProps>();
+  const network = (params.network ?? networkFromContext) as Networks;
   const { accountNumber } = useContext(AccountNumberContext);
   const [address, setAddress] = useState('');
   const [isLoading, setIsLoading] = useState(true);

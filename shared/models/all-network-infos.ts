@@ -15,6 +15,7 @@ import {
   NETWORK_LIGHTNING_TESTNET,
   Networks,
   NETWORK_BOTANIX,
+  NETWORK_USDT,
 } from '../types/networks';
 
 export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
@@ -171,5 +172,15 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     isTestnet: true,
     isEVM: false,
     sortIndex: 70,
+  },
+  [NETWORK_USDT]: {
+    chainId: 16,
+    ticker: 'USDT',
+    decimals: 0, // because it is a meta network that consists of several tokens with different decimals we apply decimal rules on a per token basis
+    explorerUrl: '',
+    rpcUrl: '',
+    knowMoreUrl: 'https://tether.to',
+    isEVM: false,
+    sortIndex: 14,
   },
 };
