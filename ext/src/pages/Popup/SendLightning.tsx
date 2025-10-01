@@ -19,6 +19,7 @@ import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import Lnurl, { LnurlPayServicePayload } from '@shared/class/lnurl';
+import { convertMerchantQRToLightningAddress } from '@shared/modules/merchants';
 
 export interface SendLightningProps {
   network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK;
@@ -53,24 +54,34 @@ const SendLightning: React.FC = () => {
     setLnAddressAmountToSend('');
 
     try {
-      if (Lnurl.isLightningAddress(scanned)) {
+      let invoice2use = scanned;
+      const merchantLightningAddress = convertMerchantQRToLightningAddress({ qrContent: scanned, network: 'mainnet' });
+      if (merchantLightningAddress) {
+        invoice2use = merchantLightningAddress;
+      }
+
+      if (Lnurl.isLightningAddress(invoice2use)) {
         try {
-          const ln = new Lnurl(scanned);
+          const ln = new Lnurl(invoice2use);
           const response = await ln.callLnurlPayService();
+          console.log('response=', response);
           if (response) {
             setLnurl(ln);
-            setLnurlPayServicePayload((prev) => ({ ...prev, [scanned]: response }));
+            setLnurlPayServicePayload((prev) => ({ ...prev, [scanned]: response, [invoice2use]: response }));
             if (response.min && response.min === response.max) {
               setLnAddressAmountToSend(String(response.min));
             }
           }
           // ignore LN decode errors, otherwise it will throw while user is typing
-        } catch {}
+        } catch (error: any) {
+          console.log('Lightning Address error: ' + error.message);
+          setError('Lightning Address error: ' + error.message);
+        }
         return;
       }
 
       try {
-        const bip21decoded = bip21.decode(scanned);
+        const bip21decoded = bip21.decode(invoice2use);
         // @ts-ignore lightning is a widely used bip21 extension
         if (bip21decoded?.options?.lightning) {
           // @ts-ignore
@@ -80,7 +91,7 @@ const SendLightning: React.FC = () => {
         }
       } catch {}
 
-      const decoded = bolt11.decode(scanned);
+      const decoded = bolt11.decode(invoice2use);
       setAmountToSend(decoded.satoshis ? String(decoded.satoshis) : '');
 
       if (!decoded.satoshis) {
