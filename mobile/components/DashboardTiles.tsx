@@ -39,7 +39,6 @@ interface DashboardTileProps {
   totalCards: number;
   onCardPress: (index: number) => void;
   disableNavigation?: boolean;
-  isNetworkSelector?: boolean;
 }
 
 interface LayerCardTileProps extends DashboardTileProps {
@@ -219,12 +218,11 @@ interface DashboardTilesProps {
   cards?: LayerCard[];
   onCardPress?: (index: number) => void;
   onClose?: () => void;
-  isNetworkSelector?: boolean;
   showTitle?: boolean;
   showLogo?: boolean;
 }
 
-const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress, onClose, isNetworkSelector = false, showTitle = true, showLogo = false }: DashboardTilesProps) => {
+const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress, onClose, showTitle = true, showLogo = false }: DashboardTilesProps) => {
   const { accountNumber } = useContext(AccountNumberContext);
 
   const networkCards = useNetworkCards(accountNumber);
@@ -233,10 +231,8 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    if (!isNetworkSelector) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  }, [isNetworkSelector]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
 
   useEffect(() => {
     if (cards.length > 0 && cards[0]?.networkId) {
@@ -292,7 +288,6 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
                 onCardPress={handleCardPress}
                 transitionId={`card-${item.name}-${index}`}
                 disableNavigation={!!onExternalCardPress}
-                isNetworkSelector={isNetworkSelector}
                 accountNumber={accountNumber}
               />
             );

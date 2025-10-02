@@ -394,7 +394,7 @@ export default function Home() {
   };
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={styles.gestureHandlerRoot}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Black Background with Network Tiles */}
@@ -478,7 +478,7 @@ export default function Home() {
                     </ThemedText>
                   </View>
                 </View>
-                <View style={[styles.lightningBalanceRow, { borderBottomWidth: 0 }]}>
+                <View style={styles.lightningBalanceRowLast}>
                   <ThemedText style={styles.lightningBalanceLabel}>Liquid</ThemedText>
                   <View style={styles.lightningBalanceValues}>
                     <ThemedText style={styles.lightningBalanceAmount}>
@@ -552,7 +552,7 @@ export default function Home() {
         </GradientScreen>
 
         {/* White Flash Overlay for Network Transition */}
-        <Animated.View style={[styles.whiteFlashOverlay, { opacity: whiteFlashAnim }]} pointerEvents="none" />
+        <Animated.View style={[styles.whiteFlashOverlayAnimated, { opacity: whiteFlashAnim }]} />
 
         {/* Bottom Navigation - Fixed to modal bottom */}
         <View style={styles.bottomNavigationContainer}>
@@ -863,6 +863,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
+  lightningBalanceRowLast: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 0,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
   lightningBalanceLabel: {
     color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 16,
@@ -911,5 +919,18 @@ const styles = StyleSheet.create({
     height: 40,
     opacity: 0.01, // Nearly invisible but still detectable
     zIndex: 9999,
+  },
+  gestureHandlerRoot: {
+    flex: 1,
+  },
+  whiteFlashOverlayAnimated: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'white',
+    zIndex: 9998,
+    pointerEvents: 'none',
   },
 });
