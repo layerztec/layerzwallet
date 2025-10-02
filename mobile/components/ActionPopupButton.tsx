@@ -1,7 +1,8 @@
+import React, { cloneElement, ReactElement, useCallback, useContext, useEffect, useState } from 'react';
+import { AppState, AppStateStatus, Dimensions, Modal, StyleSheet, Text, TouchableOpacity, TouchableOpacityProps, View } from 'react-native';
+
 import { getGradientColors } from '@/utils/gradientUtils';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import React, { useState, cloneElement, ReactElement, useContext } from 'react';
-import { View, TouchableOpacity, Text, Modal, StyleSheet, Dimensions, TouchableOpacityProps } from 'react-native';
 
 interface Action {
   onClick: () => void;
@@ -46,13 +47,25 @@ export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, 
     setShowPopup(false);
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setShowPopup(false);
-  };
+  }, []);
 
   const enhancedChild = cloneElement(children, {
     onPress: handlePressWithRef,
   });
+
+  // dismiss popup when app goes to background
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState.match(/inactive|background/)) {
+        handleClose();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, [handleClose]);
 
   return (
     <>
