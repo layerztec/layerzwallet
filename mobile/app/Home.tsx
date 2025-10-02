@@ -169,27 +169,24 @@ export default function Home() {
       // Create white flash transition effect
       const flashDuration = 150;
 
-      // Flash to white
       Animated.timing(whiteFlashAnim, {
         toValue: 1,
         duration: flashDuration,
-        useNativeDriver: true, // Better performance for opacity
+        useNativeDriver: true,
       }).start(() => {
-        // Change network during white flash
         setNetwork(selectedNetwork);
 
-        // Flash back to transparent
         Animated.timing(whiteFlashAnim, {
           toValue: 0,
           duration: flashDuration,
-          useNativeDriver: true, // Better performance for opacity
+          useNativeDriver: true,
         }).start(() => {
           // After flash animation completes, expand modal to full height
           currentModalPosition.current = 0;
           Animated.timing(modalTranslateY, {
             toValue: 0,
             duration: 400,
-            useNativeDriver: true, // Better performance for transform
+            useNativeDriver: true,
           }).start();
           setModalHeight(MODAL_MAX_HEIGHT);
         });
@@ -211,7 +208,7 @@ export default function Home() {
     Animated.timing(modalTranslateY, {
       toValue: maxTranslate,
       duration: 300,
-      useNativeDriver: true, // Better performance for transform
+      useNativeDriver: true,
     }).start();
     setModalHeight(MODAL_MIN_HEIGHT);
   };
@@ -399,7 +396,7 @@ export default function Home() {
 
       {/* Black Background with Network Tiles */}
       <View style={styles.blackBackground}>
-        <DashboardTiles cards={networkCards} onCardPress={handleNetworkCardPress} showTitle={false} showLogo={true} />
+        <DashboardTiles cards={networkCards} onCardPress={handleNetworkCardPress} showLogo={true} />
       </View>
 
       {/* Modal Container */}

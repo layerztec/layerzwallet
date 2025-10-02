@@ -279,18 +279,23 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
                 </View>
               );
             }
-            return (
-              <LayerCardTile
-                card={item}
-                index={showLogo ? index - 1 : index}
-                currentIndex={0}
-                totalCards={cards.length}
-                onCardPress={handleCardPress}
-                transitionId={`card-${item.name}-${index}`}
-                disableNavigation={!!onExternalCardPress}
-                accountNumber={accountNumber}
-              />
-            );
+
+            // Only render LayerCardTile for valid card items
+            if (item && item.name && item.networkId) {
+              return (
+                <LayerCardTile
+                  card={item}
+                  index={showLogo ? index - 1 : index}
+                  currentIndex={0}
+                  totalCards={cards.length}
+                  onCardPress={handleCardPress}
+                  transitionId={`card-${item.name}-${index}`}
+                  disableNavigation={!!onExternalCardPress}
+                  accountNumber={accountNumber}
+                />
+              );
+            }
+            return null;
           }}
         />
       </View>
