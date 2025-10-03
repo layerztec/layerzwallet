@@ -179,15 +179,6 @@ export function ProtectedRouteStack() {
         <Stack.Screen name="AskMnemonic" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="DAppBrowser" options={{ headerShown: true, title: 'Browser' }} />
         <Stack.Screen
-          name="NetworkSelector"
-          options={{
-            presentation: 'transparentModal',
-            sheetAllowedDetents: [0.66, 1.0],
-            headerShown: false,
-            animation: 'fade',
-          }}
-        />
-        <Stack.Screen
           name="Action"
           options={{
             presentation: 'formSheet',

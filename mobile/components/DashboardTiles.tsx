@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect, useContext } from 'react';
-import { View, StyleSheet, Dimensions, Text, Image, TouchableOpacity, FlatList } from 'react-native';
+import { View, StyleSheet, Dimensions, Text, Image, TouchableOpacity, FlatList, Animated } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -12,9 +13,11 @@ import { useCachedBalance } from '@shared/hooks/useCachedBalance';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 
+const logo = require('@/assets/images/ui/logo-main-screen.svg');
+
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 40;
-const CARD_HEIGHT = 200;
+const CARD_HEIGHT = 170;
 
 export interface LayerCard {
   name: string;
@@ -36,7 +39,6 @@ interface DashboardTileProps {
   totalCards: number;
   onCardPress: (index: number) => void;
   disableNavigation?: boolean;
-  isNetworkSelector?: boolean;
 }
 
 interface LayerCardTileProps extends DashboardTileProps {
@@ -49,6 +51,9 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
   const { balance } = useCachedBalance(card.networkId, accountNumber || 0);
   const { exchangeRate } = useCachedExchangeRate(card.networkId, 'USD');
   const [hasTimedOut, setHasTimedOut] = useState(false);
+
+  // Animation for squeeze effect
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const timer = setTimeout(() => setHasTimedOut(true), 10000);
@@ -76,16 +81,18 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
 
     return { ...card, balance: formattedBalance, usdValue: formattedUsdValue };
   }, [card, balance, exchangeRate, hasTimedOut]);
-  let gradKey: keyof typeof sharedGradients = 'base';
-  for (const key of Object.keys(sharedGradients)) {
-    if (key.startsWith(card.networkId)) {
-      gradKey = key as keyof typeof sharedGradients;
-      break;
+  const gradientColors = useMemo(() => {
+    let gradKey: keyof typeof sharedGradients = 'base';
+    for (const key of Object.keys(sharedGradients)) {
+      if (key.startsWith(card.networkId)) {
+        gradKey = key as keyof typeof sharedGradients;
+        break;
+      }
     }
-  }
-  const gradientColors = sharedGradients[gradKey];
+    return sharedGradients[gradKey];
+  }, [card.networkId]);
 
-  const handlePress = () => {
+  const handlePress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (disableNavigation) {
       onCardPress(index);
@@ -104,16 +111,35 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
         transitionId: `card-${displayCard.name}-${index}`,
       },
     });
-  };
+  }, [disableNavigation, onCardPress, index, router, displayCard]);
+
+  // Handle press animations for squeeze effect
+  const handlePressIn = useCallback(() => {
+    Animated.timing(scaleAnim, {
+      toValue: 0.95,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.timing(scaleAnim, {
+      toValue: 1,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
 
   return (
     <View style={styles.itemContainer}>
-      <View style={styles.card}>
+      <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
         <LinearGradient colors={gradientColors as [string, string]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.gradientBackground} />
         <TouchableOpacity
           onPress={handlePress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
           style={styles.touchableCard}
-          activeOpacity={0.9}
+          activeOpacity={1}
           delayPressIn={50}
           delayPressOut={50}
           testID={displayCard.networkId ? `network-${displayCard.networkId}` : `card-${displayCard.name.toLowerCase()}`}
@@ -158,7 +184,7 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
             </View>
           </View>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
     </View>
   );
 };
@@ -192,10 +218,11 @@ interface DashboardTilesProps {
   cards?: LayerCard[];
   onCardPress?: (index: number) => void;
   onClose?: () => void;
-  isNetworkSelector?: boolean;
+  showTitle?: boolean;
+  showLogo?: boolean;
 }
 
-const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress, onClose, isNetworkSelector = false }: DashboardTilesProps) => {
+const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress, onClose, showTitle = true, showLogo = false }: DashboardTilesProps) => {
   const { accountNumber } = useContext(AccountNumberContext);
 
   const networkCards = useNetworkCards(accountNumber);
@@ -204,10 +231,8 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    if (!isNetworkSelector) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  }, [isNetworkSelector]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
 
   useEffect(() => {
     if (cards.length > 0 && cards[0]?.networkId) {
@@ -234,15 +259,6 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Select Layer</Text>
-          {onClose && (
-            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-              <Ionicons name="close" size={24} color="white" />
-            </TouchableOpacity>
-          )}
-        </View>
-
         <View style={styles.selectedNetworkIndicator} testID={`activeNetwork-${currentNetworkId}`}>
           <Text style={styles.hiddenText}>{currentNetworkId}</Text>
         </View>
@@ -250,24 +266,37 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
         <FlatList
           ref={flatListRef}
           key={`account-${accountNumber}`}
-          data={cards}
-          keyExtractor={(item, index) => `card-${item.name}-${index}-${accountNumber}`}
+          data={showLogo ? [{ type: 'logo' }, ...cards] : cards}
+          keyExtractor={(item, index) => (item.type === 'logo' ? 'logo' : `card-${item.name}-${index}-${accountNumber}`)}
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item: card, index }) => (
-            <LayerCardTile
-              card={card}
-              index={index}
-              currentIndex={0}
-              totalCards={cards.length}
-              onCardPress={handleCardPress}
-              transitionId={`card-${card.name}-${index}`}
-              disableNavigation={!!onExternalCardPress}
-              isNetworkSelector={isNetworkSelector}
-              accountNumber={accountNumber}
-            />
-          )}
+          renderItem={({ item, index }) => {
+            if (item.type === 'logo') {
+              return (
+                <View style={styles.logoContainer}>
+                  <ExpoImage source={logo} style={styles.logo} contentFit="contain" />
+                </View>
+              );
+            }
+
+            // Only render LayerCardTile for valid card items
+            if (item && item.name && item.networkId) {
+              return (
+                <LayerCardTile
+                  card={item}
+                  index={showLogo ? index - 1 : index}
+                  currentIndex={0}
+                  totalCards={cards.length}
+                  onCardPress={handleCardPress}
+                  transitionId={`card-${item.name}-${index}`}
+                  disableNavigation={!!onExternalCardPress}
+                  accountNumber={accountNumber}
+                />
+              );
+            }
+            return null;
+          }}
         />
       </View>
     </View>
@@ -282,31 +311,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
-    position: 'absolute',
-    top: 60,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    zIndex: 1000,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: 'white',
-    textAlign: 'center',
-    flex: 1,
-  },
-  closeButton: {
-    position: 'absolute',
-    right: 20,
-    padding: 10,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-  },
   selectedNetworkIndicator: {
     position: 'absolute',
     top: 140,
@@ -320,12 +324,11 @@ const styles = StyleSheet.create({
   list: {
     flex: 1,
     width: '100%',
-    marginTop: height * 0.03,
   },
   listContent: {
     alignItems: 'center',
-    paddingTop: 120,
-    paddingBottom: 40,
+    paddingTop: 16,
+    paddingBottom: 120,
   },
   itemContainer: {
     alignItems: 'center',
@@ -339,7 +342,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderRadius: 20,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: '#111111',
     shadowOffset: {
       width: 0,
       height: 8,
@@ -371,18 +374,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-  },
-  cardIcon: {
-    width: 44,
-    height: 44,
-    marginRight: 12,
-  },
-  cardIconPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   cardName: {
     color: 'white',
@@ -449,24 +440,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  addLayerButton: {
-    position: 'absolute',
-    bottom: 40,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
+  logoContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    paddingTop: 30,
+    paddingBottom: 20,
   },
-  addLayerText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
+  logo: {
+    width: 120,
+    height: 60,
   },
 });

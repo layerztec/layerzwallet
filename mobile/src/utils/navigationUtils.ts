@@ -26,7 +26,6 @@ const MAIN_APP_SCREENS = [
   'AskPassword',
   'AskMnemonic',
   'DAppBrowser',
-  'NetworkSelector',
   'Action',
   'PocketSwitch',
   'TransactionDetails',
