@@ -40,7 +40,6 @@ export const gradients = {
   [NETWORK_LIGHTNING]: ['#581C87', '#7C3AED'] as const, // Purple gradient
   [NETWORK_LIGHTNING_TESTNET]: ['#581C87', '#7C3AED'] as const, // Purple gradient
   [NETWORK_USDT]: ['#058787', '#22AAAA'] as const,
-  strata: ['#C2410C', '#EA580C'] as const, // Orange gradient
   [NETWORK_SPARK]: ['#6B7280', '#9CA3AF'] as const, // Light gray gradient
 };
 

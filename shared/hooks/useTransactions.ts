@@ -97,7 +97,7 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
       // join Liquid and Rootstock, filter by token transactions
       const liquidTxs = await backgroundCaller.getCommonTransactions(NETWORK_LIQUID, accountNumber);
       const rootstockWallet = new EvmWallet();
-      rootstockWallet.address = await backgroundCaller.getAddress(network, accountNumber);
+      rootstockWallet.address = await backgroundCaller.getAddress(NETWORK_ROOTSTOCK, accountNumber);
       rootstockWallet.network = NETWORK_ROOTSTOCK;
       rootstockWallet.etherScanApiUrl = AllNetworkInfos[NETWORK_ROOTSTOCK].etherScanApiUrl;
       await rootstockWallet.fetchTransactions();

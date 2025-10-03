@@ -69,7 +69,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     rpcUrl: 'https://rpc.testnet.alpenlabs.io',
     explorerUrl: 'https://explorer.testnet.alpenlabs.io',
     decimals: 18,
-    knowMoreUrl: 'https://www.bitcoinlayers.org/layers/strata',
+    knowMoreUrl: 'https://www.bitcoinlayers.org/layers/alpen',
     isTestnet: true,
     isEVM: true,
     etherScanApiUrl: 'https://explorer.testnet.alpenlabs.io/api',

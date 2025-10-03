@@ -12,7 +12,7 @@ export const NETWORK_LIQUID_TESTNET = 'liquid_testnet' as const;
 export const NETWORK_SPARK = 'spark' as const;
 export const NETWORK_LIGHTNING = 'lightning' as const;
 export const NETWORK_LIGHTNING_TESTNET = 'lightning_testnet' as const;
-export const NETWORK_USDT = 'USDT' as const;
+export const NETWORK_USDT = 'usdt' as const;
 
 const NetworksIterator = {
   BITCOIN: NETWORK_BITCOIN,

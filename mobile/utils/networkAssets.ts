@@ -38,7 +38,7 @@ export const getNetworkImageAsset = (network: string): string | null => {
     case NETWORK_BOTANIX_TESTNET:
       return require('../assets/images/ui/network/botanix.png');
     case NETWORK_ALPEN_TESTNET:
-      return require('../assets/images/ui/network/strata.png');
+      return require('../assets/images/ui/network/alpen.png');
     case NETWORK_ARK_MUTINYNET:
     case NETWORK_ARK:
       return require('../assets/images/ui/network/ark.png');

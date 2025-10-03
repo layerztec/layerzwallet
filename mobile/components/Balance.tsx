@@ -70,14 +70,15 @@ const BalanceLightning = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
 
-  const sparkNetwork = NETWORK_SPARK;
-  const arkNetwork = NETWORK_ARK;
+  // Lightning network aggregates balances from Spark, Ark, and Liquid networks
+  // Each underlying network has its own balance and exchange rate
+  // Multiple useBalance hooks are needed since each network manages separate state
   const liquidNetwork = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
-  const { balance: sparkBalance } = useBalance(sparkNetwork, accountNumber, BackgroundExecutor);
-  const { balance: arkBalance } = useBalance(arkNetwork, accountNumber, BackgroundExecutor);
+  const { balance: sparkBalance } = useBalance(NETWORK_SPARK, accountNumber, BackgroundExecutor);
+  const { balance: arkBalance } = useBalance(NETWORK_ARK, accountNumber, BackgroundExecutor);
   const { balance: liquidBalance } = useBalance(liquidNetwork, accountNumber, BackgroundExecutor);
-  const { exchangeRate: sparkExchangeRate } = useExchangeRate(sparkNetwork, 'USD');
-  const { exchangeRate: arkExchangeRate } = useExchangeRate(arkNetwork, 'USD');
+  const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK, 'USD');
+  const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARK, 'USD');
   const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, 'USD');
 
   const ticker = getTickerByNetwork(network);
@@ -213,6 +214,7 @@ const TokenRow = ({ network, token, setTokenBalances }: { network: Networks; tok
   );
 };
 
+// Balance component for USDT network (aggregates tokens from Rootstock and Liquid)
 const BalanceUsdt = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
