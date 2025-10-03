@@ -15,8 +15,6 @@ export interface LightningPaymentLimitsResponse {
 }
 
 export interface InterfaceLightningWallet {
-  allowLightning: true;
-
   payLightningInvoice(invoice: string): Promise<boolean>;
 
   createLightningInvoice(amountSats: number, memo: string): Promise<createLightningInvoiceResponse>;
@@ -24,4 +22,6 @@ export interface InterfaceLightningWallet {
   isInvoicePaid(invoice: string): Promise<boolean>;
 
   fetchLightningLimits(): Promise<LightningPaymentLimitsResponse>;
+
+  allowLightning(): boolean;
 }

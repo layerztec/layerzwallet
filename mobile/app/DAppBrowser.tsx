@@ -201,7 +201,7 @@ const DAppBrowser: React.FC = () => {
       const { hostname } = new URL(currentUrl);
       await BackgroundExecutor.unwhitelistDapp(hostname);
       refresh();
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to unwhitelist dapp');
     }
   };
@@ -240,7 +240,7 @@ const DAppBrowser: React.FC = () => {
       // Validate URL
       new URL(url);
       webviewRef.current?.injectJavaScript(`window.location.href = '${url}';`);
-    } catch (error) {
+    } catch {
       Alert.alert('Invalid URL', 'Please enter a valid URL');
     }
   };

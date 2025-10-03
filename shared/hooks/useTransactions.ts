@@ -7,7 +7,7 @@ import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { AllNetworkInfos } from '../models/all-network-infos';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 
 interface txFetcherArg {
   cacheKey: string;
@@ -60,17 +60,21 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
       const liquidNetwork = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
       const tsx = await backgroundCaller.getCommonTransactions(liquidNetwork, accountNumber);
       if (network === NETWORK_LIGHTNING) {
-        const wallet = await backgroundCaller.lazyInitWallet(NETWORK_SPARK, accountNumber);
-        assert(wallet instanceof SparkWallet, 'Not a Spark wallet');
-        const sparkTx = await wallet.getCommonTransactions();
+        const sparkWallet = await backgroundCaller.lazyInitWallet(NETWORK_SPARK, accountNumber);
+        assert(sparkWallet instanceof SparkWallet, 'Not a Spark wallet');
+        const sparkTx = await sparkWallet.getCommonTransactions();
         tsx.push(...sparkTx);
+        const arkWallet = await backgroundCaller.lazyInitWallet(NETWORK_ARK, accountNumber);
+        assert(arkWallet instanceof ArkWallet, 'Not an Ark wallet');
+        const arkTx = await arkWallet.getCommonTransactions();
+        tsx.push(...arkTx);
       }
       return tsx
         .filter((tx) => tx?.amount !== undefined && tx.amount > 0) // filter out token transfers
         .sort((a, b) => b.timestamp - a.timestamp);
     }
 
-    if (network === NETWORK_ARK_MUTINYNET) {
+    if (network === NETWORK_ARK_MUTINYNET || network === NETWORK_ARK) {
       const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
       assert(wallet instanceof ArkWallet, 'Not an Ark wallet');
       return await wallet.getCommonTransactions();

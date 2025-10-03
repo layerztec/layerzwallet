@@ -14,7 +14,6 @@ import BigNumber from 'bignumber.js';
 import { Loader2 } from 'lucide-react';
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { Button, Input } from '../DesignSystem';
-import { SwapSparkDepositParams } from '../SwapSparkDeposit';
 
 const SwapInterfaceView: React.FC = () => {
   const navigate = useNavigate();
@@ -62,7 +61,7 @@ const SwapInterfaceView: React.FC = () => {
         window.open(swapResponse.uri, '_blank');
         return;
       case 'INTERNAL_SCREEN':
-        navigate('/SwapSparkDeposit', { state: swapResponse.params });
+        navigate('/SwapXArkDeposit', { state: swapResponse.params });
         return;
       default:
         throw new Error('Unhandled swap action');

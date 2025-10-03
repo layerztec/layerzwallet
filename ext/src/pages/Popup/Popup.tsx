@@ -30,6 +30,7 @@ import './Popup.css';
 import Receive from './Receive';
 import ReceiveLightning from './ReceiveLightning';
 import SeedBackup from './SeedBackup';
+import ViewSubmnemonic from './ViewSubmnemonic';
 import SendArk from './SendArk';
 import SendBtc from './SendBtc';
 import SendEvm from './SendEvm';
@@ -39,8 +40,8 @@ import SendTokenEvm from './SendTokenEvm';
 import SendTokenSpark from './SendTokenSpark';
 import SettingsPage from './SettingsPage';
 import SwapDetails from './SwapDetails';
-import SwapSparkClaim from './SwapSparkClaim';
-import SwapSparkDeposit from './SwapSparkDeposit';
+import SwapXArkClaim from './SwapXArkClaim';
+import SwapXArkDeposit from './SwapXArkDeposit';
 import TestPage from './TestPage';
 import TransactionSuccessEvm from './TransactionSuccessEvm';
 
@@ -87,6 +88,7 @@ const AppContent: React.FC = () => {
             <Route path="/receive" element={<Receive />} />
             <Route path="/receive-lightning" element={<ReceiveLightning />} />
             <Route path="/seed-backup" element={<SeedBackup />} />
+            <Route path="/ViewSubmnemonic" element={<ViewSubmnemonic />} />
             <Route path="/send-liquid" element={<SendLiquid />} />
             <Route path="/send-evm" element={<SendEvm />} />
             <Route path="/send-ark" element={<SendArk />} />
@@ -96,8 +98,8 @@ const AppContent: React.FC = () => {
             <Route path="/send-lightning" element={<SendLightning />} />
             <Route path="/swap-details" element={<SwapDetails />} />
             {/* we are using camel case because screen name matches one in the mobile app */}
-            <Route path="/SwapSparkDeposit" element={<SwapSparkDeposit />} />
-            <Route path="/swap-spark-claim" element={<SwapSparkClaim />} />
+            <Route path="/SwapXArkDeposit" element={<SwapXArkDeposit />} />
+            <Route path="/swap-xark-claim" element={<SwapXArkClaim />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/transaction-success" element={<TransactionSuccessEvm />} />
             <Route path="/action" element={<Action />} />

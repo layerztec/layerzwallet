@@ -1,40 +1,45 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+import PlatformBlurView from '@/components/PlatformBlurView';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useContext, useEffect, useState } from 'react';
-import { Alert, LayoutAnimation, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useContext, useEffect, useState, useRef, useMemo } from 'react';
+import { Alert, StyleSheet, TouchableOpacity, View, Animated, Dimensions } from 'react-native';
+import { PanGestureHandler, GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { OnrampProps } from '@/app/Onramp';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import Button from '@/components/Button';
+import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
 import GradientScreen from '@/components/GradientScreen';
 import LiquidTokensView from '@/components/LiquidTokensView';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
 import SwapList from '@/components/SwapList';
+import StickyHeader from '@/components/StickyHeader';
 import { DappBrowserProps } from '@/app/DAppBrowser';
 
 import Transaction from '@/components/Transaction';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { useAppLock } from '@/src/hooks/useAppLock';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { useAccountBalance } from '@shared/hooks/useAccountBalance';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
+import { useAccountBalance } from '@shared/hooks/useAccountBalance';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { useTransactions } from '@shared/hooks/useTransactions';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getDecimalsByNetwork, getExplorerUrlByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
+import { getNetworkGradient } from '@shared/constants/Colors';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SwapPlatform } from '@shared/types/swap';
 import { CommonTransaction } from '@shared/types/common-transaction';
 
-const logo = require('@/assets/images/ui/logo-main-screen.svg');
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const MODAL_MIN_HEIGHT = 120; // Height when dragged down (header + some content)
+const MODAL_MAX_HEIGHT = SCREEN_HEIGHT; // Full height modal
 
 export default function Home() {
   const { network } = useContext(NetworkContext);
@@ -62,67 +67,25 @@ export default function Home() {
   const { transactions, error: transactionsError } = useTransactions(network, accountNumber, BackgroundExecutor);
   const accountItem = accountItems[accountNumber];
 
-  // App lock functionality
-  const { lockState, authenticateWithBiometrics, clearCanceled } = useAppLock();
-  const [hasAutoTriggered, setHasAutoTriggered] = useState(false);
+  // Scroll animation for sticky header
+  const scrollY = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    LayoutAnimation.configureNext({
-      duration: 300,
-      create: {
-        type: LayoutAnimation.Types.easeInEaseOut,
-        property: LayoutAnimation.Properties.opacity,
-      },
-      update: {
-        type: LayoutAnimation.Types.easeInEaseOut,
-        property: LayoutAnimation.Properties.opacity,
-      },
-      delete: {
-        type: LayoutAnimation.Types.easeInEaseOut,
-        property: LayoutAnimation.Properties.opacity,
-      },
-    });
-  }, [lockState.isLocked, lockState.isAuthenticating, lockState.userCanceled, hasAutoTriggered]);
-
-  useEffect(() => {
-    if (lockState.isLocked && lockState.requiresAuth) {
-      LayoutAnimation.configureNext({
-        duration: 400,
-        create: {
-          type: LayoutAnimation.Types.easeInEaseOut,
-          property: LayoutAnimation.Properties.opacity,
-        },
-        update: {
-          type: LayoutAnimation.Types.spring,
-          springDamping: 0.7,
-          property: LayoutAnimation.Properties.scaleXY,
-        },
-      });
-    }
-  }, [lockState.isLocked, lockState.requiresAuth]);
-
-  // Auto-trigger biometric authentication when lock screen first appears
-  useEffect(() => {
-    if (lockState.isLocked && lockState.requiresAuth && !lockState.isAuthenticating && !lockState.userCanceled && !hasAutoTriggered) {
-      setHasAutoTriggered(true);
-      authenticateWithBiometrics();
-    }
-
-    // Reset auto-trigger flag when app is unlocked
-    if (!lockState.isLocked) {
-      setHasAutoTriggered(false);
-    }
-  }, [lockState.isLocked, lockState.requiresAuth, lockState.isAuthenticating, lockState.userCanceled, hasAutoTriggered, authenticateWithBiometrics]);
+  // Modal state and animations
+  const [modalHeight, setModalHeight] = useState(MODAL_MAX_HEIGHT);
+  const modalTranslateY = useRef(new Animated.Value(0)).current;
 
   // Lightning network specific balance logic
   const isLightningNetwork = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET;
   const sparkNetwork = isLightningNetwork ? NETWORK_SPARK : network;
+  const arkNetwork = isLightningNetwork ? NETWORK_ARK : network;
   const liquidNetwork = isLightningNetwork ? (network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID) : network;
 
   // Get additional balances for Lightning networks
   const { balance: sparkBalance } = useBalance(sparkNetwork, accountNumber, BackgroundExecutor);
+  const { balance: arkBalance } = useBalance(arkNetwork, accountNumber, BackgroundExecutor);
   const { balance: liquidBalance } = useBalance(liquidNetwork, accountNumber, BackgroundExecutor);
   const { exchangeRate: sparkExchangeRate } = useExchangeRate(sparkNetwork, 'USD');
+  const { exchangeRate: arkExchangeRate } = useExchangeRate(arkNetwork, 'USD');
   const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, 'USD');
 
   const ticker = getTickerByNetwork(network);
@@ -143,11 +106,36 @@ export default function Home() {
 
   const latestTransactions = transactions?.slice(0, 3) || [];
 
+  // Network cards for the black background area
+  const networks = useAvailableNetworks();
+  const { setNetwork } = useContext(NetworkContext);
+
+  const networkCards: LayerCard[] = useMemo(() => {
+    return networks.map((networkItem) => {
+      const isTestnet = getIsTestnet(networkItem);
+      const gradientColors = getNetworkGradient(networkItem);
+      const networkIcon = getNetworkImageAsset(networkItem);
+
+      return {
+        networkId: networkItem,
+        name: capitalizeFirstLetter(networkItem),
+        ticker: getTickerByNetwork(networkItem),
+        balance: network === networkItem ? 'Selected' : 'Available',
+        usdValue: isTestnet ? 'Testnet' : 'Mainnet',
+        color: gradientColors[0],
+        icon: networkIcon,
+        tags: isTestnet ? ['Testnet'] : [],
+        tokenCount: 0,
+      };
+    });
+  }, [networks, network]);
+
   const handleSend = () => {
     switch (network) {
       case NETWORK_BITCOIN:
         router.push('/SendBtc');
         break;
+      case NETWORK_ARK:
       case NETWORK_SPARK:
       case NETWORK_ARK_MUTINYNET:
         router.push('/SendArk');
@@ -173,6 +161,39 @@ export default function Home() {
     router.push('/Swap');
   };
 
+  // Handle network card selection in black background area
+  const handleNetworkCardPress = (index: number) => {
+    if (index >= 0 && index < networks.length) {
+      const selectedNetwork = networks[index];
+
+      // Create white flash transition effect
+      const flashDuration = 150;
+
+      Animated.timing(whiteFlashAnim, {
+        toValue: 1,
+        duration: flashDuration,
+        useNativeDriver: true,
+      }).start(() => {
+        setNetwork(selectedNetwork);
+
+        Animated.timing(whiteFlashAnim, {
+          toValue: 0,
+          duration: flashDuration,
+          useNativeDriver: true,
+        }).start(() => {
+          // After flash animation completes, expand modal to full height
+          currentModalPosition.current = 0;
+          Animated.timing(modalTranslateY, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true,
+          }).start();
+          setModalHeight(MODAL_MAX_HEIGHT);
+        });
+      });
+    }
+  };
+
   const handleBuyClick = () => {
     BackgroundExecutor.getAddress(network, accountNumber).then((address) => {
       const params: OnrampProps = { address, network };
@@ -181,7 +202,15 @@ export default function Home() {
   };
 
   const handleNetworkSelect = () => {
-    router.push('/NetworkSelector');
+    // Minimize modal to show network tiles in black background area
+    const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
+    currentModalPosition.current = maxTranslate;
+    Animated.timing(modalTranslateY, {
+      toValue: maxTranslate,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+    setModalHeight(MODAL_MIN_HEIGHT);
   };
 
   const goToSettings = () => {
@@ -223,6 +252,14 @@ export default function Home() {
     }
   };
 
+  const handleReceiveOnArk = () => {
+    if (network === NETWORK_LIGHTNING_TESTNET) {
+      Alert.alert('Ark lightning does not have a testnet');
+    } else {
+      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_ARK } });
+    }
+  };
+
   const getLightningReceiveActions = () => [
     {
       label: 'Receive on Spark',
@@ -231,6 +268,10 @@ export default function Home() {
     {
       label: 'Receive on Liquid',
       onClick: handleReceiveOnLiquid,
+    },
+    {
+      label: 'Receive on Ark',
+      onClick: handleReceiveOnArk,
     },
     {
       label: 'Cancel',
@@ -243,6 +284,14 @@ export default function Home() {
       Alert.alert('Spark does not have a testnet');
     } else {
       router.push({ pathname: '/SendLightning', params: { network: NETWORK_SPARK } });
+    }
+  };
+
+  const handleSendViaArk = () => {
+    if (network === NETWORK_LIGHTNING_TESTNET) {
+      Alert.alert('Ark lightning does not have a testnet');
+    } else {
+      router.push({ pathname: '/SendLightning', params: { network: NETWORK_ARK } });
     }
   };
 
@@ -268,278 +317,343 @@ export default function Home() {
       onClick: handleSendViaLiquid,
     },
     {
+      label: 'Send via Ark',
+      onClick: handleSendViaArk,
+    },
+    {
       label: 'Cancel',
       onClick: () => {},
     },
   ];
 
+  // Handle scroll events for sticky header animation
+  const handleScroll = (event: any) => {
+    scrollY.setValue(event.nativeEvent.contentOffset.y);
+  };
+
+  // Track current modal position
+  const currentModalPosition = useRef(0);
+
+  // Animation for white flash transition
+  const whiteFlashAnim = useRef(new Animated.Value(0)).current;
+
+  // Modal gesture handling with bounds
+  const onPanGestureEvent = (event: any) => {
+    const { translationY } = event.nativeEvent;
+    const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
+
+    // Calculate new position based on current position + translation
+    const newPosition = currentModalPosition.current + translationY;
+
+    // Constrain position between 0 and maxTranslate
+    let constrainedPosition = newPosition;
+    if (newPosition < 0) {
+      constrainedPosition = 0;
+    } else if (newPosition > maxTranslate) {
+      constrainedPosition = maxTranslate;
+    }
+
+    modalTranslateY.setValue(constrainedPosition);
+  };
+
+  const onPanHandlerStateChange = (event: any) => {
+    if (event.nativeEvent.state === 5) {
+      // END
+      const { translationY, velocityY } = event.nativeEvent;
+      const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
+
+      // Update current position
+      currentModalPosition.current = Math.max(0, Math.min(maxTranslate, currentModalPosition.current + translationY));
+
+      // Determine if we should snap to min or max based on velocity and position
+      const shouldSnapToMin = translationY > 100 || velocityY > 500;
+
+      if (shouldSnapToMin) {
+        // Snap to minimized state (translate down so only header is visible)
+        currentModalPosition.current = maxTranslate;
+        Animated.timing(modalTranslateY, {
+          toValue: maxTranslate,
+          duration: 300,
+          useNativeDriver: true, // Better performance for transform
+        }).start();
+        setModalHeight(MODAL_MIN_HEIGHT);
+      } else {
+        // Snap to expanded state (translate back to original position)
+        currentModalPosition.current = 0;
+        Animated.timing(modalTranslateY, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true, // Better performance for transform
+        }).start();
+        setModalHeight(MODAL_MAX_HEIGHT);
+      }
+    }
+  };
+
   return (
-    <>
+    <GestureHandlerRootView style={styles.gestureHandlerRoot}>
       <Stack.Screen options={{ headerShown: false }} />
-      <GradientScreen variant={network} scroll={true}>
-        <View style={styles.root}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.logoContainer} onPress={goToSettings} testID="SettingsButton" activeOpacity={0.8}>
-              <Image source={logo} style={styles.logo} contentFit="contain" />
-            </TouchableOpacity>
 
-            <View style={styles.headerRight}>
-              <TouchableOpacity style={styles.pocket} onPress={() => router.push('/PocketSwitch')}>
-                <ThemedText style={styles.pocketLabel}>{accountItem.name} pocket</ThemedText>
-                <ThemedText style={styles.pocketAmount}>
-                  {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : '0'} {getTickerByNetwork(NETWORK_BITCOIN)}
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-          </View>
+      {/* Black Background with Network Tiles */}
+      <View style={styles.blackBackground}>
+        <DashboardTiles cards={networkCards} onCardPress={handleNetworkCardPress} showLogo={true} />
+      </View>
 
-          {/* Network Selector */}
-          <View style={styles.networkSelectorContainer}>
-            <TouchableOpacity testID="NetworkSwitcherTrigger" style={styles.networkSelector} onPress={handleNetworkSelect} activeOpacity={0.8}>
-              <View testID={`selectedNetwork-${network}`} style={styles.networkIcon}>
-                {networkIconContent}
-              </View>
-              <ThemedText style={styles.networkName}>{capitalizeFirstLetter(network)}</ThemedText>
-              <TouchableOpacity onPress={handleNetworkSelect} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
-                <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
-            </TouchableOpacity>
-          </View>
+      {/* Modal Container */}
+      <Animated.View
+        style={[
+          styles.modalContainer,
+          {
+            height: MODAL_MAX_HEIGHT,
+            transform: [{ translateY: modalTranslateY }],
+          },
+        ]}
+      >
+        {/* Draggable Header */}
+        <PanGestureHandler onGestureEvent={onPanGestureEvent} onHandlerStateChange={onPanHandlerStateChange} activeOffsetY={[-10, 10]} failOffsetX={[-50, 50]}>
+          <Animated.View style={styles.draggableHeader}>
+            <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} />
+          </Animated.View>
+        </PanGestureHandler>
 
-          {/* Testnet Warning */}
-          {getIsTestnet(network) && (
-            <View style={styles.testnetWarning}>
-              <ThemedText style={styles.testnetWarningText}>Warning: You are using a testnet, coins have no value</ThemedText>
-            </View>
-          )}
+        {/* Invisible Settings Button for Maestro Testing */}
+        <TouchableOpacity style={styles.maestroSettingsButton} onPress={goToSettings} testID="SettingsButton" accessibilityLabel="Settings" />
 
-          {/* Balance Section */}
-          {isLightningNetwork ? (
-            <View style={styles.lightningBalanceContainer}>
-              <View style={styles.lightningBalanceRow}>
-                <ThemedText style={styles.lightningBalanceLabel}>Spark</ThemedText>
-                <View style={styles.lightningBalanceValues}>
-                  <ThemedText style={styles.lightningBalanceAmount}>
-                    {network === NETWORK_LIGHTNING_TESTNET ? '0' : sparkBalance ? formatBalance(sparkBalance, Number(getDecimalsByNetwork(NETWORK_SPARK)), 8) : '0'} {getTickerByNetwork(NETWORK_SPARK)}
-                  </ThemedText>
-                  <ThemedText style={styles.lightningBalanceFiat}>
-                    {network === NETWORK_LIGHTNING_TESTNET
-                      ? '-'
-                      : sparkBalance && +sparkBalance > 0 && sparkExchangeRate
-                        ? '$' + formatFiatBalance(sparkBalance, Number(getDecimalsByNetwork(NETWORK_SPARK)), Number(sparkExchangeRate))
-                        : '-'}
-                  </ThemedText>
+        <GradientScreen variant={network} scroll={true} onScroll={handleScroll}>
+          <View style={[styles.root, styles.contentWithHeader]}>
+            {/* Network Selector */}
+            <View style={styles.networkSelectorContainer}>
+              <TouchableOpacity testID="NetworkSwitcherTrigger" style={styles.networkSelector} onPress={handleNetworkSelect} activeOpacity={0.8}>
+                <View testID={`selectedNetwork-${network}`} style={styles.networkIcon}>
+                  {networkIconContent}
                 </View>
-              </View>
-              <View style={[styles.lightningBalanceRow, { borderBottomWidth: 0 }]}>
-                <ThemedText style={styles.lightningBalanceLabel}>Liquid</ThemedText>
-                <View style={styles.lightningBalanceValues}>
-                  <ThemedText style={styles.lightningBalanceAmount}>
-                    {liquidBalance ? formatBalance(liquidBalance, Number(getDecimalsByNetwork(NETWORK_LIQUID)), 8) : '0'} {getTickerByNetwork(NETWORK_LIQUID)}
-                  </ThemedText>
-                  <ThemedText style={styles.lightningBalanceFiat}>
-                    {liquidBalance && +liquidBalance > 0 && liquidExchangeRate ? '$' + formatFiatBalance(liquidBalance, Number(getDecimalsByNetwork(NETWORK_LIQUID)), Number(liquidExchangeRate)) : '-'}
-                  </ThemedText>
-                </View>
-              </View>
-              {canBuyWithFiat && (
-                <View style={styles.lightningBuyButtonContainer}>
-                  <TouchableOpacity style={styles.lightningBuyButton} onPress={handleBuyClick} activeOpacity={0.8}>
-                    <Ionicons name="cart-outline" size={16} color="white" />
-                    <ThemedText style={styles.lightningBuyButtonText}>Buy</ThemedText>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          ) : (
-            <View style={styles.balanceSection} testID="LayerBalance">
-              <View style={styles.balanceContainer}>
-                <ThemedText style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
-                  {balance ? displayBalance : '???'}
-                </ThemedText>
-                <ThemedText style={styles.balanceUsd}>{displaySubBalance}</ThemedText>
-              </View>
-
-              {canBuyWithFiat && (
-                <TouchableOpacity style={styles.buyButton} onPress={handleBuyClick} activeOpacity={0.8}>
-                  <ThemedText style={styles.buyButtonText}>Buy Bitcoin</ThemedText>
+                <ThemedText style={styles.networkName}>{capitalizeFirstLetter(network)}</ThemedText>
+                <TouchableOpacity onPress={handleNetworkSelect} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
+                  <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.8)" />
                 </TouchableOpacity>
-              )}
+              </TouchableOpacity>
             </View>
-          )}
 
-          {/* Explorer Button for EVM networks */}
-          {isEVM && <Button title="🔍 Explore" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
-
-          {/* Swap List Section */}
-          <SwapList />
-
-          {/* Tokens Section */}
-          <View style={styles.tokensSection}>{network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET ? <LiquidTokensView /> : <TokensView />}</View>
-
-          {/* Transactions Section */}
-          <BlurView intensity={25} tint="dark" style={styles.transactionsContainer}>
-            <ThemedText style={styles.transactionsTitle}>Latest Transactions</ThemedText>
-
-            {latestTransactions.length > 0 ? (
-              <View style={styles.transactionsList}>
-                {latestTransactions.map((transaction) => (
-                  <Transaction key={transaction.txid} network={network} transaction={transaction} onPress={() => handleTransactionDetails(transaction)} />
-                ))}
-              </View>
-            ) : transactionsError ? (
-              <View style={styles.transactionsList}>
-                <ThemedText style={styles.transactionDate}>Error loading transactions</ThemedText>
-              </View>
-            ) : (
-              <View style={styles.transactionsList}>
-                <ThemedText style={styles.transactionDate}>No transactions yet</ThemedText>
+            {/* Testnet Warning */}
+            {getIsTestnet(network) && (
+              <View style={styles.testnetWarning}>
+                <ThemedText style={styles.testnetWarningText}>Warning: You are using a testnet, coins have no value</ThemedText>
               </View>
             )}
 
-            <Button title="Transaction History" onPress={handleTransactionHistory} variant="dark" />
-          </BlurView>
-
-          {/* Bottom spacing for navigation */}
-          <View style={styles.bottomSpacer} />
-        </View>
-      </GradientScreen>
-
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNavigation}>
-        <View style={styles.navContainer}>
-          <BlurView intensity={20} tint="dark" style={styles.navBlur} />
-
-          {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
-            <ActionPopupButton actions={getLightningSendActions()}>
-              <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" activeOpacity={0.8}>
-                <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
-                <ThemedText style={styles.navButtonText}>Send</ThemedText>
-              </TouchableOpacity>
-            </ActionPopupButton>
-          ) : (
-            <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" onPress={handleSend} activeOpacity={0.8}>
-              <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
-              <ThemedText style={styles.navButtonText}>Send</ThemedText>
-            </TouchableOpacity>
-          )}
-
-          {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
-            <ActionPopupButton actions={getLightningReceiveActions()}>
-              <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
-                <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
-                <ThemedText style={styles.navButtonText}>Receive</ThemedText>
-              </TouchableOpacity>
-            </ActionPopupButton>
-          ) : (
-            <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" onPress={handleReceive} activeOpacity={0.8}>
-              <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
-              <ThemedText style={styles.navButtonText}>Receive</ThemedText>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {swapPairs.length > 0 && (
-          <View style={styles.swapButton}>
-            <BlurView intensity={40} tint="light" style={styles.navBlur} />
-            <TouchableOpacity style={styles.swapButtonInner} onPress={handleSwap} activeOpacity={0.8} testID="SwapButton">
-              <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
-              <ThemedText style={styles.navButtonText}>Swap</ThemedText>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-
-      {/* Biometric Authentication Lock Screen Overlay */}
-      {lockState.isLocked && lockState.requiresAuth && (
-        <View style={styles.lockScreenOverlay}>
-          <BlurView intensity={50} tint="dark" style={styles.lockScreenBlur}>
-            <View style={styles.lockScreenContent}>
-              <View style={styles.lockIconContainer}>
-                <MaterialIcons name="lock" size={80} color="rgba(255, 255, 255, 0.8)" />
+            {/* Balance Section */}
+            {isLightningNetwork ? (
+              <View style={styles.lightningBalanceContainer}>
+                <View style={styles.lightningBalanceRow}>
+                  <ThemedText style={styles.lightningBalanceLabel}>Spark</ThemedText>
+                  <View style={styles.lightningBalanceValues}>
+                    <ThemedText style={styles.lightningBalanceAmount}>
+                      {network === NETWORK_LIGHTNING_TESTNET ? '0' : sparkBalance ? formatBalance(sparkBalance, Number(getDecimalsByNetwork(NETWORK_SPARK)), 8) : '0'}{' '}
+                      {getTickerByNetwork(NETWORK_SPARK)}
+                    </ThemedText>
+                    <ThemedText style={styles.lightningBalanceFiat}>
+                      {network === NETWORK_LIGHTNING_TESTNET
+                        ? '-'
+                        : sparkBalance && +sparkBalance > 0 && sparkExchangeRate
+                          ? '$' + formatFiatBalance(sparkBalance, Number(getDecimalsByNetwork(NETWORK_SPARK)), Number(sparkExchangeRate))
+                          : '-'}
+                    </ThemedText>
+                  </View>
+                </View>
+                <View style={styles.lightningBalanceRow}>
+                  <ThemedText style={styles.lightningBalanceLabel}>Ark</ThemedText>
+                  <View style={styles.lightningBalanceValues}>
+                    <ThemedText style={styles.lightningBalanceAmount}>
+                      {network === NETWORK_LIGHTNING_TESTNET ? '0' : arkBalance ? formatBalance(arkBalance, Number(getDecimalsByNetwork(NETWORK_ARK)), 8) : '0'} {getTickerByNetwork(NETWORK_ARK)}
+                    </ThemedText>
+                    <ThemedText style={styles.lightningBalanceFiat}>
+                      {network === NETWORK_LIGHTNING_TESTNET
+                        ? '-'
+                        : arkBalance && +arkBalance > 0 && arkExchangeRate
+                          ? '$' + formatFiatBalance(arkBalance, Number(getDecimalsByNetwork(NETWORK_ARK)), Number(arkExchangeRate))
+                          : '-'}
+                    </ThemedText>
+                  </View>
+                </View>
+                <View style={styles.lightningBalanceRowLast}>
+                  <ThemedText style={styles.lightningBalanceLabel}>Liquid</ThemedText>
+                  <View style={styles.lightningBalanceValues}>
+                    <ThemedText style={styles.lightningBalanceAmount}>
+                      {liquidBalance ? formatBalance(liquidBalance, Number(getDecimalsByNetwork(NETWORK_LIQUID)), 8) : '0'} {getTickerByNetwork(NETWORK_LIQUID)}
+                    </ThemedText>
+                    <ThemedText style={styles.lightningBalanceFiat}>
+                      {liquidBalance && +liquidBalance > 0 && liquidExchangeRate
+                        ? '$' + formatFiatBalance(liquidBalance, Number(getDecimalsByNetwork(NETWORK_LIQUID)), Number(liquidExchangeRate))
+                        : '-'}
+                    </ThemedText>
+                  </View>
+                </View>
+                {canBuyWithFiat && (
+                  <View style={styles.lightningBuyButtonContainer}>
+                    <TouchableOpacity style={styles.lightningBuyButton} onPress={handleBuyClick} activeOpacity={0.8}>
+                      <Ionicons name="cart-outline" size={16} color="white" />
+                      <ThemedText style={styles.lightningBuyButtonText}>Buy</ThemedText>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
-              <ThemedText style={styles.lockScreenTitle}>Wallet Locked</ThemedText>
-              <ThemedText style={styles.lockScreenSubtitle}>
-                {lockState.isAuthenticating
-                  ? 'Authenticating...'
-                  : lockState.userCanceled
-                    ? 'Authentication was canceled. Tap unlock to try again.'
-                    : hasAutoTriggered
-                      ? 'Tap unlock to authenticate'
-                      : 'Authenticating automatically...'}
-              </ThemedText>
-              {!lockState.isAuthenticating && (lockState.userCanceled || hasAutoTriggered) && (
-                <TouchableOpacity
-                  style={styles.unlockButton}
-                  onPress={() => {
-                    LayoutAnimation.configureNext({
-                      duration: 200,
-                      create: {
-                        type: LayoutAnimation.Types.easeInEaseOut,
-                        property: LayoutAnimation.Properties.opacity,
-                      },
-                      update: {
-                        type: LayoutAnimation.Types.easeInEaseOut,
-                        property: LayoutAnimation.Properties.opacity,
-                      },
-                    });
-                    clearCanceled();
-                    authenticateWithBiometrics();
-                  }}
-                  testID="UnlockButton"
-                >
-                  <MaterialIcons name="fingerprint" size={24} color="rgba(255, 255, 255, 0.8)" />
-                  <ThemedText style={styles.unlockButtonText}>Unlock</ThemedText>
+            ) : (
+              <View style={styles.balanceSection} testID="LayerBalance">
+                <View style={styles.balanceContainer}>
+                  <ThemedText style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
+                    {balance ? displayBalance : '???'}
+                  </ThemedText>
+                  <ThemedText style={styles.balanceUsd}>{displaySubBalance}</ThemedText>
+                </View>
+
+                {canBuyWithFiat && (
+                  <TouchableOpacity style={styles.buyButton} onPress={handleBuyClick} activeOpacity={0.8}>
+                    <ThemedText style={styles.buyButtonText}>Buy Bitcoin</ThemedText>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            {/* Explorer Button for EVM networks */}
+            {isEVM && <Button title="🔍 Explore" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
+
+            {/* Swap List Section */}
+            <SwapList />
+
+            {/* Tokens Section */}
+            <View style={styles.tokensSection}>{network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET ? <LiquidTokensView /> : <TokensView />}</View>
+
+            {/* Transactions Section */}
+            <View style={styles.transactionsContainer}>
+              <ThemedText style={styles.transactionsTitle}>Latest Transactions</ThemedText>
+
+              {latestTransactions.length > 0 ? (
+                <View style={styles.transactionsList}>
+                  {latestTransactions.map((transaction) => (
+                    <Transaction key={transaction.txid} network={network} transaction={transaction} onPress={() => handleTransactionDetails(transaction)} />
+                  ))}
+                </View>
+              ) : transactionsError ? (
+                <View style={styles.transactionsList}>
+                  <ThemedText style={styles.transactionDate}>Error loading transactions</ThemedText>
+                </View>
+              ) : (
+                <View style={styles.transactionsList}>
+                  <ThemedText style={styles.transactionDate}>No transactions yet</ThemedText>
+                </View>
+              )}
+
+              <Button title="Transaction History" onPress={handleTransactionHistory} variant="dark" />
+            </View>
+          </View>
+        </GradientScreen>
+
+        {/* White Flash Overlay for Network Transition */}
+        <Animated.View style={[styles.whiteFlashOverlayAnimated, { opacity: whiteFlashAnim }]} />
+
+        {/* Bottom Navigation - Fixed to modal bottom */}
+        <View style={styles.bottomNavigationContainer}>
+          <View style={styles.bottomNavigation}>
+            <View style={styles.navContainer}>
+              <PlatformBlurView intensity={20} tint="dark" style={styles.navBlur} />
+
+              {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
+                <ActionPopupButton actions={getLightningSendActions()}>
+                  <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" activeOpacity={0.8}>
+                    <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
+                    <ThemedText style={styles.navButtonText}>Send</ThemedText>
+                  </TouchableOpacity>
+                </ActionPopupButton>
+              ) : (
+                <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" onPress={handleSend} activeOpacity={0.8}>
+                  <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
+                  <ThemedText style={styles.navButtonText}>Send</ThemedText>
+                </TouchableOpacity>
+              )}
+
+              {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
+                <ActionPopupButton actions={getLightningReceiveActions()}>
+                  <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
+                    <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
+                    <ThemedText style={styles.navButtonText}>Receive</ThemedText>
+                  </TouchableOpacity>
+                </ActionPopupButton>
+              ) : (
+                <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" onPress={handleReceive} activeOpacity={0.8}>
+                  <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
+                  <ThemedText style={styles.navButtonText}>Receive</ThemedText>
                 </TouchableOpacity>
               )}
             </View>
-          </BlurView>
+
+            {swapPairs.length > 0 && (
+              <View style={styles.swapButton}>
+                <PlatformBlurView intensity={40} tint="light" style={styles.navBlur} />
+                <TouchableOpacity style={styles.swapButtonInner} onPress={handleSwap} activeOpacity={0.8} testID="SwapButton">
+                  <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
+                  <ThemedText style={styles.navButtonText}>Swap</ThemedText>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
-      )}
-    </>
+      </Animated.View>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  blackBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'black',
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  modalContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  whiteFlashOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'white',
+    zIndex: 1000,
+  },
+  draggableHeader: {
+    width: '100%',
+    zIndex: 10,
+  },
   root: {
     flex: 1,
     paddingHorizontal: 18,
     paddingBottom: 100,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 30,
-    marginTop: 16,
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: -5,
-  },
-  logo: {
-    width: 130,
-    height: 50,
-  },
-  pocket: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  pocketLabel: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: -6,
-  },
-  pocketAmount: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+  contentWithHeader: {
+    paddingTop: 80,
   },
   networkSelectorContainer: {
     alignSelf: 'flex-start',
+    marginTop: 0,
   },
   networkSelector: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -606,7 +720,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
   },
   transactionsContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
     borderRadius: 20,
     padding: 16,
     marginBottom: 20,
@@ -659,14 +773,16 @@ const styles = StyleSheet.create({
   bottomSpacer: {
     height: 20,
   },
-  bottomNavigation: {
+  bottomNavigationContainer: {
     position: 'absolute',
-    bottom: 0,
-    left: 18,
-    right: 18,
+    bottom: 34, // Safe area padding
+    left: 0,
+    right: 0,
+  },
+  bottomNavigation: {
+    paddingHorizontal: 18,
     flexDirection: 'row',
     gap: 8,
-    paddingBottom: 34, // Safe area padding
   },
   navContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
@@ -730,11 +846,6 @@ const styles = StyleSheet.create({
     color: '#F59E0B',
     fontWeight: '500',
   },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
   lightningBalanceContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 16,
@@ -747,6 +858,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  lightningBalanceRowLast: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 0,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   lightningBalanceLabel: {
@@ -789,53 +908,26 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 4,
   },
-  lockScreenOverlay: {
+  maestroSettingsButton: {
+    position: 'absolute',
+    top: 60, // Position below the header
+    right: 16,
+    width: 40,
+    height: 40,
+    opacity: 0.01, // Nearly invisible but still detectable
+    zIndex: 9999,
+  },
+  gestureHandlerRoot: {
+    flex: 1,
+  },
+  whiteFlashOverlayAnimated: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 1000,
-  },
-  lockScreenBlur: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  lockScreenContent: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  lockIconContainer: {
-    marginBottom: 20,
-    transform: [{ scale: 1 }],
-  },
-  lockScreenTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  lockScreenSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 22,
-  },
-  unlockButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 8,
-  },
-  unlockButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: 'white',
+    zIndex: 9998,
+    pointerEvents: 'none',
   },
 });

@@ -43,13 +43,13 @@ export const ActionPopupButton: React.FC<ActionPopupButtonProps> = ({ children, 
     intervalRef.current = setInterval(() => {
       setProgress((prevProgress) => {
         if (prevProgress < 100) {
-          const newProgress = prevProgress + (100 * 10) / 3000; // 3 seconds = 3000ms
+          const newProgress = prevProgress + (100 * 10) / 2000; // 2 sec
           progressAnimation.setValue(newProgress);
           return newProgress;
         }
         clearInterval(intervalRef.current!);
         // Trigger default action when progress reaches 100%
-        actions[0]?.onClick();
+        setTimeout(() => actions[0]?.onClick(), 200); // propagate
         setShowPopup(false);
         return 100;
       });

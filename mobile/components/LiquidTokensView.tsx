@@ -7,7 +7,7 @@ import { BlurView } from 'expo-blur';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { BreezWallet, getBreezNetwork, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
+import { BreezWallet, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET } from '@shared/types/networks';
@@ -55,10 +55,6 @@ const LiquidTokensView: React.FC = () => {
   if (assetBalances.length === 0) {
     return null;
   }
-
-  const getAssetName = (asset: AssetBalance): string => {
-    return asset.ticker || asset.assetId.substring(0, 8) + '...';
-  };
 
   const getAssetDisplayName = (asset: AssetBalance): string => {
     return asset.name || asset.ticker || 'Unknown Asset';

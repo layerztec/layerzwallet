@@ -13,8 +13,8 @@ import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonSwap } from '@shared/types/common-swap';
-import { NETWORK_SPARK } from '@shared/types/networks';
-import { SwapSparkClaimParams } from '@/app/SwapSparkClaim';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { SwapXArkClaimParams } from '@/app/SwapXArkClaim';
 
 export default function SwapDetails() {
   const router = useRouter();
@@ -29,7 +29,7 @@ export default function SwapDetails() {
 
   const [formattedDate, formattedDateWithTime] = useMemo(() => {
     if (!swap.timestamp) return ['—', '—'];
-    const d = new Date(swap.timestamp * 1000);
+    const d = new Date(swap.timestamp);
     const dateStr = d.toLocaleDateString('en-US', {
       month: 'long',
       day: '2-digit',
@@ -87,13 +87,13 @@ export default function SwapDetails() {
   };
 
   const handleClaim = () => {
-    if (swap.network === NETWORK_SPARK && swap.status === 'claimable') {
-      const params: SwapSparkClaimParams = { swapId: swap.id, amountIn: swap.amount.toString() };
-      router.push({ pathname: '/SwapSparkClaim', params });
+    if ([NETWORK_SPARK, NETWORK_ARK_MUTINYNET, NETWORK_ARK].includes(swap.network as any) && swap.status === 'claimable') {
+      const params: SwapXArkClaimParams = { swapJson: JSON.stringify(swap) };
+      router.push({ pathname: '/SwapXArkClaim', params });
     }
   };
 
-  const showClaimButton = swap.network === NETWORK_SPARK && swap.status === 'claimable';
+  const showClaimButton = [NETWORK_SPARK, NETWORK_ARK_MUTINYNET, NETWORK_ARK].includes(swap.network as any) && swap.status === 'claimable';
 
   return (
     <GradientFormSheet variant={network}>
@@ -157,6 +157,15 @@ export default function SwapDetails() {
             <ThemedText style={styles.detailLabel}>Status</ThemedText>
             <ThemedText style={styles.detailValue}>{capitalizeFirstLetter(swap.status)}</ThemedText>
           </View>
+
+          {swap.targetConfirmations && (
+            <View style={styles.detailRow}>
+              <ThemedText style={styles.detailLabel}>Confirmations</ThemedText>
+              <ThemedText style={styles.detailValue}>
+                {swap.confirmations} / {swap.targetConfirmations}
+              </ThemedText>
+            </View>
+          )}
         </View>
 
         {/* Action buttons */}

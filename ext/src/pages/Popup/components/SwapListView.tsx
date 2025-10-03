@@ -6,13 +6,13 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useSwaps } from '@shared/hooks/useSwaps';
 import { CommonSwap } from '@shared/types/common-swap';
-import { NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
 import { formatBalance } from '@shared/modules/string-utils';
 import { getDecimalsByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 
 import { BackgroundCaller } from '../../../modules/background-caller';
-import { SwapSparkClaimParams } from '../SwapSparkClaim';
+import { SwapXArkClaimParams } from '../SwapXArkClaim';
 import { SwapDetailsParams } from '../SwapDetails';
 
 interface SwapItemProps {
@@ -40,9 +40,9 @@ const SwapItem: React.FC<SwapItemProps> = ({ swap }) => {
   };
 
   const handleClaim = () => {
-    if (swap.network === NETWORK_SPARK && swap.status === 'claimable') {
-      const params: SwapSparkClaimParams = { swapId: swap.id, amountIn: swap.amount.toString() };
-      navigate('/swap-spark-claim', { state: params });
+    if ((swap.network === NETWORK_SPARK || swap.network === NETWORK_ARK || swap.network === NETWORK_ARK_MUTINYNET) && swap.status === 'claimable') {
+      const params: SwapXArkClaimParams = { swapJson: JSON.stringify(swap) };
+      navigate('/swap-xark-claim', { state: params });
     }
   };
 
@@ -68,10 +68,15 @@ const SwapItem: React.FC<SwapItemProps> = ({ swap }) => {
       <div style={{ flex: 1, marginLeft: '12px' }}>
         <div style={{ fontSize: '14px', fontWeight: '500' }}>{amount}</div>
         <div style={{ fontSize: '12px', color: '#666' }}>{formatSwapDate()}</div>
+        {swap.targetConfirmations && (
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            {swap.confirmations} / {swap.targetConfirmations} confirmations
+          </div>
+        )}
       </div>
 
       <div style={{ textAlign: 'right' }}>
-        {swap.network === NETWORK_SPARK && swap.status === 'claimable' ? (
+        {(swap.network === NETWORK_SPARK || swap.network === NETWORK_ARK || swap.network === NETWORK_ARK_MUTINYNET) && swap.status === 'claimable' ? (
           <button
             style={{
               padding: '4px 8px',

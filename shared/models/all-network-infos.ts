@@ -1,6 +1,7 @@
 import { NetworkInfo } from '../types/network-info';
 import {
   NETWORK_ARK_MUTINYNET,
+  NETWORK_ARK,
   NETWORK_BITCOIN,
   NETWORK_BOTANIX_TESTNET,
   NETWORK_LIQUID,
@@ -106,6 +107,17 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     isTestnet: true,
     isEVM: false,
     sortIndex: 30,
+  },
+  [NETWORK_ARK]: {
+    chainId: -1,
+    ticker: 'BTC',
+    rpcUrl: '',
+    explorerUrl: '',
+    decimals: 8,
+    knowMoreUrl: 'https://arklabs.to/',
+    isTestnet: false,
+    isEVM: false,
+    sortIndex: 15,
   },
   [NETWORK_LIQUID]: {
     chainId: 11,

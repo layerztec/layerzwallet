@@ -10,17 +10,20 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { getDecimalsByNetwork } from '@shared/models/network-getters';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { SendBtcParams } from './SendBtc';
 
-export type SwapSparkDepositParams = {
+export type SwapXArkDepositParams = {
   amountIn: string;
+  to: typeof NETWORK_ARK | typeof NETWORK_ARK_MUTINYNET | typeof NETWORK_SPARK;
 };
 
-export default function SwapSparkDeposit() {
+export default function SwapXArkDeposit() {
   const router = useRouter();
-  const { network } = useContext(NetworkContext);
-  const params = useLocalSearchParams<SwapSparkDepositParams>();
+  const network = useContext(NetworkContext).network as typeof NETWORK_ARK | typeof NETWORK_ARK_MUTINYNET | typeof NETWORK_SPARK;
+  const { amountIn, to } = useLocalSearchParams<SwapXArkDepositParams>();
   const { accountNumber } = useContext(AccountNumberContext);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -29,11 +32,12 @@ export default function SwapSparkDeposit() {
   useEffect(() => {
     const redirect = async () => {
       try {
-        const wallet = await BackgroundExecutor.lazyInitWallet(NETWORK_SPARK, accountNumber);
-        assert(wallet instanceof SparkWallet);
+        const wallet = await BackgroundExecutor.lazyInitWallet(to, accountNumber);
+        assert(wallet instanceof SparkWallet || wallet instanceof ArkWallet, 'Not a XArk wallet');
         const toAddress = await wallet.getOnchainDepositAddress();
-        const amount = new BigNumber(params.amountIn).dividedBy(10 ** getDecimalsByNetwork(network)).toString(10);
-        router.replace({ pathname: '/SendBtc', params: { toAddress, amount, addressLock: 'true' } });
+        const amount = new BigNumber(amountIn).dividedBy(10 ** getDecimalsByNetwork(network)).toString(10);
+        const newParams: SendBtcParams = { toAddress, amount, xArkSwapTo: to };
+        router.replace({ pathname: '/SendBtc', params: newParams });
       } catch (error: any) {
         setError(error.message);
       } finally {
@@ -41,7 +45,7 @@ export default function SwapSparkDeposit() {
       }
     };
     redirect();
-  }, [router, params.amountIn, accountNumber, network]);
+  }, [router, amountIn, accountNumber, network, to]);
 
   return (
     <GradientScreen variant={network} scroll={true}>

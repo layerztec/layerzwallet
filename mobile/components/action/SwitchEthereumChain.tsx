@@ -4,7 +4,6 @@ import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
-import { Colors } from '@shared/constants/Colors';
 
 interface SwitchEthereumChainArgs {
   params: any[];
@@ -21,7 +20,6 @@ export function SwitchEthereumChain(args: SwitchEthereumChainArgs) {
     try {
       // TODO: Implement network switching logic
       BrowserBridge.instance?.sendMessage({ for: 'webpage', id: args.id, response: null });
-      Alert.alert('Success', 'Network switched');
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to switch network');
@@ -37,7 +35,6 @@ export function SwitchEthereumChain(args: SwitchEthereumChainArgs) {
         id: args.id,
         error: { code: 4001, message: 'User rejected the request.' },
       });
-      Alert.alert('Rejected', 'User rejected the request');
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to reject request');

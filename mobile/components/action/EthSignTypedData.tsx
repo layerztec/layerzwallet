@@ -6,7 +6,6 @@ import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { Colors } from '@shared/constants/Colors';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 
 interface EthSignTypedDataArgs {
@@ -38,7 +37,6 @@ export function EthSignTypedData(args: EthSignTypedDataArgs) {
       }
 
       BrowserBridge.instance?.sendMessage({ for: 'webpage', id: args.id, response: signedResponse.bytes });
-      Alert.alert('Success', 'Typed data signed');
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to sign typed data');
@@ -54,7 +52,6 @@ export function EthSignTypedData(args: EthSignTypedDataArgs) {
         id: args.id,
         error: { code: 4001, message: 'User rejected the request.' },
       });
-      Alert.alert('Rejected', 'User rejected the request');
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to reject request');
@@ -73,7 +70,9 @@ export function EthSignTypedData(args: EthSignTypedDataArgs) {
 
       return (
         <View style={styles.messageContainer}>
-          <ThemedText style={styles.messageText}>{typedData}</ThemedText>
+          <ScrollView style={styles.messageScrollView} contentContainerStyle={styles.messageScrollContent}>
+            <ThemedText style={styles.messageText}>{typedData}</ThemedText>
+          </ScrollView>
         </View>
       );
     } catch (error: any) {
@@ -83,7 +82,7 @@ export function EthSignTypedData(args: EthSignTypedDataArgs) {
 
   return (
     <View style={styles.container} collapsable={true}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.contentContainer}>
           <ThemedText style={styles.title}>Sign Typed Data</ThemedText>
           <ThemedText style={styles.subtitle}>
@@ -148,6 +147,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  messageScrollView: {
+    maxHeight: 300,
+  },
+  messageScrollContent: {
+    paddingVertical: 8,
   },
   messageText: {
     fontSize: 14,

@@ -7,10 +7,10 @@ import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonSwap } from '@shared/types/common-swap';
-import { NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
 
 import { Button } from './DesignSystem';
-import { SwapSparkClaimParams } from './SwapSparkClaim';
+import { SwapXArkClaimParams } from './SwapXArkClaim';
 
 export interface SwapDetailsParams {
   swap: CommonSwap;
@@ -28,7 +28,7 @@ const SwapDetails: React.FC = () => {
 
   const [formattedDate, formattedDateWithTime] = useMemo(() => {
     if (!swap.timestamp) return ['—', '—'];
-    const d = new Date(swap.timestamp * 1000);
+    const d = new Date(swap.timestamp);
     const dateStr = d.toLocaleDateString('en-US', {
       month: 'long',
       day: '2-digit',
@@ -90,9 +90,9 @@ const SwapDetails: React.FC = () => {
   };
 
   const handleClaim = () => {
-    if (swap.network === NETWORK_SPARK && swap.status === 'claimable') {
-      const params: SwapSparkClaimParams = { swapId: swap.id, amountIn: swap.amount.toString() };
-      navigate('/swap-spark-claim', { state: params });
+    if ((swap.network === NETWORK_SPARK || swap.network === NETWORK_ARK || swap.network === NETWORK_ARK_MUTINYNET) && swap.status === 'claimable') {
+      const params: SwapXArkClaimParams = { swapJson: JSON.stringify(swap) };
+      navigate('/swap-xark-claim', { state: params });
     }
   };
 
@@ -100,7 +100,8 @@ const SwapDetails: React.FC = () => {
     navigate(-1);
   };
 
-  const showClaimButton = swap.network === NETWORK_SPARK && swap.status === 'claimable';
+  const showClaimButton = (swap.network === NETWORK_SPARK || swap.network === NETWORK_ARK || swap.network === NETWORK_ARK_MUTINYNET) && swap.status === 'claimable';
+  const showConfirmations = Boolean(swap.targetConfirmations);
 
   return (
     <div style={{ padding: '0 4px' }}>
@@ -277,17 +278,28 @@ const SwapDetails: React.FC = () => {
             style={{
               display: 'flex',
               justifyContent: 'space-between',
+              ...(showConfirmations ? { paddingBottom: '8px', borderBottom: '1px solid #e0e0e0' } : {}),
             }}
           >
             <span style={{ color: '#666', fontSize: '14px' }}>Status</span>
             <span style={{ fontSize: '14px' }}>{capitalizeFirstLetter(swap.status)}</span>
           </div>
+
+          {/* Confirmations */}
+          {showConfirmations && (
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: '#666', fontSize: '14px' }}>Confirmations</span>
+              <span style={{ fontSize: '14px' }}>
+                {swap.confirmations} / {swap.targetConfirmations}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Action Buttons */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {/* Claim button for claimable Spark swaps */}
+        {/* Claim button for claimable XArk swaps */}
         {showClaimButton && (
           <Button
             onClick={handleClaim}

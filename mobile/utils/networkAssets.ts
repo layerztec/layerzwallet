@@ -11,6 +11,7 @@ import {
   NETWORK_LIGHTNING,
   NETWORK_SPARK,
   NETWORK_LIGHTNING_TESTNET,
+  NETWORK_ARK,
 } from '@shared/types/networks';
 
 /**
@@ -38,6 +39,7 @@ export const getNetworkImageAsset = (network: string): string | null => {
     case NETWORK_ALPEN_TESTNET:
       return require('../assets/images/ui/network/strata.png');
     case NETWORK_ARK_MUTINYNET:
+    case NETWORK_ARK:
       return require('../assets/images/ui/network/ark.png');
     case NETWORK_CITREA_TESTNET:
       return require('../assets/images/ui/network/citrea.png');

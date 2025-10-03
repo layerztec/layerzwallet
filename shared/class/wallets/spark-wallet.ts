@@ -22,9 +22,8 @@ export interface ISparkAdapter {
 export type StaticDepositQuoteOutput = Awaited<ReturnType<SDK['getClaimStaticDepositQuote']>>;
 
 export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
-  private _sdkWallet: SDK | undefined = undefined;
+  private _sdkWallet: Awaited<ReturnType<typeof SDK.initialize>>['wallet'] | undefined = undefined;
   protected adapter: ISparkAdapter;
-  public allowLightning: true = true;
 
   protected _bolt11toReceiveRequestId: Record<string, string> = {};
   private tokenBalances: TokenBalanceMap = new Map();
@@ -43,8 +42,8 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
       },
     });
 
-    wallet.on('transfer:claimed', (transferId: string, balance: number) => {
-      console.log(`Transfer ${transferId} claimed. New balance: ${balance}`);
+    wallet.on('transfer:claimed', (transferId: string, updatedBalance: bigint) => {
+      console.log(`Transfer ${transferId} claimed. New balance: ${updatedBalance}`);
     });
 
     this._sdkWallet = wallet;
@@ -194,13 +193,17 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     return await this._sdkWallet.transferTokens({ receiverSparkAddress, tokenAmount, tokenIdentifier: tokenIdentifier as Bech32mTokenIdentifier });
   }
 
+  allowLightning() {
+    return true;
+  }
+
   async getOnchainDepositAddress(): Promise<string> {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
     return await this._sdkWallet.getStaticDepositAddress();
   }
 
-  async getUnclaimedSwaps(): Promise<CommonSwap[]> {
+  async getCommonSwaps(): Promise<CommonSwap[]> {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
     const address = await this.getOnchainDepositAddress();
@@ -214,15 +217,20 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     const txs1 = await BlueElectrum.multiGetTransactionByTxid([...UTXOs[address].map((output) => output.txid)], true);
     const unclaimedSwaps: CommonSwap[] = UTXOs[address].map((output) => {
       const tx = txs1[output.txid];
-      const timestamp = tx?.blocktime ? tx.blocktime * 1000 : new Date().getTime();
+      const timestamp = tx.blocktime ? tx.blocktime * 1000 : new Date().getTime();
+      const confirmations = tx.confirmations ?? 0;
+      const claimable = confirmations >= 3; // according to Spark docs, 3 confirmations are needed to claim a swap
       return {
         network: NETWORK_SPARK,
         id: output.txid,
-        status: tx?.confirmations && tx.confirmations >= 3 ? 'claimable' : 'pending', // claimable after 3 confirmations
+        status: claimable ? 'claimable' : 'pending',
         amount: output.value,
         timestamp,
         direction: 'receive',
         explorerUrl: `${explorerBase}/tx/${output.txid}`,
+        // we only want to show confirmations for 'pending' swaps
+        confirmations: !claimable ? confirmations : undefined,
+        targetConfirmations: !claimable ? 3 : undefined,
       };
     });
     swaps.push(...unclaimedSwaps);
@@ -260,7 +268,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     return await this._sdkWallet.getClaimStaticDepositQuote(txid);
   }
 
-  async claimDeposit(quote: StaticDepositQuoteOutput): Promise<void> {
+  async claimDepositSpark(quote: StaticDepositQuoteOutput): Promise<void> {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
     await this._sdkWallet.claimStaticDeposit({

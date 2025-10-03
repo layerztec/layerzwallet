@@ -25,13 +25,13 @@ appId: com.layerzwallet.mobile
 # Verify we see the instruction text
 - assertVisible: 'Make sure to write it down as shown here. You have to verify this later.'
 
-# Verify the "I wrote it down!" button is available and enabled
+# Verify the "Skip" button is available and enabled
 - assertVisible:
-    id: 'VerifyButton'
+    id: 'SkipButton'
     enabled: true
 
 - tapOn:
-    id: 'VerifyButton'
+    id: 'SkipButton'
 
 - waitForAnimationToEnd
 

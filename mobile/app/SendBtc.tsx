@@ -19,6 +19,7 @@ import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wal
 import { CreateTransactionTarget, CreateTransactionUtxo } from '@shared/class/wallets/types';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { NETWORK_ARK, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
@@ -26,17 +27,19 @@ import { formatBalance } from '@shared/modules/string-utils';
 type TFeeRateOptions = { [rate: number]: number };
 
 export type SendBtcParams = {
-  addressLock?: 'true' | 'false'; // if true, the address input will be locked
   toAddress?: string;
   amount?: string;
+  xArkSwapTo?: Networks;
 };
+
 const SendBtc: React.FC = () => {
   const { scanQr } = useContext(ScanQrContext);
   const params = useLocalSearchParams<SendBtcParams>();
   const router = useRouter();
-  const addressLock = params.addressLock === 'true';
   const toAddress = params.toAddress ?? '';
   const amount = params.amount ?? '';
+  const xArkSwapTo = params.xArkSwapTo;
+  const xArkSwap = Boolean(params.xArkSwapTo);
   const [error, setError] = useState<string>('');
   const [isPreparing, setIsPreparing] = useState<boolean>(false);
   const [isPrepared, setIsPrepared] = useState<boolean>(false);
@@ -46,7 +49,7 @@ const SendBtc: React.FC = () => {
   const [sendData, setSendData] = useState<undefined | { utxos: CreateTransactionUtxo[]; changeAddress: string }>(undefined);
   const [txhex, setTxhex] = useState<string>('');
   const [actualFee, setActualFee] = useState<number>();
-  const { network } = useContext(NetworkContext);
+  const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
@@ -209,6 +212,18 @@ const SendBtc: React.FC = () => {
     }
   };
 
+  const handleAmountChange = (text: string) => {
+    const normalized = text.replace(',', '.');
+    if (normalized === '' || /^\d*\.?\d*$/.test(normalized)) {
+      router.setParams({ amount: normalized });
+    }
+  };
+
+  const handleBack = () => {
+    if (xArkSwapTo) setNetwork(xArkSwapTo);
+    router.replace('/Home');
+  };
+
   if (isSuccess) {
     return (
       <GradientScreen variant={network}>
@@ -219,8 +234,16 @@ const SendBtc: React.FC = () => {
             <View style={styles.successContainer}>
               <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
               <ThemedText style={styles.successMessage}>Transaction Sent!</ThemedText>
-              <ThemedText style={styles.successSubMessage}>Your {getTickerByNetwork(network)} are on their way</ThemedText>
-              <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/Home')}>
+              {xArkSwapTo ? (
+                <ThemedText style={styles.successSubMessage}>
+                  {xArkSwapTo === NETWORK_SPARK ? 'Spark swap ' : 'Ark swap '}
+                  initiated! Wait for 3 confirmations, then you will be able to claim the funds on the
+                  {xArkSwapTo === NETWORK_SPARK ? ' Spark' : ' Ark'} network.
+                </ThemedText>
+              ) : (
+                <ThemedText style={styles.successSubMessage}>Your {getTickerByNetwork(network)} are on their way</ThemedText>
+              )}
+              <TouchableOpacity style={styles.backButton} onPress={handleBack}>
                 <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
               </TouchableOpacity>
             </View>
@@ -240,16 +263,16 @@ const SendBtc: React.FC = () => {
             <ThemedText style={styles.inputLabel}>Recipient Address</ThemedText>
             <View style={styles.inputContainer}>
               <TextInput
-                style={[styles.input, addressLock && styles.inputDisabled]}
+                style={[styles.input, xArkSwap && styles.inputDisabled]}
                 placeholder="Enter the recipient's address"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 autoCapitalize="none"
                 autoCorrect={false}
                 onChangeText={(text) => router.setParams({ toAddress: text })}
                 value={toAddress}
-                editable={!addressLock}
+                editable={!xArkSwap}
               />
-              <TouchableOpacity style={[styles.scanButton, addressLock && styles.inputDisabled]} disabled={addressLock} onPress={handleScanQR}>
+              <TouchableOpacity style={[styles.scanButton, xArkSwap && styles.inputDisabled]} disabled={xArkSwap} onPress={handleScanQR}>
                 <Ionicons name="scan-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
               </TouchableOpacity>
             </View>
@@ -257,19 +280,7 @@ const SendBtc: React.FC = () => {
 
           <View style={styles.inputSection}>
             <ThemedText style={styles.inputLabel}>Amount</ThemedText>
-            <TextInput
-              style={styles.input}
-              placeholder="0.00"
-              placeholderTextColor="rgba(255, 255, 255, 0.6)"
-              keyboardType="decimal-pad"
-              onChangeText={(text) => {
-                const normalized = text.replace(',', '.');
-                if (normalized === '' || /^\d*\.?\d*$/.test(normalized)) {
-                  router.setParams({ amount: normalized });
-                }
-              }}
-              value={amount}
-            />
+            <TextInput style={styles.input} placeholder="0.00" placeholderTextColor="rgba(255, 255, 255, 0.6)" keyboardType="decimal-pad" onChangeText={handleAmountChange} value={amount} />
             <ThemedText style={styles.balanceText}>
               Available balance: {balance ? formatBalance(balance, getDecimalsByNetwork(network), 8) : ''} {getTickerByNetwork(network)}
             </ThemedText>

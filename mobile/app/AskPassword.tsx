@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TextInput, View, Text, Pressable, StyleSheet } from 'react-native';
+import { TextInput, View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useThemeColor } from '../hooks/useThemeColor';
 import { useAskPassword } from '../src/hooks/AskPasswordContext';
@@ -31,26 +31,28 @@ export default function AskPasswordScreen() {
 
   return (
     <View style={[styles.centeredView, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-      <View style={[styles.modalView, { backgroundColor }]}>
-        <Text style={[styles.modalTitle, { color: textColor }]}>Unlock your wallet</Text>
-        <TextInput
-          style={[styles.input, { color: textColor, borderColor: tintColor }]}
-          secureTextEntry
-          placeholder="Enter your password"
-          placeholderTextColor="#888"
-          value={password}
-          onChangeText={handlePasswordChange}
-          autoFocus
-        />
-        <View style={styles.buttonContainer}>
-          <Pressable style={[styles.button, styles.buttonCancel]} onPress={onCancelPress}>
-            <Text style={styles.buttonText}>Cancel</Text>
-          </Pressable>
-          <Pressable style={[styles.button, styles.buttonConfirm, { backgroundColor: tintColor }]} onPress={onOkPress}>
-            <Text style={styles.buttonText}>OK</Text>
-          </Pressable>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoidingView}>
+        <View style={[styles.modalView, { backgroundColor }]}>
+          <Text style={[styles.modalTitle, { color: textColor }]}>Unlock your wallet?</Text>
+          <TextInput
+            style={[styles.input, { color: textColor, borderColor: tintColor }]}
+            secureTextEntry
+            placeholder="Enter your password"
+            placeholderTextColor="#888"
+            value={password}
+            onChangeText={handlePasswordChange}
+            autoFocus
+          />
+          <View style={styles.buttonContainer}>
+            <Pressable style={[styles.button, styles.buttonCancel]} onPress={onCancelPress}>
+              <Text style={styles.buttonText}>Cancel</Text>
+            </Pressable>
+            <Pressable style={[styles.button, styles.buttonConfirm]} onPress={onOkPress}>
+              <Text style={styles.buttonText}>OK</Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -60,6 +62,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 50,
   },
   modalView: {
     width: '80%',

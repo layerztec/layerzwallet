@@ -1,7 +1,6 @@
 import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useNavigation } from '@react-navigation/native';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import * as bolt11 from 'bolt11';
@@ -12,7 +11,7 @@ import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -22,9 +21,12 @@ import { Ionicons } from '@expo/vector-icons';
 import assert from 'assert';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import Lnurl, { LnurlPayServicePayload } from '@shared/class/lnurl';
+import { convertMerchantQRToLightningAddress } from '@shared/modules/merchants';
 
 export type SendLightningProps = {
-  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET;
+  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK;
   invoice?: string;
 };
 
@@ -34,57 +36,92 @@ const SendLightning: React.FC = () => {
   const params = useLocalSearchParams<SendLightningProps>();
   const router = useRouter();
   const network = params.network;
-  const invoice = params.invoice ?? '';
   const { scanQr } = useContext(ScanQrContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
-  const navigation = useNavigation();
   const [error, setError] = useState<string>('');
   const [sendState, setSendState] = useState<'idle' | 'preparing' | 'prepared' | 'sending' | 'success'>('idle');
   const [feeSats, setFeeSats] = useState<number | null>(null);
   const [amountToSend, setAmountToSend] = useState<string>('');
   const [memo, setMemo] = useState<string>('');
+  const [invoice, setInvoice] = useState<string>(params.invoice ?? '');
   const { accountNumber } = useContext(AccountNumberContext);
   const walletRef = useRef<TLightningWallet | null>(null);
 
+  const [lnurl, setLnurl] = useState<Lnurl | undefined>();
+  const [lnurlPayServicePayload, setLnurlPayServicePayload] = useState<{ [key: string]: LnurlPayServicePayload }>({});
+  const [lnAddressAmountToSend, setLnAddressAmountToSend] = useState<string>('');
+
+  const isPayingToLightningAddress = Boolean(lnurlPayServicePayload[invoice]);
+
   const onInvoiceInput = async (scanned: string) => {
     const scanned2use = scanned.trim().replace('lightning:', '').replace('LIGHTNING:', ''); // sanitize
-    router.setParams({ invoice: scanned2use });
+    setInvoice(scanned2use);
   };
 
   useEffect(() => {
-    if (params.invoice) console.log('got invoice in useEffect params!', params.invoice);
-    if (!params.invoice) return;
+    (async () => {
+      let invoice2use = invoice;
+      if (invoice2use) console.log('got invoice in useEffect params!', invoice2use);
+      if (!invoice2use) return;
 
-    try {
       try {
-        const bip21decoded = bip21.decode(params.invoice);
-        // @ts-ignore `lightning` is not part of bip21 spec, but a valid extension of bip21 thats widely used
-        if (bip21decoded?.options?.lightning) {
-          // @ts-ignore
-          router.setParams({ invoice: bip21decoded?.options?.lightning });
-          return; // useEffect will re-run with the correct parsed invoice
+        setError('');
+
+        const merchantLightningAddress = convertMerchantQRToLightningAddress({ qrContent: invoice2use, network: 'mainnet' });
+        if (merchantLightningAddress) {
+          invoice2use = merchantLightningAddress;
         }
-      } catch (_) {}
 
-      const decoded = bolt11.decode(params.invoice);
-      setAmountToSend(decoded.satoshis ? String(decoded.satoshis) : '');
+        if (Lnurl.isLightningAddress(invoice2use)) {
+          try {
+            // need to fetch details, like minimum and maximum sat payment
+            const ln = new Lnurl(invoice2use);
+            const response = await ln.callLnurlPayService();
+            if (response) {
+              setLnurl(ln);
+              setLnurlPayServicePayload((prev) => ({ ...prev, [invoice]: response, [invoice2use]: response }));
+              if (response.min && response.min === response.max) {
+                setLnAddressAmountToSend(String(response.min));
+              }
+              return;
+            }
+          } catch (error: any) {
+            console.log('Lightning Address fetch error:', error.message);
+            setError('Lightning Address fetch error: ' + error.message);
+          }
+          return;
+        }
 
-      if (!decoded.satoshis) {
-        throw new Error('Could not determine payment amount from invoice');
+        try {
+          const bip21decoded = bip21.decode(invoice2use);
+          // @ts-ignore `lightning` is not part of bip21 spec, but a valid extension of bip21 thats widely used
+          if (bip21decoded?.options?.lightning) {
+            // @ts-ignore
+            setInvoice(bip21decoded?.options?.lightning);
+            return; // useEffect will re-run with the correct parsed invoice
+          }
+        } catch {}
+
+        const decoded = bolt11.decode(invoice2use);
+        setAmountToSend(decoded.satoshis ? String(decoded.satoshis) : '');
+
+        if (!decoded.satoshis) {
+          throw new Error('Could not determine payment amount from invoice');
+        }
+
+        const memoTag = decoded.tags.find((tag: any) => tag.tagName === 'description');
+        if (memoTag) {
+          setMemo(String(memoTag.data));
+        }
+
+        const feeBN = new BigNumber(decoded.satoshis).dividedBy(100).multipliedBy(maxFeePercent).toNumber();
+        setFeeSats(Math.max(Math.round(feeBN), 2));
+        setError('');
+      } catch (error: any) {
+        setError(error.message);
       }
-
-      const memoTag = decoded.tags.find((tag: any) => tag.tagName === 'description');
-      if (memoTag) {
-        setMemo(String(memoTag.data));
-      }
-
-      const feeBN = new BigNumber(decoded.satoshis).dividedBy(100).multipliedBy(maxFeePercent).toNumber();
-      setFeeSats(Math.max(Math.round(feeBN), 2));
-      setError('');
-    } catch (error: any) {
-      setError(error.message);
-    }
-  }, [params.invoice, router]);
+    })();
+  }, [invoice, params.invoice, router]);
 
   const handleQRScan = async () => {
     const scanned = await scanQr();
@@ -96,7 +133,7 @@ const SendLightning: React.FC = () => {
     const initializeWallet = async () => {
       try {
         const w = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-        assert(w instanceof BreezWallet || w instanceof SparkWallet);
+        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkWallet);
         walletRef.current = w;
       } catch (err) {
         console.error('Failed to initialize wallet:', err);
@@ -120,6 +157,61 @@ const SendLightning: React.FC = () => {
       setSendState('prepared');
     } catch (error: any) {
       console.error('Prepare transaction error:', error);
+      setError(error.message);
+      setSendState('idle');
+    }
+  };
+
+  const prepareLightningAddressPayment = async () => {
+    setSendState('preparing');
+    setError('');
+    try {
+      assert(walletRef.current, 'Internal error: wallet not initialized');
+
+      assert(lnurl && lnAddressAmountToSend && parseInt(lnAddressAmountToSend), 'Internal error: lnurl and amount to send not set');
+
+      await askMnemonic(); // verify password
+
+      const bolt11payload = await lnurl.requestBolt11FromLnurlPayService(parseInt(lnAddressAmountToSend), 'LayerzWallet');
+
+      if (bolt11payload && bolt11payload.pr) {
+        setSendState('prepared');
+        setLnurlPayServicePayload((prev) => ({ ...prev, [bolt11payload.pr]: prev[invoice] }));
+        await onInvoiceInput(bolt11payload.pr);
+      } else {
+        throw new Error('Fetching invoice from LNURL service failed');
+      }
+    } catch (error: any) {
+      console.error('Prepare lightning address payment error:', error);
+      setError(error.message);
+      setSendState('idle');
+    }
+  };
+
+  const sendLightningAddressPayment = async () => {
+    try {
+      if (!walletRef.current) {
+        throw new Error('Internal error: wallet not initialized');
+      }
+
+      assert(lnurl && lnAddressAmountToSend && parseInt(lnAddressAmountToSend), 'Internal error: lnurl and amount to send not set');
+
+      setSendState('sending');
+      await new Promise((r) => setTimeout(r, 200)); // propagate
+
+      if (invoice) {
+        // Send payment
+        const paymentResponse = await walletRef.current.payLightningInvoice(invoice, maxFeePercent);
+
+        if (paymentResponse) {
+          setSendState('success');
+        } else {
+          setSendState('idle');
+          setError('Payment failed');
+        }
+      }
+    } catch (error: any) {
+      console.error('Send lightning address payment error:', error);
       setError(error.message);
       setSendState('idle');
     }
@@ -151,6 +243,11 @@ const SendLightning: React.FC = () => {
   };
 
   const handleCancel = () => {
+    setInvoice('');
+    setError('');
+    setLnurl(undefined);
+    setLnurlPayServicePayload({});
+    setLnAddressAmountToSend('');
     setSendState('idle');
   };
 
@@ -192,23 +289,99 @@ const SendLightning: React.FC = () => {
           ) : null}
 
           {/* Invoice Input Section */}
-          <View style={styles.inputSection}>
-            <ThemedText style={styles.inputLabel}>Lightning Invoice</ThemedText>
-            <View style={styles.invoiceContainer}>
-              <TextInput
-                style={styles.invoiceInput}
-                placeholder="Paste Lightning invoice here..."
-                placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                onChangeText={onInvoiceInput}
-                value={invoice}
-                multiline
-                textAlignVertical="top"
-              />
-              <TouchableOpacity style={styles.scanButton} onPress={handleQRScan}>
-                <Ionicons name="qr-code-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
+          {!isPayingToLightningAddress && (
+            <View style={styles.inputSection}>
+              <View style={styles.invoiceContainer}>
+                <TextInput
+                  style={styles.invoiceInput}
+                  placeholder="Lightning invoice or Lightning address here"
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  onChangeText={onInvoiceInput}
+                  value={invoice}
+                  multiline
+                  textAlignVertical="top"
+                />
+                <TouchableOpacity style={styles.scanButton} onPress={handleQRScan}>
+                  <Ionicons name="scan-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          )}
+
+          {isPayingToLightningAddress && (
+            <>
+              <View style={styles.detailsContainer}>
+                <ThemedText style={styles.detailsTitle}>Paying to Lightning Address</ThemedText>
+
+                {lnurlPayServicePayload[invoice]?.min && lnurlPayServicePayload[invoice]?.max && (
+                  <>
+                    {lnurlPayServicePayload[invoice]?.description ? <ThemedText style={[styles.detailValue, { marginBottom: 10 }]}>{lnurlPayServicePayload[invoice]?.description}</ThemedText> : null}
+                    <TextInput
+                      placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                      style={styles.invoiceInput}
+                      onChangeText={setLnAddressAmountToSend}
+                      value={lnAddressAmountToSend}
+                      keyboardType="numeric"
+                      editable={!lnurlPayServicePayload[invoice]?.fixed}
+                      placeholder={`Enter amount between ${lnurlPayServicePayload[invoice]?.min} and ${lnurlPayServicePayload[invoice]?.max} sats`}
+                    />
+                  </>
+                )}
+              </View>
+
+              {sendState === 'prepared' && (
+                <View style={styles.detailsContainer}>
+                  <ThemedText style={styles.detailsTitle}>Payment Details</ThemedText>
+
+                  <View style={styles.detailRow}>
+                    <ThemedText style={styles.detailLabel}>Amount:</ThemedText>
+                    <ThemedText style={styles.detailValue}>
+                      {amountToSend ? formatBalance(amountToSend, getDecimalsByNetwork(NETWORK_BITCOIN)) : ''} {getTickerByNetwork(NETWORK_BITCOIN)}
+                    </ThemedText>
+                  </View>
+
+                  {memo && (
+                    <View style={styles.detailRow}>
+                      <ThemedText style={styles.detailLabel}>Memo:</ThemedText>
+                      <ThemedText style={styles.detailValue}>{memo}</ThemedText>
+                    </View>
+                  )}
+
+                  {feeSats !== null && (
+                    <View style={styles.detailRow}>
+                      <ThemedText style={styles.detailLabel}>Fee:</ThemedText>
+                      <ThemedText style={styles.detailValue}>up to {feeSats} sats</ThemedText>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Verify Button */}
+              {sendState === 'idle' && (
+                <TouchableOpacity style={[styles.verifyButton]} onPress={prepareLightningAddressPayment}>
+                  <Ionicons name="flash" size={20} color="rgba(255, 255, 255, 0.8)" />
+                  <ThemedText style={styles.verifyButtonText}>Send Payment</ThemedText>
+                </TouchableOpacity>
+              )}
+
+              {/* Confirm Payment */}
+              {sendState === 'prepared' && (
+                <View style={{ marginTop: 50 }}>
+                  <LongPressButton
+                    style={styles.confirmButton}
+                    textStyle={styles.confirmButtonText}
+                    onLongPressComplete={sendLightningAddressPayment}
+                    title="Hold to send payment"
+                    progressColor="rgba(255, 255, 255, 0.3)"
+                    backgroundColor="#000000"
+                  />
+                  <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
+                    <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
+          )}
 
           {/* Loading Display */}
           {sendState === 'preparing' || sendState === 'sending' ? (
@@ -219,7 +392,7 @@ const SendLightning: React.FC = () => {
           ) : null}
 
           {/* Payment Details */}
-          {invoice && amountToSend && (sendState === 'idle' || sendState === 'prepared') ? (
+          {!isPayingToLightningAddress && invoice && amountToSend && (sendState === 'idle' || sendState === 'prepared') ? (
             <View style={styles.detailsContainer}>
               <ThemedText style={styles.detailsTitle}>Payment Details</ThemedText>
 
@@ -247,7 +420,7 @@ const SendLightning: React.FC = () => {
           ) : null}
 
           {/* Verify Button */}
-          {sendState === 'idle' && invoice && amountToSend && (
+          {!isPayingToLightningAddress && sendState === 'idle' && invoice && amountToSend && (
             <TouchableOpacity style={[styles.verifyButton]} onPress={prepareTransaction}>
               <Ionicons name="flash" size={20} color="rgba(255, 255, 255, 0.8)" />
               <ThemedText style={styles.verifyButtonText}>Send Payment</ThemedText>
@@ -255,7 +428,7 @@ const SendLightning: React.FC = () => {
           )}
 
           {/* Confirm Payment */}
-          {sendState === 'prepared' && (
+          {!isPayingToLightningAddress && sendState === 'prepared' && (
             <View style={styles.confirmContainer}>
               <LongPressButton
                 style={styles.confirmButton}
@@ -305,18 +478,14 @@ const styles = StyleSheet.create({
   inputSection: {
     marginBottom: 30,
   },
-  inputLabel: {
-    marginBottom: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
   invoiceContainer: {
+    marginTop: 100,
     flexDirection: 'row',
     gap: 12,
   },
   invoiceInput: {
     flex: 1,
-    minHeight: 120,
-    maxHeight: 160,
+    maxHeight: 300,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',

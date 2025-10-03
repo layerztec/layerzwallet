@@ -40,7 +40,7 @@ const ListItem = ({ item, onPress, accountNumber }: { item: AccountItem; onPress
 export default function PocketSwitch() {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
-  const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
+  const { setAccountNumber } = useContext(AccountNumberContext);
 
   const handleClose = () => {
     router.back();

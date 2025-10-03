@@ -1,5 +1,4 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import React, { useContext } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -13,7 +12,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { CommonSwap } from '@shared/types/common-swap';
 import { getDecimalsByNetwork } from '@shared/models/network-getters';
-import { SwapSparkClaimParams } from '@/app/SwapSparkClaim';
+import { SwapXArkClaimParams } from '@/app/SwapXArkClaim';
 
 const SwapItem = ({ swap }: { swap: CommonSwap }) => {
   const router = useRouter();
@@ -37,8 +36,8 @@ const SwapItem = ({ swap }: { swap: CommonSwap }) => {
 
   const handleClaim = () => {
     if (swap.network === NETWORK_SPARK && swap.status === 'claimable') {
-      const params: SwapSparkClaimParams = { swapId: swap.id, amountIn: swap.amount.toString() };
-      router.push({ pathname: '/SwapSparkClaim', params });
+      const params: SwapXArkClaimParams = { swapJson: JSON.stringify(swap) };
+      router.push({ pathname: '/SwapXArkClaim', params });
     }
   };
 
@@ -55,6 +54,11 @@ const SwapItem = ({ swap }: { swap: CommonSwap }) => {
       <View style={styles.swapDetails}>
         <ThemedText style={styles.swapType}>{amount}</ThemedText>
         <ThemedText style={styles.swapDate}>{formatSwapDate()}</ThemedText>
+        {swap.targetConfirmations && (
+          <ThemedText style={styles.swapDate}>
+            {swap.confirmations} / {swap.targetConfirmations} confirmations
+          </ThemedText>
+        )}
       </View>
 
       <View style={styles.swapAmounts}>
@@ -82,7 +86,7 @@ const SwapList = () => {
   }
 
   return (
-    <BlurView intensity={25} tint="dark" style={styles.swapsContainer}>
+    <View style={styles.swapsContainer}>
       <ThemedText style={styles.swapsTitle}>Swaps</ThemedText>
 
       <View style={styles.swapsList}>
@@ -90,7 +94,7 @@ const SwapList = () => {
           <SwapItem key={swap.id} swap={swap} />
         ))}
       </View>
-    </BlurView>
+    </View>
   );
 };
 
@@ -98,7 +102,7 @@ export default SwapList;
 
 const styles = StyleSheet.create({
   swapsContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
     borderRadius: 20,
     padding: 16,
     marginBottom: 20,

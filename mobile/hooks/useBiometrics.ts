@@ -1,47 +1,82 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { Platform } from 'react-native';
+import { Platform, AppState, AppStateStatus } from 'react-native';
 
 export interface BiometricInfo {
   isAvailable: boolean;
   biometricType: 'FaceID' | 'TouchID' | 'Fingerprint' | 'Iris' | 'Biometrics' | null;
   displayName: string;
   description: string;
+  isLoading: boolean;
+  securityLevel: LocalAuthentication.SecurityLevel | null;
+  supportedTypes: LocalAuthentication.AuthenticationType[];
+  refresh: () => void;
 }
 
 export const useBiometrics = (): BiometricInfo => {
-  const [biometricInfo, setBiometricInfo] = useState<BiometricInfo>({
+  const [biometricInfo, setBiometricInfo] = useState<Omit<BiometricInfo, 'refresh'>>({
     isAvailable: false,
     biometricType: null,
     displayName: 'Biometrics',
     description: 'Use biometric authentication to secure your wallet.',
+    isLoading: true,
+    securityLevel: null,
+    supportedTypes: [],
   });
 
-  useEffect(() => {
-    const checkBiometricCapabilities = async () => {
+  const appStateRef = useRef(AppState.currentState);
+
+  const refresh = () => {
+    setBiometricInfo((prev) => ({
+      ...prev,
+      isLoading: true,
+    }));
+
+    const checkBiometricCapabilities = async (retryCount = 0) => {
       try {
+        // Add a small delay during cold boot to ensure hardware is ready
+        if (retryCount === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+
         const isAvailable = await LocalAuthentication.hasHardwareAsync();
+
         if (!isAvailable) {
+          // During cold boot, hardware might not be immediately available
+          // Retry up to 3 times with increasing delays
+          if (retryCount < 3) {
+            setTimeout(() => checkBiometricCapabilities(retryCount + 1), (retryCount + 1) * 1000);
+            return;
+          }
+
           setBiometricInfo({
             isAvailable: false,
             biometricType: null,
             displayName: 'Biometrics',
             description: 'Biometric authentication is not available on this device.',
+            isLoading: false,
+            securityLevel: LocalAuthentication.SecurityLevel.NONE,
+            supportedTypes: [],
           });
           return;
         }
 
         const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
         if (!isEnrolled) {
           setBiometricInfo({
             isAvailable: false,
             biometricType: null,
             displayName: 'Biometrics',
             description: 'No biometric authentication methods are set up on this device.',
+            isLoading: false,
+            securityLevel: LocalAuthentication.SecurityLevel.NONE,
+            supportedTypes: [],
           });
           return;
         }
 
+        const securityLevel = await LocalAuthentication.getEnrolledLevelAsync();
         const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
 
         let biometricType: BiometricInfo['biometricType'] = null;
@@ -56,47 +91,258 @@ export const useBiometrics = (): BiometricInfo => {
           biometricType = 'Biometrics';
         }
 
-        const getBiometricDisplayInfo = (type: BiometricInfo['biometricType']) => {
+        const getBiometricDisplayInfo = (type: BiometricInfo['biometricType'], secLevel: LocalAuthentication.SecurityLevel) => {
+          const getSecurityDescription = (level: LocalAuthentication.SecurityLevel) => {
+            switch (level) {
+              case LocalAuthentication.SecurityLevel.BIOMETRIC_STRONG:
+                return ' (Strong Security)';
+              case LocalAuthentication.SecurityLevel.BIOMETRIC_WEAK:
+                return ' (Standard Security)';
+              case LocalAuthentication.SecurityLevel.SECRET:
+                return ' (PIN/Pattern)';
+              default:
+                return '';
+            }
+          };
+
+          const securitySuffix = getSecurityDescription(secLevel);
+
           switch (type) {
             case 'FaceID':
-              return { displayName: 'Face ID', description: 'Use Face ID to secure your wallet access.' };
+              return {
+                displayName: 'Face ID',
+                description: `Use Face ID to secure your wallet access${securitySuffix}.`,
+              };
             case 'TouchID':
-              return { displayName: 'Touch ID', description: 'Use Touch ID to secure your wallet access.' };
+              return {
+                displayName: 'Touch ID',
+                description: `Use Touch ID to secure your wallet access${securitySuffix}.`,
+              };
             case 'Fingerprint':
-              return { displayName: 'Fingerprint', description: 'Use fingerprint authentication to secure your wallet access.' };
+              return {
+                displayName: 'Fingerprint',
+                description: `Use fingerprint authentication to secure your wallet access${securitySuffix}.`,
+              };
             case 'Iris':
-              return { displayName: 'Iris Scan', description: 'Use iris scanning to secure your wallet access.' };
+              return {
+                displayName: 'Iris Scan',
+                description: `Use iris scanning to secure your wallet access${securitySuffix}.`,
+              };
             case 'Biometrics':
               return {
                 displayName: Platform.OS === 'ios' ? 'Biometrics' : 'Face Recognition',
-                description: Platform.OS === 'ios' ? 'Use biometric authentication to secure your wallet access.' : 'Use face recognition to secure your wallet access.',
+                description:
+                  Platform.OS === 'ios' ? `Use biometric authentication to secure your wallet access${securitySuffix}.` : `Use face recognition to secure your wallet access${securitySuffix}.`,
               };
             default:
-              return { displayName: 'Biometrics', description: 'Use biometric authentication to secure your wallet.' };
+              return {
+                displayName: 'Biometrics',
+                description: `Use biometric authentication to secure your wallet${securitySuffix}.`,
+              };
           }
         };
 
-        const { displayName, description } = getBiometricDisplayInfo(biometricType);
+        const { displayName, description } = getBiometricDisplayInfo(biometricType, securityLevel);
 
         setBiometricInfo({
           isAvailable: biometricType !== null,
           biometricType,
           displayName,
           description,
+          isLoading: false,
+          securityLevel,
+          supportedTypes,
         });
       } catch (error) {
-        console.error('Error checking biometric capabilities:', error);
+        // During cold boot, API calls might fail temporarily
+        // Retry up to 3 times with increasing delays
+        if (retryCount < 3) {
+          setTimeout(() => checkBiometricCapabilities(retryCount + 1), (retryCount + 1) * 1000);
+          return;
+        }
+
         setBiometricInfo({
           isAvailable: false,
           biometricType: null,
           displayName: 'Biometrics',
           description: 'Unable to check biometric capabilities.',
+          isLoading: false,
+          securityLevel: LocalAuthentication.SecurityLevel.NONE,
+          supportedTypes: [],
         });
       }
     };
 
     checkBiometricCapabilities();
+  };
+
+  useEffect(() => {
+    // Initial check
+    const checkBiometricCapabilities = async (retryCount = 0) => {
+      try {
+        // Add a small delay during cold boot to ensure hardware is ready
+        if (retryCount === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+
+        const isAvailable = await LocalAuthentication.hasHardwareAsync();
+
+        if (!isAvailable) {
+          // During cold boot, hardware might not be immediately available
+          // Retry up to 3 times with increasing delays
+          if (retryCount < 3) {
+            setTimeout(() => checkBiometricCapabilities(retryCount + 1), (retryCount + 1) * 1000);
+            return;
+          }
+
+          setBiometricInfo({
+            isAvailable: false,
+            biometricType: null,
+            displayName: 'Biometrics',
+            description: 'Biometric authentication is not available on this device.',
+            isLoading: false,
+            securityLevel: LocalAuthentication.SecurityLevel.NONE,
+            supportedTypes: [],
+          });
+          return;
+        }
+
+        const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+        if (!isEnrolled) {
+          setBiometricInfo({
+            isAvailable: false,
+            biometricType: null,
+            displayName: 'Biometrics',
+            description: 'No biometric authentication methods are set up on this device.',
+            isLoading: false,
+            securityLevel: LocalAuthentication.SecurityLevel.NONE,
+            supportedTypes: [],
+          });
+          return;
+        }
+
+        const securityLevel = await LocalAuthentication.getEnrolledLevelAsync();
+        const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+
+        let biometricType: BiometricInfo['biometricType'] = null;
+
+        if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+          biometricType = Platform.OS === 'ios' ? 'FaceID' : 'Biometrics';
+        } else if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+          biometricType = Platform.OS === 'ios' ? 'TouchID' : 'Fingerprint';
+        } else if (supportedTypes.includes(LocalAuthentication.AuthenticationType.IRIS)) {
+          biometricType = 'Iris';
+        } else if (supportedTypes.length > 0) {
+          biometricType = 'Biometrics';
+        }
+
+        const getBiometricDisplayInfo = (type: BiometricInfo['biometricType'], secLevel: LocalAuthentication.SecurityLevel) => {
+          const getSecurityDescription = (level: LocalAuthentication.SecurityLevel) => {
+            switch (level) {
+              case LocalAuthentication.SecurityLevel.BIOMETRIC_STRONG:
+                return ' (Strong Security)';
+              case LocalAuthentication.SecurityLevel.BIOMETRIC_WEAK:
+                return ' (Standard Security)';
+              case LocalAuthentication.SecurityLevel.SECRET:
+                return ' (PIN/Pattern)';
+              default:
+                return '';
+            }
+          };
+
+          const securitySuffix = getSecurityDescription(secLevel);
+
+          switch (type) {
+            case 'FaceID':
+              return {
+                displayName: 'Face ID',
+                description: `Use Face ID to secure your wallet access${securitySuffix}.`,
+              };
+            case 'TouchID':
+              return {
+                displayName: 'Touch ID',
+                description: `Use Touch ID to secure your wallet access${securitySuffix}.`,
+              };
+            case 'Fingerprint':
+              return {
+                displayName: 'Fingerprint',
+                description: `Use fingerprint authentication to secure your wallet access${securitySuffix}.`,
+              };
+            case 'Iris':
+              return {
+                displayName: 'Iris Scan',
+                description: `Use iris scanning to secure your wallet access${securitySuffix}.`,
+              };
+            case 'Biometrics':
+              return {
+                displayName: Platform.OS === 'ios' ? 'Biometrics' : 'Face Recognition',
+                description:
+                  Platform.OS === 'ios' ? `Use biometric authentication to secure your wallet access${securitySuffix}.` : `Use face recognition to secure your wallet access${securitySuffix}.`,
+              };
+            default:
+              return {
+                displayName: 'Biometrics',
+                description: `Use biometric authentication to secure your wallet${securitySuffix}.`,
+              };
+          }
+        };
+
+        const { displayName, description } = getBiometricDisplayInfo(biometricType, securityLevel);
+
+        setBiometricInfo({
+          isAvailable: biometricType !== null,
+          biometricType,
+          displayName,
+          description,
+          isLoading: false,
+          securityLevel,
+          supportedTypes,
+        });
+      } catch (error) {
+        // During cold boot, API calls might fail temporarily
+        // Retry up to 3 times with increasing delays
+        if (retryCount < 3) {
+          setTimeout(() => checkBiometricCapabilities(retryCount + 1), (retryCount + 1) * 1000);
+          return;
+        }
+
+        setBiometricInfo({
+          isAvailable: false,
+          biometricType: null,
+          displayName: 'Biometrics',
+          description: 'Unable to check biometric capabilities.',
+          isLoading: false,
+          securityLevel: LocalAuthentication.SecurityLevel.NONE,
+          supportedTypes: [],
+        });
+      }
+    };
+
+    checkBiometricCapabilities();
+
+    // Listen for app state changes to refresh when app comes to foreground
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
+        // App has come to the foreground, refresh biometric state
+        setBiometricInfo((prev) => ({
+          ...prev,
+          isLoading: true,
+        }));
+        checkBiometricCapabilities();
+      }
+      appStateRef.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription?.remove();
+    };
   }, []);
 
-  return biometricInfo;
+  return {
+    ...biometricInfo,
+    refresh,
+  };
 };

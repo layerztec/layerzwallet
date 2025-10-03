@@ -1,29 +1,28 @@
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, StyleSheet, ViewStyle, TextStyle, ImageStyle, Animated, ActivityIndicator, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, StyleSheet, Animated, FlatList, TouchableOpacity, ViewStyle, TextStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { usePreventScreenCapture } from 'expo-screen-capture';
 import { ThemedText } from '@/components/ThemedText';
-import { Colors, gradients } from '@shared/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
+import { Colors, gradients } from '@shared/constants/Colors';
+
+type CreateWalletScreenParams = {
+  mnemonic: string;
+};
 
 const WordDisplay: React.FC<{
   targetWord: string;
   index: number;
 }> = ({ targetWord, index }) => {
-  const centerContainerStyle = {
-    flex: 1,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-  };
-
   return (
     <View style={styles.wordContainer}>
       <View style={styles.wordNumber}>
         <ThemedText style={styles.wordNumberText}>{index + 1}</ThemedText>
       </View>
-      <View style={centerContainerStyle}>
+      <View style={styles.centerContainerStyle}>
         <ThemedText style={styles.wordText}>{targetWord}</ThemedText>
       </View>
     </View>
@@ -32,12 +31,14 @@ const WordDisplay: React.FC<{
 
 export default function CreateWalletScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
+  const params = useLocalSearchParams<CreateWalletScreenParams>();
   const [recoveryPhrase, setRecoveryPhrase] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [shouldAnimateButtons, setShouldAnimateButtons] = useState<boolean>(false);
   const verifyButtonAnimation = useSequentialSpringAnimation(shouldAnimateButtons ? 300 : 0);
+
+  usePreventScreenCapture();
 
   useEffect(() => {
     if (!isLoading && !error && recoveryPhrase) {
@@ -50,7 +51,7 @@ export default function CreateWalletScreen() {
   }, [isLoading, error, recoveryPhrase]);
 
   useEffect(() => {
-    const mnemonic = params.mnemonic as string;
+    const mnemonic = params.mnemonic;
     if (mnemonic) {
       setRecoveryPhrase(mnemonic);
     } else {
@@ -63,6 +64,9 @@ export default function CreateWalletScreen() {
     router.push('/onboarding/create-password');
   };
 
+  const handleVerify = () => {
+    router.push('/onboarding/verify-recovery-phrase');
+  };
   const wordsData = useMemo(() => {
     const words = recoveryPhrase ? recoveryPhrase.split(' ') : [];
     return Array.from({ length: 12 }, (_, index) => ({
@@ -104,8 +108,16 @@ export default function CreateWalletScreen() {
             <View style={styles.bottomButtonContainer}>
               {!error && recoveryPhrase && (
                 <Animated.View style={verifyButtonAnimation}>
-                  <TouchableOpacity style={styles.verifyButton} onPress={handleContinue} testID="VerifyButton">
-                    <ThemedText type="button">I wrote it down!</ThemedText>
+                  <TouchableOpacity style={styles.skipButton} onPress={handleContinue} testID="SkipButton">
+                    <ThemedText style={styles.buttonText}>Skip</ThemedText>
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
+
+              {!error && recoveryPhrase && (
+                <Animated.View style={verifyButtonAnimation}>
+                  <TouchableOpacity style={styles.verifyButton} onPress={handleVerify} testID="VerifyButton">
+                    <ThemedText style={styles.buttonText}>Verify</ThemedText>
                   </TouchableOpacity>
                 </Animated.View>
               )}
@@ -120,40 +132,45 @@ export default function CreateWalletScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  } as ViewStyle,
+  },
   gradient: {
     flex: 1,
-  } as ViewStyle,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: 'transparent',
-  } as ViewStyle,
+  },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 20,
-  } as ViewStyle,
+  },
   titleContainer: {
     alignItems: 'center',
     marginVertical: 30,
-  } as ViewStyle,
+  },
   title: {
     ...Typography.headline,
     color: 'rgba(255, 255, 255, 0.95)',
     textAlign: 'center',
     marginBottom: 16,
-  } as TextStyle,
+  },
   subtitle: {
     ...Typography.paragraph,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
-  } as TextStyle,
+  },
   wordsContentContainer: {
     paddingBottom: 20,
-  } as ViewStyle,
+  },
   flatListRow: {
     justifyContent: 'space-between',
     paddingHorizontal: 0,
-  } as ViewStyle,
+  },
+  centerContainerStyle: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   wordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -164,11 +181,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     width: '48%',
     minHeight: 50,
-  } as ViewStyle,
+  },
   image: {
     alignSelf: 'center',
     marginRight: 8,
-  } as ImageStyle,
+  },
   wordNumber: {
     width: 24,
     height: 24,
@@ -177,22 +194,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-  } as ViewStyle,
+  },
   wordNumberText: {
     ...Typography.buttonText,
     color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 12,
     fontWeight: '600',
-  } as TextStyle,
+  },
   wordText: {
     ...Typography.paragraph,
     color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '500',
     flex: 1,
-  } as TextStyle,
+  },
   actionButtonsContainer: {
     marginBottom: 20,
-  } as ViewStyle,
+  },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -203,15 +220,26 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     marginBottom: 12,
-  } as ViewStyle,
+  },
   actionButtonText: {
     ...Typography.buttonText,
     color: 'rgba(255, 255, 255, 0.9)',
     marginLeft: 12,
-  } as TextStyle,
+  },
   bottomButtonContainer: {
     marginBottom: 20,
-  } as ViewStyle,
+    gap: 12,
+  },
+  skipButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.dark.buttonBorder,
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+  },
   verifyButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -220,16 +248,21 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 18,
     paddingHorizontal: 20,
-  } as ViewStyle,
+  },
   errorContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 40,
-  } as ViewStyle,
+  },
   errorText: {
     ...Typography.paragraph,
     color: '#FF6B6B',
     textAlign: 'center',
-  } as TextStyle,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
 });

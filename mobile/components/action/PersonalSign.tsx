@@ -6,7 +6,6 @@ import { ThemedText } from '@/components/ThemedText';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { BrowserBridge } from '@/src/class/browser-bridge';
-import { Colors } from '@shared/constants/Colors';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 
 interface PersonalSignArgs {
@@ -37,7 +36,6 @@ export function PersonalSign(args: PersonalSignArgs) {
       }
 
       BrowserBridge.instance?.sendMessage({ for: 'webpage', id: args.id, response: signedResponse.bytes });
-      Alert.alert('Success', 'Message signed');
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to sign message');
@@ -53,7 +51,6 @@ export function PersonalSign(args: PersonalSignArgs) {
         id: args.id,
         error: { code: 4001, message: 'User rejected the request.' },
       });
-      Alert.alert('Rejected', 'User rejected the request');
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to reject request');
@@ -73,7 +70,7 @@ export function PersonalSign(args: PersonalSignArgs) {
           if (payload.startsWith('0x')) {
             payload = Buffer.from(payload.replace('0x', ''), 'hex').toString('utf8');
           }
-        } catch (_) {
+        } catch {
           payload = params.join('\n');
         }
       }

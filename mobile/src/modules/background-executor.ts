@@ -17,8 +17,16 @@ import {
   clearWalletCache,
 } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, OpenPopupRequest } from '@shared/types/IBackgroundCaller';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_WHITELIST } from '@shared/types/IStorage';
-import { NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK } from '@shared/types/networks';
+import {
+  ENCRYPTED_PREFIX,
+  STORAGE_KEY_ACCEPTED_TOS,
+  STORAGE_KEY_EVM_XPUB,
+  STORAGE_KEY_MNEMONIC,
+  STORAGE_KEY_SUB_MNEMONIC,
+  STORAGE_KEY_WHITELIST,
+  STORAGE_KEY_SEED_VERIFIED,
+} from '@shared/types/IStorage';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { BrowserBridge } from '../class/browser-bridge';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
@@ -46,7 +54,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
       const address = await wallet.getAddressAsync();
       await saveWalletState(LayerzStorage, wallet, network, accountNumber);
       return address;
-    } else if (network === NETWORK_ARK_MUTINYNET) {
+    } else if (network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET) {
       const aw = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(aw instanceof ArkWallet);
       return await aw.getOffchainReceiveAddress();
@@ -83,11 +91,28 @@ export const BackgroundExecutor: IBackgroundCaller = {
     return !!mnemonic && mnemonic.startsWith(ENCRYPTED_PREFIX);
   },
 
+  async hasSeedVerified() {
+    return !!(await LayerzStorage.getItem(STORAGE_KEY_SEED_VERIFIED));
+  },
+
+  async setSeedVerified() {
+    await LayerzStorage.setItem(STORAGE_KEY_SEED_VERIFIED, 'true');
+  },
+
+  async getMnemonicForVerification() {
+    const mnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
+    // During onboarding, mnemonic should not be encrypted yet
+    if (mnemonic && !mnemonic.startsWith(ENCRYPTED_PREFIX)) {
+      return mnemonic;
+    }
+    return null;
+  },
+
   async saveMnemonic(mnemonic) {
     let sanitizedMnemonic = mnemonic;
     try {
       sanitizedMnemonic = sanitizeAndValidateMnemonic(mnemonic);
-    } catch (error) {
+    } catch {
       return false;
     }
 
@@ -203,7 +228,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
       const evm = new EvmWallet();
       const bytes = await evm.signPersonalMessage(message, decrypted as string, accountNumber);
       return { success: true, bytes };
-    } catch (error) {
+    } catch {
       return { success: false, bytes: '', message: 'Bad password' };
     }
   },
@@ -225,7 +250,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
       const evm = new EvmWallet();
       const bytes = await evm.signTypedDataMessage(message, decrypted as string, accountNumber);
       return { success: true, bytes };
-    } catch (error) {
+    } catch {
       return { success: false, bytes: '', message: 'Bad password' };
     }
   },

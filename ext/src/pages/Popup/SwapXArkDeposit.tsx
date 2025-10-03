@@ -6,38 +6,42 @@ import assert from 'assert';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
 import { getDecimalsByNetwork } from '@shared/models/network-getters';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 
 import { BackgroundCaller } from '../../modules/background-caller';
 
-export interface SwapSparkDepositParams {
+export type SwapXArkDepositParams = {
   amountIn: string;
-}
+  to: typeof NETWORK_ARK | typeof NETWORK_ARK_MUTINYNET | typeof NETWORK_SPARK;
+};
 
-const SwapSparkDeposit: React.FC = () => {
+export default function SwapXArkDeposit() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { network } = useContext(NetworkContext);
+  const network = useContext(NetworkContext).network as typeof NETWORK_ARK | typeof NETWORK_ARK_MUTINYNET | typeof NETWORK_SPARK;
   const { accountNumber } = useContext(AccountNumberContext);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const params = location.state as SwapSparkDepositParams;
+  const params = location.state as SwapXArkDepositParams;
+  const { amountIn, to } = params;
 
+  // get the Spark deposit address and redirect to SendBtc
   useEffect(() => {
     const redirect = async () => {
       try {
-        const wallet = await BackgroundCaller.lazyInitWallet(NETWORK_SPARK, accountNumber);
-        assert(wallet instanceof SparkWallet);
+        const wallet = await BackgroundCaller.lazyInitWallet(to, accountNumber);
+        assert(wallet instanceof SparkWallet || wallet instanceof ArkWallet, 'Not a XArk wallet');
         const toAddress = await wallet.getOnchainDepositAddress();
-        const amount = new BigNumber(params.amountIn).dividedBy(10 ** getDecimalsByNetwork(network)).toString(10);
+        const amount = new BigNumber(amountIn).dividedBy(10 ** getDecimalsByNetwork(network)).toString(10);
 
         navigate('/send-btc', {
           state: {
             toAddress,
             amount,
-            addressLock: true,
+            xArkSwapTo: to,
           },
         });
       } catch (error: any) {
@@ -47,12 +51,12 @@ const SwapSparkDeposit: React.FC = () => {
       }
     };
     redirect();
-  }, [navigate, params.amountIn, accountNumber, network]);
+  }, [navigate, amountIn, accountNumber, network, to]);
 
   return (
     <div>
       <div style={{ marginBottom: '20px' }}>
-        <h2>Spark Swap</h2>
+        <h2>{to === NETWORK_SPARK ? 'Spark' : 'Ark'} Swap</h2>
       </div>
 
       {isLoading && (
@@ -65,6 +69,4 @@ const SwapSparkDeposit: React.FC = () => {
       {error && <div style={{ color: 'red', padding: '10px', backgroundColor: '#ffe6e6', borderRadius: '4px' }}>{error}</div>}
     </div>
   );
-};
-
-export default SwapSparkDeposit;
+}
