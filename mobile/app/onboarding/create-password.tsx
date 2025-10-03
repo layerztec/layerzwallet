@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -142,6 +142,8 @@ export default function CreatePasswordScreen() {
   };
 
   const handleCreatePassword = async () => {
+    Keyboard.dismiss();
+
     if (!validatePasswords()) {
       return;
     }
@@ -170,7 +172,7 @@ export default function CreatePasswordScreen() {
       <LinearGradient colors={gradients.blueGradient} style={styles.container}>
         <SafeAreaView style={styles.safeAreaView}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardContainer}>
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
               <View style={styles.content}>
                 <Animated.View style={[titleTransition]}>
                   <ThemedText type="title" darkColor={Colors.dark.buttonText} textAlign="center">
@@ -309,6 +311,8 @@ export default function CreatePasswordScreen() {
                   onPress={handleCreatePassword}
                   disabled={isLoading || !password || !repeatPassword}
                   testID="CreatePasswordButton"
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  activeOpacity={0.8}
                 >
                   <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                     {isLoading ? 'Creating...' : 'Create Password'}
@@ -339,7 +343,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 40,
