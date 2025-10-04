@@ -25,6 +25,17 @@ describe('codebase', function () {
     assert.strictEqual(extPrettierConfig, sharedPrettierConfig);
   });
 
+  it('subproject versions are the same', async function () {
+    const extPckg = JSON.parse(fs.readFileSync(resolve(__dirname, '../../../ext/package.json'), 'utf8'));
+    const mobilePckg = JSON.parse(fs.readFileSync(resolve(__dirname, '../../../mobile/package.json'), 'utf8'));
+    const mobileAppjson = JSON.parse(fs.readFileSync(resolve(__dirname, '../../../mobile/app.json'), 'utf8'));
+
+    assert.ok(extPckg.version);
+
+    assert.strictEqual(extPckg.version, mobilePckg.version);
+    assert.strictEqual(extPckg.version, mobileAppjson.expo.version);
+  });
+
   it('all SETTINGS_CONFIG default values are among possible options', function () {
     Object.entries(SETTINGS_CONFIG).forEach(([key, config]) => {
       const defaultValue = config.default;
