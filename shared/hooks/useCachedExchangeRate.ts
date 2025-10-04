@@ -1,5 +1,5 @@
 import { useSWRConfig } from 'swr';
-import { Networks } from '../types/networks';
+import { NETWORK_USDT, Networks } from '../types/networks';
 import { TFiat } from './useExchangeRate';
 import { StringNumber } from '../types/string-number';
 
@@ -11,6 +11,12 @@ import { StringNumber } from '../types/string-number';
  */
 export function useCachedExchangeRate(network: Networks, fiat: TFiat): { exchangeRate: StringNumber | undefined } {
   const { cache } = useSWRConfig();
+
+  if (network === NETWORK_USDT) {
+    return {
+      exchangeRate: '1',
+    };
+  }
 
   for (const key of cache.keys()) {
     if (key.includes(`exchangeRateFetcher`) && key.includes(`network:"${network}"`)) {

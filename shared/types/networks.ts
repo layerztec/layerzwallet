@@ -12,6 +12,7 @@ export const NETWORK_LIQUID_TESTNET = 'liquid_testnet' as const;
 export const NETWORK_SPARK = 'spark' as const;
 export const NETWORK_LIGHTNING = 'lightning' as const;
 export const NETWORK_LIGHTNING_TESTNET = 'lightning_testnet' as const;
+export const NETWORK_USDT = 'usdt' as const;
 
 const NetworksIterator = {
   BITCOIN: NETWORK_BITCOIN,
@@ -28,6 +29,7 @@ const NetworksIterator = {
   SPARK: NETWORK_SPARK,
   LIGHTNING: NETWORK_LIGHTNING,
   LIGHTNING_TESTNET: NETWORK_LIGHTNING_TESTNET,
+  USDT: NETWORK_USDT,
 } as const;
 
 export type Networks = (typeof NetworksIterator)[keyof typeof NetworksIterator];

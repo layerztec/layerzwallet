@@ -1,6 +1,6 @@
 import useSWR from 'swr';
 import { useMemo } from 'react';
-import { Networks } from '../types/networks';
+import { NETWORK_USDT, Networks } from '../types/networks';
 import { getFiatRate } from '../models/fiatUnit';
 import { getIsTestnet } from '../models/network-getters';
 
@@ -25,6 +25,10 @@ export const exchangeRateFetcher = async (arg: exchangeRateFetcherArg): Promise<
 
   if (getIsTestnet(network)) {
     return 0;
+  }
+
+  if (network === NETWORK_USDT) {
+    return 1;
   }
 
   return await getFiatRate(fiat);

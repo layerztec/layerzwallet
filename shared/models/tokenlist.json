@@ -1,14 +1,6 @@
 [
   {
     "symbol": "$",
-    "name": "rUSDT",
-    "address": "0xef213441a85df4d7acbdae0cf78004e1e486bb96",
-    "decimals": 18,
-    "chainId": 30,
-    "logoURI": "https://cdn.oku.trade/logos/30/0xef213441a85df4d7acbdae0cf78004e1e486bb96.png"
-  },
-  {
-    "symbol": "$",
     "name": "USDT",
     "address": "0xAF368c91793cb22739386DFCBbB2f1A9E4bcBEBf",
     "decimals": 6,
@@ -22,6 +14,14 @@
     "decimals": 6,
     "chainId": 30,
     "logoURI": ""
+  },
+  {
+    "symbol": "$",
+    "name": "rUSDT",
+    "address": "0xEf213441a85DF4d7acBdAe0Cf78004E1e486BB96",
+    "decimals": 18,
+    "chainId": 30,
+    "logoURI": "https://cdn.oku.trade/logos/30/0xef213441a85df4d7acbdae0cf78004e1e486bb96.png"
   },
   {
     "symbol": "WBTC",

@@ -28,16 +28,17 @@ export type SendTokenEvmProps = {
   contractAddress: string;
   toAddress?: string;
   amountToSend?: string;
+  network?: Networks;
 };
 
 const SendTokenEvm: React.FC = () => {
   const params = useLocalSearchParams<SendTokenEvmProps>();
-  const { contractAddress } = params;
-
+  const { contractAddress, network: networkFromParams } = params;
   const router = useRouter();
-  const { network } = useContext(NetworkContext);
+  const { network: networkFromContext } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { scanQr } = useContext(ScanQrContext);
+  const network = networkFromParams ?? networkFromContext;
 
   const list = getTokenList(network);
   const token = list.find((token) => token.id === contractAddress);
