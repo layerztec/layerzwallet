@@ -138,7 +138,6 @@ export default function ScanQrComponent() {
 
   function cancelCamera() {
     handleDismiss();
-    router.back();
   }
 
   function onBarcodeScanned(scanningResult: BarcodeScanningResult): void {
