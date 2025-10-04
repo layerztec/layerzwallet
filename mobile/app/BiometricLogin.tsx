@@ -29,6 +29,20 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
   const appStateRef = useRef(AppState.currentState);
   const wasInBackground = useRef<boolean>(false);
 
+  useEffect(() => {
+    if (!isBiometricEnabled) {
+      console.debug('BiometricLogin: Biometrics disabled in settings, redirecting away', {
+        isBiometricEnabled,
+      });
+
+      if (router.canDismiss()) {
+        router.dismiss();
+      } else {
+        router.replace('/Home');
+      }
+    }
+  }, [isBiometricEnabled, router]);
+
   const handleAuthenticationError = useCallback((error?: string, warning?: string): boolean => {
     console.debug('BiometricLogin: Authentication error:', { error, warning });
 
