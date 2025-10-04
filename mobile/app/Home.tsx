@@ -2,8 +2,10 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Animated, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
+import { Alert, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { DappBrowserProps } from '@/app/DAppBrowser';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
@@ -75,6 +77,15 @@ export default function Home() {
   const router = useRouter();
   const params = useLocalSearchParams<HomeProps>();
   const { transactions, error: transactionsError } = useTransactions(network, accountNumber, BackgroundExecutor);
+  const scrollY = useSharedValue(0); // Scroll animation for sticky header
+  const modalTranslateY = useSharedValue(0); // Modal state and animations
+  const currentModalPosition = useSharedValue(0); // Track current modal position using shared value
+  const gestureStartPosition = useSharedValue(0); // Track gesture start position using shared value
+  const whiteFlashAnim = useSharedValue(0); // Animation for white flash transition
+
+  // Animated styles
+  const modalAnimatedStyle = useAnimatedStyle(() => ({ transform: [{ translateY: modalTranslateY.value }] }));
+  const whiteFlashAnimatedStyle = useAnimatedStyle(() => ({ opacity: whiteFlashAnim.value }));
 
   // URL parameter handling
   useEffect(() => {
@@ -83,18 +94,10 @@ export default function Home() {
     }
   }, [params.showSwapInterface, router]);
 
-  // Scroll animation for sticky header
-  const scrollY = useRef(new Animated.Value(0)).current;
-
-  // Modal state and animations
-  const [modalHeight, setModalHeight] = useState(MODAL_MAX_HEIGHT);
-  const modalTranslateY = useRef(new Animated.Value(0)).current;
-
   const isEVM = getIsEVM(network);
   const networkImage = getNetworkImageAsset(network);
   const networkIconContent = networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null;
   const swapPairs = getSwapPairs(network, SwapPlatform.MOBILE);
-
   const latestTransactions = transactions?.slice(0, 3) || [];
 
   // Network cards for the black background area
@@ -158,26 +161,13 @@ export default function Home() {
       // Create white flash transition effect
       const flashDuration = 150;
 
-      Animated.timing(whiteFlashAnim, {
-        toValue: 1,
-        duration: flashDuration,
-        useNativeDriver: true,
-      }).start(() => {
-        setNetwork(selectedNetwork);
+      whiteFlashAnim.value = withTiming(1, { duration: flashDuration }, () => {
+        scheduleOnRN(setNetwork, selectedNetwork);
 
-        Animated.timing(whiteFlashAnim, {
-          toValue: 0,
-          duration: flashDuration,
-          useNativeDriver: true,
-        }).start(() => {
+        whiteFlashAnim.value = withTiming(0, { duration: flashDuration }, () => {
           // After flash animation completes, expand modal to full height
-          currentModalPosition.current = 0;
-          Animated.timing(modalTranslateY, {
-            toValue: 0,
-            duration: 400,
-            useNativeDriver: true,
-          }).start();
-          setModalHeight(MODAL_MAX_HEIGHT);
+          currentModalPosition.value = 0;
+          modalTranslateY.value = withTiming(0, { duration: 400 });
         });
       });
     }
@@ -186,13 +176,8 @@ export default function Home() {
   const handleNetworkSelect = () => {
     // Minimize modal to show network tiles in black background area
     const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
-    currentModalPosition.current = maxTranslate;
-    Animated.timing(modalTranslateY, {
-      toValue: maxTranslate,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-    setModalHeight(MODAL_MIN_HEIGHT);
+    currentModalPosition.value = maxTranslate;
+    modalTranslateY.value = withTiming(maxTranslate, { duration: 300 });
   };
 
   const goToSettings = () => {
@@ -314,68 +299,54 @@ export default function Home() {
   ];
 
   // Handle scroll events for sticky header animation
-  const handleScroll = (event: any) => {
-    scrollY.setValue(event.nativeEvent.contentOffset.y);
-  };
+  const handleScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
 
-  // Track current modal position
-  const currentModalPosition = useRef(0);
-
-  // Animation for white flash transition
-  const whiteFlashAnim = useRef(new Animated.Value(0)).current;
-
-  // Modal gesture handling with bounds
-  const onPanGestureEvent = (event: any) => {
-    const { translationY } = event.nativeEvent;
-    const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
-
-    // Calculate new position based on current position + translation
-    const newPosition = currentModalPosition.current + translationY;
-
-    // Constrain position between 0 and maxTranslate
-    let constrainedPosition = newPosition;
-    if (newPosition < 0) {
-      constrainedPosition = 0;
-    } else if (newPosition > maxTranslate) {
-      constrainedPosition = maxTranslate;
-    }
-
-    modalTranslateY.setValue(constrainedPosition);
-  };
-
-  const onPanHandlerStateChange = (event: any) => {
-    if (event.nativeEvent.state === 5) {
-      // END
-      const { translationY, velocityY } = event.nativeEvent;
+  // Modal gesture handling with bounds using new Gesture API
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      // Store the current modal position when gesture starts
+      gestureStartPosition.value = modalTranslateY.value;
+    })
+    .onUpdate((event) => {
+      const { translationY } = event;
       const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
 
-      // Update current position
-      currentModalPosition.current = Math.max(0, Math.min(maxTranslate, currentModalPosition.current + translationY));
+      // Calculate new position based on gesture start position + translation
+      const newPosition = gestureStartPosition.value + translationY;
+
+      // Constrain position between 0 and maxTranslate
+      let constrainedPosition = newPosition;
+      if (newPosition < 0) {
+        constrainedPosition = 0;
+      } else if (newPosition > maxTranslate) {
+        constrainedPosition = maxTranslate;
+      }
+
+      modalTranslateY.value = constrainedPosition;
+    })
+    .onEnd((event) => {
+      const { translationY, velocityY } = event;
+      const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
 
       // Determine if we should snap to min or max based on velocity and position
       const shouldSnapToMin = translationY > 100 || velocityY > 500;
 
       if (shouldSnapToMin) {
         // Snap to minimized state (translate down so only header is visible)
-        currentModalPosition.current = maxTranslate;
-        Animated.timing(modalTranslateY, {
-          toValue: maxTranslate,
-          duration: 300,
-          useNativeDriver: true, // Better performance for transform
-        }).start();
-        setModalHeight(MODAL_MIN_HEIGHT);
+        currentModalPosition.value = maxTranslate;
+        modalTranslateY.value = withTiming(maxTranslate, { duration: 300 });
       } else {
         // Snap to expanded state (translate back to original position)
-        currentModalPosition.current = 0;
-        Animated.timing(modalTranslateY, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true, // Better performance for transform
-        }).start();
-        setModalHeight(MODAL_MAX_HEIGHT);
+        currentModalPosition.value = 0;
+        modalTranslateY.value = withTiming(0, { duration: 300 });
       }
-    }
-  };
+    })
+    .activeOffsetY([-10, 10])
+    .failOffsetX([-50, 50]);
 
   return (
     <GestureHandlerRootView style={styles.gestureHandlerRoot}>
@@ -387,21 +358,12 @@ export default function Home() {
       </View>
 
       {/* Modal Container */}
-      <Animated.View
-        style={[
-          styles.modalContainer,
-          {
-            height: MODAL_MAX_HEIGHT,
-            transform: [{ translateY: modalTranslateY }],
-          },
-        ]}
-      >
-        {/* Draggable Header */}
-        <PanGestureHandler onGestureEvent={onPanGestureEvent} onHandlerStateChange={onPanHandlerStateChange} activeOffsetY={[-10, 10]} failOffsetX={[-50, 50]}>
+      <Animated.View style={[styles.modalContainer, { height: MODAL_MAX_HEIGHT }, modalAnimatedStyle]}>
+        <GestureDetector gesture={panGesture}>
           <Animated.View style={styles.draggableHeader}>
             <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} />
           </Animated.View>
-        </PanGestureHandler>
+        </GestureDetector>
 
         {/* Invisible Settings Button for Maestro Testing */}
         <TouchableOpacity style={styles.maestroSettingsButton} onPress={goToSettings} testID="SettingsButton" accessibilityLabel="Settings" />
@@ -466,7 +428,7 @@ export default function Home() {
         </GradientScreen>
 
         {/* White Flash Overlay for Network Transition */}
-        <Animated.View style={[styles.whiteFlashOverlayAnimated, { opacity: whiteFlashAnim }]} />
+        <Animated.View style={[styles.whiteFlashOverlayAnimated, whiteFlashAnimatedStyle]} />
 
         {/* Bottom Navigation - Fixed to modal bottom */}
         <View style={styles.bottomNavigationContainer}>
@@ -535,11 +497,7 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   blackBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'black',
     flex: 1,
     paddingHorizontal: 16,
@@ -560,15 +518,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-  },
-  whiteFlashOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'white',
-    zIndex: 1000,
   },
   draggableHeader: {
     width: '100%',
@@ -634,42 +583,9 @@ const styles = StyleSheet.create({
     gap: 24,
     marginBottom: 24,
   },
-  transactionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  transactionIcon: {
-    width: 24,
-    height: 24,
-  },
-  transactionDetails: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  transactionType: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 6,
-  },
   transactionDate: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.4)',
-  },
-  transactionAmounts: {
-    alignItems: 'flex-end',
-  },
-  transactionAmount: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 6,
-  },
-  transactionUsd: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.4)',
-    fontWeight: '500',
-  },
-  bottomSpacer: {
-    height: 20,
   },
   bottomNavigationContainer: {
     position: 'absolute',
@@ -721,11 +637,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   navBlur: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
   },
   testnetWarning: {
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
@@ -833,11 +745,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   whiteFlashOverlayAnimated: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'white',
     zIndex: 9998,
     pointerEvents: 'none',

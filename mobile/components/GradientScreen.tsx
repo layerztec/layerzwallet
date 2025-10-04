@@ -1,7 +1,9 @@
-import React from 'react';
-import { StyleSheet, ViewStyle, ScrollView, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+import { NativeScrollEvent, NativeSyntheticEvent, StyleSheet, ViewStyle } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { getGradientColors } from '@/utils/gradientUtils';
 
 interface GradientScreenProps {
@@ -17,7 +19,7 @@ const GradientScreen: React.FC<GradientScreenProps> = ({ children, style, varian
   return (
     <LinearGradient colors={gradientColors} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.gradient}>
       {scroll ? (
-        <ScrollView
+        <Animated.ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -28,7 +30,7 @@ const GradientScreen: React.FC<GradientScreenProps> = ({ children, style, varian
           <SafeAreaView style={[styles.safeArea, style]} edges={['top', 'left', 'right', 'bottom']}>
             {children}
           </SafeAreaView>
-        </ScrollView>
+        </Animated.ScrollView>
       ) : (
         <SafeAreaView style={[styles.safeArea, style]} edges={['top', 'left', 'right', 'bottom']}>
           {children}
