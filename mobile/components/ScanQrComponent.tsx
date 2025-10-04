@@ -48,8 +48,8 @@ const StableCameraView = memo<{
   facing: CameraType;
   onBarcodeScanned: (result: BarcodeScanningResult) => void;
   onCancel: () => void;
-  insets: { top: number; right: number; bottom: number; left: number };
-}>(({ facing, onBarcodeScanned, onCancel, insets }) => {
+  topInset: number;
+}>(({ facing, onBarcodeScanned, onCancel, topInset }) => {
   const panGesture = Gesture.Pan()
     .onEnd((event) => {
       if (event.translationY > 150 && event.velocityY > 500) {
@@ -63,7 +63,7 @@ const StableCameraView = memo<{
       <View style={styles.container}>
         <CameraView style={styles.camera} facing={facing} onBarcodeScanned={onBarcodeScanned} barcodeScannerSettings={{ barcodeTypes: ['qr'] }} autofocus={'on'} />
         {/* Close button in top right corner - positioned absolutely outside CameraView */}
-        <TouchableOpacity style={[styles.closeButton, { top: insets.top + 10 }]} onPress={onCancel} testID="CloseCameraButton">
+        <TouchableOpacity style={[styles.closeButton, { top: topInset }]} onPress={onCancel} testID="CloseCameraButton">
           <PlatformBlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
             <Ionicons name="close" size={24} color="white" />
           </PlatformBlurView>
@@ -83,7 +83,6 @@ export default function ScanQrComponent() {
   const appState = useRef(AppState.currentState);
   const hasCalledDismiss = useRef(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
-  const isInitialized = useRef(false);
   const insets = useSafeAreaInsets();
 
   const handleDismiss = useCallback(() => {
@@ -110,28 +109,18 @@ export default function ScanQrComponent() {
 
   useFocusEffect(
     useCallback(() => {
-      // Only initialize once per screen mount
-      if (!isInitialized.current) {
-        hasCalledDismiss.current = false;
-        isInitialized.current = true;
+      // Reset dismiss flag on every focus
+      hasCalledDismiss.current = false;
 
-        // Small delay to ensure camera initializes properly
-        const timer = setTimeout(() => {
-          setIsCameraReady(true);
-        }, 200);
+      // Small delay to ensure camera initializes properly
+      const timer = setTimeout(() => {
+        setIsCameraReady(true);
+      }, 200);
 
-        return () => {
-          clearTimeout(timer);
-        };
-      }
-
-      // Only handle dismissal on actual screen unmount
       return () => {
-        if (isInitialized.current) {
-          console.debug('ScanQr: Screen dismissed by gesture, tap behind, or navigation');
-          isInitialized.current = false;
-          handleDismiss();
-        }
+        clearTimeout(timer);
+        console.debug('ScanQr: Screen dismissed by gesture, tap behind, or navigation');
+        handleDismiss();
       };
     }, [handleDismiss])
   );
@@ -159,7 +148,7 @@ export default function ScanQrComponent() {
       );
     }
 
-    return <StableCameraView facing={facing} onBarcodeScanned={onBarcodeScanned} onCancel={cancelCamera} insets={insets} />;
+    return <StableCameraView facing={facing} onBarcodeScanned={onBarcodeScanned} onCancel={cancelCamera} topInset={insets.top} />;
   };
 
   return (
