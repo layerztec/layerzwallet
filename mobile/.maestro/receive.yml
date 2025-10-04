@@ -51,7 +51,9 @@ appId: com.layerzwallet.mobile
           id: 'SendButton'
       - tapOn:
           id: 'ReceiveButton'
-      # waiting for default network to auto-select
+      - waitForAnimationToEnd
+      - runFlow: subflows/sleep.yml # button is not tappable immediately
+      - tapOn: 'Receive on Spark'
       - extendedWaitUntil:
           visible:
             id: 'ReceiveLightningAmountInput'
