@@ -59,7 +59,7 @@ export const AuthStateContextProvider: React.FC<{ children: ReactNode }> = (prop
   const { settings, updateSetting, isSettingsLoaded } = useSettings();
   const { step } = useContext(InitializationContext);
 
-  const isBiometricEnabled = settings.biometricAuth === 'ON';
+  const isBiometricEnabled = isSettingsLoaded && settings.biometricAuth === 'ON';
   const isInitialized = step === EStep.READY;
 
   // Auto-lock the app when it goes to background
