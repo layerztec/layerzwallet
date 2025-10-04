@@ -211,15 +211,11 @@ export function ProtectedRouteStack() {
         <Stack.Screen
           name="ScanQr"
           options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.8],
-            sheetGrabberVisible: true,
-            headerTransparent: false,
+            presentation: 'fullScreenModal',
             gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+            animation: 'slide_from_bottom',
             headerShown: false,
-            contentStyle: {
-              height: '100%',
-            },
           }}
         />
         <Stack.Screen
