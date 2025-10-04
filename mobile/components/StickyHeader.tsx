@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { StyleSheet, View, TouchableOpacity, Animated } from 'react-native';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from './ThemedText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,9 +7,10 @@ import { AccountItem, AccountNumberContext, accountItems } from '@shared/hooks/A
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { Ionicons, Foundation } from '@expo/vector-icons';
 import PlatformBlurView from './PlatformBlurView';
+import Animated, { useAnimatedStyle, interpolate, SharedValue } from 'react-native-reanimated';
 
 interface StickyHeaderProps {
-  scrollY: Animated.Value;
+  scrollY: SharedValue<number>;
   onSettingsPress: () => void;
 }
 
@@ -21,17 +22,15 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
   const { scanQr } = useContext(ScanQrContext);
 
   // Animated border opacity based on scroll position
-  const borderOpacity = scrollY.interpolate({
-    inputRange: [0, 50],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
+  const borderAnimatedStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(scrollY.value, [0, 50], [0, 1], 'clamp');
+    return { opacity };
   });
 
   // Animated blur opacity - starts at 0, becomes visible when scrolling
-  const blurOpacity = scrollY.interpolate({
-    inputRange: [0, 50],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
+  const blurAnimatedStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(scrollY.value, [0, 50], [0, 1], 'clamp');
+    return { opacity };
   });
 
   const handlePocketPress = () => {
@@ -47,20 +46,12 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Platform-aware Blur Background */}
-      <Animated.View style={[styles.blurBackground, { opacity: blurOpacity }]}>
+      <Animated.View style={[styles.blurBackground, blurAnimatedStyle]}>
         <PlatformBlurView intensity={50} tint="dark" style={styles.blurView} />
       </Animated.View>
 
       {/* Animated Border */}
-      <Animated.View
-        style={[
-          styles.border,
-          {
-            opacity: borderOpacity,
-            borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-          },
-        ]}
-      />
+      <Animated.View style={[styles.border, borderAnimatedStyle]} />
 
       {/* Header Content */}
       <View style={styles.header}>
@@ -114,6 +105,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 1,
     borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   header: {
     flexDirection: 'row',
