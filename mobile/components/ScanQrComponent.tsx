@@ -2,8 +2,12 @@ import { BarcodeScanningResult, CameraType, CameraView } from 'expo-camera';
 import React, { useContext, useEffect, useRef, useCallback, useState, memo } from 'react';
 import { ActivityIndicator, AppState, AppStateStatus, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import GradientFormSheet from '@/components/GradientFormSheet';
+import PlatformBlurView from '@/components/PlatformBlurView';
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -21,21 +25,21 @@ const styles = StyleSheet.create({
   camera: {
     flex: 1,
   },
-  buttonContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
-    margin: 64,
+  closeButton: {
+    position: 'absolute',
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    zIndex: 1000,
   },
-  button: {
-    flex: 1,
-    alignSelf: 'flex-end',
+  closeButtonBlur: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
     alignItems: 'center',
-  },
-  text: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: 'white',
   },
 });
 
@@ -44,17 +48,28 @@ const StableCameraView = memo<{
   facing: CameraType;
   onBarcodeScanned: (result: BarcodeScanningResult) => void;
   onCancel: () => void;
-}>(({ facing, onBarcodeScanned, onCancel }) => {
+  topInset: number;
+}>(({ facing, onBarcodeScanned, onCancel, topInset }) => {
+  const panGesture = Gesture.Pan()
+    .onEnd((event) => {
+      if (event.translationY > 150 && event.velocityY > 500) {
+        onCancel();
+      }
+    })
+    .runOnJS(true);
+
   return (
-    <View style={styles.container}>
-      <CameraView style={styles.camera} facing={facing} onBarcodeScanned={onBarcodeScanned} barcodeScannerSettings={{ barcodeTypes: ['qr'] }} autofocus={'on'}>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={onCancel}>
-            <ThemedText style={styles.text}>Cancel</ThemedText>
-          </TouchableOpacity>
-        </View>
-      </CameraView>
-    </View>
+    <GestureDetector gesture={panGesture}>
+      <View style={styles.container}>
+        <CameraView style={styles.camera} facing={facing} onBarcodeScanned={onBarcodeScanned} barcodeScannerSettings={{ barcodeTypes: ['qr'] }} autofocus={'on'} />
+        {/* Close button in top right corner - positioned absolutely outside CameraView */}
+        <TouchableOpacity style={[styles.closeButton, { top: topInset }]} onPress={onCancel} testID="CloseCameraButton">
+          <PlatformBlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
+            <Ionicons name="close" size={24} color="white" />
+          </PlatformBlurView>
+        </TouchableOpacity>
+      </View>
+    </GestureDetector>
   );
 });
 
@@ -68,21 +83,20 @@ export default function ScanQrComponent() {
   const appState = useRef(AppState.currentState);
   const hasCalledDismiss = useRef(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
-  const isInitialized = useRef(false);
+  const insets = useSafeAreaInsets();
 
   const handleDismiss = useCallback(() => {
     if (!hasCalledDismiss.current) {
       hasCalledDismiss.current = true;
       console.debug('ScanQr: Dismissing QR scanner');
       dismissScanner();
+      router.back();
     }
-  }, [dismissScanner]);
+  }, [dismissScanner, router]);
 
-  // Dismiss QR scanner when app goes to background
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (appState.current === 'active' && nextAppState.match(/inactive|background/)) {
-        // App is going to background, dismiss QR scanner
         console.debug('ScanQr: App backgrounding');
         handleDismiss();
       }
@@ -95,35 +109,24 @@ export default function ScanQrComponent() {
 
   useFocusEffect(
     useCallback(() => {
-      // Only initialize once per screen mount
-      if (!isInitialized.current) {
-        hasCalledDismiss.current = false;
-        isInitialized.current = true;
+      // Reset dismiss flag on every focus
+      hasCalledDismiss.current = false;
 
-        // Small delay to ensure camera initializes properly
-        const timer = setTimeout(() => {
-          setIsCameraReady(true);
-        }, 200);
+      // Small delay to ensure camera initializes properly
+      const timer = setTimeout(() => {
+        setIsCameraReady(true);
+      }, 200);
 
-        return () => {
-          clearTimeout(timer);
-        };
-      }
-
-      // Only handle dismissal on actual screen unmount
       return () => {
-        if (isInitialized.current) {
-          console.debug('ScanQr: Screen dismissed by gesture, tap behind, or navigation');
-          isInitialized.current = false;
-          handleDismiss();
-        }
+        clearTimeout(timer);
+        console.debug('ScanQr: Screen dismissed by gesture, tap behind, or navigation');
+        handleDismiss();
       };
     }, [handleDismiss])
   );
 
   function cancelCamera() {
     handleDismiss();
-    router.back();
   }
 
   function onBarcodeScanned(scanningResult: BarcodeScanningResult): void {
@@ -145,8 +148,12 @@ export default function ScanQrComponent() {
       );
     }
 
-    return <StableCameraView facing={facing} onBarcodeScanned={onBarcodeScanned} onCancel={cancelCamera} />;
+    return <StableCameraView facing={facing} onBarcodeScanned={onBarcodeScanned} onCancel={cancelCamera} topInset={insets.top} />;
   };
 
-  return <GradientFormSheet variant={network}>{renderCameraContent()}</GradientFormSheet>;
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <GradientFormSheet variant={network}>{renderCameraContent()}</GradientFormSheet>
+    </GestureHandlerRootView>
+  );
 }
