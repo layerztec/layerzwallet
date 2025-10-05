@@ -299,7 +299,7 @@ const SwapDetails: React.FC = () => {
 
       {/* Action Buttons */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {/* Claim button for claimable XArkade swaps */}
+        {/* Claim button for claimable XArk swaps */}
         {showClaimButton && (
           <Button
             onClick={handleClaim}

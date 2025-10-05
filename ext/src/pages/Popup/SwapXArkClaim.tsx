@@ -44,7 +44,7 @@ const SwapXArkClaim: React.FC = () => {
     const getQuote = async () => {
       try {
         const w = await BackgroundCaller.lazyInitWallet(swap.network as any, accountNumber);
-        assert(w instanceof SparkWallet || w instanceof ArkWallet, 'Not a XArkade wallet');
+        assert(w instanceof SparkWallet || w instanceof ArkWallet, 'Not a XArk wallet');
         wallet.current = w;
         if (w instanceof SparkWallet) {
           const quote = await w.getDepositQuote(swap.id);

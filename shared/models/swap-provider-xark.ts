@@ -4,7 +4,7 @@ import { NETWORK_ARKADE, NETWORK_BITCOIN, NETWORK_SPARK, Networks } from '../typ
 import { DoSwapResponse, SwapPair, SwapPlatform, SwapProvider } from '../types/swap';
 
 export class SwapProviderXArk implements SwapProvider {
-  name = 'XArkade';
+  name = 'XArk';
 
   getSupportedPairs(): SwapPair[] {
     return [
@@ -23,7 +23,7 @@ export class SwapProviderXArk implements SwapProvider {
 
     return Promise.resolve({
       action: 'INTERNAL_SCREEN',
-      screen: 'SwapXArkadeDeposit',
+      screen: 'SwapXArkDeposit',
       params: {
         to,
         amountIn: amountIn.toString(),

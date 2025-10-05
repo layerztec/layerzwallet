@@ -45,7 +45,7 @@ const SwapXArkClaim = () => {
     const getQuote = async () => {
       try {
         const w = await BackgroundExecutor.lazyInitWallet(swap.network as any, accountNumber);
-        assert(w instanceof SparkWallet || w instanceof ArkWallet, 'Not a XArkade wallet');
+        assert(w instanceof SparkWallet || w instanceof ArkWallet, 'Not a XArk wallet');
         wallet.current = w;
         if (w instanceof SparkWallet) {
           const quote = await w.getDepositQuote(swap.id);
@@ -117,7 +117,7 @@ const SwapXArkClaim = () => {
             <View style={styles.successContainer}>
               <Ionicons name="checkmark-circle" size={80} color="white" />
               <ThemedText style={styles.successMessage}>Swap Claimed Successfully!</ThemedText>
-              {quote && <ThemedText style={styles.successSubMessage}>{formatBalance(quote.creditAmountSats.toString(), decimals)} BTC has been added to your Sparkade balance</ThemedText>}
+              {quote && <ThemedText style={styles.successSubMessage}>{formatBalance(quote.creditAmountSats.toString(), decimals)} BTC has been added to your Spark balance</ThemedText>}
               <TouchableOpacity style={styles.backButton} onPress={handleBack}>
                 <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
               </TouchableOpacity>

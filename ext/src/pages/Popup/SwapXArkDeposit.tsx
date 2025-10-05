@@ -33,7 +33,7 @@ export default function SwapXArkDeposit() {
     const redirect = async () => {
       try {
         const wallet = await BackgroundCaller.lazyInitWallet(to, accountNumber);
-        assert(wallet instanceof SparkWallet || wallet instanceof ArkWallet, 'Not a XArkade wallet');
+        assert(wallet instanceof SparkWallet || wallet instanceof ArkWallet, 'Not a XArk wallet');
         const toAddress = await wallet.getOnchainDepositAddress();
         const amount = new BigNumber(amountIn).dividedBy(10 ** getDecimalsByNetwork(network)).toString(10);
 

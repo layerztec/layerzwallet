@@ -64,7 +64,7 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
     assert(sw instanceof SparkWallet);
     const virtualBalance = await sw.getOffchainBalance();
     const end = +new Date();
-    console.log('sparkade balance took', (end - start) / 1000, 'sec, balance =', virtualBalance.toString(10));
+    console.log('spark balance took', (end - start) / 1000, 'sec, balance =', virtualBalance.toString(10));
     return virtualBalance.toString(10);
   }
 
