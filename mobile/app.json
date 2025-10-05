@@ -93,8 +93,7 @@
       ],
       "expo-secure-store",
       "expo-font",
-      "expo-web-browser",
-      "@bugsnag/expo"
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
