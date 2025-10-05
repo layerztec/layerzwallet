@@ -238,7 +238,7 @@ const SendBtc: React.FC = () => {
                 <ThemedText style={styles.successSubMessage}>
                   {xArkSwapTo === NETWORK_SPARK ? 'Spark swap ' : 'Arkade swap '}
                   initiated! Wait for 3 confirmations, then you will be able to claim the funds on the
-                  {xArkSwapTo === NETWORK_SPARK ? ' Spark' : ' Ark'} network.
+                  {xArkSwapTo === NETWORK_SPARK ? ' Spark' : ' Arkade'} network.
                 </ThemedText>
               ) : (
                 <ThemedText style={styles.successSubMessage}>Your {getTickerByNetwork(network)} are on their way</ThemedText>

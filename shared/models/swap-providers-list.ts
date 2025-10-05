@@ -4,7 +4,7 @@ import { SwapProviderBoltz } from './swap-provider-boltz';
 import { SwapProviderOnramper } from './swap-provider-onramper';
 import { SwapProviderSideshift } from './swap-provider-sideshift';
 import { SwapProviderGardenFinance } from './swap-provider-gardenfinance';
-import { SwapProviderXArk } from './swap-provider-xarkade';
+import { SwapProviderXArk } from './swap-provider-xark';
 
 const swapPartnersList: SwapProvider[] = [new SwapProviderOnramper(), new SwapProviderSideshift(), new SwapProviderBoltz(), new SwapProviderGardenFinance(), new SwapProviderXArk()];
 
