@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { test } from 'vitest';
-import { ArkadeWallet } from '../../class/wallets/arkade-wallet';
+import { ArkWallet } from '../../class/wallets/ark-wallet';
 import { IStorage } from '../../types/IStorage';
 import fs from 'fs';
 
@@ -25,7 +25,7 @@ test.skip('arkade mutinynet can check balance', async (context) => {
     return;
   }
 
-  const w = new ArkadeWallet();
+  const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   await w.init(storageMock);
 
@@ -47,7 +47,7 @@ test('arkade mainnet can check balance', async (context) => {
     return;
   }
 
-  const w = new ArkadeWallet();
+  const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
   w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
@@ -72,7 +72,7 @@ test('arkade mainnet can check if our invoice is paid', async (context) => {
     return;
   }
 
-  const w = new ArkadeWallet();
+  const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
   w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
@@ -148,7 +148,7 @@ test('arkade mainnet switch accounts', async (context) => {
     return;
   }
 
-  const w = new ArkadeWallet();
+  const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
   w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
@@ -184,7 +184,7 @@ test.skip('arkade mainnet can create lightning invoice', async (context) => {
     return;
   }
 
-  const w = new ArkadeWallet();
+  const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
   w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
@@ -212,7 +212,7 @@ test.skip('arkade mainnet can pay lightning invoice', async (context) => {
     return;
   }
 
-  const w = new ArkadeWallet();
+  const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
   w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);

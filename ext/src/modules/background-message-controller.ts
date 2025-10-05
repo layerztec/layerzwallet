@@ -13,7 +13,7 @@ import { Csprng } from '../../src/class/rng';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
 import { decrypt, encrypt } from '../modules/encryption';
-import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 
 // All possible background messages with their params
 type TBackgroundMessage = { [K in keyof MessageTypeMap]: { type: K; params: MessageTypeMap[K]['params'] } }[keyof MessageTypeMap];
@@ -68,7 +68,7 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
       return address;
     } else if (network === NETWORK_ARKADE_MUTINYNET || network === NETWORK_ARKADE) {
       const aw = await lazyInitWallet(network, accountNumber, LayerzStorage, SecureStorage);
-      assert(aw instanceof ArkadeWallet);
+      assert(aw instanceof ArkWallet);
       return await aw.getOffchainReceiveAddress();
     } else if (network === NETWORK_SPARK) {
       throw new Error('this should never happen: temporarily executed on the spot in the BackgroundCaller'); // fixme

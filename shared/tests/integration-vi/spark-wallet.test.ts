@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { test, describe } from 'vitest';
-import { SparkWallet } from '../../class/wallets/sparkade-wallet';
+import { SparkWallet } from '../../class/wallets/spark-wallet';
 
 // fyi, spark adapter is set up in vitest.config.mts (uses the one for extension)
 describe('SparkWallet', () => {

@@ -12,7 +12,7 @@ import { getDecimalsByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 
 import { BackgroundCaller } from '../../../modules/background-caller';
-import { SwapXArkadeClaimParams } from '../SwapXArkadeClaim';
+import { SwapXArkClaimParams } from '../SwapXArkClaim';
 import { SwapDetailsParams } from '../SwapDetails';
 
 interface SwapItemProps {
@@ -41,7 +41,7 @@ const SwapItem: React.FC<SwapItemProps> = ({ swap }) => {
 
   const handleClaim = () => {
     if ((swap.network === NETWORK_SPARK || swap.network === NETWORK_ARKADE || swap.network === NETWORK_ARKADE_MUTINYNET) && swap.status === 'claimable') {
-      const params: SwapXArkadeClaimParams = { swapJson: JSON.stringify(swap) };
+      const params: SwapXArkClaimParams = { swapJson: JSON.stringify(swap) };
       navigate('/swap-xark-claim', { state: params });
     }
   };

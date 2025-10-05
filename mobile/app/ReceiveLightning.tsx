@@ -17,7 +17,7 @@ import { NETWORK_ARKADE, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK }
 import assert from 'assert';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 
 export type ReceiveLightningProps = {
   network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARKADE;
@@ -93,7 +93,7 @@ export default function ReceiveLightningScreen() {
     const initializeWallet = async () => {
       try {
         const w = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkadeWallet);
+        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkWallet);
         walletRef.current = w;
         setIsWalletInitialized(true);
 

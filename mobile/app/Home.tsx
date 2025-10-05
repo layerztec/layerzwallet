@@ -242,7 +242,7 @@ export default function Home() {
   const lightningReceiveActions = [
     { children: <Action network={NETWORK_SPARK} text="Receive on Spark" />, onClick: handleReceiveOnSpark },
     { children: <Action network={NETWORK_LIQUID} text="Receive on Liquid" />, onClick: handleReceiveOnLiquid },
-    { children: <Action network={NETWORK_ARKADE} text="Receive on Arkadeade" />, onClick: handleReceiveOnArk },
+    { children: <Action network={NETWORK_ARKADE} text="Receive on Arkade" />, onClick: handleReceiveOnArk },
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 

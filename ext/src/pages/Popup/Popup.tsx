@@ -31,7 +31,7 @@ import Receive from './Receive';
 import ReceiveLightning from './ReceiveLightning';
 import SeedBackup from './SeedBackup';
 import ViewSubmnemonic from './ViewSubmnemonic';
-import SendArk from './SendArkade';
+import SendArk from './SendArk';
 import SendBtc from './SendBtc';
 import SendEvm from './SendEvm';
 import SendLightning from './SendLightning';
@@ -40,8 +40,8 @@ import SendTokenEvm from './SendTokenEvm';
 import SendTokenSpark from './SendTokenSpark';
 import SettingsPage from './SettingsPage';
 import SwapDetails from './SwapDetails';
-import SwapXArkadeClaim from './SwapXArkadeClaim';
-import SwapXArkadeDeposit from './SwapXArkadeDeposit';
+import SwapXArkClaim from './SwapXArkClaim';
+import SwapXArkDeposit from './SwapXArkDeposit';
 import TestPage from './TestPage';
 import TransactionSuccessEvm from './TransactionSuccessEvm';
 
@@ -91,15 +91,15 @@ const AppContent: React.FC = () => {
             <Route path="/ViewSubmnemonic" element={<ViewSubmnemonic />} />
             <Route path="/send-liquid" element={<SendLiquid />} />
             <Route path="/send-evm" element={<SendEvm />} />
-            <Route path="/send-ark" element={<SendArkade />} />
+            <Route path="/send-ark" element={<SendArk />} />
             <Route path="/send-token-evm" element={<SendTokenEvm />} />
             <Route path="/send-token-spark" element={<SendTokenSpark />} />
             <Route path="/send-btc" element={<SendBtc />} />
             <Route path="/send-lightning" element={<SendLightning />} />
             <Route path="/swap-details" element={<SwapDetails />} />
             {/* we are using camel case because screen name matches one in the mobile app */}
-            <Route path="/SwapXArkadeDeposit" element={<SwapXArkadeDeposit />} />
-            <Route path="/swap-xark-claim" element={<SwapXArkadeClaim />} />
+            <Route path="/SwapXArkDeposit" element={<SwapXArkDeposit />} />
+            <Route path="/swap-xark-claim" element={<SwapXArkClaim />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/transaction-success" element={<TransactionSuccessEvm />} />
             <Route path="/action" element={<Action />} />

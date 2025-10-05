@@ -141,7 +141,7 @@ export function ProtectedRouteStack() {
         <Stack.Screen name="SeedBackup" options={{ headerShown: false }} />
         <Stack.Screen name="ViewSubmnemonic" options={{ headerShown: false }} />
         <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
-        <Stack.Screen name="SendArkade" options={{ title: 'Send ARKADE' }} />
+        <Stack.Screen name="SendArk" options={{ title: 'Send ARKADE' }} />
         <Stack.Screen name="SendBtc" options={{ title: 'Send BTC' }} />
         <Stack.Screen name="SendEvm" options={{ title: 'Send' }} />
         <Stack.Screen name="Swap" options={{ headerShown: false }} />

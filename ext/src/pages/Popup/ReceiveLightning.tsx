@@ -13,7 +13,7 @@ import { TLightningWallet } from '@shared/types/TWallet';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import assert from 'assert';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 
 export interface ReceiveLightningProps {
   network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARKADE;
@@ -110,7 +110,7 @@ const ReceiveLightning: React.FC = () => {
     const initializeWallet = async () => {
       try {
         const w = await BackgroundCaller.lazyInitWallet(network, accountNumber);
-        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkadeWallet);
+        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkWallet);
         walletRef.current = w;
         setIsWalletInitialized(true);
 

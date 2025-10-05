@@ -12,7 +12,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { CommonSwap } from '@shared/types/common-swap';
 import { getDecimalsByNetwork } from '@shared/models/network-getters';
-import { SwapXArkadeClaimParams } from '@/app/SwapXArkadeClaim';
+import { SwapXArkClaimParams } from '@/app/SwapXArkClaim';
 
 const SwapItem = ({ swap }: { swap: CommonSwap }) => {
   const router = useRouter();
@@ -36,8 +36,8 @@ const SwapItem = ({ swap }: { swap: CommonSwap }) => {
 
   const handleClaim = () => {
     if (swap.network === NETWORK_SPARK && swap.status === 'claimable') {
-      const params: SwapXArkadeClaimParams = { swapJson: JSON.stringify(swap) };
-      router.push({ pathname: '/SwapXArkadeClaim', params });
+      const params: SwapXArkClaimParams = { swapJson: JSON.stringify(swap) };
+      router.push({ pathname: '/SwapXArkClaim', params });
     }
   };
 

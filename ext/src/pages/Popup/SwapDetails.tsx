@@ -10,7 +10,7 @@ import { CommonSwap } from '@shared/types/common-swap';
 import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
 
 import { Button } from './DesignSystem';
-import { SwapXArkadeClaimParams } from './SwapXArkadeClaim';
+import { SwapXArkClaimParams } from './SwapXArkClaim';
 
 export interface SwapDetailsParams {
   swap: CommonSwap;
@@ -91,7 +91,7 @@ const SwapDetails: React.FC = () => {
 
   const handleClaim = () => {
     if ((swap.network === NETWORK_SPARK || swap.network === NETWORK_ARKADE || swap.network === NETWORK_ARKADE_MUTINYNET) && swap.status === 'claimable') {
-      const params: SwapXArkadeClaimParams = { swapJson: JSON.stringify(swap) };
+      const params: SwapXArkClaimParams = { swapJson: JSON.stringify(swap) };
       navigate('/swap-xark-claim', { state: params });
     }
   };

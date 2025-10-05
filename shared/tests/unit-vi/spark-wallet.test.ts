@@ -1,5 +1,5 @@
 import { describe, it, vi, assert } from 'vitest';
-import { SparkWallet } from '../../class/wallets/sparkade-wallet';
+import { SparkWallet } from '../../class/wallets/spark-wallet';
 
 type WalletTransferOrig = Awaited<ReturnType<NonNullable<SparkWallet['_sdkWallet']>['getTransfers']>>['transfers'][number];
 type WalletTransfer = Omit<WalletTransferOrig, 'leaves' | 'userRequest'>;

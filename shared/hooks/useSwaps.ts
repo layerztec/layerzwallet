@@ -5,7 +5,7 @@ import { SparkWallet } from '../class/wallets/spark-wallet';
 import { CommonSwap } from '../types/common-swap';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET, NETWORK_SPARK, Networks } from '../types/networks';
-import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 
 interface swapFetcherArg {
   cacheKey: string;
@@ -41,7 +41,7 @@ export const swapFetcher = async (arg: swapFetcherArg): Promise<CommonSwap[]> =>
 
     if (network === NETWORK_ARKADE_MUTINYNET || network === NETWORK_ARKADE) {
       const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
-      assert(wallet instanceof ArkadeWallet, 'Not an Arkade wallet');
+      assert(wallet instanceof ArkWallet, 'Not an Arkade wallet');
       return await wallet.getCommonSwaps();
     }
 

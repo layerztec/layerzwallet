@@ -2,7 +2,7 @@ import BigNumber from 'bignumber.js';
 import useSWR from 'swr';
 
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { ArkadeWallet } from '../class/wallets/arkade-wallet';
+import { ArkWallet } from '../class/wallets/ark-wallet';
 import { getRpcProvider } from '../models/network-getters';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
@@ -71,7 +71,7 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
   if (network === NETWORK_ARKADE_MUTINYNET || network === NETWORK_ARKADE) {
     const start = +new Date();
     const aw = await backgroundCaller.lazyInitWallet(network, accountNumber);
-    assert(aw instanceof ArkadeWallet);
+    assert(aw instanceof ArkWallet);
     const virtualBalance = await aw.getOffchainBalance();
     const end = +new Date();
     console.log('arkade balance took', (end - start) / 1000, 'sec, balance =', virtualBalance.toString(10));

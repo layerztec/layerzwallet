@@ -14,22 +14,22 @@ import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET, NETWORK_BITCOIN, NETWORK_SPAR
 import { formatBalance } from '@shared/modules/string-utils';
 import { getDecimalsByNetwork } from '@shared/models/network-getters';
 import { CommonSwap } from '@shared/types/common-swap';
-import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 
 const decimals = getDecimalsByNetwork(NETWORK_SPARK);
 
-export type SwapXArkadeClaimParams = {
+export type SwapXArkClaimParams = {
   swapJson: string;
 };
 
 // for BTC -> Spark swap we can get a quote.
 // but for BTC -> Arkade we can not, so we just show the confirmation.
 
-const SwapXArkadeClaim = () => {
+const SwapXArkClaim = () => {
   const router = useRouter();
-  const wallet = useRef<SparkWallet | ArkadeWallet>(null);
+  const wallet = useRef<SparkWallet | ArkWallet>(null);
   const { network } = useContext(NetworkContext);
-  const params = useLocalSearchParams<SwapXArkadeClaimParams>();
+  const params = useLocalSearchParams<SwapXArkClaimParams>();
   const { accountNumber } = useContext(AccountNumberContext);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -45,7 +45,7 @@ const SwapXArkadeClaim = () => {
     const getQuote = async () => {
       try {
         const w = await BackgroundExecutor.lazyInitWallet(swap.network as any, accountNumber);
-        assert(w instanceof SparkWallet || w instanceof ArkadeWallet, 'Not a XArkade wallet');
+        assert(w instanceof SparkWallet || w instanceof ArkWallet, 'Not a XArkade wallet');
         wallet.current = w;
         if (w instanceof SparkWallet) {
           const quote = await w.getDepositQuote(swap.id);
@@ -61,7 +61,7 @@ const SwapXArkadeClaim = () => {
   }, [router, swap, accountNumber]);
 
   const handleClaimArk = async () => {
-    assert(wallet.current instanceof ArkadeWallet, 'Not an Arkade wallet');
+    assert(wallet.current instanceof ArkWallet, 'Not an Arkade wallet');
     setIsClaiming(true);
     try {
       await wallet.current.claimDepositArk(swap.id);
@@ -226,7 +226,7 @@ const SwapXArkadeClaim = () => {
   );
 };
 
-export default SwapXArkadeClaim;
+export default SwapXArkClaim;
 
 const styles = StyleSheet.create({
   scrollContent: {

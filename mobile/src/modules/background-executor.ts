@@ -32,7 +32,7 @@ import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
 import { SecureStorage } from '../class/secure-storage';
 import { decrypt, encrypt } from '../modules/encryption';
-import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 
 /**
  * A drop-in replacement for BackgroundCaller in `ext` project. Since we have only one js context on mobile,
@@ -56,7 +56,7 @@ export const BackgroundExecutor: IBackgroundCaller = {
       return address;
     } else if (network === NETWORK_ARKADE || network === NETWORK_ARKADE_MUTINYNET) {
       const aw = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-      assert(aw instanceof ArkadeWallet);
+      assert(aw instanceof ArkWallet);
       return await aw.getOffchainReceiveAddress();
     } else if (network === NETWORK_SPARK) {
       const sp = await BackgroundExecutor.lazyInitWallet(network, accountNumber);

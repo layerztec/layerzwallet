@@ -3,7 +3,7 @@ import bolt11 from 'bolt11';
 import { SparkWallet as SDK, TokenBalanceMap } from '@buildonspark/spark-sdk';
 import BigNumber from 'bignumber.js';
 
-import { ArkadeWallet } from './arkade-wallet';
+import { ArkWallet } from './ark-wallet';
 import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
 import { CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_BITCOIN, NETWORK_SPARK } from '../../types/networks';
@@ -21,7 +21,7 @@ export interface ISparkAdapter {
 // not exposed in the SDK
 export type StaticDepositQuoteOutput = Awaited<ReturnType<SDK['getClaimStaticDepositQuote']>>;
 
-export class SparkWallet extends ArkadeWallet implements InterfaceLightningWallet {
+export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
   private _sdkWallet: Awaited<ReturnType<typeof SDK.initialize>>['wallet'] | undefined = undefined;
   protected adapter: ISparkAdapter;
 

@@ -4,7 +4,7 @@ import { Scan, SendIcon } from 'lucide-react';
 import React, { useContext, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
@@ -18,7 +18,7 @@ import { NETWORK_ARKADE_MUTINYNET, NETWORK_SPARK } from '@shared/types/networks'
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 /**
- * This screen is used for both ArkadeWallet and SparkWallet
+ * This screen is used for both ArkWallet and SparkWallet
  */
 const SendArk: React.FC = () => {
   const scanQr = useScanQR();
@@ -34,7 +34,7 @@ const SendArk: React.FC = () => {
   const { accountNumber } = useContext(AccountNumberContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
   const { balance } = useBalance(network, accountNumber, BackgroundCaller);
-  const arkWallet = useRef<ArkadeWallet | SparkWallet | undefined>(undefined);
+  const arkWallet = useRef<ArkWallet | SparkWallet | undefined>(undefined);
 
   const actualSend = async () => {
     let startTs = Date.now();
@@ -45,14 +45,14 @@ const SendArk: React.FC = () => {
       const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString(10);
 
       if (!arkWallet) {
-        throw new Error('Internal error: ArkadeWallet is not set');
+        throw new Error('Internal error: ArkWallet is not set');
       }
 
       console.log('actual value to send:', +satValue);
 
       startTs = Date.now();
       const transactionId = await arkWallet.current?.pay(toAddress, +satValue);
-      assert(transactionId, 'Internal error: ArkadeWallet.pay() failed');
+      assert(transactionId, 'Internal error: ArkWallet.pay() failed');
       console.log('submitted txid:', transactionId);
 
       setIsSuccess(true);
@@ -75,7 +75,7 @@ const SendArk: React.FC = () => {
 
       assert(network === NETWORK_ARKADE_MUTINYNET || network === NETWORK_SPARK);
       let w = await BackgroundCaller.lazyInitWallet(network, accountNumber);
-      assert(w instanceof ArkadeWallet || w instanceof SparkWallet);
+      assert(w instanceof ArkWallet || w instanceof SparkWallet);
 
       arkWallet.current = w;
       setIsPrepared(true);

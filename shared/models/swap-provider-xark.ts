@@ -3,7 +3,7 @@ import assert from 'assert';
 import { NETWORK_ARKADE, NETWORK_BITCOIN, NETWORK_SPARK, Networks } from '../types/networks';
 import { DoSwapResponse, SwapPair, SwapPlatform, SwapProvider } from '../types/swap';
 
-export class SwapProviderXArkade implements SwapProvider {
+export class SwapProviderXArk implements SwapProvider {
   name = 'XArkade';
 
   getSupportedPairs(): SwapPair[] {

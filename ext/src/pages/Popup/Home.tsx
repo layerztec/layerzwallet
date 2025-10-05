@@ -59,7 +59,7 @@ const Home: React.FC = () => {
       case NETWORK_SPARK:
       case NETWORK_ARKADE_MUTINYNET:
       case NETWORK_ARKADE:
-        navigate('/send-arkade');
+        navigate('/send-ark');
         break;
       case NETWORK_LIQUID:
       case NETWORK_LIQUID_TESTNET:
@@ -262,7 +262,7 @@ const Home: React.FC = () => {
               onClick: handleReceiveLightningOnLiquid,
             },
             {
-              label: 'Receive on Arkadeade',
+              label: 'Receive on Arkade',
               onClick: handleReceiveLightningOnArk,
             },
             { label: 'Cancel', onClick: () => {} },

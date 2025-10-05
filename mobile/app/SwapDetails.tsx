@@ -14,7 +14,7 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonSwap } from '@shared/types/common-swap';
 import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
-import { SwapXArkadeClaimParams } from '@/app/SwapXArkadeClaim';
+import { SwapXArkClaimParams } from '@/app/SwapXArkClaim';
 
 export default function SwapDetails() {
   const router = useRouter();
@@ -88,8 +88,8 @@ export default function SwapDetails() {
 
   const handleClaim = () => {
     if ([NETWORK_SPARK, NETWORK_ARKADE_MUTINYNET, NETWORK_ARKADE].includes(swap.network as any) && swap.status === 'claimable') {
-      const params: SwapXArkadeClaimParams = { swapJson: JSON.stringify(swap) };
-      router.push({ pathname: '/SwapXArkadeClaim', params });
+      const params: SwapXArkClaimParams = { swapJson: JSON.stringify(swap) };
+      router.push({ pathname: '/SwapXArkClaim', params });
     }
   };
 

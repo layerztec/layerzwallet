@@ -15,7 +15,7 @@ import * as BlueElectrum from '../../blue_modules/BlueElectrum';
 
 const bip32 = BIP32Factory(ecc);
 
-export class ArkadeWallet extends AbstractHDElectrumWallet implements InterfaceLightningWallet {
+export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLightningWallet {
   private _wallet: Wallet | undefined = undefined;
   private _arkadeLightning: ArkadeLightning | undefined = undefined;
   private _arkServerUrl: string = 'https://mutinynet.arkade.sh';

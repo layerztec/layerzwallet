@@ -12,18 +12,18 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { getDecimalsByNetwork } from '@shared/models/network-getters';
-import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { SendBtcParams } from './SendBtc';
 
-export type SwapXArkadeDepositParams = {
+export type SwapXArkDepositParams = {
   amountIn: string;
   to: typeof NETWORK_ARKADE | typeof NETWORK_ARKADE_MUTINYNET | typeof NETWORK_SPARK;
 };
 
-export default function SwapXArkadeDeposit() {
+export default function SwapXArkDeposit() {
   const router = useRouter();
   const network = useContext(NetworkContext).network as typeof NETWORK_ARKADE | typeof NETWORK_ARKADE_MUTINYNET | typeof NETWORK_SPARK;
-  const { amountIn, to } = useLocalSearchParams<SwapXArkadeDepositParams>();
+  const { amountIn, to } = useLocalSearchParams<SwapXArkDepositParams>();
   const { accountNumber } = useContext(AccountNumberContext);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -33,7 +33,7 @@ export default function SwapXArkadeDeposit() {
     const redirect = async () => {
       try {
         const wallet = await BackgroundExecutor.lazyInitWallet(to, accountNumber);
-        assert(wallet instanceof SparkWallet || wallet instanceof ArkadeWallet, 'Not a XArkade wallet');
+        assert(wallet instanceof SparkWallet || wallet instanceof ArkWallet, 'Not a XArkade wallet');
         const toAddress = await wallet.getOnchainDepositAddress();
         const amount = new BigNumber(amountIn).dividedBy(10 ** getDecimalsByNetwork(network)).toString(10);
         const newParams: SendBtcParams = { toAddress, amount, xArkSwapTo: to };

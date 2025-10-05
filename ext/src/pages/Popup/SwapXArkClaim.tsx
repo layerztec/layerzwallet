@@ -10,22 +10,22 @@ import { SparkWallet, StaticDepositQuoteOutput } from '@shared/class/wallets/spa
 import { getDecimalsByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
 import { CommonSwap } from '@shared/types/common-swap';
-import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 
 import { BackgroundCaller } from '../../modules/background-caller';
 import { Button } from './DesignSystem';
 
-export type SwapXArkadeClaimParams = {
+export type SwapXArkClaimParams = {
   swapJson: string;
 };
 
 // for BTC -> Spark swap we can get a quote.
 // but for BTC -> Arkade we can not, so we just show the confirmation.
 
-const SwapXArkadeClaim: React.FC = () => {
+const SwapXArkClaim: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const wallet = useRef<SparkWallet | ArkadeWallet>(null);
+  const wallet = useRef<SparkWallet | ArkWallet>(null);
   const { accountNumber } = useContext(AccountNumberContext);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -35,7 +35,7 @@ const SwapXArkadeClaim: React.FC = () => {
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [refundSuccess, setRefundSuccess] = useState(false);
 
-  const params = location.state as SwapXArkadeClaimParams;
+  const params = location.state as SwapXArkClaimParams;
   const swap = useMemo(() => JSON.parse(params.swapJson) as CommonSwap, [params.swapJson]);
   const decimals = getDecimalsByNetwork(NETWORK_SPARK);
   const disabled = isClaiming || isRefunding;
@@ -44,7 +44,7 @@ const SwapXArkadeClaim: React.FC = () => {
     const getQuote = async () => {
       try {
         const w = await BackgroundCaller.lazyInitWallet(swap.network as any, accountNumber);
-        assert(w instanceof SparkWallet || w instanceof ArkadeWallet, 'Not a XArkade wallet');
+        assert(w instanceof SparkWallet || w instanceof ArkWallet, 'Not a XArkade wallet');
         wallet.current = w;
         if (w instanceof SparkWallet) {
           const quote = await w.getDepositQuote(swap.id);
@@ -67,7 +67,7 @@ const SwapXArkadeClaim: React.FC = () => {
       if (wallet.current instanceof SparkWallet) {
         if (!quote) return;
         await wallet.current.claimDepositSpark(quote);
-      } else if (wallet.current instanceof ArkadeWallet) {
+      } else if (wallet.current instanceof ArkWallet) {
         await wallet.current.claimDepositArk(swap.id);
       }
       setClaimSuccess(true);
@@ -87,7 +87,7 @@ const SwapXArkadeClaim: React.FC = () => {
       assert(destinationAddress, 'No destination address for refund');
       if (wallet.current instanceof SparkWallet) {
         await wallet.current.refundDeposit(swap.id, destinationAddress);
-      } else if (wallet.current instanceof ArkadeWallet) {
+      } else if (wallet.current instanceof ArkWallet) {
         throw new Error('Refund not supported for Ark');
       }
       setRefundSuccess(true);
@@ -115,9 +115,9 @@ const SwapXArkadeClaim: React.FC = () => {
               <strong>{formatBalance(quote.creditAmountSats.toString(), decimals)} BTC</strong> has been added to your {swap.network === NETWORK_SPARK ? 'Spark' : 'Arkade'} balance
             </div>
           )}
-          {wallet.current instanceof ArkadeWallet && (
+          {wallet.current instanceof ArkWallet && (
             <div>
-              <strong>{formatBalance(swap.amount.toString(), getDecimalsByNetwork(swap.network))} BTC</strong> has been added to your Arkadeade balance
+              <strong>{formatBalance(swap.amount.toString(), getDecimalsByNetwork(swap.network))} BTC</strong> has been added to your Arkade balance
             </div>
           )}
         </div>
@@ -219,7 +219,7 @@ const SwapXArkadeClaim: React.FC = () => {
               )}
 
               {/* For Ark, just show the amount */}
-              {wallet.current instanceof ArkadeWallet && (
+              {wallet.current instanceof ArkWallet && (
                 <div
                   style={{
                     display: 'flex',
@@ -306,4 +306,4 @@ const SwapXArkadeClaim: React.FC = () => {
   );
 };
 
-export default SwapXArkadeClaim;
+export default SwapXArkClaim;

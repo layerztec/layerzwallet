@@ -31,7 +31,7 @@ export default {
         },
       ],
       SendArk: {
-        path: 'send/arkade',
+        path: 'send/ark',
         parse: {
           toAddress: (toAddress: string) => toAddress,
           amount: (amount: string) => amount,

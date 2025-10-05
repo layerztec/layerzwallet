@@ -3,7 +3,7 @@ import useSWR from 'swr';
 
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { AllNetworkInfos } from '../models/all-network-infos';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
@@ -78,7 +78,7 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
         const sparkTx = await sparkWallet.getCommonTransactions();
         tsx.push(...sparkTx);
         const arkadeWallet = await backgroundCaller.lazyInitWallet(NETWORK_ARKADE, accountNumber);
-        assert(arkadeWallet instanceof ArkadeWallet, 'Not an Arkade wallet');
+        assert(arkadeWallet instanceof ArkWallet, 'Not an Arkade wallet');
         const arkTx = arkadeWallet.getCommonTransactions();
         tsx.push(...arkTx);
       }
@@ -89,7 +89,7 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
 
     if (network === NETWORK_ARKADE_MUTINYNET || network === NETWORK_ARKADE) {
       const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
-      assert(wallet instanceof ArkadeWallet, 'Not an Arkade wallet');
+      assert(wallet instanceof ArkWallet, 'Not an Arkade wallet');
       return await wallet.getCommonTransactions();
     }
 

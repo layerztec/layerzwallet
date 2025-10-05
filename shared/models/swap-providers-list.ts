@@ -4,9 +4,9 @@ import { SwapProviderBoltz } from './swap-provider-boltz';
 import { SwapProviderOnramper } from './swap-provider-onramper';
 import { SwapProviderSideshift } from './swap-provider-sideshift';
 import { SwapProviderGardenFinance } from './swap-provider-gardenfinance';
-import { SwapProviderXArkade } from './swap-provider-xarkade';
+import { SwapProviderXArk } from './swap-provider-xarkade';
 
-const swapPartnersList: SwapProvider[] = [new SwapProviderOnramper(), new SwapProviderSideshift(), new SwapProviderBoltz(), new SwapProviderGardenFinance(), new SwapProviderXArkade()];
+const swapPartnersList: SwapProvider[] = [new SwapProviderOnramper(), new SwapProviderSideshift(), new SwapProviderBoltz(), new SwapProviderGardenFinance(), new SwapProviderXArk()];
 
 /**
  * @returns list of swap providers that can swap FROM provided network (to smth else)

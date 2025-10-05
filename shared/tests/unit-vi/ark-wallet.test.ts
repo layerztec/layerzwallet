@@ -2,7 +2,7 @@ import assert from 'assert';
 import { test, vi } from 'vitest';
 import { ArkTransaction, TxType } from '@arkade-os/sdk';
 
-import { ArkadeWallet } from '../../class/wallets/arkade-wallet';
+import { ArkWallet } from '../../class/wallets/ark-wallet';
 import { IStorage } from '../../types/IStorage';
 
 const _cache: Record<string, string> = {};
@@ -29,7 +29,7 @@ test('arkade mainnet can getCommonTransactions', async (context) => {
     return;
   }
 
-  const w = new ArkadeWallet();
+  const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
   w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
@@ -64,14 +64,14 @@ test('arkade mainnet can getCommonTransactions', async (context) => {
     {
       amount: 100,
       direction: 'send',
-      network: 'arkade',
+      network: 'ark',
       timestamp: 1756199879,
       txid: 'c08e5661587fa741aea8d4eb0be3b400aae75cee18b0e0afa70b9ba41d9ca3be',
     },
     {
       amount: 2100,
       direction: 'receive',
-      network: 'arkade',
+      network: 'ark',
       timestamp: 1755786091,
       txid: '5a41fdc280352cab91fef62a1f407a0c8559ecffb2f85bea1970b72eaf4d6058',
     },

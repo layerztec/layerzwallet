@@ -8,7 +8,7 @@ import { IStorage, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_BTC_XPUB, getSerialized
 import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 import { WalletSerializer } from './wallet-serializer';
 import { BreezWallet, getBreezNetwork } from '../class/wallets/breez-wallet';
-import { ArkadeWallet } from '../class/wallets/arkade-wallet';
+import { ArkWallet } from '../class/wallets/ark-wallet';
 
 // Cache of wallets by network and account number
 const cachedWallets: Record<TSupportedLazyInitWalletNetworks, Record<number, TLazyInitedWallets>> = {
@@ -68,7 +68,7 @@ export type TSupportedLazyInitWalletNetworks =
   | typeof NETWORK_LIQUID_TESTNET
   | typeof NETWORK_ARKADE_MUTINYNET
   | typeof NETWORK_ARKADE;
-export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkadeWallet;
+export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkWallet;
 
 /**
  * Initialize and cache a wallet for the given network/account, using serialization if available.
@@ -125,7 +125,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
 
     if (network === NETWORK_ARKADE_MUTINYNET) {
       assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Arkade env vars not set');
-      const aw = new ArkadeWallet();
+      const aw = new ArkWallet();
       const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
       aw.setSecret(submnemonic);
       // FIXME: temporarily while mutinynet arkd is down we make this wallet work with mainnet:
@@ -139,7 +139,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     }
 
     if (network === NETWORK_ARKADE) {
-      const aw = new ArkadeWallet();
+      const aw = new ArkWallet();
       const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
       aw.setSecret(submnemonic);
       assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Arkade env vars not set');

@@ -21,7 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import assert from 'assert';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import Lnurl, { LnurlPayServicePayload } from '@shared/class/lnurl';
 import { convertMerchantQRToLightningAddress } from '@shared/modules/merchants';
 
@@ -133,7 +133,7 @@ const SendLightning: React.FC = () => {
     const initializeWallet = async () => {
       try {
         const w = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkadeWallet);
+        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkWallet);
         walletRef.current = w;
       } catch (err) {
         console.error('Failed to initialize wallet:', err);
