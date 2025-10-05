@@ -11,8 +11,8 @@ import { USDT_TOKENS } from '@shared/models/token-list';
 import { SwapPair, SwapPlatform } from '@shared/types/swap';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import {
-  NETWORK_ARK,
-  NETWORK_ARK_MUTINYNET,
+  NETWORK_ARKADE,
+  NETWORK_ARKADE_MUTINYNET,
   NETWORK_BITCOIN,
   NETWORK_LIGHTNING,
   NETWORK_LIGHTNING_TESTNET,
@@ -57,9 +57,9 @@ const Home: React.FC = () => {
         navigate('/send-btc');
         break;
       case NETWORK_SPARK:
-      case NETWORK_ARK_MUTINYNET:
-      case NETWORK_ARK:
-        navigate('/send-ark');
+      case NETWORK_ARKADE_MUTINYNET:
+      case NETWORK_ARKADE:
+        navigate('/send-arkade');
         break;
       case NETWORK_LIQUID:
       case NETWORK_LIQUID_TESTNET:
@@ -85,10 +85,10 @@ const Home: React.FC = () => {
 
   const handleReceiveLightningOnArk = () => {
     if (network === NETWORK_LIGHTNING_TESTNET) {
-      alert('Ark lightning has no testnet');
+      alert('Arkade lightning has no testnet');
       return;
     }
-    const state: ReceiveLightningProps = { network: NETWORK_ARK };
+    const state: ReceiveLightningProps = { network: NETWORK_ARKADE };
     navigate('/receive-lightning', { state });
   };
 
@@ -103,10 +103,10 @@ const Home: React.FC = () => {
 
   const handleSendLightningOnArk = () => {
     if (network === NETWORK_LIGHTNING_TESTNET) {
-      alert('Ark lightning has no testnet');
+      alert('Arkade lightning has no testnet');
       return;
     }
-    const state: SendLightningProps = { network: NETWORK_ARK };
+    const state: SendLightningProps = { network: NETWORK_ARKADE };
     navigate('/send-lightning', { state });
   };
 
@@ -209,7 +209,7 @@ const Home: React.FC = () => {
               onClick: handleSendLightningOnLiquid,
             },
             {
-              label: 'Send via Ark',
+              label: 'Send via Arkade',
               onClick: handleSendLightningOnArk,
             },
             { label: 'Cancel', onClick: () => {} },
@@ -262,7 +262,7 @@ const Home: React.FC = () => {
               onClick: handleReceiveLightningOnLiquid,
             },
             {
-              label: 'Receive on Ark',
+              label: 'Receive on Arkadeade',
               onClick: handleReceiveLightningOnArk,
             },
             { label: 'Cancel', onClick: () => {} },

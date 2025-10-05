@@ -15,7 +15,7 @@ import { USDT_TOKENS } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { IBackgroundCaller } from '@shared/types/IBackgroundCaller';
 import {
-  NETWORK_ARK,
+  NETWORK_ARKADE,
   NETWORK_BITCOIN,
   NETWORK_LIGHTNING,
   NETWORK_LIGHTNING_TESTNET,
@@ -103,10 +103,10 @@ const BalanceLightning: React.FC<BalanceViewProps> = ({ network, accountNumber, 
   // Multiple useBalance hooks are needed since each network manages separate state
   const liquidNetwork = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
   const { balance: sparkBalance } = useBalance(NETWORK_SPARK, accountNumber, BackgroundCaller);
-  const { balance: arkBalance } = useBalance(NETWORK_ARK, accountNumber, BackgroundCaller);
+  const { balance: arkBalance } = useBalance(NETWORK_ARKADE, accountNumber, BackgroundCaller);
   const { balance: liquidBalance } = useBalance(liquidNetwork, accountNumber, BackgroundCaller);
   const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK, 'USD');
-  const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARK, 'USD');
+  const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARKADE, 'USD');
   const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, 'USD');
 
   const ticker = getTickerByNetwork(network);
@@ -137,12 +137,12 @@ const BalanceLightning: React.FC<BalanceViewProps> = ({ network, accountNumber, 
   }, [network, sparkBalance, liquidBalance, arkBalance, decimals, sparkExchangeRate, liquidExchangeRate, arkExchangeRate]);
 
   const rows = useMemo(() => {
-    const networks = network === NETWORK_LIGHTNING ? [NETWORK_SPARK, NETWORK_ARK, NETWORK_LIQUID] : [NETWORK_LIQUID_TESTNET];
+    const networks = network === NETWORK_LIGHTNING ? [NETWORK_SPARK, NETWORK_ARKADE, NETWORK_LIQUID] : [NETWORK_LIQUID_TESTNET];
 
     return networks.map((net, index) => {
       let balance: string | undefined;
       let exchangeRate: number | undefined;
-      if (net === NETWORK_ARK) {
+      if (net === NETWORK_ARKADE) {
         balance = arkBalance;
         exchangeRate = arkExchangeRate;
       } else if (net === NETWORK_SPARK) {

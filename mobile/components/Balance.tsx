@@ -19,7 +19,7 @@ import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, NETWORK_ARK, Networks } from '@shared/types/networks';
+import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, NETWORK_ARKADE, Networks } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { USDT_TOKENS } from '@shared/models/token-list';
 
@@ -75,10 +75,10 @@ const BalanceLightning = () => {
   // Multiple useBalance hooks are needed since each network manages separate state
   const liquidNetwork = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
   const { balance: sparkBalance } = useBalance(NETWORK_SPARK, accountNumber, BackgroundExecutor);
-  const { balance: arkBalance } = useBalance(NETWORK_ARK, accountNumber, BackgroundExecutor);
+  const { balance: arkBalance } = useBalance(NETWORK_ARKADE, accountNumber, BackgroundExecutor);
   const { balance: liquidBalance } = useBalance(liquidNetwork, accountNumber, BackgroundExecutor);
   const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK, 'USD');
-  const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARK, 'USD');
+  const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARKADE, 'USD');
   const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, 'USD');
 
   const ticker = getTickerByNetwork(network);
@@ -109,7 +109,7 @@ const BalanceLightning = () => {
   }, [network, sparkBalance, liquidBalance, decimals, sparkExchangeRate, liquidExchangeRate, arkBalance, arkExchangeRate]);
 
   const icons = useMemo(() => {
-    const networks = network === NETWORK_LIGHTNING ? [NETWORK_SPARK, NETWORK_ARK, NETWORK_LIQUID] : [NETWORK_LIQUID_TESTNET];
+    const networks = network === NETWORK_LIGHTNING ? [NETWORK_SPARK, NETWORK_ARKADE, NETWORK_LIQUID] : [NETWORK_LIQUID_TESTNET];
     return networks.map((network) => {
       const networkImage = getNetworkImageAsset(network);
       const networkIconContent = networkImage ? <Image source={networkImage} style={styles.balanceNetworkImage} contentFit="contain" /> : null;
@@ -122,12 +122,12 @@ const BalanceLightning = () => {
   }, [network]);
 
   const rows = useMemo(() => {
-    const networks = network === NETWORK_LIGHTNING ? [NETWORK_SPARK, NETWORK_ARK, NETWORK_LIQUID] : [NETWORK_LIQUID_TESTNET];
+    const networks = network === NETWORK_LIGHTNING ? [NETWORK_SPARK, NETWORK_ARKADE, NETWORK_LIQUID] : [NETWORK_LIQUID_TESTNET];
 
     return networks.map((network) => {
       let balance: string | undefined;
       let exchangeRate: number | undefined;
-      if (network === NETWORK_ARK) {
+      if (network === NETWORK_ARKADE) {
         balance = arkBalance;
         exchangeRate = arkExchangeRate;
       } else if (network === NETWORK_SPARK) {

@@ -236,7 +236,7 @@ const SendBtc: React.FC = () => {
         </ThemedText>
         {xArkSwap && xArkSwapTo ? (
           <ThemedText style={{ color: '#666', marginBottom: '20px' }}>
-            {xArkSwapTo === NETWORK_SPARK ? 'Spark' : 'Ark'} swap initiated! Wait for 3 confirmations, then you will be able to claim the funds on the {xArkSwapTo === NETWORK_SPARK ? 'Spark' : 'Ark'}{' '}
+            {xArkSwapTo === NETWORK_SPARK ? 'Spark' : 'Arkade'} swap initiated! Wait for 3 confirmations, then you will be able to claim the funds on the {xArkSwapTo === NETWORK_SPARK ? 'Spark' : 'Arkade'}{' '}
             network.
           </ThemedText>
         ) : (

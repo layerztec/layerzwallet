@@ -3,13 +3,13 @@ import useSWR from 'swr';
 
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { AllNetworkInfos } from '../models/all-network-infos';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import {
-  NETWORK_ARK,
-  NETWORK_ARK_MUTINYNET,
+  NETWORK_ARKADE,
+  NETWORK_ARKADE_MUTINYNET,
   NETWORK_BITCOIN,
   NETWORK_LIGHTNING,
   NETWORK_LIGHTNING_TESTNET,
@@ -77,9 +77,9 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
         assert(sparkWallet instanceof SparkWallet, 'Not a Spark wallet');
         const sparkTx = await sparkWallet.getCommonTransactions();
         tsx.push(...sparkTx);
-        const arkWallet = await backgroundCaller.lazyInitWallet(NETWORK_ARK, accountNumber);
-        assert(arkWallet instanceof ArkWallet, 'Not an Ark wallet');
-        const arkTx = await arkWallet.getCommonTransactions();
+        const arkadeWallet = await backgroundCaller.lazyInitWallet(NETWORK_ARKADE, accountNumber);
+        assert(arkadeWallet instanceof ArkadeWallet, 'Not an Arkade wallet');
+        const arkTx = arkadeWallet.getCommonTransactions();
         tsx.push(...arkTx);
       }
       return tsx
@@ -87,9 +87,9 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
         .sort((a, b) => b.timestamp - a.timestamp);
     }
 
-    if (network === NETWORK_ARK_MUTINYNET || network === NETWORK_ARK) {
+    if (network === NETWORK_ARKADE_MUTINYNET || network === NETWORK_ARKADE) {
       const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
-      assert(wallet instanceof ArkWallet, 'Not an Ark wallet');
+      assert(wallet instanceof ArkadeWallet, 'Not an Arkade wallet');
       return await wallet.getCommonTransactions();
     }
 
@@ -126,7 +126,7 @@ export function useTransactions(network: Networks, accountNumber: number, backgr
 
   switch (network) {
     case NETWORK_SPARK:
-    case NETWORK_ARK_MUTINYNET:
+    case NETWORK_ARKADE_MUTINYNET:
       refreshInterval = 20_000;
       break;
 

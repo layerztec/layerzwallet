@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { test } from 'vitest';
-import { ArkWallet } from '../../class/wallets/ark-wallet';
+import { ArkadeWallet } from '../../class/wallets/arkade-wallet';
 import { IStorage } from '../../types/IStorage';
 import fs from 'fs';
 
@@ -18,14 +18,14 @@ const storageMock: IStorage = {
   },
 };
 
-test.skip('ark mutinynet can check balance', async (context) => {
+test.skip('arkade mutinynet can check balance', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
     console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
     return;
   }
 
-  const w = new ArkWallet();
+  const w = new ArkadeWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   await w.init(storageMock);
 
@@ -34,7 +34,7 @@ test.skip('ark mutinynet can check balance', async (context) => {
   assert.ok(offchainBalance >= 666);
 });
 
-test('ark mainnet can check balance', async (context) => {
+test('arkade mainnet can check balance', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
     console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
@@ -47,7 +47,7 @@ test('ark mainnet can check balance', async (context) => {
     return;
   }
 
-  const w = new ArkWallet();
+  const w = new ArkadeWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
   w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
@@ -59,7 +59,7 @@ test('ark mainnet can check balance', async (context) => {
   assert.ok(offchainBalance >= 6, `only have ${offchainBalance}`);
 });
 
-test('ark mainnet can check if our invoice is paid', async (context) => {
+test('arkade mainnet can check if our invoice is paid', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
     console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
@@ -72,7 +72,7 @@ test('ark mainnet can check if our invoice is paid', async (context) => {
     return;
   }
 
-  const w = new ArkWallet();
+  const w = new ArkadeWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
   w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
@@ -135,7 +135,7 @@ test('ark mainnet can check if our invoice is paid', async (context) => {
   assert.ok(isPaid);
 });
 
-test('ark mainnet switch accounts', async (context) => {
+test('arkade mainnet switch accounts', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
     console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
@@ -148,7 +148,7 @@ test('ark mainnet switch accounts', async (context) => {
     return;
   }
 
-  const w = new ArkWallet();
+  const w = new ArkadeWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
   w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
@@ -171,7 +171,7 @@ test('ark mainnet switch accounts', async (context) => {
   assert.ok(receive0 === (await w.getOffchainReceiveAddress()));
 });
 
-test.skip('ark mainnet can create lightning invoice', async (context) => {
+test.skip('arkade mainnet can create lightning invoice', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
     console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
@@ -184,7 +184,7 @@ test.skip('ark mainnet can create lightning invoice', async (context) => {
     return;
   }
 
-  const w = new ArkWallet();
+  const w = new ArkadeWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
   w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
@@ -199,7 +199,7 @@ test.skip('ark mainnet can create lightning invoice', async (context) => {
   await w.createLightningInvoice(500, 'GSOM OLOLO');
 });
 
-test.skip('ark mainnet can pay lightning invoice', async (context) => {
+test.skip('arkade mainnet can pay lightning invoice', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
     console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
@@ -212,7 +212,7 @@ test.skip('ark mainnet can pay lightning invoice', async (context) => {
     return;
   }
 
-  const w = new ArkWallet();
+  const w = new ArkadeWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
   w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);

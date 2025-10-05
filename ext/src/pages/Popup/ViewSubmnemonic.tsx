@@ -52,7 +52,7 @@ const ViewSubmnemonic: React.FC = () => {
   return (
     <div>
       <div>
-        <ThemedText type="headline">View seed for Spark/Ark/Liquid</ThemedText>
+        <ThemedText type="headline">View seed for Spark/Arkade/Liquid</ThemedText>
       </div>
       <ThemedText type="paragraph" style={{ marginBottom: '20px' }}>
         Anyone with access to this phrase can control your funds on account {accountNumber}. You don't need to back it up; it's derived from your master Seed using BIP-85.

@@ -1,18 +1,18 @@
 import assert from 'assert';
 
-import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_ARKADE, NETWORK_BITCOIN, NETWORK_SPARK, Networks } from '../types/networks';
 import { DoSwapResponse, SwapPair, SwapPlatform, SwapProvider } from '../types/swap';
 
-export class SwapProviderXArk implements SwapProvider {
-  name = 'XArk';
+export class SwapProviderXArkade implements SwapProvider {
+  name = 'XArkade';
 
   getSupportedPairs(): SwapPair[] {
     return [
       { from: NETWORK_BITCOIN, to: NETWORK_SPARK, platform: SwapPlatform.EXT },
       { from: NETWORK_BITCOIN, to: NETWORK_SPARK, platform: SwapPlatform.MOBILE },
-      { from: NETWORK_BITCOIN, to: NETWORK_ARK, platform: SwapPlatform.EXT },
-      // Disable Ark swaps for now until we fix the issue with the EventSource not available on Expo
-      // { from: NETWORK_BITCOIN, to: NETWORK_ARK, platform: SwapPlatform.MOBILE },
+      { from: NETWORK_BITCOIN, to: NETWORK_ARKADE, platform: SwapPlatform.EXT },
+      // Disable Arkade swaps for now until we fix the issue with the EventSource not available on Expo
+      // { from: NETWORK_BITCOIN, to: NETWORK_ARKADE, platform: SwapPlatform.MOBILE },
     ];
   }
 
@@ -23,7 +23,7 @@ export class SwapProviderXArk implements SwapProvider {
 
     return Promise.resolve({
       action: 'INTERNAL_SCREEN',
-      screen: 'SwapXArkDeposit',
+      screen: 'SwapXArkadeDeposit',
       params: {
         to,
         amountIn: amountIn.toString(),

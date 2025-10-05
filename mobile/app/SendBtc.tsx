@@ -19,7 +19,7 @@ import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wal
 import { CreateTransactionTarget, CreateTransactionUtxo } from '@shared/class/wallets/types';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_ARK, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { NETWORK_ARKADE, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
@@ -236,7 +236,7 @@ const SendBtc: React.FC = () => {
               <ThemedText style={styles.successMessage}>Transaction Sent!</ThemedText>
               {xArkSwapTo ? (
                 <ThemedText style={styles.successSubMessage}>
-                  {xArkSwapTo === NETWORK_SPARK ? 'Spark swap ' : 'Ark swap '}
+                  {xArkSwapTo === NETWORK_SPARK ? 'Spark swap ' : 'Arkade swap '}
                   initiated! Wait for 3 confirmations, then you will be able to claim the funds on the
                   {xArkSwapTo === NETWORK_SPARK ? ' Spark' : ' Ark'} network.
                 </ThemedText>

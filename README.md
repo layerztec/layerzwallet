@@ -16,7 +16,7 @@ Experience the future of Bitcoin with Layer2-focused wallet. Bitcoin-only, non-c
 - [x] Citrea (testnet)
 - [x] Alpen (testnet)
 - [x] Liquid & Liquid assets
-- [x] Ark (by ArkLabs) (testnet)
+- [x] Arkade (by ArkLabs) (testnet)
 - [x] Spark
 - [ ] RGB
 - [x] Lightning (breez-nodeless)

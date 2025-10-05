@@ -5,17 +5,17 @@ import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
 import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
 import { SparkWallet } from '../class/wallets/spark-wallet';
 import { IStorage, STORAGE_KEY_SUB_MNEMONIC, STORAGE_KEY_BTC_XPUB, getSerializedStorageKey } from '../types/IStorage';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 import { WalletSerializer } from './wallet-serializer';
 import { BreezWallet, getBreezNetwork } from '../class/wallets/breez-wallet';
-import { ArkWallet } from '../class/wallets/ark-wallet';
+import { ArkadeWallet } from '../class/wallets/arkade-wallet';
 
 // Cache of wallets by network and account number
 const cachedWallets: Record<TSupportedLazyInitWalletNetworks, Record<number, TLazyInitedWallets>> = {
   [NETWORK_BITCOIN]: {},
   [NETWORK_SPARK]: {},
-  [NETWORK_ARK_MUTINYNET]: {},
-  [NETWORK_ARK]: {},
+  [NETWORK_ARKADE_MUTINYNET]: {},
+  [NETWORK_ARKADE]: {},
   [NETWORK_LIQUID]: {},
   [NETWORK_LIQUID_TESTNET]: {},
 };
@@ -66,9 +66,9 @@ export type TSupportedLazyInitWalletNetworks =
   | typeof NETWORK_SPARK
   | typeof NETWORK_LIQUID
   | typeof NETWORK_LIQUID_TESTNET
-  | typeof NETWORK_ARK_MUTINYNET
-  | typeof NETWORK_ARK;
-export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkWallet;
+  | typeof NETWORK_ARKADE_MUTINYNET
+  | typeof NETWORK_ARKADE;
+export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkadeWallet;
 
 /**
  * Initialize and cache a wallet for the given network/account, using serialization if available.
@@ -80,7 +80,7 @@ export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | A
  * @returns The initialized wallet instance
  */
 export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, accountNumber: number, storage: IStorage, secureStorage: IStorage): Promise<TLazyInitedWallets> {
-  if (![NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ARK_MUTINYNET, NETWORK_ARK].includes(network)) {
+  if (![NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ARKADE_MUTINYNET, NETWORK_ARKADE].includes(network)) {
     throw new Error(`Unsupported network for lazyInitWallet: ${network}`);
   }
   // cache hit
@@ -123,9 +123,9 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       return sw;
     }
 
-    if (network === NETWORK_ARK_MUTINYNET) {
-      assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Ark env vars not set');
-      const aw = new ArkWallet();
+    if (network === NETWORK_ARKADE_MUTINYNET) {
+      assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Arkade env vars not set');
+      const aw = new ArkadeWallet();
       const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
       aw.setSecret(submnemonic);
       // FIXME: temporarily while mutinynet arkd is down we make this wallet work with mainnet:
@@ -138,12 +138,12 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       return aw;
     }
 
-    if (network === NETWORK_ARK) {
-      const aw = new ArkWallet();
+    if (network === NETWORK_ARKADE) {
+      const aw = new ArkadeWallet();
       const submnemonic = await secureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
       aw.setSecret(submnemonic);
-      assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Ark env vars not set');
-      // fixme: can be moved from env vars to hardcode once Ark mainnet goes public
+      assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Arkade env vars not set');
+      // fixme: can be moved from env vars to hardcode once Arkade mainnet goes public
       aw.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
       aw.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
       aw.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);

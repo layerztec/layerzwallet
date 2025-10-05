@@ -4,7 +4,7 @@ Thank you for your interest in contributing to Layerz Wallet! This document prov
 
 ## Project Overview
 
-Layerz Wallet is a Bitcoin wallet supporting multiple Layer 2 solutions including Rootstock, Botanix, Liquid, Ark, Spark, and Lightning Network. It's built as a monorepo with:
+Layerz Wallet is a Bitcoin wallet supporting multiple Layer 2 solutions including Rootstock, Botanix, Liquid, Arkade, Spark, and Lightning Network. It's built as a monorepo with:
 
 - **Mobile app** (React Native + Expo)
 - **Browser extension** (React)

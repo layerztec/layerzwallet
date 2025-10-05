@@ -35,7 +35,7 @@ export default function ViewSubmnemonic() {
 
   return (
     <GradientScreen variant={network}>
-      <ScreenHeader title="View seed for Spark/Ark/Liquid" />
+      <ScreenHeader title="View seed for Spark/Arkade/Liquid" />
       <View style={styles.container}>
         <View>
           {!mnemonic ? (

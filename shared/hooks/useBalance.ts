@@ -2,10 +2,10 @@ import BigNumber from 'bignumber.js';
 import useSWR from 'swr';
 
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { ArkWallet } from '../class/wallets/ark-wallet';
+import { ArkadeWallet } from '../class/wallets/arkade-wallet';
 import { getRpcProvider } from '../models/network-getters';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
 import assert from 'assert';
 
@@ -64,17 +64,17 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
     assert(sw instanceof SparkWallet);
     const virtualBalance = await sw.getOffchainBalance();
     const end = +new Date();
-    console.log('spark balance took', (end - start) / 1000, 'sec, balance =', virtualBalance.toString(10));
+    console.log('sparkade balance took', (end - start) / 1000, 'sec, balance =', virtualBalance.toString(10));
     return virtualBalance.toString(10);
   }
 
-  if (network === NETWORK_ARK_MUTINYNET || network === NETWORK_ARK) {
+  if (network === NETWORK_ARKADE_MUTINYNET || network === NETWORK_ARKADE) {
     const start = +new Date();
     const aw = await backgroundCaller.lazyInitWallet(network, accountNumber);
-    assert(aw instanceof ArkWallet);
+    assert(aw instanceof ArkadeWallet);
     const virtualBalance = await aw.getOffchainBalance();
     const end = +new Date();
-    console.log('ark balance took', (end - start) / 1000, 'sec, balance =', virtualBalance.toString(10));
+    console.log('arkade balance took', (end - start) / 1000, 'sec, balance =', virtualBalance.toString(10));
     return virtualBalance.toString(10);
   }
 
@@ -91,7 +91,7 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
 
   switch (network) {
     case NETWORK_SPARK:
-    case NETWORK_ARK_MUTINYNET:
+    case NETWORK_ARKADE_MUTINYNET:
       refreshInterval = 5_000; // transfers are just server interactions, should be fast
       break;
 

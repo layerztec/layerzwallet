@@ -4,8 +4,8 @@ import useSWR from 'swr';
 import { SparkWallet } from '../class/wallets/spark-wallet';
 import { CommonSwap } from '../types/common-swap';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK, Networks } from '../types/networks';
-import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
 
 interface swapFetcherArg {
   cacheKey: string;
@@ -39,9 +39,9 @@ export const swapFetcher = async (arg: swapFetcherArg): Promise<CommonSwap[]> =>
       return await wallet.getCommonSwaps();
     }
 
-    if (network === NETWORK_ARK_MUTINYNET || network === NETWORK_ARK) {
+    if (network === NETWORK_ARKADE_MUTINYNET || network === NETWORK_ARKADE) {
       const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
-      assert(wallet instanceof ArkWallet, 'Not an Ark wallet');
+      assert(wallet instanceof ArkadeWallet, 'Not an Arkade wallet');
       return await wallet.getCommonSwaps();
     }
 
@@ -60,9 +60,9 @@ export function useSwaps(network: Networks, accountNumber: number, backgroundCal
     case NETWORK_SPARK:
       refreshInterval = 20_000; // 20 seconds for Spark swaps
       break;
-    case NETWORK_ARK_MUTINYNET:
-    case NETWORK_ARK:
-      refreshInterval = 20_000; // 20 seconds for Ark swaps
+    case NETWORK_ARKADE_MUTINYNET:
+    case NETWORK_ARKADE:
+      refreshInterval = 20_000; // 20 seconds for Arkade swaps
       break;
   }
 

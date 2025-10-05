@@ -6,7 +6,7 @@ import * as bolt11 from 'bolt11';
 import * as bip21 from 'bip21';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARKADE, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
@@ -17,12 +17,12 @@ import { TLightningWallet } from '@shared/types/TWallet';
 import assert from 'assert';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
 import Lnurl, { LnurlPayServicePayload } from '@shared/class/lnurl';
 import { convertMerchantQRToLightningAddress } from '@shared/modules/merchants';
 
 export interface SendLightningProps {
-  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK;
+  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARKADE;
 }
 
 const maxFeePercent = 5; // hardcoded at the moment. might give user option to adjust later
@@ -118,7 +118,7 @@ const SendLightning: React.FC = () => {
     const initializeWallet = async () => {
       try {
         const w = await BackgroundCaller.lazyInitWallet(network, accountNumber);
-        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkWallet);
+        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkadeWallet);
         walletRef.current = w;
       } catch (err) {
         console.error('Failed to initialize wallet:', err);

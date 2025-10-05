@@ -12,13 +12,13 @@ import { ThemedText } from '@/components/ThemedText';
 import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 export type SendArkParams = {
@@ -27,7 +27,7 @@ export type SendArkParams = {
 };
 
 const SendArk = () => {
-  const params = useLocalSearchParams<SendArkParams>();
+  const params = useLocalSearchParams<SendArkadeParams>();
   const router = useRouter();
   const { scanQr } = useContext(ScanQrContext);
 
@@ -42,7 +42,7 @@ const SendArk = () => {
   const { accountNumber } = useContext(AccountNumberContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
-  const arkWallet = useRef<ArkWallet | undefined>(undefined);
+  const arkWallet = useRef<ArkadeWallet | undefined>(undefined);
 
   const actualSend = async () => {
     let startTs = Date.now();
@@ -53,13 +53,13 @@ const SendArk = () => {
       const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString(10);
 
       if (!arkWallet) {
-        throw new Error('Internal error: ArkWallet is not set');
+        throw new Error('Internal error: ArkadeWallet is not set');
       }
       console.log('actual value to send:', +satValue);
 
       startTs = Date.now();
       const transactionId = await arkWallet.current?.pay(toAddress, +satValue);
-      assert(transactionId, 'Internal error: ArkWallet.pay() failed');
+      assert(transactionId, 'Internal error: ArkadeWallet.pay() failed');
       console.log('submitted txid:', transactionId);
 
       setIsSuccess(true);
@@ -80,9 +80,9 @@ const SendArk = () => {
 
       await askMnemonic(); // only asking to verify user knows it. will throw if he doesnt
 
-      assert(network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_ARK, 'Internal error: wallet of incorrect type');
+      assert(network === NETWORK_ARKADE_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_ARKADE, 'Internal error: wallet of incorrect type');
       let w = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-      assert(w instanceof ArkWallet || w instanceof SparkWallet, 'Internal error: incorrect wallet instance');
+      assert(w instanceof ArkadeWallet || w instanceof SparkWallet, 'Internal error: incorrect wallet instance');
 
       arkWallet.current = w;
       setIsPrepared(true);

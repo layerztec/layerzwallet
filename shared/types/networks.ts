@@ -5,8 +5,8 @@ export const NETWORK_BOTANIX = 'botanix' as const;
 export const NETWORK_BOTANIX_TESTNET = 'botanix_testnet' as const;
 export const NETWORK_ALPEN_TESTNET = 'alpen_testnet' as const;
 export const NETWORK_CITREA_TESTNET = 'citrea_testnet' as const;
-export const NETWORK_ARK_MUTINYNET = 'ark_mutinynet' as const;
-export const NETWORK_ARK = 'ark' as const;
+export const NETWORK_ARKADE_MUTINYNET = 'arkade_mutinynet' as const;
+export const NETWORK_ARKADE = 'arkade' as const;
 export const NETWORK_LIQUID = 'liquid' as const;
 export const NETWORK_LIQUID_TESTNET = 'liquid_testnet' as const;
 export const NETWORK_SPARK = 'spark' as const;
@@ -22,8 +22,8 @@ const NetworksIterator = {
   BOTANIX_TESTNET: NETWORK_BOTANIX_TESTNET,
   ALPEN_TESTNET: NETWORK_ALPEN_TESTNET,
   CITREA_TESTNET: NETWORK_CITREA_TESTNET,
-  ARK_MUTINYNET: NETWORK_ARK_MUTINYNET,
-  ARK: NETWORK_ARK,
+  ARKADE_MUTINYNET: NETWORK_ARKADE_MUTINYNET,
+  ARKADE: NETWORK_ARKADE,
   LIQUID: NETWORK_LIQUID,
   LIQUID_TESTNET: NETWORK_LIQUID_TESTNET,
   SPARK: NETWORK_SPARK,

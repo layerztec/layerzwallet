@@ -11,7 +11,7 @@ jsEngine: graaljs
       MNEMONIC: ${MAESTRO_TEST_MNEMONIC}
 
 # run for some networks (where we have non-zero balance)
-- evalScript: ${output.networks = ['bitcoin', 'spark']} # 'rootstock'
+- evalScript: ${output.networks = ['bitcoin', 'sparkade']} # 'rootstock'
 - repeat:
     while:
       true: ${output.networks.length > 0}

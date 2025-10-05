@@ -1,7 +1,7 @@
 import { NetworkInfo } from '../types/network-info';
 import {
-  NETWORK_ARK_MUTINYNET,
-  NETWORK_ARK,
+  NETWORK_ARKADE_MUTINYNET,
+  NETWORK_ARKADE,
   NETWORK_BITCOIN,
   NETWORK_BOTANIX_TESTNET,
   NETWORK_LIQUID,
@@ -98,7 +98,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     etherScanApiUrl: 'https://explorer.testnet.citrea.xyz/api',
     sortIndex: 90,
   },
-  [NETWORK_ARK_MUTINYNET]: {
+  [NETWORK_ARKADE_MUTINYNET]: {
     chainId: -1,
     ticker: 'BTC',
     rpcUrl: '',
@@ -109,7 +109,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     isEVM: false,
     sortIndex: 30,
   },
-  [NETWORK_ARK]: {
+  [NETWORK_ARKADE]: {
     chainId: -1,
     ticker: 'BTC',
     rpcUrl: '',

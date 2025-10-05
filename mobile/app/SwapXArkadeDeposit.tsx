@@ -10,20 +10,20 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { getDecimalsByNetwork } from '@shared/models/network-getters';
-import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
 import { SendBtcParams } from './SendBtc';
 
-export type SwapXArkDepositParams = {
+export type SwapXArkadeDepositParams = {
   amountIn: string;
-  to: typeof NETWORK_ARK | typeof NETWORK_ARK_MUTINYNET | typeof NETWORK_SPARK;
+  to: typeof NETWORK_ARKADE | typeof NETWORK_ARKADE_MUTINYNET | typeof NETWORK_SPARK;
 };
 
-export default function SwapXArkDeposit() {
+export default function SwapXArkadeDeposit() {
   const router = useRouter();
-  const network = useContext(NetworkContext).network as typeof NETWORK_ARK | typeof NETWORK_ARK_MUTINYNET | typeof NETWORK_SPARK;
-  const { amountIn, to } = useLocalSearchParams<SwapXArkDepositParams>();
+  const network = useContext(NetworkContext).network as typeof NETWORK_ARKADE | typeof NETWORK_ARKADE_MUTINYNET | typeof NETWORK_SPARK;
+  const { amountIn, to } = useLocalSearchParams<SwapXArkadeDepositParams>();
   const { accountNumber } = useContext(AccountNumberContext);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -33,7 +33,7 @@ export default function SwapXArkDeposit() {
     const redirect = async () => {
       try {
         const wallet = await BackgroundExecutor.lazyInitWallet(to, accountNumber);
-        assert(wallet instanceof SparkWallet || wallet instanceof ArkWallet, 'Not a XArk wallet');
+        assert(wallet instanceof SparkWallet || wallet instanceof ArkadeWallet, 'Not a XArkade wallet');
         const toAddress = await wallet.getOnchainDepositAddress();
         const amount = new BigNumber(amountIn).dividedBy(10 ** getDecimalsByNetwork(network)).toString(10);
         const newParams: SendBtcParams = { toAddress, amount, xArkSwapTo: to };

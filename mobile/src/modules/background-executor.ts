@@ -26,13 +26,13 @@ import {
   STORAGE_KEY_WHITELIST,
   STORAGE_KEY_SEED_VERIFIED,
 } from '@shared/types/IStorage';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { BrowserBridge } from '../class/browser-bridge';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
 import { SecureStorage } from '../class/secure-storage';
 import { decrypt, encrypt } from '../modules/encryption';
-import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
 
 /**
  * A drop-in replacement for BackgroundCaller in `ext` project. Since we have only one js context on mobile,
@@ -54,9 +54,9 @@ export const BackgroundExecutor: IBackgroundCaller = {
       const address = await wallet.getAddressAsync();
       await saveWalletState(LayerzStorage, wallet, network, accountNumber);
       return address;
-    } else if (network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET) {
+    } else if (network === NETWORK_ARKADE || network === NETWORK_ARKADE_MUTINYNET) {
       const aw = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-      assert(aw instanceof ArkWallet);
+      assert(aw instanceof ArkadeWallet);
       return await aw.getOffchainReceiveAddress();
     } else if (network === NETWORK_SPARK) {
       const sp = await BackgroundExecutor.lazyInitWallet(network, accountNumber);

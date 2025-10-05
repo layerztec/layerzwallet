@@ -6,17 +6,17 @@ import { ThemedText } from '../../components/ThemedText';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_ARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARKADE, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { AddressBubble, Input, WideButton } from './DesignSystem';
 import { TLightningWallet } from '@shared/types/TWallet';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import assert from 'assert';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
 
 export interface ReceiveLightningProps {
-  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK;
+  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARKADE;
 }
 
 const ReceiveLightning: React.FC = () => {
@@ -110,7 +110,7 @@ const ReceiveLightning: React.FC = () => {
     const initializeWallet = async () => {
       try {
         const w = await BackgroundCaller.lazyInitWallet(network, accountNumber);
-        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkWallet);
+        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkadeWallet);
         walletRef.current = w;
         setIsWalletInitialized(true);
 

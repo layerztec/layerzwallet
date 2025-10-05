@@ -7,7 +7,7 @@ import assert from 'assert';
 
 import { AbstractHDElectrumWallet } from './abstract-hd-electrum-wallet';
 import { CommonTransaction } from '../../types/common-transaction';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET } from '../../types/networks';
+import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET } from '../../types/networks';
 import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
 import { IStorage } from '@shared/types/IStorage';
 import { CommonSwap } from '@shared/types/common-swap';
@@ -15,7 +15,7 @@ import * as BlueElectrum from '../../blue_modules/BlueElectrum';
 
 const bip32 = BIP32Factory(ecc);
 
-export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLightningWallet {
+export class ArkadeWallet extends AbstractHDElectrumWallet implements InterfaceLightningWallet {
   private _wallet: Wallet | undefined = undefined;
   private _arkadeLightning: ArkadeLightning | undefined = undefined;
   private _arkServerUrl: string = 'https://mutinynet.arkade.sh';
@@ -91,7 +91,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   }
 
   async initLightningSwaps() {
-    assert(this._wallet, 'Ark wallet must be initialized first');
+    assert(this._wallet, 'Arkade wallet must be initialized first');
     assert(this._boltzApiUrl, 'Boltz Api Url is not set');
 
     // Initialize the Lightning swap provider
@@ -108,7 +108,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   }
 
   async getOffchainBalance() {
-    if (!this._wallet) throw new Error('Ark wallet not initialized');
+    if (!this._wallet) throw new Error('Arkade wallet not initialized');
 
     if (this._arkadeLightning) {
       await this._attemptToClaimPendingVHTLCs();
@@ -119,7 +119,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   }
 
   async _attemptToClaimPendingVHTLCs() {
-    assert(this._wallet, 'Ark wallet not initialized');
+    assert(this._wallet, 'Arkade wallet not initialized');
     assert(this._arkadeLightning, 'Ark Lightning not initialized');
 
     const pendingReverseSwaps = await this._arkadeLightning.getPendingReverseSwaps();
@@ -137,7 +137,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   }
 
   async pay(address: string, amount: number): Promise<string> {
-    if (!this._wallet) throw new Error('Ark wallet not initialized');
+    if (!this._wallet) throw new Error('Arkade wallet not initialized');
 
     console.log(`paying ${amount} sat...`);
     return await this._wallet.sendBitcoin({
@@ -148,26 +148,26 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   }
 
   async getOffchainReceiveAddress(): Promise<string> {
-    if (!this._wallet) throw new Error('Ark wallet not initialized');
+    if (!this._wallet) throw new Error('Arkade wallet not initialized');
 
     const address = await this._wallet.getAddress();
     return address;
   }
 
   async getCommonTransactions(): Promise<CommonTransaction[]> {
-    if (!this._wallet) throw new Error('Ark wallet not initialized');
+    if (!this._wallet) throw new Error('Arkade wallet not initialized');
 
     const transactions = await this._wallet.getTransactionHistory();
 
     const commonTransactions: CommonTransaction[] = [];
 
     for (const transaction of transactions) {
-      if (!transaction.key.arkTxid) continue; // here we only show ark transactions
+      if (!transaction.key.arkTxid) continue; // here we only show arkadeade transactions
 
       const createdAt = transaction.createdAt || new Date().getTime(); // createdAt is 0 if tx is unconfirmed
       const timestamp = Math.floor(createdAt / 1000);
       commonTransactions.push({
-        network: this._arkServerUrl.includes('mutiny') ? NETWORK_ARK_MUTINYNET : NETWORK_ARK, // hacky
+        network: this._arkServerUrl.includes('mutiny') ? NETWORK_ARKADE_MUTINYNET : NETWORK_ARKADE, // hacky
         txid: transaction.key.arkTxid,
         timestamp,
         direction: transaction.type === TxType.TxSent ? 'send' : 'receive',
@@ -195,7 +195,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
 
     return {
       invoice: result.invoice,
-      serviceFeeSat: 1, // FIXME: hardcoded till Ark sdk provides actual number
+      serviceFeeSat: 1, // FIXME: hardcoded till Arkade sdk provides actual number
     };
   }
 
@@ -255,17 +255,17 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   }
 
   async getOnchainDepositAddress(): Promise<string> {
-    if (!this._wallet) throw new Error('Ark wallet not initialized');
+    if (!this._wallet) throw new Error('Arkade wallet not initialized');
 
     return await this._wallet.getBoardingAddress();
   }
 
   async getCommonSwaps(): Promise<CommonSwap[]> {
-    if (!this._wallet) throw new Error('Ark wallet not initialized');
+    if (!this._wallet) throw new Error('Arkade wallet not initialized');
     if (!BlueElectrum.mainConnected) await BlueElectrum.connectMain();
 
     const swaps: CommonSwap[] = [];
-    const network = this._arkServerUrl.includes('mutinynet') ? NETWORK_ARK_MUTINYNET : NETWORK_ARK;
+    const network = this._arkServerUrl.includes('mutinynet') ? NETWORK_ARKADE_MUTINYNET : NETWORK_ARKADE;
     const transactions = await this._wallet.getTransactionHistory();
 
     // unclaimed swaps
@@ -309,7 +309,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   }
 
   async claimDepositArk(txid: string): Promise<void> {
-    if (!this._wallet) throw new Error('Ark wallet not initialized');
+    if (!this._wallet) throw new Error('Arkade wallet not initialized');
 
     const boardingUtxos = (await this._wallet.getBoardingUtxos()).filter((utxo) => utxo.txid === txid);
 

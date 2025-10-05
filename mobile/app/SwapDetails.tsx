@@ -13,8 +13,8 @@ import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonSwap } from '@shared/types/common-swap';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
-import { SwapXArkClaimParams } from '@/app/SwapXArkClaim';
+import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { SwapXArkadeClaimParams } from '@/app/SwapXArkadeClaim';
 
 export default function SwapDetails() {
   const router = useRouter();
@@ -87,13 +87,13 @@ export default function SwapDetails() {
   };
 
   const handleClaim = () => {
-    if ([NETWORK_SPARK, NETWORK_ARK_MUTINYNET, NETWORK_ARK].includes(swap.network as any) && swap.status === 'claimable') {
-      const params: SwapXArkClaimParams = { swapJson: JSON.stringify(swap) };
-      router.push({ pathname: '/SwapXArkClaim', params });
+    if ([NETWORK_SPARK, NETWORK_ARKADE_MUTINYNET, NETWORK_ARKADE].includes(swap.network as any) && swap.status === 'claimable') {
+      const params: SwapXArkadeClaimParams = { swapJson: JSON.stringify(swap) };
+      router.push({ pathname: '/SwapXArkadeClaim', params });
     }
   };
 
-  const showClaimButton = [NETWORK_SPARK, NETWORK_ARK_MUTINYNET, NETWORK_ARK].includes(swap.network as any) && swap.status === 'claimable';
+  const showClaimButton = [NETWORK_SPARK, NETWORK_ARKADE_MUTINYNET, NETWORK_ARKADE].includes(swap.network as any) && swap.status === 'claimable';
 
   return (
     <GradientFormSheet variant={network}>

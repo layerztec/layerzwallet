@@ -61,7 +61,7 @@ const SwapInterfaceView: React.FC = () => {
         window.open(swapResponse.uri, '_blank');
         return;
       case 'INTERNAL_SCREEN':
-        navigate('/SwapXArkDeposit', { state: swapResponse.params });
+        navigate('/SwapXArkadeDeposit', { state: swapResponse.params });
         return;
       default:
         throw new Error('Unhandled swap action');

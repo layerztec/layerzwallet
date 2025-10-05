@@ -6,13 +6,13 @@ import {
   NETWORK_BOTANIX,
   NETWORK_BOTANIX_TESTNET,
   NETWORK_ALPEN_TESTNET,
-  NETWORK_ARK_MUTINYNET,
+  NETWORK_ARKADE_MUTINYNET,
   NETWORK_CITREA_TESTNET,
   NETWORK_LIGHTNING,
   NETWORK_SPARK,
   NETWORK_LIGHTNING_TESTNET,
   NETWORK_USDT,
-  NETWORK_ARK,
+  NETWORK_ARKADE,
 } from '@shared/types/networks';
 
 /**
@@ -39,8 +39,8 @@ export const getNetworkImageAsset = (network: string): string | null => {
       return require('../assets/images/ui/network/botanix.png');
     case NETWORK_ALPEN_TESTNET:
       return require('../assets/images/ui/network/alpen.png');
-    case NETWORK_ARK_MUTINYNET:
-    case NETWORK_ARK:
+    case NETWORK_ARKADE_MUTINYNET:
+    case NETWORK_ARKADE:
       return require('../assets/images/ui/network/ark.png');
     case NETWORK_CITREA_TESTNET:
       return require('../assets/images/ui/network/citrea.png');

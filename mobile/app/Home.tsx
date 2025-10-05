@@ -30,8 +30,8 @@ import { USDT_TOKENS } from '@shared/models/token-list';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import {
-  NETWORK_ARK,
-  NETWORK_ARK_MUTINYNET,
+  NETWORK_ARKADE,
+  NETWORK_ARKADE_MUTINYNET,
   NETWORK_BITCOIN,
   NETWORK_LIGHTNING,
   NETWORK_LIGHTNING_TESTNET,
@@ -124,9 +124,9 @@ export default function Home() {
       case NETWORK_BITCOIN:
         router.push('/SendBtc');
         break;
-      case NETWORK_ARK:
+      case NETWORK_ARKADE:
       case NETWORK_SPARK:
-      case NETWORK_ARK_MUTINYNET:
+      case NETWORK_ARKADE_MUTINYNET:
         router.push('/SendArk');
         break;
       case NETWORK_LIQUID:
@@ -233,16 +233,16 @@ export default function Home() {
 
   const handleReceiveOnArk = () => {
     if (network === NETWORK_LIGHTNING_TESTNET) {
-      Alert.alert('Ark lightning does not have a testnet');
+      Alert.alert('Arkade lightning does not have a testnet');
     } else {
-      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_ARK } });
+      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_ARKADE } });
     }
   };
 
   const lightningReceiveActions = [
     { children: <Action network={NETWORK_SPARK} text="Receive on Spark" />, onClick: handleReceiveOnSpark },
     { children: <Action network={NETWORK_LIQUID} text="Receive on Liquid" />, onClick: handleReceiveOnLiquid },
-    { children: <Action network={NETWORK_ARK} text="Receive on Ark" />, onClick: handleReceiveOnArk },
+    { children: <Action network={NETWORK_ARKADE} text="Receive on Arkadeade" />, onClick: handleReceiveOnArk },
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
@@ -256,9 +256,9 @@ export default function Home() {
 
   const handleSendViaArk = () => {
     if (network === NETWORK_LIGHTNING_TESTNET) {
-      Alert.alert('Ark lightning does not have a testnet');
+      Alert.alert('Arkade lightning does not have a testnet');
     } else {
-      router.push({ pathname: '/SendLightning', params: { network: NETWORK_ARK } });
+      router.push({ pathname: '/SendLightning', params: { network: NETWORK_ARKADE } });
     }
   };
 
@@ -274,7 +274,7 @@ export default function Home() {
   const lightningSendActions = [
     { children: <Action network={NETWORK_SPARK} text="Send via Spark" />, onClick: handleSendViaSpark },
     { children: <Action network={NETWORK_LIQUID} text="Send via Liquid" />, onClick: handleSendViaLiquid },
-    { children: <Action network={NETWORK_ARK} text="Send via Ark" />, onClick: handleSendViaArk },
+    { children: <Action network={NETWORK_ARKADE} text="Send via Arkade" />, onClick: handleSendViaArk },
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 

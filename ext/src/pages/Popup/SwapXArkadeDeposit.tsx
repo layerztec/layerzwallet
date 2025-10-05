@@ -6,26 +6,26 @@ import assert from 'assert';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARKADE, NETWORK_ARKADE_MUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
 import { getDecimalsByNetwork } from '@shared/models/network-getters';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { ArkadeWallet } from '@shared/class/wallets/arkade-wallet';
 
 import { BackgroundCaller } from '../../modules/background-caller';
 
-export type SwapXArkDepositParams = {
+export type SwapXArkadeDepositParams = {
   amountIn: string;
-  to: typeof NETWORK_ARK | typeof NETWORK_ARK_MUTINYNET | typeof NETWORK_SPARK;
+  to: typeof NETWORK_ARKADE | typeof NETWORK_ARKADE_MUTINYNET | typeof NETWORK_SPARK;
 };
 
-export default function SwapXArkDeposit() {
+export default function SwapXArkadeDeposit() {
   const navigate = useNavigate();
   const location = useLocation();
-  const network = useContext(NetworkContext).network as typeof NETWORK_ARK | typeof NETWORK_ARK_MUTINYNET | typeof NETWORK_SPARK;
+  const network = useContext(NetworkContext).network as typeof NETWORK_ARKADE | typeof NETWORK_ARKADE_MUTINYNET | typeof NETWORK_SPARK;
   const { accountNumber } = useContext(AccountNumberContext);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const params = location.state as SwapXArkDepositParams;
+  const params = location.state as SwapXArkadeDepositParams;
   const { amountIn, to } = params;
 
   // get the Spark deposit address and redirect to SendBtc
@@ -33,7 +33,7 @@ export default function SwapXArkDeposit() {
     const redirect = async () => {
       try {
         const wallet = await BackgroundCaller.lazyInitWallet(to, accountNumber);
-        assert(wallet instanceof SparkWallet || wallet instanceof ArkWallet, 'Not a XArk wallet');
+        assert(wallet instanceof SparkWallet || wallet instanceof ArkadeWallet, 'Not a XArkade wallet');
         const toAddress = await wallet.getOnchainDepositAddress();
         const amount = new BigNumber(amountIn).dividedBy(10 ** getDecimalsByNetwork(network)).toString(10);
 
@@ -56,7 +56,7 @@ export default function SwapXArkDeposit() {
   return (
     <div>
       <div style={{ marginBottom: '20px' }}>
-        <h2>{to === NETWORK_SPARK ? 'Spark' : 'Ark'} Swap</h2>
+        <h2>{to === NETWORK_SPARK ? 'Spark' : 'Arkade'} Swap</h2>
       </div>
 
       {isLoading && (
