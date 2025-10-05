@@ -15,7 +15,7 @@ import 'expo-router/entry';
 let Buffer = require('buffer/').Buffer;
 global.Buffer = Buffer;
 
-const BUGSNAG_API_KEY = process.env.BUGSNAG_API_KEY;
+const BUGSNAG_API_KEY = process.env.EXPO_PUBLIC_BUGSNAG_API_KEY;
 
 if (BUGSNAG_API_KEY) {
   Bugsnag.start({
