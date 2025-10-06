@@ -5,13 +5,14 @@ import 'react-native-get-random-values';
 
 import Bugsnag from '@bugsnag/expo';
 import { getDeviceIdentifier } from './src/utils/device-id';
+import { isMaestroMode } from './src/hooks/AuthStateContext';
 
 let Buffer = require('buffer/').Buffer;
 global.Buffer = Buffer;
 
 const BUGSNAG_API_KEY = process.env.EXPO_PUBLIC_BUGSNAG_API_KEY;
 
-if (BUGSNAG_API_KEY) {
+if (BUGSNAG_API_KEY && !isMaestroMode()) {
   // Initialize Bugsnag with device identifier
   getDeviceIdentifier().then((deviceId) => {
     console.log('Initializing Bugsnag with device ID:', deviceId);
@@ -25,8 +26,6 @@ if (BUGSNAG_API_KEY) {
   }).catch((error) => {
     console.error('Failed to initialize Bugsnag:', error);
   });
-} else {
-  console.warn('Bugsnag API key not found');
 }
 
 // should be last
