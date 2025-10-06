@@ -291,7 +291,7 @@ export default function SettingsScreen() {
 
           {deviceId && (
             <Pressable style={({ pressed }) => [styles.button, styles.selfTestButton, pressed && styles.buttonPressed]} onPress={handleDeviceIdPress} testID="DeviceIdButton">
-              <ThemedText style={[styles.selfTestButtonText, { textAlign: 'center' }]} numberOfLines={2}>
+              <ThemedText style={styles.deviceIdButtonText} numberOfLines={2}>
                 ID: {deviceId}
               </ThemedText>
             </Pressable>
@@ -326,7 +326,7 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        <ThemedText style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.8)' }}>
+        <ThemedText style={styles.versionText}>
           {Application.applicationName} v{Application.nativeApplicationVersion} (build {Application.nativeBuildVersion})
         </ThemedText>
         {gitCommitHash && (
@@ -515,5 +515,10 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '700',
     fontSize: 12,
+    textAlign: 'center',
+  },
+  versionText: {
+    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.8)',
   },
 });
