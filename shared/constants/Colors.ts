@@ -1,4 +1,5 @@
 import {
+  NETWORK_ARK,
   NETWORK_ARK_MUTINYNET,
   NETWORK_BITCOIN,
   NETWORK_BOTANIX,
@@ -36,7 +37,8 @@ export const gradients = {
   [NETWORK_BOTANIX_TESTNET]: ['#92400E', '#F59E0B'] as const, // Same as botanix
   [NETWORK_ALPEN_TESTNET]: ['#7C2D12', '#EA580C'] as const, // Dark orange to orange
   [NETWORK_CITREA_TESTNET]: ['#92400E', '#EA580C'] as const, // Orange/red gradient
-  [NETWORK_ARK_MUTINYNET]: ['#1F2937', '#374151'] as const, // Dark gray gradient
+  [NETWORK_ARK]: ['#270A7B', '#391998'] as const, // Dark purple gradient
+  [NETWORK_ARK_MUTINYNET]: ['#270A7B', '#391998'] as const, // Dark purple gradient
   [NETWORK_LIGHTNING]: ['#581C87', '#7C3AED'] as const, // Purple gradient
   [NETWORK_LIGHTNING_TESTNET]: ['#581C87', '#7C3AED'] as const, // Purple gradient
   [NETWORK_USDT]: ['#058787', '#22AAAA'] as const,
@@ -89,7 +91,9 @@ export const getNetworkGradient = (network: string) => {
     case NETWORK_CITREA_TESTNET:
       return ['#92400E', '#EA580C']; // Orange/red gradient
     case NETWORK_ARK_MUTINYNET:
-      return ['#1F2937', '#374151']; // Dark gray gradient
+      return ['#270A7B', '#391998']; // Dark purple gradient
+    case NETWORK_ARK:
+      return ['#270A7B', '#391998']; // Dark purple gradient
     default:
       return ['#6B7280', '#9CA3AF']; // Light gray gradient for unknown networks
   }
