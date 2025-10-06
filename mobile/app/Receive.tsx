@@ -34,6 +34,7 @@ export default function ReceiveScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [oldBalance, setOldBalance] = useState<StringNumber>('');
   const [isCopied, setIsCopied] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
   const pressScaleAnim = useRef(new Animated.Value(1)).current;
@@ -137,10 +138,15 @@ export default function ReceiveScreen() {
     fetchAddress();
   }, [accountNumber, network, fetchAddress]);
 
-  const handleShare = () => {
-    Share.share({
-      message: `My ${capitalizeFirstLetter(network)} address: ${address}`,
-    });
+  const handleShare = async () => {
+    setIsSharing(true);
+    try {
+      await Share.share({
+        message: `My ${capitalizeFirstLetter(network)} address: ${address}`,
+      });
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   const handleCopyAddress = async () => {
@@ -280,7 +286,7 @@ export default function ReceiveScreen() {
         <View style={styles.contentContainer}>
           <View style={styles.qrSection}>
             {!isLoading && address ? (
-              <Pressable onPress={handleCopyAddress} onPressIn={handlePressIn} onPressOut={handlePressOut} testID="CopyAddressButton" disabled={!address || isCopied}>
+              <Pressable onPress={handleCopyAddress} onPressIn={handlePressIn} onPressOut={handlePressOut} testID="CopyAddressButton" disabled={!address || isCopied || isSharing}>
                 <Animated.View style={[styles.qrAndAddressContainer, { transform: [{ scale: pressScaleAnim }] }]}>
                   <View style={styles.qrContainer} testID="QrContainer">
                     <QRCode
