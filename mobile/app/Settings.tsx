@@ -4,7 +4,8 @@ import * as Application from 'expo-application';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View, Switch } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View, Switch, Pressable } from 'react-native';
+import Bugsnag from '@bugsnag/expo';
 
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
@@ -21,6 +22,7 @@ import { useSettings } from '@shared/hooks/useSettings';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { STORAGE_KEY_BTC_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { getDeviceIdentifier } from '@/src/utils/device-id';
 
 const gitCommitHash = require('../git_commit_hash.json');
 
@@ -33,6 +35,7 @@ export default function SettingsScreen() {
   const [isClearing, setIsClearing] = useState(false);
   const { network } = useContext(NetworkContext);
   const [btcXpub, setBtcXpub] = useState('');
+  const [deviceId, setDeviceId] = useState('');
   const biometricInfo = useBiometrics();
   const { enableBiometricAuth, disableBiometricAuth, isUpdatingBiometric, lockApp } = useAuthState();
 
@@ -40,6 +43,10 @@ export default function SettingsScreen() {
     (async () => {
       const xpub = await LayerzStorage.getItem(STORAGE_KEY_BTC_XPUB + accountNumber);
       setBtcXpub(xpub);
+
+      // Load device identifier
+      const id = await getDeviceIdentifier();
+      setDeviceId(id);
     })();
   }, [accountNumber]);
 
@@ -127,6 +134,33 @@ export default function SettingsScreen() {
     if (btcXpub) {
       await Clipboard.setStringAsync(btcXpub);
       Alert.alert('Copied', 'Bitcoin XPUB copied to clipboard');
+    }
+  };
+
+  const handleDeviceIdPress = async () => {
+    if (deviceId) {
+      try {
+        console.debug('Sending test error to Bugsnag with device ID:', deviceId);
+
+        // Trigger a test error to Bugsnag with the device ID
+        Bugsnag.notify(new Error(`Test error from device: ${deviceId}`), (event) => {
+          event.addMetadata('test', {
+            deviceId: deviceId,
+            timestamp: new Date().toISOString(),
+            testType: 'manual_trigger',
+          });
+        });
+
+        console.debug('Bugsnag notification sent successfully');
+
+        // Copy to clipboard
+        await Clipboard.setStringAsync(deviceId);
+
+        Alert.alert('Test Error Sent', `ID: ${deviceId}\n\nTest error sent and ID copied to clipboard!`);
+      } catch (error) {
+        console.error('Error sending to Bugsnag:', error);
+        Alert.alert('Error', `Failed to send test error: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
   };
 
@@ -249,6 +283,12 @@ export default function SettingsScreen() {
           >
             <ThemedText style={styles.selfTestButtonText}>ScanQr</ThemedText>
           </TouchableOpacity>
+
+          {deviceId && (
+            <Pressable style={({ pressed }) => [styles.button, styles.selfTestButton, pressed && styles.buttonPressed]} onPress={handleDeviceIdPress} testID="DeviceIdButton">
+              <ThemedText style={styles.selfTestButtonText}>ID: {deviceId.substring(0, 20)}...</ThemedText>
+            </Pressable>
+          )}
         </View>
 
         {/* Security Section */}
@@ -356,6 +396,9 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.5,
   },
+  buttonPressed: {
+    opacity: 0.7,
+  },
   warningText: {
     fontSize: 12,
     color: '#FF3B30',
@@ -451,5 +494,19 @@ const styles = StyleSheet.create({
   changelogButtonText: {
     color: 'white',
     fontWeight: '700',
+  },
+  deviceIdButton: {
+    backgroundColor: '#FF9500',
+    marginTop: 8,
+    marginHorizontal: 16,
+  },
+  deviceIdButtonPressed: {
+    backgroundColor: '#CC7700',
+    opacity: 0.8,
+  },
+  deviceIdButtonText: {
+    color: 'white',
+    fontWeight: '700',
+    fontSize: 12,
   },
 });
