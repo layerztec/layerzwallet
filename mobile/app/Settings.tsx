@@ -45,8 +45,13 @@ export default function SettingsScreen() {
       setBtcXpub(xpub);
 
       // Load device identifier
-      const id = await getDeviceIdentifier();
-      setDeviceId(id);
+      try {
+        const id = await getDeviceIdentifier();
+        setDeviceId(id);
+      } catch (error) {
+        console.debug('Device identifier not available:', error);
+        setDeviceId('');
+      }
     })();
   }, [accountNumber]);
 
@@ -286,7 +291,9 @@ export default function SettingsScreen() {
 
           {deviceId && (
             <Pressable style={({ pressed }) => [styles.button, styles.selfTestButton, pressed && styles.buttonPressed]} onPress={handleDeviceIdPress} testID="DeviceIdButton">
-              <ThemedText style={styles.selfTestButtonText}>ID: {deviceId.substring(0, 20)}...</ThemedText>
+              <ThemedText style={[styles.selfTestButtonText, { textAlign: 'center' }]} numberOfLines={2}>
+                ID: {deviceId}
+              </ThemedText>
             </Pressable>
           )}
         </View>
