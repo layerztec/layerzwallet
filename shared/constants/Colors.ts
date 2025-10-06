@@ -30,11 +30,11 @@ export const gradients = {
 
   // Network-specific gradients based on the UI design
   [NETWORK_BITCOIN]: ['#0B1F6B', '#1E3A8A'] as const, // Dark blue to blue
-  [NETWORK_LIQUID]: ['#0F766E', '#14B8A6'] as const, // Teal gradient
-  [NETWORK_LIQUID_TESTNET]: ['#0F766E', '#14B8A6'] as const, // Same as liquid
+  [NETWORK_LIQUID]: ['#0C2E37', '#104140'] as const, // Teal gradient
+  [NETWORK_LIQUID_TESTNET]: ['#0C2E37', '#104140'] as const, // Same as liquid
   [NETWORK_ROOTSTOCK]: ['#166534', '#22C55E'] as const, // Dark green to green
-  [NETWORK_BOTANIX]: ['#92400E', '#F59E0B'] as const, // Brown to yellow/gold
-  [NETWORK_BOTANIX_TESTNET]: ['#92400E', '#F59E0B'] as const, // Same as botanix
+  [NETWORK_BOTANIX]: ['#36360B', '#787600'] as const, // Brown to yellow/gold
+  [NETWORK_BOTANIX_TESTNET]: ['#36360B', '#787600'] as const, // Same as botanix
   [NETWORK_ALPEN_TESTNET]: ['#7C2D12', '#EA580C'] as const, // Dark orange to orange
   [NETWORK_CITREA_TESTNET]: ['#92400E', '#EA580C'] as const, // Orange/red gradient
   [NETWORK_ARK]: ['#270A7B', '#391998'] as const, // Dark purple gradient
@@ -42,7 +42,7 @@ export const gradients = {
   [NETWORK_LIGHTNING]: ['#581C87', '#7C3AED'] as const, // Purple gradient
   [NETWORK_LIGHTNING_TESTNET]: ['#581C87', '#7C3AED'] as const, // Purple gradient
   [NETWORK_USDT]: ['#058787', '#22AAAA'] as const,
-  [NETWORK_SPARK]: ['#6B7280', '#9CA3AF'] as const, // Light gray gradient
+  [NETWORK_SPARK]: ['#05161D', '#1E242E'] as const, // Light gray gradient
 };
 
 export const Colors = {
@@ -80,12 +80,12 @@ export const getNetworkGradient = (network: string) => {
       return ['#0B1F6B', '#1E3A8A']; // Dark blue to blue
     case NETWORK_LIQUID:
     case NETWORK_LIQUID_TESTNET:
-      return ['#0F766E', '#14B8A6']; // Teal gradient
+      return ['#0C2E37', '#104140']; // Teal gradient
     case NETWORK_ROOTSTOCK:
       return ['#166534', '#22C55E']; // Dark green to green
     case NETWORK_BOTANIX:
     case NETWORK_BOTANIX_TESTNET:
-      return ['#92400E', '#F59E0B']; // Brown to yellow/gold
+      return ['#36360B', '#787600']; // Brown to yellow/gold
     case NETWORK_ALPEN_TESTNET:
       return ['#7C2D12', '#EA580C']; // Dark orange to orange
     case NETWORK_CITREA_TESTNET:
