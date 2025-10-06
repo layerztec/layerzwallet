@@ -6,13 +6,13 @@ export const NETWORK_BOTANIX_TESTNET = 'botanix_testnet' as const;
 export const NETWORK_ALPEN_TESTNET = 'alpen_testnet' as const;
 export const NETWORK_CITREA_TESTNET = 'citrea_testnet' as const;
 export const NETWORK_ARK_MUTINYNET = 'ark_mutinynet' as const;
-export const NETWORK_ARK = 'ark' as const;
+export const NETWORK_ARK = 'arkade' as const;
 export const NETWORK_LIQUID = 'liquid' as const;
 export const NETWORK_LIQUID_TESTNET = 'liquid_testnet' as const;
 export const NETWORK_SPARK = 'spark' as const;
 export const NETWORK_LIGHTNING = 'lightning' as const;
 export const NETWORK_LIGHTNING_TESTNET = 'lightning_testnet' as const;
-export const NETWORK_USDT = 'usdt' as const;
+export const NETWORK_USDT = 'USDT' as const;
 
 const NetworksIterator = {
   BITCOIN: NETWORK_BITCOIN,
