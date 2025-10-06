@@ -1,5 +1,5 @@
 import BN from 'bignumber.js';
-import { BlurView } from 'expo-blur';
+import PlatformBlurView from '@/components/PlatformBlurView';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
@@ -114,9 +114,9 @@ const BalanceLightning = () => {
       const networkImage = getNetworkImageAsset(network);
       const networkIconContent = networkImage ? <Image source={networkImage} style={styles.balanceNetworkImage} contentFit="contain" /> : null;
       return (
-        <BlurView intensity={25} tint="dark" style={styles.balanceNetworkIcon} key={network}>
+        <PlatformBlurView intensity={40} tint="light" style={styles.balanceNetworkIcon} key={network}>
           {networkIconContent}
-        </BlurView>
+        </PlatformBlurView>
       );
     });
   }, [network]);
@@ -261,9 +261,9 @@ const BalanceUsdt = () => {
       const networkImage = getNetworkImageAsset(network);
       const networkIconContent = networkImage ? <Image source={networkImage} style={styles.balanceNetworkImage} contentFit="contain" /> : null;
       return (
-        <BlurView intensity={25} tint="dark" style={styles.balanceNetworkIcon} key={network}>
+        <PlatformBlurView intensity={40} tint="light" style={styles.balanceNetworkIcon} key={network}>
           {networkIconContent}
-        </BlurView>
+        </PlatformBlurView>
       );
     });
   }, []);
@@ -327,14 +327,11 @@ const styles = StyleSheet.create({
   balanceNetworkIcon: {
     width: 30,
     height: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 100,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: -10,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
   },
   balanceTicker: {
     marginLeft: 4,
