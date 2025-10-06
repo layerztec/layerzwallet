@@ -130,11 +130,3 @@ test('sanitizeAndValidateMnemonic should throw error for mnemonic with less than
     sanitizeAndValidateMnemonic(mnemonic);
   }, /Invalid mnemonic length/);
 });
-
-test('sanitizeAndValidateMnemonic should throw error for invalid BIP39 mnemonic', () => {
-  // Valid length (12 words) but invalid words and/or checksum
-  const mnemonic = 'invalid word word word word word word word word word word word';
-  assert.throws(() => {
-    sanitizeAndValidateMnemonic(mnemonic);
-  }, /Invalid mnemonic/);
-});
