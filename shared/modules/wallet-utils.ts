@@ -8,6 +8,7 @@ import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NE
 import { WalletSerializer } from './wallet-serializer';
 import { BreezWallet, getBreezNetwork } from '../class/wallets/breez-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
+import { validateMnemonic } from '../blue_modules/bip39';
 
 // cache of master seed after it was decrypted from the storage (with user's password).
 let masterSeed: string = '';
@@ -229,6 +230,11 @@ export const sanitizeAndValidateMnemonic = (mnemonic: string): string => {
   const words = sanitizedMnemonic.split(' ');
   if (words.length < 12 || words.length > 24) {
     throw new Error('Invalid mnemonic length. It should be 12 to 24 words.');
+  }
+
+  // Validate against BIP39 standards
+  if (!validateMnemonic(sanitizedMnemonic)) {
+    throw new Error('Invalid mnemonic. Please check that all words are correct and from the BIP39 word list.');
   }
 
   return sanitizedMnemonic;
