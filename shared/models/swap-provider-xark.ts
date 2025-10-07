@@ -11,8 +11,7 @@ export class SwapProviderXArk implements SwapProvider {
       { from: NETWORK_BITCOIN, to: NETWORK_SPARK, platform: SwapPlatform.EXT },
       { from: NETWORK_BITCOIN, to: NETWORK_SPARK, platform: SwapPlatform.MOBILE },
       { from: NETWORK_BITCOIN, to: NETWORK_ARK, platform: SwapPlatform.EXT },
-      // Disable Ark swaps for now until we fix the issue with the EventSource not available on Expo
-      // { from: NETWORK_BITCOIN, to: NETWORK_ARK, platform: SwapPlatform.MOBILE },
+      { from: NETWORK_BITCOIN, to: NETWORK_ARK, platform: SwapPlatform.MOBILE },
     ];
   }
 
