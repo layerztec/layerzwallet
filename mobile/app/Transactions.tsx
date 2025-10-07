@@ -56,6 +56,7 @@ const styles = StyleSheet.create({
   },
   transactionsList: {
     padding: 16,
+    gap: 24,
   },
   loadingContainer: {
     flex: 1,

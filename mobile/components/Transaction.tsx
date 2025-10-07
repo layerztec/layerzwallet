@@ -3,6 +3,7 @@ import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
+import PlatformBlurView from '@/components/PlatformBlurView';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
@@ -46,10 +47,13 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
     }
 
     const date = new Date(transaction.timestamp * 1000);
+    const currentYear = new Date().getFullYear();
+    const transactionYear = date.getFullYear();
+    
     return date.toLocaleDateString('en-US', {
-      month: 'long',
+      month: 'short',
       day: '2-digit',
-      year: 'numeric',
+      year: transactionYear === currentYear ? undefined : 'numeric',
     });
   };
 
@@ -81,54 +85,54 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
     }
   };
 
-  // Helper function to render token transfers
-  const renderTokenTransfers = () => {
-    if (!transaction.tokenTransfers || transaction.tokenTransfers.length === 0) {
-      return null;
+
+  // Check if this is a token transaction
+  const isTokenTransaction = transaction.tokenTransfers && transaction.tokenTransfers.length > 0;
+  const firstTokenTransfer = isTokenTransaction ? transaction.tokenTransfers?.[0] : null;
+  const tokenInfo = firstTokenTransfer ? getTokenInfo(firstTokenTransfer.tokenId) : null;
+  const iconColor = tokenInfo ? getTokenIconColor(tokenInfo.name) : null;
+
+  // Helper function to format token transaction amount
+  const formatTokenTransactionAmount = () => {
+    if (firstTokenTransfer && firstTokenTransfer.amount) {
+      const isNegative = transaction.direction === 'send';
+      const sign = isNegative ? '-' : '';
+      const formattedAmount = formatBalance(firstTokenTransfer.amount.toString(), tokenInfo?.decimals || 0);
+      return `${sign}${formattedAmount} ${tokenInfo?.symbol || 'Token'}`;
     }
-
-    return (
-      <View style={styles.tokenTransfers}>
-        {transaction.tokenTransfers.map((transfer, index) => {
-          const tokenInfo = getTokenInfo(transfer.tokenId);
-          const iconColor = getTokenIconColor(tokenInfo.name);
-          let formattedAmount = '';
-          if (transfer.amount) {
-            formattedAmount = formatBalance(transfer.amount.toString(), tokenInfo.decimals);
-          }
-          const isNegative = transaction.direction === 'send';
-          const sign = isNegative ? '-' : '';
-
-          return (
-            <View key={index} style={styles.tokenTransfer}>
-              <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
-                <ThemedText style={styles.tokenIconText}>{tokenInfo.symbol?.charAt(0).toUpperCase() || '?'}</ThemedText>
-              </View>
-              <ThemedText style={styles.tokenAmount}>
-                {sign}
-                {formattedAmount} {tokenInfo.symbol}
-              </ThemedText>
-            </View>
-          );
-        })}
-      </View>
-    );
+    return formatTransactionAmount();
   };
 
   return (
     <TouchableOpacity style={styles.transactionItem} onPress={onPress}>
-      <View style={styles.transactionIcon}>
-        <MaterialIcons name={getTransactionIcon()} size={24} color="rgba(255, 255, 255, 0.8)" />
+      <View style={[styles.transactionIcon, isTokenTransaction && { backgroundColor: 'transparent' }]}>
+        {isTokenTransaction && tokenInfo ? (
+          <>
+            <View style={[styles.tokenIconMain, { backgroundColor: iconColor || 'transparent' }]}>
+              <ThemedText style={styles.tokenIconText}>{tokenInfo.symbol?.charAt(0).toUpperCase() || '?'}</ThemedText>
+            </View>
+            <View style={styles.directionIconOverlay}>
+              <PlatformBlurView intensity={20} tint="light" style={styles.blurBackground} />
+              <MaterialIcons name={getTransactionIcon()} size={12} color="rgba(255, 255, 255, 0.8)" />
+            </View>
+          </>
+        ) : (
+          <>
+            <PlatformBlurView intensity={20} tint="light" style={styles.blurBackground} />
+            <MaterialIcons name={getTransactionIcon()} size={16} color="rgba(255, 255, 255, 0.8)" />
+          </>
+        )}
       </View>
 
       <View style={styles.transactionDetails}>
         <ThemedText style={styles.transactionType}>{getTransactionTypeText()}</ThemedText>
-        <ThemedText style={styles.transactionDate}>{formatTransactionDate()}</ThemedText>
-        {renderTokenTransfers()}
+        <ThemedText style={styles.transactionDate}>
+          {isTokenTransaction && tokenInfo ? `${tokenInfo.name} - ` : ''}{formatTransactionDate()}
+        </ThemedText>
       </View>
 
       <View style={styles.transactionAmounts}>
-        <ThemedText style={styles.transactionAmount}>{formatTransactionAmount()}</ThemedText>
+        <ThemedText style={styles.transactionAmount}>{formatTokenTransactionAmount()}</ThemedText>
         <ThemedText style={styles.transactionUsd}>{formatTransactionUsdAmount()}</ThemedText>
       </View>
     </TouchableOpacity>
@@ -141,10 +145,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   transactionIcon: {
-    width: 24,
-    height: 24,
-    marginTop: 8,
-    alignSelf: 'flex-start',
+    width: 36,
+    height: 36,
+    alignSelf: 'center',
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   },
   transactionDetails: {
     flex: 1,
@@ -153,7 +160,7 @@ const styles = StyleSheet.create({
   transactionType: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 6,
+
   },
   transactionDate: {
     fontSize: 14,
@@ -165,37 +172,37 @@ const styles = StyleSheet.create({
   transactionAmount: {
     fontSize: 15,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 6,
+
   },
   transactionUsd: {
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.4)',
     fontWeight: '500',
   },
-  tokenTransfers: {
-    marginTop: 8,
-    gap: 6,
-  },
-  tokenTransfer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  tokenIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   tokenIconText: {
-    fontSize: 10,
+    fontSize: 16,
     fontWeight: '600',
     color: 'white',
   },
-  tokenAmount: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontWeight: '400',
+  directionIconOverlay: {
+    position: 'absolute',
+    bottom: -1,
+    right: -1,
+    width: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tokenIconMain: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  blurBackground: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 30,
+    overflow: 'hidden',
   },
 });
