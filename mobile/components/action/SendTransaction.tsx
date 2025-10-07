@@ -75,7 +75,6 @@ export function SendTransaction(args: SendTransactionArgs) {
         setMaxFees(calculatedMaxFee);
 
         const mnemonic = await BackgroundExecutor.getMasterSeed();
-        assert(mnemonic, 'Internal error: master seed not loaded');
         const signedBytes = await e.signTransaction(prepared, mnemonic, accountNumber);
         setBytes(signedBytes);
         console.log('signed tx: ' + signedBytes);

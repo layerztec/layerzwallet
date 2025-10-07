@@ -167,7 +167,6 @@ const SendBtc: React.FC = () => {
       }
 
       const mnemonic = await BackgroundExecutor.getMasterSeed();
-      assert(mnemonic, 'Internal error: master seed not loaded');
       w.setSecret(mnemonic);
       w.setDerivationPath(`m/84'/0'/${accountNumber}'`);
 

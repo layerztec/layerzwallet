@@ -29,8 +29,6 @@ export function PersonalSign(args: PersonalSignArgs) {
         payload = params[0];
       }
       const mnemonic = await BackgroundExecutor.getMasterSeed();
-      assert(mnemonic, 'Internal error: master seed not loaded');
-
       const evm = new EvmWallet();
       const bytes = await evm.signPersonalMessage(payload, mnemonic, accountNumber);
 

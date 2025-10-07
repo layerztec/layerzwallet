@@ -42,7 +42,11 @@ export const InitializationContextProvider: React.FC<InitializationProviderProps
       const hasAcceptedTermsOfService = await backgroundCaller.hasAcceptedTermsOfService();
       const hasMnemonic = await backgroundCaller.hasMnemonic();
       const hasEncryptedMnemonic = await backgroundCaller.hasEncryptedMnemonic();
-      console.log('initialization context', { hasMnemonic, hasEncryptedMnemonic });
+
+      let hasMasterSeedLoaded: boolean = false;
+      try {
+        hasMasterSeedLoaded = !!(await backgroundCaller.getMasterSeed());
+      } catch {}
 
       if (!hasMnemonic) {
         s = EStep.INTRO;
@@ -51,7 +55,7 @@ export const InitializationContextProvider: React.FC<InitializationProviderProps
         s = EStep.PASSWORD;
       } else if (!hasAcceptedTermsOfService) {
         s = EStep.TOS;
-      } else if (hasEncryptedMnemonic && !(await backgroundCaller.getMasterSeed())) {
+      } else if (hasEncryptedMnemonic && !hasMasterSeedLoaded) {
         // seed is encrypted, we dont have seed cached, and we cant fully start without it. we demand password to decrypt it:
         s = EStep.UNLOCK_PASSWORD;
       } else {

@@ -138,12 +138,13 @@ export default function SettingsScreen() {
             // nop
             return;
           }
-          const mnemonic = await askMnemonic();
-          setTimeout(async () => {
-            // let it execute in the back, its heavy a operation
-            await BackgroundExecutor.saveMnemonic(mnemonic);
-          }, 100);
-          await updateSetting(key, value);
+          try {
+            const mnemonic = await askMnemonic();
+            await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, mnemonic);
+            await updateSetting(key, value);
+          } catch (e: any) {
+            Alert.alert(e.message);
+          }
         }
         return;
       }

@@ -30,8 +30,6 @@ export function EthSignTypedData(args: EthSignTypedDataArgs) {
       }
 
       const mnemonic = await BackgroundExecutor.getMasterSeed();
-      assert(mnemonic, 'Internal error: master seed not loaded');
-
       const evm = new EvmWallet();
       const bytes = await evm.signTypedDataMessage(typedData, mnemonic, accountNumber);
 

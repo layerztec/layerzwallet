@@ -200,7 +200,6 @@ export default function SendScreen() {
       console.log('calculatedMaxFee=', calculatedMaxFee);
 
       const mnemonic = await BackgroundExecutor.getMasterSeed();
-      assert(mnemonic, 'Internal error: master seed not loaded');
       const bytes = await e.signTransaction(prepared, mnemonic, accountNumber);
       setBytes(bytes);
       setScreenState('prepared');
