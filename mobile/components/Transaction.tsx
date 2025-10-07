@@ -1,6 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image } from 'expo-image';
 
 import { ThemedText } from '@/components/ThemedText';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
@@ -18,9 +19,35 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
   const { exchangeRate } = useExchangeRate(transaction.network, 'USD');
   const decimals = getDecimalsByNetwork(transaction.network);
   const ticker = getTickerByNetwork(transaction.network);
+  const [imageLoadError, setImageLoadError] = useState(false);
 
-  // Helper function to format transaction amount
-  const formatTransactionAmount = () => {
+  // Check if this is a zero-amount transaction with exactly one token
+  const isZeroAmountWithSingleToken = useMemo(() => {
+    return !transaction.amount && transaction.tokenTransfers?.length === 1;
+  }, [transaction.amount, transaction.tokenTransfers]);
+
+  const singleTokenInfo = useMemo(() => {
+    if (isZeroAmountWithSingleToken && transaction.tokenTransfers?.[0]) {
+      return getTokenInfo(transaction.tokenTransfers[0].tokenId);
+    }
+    return null;
+  }, [isZeroAmountWithSingleToken, transaction.tokenTransfers]);
+
+  useEffect(() => {
+    setImageLoadError(false);
+  }, [transaction.txid, singleTokenInfo?.logoURI]);
+
+  const formattedTransactionAmount = useMemo(() => {
+    if (isZeroAmountWithSingleToken) {
+      const transfer = transaction.tokenTransfers?.[0];
+      if (singleTokenInfo && transfer) {
+        const isNegative = transaction.direction === 'send';
+        const sign = isNegative ? '-' : '';
+        const formattedAmount = transfer.amount ? formatBalance(transfer.amount.toString(), singleTokenInfo.decimals) : '0';
+        return `${sign} ${singleTokenInfo.symbol}${formattedAmount}`;
+      }
+    }
+
     if (transaction.amount !== undefined) {
       const isNegative = transaction.direction === 'send';
       const sign = isNegative && transaction.amount ? '-' : '';
@@ -28,19 +55,21 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
       return `${sign}${formattedAmount} ${ticker}`;
     }
     return '0 ' + ticker;
-  };
+  }, [isZeroAmountWithSingleToken, singleTokenInfo, transaction.tokenTransfers, transaction.direction, transaction.amount, decimals, ticker]);
 
-  // Helper function to format transaction USD amount
-  const formatTransactionUsdAmount = () => {
+  const formattedTransactionUsdAmount = useMemo(() => {
+    if (isZeroAmountWithSingleToken) {
+      return '';
+    }
+
     if (transaction.amount !== undefined && exchangeRate) {
       const usdAmount = formatFiatBalance(Math.abs(transaction.amount).toString(), decimals, exchangeRate);
       return `${usdAmount} USD`;
     }
     return '0.00 USD';
-  };
+  }, [isZeroAmountWithSingleToken, transaction.amount, exchangeRate, decimals]);
 
-  // Helper function to format transaction date
-  const formatTransactionDate = () => {
+  const formattedTransactionDate = useMemo(() => {
     if (transaction.status === 'pending') {
       return 'Pending...';
     }
@@ -51,10 +80,24 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
       day: '2-digit',
       year: 'numeric',
     });
-  };
+  }, [transaction.status, transaction.timestamp]);
 
-  // Helper function to get transaction type display text
-  const getTransactionTypeText = () => {
+  const transactionTypeText = useMemo(() => {
+    if (isZeroAmountWithSingleToken) {
+      if (singleTokenInfo) {
+        switch (transaction.direction) {
+          case 'send':
+            return `Sent ${singleTokenInfo.name}`;
+          case 'receive':
+            return `Received ${singleTokenInfo.name}`;
+          case 'swap':
+            return `Swapped ${singleTokenInfo.name}`;
+          default:
+            return `${singleTokenInfo.name}`;
+        }
+      }
+    }
+
     switch (transaction.direction) {
       case 'send':
         return 'Sent';
@@ -65,10 +108,9 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
       default:
         return 'Transaction';
     }
-  };
+  }, [isZeroAmountWithSingleToken, singleTokenInfo, transaction.direction]);
 
-  // Helper function to get transaction icon
-  const getTransactionIcon = () => {
+  const transactionIconName = useMemo(() => {
     switch (transaction.direction) {
       case 'receive':
         return 'call-received';
@@ -79,10 +121,21 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
       default:
         return 'call-made';
     }
-  };
+  }, [transaction.direction]);
 
-  // Helper function to render token transfers
-  const renderTokenTransfers = () => {
+  const transactionIcon = useMemo(() => {
+    if (isZeroAmountWithSingleToken && singleTokenInfo?.logoURI && !imageLoadError) {
+      return <Image source={{ uri: singleTokenInfo.logoURI }} style={styles.tokenLogo} contentFit="contain" onError={() => setImageLoadError(true)} />;
+    }
+
+    if (isZeroAmountWithSingleToken) {
+      return <MaterialIcons name={transactionIconName} size={24} color="rgba(255, 255, 255, 0.8)" />;
+    }
+
+    return <MaterialIcons name={transactionIconName} size={24} color="rgba(255, 255, 255, 0.8)" />;
+  }, [isZeroAmountWithSingleToken, singleTokenInfo, transactionIconName, imageLoadError]);
+
+  const tokenTransfers = useMemo(() => {
     if (!transaction.tokenTransfers || transaction.tokenTransfers.length === 0) {
       return null;
     }
@@ -106,30 +159,29 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
               </View>
               <ThemedText style={styles.tokenAmount}>
                 {sign}
-                {formattedAmount} {tokenInfo.symbol}
+                {tokenInfo.symbol}
+                {formattedAmount}
               </ThemedText>
             </View>
           );
         })}
       </View>
     );
-  };
+  }, [transaction.tokenTransfers, transaction.direction]);
 
   return (
     <TouchableOpacity style={styles.transactionItem} onPress={onPress}>
-      <View style={styles.transactionIcon}>
-        <MaterialIcons name={getTransactionIcon()} size={24} color="rgba(255, 255, 255, 0.8)" />
-      </View>
+      <View style={styles.transactionIcon}>{transactionIcon}</View>
 
       <View style={styles.transactionDetails}>
-        <ThemedText style={styles.transactionType}>{getTransactionTypeText()}</ThemedText>
-        <ThemedText style={styles.transactionDate}>{formatTransactionDate()}</ThemedText>
-        {renderTokenTransfers()}
+        <ThemedText style={styles.transactionType}>{transactionTypeText}</ThemedText>
+        <ThemedText style={styles.transactionDate}>{formattedTransactionDate}</ThemedText>
+        {!isZeroAmountWithSingleToken && tokenTransfers}
       </View>
 
       <View style={styles.transactionAmounts}>
-        <ThemedText style={styles.transactionAmount}>{formatTransactionAmount()}</ThemedText>
-        <ThemedText style={styles.transactionUsd}>{formatTransactionUsdAmount()}</ThemedText>
+        <ThemedText style={styles.transactionAmount}>{formattedTransactionAmount}</ThemedText>
+        {formattedTransactionUsdAmount && <ThemedText style={styles.transactionUsd}>{formattedTransactionUsdAmount}</ThemedText>}
       </View>
     </TouchableOpacity>
   );
@@ -197,5 +249,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.6)',
     fontWeight: '400',
+  },
+  tokenLogo: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
 });

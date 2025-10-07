@@ -30,6 +30,7 @@ type Building = {
   tokenTransfers: CommonTokenTransfer[];
   tokenIn?: boolean;
   tokenOut?: boolean;
+  feeWei?: bigint; // total fee we paid (wei)
 };
 
 const toNum = (v: any | undefined): number | undefined => (v === undefined || v === null || v === '' ? undefined : Number(v));
@@ -371,6 +372,16 @@ export class EvmWallet {
         if (from === address && to) item.counterparty = to;
         else if (to === address && from) item.counterparty = from;
       }
+
+      // FEE (wei) only if we pay it
+      if (from === address) {
+        const gasUsed = toBigInt(tx.gasUsed ?? '0');
+        const eff = (tx as any).effectiveGasPrice ?? tx.gasPrice ?? '0';
+        const gasPrice = toBigInt(eff);
+        if (gasUsed > 0n && gasPrice > 0n) {
+          item.feeWei = (item.feeWei ?? 0n) + gasUsed * gasPrice;
+        }
+      }
     }
 
     // txlistinternal: internal native transfers
@@ -452,6 +463,7 @@ export class EvmWallet {
         counterparty: item.counterparty,
         blockHeight: item.blockHeight,
         explorerUrl: `${explorerBase}/tx/${item.txid}`,
+        fee: item.feeWei ? Number(item.feeWei) : undefined,
       });
     }
 
