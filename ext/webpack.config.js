@@ -19,6 +19,10 @@ var secretsPath = path.join(__dirname, 'secrets.' + env.NODE_ENV + '.js');
 // Add the @shared alias pointing to the parent directory's shared folder
 alias['@shared'] = path.join(__dirname, 'src', 'shared-link');
 
+// because @arkade-os/sdk/adapters/expo relies on expo/fetch we need to shim it
+// otherwise webpack will fail to build
+alias['expo/fetch'] = path.join(__dirname, 'utils', 'expo-fetch-shim.js');
+
 var fileExtensions = ['jpg', 'jpeg', 'png', 'gif', 'eot', 'otf', 'svg', 'ttf', 'woff', 'woff2'];
 
 if (fs.existsSync(secretsPath)) {
