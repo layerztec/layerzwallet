@@ -5,28 +5,35 @@ import 'react-native-get-random-values';
 
 import Bugsnag from '@bugsnag/expo';
 import { getDeviceIdentifier } from './src/utils/device-id';
+import { isMaestroMode } from './src/hooks/AuthStateContext';
 
 let Buffer = require('buffer/').Buffer;
 global.Buffer = Buffer;
 
 const BUGSNAG_API_KEY = process.env.EXPO_PUBLIC_BUGSNAG_API_KEY;
 
-if (BUGSNAG_API_KEY) {
+if (BUGSNAG_API_KEY && !isMaestroMode()) {
   // Initialize Bugsnag with device identifier
-  getDeviceIdentifier().then((deviceId) => {
-    console.log('Initializing Bugsnag with device ID:', deviceId);
-    Bugsnag.start({
-      apiKey: BUGSNAG_API_KEY,
-      user: {
-        id: deviceId,
-      },
+  getDeviceIdentifier()
+    .then((deviceId) => {
+      console.debug('Initializing Bugsnag with device ID:', deviceId);
+      Bugsnag.start({
+        apiKey: BUGSNAG_API_KEY,
+        user: {
+          id: deviceId,
+        },
+      });
+      console.debug('Bugsnag initialized successfully');
+    })
+    .catch((error) => {
+      console.error('Failed to get device identifier, Bugsnag not initialized:', error);
     });
-    console.log('Bugsnag initialized successfully');
-  }).catch((error) => {
-    console.error('Failed to initialize Bugsnag:', error);
-  });
 } else {
-  console.warn('Bugsnag API key not found');
+  if (isMaestroMode()) {
+    console.debug('Bugsnag disabled for e2e/Maestro test mode');
+  } else if (!BUGSNAG_API_KEY) {
+    console.warn('Bugsnag API key not found');
+  }
 }
 
 // should be last
