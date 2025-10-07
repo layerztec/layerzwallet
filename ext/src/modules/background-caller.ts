@@ -31,9 +31,14 @@ export const BackgroundCaller: IBackgroundCaller = {
 
     // cache miss!
     const masterSeed = await Messenger.sendGenericMessageToBackground(MessageType.GET_MASTER_SEED, []);
-    setMasterSeedOrig(masterSeed); // also set it in local context, as a cache
 
-    return masterSeed;
+    if (masterSeed) {
+      setMasterSeedOrig(masterSeed); // also set it in local context, as a cache
+
+      return masterSeed;
+    }
+
+    throw new Error('Internal error: master seed not loaded');
   },
 
   async setMasterSeed(...params) {

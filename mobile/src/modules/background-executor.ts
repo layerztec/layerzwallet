@@ -38,7 +38,12 @@ export const BackgroundExecutor: IBackgroundCaller = {
   },
 
   getMasterSeed(): Promise<string> {
-    return Promise.resolve(getMasterSeedOrig());
+    const masterSeed = getMasterSeedOrig();
+    if (masterSeed) {
+      return Promise.resolve(masterSeed);
+    } else {
+      throw new Error('Internal error: master seed not loaded');
+    }
   },
 
   async lazyInitWallet(network: TSupportedLazyInitWalletNetworks, accountNumber: number) {

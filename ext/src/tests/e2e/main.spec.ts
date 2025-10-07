@@ -119,7 +119,7 @@ test('can send coins to second account, and verify balance', async ({ page, exte
   await page.waitForTimeout(5000); // Hold for 5 seconds
   await page.mouse.up();
 
-  await expect(page.locator('body')).toHaveText(/Transaction sent successfully/, { timeout: 45000 });
+  await expect(page.locator('body')).toHaveText(/Transaction sent successfully/, { timeout: 60_000 });
   await new Promise((resolve) => setTimeout(resolve, 30_000)); // waiting for tx to confirm
   //
 

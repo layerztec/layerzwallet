@@ -62,7 +62,9 @@ export const InitializationContextProvider: React.FC<InitializationProviderProps
         if (!hasEncryptedMnemonic) {
           // caching master seed:
           const seed = await backgroundCaller.getMnemonicForVerification();
-          await backgroundCaller.setMasterSeed(String(seed));
+          if (seed) {
+            await backgroundCaller.setMasterSeed(seed);
+          }
         }
 
         s = EStep.READY;

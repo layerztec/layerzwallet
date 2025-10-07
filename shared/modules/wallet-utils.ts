@@ -36,7 +36,6 @@ export function setMasterSeed(seed: string) {
  * Get the cached master seed
  */
 export function getMasterSeed() {
-  if (!masterSeed) throw new Error('Internal error: master seed not loaded');
   return masterSeed;
 }
 
