@@ -25,7 +25,8 @@ export default defineConfig({
         aliases[moduleName] = resolve(nodeModulesPath, moduleName);
         return aliases;
       }, {
-        '@shared': resolve(__dirname, '../shared') // Add @shared alias
+        '@shared': resolve(__dirname, '../shared'), // Add @shared alias
+        '@arkade-os/sdk/adapters/expo': resolve(nodeModulesPath, '@arkade-os/sdk/dist/esm/adapters/expo.js'), // Explicit alias for expo adapter
       });
 
       // console.log(ret);

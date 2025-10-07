@@ -89,6 +89,7 @@ export default function SwapDetails() {
   const handleClaim = () => {
     if ([NETWORK_SPARK, NETWORK_ARK_MUTINYNET, NETWORK_ARK].includes(swap.network as any) && swap.status === 'claimable') {
       const params: SwapXArkClaimParams = { swapJson: JSON.stringify(swap) };
+      router.back(); // close the swap details screen
       router.push({ pathname: '/SwapXArkClaim', params });
     }
   };
