@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import { Linking, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
@@ -11,6 +11,7 @@ import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { getDecimalsByNetwork, getExplorerUrlByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { getTokenInfo, getTokenIconColor } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
 
@@ -24,6 +25,19 @@ export default function TransactionDetails() {
   const { exchangeRate } = useExchangeRate(network, 'USD');
   const networkImage = getNetworkImageAsset(network);
   const networkIconContent = networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null;
+  const [imageLoadErrors, setImageLoadErrors] = useState<{ [key: string]: boolean }>({});
+
+  // Check if this is a zero-amount transaction with tokens
+  const isZeroAmountWithTokens = useMemo(() => {
+    return !transaction.amount && transaction.tokenTransfers && transaction.tokenTransfers.length > 0;
+  }, [transaction.amount, transaction.tokenTransfers]);
+
+  const singleTokenInfo = useMemo(() => {
+    if (isZeroAmountWithTokens && transaction.tokenTransfers?.length === 1) {
+      return getTokenInfo(transaction.tokenTransfers[0].tokenId);
+    }
+    return null;
+  }, [isZeroAmountWithTokens, transaction.tokenTransfers]);
 
   const [formattedDate, formattedDateWithTime] = useMemo(() => {
     const d = new Date(transaction.timestamp * 1000);
@@ -41,15 +55,35 @@ export default function TransactionDetails() {
   }, [transaction.timestamp]);
 
   const amountPrimary = useMemo(() => {
-    if (transaction.amount === undefined) return '0';
-    const value = formatBalance(Math.abs(transaction.amount).toString(), decimals);
-    return value;
-  }, [transaction?.amount, decimals]);
+    if (isZeroAmountWithTokens && singleTokenInfo) {
+      const transfer = transaction.tokenTransfers?.[0];
+      if (transfer) {
+        const isNegative = transaction.direction === 'send';
+        const sign = isNegative ? '-' : '';
+        const formattedAmount = transfer.amount ? formatBalance(transfer.amount.toString(), singleTokenInfo.decimals) : '0';
+        return `${sign}${formattedAmount}`;
+      }
+    }
+
+    if (transaction.amount === undefined) return '';
+    return formatBalance(Math.abs(transaction.amount).toString(), decimals);
+  }, [isZeroAmountWithTokens, singleTokenInfo, transaction.tokenTransfers, transaction.direction, transaction.amount, decimals]);
+
+  const amountTicker = useMemo(() => {
+    if (isZeroAmountWithTokens && singleTokenInfo) {
+      return singleTokenInfo.symbol;
+    }
+    return ticker;
+  }, [isZeroAmountWithTokens, singleTokenInfo, ticker]);
 
   const amountUsd = useMemo(() => {
-    if (transaction.amount === undefined || !exchangeRate) return '';
+    if (isZeroAmountWithTokens) {
+      return '';
+    }
+
+    if (transaction.amount === undefined || !exchangeRate) return '— USD';
     return `${formatFiatBalance(Math.abs(transaction.amount).toString(), decimals, exchangeRate)} USD`;
-  }, [transaction.amount, decimals, exchangeRate]);
+  }, [isZeroAmountWithTokens, transaction.amount, decimals, exchangeRate]);
 
   const statusText = useMemo(() => {
     switch (transaction.status) {
@@ -67,11 +101,24 @@ export default function TransactionDetails() {
   }, [transaction.status]);
 
   const directionText = useMemo(() => {
+    if (isZeroAmountWithTokens && singleTokenInfo) {
+      switch (transaction.direction) {
+        case 'send':
+          return `Sent ${singleTokenInfo.name}`;
+        case 'receive':
+          return `Received ${singleTokenInfo.name}`;
+        case 'swap':
+          return `Swapped ${singleTokenInfo.name}`;
+        default:
+          return singleTokenInfo.name;
+      }
+    }
+
     if (transaction.direction === 'send') return 'Sent';
     if (transaction.direction === 'receive') return 'Received';
     if (transaction.direction === 'swap') return 'Swap';
     return 'Transaction';
-  }, [transaction.direction]);
+  }, [isZeroAmountWithTokens, singleTokenInfo, transaction.direction]);
 
   const handleCopy = async (text?: string) => {
     if (!text) return;
@@ -82,6 +129,63 @@ export default function TransactionDetails() {
     const url = transaction.explorerUrl;
     if (url) Linking.openURL(url);
   };
+
+  const tokenTransfersList = useMemo(() => {
+    if (!isZeroAmountWithTokens || !transaction.tokenTransfers || transaction.tokenTransfers.length <= 1) {
+      return null;
+    }
+
+    return (
+      <View style={styles.tokenTransfersBlock}>
+        {transaction.tokenTransfers.map((transfer, index) => {
+          const tokenInfo = getTokenInfo(transfer.tokenId);
+          const iconColor = getTokenIconColor(tokenInfo.name);
+          const formattedAmount = transfer.amount ? formatBalance(transfer.amount.toString(), tokenInfo.decimals) : '0';
+          const isNegative = transaction.direction === 'send';
+          const sign = isNegative ? '-' : '';
+          const imageErrorKey = `${transfer.tokenId}-${index}`;
+          const hasImageError = imageLoadErrors[imageErrorKey];
+
+          const getTokenTransactionText = () => {
+            switch (transaction.direction) {
+              case 'send':
+                return `Sent ${tokenInfo.name}`;
+              case 'receive':
+                return `Received ${tokenInfo.name}`;
+              case 'swap':
+                return `Swapped ${tokenInfo.name}`;
+              default:
+                return tokenInfo.name;
+            }
+          };
+
+          return (
+            <View key={index} style={styles.tokenTransferRow}>
+              <View style={styles.tokenIconContainer}>
+                {tokenInfo.logoURI && !hasImageError ? (
+                  <Image source={{ uri: tokenInfo.logoURI }} style={styles.tokenLogo} contentFit="contain" onError={() => setImageLoadErrors((prev) => ({ ...prev, [imageErrorKey]: true }))} />
+                ) : (
+                  <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
+                    <ThemedText style={styles.tokenIconText}>{tokenInfo.symbol?.charAt(0).toUpperCase() || '?'}</ThemedText>
+                  </View>
+                )}
+              </View>
+              <View style={styles.tokenTransferDetails}>
+                <ThemedText style={styles.tokenName}>{getTokenTransactionText()}</ThemedText>
+              </View>
+              <View style={styles.tokenAmountContainer}>
+                <ThemedText style={styles.tokenAmount}>
+                  {sign}
+                  {tokenInfo.symbol}
+                  {formattedAmount}
+                </ThemedText>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    );
+  }, [isZeroAmountWithTokens, transaction.tokenTransfers, transaction.direction, imageLoadErrors]);
 
   return (
     <GradientFormSheet variant={selectedNetwork}>
@@ -99,10 +203,13 @@ export default function TransactionDetails() {
         <View style={styles.amountsBlock}>
           <ThemedText style={styles.amountPrimary}>
             {amountPrimary}
-            <ThemedText style={styles.amountTicker}> {ticker}</ThemedText>
+            <ThemedText style={styles.amountTicker}> {amountTicker}</ThemedText>
           </ThemedText>
-          <ThemedText style={styles.amountUsd}>{amountUsd}</ThemedText>
+          {amountUsd && <ThemedText style={styles.amountUsd}>{amountUsd}</ThemedText>}
         </View>
+
+        {/* Token transfers list for multiple tokens */}
+        {tokenTransfersList}
 
         {/* Status chip */}
         {statusText && (
@@ -277,5 +384,54 @@ const styles = StyleSheet.create({
   explorerText: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
+  },
+  tokenTransfersBlock: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    gap: 8,
+  },
+  tokenTransferRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  tokenIconContainer: {
+    width: 32,
+    height: 32,
+  },
+  tokenIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tokenIconText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'white',
+  },
+  tokenLogo: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  tokenTransferDetails: {
+    flex: 1,
+  },
+  tokenName: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  tokenAmountContainer: {
+    alignItems: 'flex-end',
+  },
+  tokenAmount: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontWeight: '400',
   },
 });

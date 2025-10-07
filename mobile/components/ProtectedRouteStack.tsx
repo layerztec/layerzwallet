@@ -222,7 +222,7 @@ export function ProtectedRouteStack() {
           name="TransactionDetails"
           options={{
             presentation: 'formSheet',
-            sheetAllowedDetents: [0.7],
+            sheetAllowedDetents: [0.7, 1.0],
             sheetGrabberVisible: true,
             headerTransparent: false,
             gestureEnabled: true,
