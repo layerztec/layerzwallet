@@ -8,7 +8,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
-import { NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { getTokenIconColor } from '@shared/models/token-list';
 import { formatBalance } from '@shared/modules/string-utils';
@@ -46,6 +46,12 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
           tokenName: token.name,
           tokenDecimals: token.decimals.toString(),
         },
+      });
+      return;
+    } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
+      router.push({
+        pathname: '/SendLiquid',
+        params: { assetId: token.id },
       });
       return;
     }
