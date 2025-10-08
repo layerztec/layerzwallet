@@ -93,7 +93,8 @@
       ],
       "expo-secure-store",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "@bugsnag/plugin-expo-eas-sourcemaps"
     ],
     "experiments": {
       "typedRoutes": true
@@ -104,6 +105,9 @@
       },
       "eas": {
         "projectId": "79e33289-7bd2-4ab4-8363-88ca65e99327"
+      },
+      "bugsnag": {
+        "apiKey": "$EXPO_PUBLIC_BUGSNAG_API_KEY"
       }
     },
     "owner": "layerztec"
