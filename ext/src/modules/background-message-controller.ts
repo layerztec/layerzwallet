@@ -5,14 +5,14 @@ import { EvmWallet } from '@shared/class/evm-wallet';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
-import { clearWalletCache, lazyInitWallet, sanitizeAndValidateMnemonic, saveBitcoinXpubs, saveSubMnemonics, saveWalletState } from '@shared/modules/wallet-utils';
+import { clearWalletCache, lazyInitWallet, sanitizeAndValidateMnemonic, saveBitcoinXpubs, saveWalletState, setMasterSeed, getMasterSeed } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, MessageType, MessageTypeMap, OpenPopupRequest, ProcessRPCRequest } from '@shared/types/IBackgroundCaller';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SUB_MNEMONIC } from '@shared/types/IStorage';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { Csprng } from '../../src/class/rng';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
-import { decrypt, encrypt } from '../modules/encryption';
+import { encrypt } from '../modules/encryption';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 
 // All possible background messages with their params
@@ -20,7 +20,7 @@ type TBackgroundMessage = { [K in keyof MessageTypeMap]: { type: K; params: Mess
 // Function type for sending a response from background
 type TSendResponse = (response: MessageTypeMap[keyof MessageTypeMap]['response'] | { error: true; message: string }) => void;
 // Allowed method names for background executor
-type TMethods = 'getAddress' | 'saveMnemonic' | 'createMnemonic' | 'getBtcBalance' | 'encryptMnemonic' | 'signPersonalMessage' | 'signTypedData' | 'getBtcSendData' | 'getSubMnemonic' | 'clear';
+type TMethods = 'getAddress' | 'saveMnemonic' | 'createMnemonic' | 'getBtcBalance' | 'encryptMnemonic' | 'getBtcSendData' | 'clear' | 'getMasterSeed' | 'setMasterSeed';
 
 async function handleOpenPopup([method, params, id, from]: OpenPopupRequest, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) {
   if (!sender.tab?.id) {
@@ -59,6 +59,15 @@ function openPopupWindow(request: ProcessRPCRequest, sendResponse: (response?: a
 }
 
 export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
+  getMasterSeed(): Promise<string> {
+    return Promise.resolve(getMasterSeed());
+  },
+
+  setMasterSeed(seed: string): Promise<void> {
+    setMasterSeed(seed);
+    return Promise.resolve();
+  },
+
   async getAddress(network, accountNumber) {
     if (network === NETWORK_BITCOIN) {
       const wallet = await lazyInitWallet(network, accountNumber, LayerzStorage, SecureStorage);
@@ -94,7 +103,6 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     const xpub = EvmWallet.mnemonicToXpub(sanitizedMnemonic);
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, sanitizedMnemonic);
-    await saveSubMnemonics(LayerzStorage, sanitizedMnemonic);
     // we are saving master mnemonic at the end, so that if any of the above fails, we don't end up with a partially working wallet
     await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, sanitizedMnemonic);
 
@@ -108,7 +116,6 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, mnemonic);
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
-    await saveSubMnemonics(LayerzStorage, mnemonic);
 
     return { mnemonic };
   },
@@ -150,50 +157,6 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     }
   },
 
-  async signPersonalMessage(message, accountNumber, password) {
-    const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
-
-    if (!encryptedMnemonic.startsWith(ENCRYPTED_PREFIX)) {
-      return {
-        success: false,
-        bytes: '',
-        message: 'Mnemonic is not encrypted. Please reinstall the extension to fix this issue.',
-      };
-    }
-
-    try {
-      const deviceId = await getDeviceID(LayerzStorage, Csprng);
-      const decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, deviceId);
-      const evm = new EvmWallet();
-      const bytes = await evm.signPersonalMessage(message, decrypted as string, accountNumber);
-      return { success: true, bytes };
-    } catch (error) {
-      return { success: false, bytes: '', message: 'Bad password' };
-    }
-  },
-
-  async signTypedData(message, accountNumber, password) {
-    const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
-
-    if (!encryptedMnemonic.startsWith(ENCRYPTED_PREFIX)) {
-      return {
-        success: false,
-        bytes: '',
-        message: 'Mnemonic is not encrypted. Please reinstall the extension to fix this issue.',
-      };
-    }
-
-    try {
-      const deviceId = await getDeviceID(LayerzStorage, Csprng);
-      const decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, deviceId);
-      const evm = new EvmWallet();
-      const bytes = await evm.signTypedDataMessage(message, decrypted as string, accountNumber);
-      return { success: true, bytes };
-    } catch (error) {
-      return { success: false, bytes: '', message: 'Bad password' };
-    }
-  },
-
   async getBtcSendData(accountNumber) {
     if (!BlueElectrum.mainConnected) {
       await BlueElectrum.connectMain();
@@ -207,16 +170,6 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     await saveWalletState(LayerzStorage, wallet, NETWORK_BITCOIN, accountNumber);
 
     return { utxos, changeAddress };
-  },
-
-  // not all libraries we are using support Account Number, so we are using BIP85 to derive differnt mnemonics
-  // for each account number.
-  async getSubMnemonic(accountNumber) {
-    const mnemonic = await LayerzStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
-    if (!mnemonic) {
-      throw new Error(`Sub mnemonic not found for account number: ${accountNumber}`);
-    }
-    return mnemonic;
   },
 
   async clear() {
@@ -241,11 +194,10 @@ const MessageHandlerMap = {
   [MessageType.CREATE_MNEMONIC]: BackgroundExtensionExecutor.createMnemonic,
   [MessageType.GET_BTC_BALANCE]: BackgroundExtensionExecutor.getBtcBalance,
   [MessageType.ENCRYPT_MNEMONIC]: BackgroundExtensionExecutor.encryptMnemonic,
-  [MessageType.SIGN_PERSONAL_MESSAGE]: BackgroundExtensionExecutor.signPersonalMessage,
-  [MessageType.SIGN_TYPED_DATA]: BackgroundExtensionExecutor.signTypedData,
   [MessageType.GET_BTC_SEND_DATA]: BackgroundExtensionExecutor.getBtcSendData,
-  [MessageType.GET_SUB_MNEMONIC]: BackgroundExtensionExecutor.getSubMnemonic,
   [MessageType.CLEAR]: BackgroundExtensionExecutor.clear,
+  [MessageType.GET_MASTER_SEED]: BackgroundExtensionExecutor.getMasterSeed,
+  [MessageType.SET_MASTER_SEED]: BackgroundExtensionExecutor.setMasterSeed,
 };
 
 export function handleMessage(msg: TBackgroundMessage, sender: chrome.runtime.MessageSender, sendResponse: TSendResponse) {

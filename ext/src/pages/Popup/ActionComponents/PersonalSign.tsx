@@ -1,10 +1,10 @@
 import React, { useContext, useState } from 'react';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { AskPasswordContext } from '../../../hooks/AskPasswordContext';
-import { BackgroundCaller } from '../../../modules/background-caller';
+import { AskMnemonicContext } from '../../../hooks/AskMnemonicContext';
 import { Messenger } from '../../../modules/messenger';
 import { Button } from '../DesignSystem';
+import { EvmWallet } from '@shared/class/evm-wallet';
 
 interface PersonalSignArgs {
   params: any[];
@@ -18,7 +18,7 @@ interface PersonalSignArgs {
  */
 export function PersonalSign(args: PersonalSignArgs) {
   const { accountNumber } = useContext(AccountNumberContext);
-  const { askPassword } = useContext(AskPasswordContext);
+  const { askMnemonic } = useContext(AskMnemonicContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const onAllowClick = async () => {
@@ -31,15 +31,12 @@ export function PersonalSign(args: PersonalSignArgs) {
         payload = params[0];
       }
 
-      const password = await askPassword();
-      const signedResponse = await BackgroundCaller.signPersonalMessage(payload, accountNumber, password);
-
-      if (!signedResponse.success) {
-        throw new Error(signedResponse?.message ?? 'Signature error');
-      }
+      const mnemonic = await askMnemonic();
+      const e = new EvmWallet();
+      const bytes = await e.signPersonalMessage(payload, mnemonic, accountNumber);
 
       const id = args.id;
-      await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id, response: signedResponse.bytes });
+      await Messenger.sendResponseToActiveTabsFromPopupToContentScript({ for: 'webpage', id, response: bytes });
 
       await new Promise((resolve) => setTimeout(resolve, 100)); // propagate
       window.close();

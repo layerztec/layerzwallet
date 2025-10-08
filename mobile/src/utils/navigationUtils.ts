@@ -17,7 +17,6 @@ const MAIN_APP_SCREENS = [
   'BackdoorNetworkSwitcher',
   'Changelog',
   'SeedBackup',
-  'ViewSubmnemonic',
   'selftest',
   'SwapTarget',
   'SwapSparkDeposit',

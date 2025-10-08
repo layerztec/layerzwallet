@@ -119,7 +119,7 @@ test('can send coins to second account, and verify balance', async ({ page, exte
   await page.waitForTimeout(5000); // Hold for 5 seconds
   await page.mouse.up();
 
-  await expect(page.locator('body')).toHaveText(/Transaction sent successfully/, { timeout: 45000 });
+  await expect(page.locator('body')).toHaveText(/Transaction sent successfully/, { timeout: 60_000 });
   await new Promise((resolve) => setTimeout(resolve, 30_000)); // waiting for tx to confirm
   //
 
@@ -161,8 +161,8 @@ test('open popup and perform a personal sign', async ({ page, extensionId }) => 
   await sleep(3000); // allow page to actually open
 
   await getPopupPage(page).getByRole('button', { name: 'Allow' }).click(); // allow signature
-  await getPopupPage(page).getByTestId('password-provider-input').fill('qwerty');
-  await getPopupPage(page).getByText(/OK/).click();
+  await getPopupPage(page).getByTestId('password-provider-input2').fill('qwerty');
+  await getPopupPage(page).getByText('Unlock', { exact: true }).click();
   await sleep(9000); // allow it to make a signature and post message back to Dapp
 
   const spanLocator = page.locator('span[id="personalSignResult"]');
