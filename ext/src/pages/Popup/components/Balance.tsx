@@ -30,7 +30,7 @@ import { CachedTokenInfo } from '@shared/types/token-info';
 import { LayerzStorage } from '../../../class/layerz-storage';
 import { Button } from '../DesignSystem';
 
-interface BalanceViewProps {
+interface BalanceProps {
   network: Networks;
   accountNumber: number;
   BackgroundCaller: IBackgroundCaller;
@@ -40,7 +40,7 @@ type TTokenBalances = Record<string, string>;
 type TTokenMap = Record<string, CachedTokenInfo>;
 
 // Default balance component for regular networks
-const BalanceDefault: React.FC<BalanceViewProps> = ({ network, accountNumber, BackgroundCaller }) => {
+const BalanceDefault: React.FC<BalanceProps> = ({ network, accountNumber, BackgroundCaller }) => {
   const { balance } = useBalance(network, accountNumber, BackgroundCaller);
   const { exchangeRate } = useExchangeRate(network, 'USD');
   const availableNetworks = useAvailableNetworks();
@@ -94,7 +94,7 @@ const BalanceDefault: React.FC<BalanceViewProps> = ({ network, accountNumber, Ba
   );
 };
 
-const BalanceLightning: React.FC<BalanceViewProps> = ({ network, accountNumber, BackgroundCaller }) => {
+const BalanceLightning: React.FC<BalanceProps> = ({ network, accountNumber, BackgroundCaller }) => {
   const availableNetworks = useAvailableNetworks();
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
 
@@ -242,7 +242,7 @@ const USDTTokenRow: React.FC<{
 };
 
 // Balance component for USDT network (aggregates tokens from Rootstock and Liquid)
-const BalanceUsdt: React.FC<BalanceViewProps> = ({ network, accountNumber, BackgroundCaller }) => {
+const BalanceUsdt: React.FC<BalanceProps> = ({ network, accountNumber, BackgroundCaller }) => {
   const availableNetworks = useAvailableNetworks();
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
   const { tokenList: rsTokenListOrig } = useTokenDiscovery(NETWORK_ROOTSTOCK, accountNumber, BackgroundCaller, LayerzStorage);
@@ -308,7 +308,7 @@ const BalanceUsdt: React.FC<BalanceViewProps> = ({ network, accountNumber, Backg
 };
 
 // Main component that routes to the appropriate balance view
-const BalanceView: React.FC<BalanceViewProps> = ({ network, accountNumber, BackgroundCaller }) => {
+const Balance: React.FC<BalanceProps> = ({ network, accountNumber, BackgroundCaller }) => {
   if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET) {
     return <BalanceLightning network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />;
   }
@@ -318,4 +318,4 @@ const BalanceView: React.FC<BalanceViewProps> = ({ network, accountNumber, Backg
   return <BalanceDefault network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />;
 };
 
-export default BalanceView;
+export default Balance;
