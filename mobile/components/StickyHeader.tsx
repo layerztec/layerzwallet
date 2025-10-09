@@ -5,6 +5,7 @@ import { ThemedText } from './ThemedText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountItem, AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
+import { handleQrIntent } from '@/src/modules/scan-routing';
 import { Ionicons, Foundation } from '@expo/vector-icons';
 import PlatformBlurView from './PlatformBlurView';
 import Animated, { useAnimatedStyle, interpolate, SharedValue } from 'react-native-reanimated';
@@ -38,7 +39,16 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
   };
 
   const handleCameraPress = async () => {
-    await scanQr();
+    try {
+      const result = await scanQr();
+      if (!result) {
+        return;
+      }
+
+      handleQrIntent(result, router);
+    } catch (error) {
+      console.error('StickyHeader: QR scan failed', error);
+    }
   };
 
   const IconComponent = accountItem.iconCollection === 'ion' ? Ionicons : Foundation;

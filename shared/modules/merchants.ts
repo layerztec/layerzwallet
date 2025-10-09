@@ -134,6 +134,12 @@ export const convertMerchantQRToLightningAddress = ({ qrContent, network }: { qr
     const match = qrContent.match(merchant.identifierRegex);
     if (match?.groups?.identifier) {
       const domain = merchant.domains[network] || merchant.defaultDomain;
+
+      if (qrContent.includes(`@${domain}`)) {
+        // trying to convert already converted result
+        continue;
+      }
+
       return `${encodeURIComponent(match.groups.identifier)}@${domain}`;
     }
   }
