@@ -157,8 +157,7 @@ export default function CreatePasswordScreen() {
         throw new Error(result.message || 'Failed to encrypt wallet');
       }
 
-      // Navigate to the terms of service screen
-      router.replace('/onboarding/tos');
+      router.replace('/Home');
     } catch (error) {
       console.error('Error encrypting wallet:', error);
       Alert.alert('Error', 'Failed to create password. Please try again.');

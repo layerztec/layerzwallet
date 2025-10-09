@@ -1,6 +1,6 @@
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, Animated, FlatList, TouchableOpacity, ViewStyle, TextStyle } from 'react-native';
+import { View, StyleSheet, Animated, FlatList, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePreventScreenCapture } from 'expo-screen-capture';
@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { Typography } from '@/constants/Typography';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { Colors, gradients } from '@shared/constants/Colors';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
 
 type CreateWalletScreenParams = {
   mnemonic: string;
@@ -53,6 +54,7 @@ export default function CreateWalletScreen() {
   useEffect(() => {
     const mnemonic = params.mnemonic;
     if (mnemonic) {
+      BackgroundExecutor.setMasterSeed(mnemonic);
       setRecoveryPhrase(mnemonic);
     } else {
       setError('No recovery phrase provided');
@@ -61,7 +63,7 @@ export default function CreateWalletScreen() {
   }, [params.mnemonic]);
 
   const handleContinue = () => {
-    router.push('/onboarding/create-password');
+    router.push('/onboarding/tos');
   };
 
   const handleVerify = () => {

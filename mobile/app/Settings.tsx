@@ -4,7 +4,8 @@ import * as Application from 'expo-application';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View, Switch } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View, Switch, Pressable } from 'react-native';
+import Bugsnag from '@bugsnag/expo';
 
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
@@ -21,10 +22,15 @@ import { useSettings } from '@shared/hooks/useSettings';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { STORAGE_KEY_BTC_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
+import { getDeviceIdentifier } from '@/src/utils/device-id';
 
 const gitCommitHash = require('../git_commit_hash.json');
 
+type TSettingsKey = keyof typeof SETTINGS_CONFIG;
+
 export default function SettingsScreen() {
+  const { askMnemonic } = useContext(AskMnemonicContext);
   const router = useRouter();
   const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
   const { scanQr } = useContext(ScanQrContext);
@@ -33,6 +39,7 @@ export default function SettingsScreen() {
   const [isClearing, setIsClearing] = useState(false);
   const { network } = useContext(NetworkContext);
   const [btcXpub, setBtcXpub] = useState('');
+  const [deviceId, setDeviceId] = useState('');
   const biometricInfo = useBiometrics();
   const { enableBiometricAuth, disableBiometricAuth, isUpdatingBiometric, lockApp } = useAuthState();
 
@@ -40,8 +47,27 @@ export default function SettingsScreen() {
     (async () => {
       const xpub = await LayerzStorage.getItem(STORAGE_KEY_BTC_XPUB + accountNumber);
       setBtcXpub(xpub);
+
+      // Load device identifier
+      try {
+        const id = await getDeviceIdentifier();
+        setDeviceId(id);
+      } catch (error) {
+        console.debug('Device identifier not available:', error);
+        setDeviceId('');
+      }
     })();
   }, [accountNumber]);
+
+  // loading if master seed is encrypted
+  useEffect(() => {
+    (async () => {
+      const encrypted = await BackgroundExecutor.hasEncryptedMnemonic();
+      await updateSetting('seedEncrypted', encrypted ? 'ON' : 'OFF');
+    })();
+    // it will go to endless loop if we include updateSetting
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleClearStorage = async () => {
     Alert.alert('Clear Storage', 'Are you sure you want to clear all app data? This action cannot be undone.', [
@@ -92,11 +118,7 @@ export default function SettingsScreen() {
     router.push('/SeedBackup');
   };
 
-  const handleNavigateToViewSubmnemonic = () => {
-    router.push('/ViewSubmnemonic');
-  };
-
-  const handleSettingChange = async (key: string, value: string) => {
+  const handleSettingChange = async (key: TSettingsKey, value: (typeof SETTINGS_CONFIG)[TSettingsKey]['options'][number]) => {
     try {
       // Special handling for biometric authentication
       if (key === 'biometricAuth') {
@@ -108,8 +130,32 @@ export default function SettingsScreen() {
         return;
       }
 
+      if (key === 'seedEncrypted') {
+        const hasEncryptedMnemonic = await BackgroundExecutor.hasEncryptedMnemonic();
+        if (value === 'ON') {
+          if (hasEncryptedMnemonic) {
+            // nop
+            return;
+          }
+          router.push('/onboarding/create-password');
+        } else {
+          if (!hasEncryptedMnemonic) {
+            // nop
+            return;
+          }
+          try {
+            const mnemonic = await askMnemonic();
+            await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, mnemonic);
+            await updateSetting(key, value);
+          } catch (e: any) {
+            Alert.alert(e.message);
+          }
+        }
+        return;
+      }
+
       // Default handling for all other settings
-      await updateSetting(key as any, value);
+      await updateSetting(key, value);
     } catch (error) {
       console.error('Error updating setting:', error);
     }
@@ -130,6 +176,33 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleDeviceIdPress = async () => {
+    if (deviceId) {
+      try {
+        console.debug('Sending test error to Bugsnag with device ID:', deviceId);
+
+        // Trigger a test error to Bugsnag with the device ID
+        Bugsnag.notify(new Error(`Test error from device: ${deviceId}`), (event) => {
+          event.addMetadata('test', {
+            deviceId: deviceId,
+            timestamp: new Date().toISOString(),
+            testType: 'manual_trigger',
+          });
+        });
+
+        console.debug('Bugsnag notification sent successfully');
+
+        // Copy to clipboard
+        await Clipboard.setStringAsync(deviceId);
+
+        Alert.alert('Test Error Sent', `ID: ${deviceId}\n\nTest error sent and ID copied to clipboard!`);
+      } catch (error) {
+        console.error('Error sending to Bugsnag:', error);
+        Alert.alert('Error', `Failed to send test error: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  };
+
   return (
     <GradientScreen variant={network}>
       <ScreenHeader title="Settings" testID="SettingsScreenTitle" />
@@ -140,10 +213,6 @@ export default function SettingsScreen() {
 
           <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={handleNavigateToSeedBackup}>
             <ThemedText style={styles.primaryButtonText}>Backup Seed Phrase</ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={handleNavigateToViewSubmnemonic}>
-            <ThemedText style={styles.primaryButtonText}>View derived seed</ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.button, styles.dangerButton, isClearing && styles.buttonDisabled]} onPress={handleClearStorage} disabled={isClearing}>
@@ -181,7 +250,7 @@ export default function SettingsScreen() {
           <ThemedText style={styles.sectionTitle} testID="AppSettingsTitle">
             App Settings
           </ThemedText>
-          {Object.keys(SETTINGS_CONFIG)
+          {(Object.keys(SETTINGS_CONFIG) as TSettingsKey[])
             .filter((key) => {
               // Filter out biometric setting if not available (unless in test mode)
               if (key === 'biometricAuth' && !biometricInfo.isAvailable && !isMaestroMode()) {
@@ -214,7 +283,7 @@ export default function SettingsScreen() {
                     {formatSettingName(key)}:
                   </ThemedText>
                   <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
-                    {config.options.map((option: string) => {
+                    {config.options.map((option) => {
                       return (
                         <TouchableOpacity
                           key={option}
@@ -249,6 +318,14 @@ export default function SettingsScreen() {
           >
             <ThemedText style={styles.selfTestButtonText}>ScanQr</ThemedText>
           </TouchableOpacity>
+
+          {deviceId && (
+            <Pressable style={({ pressed }) => [styles.button, styles.selfTestButton, pressed && styles.buttonPressed]} onPress={handleDeviceIdPress} testID="DeviceIdButton">
+              <ThemedText style={styles.deviceIdButtonText} numberOfLines={2}>
+                ID: {deviceId}
+              </ThemedText>
+            </Pressable>
+          )}
         </View>
 
         {/* Security Section */}
@@ -279,7 +356,7 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        <ThemedText style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.8)' }}>
+        <ThemedText style={styles.versionText}>
           {Application.applicationName} v{Application.nativeApplicationVersion} (build {Application.nativeBuildVersion})
         </ThemedText>
         {gitCommitHash && (
@@ -355,6 +432,9 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  buttonPressed: {
+    opacity: 0.7,
   },
   warningText: {
     fontSize: 12,
@@ -451,5 +531,24 @@ const styles = StyleSheet.create({
   changelogButtonText: {
     color: 'white',
     fontWeight: '700',
+  },
+  deviceIdButton: {
+    backgroundColor: '#FF9500',
+    marginTop: 8,
+    marginHorizontal: 16,
+  },
+  deviceIdButtonPressed: {
+    backgroundColor: '#CC7700',
+    opacity: 0.8,
+  },
+  deviceIdButtonText: {
+    color: 'white',
+    fontWeight: '700',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  versionText: {
+    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.8)',
   },
 });

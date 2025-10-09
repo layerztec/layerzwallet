@@ -16,7 +16,6 @@ import { NETWORK_SPARK } from '@shared/types/networks';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
-import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { TokenBalanceMap, UserTokenMetadata } from '@buildonspark/spark-sdk';
 import { ThemedText } from '@/components/ThemedText';
@@ -42,7 +41,6 @@ export default function SendTokenSparkScreen() {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { scanQr } = useContext(ScanQrContext);
-  const { askMnemonic } = useContext(AskMnemonicContext);
 
   // State management
   const [step, setStep] = useState<SendTokenSparkStep>(SendTokenSparkStep.Init);
@@ -136,7 +134,7 @@ export default function SendTokenSparkScreen() {
       const satValueToSend = satValueToSendBN.multipliedBy(new BigNumber(10).pow(token.decimals)).toString(10);
       assert(new BigNumber(balance).gte(satValueToSend), 'Not enough balance');
 
-      await askMnemonic(); // asking only to make sure user knows it, we dont actually need it
+      await new Promise((r) => setTimeout(r, 200)); // propagate
       setStep(SendTokenSparkStep.Prepared);
     } catch (error: any) {
       setError(error.message);

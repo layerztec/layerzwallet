@@ -11,6 +11,9 @@ export default function IndexScreen() {
     return <Redirect href="/onboarding/intro" />;
   } else if (step === EStep.PASSWORD) {
     return <Redirect href="/onboarding/create-password" />;
+  } else if (step === EStep.UNLOCK_PASSWORD) {
+    // seed encrypted, we need to ask for a password to decrypt the seed
+    return <Redirect href="/UnlockPassword" />;
   } else if (step === EStep.TOS) {
     return <Redirect href="/onboarding/tos" />;
   } else {

@@ -7,17 +7,28 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { getKnowMoreUrl } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
+import { USDT_TOKENS } from '@shared/models/token-list';
 import { SwapPair, SwapPlatform } from '@shared/types/swap';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import {
+  NETWORK_ARK,
+  NETWORK_ARK_MUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_LIGHTNING,
+  NETWORK_LIGHTNING_TESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_ROOTSTOCK,
+  NETWORK_SPARK,
+  NETWORK_USDT,
+} from '@shared/types/networks';
 
 import { BackgroundCaller } from '../../modules/background-caller';
 import PartnersView from './components/PartnersView';
 import TokensView from './components/TokensView';
 import { ActionPopupButton, Button, Switch } from './DesignSystem';
-import LiquidTokensView from './components/LiquidTokensView';
 import SwapInterfaceView from './components/SwapInterfaceView';
-import BalanceView from './components/BalanceView';
+import Balance from './components/Balance';
 import SwapListView from './components/SwapListView';
 import { ReceiveLightningProps } from './ReceiveLightning';
 import { SendLightningProps } from './SendLightning';
@@ -125,6 +136,27 @@ const Home: React.FC = () => {
     setShowSwapInterface(true);
   };
 
+  const handleSendUSDTViaRootstock = (contractAddress: string) => () => {
+    setNetwork(NETWORK_ROOTSTOCK);
+    const state = { contractAddress };
+    navigate('/send-token-evm', { state });
+  };
+
+  const handleSendUSDTViaLiquid = () => {
+    setNetwork(NETWORK_LIQUID);
+    navigate(`/send-liquid?assetId=${USDT_TOKENS[NETWORK_LIQUID][0]}`);
+  };
+
+  const handleReceiveUSDTViaRootstock = () => {
+    setNetwork(NETWORK_ROOTSTOCK);
+    navigate('/receive');
+  };
+
+  const handleReceiveUSDTViaLiquid = () => {
+    setNetwork(NETWORK_LIQUID);
+    navigate('/receive');
+  };
+
   return (
     <div>
       <Switch items={availableNetworks} activeItem={network} onItemClick={setNetwork} />
@@ -150,14 +182,14 @@ const Home: React.FC = () => {
         </div>
       ) : null}
 
-      <BalanceView network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />
+      <Balance network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />
 
       {showSwapInterface ? (
         <SwapInterfaceView />
       ) : (
         <div>
           <PartnersView />
-          {network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET ? <LiquidTokensView /> : <TokensView />}
+          <TokensView />
         </div>
       )}
 
@@ -186,6 +218,31 @@ const Home: React.FC = () => {
           <SendIcon />
           Send
         </ActionPopupButton>
+      ) : network === NETWORK_USDT ? (
+        <ActionPopupButton
+          actions={[
+            {
+              label: 'Send USDT via Rootstock',
+              onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][0]),
+            },
+            {
+              label: 'Send USDT0 via Rootstock',
+              onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][1]),
+            },
+            {
+              label: 'Send rUSDT via Rootstock',
+              onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][2]),
+            },
+            {
+              label: 'Send USDT via Liquid',
+              onClick: handleSendUSDTViaLiquid,
+            },
+            { label: 'Cancel', onClick: () => {} },
+          ]}
+        >
+          <SendIcon />
+          Send
+        </ActionPopupButton>
       ) : (
         <Button onClick={handleSend}>
           <SendIcon />
@@ -207,6 +264,23 @@ const Home: React.FC = () => {
             {
               label: 'Receive on Ark',
               onClick: handleReceiveLightningOnArk,
+            },
+            { label: 'Cancel', onClick: () => {} },
+          ]}
+        >
+          <ArrowDownRightIcon />
+          Receive
+        </ActionPopupButton>
+      ) : network === NETWORK_USDT ? (
+        <ActionPopupButton
+          actions={[
+            {
+              label: 'Receive via Rootstock',
+              onClick: handleReceiveUSDTViaRootstock,
+            },
+            {
+              label: 'Receive via Liquid',
+              onClick: handleReceiveUSDTViaLiquid,
             },
             { label: 'Cancel', onClick: () => {} },
           ]}

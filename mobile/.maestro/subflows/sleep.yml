@@ -1,0 +1,7 @@
+appId: com.layerzwallet.mobile
+---
+# Sleep for a given number of milliseconds
+# If TIMEOUT is not provided, sleep for 3 seconds
+# If TIMEOUT is provided, sleep for the given number of milliseconds
+
+- evalScript: await new Promise(resolve => setTimeout(resolve, TIMEOUT || 3000));

@@ -51,9 +51,6 @@ appId: com.layerzwallet.mobile
 - scrollUntilVisible:
     element: Allow
 - tapOn: Allow
-- inputText:
-    text: '123456'
-- tapOn: OK
 - extendedWaitUntil:
     notVisible: 'Processing...'
     timeout: 60000

@@ -1,6 +1,6 @@
 {
   "name": "layerzwallet",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Manage your Bitcoin across multiple Layer 2 solutions",
   "repository": {
     "type": "git",
@@ -21,10 +21,10 @@
     "prepare": "cd .. && husky ext/.husky"
   },
   "dependencies": {
-    "@arkade-os/boltz-swap": "0.2.0-alpha.7",
-    "@arkade-os/sdk": "0.3.0-alpha.7",
+    "@arkade-os/boltz-swap": "0.2.0-alpha.8",
+    "@arkade-os/sdk": "0.3.0-alpha.8",
     "@bitcoinerlab/secp256k1": "1.2.0",
-    "@breeztech/breez-sdk-liquid": "0.11.2",
+    "@breeztech/breez-sdk-liquid": "0.11.5",
     "@buildonspark/spark-sdk": "0.3.9",
     "@metamask/eth-sig-util": "4.0.1",
     "@noble/hashes": "1.7.1",
@@ -37,7 +37,6 @@
     "bip21": "3.0.0",
     "bip32": "4.0.0",
     "bip39": "3.1.0",
-    "bip85": "0.0.3",
     "bitcoinjs-lib": "6.1.6",
     "bitcoinjs-message": "2.2.0",
     "bolt11": "^1.4.1",

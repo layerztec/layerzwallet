@@ -15,9 +15,10 @@ import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared
 import { CommonTransaction } from '@shared/types/common-transaction';
 
 export default function TransactionDetails() {
-  const { network } = useContext(NetworkContext);
+  const { network: selectedNetwork } = useContext(NetworkContext);
   const { transaction: jsonTransaction } = useLocalSearchParams();
   const transaction: CommonTransaction = JSON.parse(jsonTransaction as string);
+  const network = transaction.network;
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);
   const { exchangeRate } = useExchangeRate(network, 'USD');
@@ -83,7 +84,7 @@ export default function TransactionDetails() {
   };
 
   return (
-    <GradientFormSheet variant={network}>
+    <GradientFormSheet variant={selectedNetwork}>
       <View style={styles.container}>
         {/* Top header: icon, type, date */}
         <View style={styles.topHeader}>

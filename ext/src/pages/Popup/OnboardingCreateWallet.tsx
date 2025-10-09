@@ -18,6 +18,7 @@ const OnboardingCreateWallet: React.FC = () => {
 
       if (!hasMnemonic) {
         const response = await BackgroundCaller.createMnemonic();
+        await BackgroundCaller.setMasterSeed(response.mnemonic);
         setRecoveryPhrase(response.mnemonic);
       }
     })();

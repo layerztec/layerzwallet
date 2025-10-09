@@ -145,8 +145,9 @@ export default function ImportWalletScreen() {
       if (!response) {
         setError('Invalid mnemonic seed');
       } else {
+        await BackgroundExecutor.setMasterSeed(mnemonic);
         router.dismissAll();
-        router.replace('/onboarding/create-password');
+        router.replace('/onboarding/tos');
       }
     } catch (err) {
       setError('An error occurred while importing the wallet');

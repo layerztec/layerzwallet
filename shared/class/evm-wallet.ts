@@ -94,10 +94,13 @@ export class EvmWallet {
   }
 
   async createTokenTransferTransaction(from: string, to: string, token: TokenInfo, amount: StringNumber): Promise<TransactionRequest> {
-    const iface = new ethers.Contract(token.id, ['function transfer(address,uint256)']);
+    // Because Rootstock uses a different checksum format than Ethereum (EIP-1191 vs. EIP-55), we lowercase the token ID to avoid checksum issues
+    // TODO: implement a proper checksum converter
+    const tokenId = token.id.toLowerCase();
+    const iface = new ethers.Contract(tokenId, ['function transfer(address,uint256)']);
     const data = iface.interface.encodeFunctionData('transfer', [to, amount]);
 
-    return { data, from, to: token.id };
+    return { data, from, to: tokenId };
   }
 
   private getWalletFromMnemonic(mnemonic: string, accountNumber: number): Wallet {

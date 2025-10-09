@@ -1,11 +1,17 @@
 import { Messenger } from './messenger';
-import { GetSubMnemonicResponse, GetBtcSendDataResponse, IBackgroundCaller, MessageType, GetCommonTransactionsResponse } from '@shared/types/IBackgroundCaller';
+import { GetBtcSendDataResponse, IBackgroundCaller, MessageType, GetCommonTransactionsResponse } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SEED_VERIFIED } from '@shared/types/IStorage';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
 import { NETWORK_SPARK } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { lazyInitWallet as lazyInitWalletOrig, TSupportedLazyInitWalletNetworks, lazyInitWalletReady as lazyInitWalletReadyOrig } from '@shared/modules/wallet-utils';
+import {
+  lazyInitWallet as lazyInitWalletOrig,
+  TSupportedLazyInitWalletNetworks,
+  lazyInitWalletReady as lazyInitWalletReadyOrig,
+  getMasterSeed as getMasterSeedOrig,
+  setMasterSeed as setMasterSeedOrig,
+} from '@shared/modules/wallet-utils';
 import assert from 'assert';
 
 const STORAGE_KEY_WHITELIST = 'STORAGE_KEY_WHITELIST';
@@ -16,6 +22,31 @@ const STORAGE_KEY_ACCEPTED_TOS = 'STORAGE_KEY_ACCEPTED_TOS';
  * in an isolated context for security. Communication is handled via the `Messenger` service
  */
 export const BackgroundCaller: IBackgroundCaller = {
+  async getMasterSeed() {
+    // master seed can exist in both background script and popup contexts, and they should be the same. lets first try local context:
+    const masterSeedLocal = getMasterSeedOrig();
+    if (masterSeedLocal) {
+      return masterSeedLocal;
+    }
+
+    // cache miss!
+    const masterSeed = await Messenger.sendGenericMessageToBackground(MessageType.GET_MASTER_SEED, []);
+
+    if (masterSeed) {
+      setMasterSeedOrig(masterSeed); // also set it in local context, as a cache
+
+      return masterSeed;
+    }
+
+    throw new Error('Internal error: master seed not loaded');
+  },
+
+  async setMasterSeed(...params) {
+    // we are setting master seed in current (popup?) context as well as in background script:
+    setMasterSeedOrig(params[0]);
+    await Messenger.sendGenericMessageToBackground(MessageType.SET_MASTER_SEED, params);
+  },
+
   /**
    * ACHTUNG!
    *
@@ -106,24 +137,12 @@ export const BackgroundCaller: IBackgroundCaller = {
     return await Messenger.sendGenericMessageToBackground(MessageType.LOG, params);
   },
 
-  async signPersonalMessage(...params) {
-    return await Messenger.sendGenericMessageToBackground(MessageType.SIGN_PERSONAL_MESSAGE, params);
-  },
-
-  async signTypedData(...params) {
-    return await Messenger.sendGenericMessageToBackground(MessageType.SIGN_TYPED_DATA, params);
-  },
-
   async openPopup(...params) {
     return await Messenger.sendGenericMessageToBackground(MessageType.OPEN_POPUP, params);
   },
 
   async getBtcSendData(...params): Promise<GetBtcSendDataResponse> {
     return await Messenger.sendGenericMessageToBackground(MessageType.GET_BTC_SEND_DATA, params);
-  },
-
-  async getSubMnemonic(...params): Promise<GetSubMnemonicResponse> {
-    return await Messenger.sendGenericMessageToBackground(MessageType.GET_SUB_MNEMONIC, params);
   },
 
   async getCommonTransactions(...params): Promise<GetCommonTransactionsResponse> {

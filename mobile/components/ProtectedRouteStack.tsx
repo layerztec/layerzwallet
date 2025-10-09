@@ -74,15 +74,6 @@ export function ProtectedRouteStack() {
           }}
         />
         <Stack.Screen
-          name="onboarding/create-password"
-          options={{
-            headerShown: false,
-            animation: 'slide_from_right',
-            animationDuration: 350,
-            gestureEnabled: true,
-          }}
-        />
-        <Stack.Screen
           name="onboarding/tos"
           options={{
             headerShown: false,
@@ -94,7 +85,7 @@ export function ProtectedRouteStack() {
         <Stack.Screen
           name="onboarding/import-wallet"
           options={{
-            headerTitle: 'Enter private key or seed phrase',
+            headerTitle: 'Enter seed phrase',
             headerTitleStyle: {
               fontFamily: 'Inter',
               fontWeight: '400',
@@ -136,10 +127,18 @@ export function ProtectedRouteStack() {
         <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'fade' }} />
         <Stack.Screen name="Receive" />
         <Stack.Screen name="Settings" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="onboarding/create-password"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+            animationDuration: 350,
+            gestureEnabled: true,
+          }}
+        />
         <Stack.Screen name="BackdoorNetworkSwitcher" options={{ headerShown: false }} />
         <Stack.Screen name="Changelog" options={{ headerShown: false }} />
         <Stack.Screen name="SeedBackup" options={{ headerShown: false }} />
-        <Stack.Screen name="ViewSubmnemonic" options={{ headerShown: false }} />
         <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
         <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
         <Stack.Screen name="SendBtc" options={{ title: 'Send BTC' }} />
@@ -211,15 +210,11 @@ export function ProtectedRouteStack() {
         <Stack.Screen
           name="ScanQr"
           options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.8],
-            sheetGrabberVisible: true,
-            headerTransparent: false,
+            presentation: 'fullScreenModal',
             gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+            animation: 'slide_from_bottom',
             headerShown: false,
-            contentStyle: {
-              height: '100%',
-            },
           }}
         />
         <Stack.Screen

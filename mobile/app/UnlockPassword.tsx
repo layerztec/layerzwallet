@@ -1,0 +1,215 @@
+import React, { useState, useRef, useEffect, useCallback, useContext } from 'react';
+import { StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+
+import { ThemedText } from '@/components/ThemedText';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { Colors, gradients } from '@shared/constants/Colors';
+import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
+import { SecureStorage } from '@/src/class/secure-storage';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import assert from 'assert';
+import { decrypt } from '@/src/modules/encryption';
+import { getDeviceID } from '@shared/modules/device-id';
+import { Csprng } from '@/src/class/rng';
+
+/**
+ * If user has a seed encrypted, we need to ask for a password to decrypt the seed. This screen is
+ * shown upon cold boot to ask for the password, decrypt the seed and set it in the context.
+ */
+export default function UnlockPassword() {
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  const passwordInputRef = useRef<TextInput>(null);
+
+  const shakeAnimation = useRef(new Animated.Value(0)).current;
+  const inputBorderAnimation = useRef(new Animated.Value(0)).current;
+  const scaleAnimation = useRef(new Animated.Value(1)).current;
+
+  const titleTransition = useSequentialSpringAnimation(200);
+  const subtitleTransition = useSequentialSpringAnimation(400);
+  const inputTransition = useSequentialSpringAnimation(600);
+  const buttonTransition = useSequentialSpringAnimation(800);
+
+  useEffect(() => {
+    if (passwordInputRef.current) {
+      setTimeout(() => passwordInputRef.current?.focus(), 1_500);
+    }
+  }, []);
+
+  const handleUnlockPassword = async () => {
+    setIsLoading(true);
+    try {
+      const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
+      assert(encryptedMnemonic, 'No encrypted mnemonic found');
+      assert(encryptedMnemonic.startsWith(ENCRYPTED_PREFIX), 'Mnemonic not encrypted, reinstall the app');
+      const decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, await getDeviceID(SecureStorage, Csprng));
+      await BackgroundExecutor.setMasterSeed(decrypted);
+
+      // Navigate to home
+      router.replace('/Home');
+    } catch (error: any) {
+      console.log('Error decrypting wallet:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <LinearGradient colors={gradients.blueGradient} style={styles.container}>
+        <SafeAreaView style={styles.safeAreaView}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardContainer}>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+              <View style={styles.content}>
+                <Animated.View style={[titleTransition]}>
+                  <ThemedText type="title" darkColor={Colors.dark.buttonText} textAlign="center">
+                    Unlock wallet
+                  </ThemedText>
+                </Animated.View>
+
+                <View style={{ marginVertical: 10 }} />
+
+                <Animated.View style={[subtitleTransition]}>
+                  <ThemedText type="paragraph" darkColor={Colors.dark.text} textAlign="center">
+                    Enter your password to unlock your wallet
+                  </ThemedText>
+                </Animated.View>
+
+                <Animated.View
+                  style={[
+                    styles.inputContainer,
+                    inputTransition,
+                    {
+                      transform: [{ translateX: shakeAnimation }, { scale: scaleAnimation }],
+                    },
+                  ]}
+                >
+                  <Animated.View
+                    style={[
+                      styles.inputWrapper,
+                      {
+                        borderColor: inputBorderAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['rgba(255, 255, 255, 0.2)', '#FF6B6B'],
+                        }),
+                        borderWidth: inputBorderAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 1],
+                        }),
+                        shadowOpacity: inputBorderAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 0.3],
+                        }),
+                        shadowColor: '#FF6B6B',
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowRadius: inputBorderAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 8],
+                        }),
+                        elevation: inputBorderAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 5],
+                        }),
+                      },
+                    ]}
+                  >
+                    <TextInput
+                      ref={passwordInputRef}
+                      style={styles.input}
+                      placeholder="Enter password"
+                      placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                      autoCapitalize="none"
+                      secureTextEntry
+                      value={password}
+                      onChangeText={setPassword}
+                      testID="EnterPasswordInput"
+                    />
+                  </Animated.View>
+                </Animated.View>
+              </View>
+
+              <Animated.View style={[styles.buttonSection, buttonTransition]}>
+                <TouchableOpacity
+                  style={[styles.button, isLoading || !password ? styles.buttonDisabled : null]}
+                  onPress={handleUnlockPassword}
+                  disabled={isLoading || !password}
+                  testID="UnlockPasswordButton"
+                >
+                  <ThemedText type="button" darkColor={Colors.dark.buttonText}>
+                    {isLoading ? 'Unlocking...' : 'Unlock'}
+                  </ThemedText>
+                </TouchableOpacity>
+              </Animated.View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </LinearGradient>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  safeAreaView: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  keyboardContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 40,
+  },
+  inputContainer: {
+    width: '100%',
+    marginTop: 40,
+  },
+  inputWrapper: {
+    borderRadius: 16,
+    marginBottom: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  input: {
+    height: 56,
+    paddingHorizontal: 20,
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  errorContainer: {
+    marginTop: -8,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  buttonSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  button: {
+    backgroundColor: Colors.dark.buttonPrimary,
+    borderRadius: 16,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+});

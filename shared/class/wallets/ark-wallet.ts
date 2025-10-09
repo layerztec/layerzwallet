@@ -1,17 +1,18 @@
-import { SingleKey, Wallet, TxType, Ramps } from '@arkade-os/sdk';
 import { ArkadeLightning, BoltzSwapProvider, decodeInvoice } from '@arkade-os/boltz-swap';
+import { Ramps, SingleKey, TxType, Wallet } from '@arkade-os/sdk';
+import { ExpoArkProvider, ExpoIndexerProvider } from '@arkade-os/sdk/adapters/expo';
 import ecc from '@bitcoinerlab/secp256k1';
+import assert from 'assert';
 import BIP32Factory from 'bip32';
 import * as bip39 from 'bip39';
-import assert from 'assert';
 
-import { AbstractHDElectrumWallet } from './abstract-hd-electrum-wallet';
-import { CommonTransaction } from '../../types/common-transaction';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET } from '../../types/networks';
-import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
 import { IStorage } from '@shared/types/IStorage';
 import { CommonSwap } from '@shared/types/common-swap';
 import * as BlueElectrum from '../../blue_modules/BlueElectrum';
+import { CommonTransaction } from '../../types/common-transaction';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET } from '../../types/networks';
+import { AbstractHDElectrumWallet } from './abstract-hd-electrum-wallet';
+import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
 
 const bip32 = BIP32Factory(ecc);
 
@@ -21,7 +22,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   private _arkServerUrl: string = 'https://mutinynet.arkade.sh';
   private _arkServerPublicKey: string = '03fa73c6e4876ffb2dfc961d763cca9abc73d4b88efcb8f5e7ff92dc55e9aa553d';
   private _boltzApiUrl: string = '';
-  private _accountNumber: number = 0;
+  protected _accountNumber: number = 0;
 
   setAccountNumber(value: number) {
     this._accountNumber = value;
@@ -85,7 +86,8 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     this._wallet = await Wallet.create({
       storage,
       identity,
-      arkServerUrl: this._arkServerUrl,
+      arkProvider: new ExpoArkProvider(this._arkServerUrl),
+      indexerProvider: new ExpoIndexerProvider(this._arkServerUrl),
       arkServerPublicKey: this._arkServerPublicKey,
     });
   }

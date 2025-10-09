@@ -20,19 +20,21 @@ export default function OnboardingImport() {
 
   const handleSaveMnemonicSeed = async () => {
     // Validate and sanitize the mnemonic first
+    let sanitizedSeed: string = '';
     try {
-      sanitizeAndValidateMnemonic(value);
+      sanitizedSeed = sanitizeAndValidateMnemonic(value);
     } catch (error: any) {
       setError(error.message);
       return;
     }
 
-    const response = await BackgroundCaller.saveMnemonic(value);
+    const response = await BackgroundCaller.saveMnemonic(sanitizedSeed);
 
     if (!response) {
       setError('Invalid mnemonic seed');
       return;
     } else {
+      await BackgroundCaller.setMasterSeed(sanitizedSeed);
       setStep(EStep.PASSWORD);
     }
   };

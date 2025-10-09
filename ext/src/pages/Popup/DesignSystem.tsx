@@ -25,60 +25,33 @@ export const SelectFeeSlider: React.FC<
 export const ActionPopupButton: React.FC<{
   children: React.ReactNode;
   actions: Array<{ label: string; onClick: () => void }>;
-  disabled?: boolean;
-}> = ({ children, actions, disabled }) => {
+}> = ({ children, actions }) => {
   const [showPopup, setShowPopup] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const handleClick = (event: React.MouseEvent) => {
-    if (disabled) return;
     event.stopPropagation();
 
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
+      const y = actions.length * 20;
       setPopupPosition({
         x: rect.left,
-        y: rect.top - 150,
+        y: rect.top - 150 - y,
       });
     }
     setShowPopup(true);
-    setProgress(0);
-
-    // Start progress for default button (first action)
-    intervalRef.current = setInterval(() => {
-      setProgress((prevProgress) => {
-        if (prevProgress < 100) {
-          return prevProgress + (100 * 10) / 3000; // 3 seconds = 3000ms
-        }
-        clearInterval(intervalRef.current!);
-        // Trigger default action when progress reaches 100%
-        actions[0]?.onClick();
-        setShowPopup(false);
-        return 100;
-      });
-    }, 10);
   };
 
   const handleActionClick = (action: () => void) => {
-    // Clear the progress interval
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
     // Trigger the clicked action
     action();
     setShowPopup(false);
-    setProgress(0);
   };
 
   const handleClose = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
     setShowPopup(false);
-    setProgress(0);
   };
 
   // Close popup when clicking outside
@@ -105,17 +78,15 @@ export const ActionPopupButton: React.FC<{
       <button
         ref={buttonRef}
         onClick={handleClick}
-        disabled={disabled}
         style={{
           backgroundColor: '#282c34',
           color: 'white',
           border: '1px solid white',
           padding: '10px 20px',
           borderRadius: '5px',
-          cursor: disabled ? 'not-allowed' : 'pointer',
+          cursor: 'pointer',
           fontSize: '20px',
           transition: 'background-color 0.3s',
-          opacity: disabled ? 0.5 : 1,
           display: 'inline-flex',
           alignItems: 'center',
           whiteSpace: 'nowrap',
@@ -162,27 +133,9 @@ export const ActionPopupButton: React.FC<{
                 justifyContent: 'center',
                 alignItems: 'center',
                 width: '100%',
-                position: 'relative',
-                ...(index === 0 && {
-                  // Default button (first action) has progress bar
-                  overflow: 'hidden',
-                }),
               }}
             >
-              {index === 0 && progress > 0 && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    width: `${progress}%`,
-                    height: '5px',
-                    backgroundColor: 'white',
-                    transition: 'width 0.1s linear',
-                  }}
-                />
-              )}
-              <span style={{ zIndex: 1, position: 'relative' }}>{action.label}</span>
+              {action.label}
             </button>
           ))}
         </div>
