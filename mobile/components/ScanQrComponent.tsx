@@ -132,8 +132,8 @@ export default function ScanQrComponent() {
   function onBarcodeScanned(scanningResult: BarcodeScanningResult): void {
     if (!hasCalledDismiss.current) {
       hasCalledDismiss.current = true;
-      handleQrScanned(scanningResult.data);
       router.back();
+      setTimeout(() => handleQrScanned(scanningResult.data), 100); // important! propagate, otherwise the parent screen wont be able to set its data via `setParam()`
     }
   }
 
