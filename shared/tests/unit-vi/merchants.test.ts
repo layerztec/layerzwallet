@@ -120,9 +120,19 @@ describe('convertMerchantQRToLightningAddress', () => {
       network: 'mainnet' as Network,
       expected: 'https%3A%2F%2Fpay.cryptoqr.net%2F3458967@cryptoqr.net',
     },
+    {
+      description: 'from demo',
+      qrContent: '00020129530023za.co.electrum.picknpay0122D57H4TMHFZ2TEZ/confirm520458125303710540115802ZA5916cryptoqrtestscan6002CT6304A440',
+      network: 'mainnet' as Network,
+      expected: '00020129530023za.co.electrum.picknpay0122D57H4TMHFZ2TEZ%2Fconfirm520458125303710540115802ZA5916cryptoqrtestscan6002CT6304A440@cryptoqr.net',
+    },
   ])('$description', ({ qrContent, network, expected }) => {
     const result = convertMerchantQRToLightningAddress({ qrContent, network });
     expect(result).toBe(expected);
+
+    // must not return the same result for already parsed result
+    const negativeResult = convertMerchantQRToLightningAddress({ qrContent: expected, network });
+    expect(negativeResult).toBe(null);
   });
 
   // Test cases for invalid QR contents
