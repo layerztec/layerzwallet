@@ -2,13 +2,15 @@ import { Asset } from 'expo-asset';
 import { File } from 'expo-file-system';
 import * as Linking from 'expo-linking';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
-import { StyleSheet, TouchableOpacity, View, Alert, TextInput, ScrollView, Animated, PanResponder, Image, AppState, AppStateStatus, Dimensions, RefreshControl } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Alert, TextInput, ScrollView, Animated, PanResponder, Image, AppState, AppStateStatus, Dimensions } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { captureRef } from 'react-native-view-shot';
 import { Image as ExpoImage } from 'expo-image';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import AnimatedReanimated, { useAnimatedStyle, useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/ThemedText';
 import GradientScreen from '@/components/GradientScreen';
@@ -34,16 +36,17 @@ interface BrowserTab {
   canGoForward: boolean;
   history: { url: string; title: string }[];
   historyIndex: number;
-  screenshot?: string; // URI to cached screenshot
-  scrollPosition?: number;
-  timestamp: number; // Last accessed timestamp
-  isLoaded: boolean; // Whether the WebView is currently loaded
+  screenshot?: string;
+  timestamp: number;
+  isLoaded: boolean;
 }
 
 const TABS_STORAGE_KEY = '@browser_tabs';
 const ACTIVE_TAB_STORAGE_KEY = '@browser_active_tab';
-const MAX_LOADED_TABS = 3; // Maximum number of tabs to keep loaded in memory
+const MAX_LOADED_TABS = 3;
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const MODAL_MIN_HEIGHT = 120;
+const MODAL_MAX_HEIGHT = SCREEN_HEIGHT;
 
 const DAppBrowser: React.FC = () => {
   const { network, setNetwork } = useContext(NetworkContext);
@@ -62,10 +65,7 @@ const DAppBrowser: React.FC = () => {
   const [isRestoringTabs, setIsRestoringTabs] = useState<boolean>(true);
   const [addressInput, setAddressInput] = useState<string>(initialUrl);
   const [showTabsOverview, setShowTabsOverview] = useState<boolean>(false);
-  const [showNetworkSwitcher, setShowNetworkSwitcher] = useState<boolean>(false);
-  const [loadingProgress, setLoadingProgress] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const webviewOpacity = useRef(new Animated.Value(1)).current;
   const tabsOpacity = useRef(new Animated.Value(0)).current;
@@ -82,13 +82,59 @@ const DAppBrowser: React.FC = () => {
   const swipeProgress = useRef(new Animated.Value(0)).current;
   const swipeOverlayOpacity = useRef(new Animated.Value(0)).current;
 
-  const networkSwitcherOpacity = useRef(new Animated.Value(0)).current;
-  const networkSwitcherTranslateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const whiteFlashAnim = useRef(new Animated.Value(0)).current;
+  const modalTranslateY = useSharedValue(0);
+  const currentModalPosition = useSharedValue(0);
+  const gestureStartPosition = useSharedValue(0);
+  const whiteFlashAnim = useSharedValue(0);
   const lastHandledUrl = useRef<string | undefined>(undefined);
+  const [isNetworkSelectorVisible, setIsNetworkSelectorVisible] = useState<boolean>(false);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId);
   const currentUrl = activeTab?.url || initialUrl;
+
+  const modalAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: modalTranslateY.value }],
+  }));
+
+  const whiteFlashAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: whiteFlashAnim.value,
+  }));
+
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      gestureStartPosition.value = modalTranslateY.value;
+    })
+    .onUpdate((event) => {
+      const { translationY } = event;
+      const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
+
+      const newPosition = gestureStartPosition.value + translationY;
+
+      let constrainedPosition = newPosition;
+      if (newPosition < 0) {
+        constrainedPosition = 0;
+      } else if (newPosition > maxTranslate) {
+        constrainedPosition = maxTranslate;
+      }
+
+      modalTranslateY.value = constrainedPosition;
+    })
+    .onEnd((event) => {
+      const { translationY, velocityY } = event;
+      const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
+
+      const shouldSnapToMin = translationY > 100 || velocityY > 500;
+
+      if (shouldSnapToMin) {
+        currentModalPosition.value = maxTranslate;
+        modalTranslateY.value = withTiming(maxTranslate, { duration: 300 });
+      } else {
+        currentModalPosition.value = 0;
+        modalTranslateY.value = withTiming(0, { duration: 300 });
+      }
+    })
+    .activeOffsetY([-10, 10])
+    .failOffsetX([-50, 50]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -166,8 +212,8 @@ const DAppBrowser: React.FC = () => {
     (async () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const [{ localUri }] = await Asset.loadAsync(require('assets/js/inpage-bridge.jstxt'));
-        const file = new File(localUri || '');
+        const [asset] = await Asset.loadAsync(require('../assets/js/inpage-bridge.jstxt'));
+        const file = new File(asset.localUri || '');
         const r = await file.text();
 
         const scrollDetectionScript = `
@@ -177,7 +223,7 @@ const DAppBrowser: React.FC = () => {
           function checkScrollable() {
             const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
             const clientHeight = document.documentElement.clientHeight || window.innerHeight;
-            return scrollHeight > clientHeight + 100; // 100px buffer
+            return scrollHeight > clientHeight + 100;
           }
           
           function onScroll() {
@@ -256,39 +302,28 @@ const DAppBrowser: React.FC = () => {
     return null;
   };
 
-  const captureTabScreenshot = useCallback(
-    async (tabId: string): Promise<string | null> => {
-      if (tabId !== activeTabId) {
-        return null;
-      }
+  const captureTabScreenshot = useCallback(async (tabId: string): Promise<string | null> => {
+    const containerRef = tabContainerRefs.current[tabId];
+    if (!containerRef?.current) {
+      return null;
+    }
 
-      if (isLoading) {
-        return null;
-      }
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
-      const containerRef = tabContainerRefs.current[tabId];
-      if (!containerRef?.current) {
-        return null;
+    try {
+      const uri = await captureRef(containerRef.current, {
+        format: 'png',
+        quality: 0.6,
+        result: 'tmpfile',
+      });
+      return uri;
+    } catch (error: any) {
+      if (error?.code !== 'EUNSPECIFIED') {
+        console.warn('Failed to capture screenshot for tab:', tabId, error?.message || error);
       }
-
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      try {
-        const uri = await captureRef(containerRef.current, {
-          format: 'png',
-          quality: 0.6, // Lower quality for smaller file size
-          result: 'tmpfile',
-        });
-        return uri;
-      } catch (error: any) {
-        if (error?.code !== 'EUNSPECIFIED') {
-          console.warn('Failed to capture screenshot for tab:', tabId, error?.message || error);
-        }
-        return null;
-      }
-    },
-    [activeTabId, isLoading]
-  );
+      return null;
+    }
+  }, []);
 
   const unloadInactiveTabs = useCallback(() => {
     setTabs((prevTabs) => {
@@ -415,69 +450,48 @@ const DAppBrowser: React.FC = () => {
   }, [availableNetworks, network]);
 
   const showNetworkSwitcherModal = () => {
-    setShowNetworkSwitcher(true);
-    Animated.parallel([
-      Animated.timing(networkSwitcherOpacity, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.spring(networkSwitcherTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 200,
-      }),
-    ]).start();
+    const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
+    currentModalPosition.value = maxTranslate;
+    setIsNetworkSelectorVisible(true);
+    modalTranslateY.value = withTiming(maxTranslate, { duration: 300 });
   };
 
   const hideNetworkSwitcherModal = () => {
-    Animated.parallel([
-      Animated.timing(networkSwitcherOpacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(networkSwitcherTranslateY, {
-        toValue: SCREEN_HEIGHT,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setShowNetworkSwitcher(false);
-    });
+    currentModalPosition.value = 0;
+    setIsNetworkSelectorVisible(false);
+    modalTranslateY.value = withTiming(0, { duration: 300 });
   };
 
   const handleNetworkSwitch = (index: number) => {
     if (index >= 0 && index < availableNetworks.length) {
       const selectedNetwork = availableNetworks[index];
 
-      Animated.sequence([
-        Animated.timing(whiteFlashAnim, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(whiteFlashAnim, {
-          toValue: 0,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      const flashDuration = 150;
 
-      setNetwork(selectedNetwork as any);
-      hideNetworkSwitcherModal();
+      whiteFlashAnim.value = withTiming(1, { duration: flashDuration }, (finished) => {
+        'worklet';
+        if (finished) {
+          runOnJS(setNetwork)(selectedNetwork);
 
-      setTimeout(() => {
-        const homeUrl = `https://layerztec.github.io/website/explore/?network=${selectedNetwork}`;
-        updateActiveTab({
-          url: homeUrl,
-          title: 'site-url.com',
-          history: [{ url: homeUrl, title: 'site-url.com' }],
-          historyIndex: 0,
-        });
-        setAddressInput(homeUrl);
-      }, 200);
+          whiteFlashAnim.value = withTiming(0, { duration: flashDuration }, (finished2) => {
+            'worklet';
+            if (finished2) {
+              currentModalPosition.value = 0;
+              modalTranslateY.value = withTiming(0, { duration: 400 });
+
+              const homeUrl = `https://layerztec.github.io/website/explore/?network=${selectedNetwork}`;
+              runOnJS(setIsNetworkSelectorVisible)(false);
+              runOnJS(updateActiveTab)({
+                url: homeUrl,
+                title: 'site-url.com',
+                history: [{ url: homeUrl, title: 'site-url.com' }],
+                historyIndex: 0,
+              });
+              runOnJS(setAddressInput)(homeUrl);
+            }
+          });
+        }
+      });
     }
   };
 
@@ -552,7 +566,12 @@ const DAppBrowser: React.FC = () => {
     setTimeout(unloadInactiveTabs, 500);
   };
 
-  const showTabsOverviewAnimated = () => {
+  const showTabsOverviewAnimated = async () => {
+    const screenshot = await captureTabScreenshot(activeTabId);
+    if (screenshot) {
+      setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot, timestamp: Date.now() } : tab)));
+    }
+
     setShowTabsOverview(true);
     isAddressBarVisible.current = false;
     Animated.parallel([
@@ -629,13 +648,9 @@ const DAppBrowser: React.FC = () => {
     setIsLoading(false);
   };
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
+  const onRefresh = () => {
     webviewRef.current?.reload();
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
-  }, []);
+  };
 
   const goBack = () => {
     webviewRef.current?.goBack();
@@ -702,7 +717,7 @@ const DAppBrowser: React.FC = () => {
       }
 
       const scrollDistance = scrollY - scrollStartY.current;
-      const maxScrollDistance = 80; // Distance to fully hide/show
+      const maxScrollDistance = 80;
 
       const progress = Math.max(0, Math.min(1, scrollDistance / maxScrollDistance));
 
@@ -747,7 +762,6 @@ const DAppBrowser: React.FC = () => {
   const handleLoadProgress = useCallback(
     ({ nativeEvent }: { nativeEvent: { progress: number } }) => {
       const progress = nativeEvent.progress;
-      setLoadingProgress(progress);
       setIsLoading(progress < 1);
 
       if (progress < 1) {
@@ -765,7 +779,6 @@ const DAppBrowser: React.FC = () => {
             duration: 300,
             useNativeDriver: true,
           }).start();
-          setRefreshing(false);
         }
       });
     },
@@ -803,25 +816,6 @@ const DAppBrowser: React.FC = () => {
     [activeTabId]
   );
 
-  const navigateToAddress = () => {
-    let url = addressInput.trim();
-
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://' + url;
-    }
-
-    try {
-      new URL(url);
-      webviewRef.current?.injectJavaScript(`window.location.href = '${url}';`);
-    } catch {
-      Alert.alert('Invalid URL', 'Please enter a valid URL');
-    }
-  };
-
-  const handleAddressSubmit = () => {
-    navigateToAddress();
-  };
-
   if (error) {
     return (
       <GradientScreen variant={network}>
@@ -843,384 +837,372 @@ const DAppBrowser: React.FC = () => {
   }
 
   return (
-    <GradientScreen variant={network}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <Animated.View
-        style={{
-          opacity: tabsOpacity.interpolate({
-            inputRange: [0, 1],
-            outputRange: [1, 0],
-          }),
-          transform: [
-            {
-              translateY: Animated.add(
-                scrollOffset.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, -120],
-                }),
-                addressBarTranslateY
-              ),
-            },
-          ],
-        }}
-        pointerEvents={showTabsOverview ? 'none' : 'auto'}
-      >
-        <View style={styles.addressContainer}>
-          <TouchableOpacity style={styles.networkButton} onPress={showNetworkSwitcherModal}>
-            <ExpoImage source={getNetworkImageAsset(network)} style={styles.networkIcon} contentFit="contain" />
-          </TouchableOpacity>
-          <View style={styles.addressBarWrapper}>
-            <View style={styles.addressBar}>
-              <TextInput
-                style={styles.addressText}
-                value={addressInput}
-                onChangeText={setAddressInput}
-                onSubmitEditing={() => {
-                  let url = addressInput.trim();
-                  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                    url = 'https://' + url;
-                  }
-                  updateActiveTab({ url, title: getTabTitle(url) });
-                }}
-                returnKeyType="go"
-                keyboardType="url"
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder="Enter URL"
-                placeholderTextColor="rgba(255, 255, 255, 0.5)"
-                selectTextOnFocus={true}
-              />
-              {isLoading ? (
-                <TouchableOpacity style={styles.stopButton} onPress={stopLoading}>
-                  <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity style={styles.stopButton} onPress={onRefresh}>
-                  <Ionicons name="reload" size={18} color="rgba(255, 255, 255, 0.8)" />
-                </TouchableOpacity>
-              )}
-            </View>
-            <Animated.View
-              style={[
-                styles.progressBar,
-                {
-                  opacity: progressOpacity,
-                  transform: [
-                    {
-                      scaleX: progressWidth,
-                    },
-                  ],
-                },
-              ]}
-            />
-          </View>
-          <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
-            <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.9)" />
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
+      <View style={styles.blackBackground}>
+        <DashboardTiles cards={networkCards} onCardPress={handleNetworkSwitch} showLogo={true} />
+      </View>
 
-      <View style={styles.contentContainer}>
-        <Animated.View
-          style={[
-            styles.webviewContainer,
-            {
-              opacity: webviewOpacity,
-              flex: 1,
-              marginTop: scrollOffset.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, -64],
-              }),
-            },
-          ]}
-          {...panResponder.panHandlers}
-        >
-          <Animated.View
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                opacity: swipeOverlayOpacity,
-                backgroundColor: 'black',
-                pointerEvents: 'none',
-              },
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.swipeIndicator,
-              {
-                opacity: swipeProgress.interpolate({
-                  inputRange: [0, 0.3, 1],
-                  outputRange: [0, 1, 0],
+      <AnimatedReanimated.View style={[styles.modalContainer, { height: MODAL_MAX_HEIGHT }, modalAnimatedStyle]}>
+        <GradientScreen variant={network}>
+          <GestureDetector gesture={panGesture}>
+            <Animated.View
+              style={{
+                opacity: tabsOpacity.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1, 0],
                 }),
                 transform: [
                   {
-                    translateX: swipeProgress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-50, 100],
-                    }),
+                    translateY: Animated.add(
+                      scrollOffset.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -120],
+                      }),
+                      addressBarTranslateY
+                    ),
                   },
                 ],
-              },
-            ]}
-          >
-            <Ionicons name="arrow-back" size={32} color="rgba(255, 255, 255, 0.9)" />
-          </Animated.View>
-          <Animated.View
-            style={{
-              flex: 1,
-              transform: [
-                {
-                  translateX: swipeProgress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 100],
-                  }),
-                },
-              ],
-            }}
-          >
-            {tabs.map((tab) => {
-              const isActive = tab.id === activeTabId;
-              const shouldRender = isActive || tab.isLoaded;
-
-              return (
-                <View
-                  key={`tab-container-${tab.id}`}
-                  ref={(ref) => {
-                    if (ref && isActive) {
-                      tabContainerRefs.current[tab.id] = { current: ref };
-                    }
-                  }}
-                  collapsable={false}
-                  style={[
-                    styles.tabContainer,
-                    {
-                      display: isActive ? 'flex' : 'none',
-                    },
-                  ]}
-                >
-                  {/* Show screenshot while loading or if tab is unloaded */}
-                  {tab.screenshot && (!shouldRender || isLoading) && <Image source={{ uri: tab.screenshot }} style={StyleSheet.absoluteFill} resizeMode="cover" />}
-
-                  {/* Only render WebView if tab should be loaded */}
-                  {shouldRender && (
-                    <ScrollView
-                      contentContainerStyle={{ flex: 1 }}
-                      refreshControl={
-                        isActive ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="rgba(255, 255, 255, 0.8)" colors={['rgba(255, 255, 255, 0.8)']} /> : undefined
-                      }
-                    >
-                      <WebView
-                        key={`webview-${tab.id}-${tab.url}`}
-                        ref={(ref) => {
-                          if (ref) {
-                            if (!tabWebViewRefs.current[tab.id]) {
-                              tabWebViewRefs.current[tab.id] = { current: ref };
-                            }
-                            if (isActive) {
-                              webviewRef.current = ref;
-                              browserBridgeRef.current = new BrowserBridge(ref);
-                            }
-                          }
-                        }}
-                        originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
-                        allowsInlineMediaPlayback={true}
-                        source={{ uri: tab.url }}
-                        onMessage={isActive ? handleMessage : undefined}
-                        onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
-                        onLoadProgress={isActive ? handleLoadProgress : undefined}
-                        injectedJavaScriptBeforeContentLoaded={js}
-                        webviewDebuggingEnabled={true}
-                        style={{ opacity: tab.screenshot && isLoading ? 0 : 1 }}
-                        incognito={false}
-                        cacheEnabled={true}
-                        domStorageEnabled={true}
-                        javaScriptEnabled={true}
-                        sharedCookiesEnabled={false}
-                      />
-                    </ScrollView>
-                  )}
+              }}
+              pointerEvents={showTabsOverview ? 'none' : 'auto'}
+            >
+              <View style={[styles.addressContainer, isNetworkSelectorVisible && styles.addressContainerWithSelector]}>
+                {isNetworkSelectorVisible && <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={hideNetworkSwitcherModal} />}
+                <TouchableOpacity style={styles.networkButton} onPress={showNetworkSwitcherModal} disabled={isNetworkSelectorVisible}>
+                  <ExpoImage source={getNetworkImageAsset(network)} style={styles.networkIcon} contentFit="contain" />
+                </TouchableOpacity>
+                <View style={styles.addressBarWrapper}>
+                  <View style={styles.addressBar}>
+                    <TextInput
+                      style={styles.addressText}
+                      value={addressInput}
+                      onChangeText={setAddressInput}
+                      onSubmitEditing={() => {
+                        let url = addressInput.trim();
+                        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                          url = 'https://' + url;
+                        }
+                        updateActiveTab({ url, title: getTabTitle(url) });
+                      }}
+                      returnKeyType="go"
+                      keyboardType="url"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      placeholder="Enter URL"
+                      placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                      selectTextOnFocus={true}
+                    />
+                    {isLoading ? (
+                      <TouchableOpacity style={styles.stopButton} onPress={stopLoading}>
+                        <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity style={styles.stopButton} onPress={onRefresh}>
+                        <Ionicons name="reload" size={18} color="rgba(255, 255, 255, 0.8)" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <Animated.View
+                    style={[
+                      styles.progressBar,
+                      {
+                        opacity: progressOpacity,
+                        transform: [
+                          {
+                            scaleX: progressWidth,
+                          },
+                        ],
+                      },
+                    ]}
+                  />
                 </View>
-              );
-            })}
-          </Animated.View>
-        </Animated.View>
+                <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
+                  <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.9)" />
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </GestureDetector>
 
-        <Animated.View
-          style={[
-            styles.tabsOverviewContainer,
-            {
-              opacity: tabsOpacity,
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-            },
-          ]}
-          pointerEvents={showTabsOverview ? 'auto' : 'none'}
-        >
-          <View style={styles.tabsOverviewBackground}>
-            <View style={styles.tabsOverviewHeader}>
-              <ThemedText style={styles.tabsOverviewTitle}>Tabs</ThemedText>
-              <TouchableOpacity onPress={hideTabsOverview} style={styles.tabsOverviewCloseButton}>
-                <Ionicons name="close" size={24} color="white" />
+          <View style={styles.contentContainer}>
+            {isNetworkSelectorVisible && <TouchableOpacity style={styles.networkSelectorDismissOverlay} activeOpacity={1} onPress={hideNetworkSwitcherModal} />}
+
+            <Animated.View
+              style={[
+                styles.webviewContainer,
+                {
+                  opacity: webviewOpacity,
+                  flex: 1,
+                },
+              ]}
+              {...panResponder.panHandlers}
+            >
+              <Animated.View
+                style={[
+                  StyleSheet.absoluteFill,
+                  {
+                    opacity: swipeOverlayOpacity,
+                    backgroundColor: 'black',
+                    pointerEvents: 'none',
+                  },
+                ]}
+              />
+              <Animated.View
+                style={[
+                  styles.swipeIndicator,
+                  {
+                    opacity: swipeProgress.interpolate({
+                      inputRange: [0, 0.3, 1],
+                      outputRange: [0, 1, 0],
+                    }),
+                    transform: [
+                      {
+                        translateX: swipeProgress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [-50, 100],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <Ionicons name="arrow-back" size={32} color="rgba(255, 255, 255, 0.9)" />
+              </Animated.View>
+              <Animated.View
+                style={{
+                  flex: 1,
+                  transform: [
+                    {
+                      translateX: swipeProgress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 100],
+                      }),
+                    },
+                  ],
+                }}
+              >
+                {tabs.map((tab) => {
+                  const isActive = tab.id === activeTabId;
+                  const shouldRender = isActive || tab.isLoaded;
+
+                  return (
+                    <View
+                      key={`tab-container-${tab.id}`}
+                      ref={(ref) => {
+                        if (ref && isActive) {
+                          tabContainerRefs.current[tab.id] = { current: ref };
+                        }
+                      }}
+                      collapsable={false}
+                      style={[
+                        styles.tabContainer,
+                        {
+                          display: isActive ? 'flex' : 'none',
+                        },
+                      ]}
+                    >
+                      {tab.screenshot && (!shouldRender || isLoading) && <Image source={{ uri: tab.screenshot }} style={StyleSheet.absoluteFill} resizeMode="cover" />}
+
+                      {shouldRender && (
+                        <WebView
+                          key={`webview-${tab.id}-${tab.url}`}
+                          ref={(ref) => {
+                            if (ref) {
+                              if (!tabWebViewRefs.current[tab.id]) {
+                                tabWebViewRefs.current[tab.id] = { current: ref };
+                              }
+                              if (isActive) {
+                                webviewRef.current = ref;
+                                browserBridgeRef.current = new BrowserBridge(ref);
+                              }
+                            }
+                          }}
+                          originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
+                          allowsInlineMediaPlayback={true}
+                          source={{ uri: tab.url }}
+                          onMessage={isActive ? handleMessage : undefined}
+                          onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
+                          onLoadProgress={isActive ? handleLoadProgress : undefined}
+                          injectedJavaScriptBeforeContentLoaded={js}
+                          style={{ opacity: tab.screenshot && isLoading ? 0 : 1 }}
+                          incognito={false}
+                        />
+                      )}
+                    </View>
+                  );
+                })}
+              </Animated.View>
+            </Animated.View>
+
+            <Animated.View
+              style={[
+                styles.tabsOverviewContainer,
+                {
+                  opacity: tabsOpacity,
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                },
+              ]}
+              pointerEvents={showTabsOverview ? 'auto' : 'none'}
+            >
+              <View style={styles.tabsOverviewBackground}>
+                <View style={styles.tabsOverviewHeader}>
+                  <ThemedText style={styles.tabsOverviewTitle}>Tabs</ThemedText>
+                  <TouchableOpacity onPress={hideTabsOverview} style={styles.tabsOverviewCloseButton}>
+                    <Ionicons name="close" size={24} color="white" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView style={styles.tabsOverviewContent} contentContainerStyle={styles.tabsGridContainer}>
+                  <View style={styles.tabsGrid}>
+                    {tabs.map((tab, index) => (
+                      <TouchableOpacity key={`tab-card-${tab.id}`} style={[styles.tabCard, activeTabId === tab.id && styles.activeTabCard]} onPress={() => switchTab(tab.id)}>
+                        <View style={styles.tabCardHeader}>
+                          <View style={styles.tabCardTitleContainer}>
+                            <ThemedText style={styles.tabCardNumber}>#{index + 1}</ThemedText>
+                            <ThemedText style={styles.tabCardTitle} numberOfLines={1}>
+                              {tab.title}
+                            </ThemedText>
+                          </View>
+                          <TouchableOpacity style={styles.tabCardCloseButton} onPress={() => closeTab(tab.id)}>
+                            <Ionicons name="close" size={16} color="rgba(255, 255, 255, 0.8)" />
+                          </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.tabCardPreview}>
+                          {tab.screenshot ? (
+                            <Image source={{ uri: tab.screenshot }} style={styles.tabCardScreenshot} resizeMode="cover" />
+                          ) : (
+                            <View style={styles.tabCardContent}>
+                              <ThemedText style={styles.tabCardUrl} numberOfLines={2}>
+                                {tab.url}
+                              </ThemedText>
+                            </View>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            </Animated.View>
+          </View>
+
+          <View style={styles.bottomNavigation}>
+            <View style={styles.navigationLeft}>
+              <View style={styles.navButtonContainer}>
+                {activeTab?.canGoBack && getBackHistory().length > 0 ? (
+                  <Link href="/DAppBrowser" asChild>
+                    <TouchableOpacity style={styles.navButton} onPress={goBack}>
+                      <Link.Trigger>
+                        <View>
+                          <Ionicons name="arrow-back" size={24} color="white" />
+                        </View>
+                      </Link.Trigger>
+                      <Link.Menu>
+                        {getBackHistory().map((item, index) => {
+                          const historyIndex = (activeTab?.historyIndex || 0) - index - 1;
+                          return <Link.MenuAction key={`back-${historyIndex}`} title={item.title} icon="arrow.left" onPress={() => goToHistoryItem(historyIndex)} />;
+                        })}
+                      </Link.Menu>
+                    </TouchableOpacity>
+                  </Link>
+                ) : (
+                  <TouchableOpacity style={styles.navButton} onPress={goBack} disabled={!activeTab?.canGoBack}>
+                    <Ionicons name="arrow-back" size={24} color={activeTab?.canGoBack ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <View style={styles.navButtonContainer}>
+                {activeTab?.canGoForward && getForwardHistory().length > 0 ? (
+                  <Link href="/DAppBrowser" asChild>
+                    <TouchableOpacity style={styles.navButton} onPress={goForward}>
+                      <Link.Trigger>
+                        <View>
+                          <Ionicons name="arrow-forward" size={24} color="white" />
+                        </View>
+                      </Link.Trigger>
+                      <Link.Menu>
+                        {getForwardHistory().map((item, index) => {
+                          const historyIndex = (activeTab?.historyIndex || 0) + index + 1;
+                          return <Link.MenuAction key={`forward-${historyIndex}`} title={item.title} icon="arrow.right" onPress={() => goToHistoryItem(historyIndex)} />;
+                        })}
+                      </Link.Menu>
+                    </TouchableOpacity>
+                  </Link>
+                ) : (
+                  <TouchableOpacity style={styles.navButton} onPress={goForward} disabled={!activeTab?.canGoForward}>
+                    <Ionicons name="arrow-forward" size={24} color={activeTab?.canGoForward ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.navigationCenter}>
+              <TouchableOpacity style={styles.addTabButton} onPress={createNewTab}>
+                <Ionicons name="add" size={24} color="white" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.tabsOverviewContent} contentContainerStyle={styles.tabsGridContainer}>
-              <View style={styles.tabsGrid}>
-                {tabs.map((tab, index) => (
-                  <TouchableOpacity key={`tab-card-${tab.id}`} style={[styles.tabCard, activeTabId === tab.id && styles.activeTabCard]} onPress={() => switchTab(tab.id)}>
-                    <View style={styles.tabCardHeader}>
-                      <View style={styles.tabCardTitleContainer}>
-                        <ThemedText style={styles.tabCardNumber}>#{index + 1}</ThemedText>
-                        <ThemedText style={styles.tabCardTitle} numberOfLines={1}>
-                          {tab.title}
-                        </ThemedText>
-                      </View>
-                      <TouchableOpacity style={styles.tabCardCloseButton} onPress={() => closeTab(tab.id)}>
-                        <Ionicons name="close" size={16} color="rgba(255, 255, 255, 0.8)" />
-                      </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.tabCardPreview}>
-                      {tab.screenshot ? (
-                        <Image source={{ uri: tab.screenshot }} style={styles.tabCardScreenshot} resizeMode="cover" />
-                      ) : (
-                        <View style={styles.tabCardContent}>
-                          <ThemedText style={styles.tabCardUrl} numberOfLines={2}>
-                            {tab.url}
-                          </ThemedText>
-                        </View>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-        </Animated.View>
-
-        {showNetworkSwitcher && (
-          <Animated.View
-            style={[
-              styles.networkSwitcherOverlay,
-              {
-                opacity: networkSwitcherOpacity,
-              },
-            ]}
-            pointerEvents={showNetworkSwitcher ? 'auto' : 'none'}
-          >
-            <TouchableOpacity style={styles.networkSwitcherBackdrop} onPress={hideNetworkSwitcherModal} activeOpacity={1} />
-            <Animated.View
-              style={[
-                styles.networkSwitcherModal,
-                {
-                  transform: [{ translateY: networkSwitcherTranslateY }],
-                },
-              ]}
-            >
-              <View style={styles.networkSwitcherHeader}>
-                <ThemedText style={styles.networkSwitcherTitle}>Select Network</ThemedText>
-                <TouchableOpacity onPress={hideNetworkSwitcherModal} style={styles.networkSwitcherCloseButton}>
-                  <Ionicons name="close" size={24} color="white" />
+            <View style={styles.navigationRight}>
+              <View style={styles.navButtonContainer}>
+                <TouchableOpacity style={styles.navButton} onPress={showTabsOverviewAnimated}>
+                  <View style={styles.tabsOverviewIcon}>
+                    <ThemedText style={styles.tabsCount}>{tabs.length}</ThemedText>
+                  </View>
                 </TouchableOpacity>
               </View>
-              <View style={styles.networkSwitcherContent}>
-                <DashboardTiles cards={networkCards} onCardPress={handleNetworkSwitch} showLogo={false} />
-              </View>
-            </Animated.View>
-          </Animated.View>
-        )}
-
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              backgroundColor: 'white',
-              opacity: whiteFlashAnim,
-              pointerEvents: 'none',
-            },
-          ]}
-        />
-      </View>
-
-      <View style={styles.bottomNavigation}>
-        <View style={styles.navigationLeft}>
-          <View style={styles.navButtonContainer}>
-            {activeTab?.canGoBack && getBackHistory().length > 0 ? (
-              <Link href="/DAppBrowser" asChild>
-                <TouchableOpacity style={styles.navButton} onPress={goBack}>
-                  <Link.Trigger>
-                    <View>
-                      <Ionicons name="arrow-back" size={24} color="white" />
-                    </View>
-                  </Link.Trigger>
-                  <Link.Menu>
-                    {getBackHistory().map((item, index) => {
-                      const historyIndex = (activeTab?.historyIndex || 0) - index - 1;
-                      return <Link.MenuAction key={`back-${historyIndex}`} title={item.title} icon="arrow.left" onPress={() => goToHistoryItem(historyIndex)} />;
-                    })}
-                  </Link.Menu>
-                </TouchableOpacity>
-              </Link>
-            ) : (
-              <TouchableOpacity style={styles.navButton} onPress={goBack} disabled={!activeTab?.canGoBack}>
-                <Ionicons name="arrow-back" size={24} color={activeTab?.canGoBack ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
-              </TouchableOpacity>
-            )}
+            </View>
           </View>
 
-          <View style={styles.navButtonContainer}>
-            {activeTab?.canGoForward && getForwardHistory().length > 0 ? (
-              <Link href="/DAppBrowser" asChild>
-                <TouchableOpacity style={styles.navButton} onPress={goForward}>
-                  <Link.Trigger>
-                    <View>
-                      <Ionicons name="arrow-forward" size={24} color="white" />
-                    </View>
-                  </Link.Trigger>
-                  <Link.Menu>
-                    {getForwardHistory().map((item, index) => {
-                      const historyIndex = (activeTab?.historyIndex || 0) + index + 1;
-                      return <Link.MenuAction key={`forward-${historyIndex}`} title={item.title} icon="arrow.right" onPress={() => goToHistoryItem(historyIndex)} />;
-                    })}
-                  </Link.Menu>
-                </TouchableOpacity>
-              </Link>
-            ) : (
-              <TouchableOpacity style={styles.navButton} onPress={goForward} disabled={!activeTab?.canGoForward}>
-                <Ionicons name="arrow-forward" size={24} color={activeTab?.canGoForward ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.navigationCenter}>
-          <TouchableOpacity style={styles.addTabButton} onPress={createNewTab}>
-            <Ionicons name="add" size={24} color="white" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.navigationRight}>
-          <View style={styles.navButtonContainer}>
-            <TouchableOpacity style={styles.navButton} onPress={showTabsOverviewAnimated}>
-              <View style={styles.tabsOverviewIcon}>
-                <ThemedText style={styles.tabsCount}>{tabs.length}</ThemedText>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </GradientScreen>
+          <AnimatedReanimated.View style={[styles.whiteFlashOverlayAnimated, whiteFlashAnimatedStyle]} />
+        </GradientScreen>
+      </AnimatedReanimated.View>
+    </GestureHandlerRootView>
   );
 };
 
 export default DAppBrowser;
 
 const styles = StyleSheet.create({
+  blackBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'black',
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  modalContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  whiteFlashOverlayAnimated: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'white',
+    zIndex: 9998,
+    pointerEvents: 'none',
+  },
+  networkSelectorDismissOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+    backgroundColor: 'transparent',
+  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1249,6 +1231,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
+  },
+  addressContainerWithSelector: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 12,
+    marginHorizontal: 8,
   },
   addressBarWrapper: {
     flex: 1,
@@ -1358,7 +1345,7 @@ const styles = StyleSheet.create({
   navigationLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 112, // Fixed width: 2 buttons × 48px + 16px spacing
+    width: 112,
   },
   navigationCenter: {
     flex: 1,
@@ -1366,7 +1353,7 @@ const styles = StyleSheet.create({
   },
   navigationRight: {
     alignItems: 'flex-end',
-    width: 56, // Fixed width: 1 button × 48px + 8px padding
+    width: 56,
   },
   navButtonContainer: {
     width: 48,
