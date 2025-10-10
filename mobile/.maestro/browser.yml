@@ -11,10 +11,8 @@ appId: com.layerzwallet.mobile
 - tapOn:
     id: 'ExplorerButton'
 - waitForAnimationToEnd
-- longPressOn:
-    id: 'DappBrowserAddressBar'
+- tapOn: 'https://layerztec.github.io/website/explore/?network=rootstock'
 - eraseText
-#
 - inputText: 'https://metamask.github.io/test-dapp/'
 - pressKey: Enter
 - waitForAnimationToEnd

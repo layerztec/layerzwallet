@@ -1,19 +1,26 @@
 import { Asset } from 'expo-asset';
 import { File } from 'expo-file-system';
 import * as Linking from 'expo-linking';
-import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View, Alert, TextInput, ScrollView, Animated, PanResponder, Image, AppState, AppStateStatus } from 'react-native';
+import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
+import { StyleSheet, TouchableOpacity, View, Alert, TextInput, ScrollView, Animated, PanResponder, Image, AppState, AppStateStatus, Dimensions, RefreshControl } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { captureRef } from 'react-native-view-shot';
+import { Image as ExpoImage } from 'expo-image';
 
 import { ThemedText } from '@/components/ThemedText';
 import GradientScreen from '@/components/GradientScreen';
+import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
+import { getNetworkImageAsset } from '@/utils/networkAssets';
+import { getNetworkGradient } from '@shared/constants/Colors';
+import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
+import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 
 export type DappBrowserProps = {
   url?: string;
@@ -36,9 +43,10 @@ interface BrowserTab {
 const TABS_STORAGE_KEY = '@browser_tabs';
 const ACTIVE_TAB_STORAGE_KEY = '@browser_active_tab';
 const MAX_LOADED_TABS = 3; // Maximum number of tabs to keep loaded in memory
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const DAppBrowser: React.FC = () => {
-  const { network } = useContext(NetworkContext);
+  const { network, setNetwork } = useContext(NetworkContext);
   const router = useRouter();
   const webviewRef = useRef<WebView>(null);
   const tabWebViewRefs = useRef<{ [key: string]: React.RefObject<WebView | null> }>({});
@@ -54,13 +62,14 @@ const DAppBrowser: React.FC = () => {
   const [isRestoringTabs, setIsRestoringTabs] = useState<boolean>(true);
   const [addressInput, setAddressInput] = useState<string>(initialUrl);
   const [showTabsOverview, setShowTabsOverview] = useState<boolean>(false);
+  const [showNetworkSwitcher, setShowNetworkSwitcher] = useState<boolean>(false);
   const [loadingProgress, setLoadingProgress] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const webviewOpacity = useRef(new Animated.Value(1)).current;
   const tabsOpacity = useRef(new Animated.Value(0)).current;
   const addressBarTranslateY = useRef(new Animated.Value(0)).current;
-  const webviewTopMargin = useRef(new Animated.Value(0)).current;
   const progressWidth = useRef(new Animated.Value(0)).current;
   const progressOpacity = useRef(new Animated.Value(1)).current;
 
@@ -73,6 +82,11 @@ const DAppBrowser: React.FC = () => {
   const swipeProgress = useRef(new Animated.Value(0)).current;
   const swipeOverlayOpacity = useRef(new Animated.Value(0)).current;
 
+  const networkSwitcherOpacity = useRef(new Animated.Value(0)).current;
+  const networkSwitcherTranslateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const whiteFlashAnim = useRef(new Animated.Value(0)).current;
+  const lastHandledUrl = useRef<string | undefined>(undefined);
+
   const activeTab = tabs.find((tab) => tab.id === activeTabId);
   const currentUrl = activeTab?.url || initialUrl;
 
@@ -80,8 +94,6 @@ const DAppBrowser: React.FC = () => {
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Only capture gesture if it's a horizontal swipe from the left edge
-        // and the webview can go back
         const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
         const isFromLeftEdge = gestureState.moveX < 50;
         const isSwipingRight = gestureState.dx > 10;
@@ -92,7 +104,6 @@ const DAppBrowser: React.FC = () => {
         swipeOverlayOpacity.setValue(0.3);
       },
       onPanResponderMove: (_, gestureState) => {
-        // Update swipe progress (0 to 1)
         const progress = Math.min(Math.max(gestureState.dx / 200, 0), 1);
         swipeProgress.setValue(progress);
         swipeOverlayOpacity.setValue(0.3 * (1 - progress));
@@ -101,7 +112,6 @@ const DAppBrowser: React.FC = () => {
         const shouldGoBack = gestureState.dx > 100 && gestureState.vx > 0.3;
 
         if (shouldGoBack && activeTab?.canGoBack) {
-          // Animate to completion and go back
           Animated.parallel([
             Animated.timing(swipeProgress, {
               toValue: 1,
@@ -119,7 +129,6 @@ const DAppBrowser: React.FC = () => {
             swipeOverlayOpacity.setValue(0);
           });
         } else {
-          // Animate back to start
           Animated.parallel([
             Animated.spring(swipeProgress, {
               toValue: 0,
@@ -136,7 +145,6 @@ const DAppBrowser: React.FC = () => {
         }
       },
       onPanResponderTerminate: () => {
-        // Reset on termination
         Animated.parallel([
           Animated.spring(swipeProgress, {
             toValue: 0,
@@ -187,7 +195,6 @@ const DAppBrowser: React.FC = () => {
             }
           }
           
-          // Check on load and resize
           function notifyScrollable() {
             window.ReactNativeWebView.postMessage(JSON.stringify({
               type: 'scrollable',
@@ -199,7 +206,6 @@ const DAppBrowser: React.FC = () => {
           window.addEventListener('load', notifyScrollable);
           window.addEventListener('resize', notifyScrollable);
           
-          // Initial check
           setTimeout(notifyScrollable, 100);
         `;
 
@@ -222,7 +228,6 @@ const DAppBrowser: React.FC = () => {
     };
   }, []);
 
-  // Storage functions
   const saveTabs = async (tabsToSave: BrowserTab[], activeId: string) => {
     try {
       await AsyncStorage.setItem(TABS_STORAGE_KEY, JSON.stringify(tabsToSave));
@@ -239,7 +244,6 @@ const DAppBrowser: React.FC = () => {
 
       if (tabsJson && activeId) {
         const parsedTabs = JSON.parse(tabsJson);
-        // Mark all tabs as not loaded initially
         const tabs = parsedTabs.map((tab: BrowserTab) => ({
           ...tab,
           isLoaded: false,
@@ -252,30 +256,52 @@ const DAppBrowser: React.FC = () => {
     return null;
   };
 
-  const captureTabScreenshot = async (tabId: string) => {
-    const containerRef = tabContainerRefs.current[tabId];
-    if (!containerRef?.current) return null;
+  const captureTabScreenshot = useCallback(
+    async (tabId: string): Promise<string | null> => {
+      if (tabId !== activeTabId) {
+        return null;
+      }
 
-    try {
-      const uri = await captureRef(containerRef.current, {
-        format: 'png',
-        quality: 0.8,
-        result: 'tmpfile',
-      });
-      return uri;
-    } catch (error) {
-      console.error('Failed to capture screenshot:', error);
-      return null;
-    }
-  };
+      if (isLoading) {
+        return null;
+      }
 
-  const unloadInactiveTabs = () => {
+      const containerRef = tabContainerRefs.current[tabId];
+      if (!containerRef?.current) {
+        return null;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      try {
+        const uri = await captureRef(containerRef.current, {
+          format: 'png',
+          quality: 0.6, // Lower quality for smaller file size
+          result: 'tmpfile',
+        });
+        return uri;
+      } catch (error: any) {
+        if (error?.code !== 'EUNSPECIFIED') {
+          console.warn('Failed to capture screenshot for tab:', tabId, error?.message || error);
+        }
+        return null;
+      }
+    },
+    [activeTabId, isLoading]
+  );
+
+  const unloadInactiveTabs = useCallback(() => {
     setTabs((prevTabs) => {
-      // Sort tabs by timestamp (most recent first)
       const sortedTabs = [...prevTabs].sort((a, b) => b.timestamp - a.timestamp);
 
-      // Keep only the top MAX_LOADED_TABS loaded
       const tabsToUnload = sortedTabs.slice(MAX_LOADED_TABS);
+
+      tabsToUnload.forEach((tab) => {
+        if (tab.id !== activeTabId) {
+          delete tabWebViewRefs.current[tab.id];
+          delete tabContainerRefs.current[tab.id];
+        }
+      });
 
       return prevTabs.map((tab) => {
         if (tabsToUnload.find((t) => t.id === tab.id) && tab.id !== activeTabId) {
@@ -284,9 +310,8 @@ const DAppBrowser: React.FC = () => {
         return tab;
       });
     });
-  };
+  }, [activeTabId]);
 
-  // Restore tabs on mount
   useEffect(() => {
     const restoreTabs = async () => {
       const restored = await loadTabs();
@@ -299,7 +324,6 @@ const DAppBrowser: React.FC = () => {
           setAddressInput(activeTab.url);
         }
       } else {
-        // Create initial tab if no saved tabs
         const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
         const initialTab: BrowserTab = {
           id: Date.now().toString(),
@@ -323,18 +347,15 @@ const DAppBrowser: React.FC = () => {
     restoreTabs();
   }, [network]);
 
-  // Save tabs whenever they change
   useEffect(() => {
     if (!isRestoringTabs && tabs.length > 0 && activeTabId) {
       saveTabs(tabs, activeTabId);
     }
   }, [tabs, activeTabId, isRestoringTabs]);
 
-  // Handle app state changes (background/foreground)
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       if (nextAppState === 'background' || nextAppState === 'inactive') {
-        // Capture screenshot of active tab before backgrounding
         const screenshot = await captureTabScreenshot(activeTabId);
         if (screenshot) {
           setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot } : tab)));
@@ -344,7 +365,121 @@ const DAppBrowser: React.FC = () => {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
-  }, [activeTabId]);
+  }, [activeTabId, captureTabScreenshot]);
+
+  useEffect(() => {
+    if (params.url && !isRestoringTabs && tabs.length > 0 && lastHandledUrl.current !== params.url) {
+      lastHandledUrl.current = params.url;
+      const existingTab = tabs.find((tab) => tab.url === params.url);
+      if (!existingTab) {
+        const newTab: BrowserTab = {
+          id: Date.now().toString(),
+          url: params.url,
+          title: getTabTitle(params.url),
+          canGoBack: false,
+          canGoForward: false,
+          history: [{ url: params.url, title: getTabTitle(params.url) }],
+          historyIndex: 0,
+          timestamp: Date.now(),
+          isLoaded: true,
+        };
+        setTabs((prev) => [...prev, newTab]);
+        setActiveTabId(newTab.id);
+        setAddressInput(newTab.url);
+
+        setTimeout(unloadInactiveTabs, 100);
+      }
+    }
+  }, [params.url, isRestoringTabs, tabs, unloadInactiveTabs]);
+
+  const availableNetworks = useAvailableNetworks();
+
+  const networkCards: LayerCard[] = useMemo(() => {
+    return availableNetworks.map((networkItem) => {
+      const isTestnet = getIsTestnet(networkItem);
+      const gradientColors = getNetworkGradient(networkItem);
+      const networkIcon = getNetworkImageAsset(networkItem);
+
+      return {
+        networkId: networkItem,
+        name: capitalizeFirstLetter(networkItem),
+        ticker: getTickerByNetwork(networkItem),
+        balance: network === networkItem ? 'Selected' : 'Available',
+        usdValue: isTestnet ? 'Testnet' : 'Mainnet',
+        color: gradientColors[0],
+        icon: networkIcon,
+        tags: isTestnet ? ['Testnet'] : [],
+        tokenCount: 0,
+      };
+    });
+  }, [availableNetworks, network]);
+
+  const showNetworkSwitcherModal = () => {
+    setShowNetworkSwitcher(true);
+    Animated.parallel([
+      Animated.timing(networkSwitcherOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.spring(networkSwitcherTranslateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 200,
+      }),
+    ]).start();
+  };
+
+  const hideNetworkSwitcherModal = () => {
+    Animated.parallel([
+      Animated.timing(networkSwitcherOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(networkSwitcherTranslateY, {
+        toValue: SCREEN_HEIGHT,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowNetworkSwitcher(false);
+    });
+  };
+
+  const handleNetworkSwitch = (index: number) => {
+    if (index >= 0 && index < availableNetworks.length) {
+      const selectedNetwork = availableNetworks[index];
+
+      Animated.sequence([
+        Animated.timing(whiteFlashAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(whiteFlashAnim, {
+          toValue: 0,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      setNetwork(selectedNetwork as any);
+      hideNetworkSwitcherModal();
+
+      setTimeout(() => {
+        const homeUrl = `https://layerztec.github.io/website/explore/?network=${selectedNetwork}`;
+        updateActiveTab({
+          url: homeUrl,
+          title: 'site-url.com',
+          history: [{ url: homeUrl, title: 'site-url.com' }],
+          historyIndex: 0,
+        });
+        setAddressInput(homeUrl);
+      }, 200);
+    }
+  };
 
   const createNewTab = () => {
     const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
@@ -363,7 +498,6 @@ const DAppBrowser: React.FC = () => {
     setActiveTabId(newTab.id);
     setAddressInput(newTab.url);
 
-    // Unload old tabs if needed
     setTimeout(unloadInactiveTabs, 100);
   };
 
@@ -391,13 +525,20 @@ const DAppBrowser: React.FC = () => {
   };
 
   const switchTab = async (tabId: string) => {
-    // Capture screenshot of current tab before switching
-    const currentScreenshot = await captureTabScreenshot(activeTabId);
-    if (currentScreenshot) {
-      setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot: currentScreenshot, timestamp: Date.now() } : tab)));
+    if (activeTabId === tabId) {
+      hideTabsOverview();
+      return;
     }
 
-    // Update active tab and mark it as loaded
+    try {
+      const currentScreenshot = await captureTabScreenshot(activeTabId);
+      if (currentScreenshot) {
+        setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot: currentScreenshot, timestamp: Date.now() } : tab)));
+      }
+    } catch (error) {
+      console.warn('Screenshot capture failed during tab switch:', error);
+    }
+
     setActiveTabId(tabId);
     setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === tabId ? { ...tab, isLoaded: true, timestamp: Date.now() } : tab)));
 
@@ -408,7 +549,6 @@ const DAppBrowser: React.FC = () => {
 
     hideTabsOverview();
 
-    // Unload old tabs after switching
     setTimeout(unloadInactiveTabs, 500);
   };
 
@@ -431,11 +571,6 @@ const DAppBrowser: React.FC = () => {
         duration: 300,
         useNativeDriver: true,
       }),
-      Animated.timing(webviewTopMargin, {
-        toValue: -64,
-        duration: 300,
-        useNativeDriver: true,
-      }),
     ]).start();
   };
 
@@ -453,11 +588,6 @@ const DAppBrowser: React.FC = () => {
         useNativeDriver: true,
       }),
       Animated.timing(addressBarTranslateY, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(webviewTopMargin, {
         toValue: 0,
         duration: 250,
         useNativeDriver: true,
@@ -498,6 +628,14 @@ const DAppBrowser: React.FC = () => {
     webviewRef.current?.stopLoading();
     setIsLoading(false);
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    webviewRef.current?.reload();
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  }, []);
 
   const goBack = () => {
     webviewRef.current?.goBack();
@@ -543,10 +681,8 @@ const DAppBrowser: React.FC = () => {
 
   const handleScroll = useCallback(
     (scrollY: number, isScrollable: boolean = true) => {
-      // Don't hide address bar if content is not scrollable
       if (!isScrollable || !isContentScrollable.current) {
         if (!isAddressBarVisible.current) {
-          // Reset to visible if content becomes non-scrollable
           scrollOffset.setValue(0);
           isAddressBarVisible.current = true;
         }
@@ -555,36 +691,29 @@ const DAppBrowser: React.FC = () => {
 
       const delta = scrollY - lastScrollY.current;
 
-      // Reset scroll start when changing direction or at top
       if (scrollY < 10) {
         scrollStartY.current = 0;
         scrollOffset.setValue(0);
         isAddressBarVisible.current = true;
       } else if ((delta > 0 && isAddressBarVisible.current) || (delta < 0 && !isAddressBarVisible.current)) {
-        // Starting a new scroll gesture
         if (Math.abs(scrollY - scrollStartY.current) < 5) {
           scrollStartY.current = scrollY;
         }
       }
 
-      // Calculate scroll distance from start
       const scrollDistance = scrollY - scrollStartY.current;
       const maxScrollDistance = 80; // Distance to fully hide/show
 
-      // Clamp the scroll offset between 0 (visible) and 1 (hidden)
       const progress = Math.max(0, Math.min(1, scrollDistance / maxScrollDistance));
 
-      // Update scroll offset for interpolation
       scrollOffset.setValue(progress);
 
-      // Track visibility state
       if (progress > 0.5 && isAddressBarVisible.current) {
         isAddressBarVisible.current = false;
       } else if (progress < 0.5 && !isAddressBarVisible.current) {
         isAddressBarVisible.current = true;
       }
 
-      // Update last scroll position
       lastScrollY.current = scrollY;
     },
     [scrollOffset]
@@ -602,16 +731,13 @@ const DAppBrowser: React.FC = () => {
         }
         if (parsed.type === 'scrollable' && typeof parsed.isScrollable === 'boolean') {
           isContentScrollable.current = parsed.isScrollable;
-          // Reset address bar if content is not scrollable
           if (!parsed.isScrollable && !isAddressBarVisible.current) {
             scrollOffset.setValue(0);
             isAddressBarVisible.current = true;
           }
           return;
         }
-      } catch {
-        // Not a scroll message, pass to bridge
-      }
+      } catch {}
 
       browserBridgeRef.current?.handleMessage(event);
     },
@@ -639,6 +765,7 @@ const DAppBrowser: React.FC = () => {
             duration: 300,
             useNativeDriver: true,
           }).start();
+          setRefreshing(false);
         }
       });
     },
@@ -721,25 +848,56 @@ const DAppBrowser: React.FC = () => {
 
       <Animated.View
         style={{
+          opacity: tabsOpacity.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 0],
+          }),
           transform: [
             {
-              translateY: scrollOffset.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, -120],
-              }),
+              translateY: Animated.add(
+                scrollOffset.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, -120],
+                }),
+                addressBarTranslateY
+              ),
             },
           ],
         }}
+        pointerEvents={showTabsOverview ? 'none' : 'auto'}
       >
         <View style={styles.addressContainer}>
+          <TouchableOpacity style={styles.networkButton} onPress={showNetworkSwitcherModal}>
+            <ExpoImage source={getNetworkImageAsset(network)} style={styles.networkIcon} contentFit="contain" />
+          </TouchableOpacity>
           <View style={styles.addressBarWrapper}>
             <View style={styles.addressBar}>
-              <ThemedText style={styles.addressText} numberOfLines={1}>
-                {addressInput}
-              </ThemedText>
-              {isLoading && (
+              <TextInput
+                style={styles.addressText}
+                value={addressInput}
+                onChangeText={setAddressInput}
+                onSubmitEditing={() => {
+                  let url = addressInput.trim();
+                  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = 'https://' + url;
+                  }
+                  updateActiveTab({ url, title: getTabTitle(url) });
+                }}
+                returnKeyType="go"
+                keyboardType="url"
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="Enter URL"
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                selectTextOnFocus={true}
+              />
+              {isLoading ? (
                 <TouchableOpacity style={styles.stopButton} onPress={stopLoading}>
                   <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.stopButton} onPress={onRefresh}>
+                  <Ionicons name="reload" size={18} color="rgba(255, 255, 255, 0.8)" />
                 </TouchableOpacity>
               )}
             </View>
@@ -763,27 +921,17 @@ const DAppBrowser: React.FC = () => {
         </View>
       </Animated.View>
 
-      <Animated.View
-        style={[
-          styles.contentContainer,
-          {
-            marginTop: scrollOffset.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, -64],
-            }),
-          },
-        ]}
-      >
+      <View style={styles.contentContainer}>
         <Animated.View
           style={[
             styles.webviewContainer,
             {
               opacity: webviewOpacity,
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
+              flex: 1,
+              marginTop: scrollOffset.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, -64],
+              }),
             },
           ]}
           {...panResponder.panHandlers}
@@ -836,18 +984,15 @@ const DAppBrowser: React.FC = () => {
               const isActive = tab.id === activeTabId;
               const shouldRender = isActive || tab.isLoaded;
 
-              // Initialize refs for this tab
-              if (!tabWebViewRefs.current[tab.id]) {
-                tabWebViewRefs.current[tab.id] = React.createRef<WebView>();
-              }
-              if (!tabContainerRefs.current[tab.id]) {
-                tabContainerRefs.current[tab.id] = React.createRef<View>();
-              }
-
               return (
                 <View
-                  key={tab.id}
-                  ref={tabContainerRefs.current[tab.id]}
+                  key={`tab-container-${tab.id}`}
+                  ref={(ref) => {
+                    if (ref && isActive) {
+                      tabContainerRefs.current[tab.id] = { current: ref };
+                    }
+                  }}
+                  collapsable={false}
                   style={[
                     styles.tabContainer,
                     {
@@ -860,18 +1005,41 @@ const DAppBrowser: React.FC = () => {
 
                   {/* Only render WebView if tab should be loaded */}
                   {shouldRender && (
-                    <WebView
-                      ref={isActive ? callbackRef : tabWebViewRefs.current[tab.id]}
-                      originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
-                      allowsInlineMediaPlayback={true}
-                      source={{ uri: tab.url }}
-                      onMessage={isActive ? handleMessage : undefined}
-                      onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
-                      onLoadProgress={isActive ? handleLoadProgress : undefined}
-                      injectedJavaScriptBeforeContentLoaded={js}
-                      webviewDebuggingEnabled={true}
-                      style={{ opacity: tab.screenshot && isLoading ? 0 : 1 }}
-                    />
+                    <ScrollView
+                      contentContainerStyle={{ flex: 1 }}
+                      refreshControl={
+                        isActive ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="rgba(255, 255, 255, 0.8)" colors={['rgba(255, 255, 255, 0.8)']} /> : undefined
+                      }
+                    >
+                      <WebView
+                        key={`webview-${tab.id}-${tab.url}`}
+                        ref={(ref) => {
+                          if (ref) {
+                            if (!tabWebViewRefs.current[tab.id]) {
+                              tabWebViewRefs.current[tab.id] = { current: ref };
+                            }
+                            if (isActive) {
+                              webviewRef.current = ref;
+                              browserBridgeRef.current = new BrowserBridge(ref);
+                            }
+                          }
+                        }}
+                        originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
+                        allowsInlineMediaPlayback={true}
+                        source={{ uri: tab.url }}
+                        onMessage={isActive ? handleMessage : undefined}
+                        onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
+                        onLoadProgress={isActive ? handleLoadProgress : undefined}
+                        injectedJavaScriptBeforeContentLoaded={js}
+                        webviewDebuggingEnabled={true}
+                        style={{ opacity: tab.screenshot && isLoading ? 0 : 1 }}
+                        incognito={false}
+                        cacheEnabled={true}
+                        domStorageEnabled={true}
+                        javaScriptEnabled={true}
+                        sharedCookiesEnabled={false}
+                      />
+                    </ScrollView>
                   )}
                 </View>
               );
@@ -903,12 +1071,15 @@ const DAppBrowser: React.FC = () => {
 
             <ScrollView style={styles.tabsOverviewContent} contentContainerStyle={styles.tabsGridContainer}>
               <View style={styles.tabsGrid}>
-                {tabs.map((tab) => (
-                  <TouchableOpacity key={tab.id} style={[styles.tabCard, activeTabId === tab.id && styles.activeTabCard]} onPress={() => switchTab(tab.id)}>
+                {tabs.map((tab, index) => (
+                  <TouchableOpacity key={`tab-card-${tab.id}`} style={[styles.tabCard, activeTabId === tab.id && styles.activeTabCard]} onPress={() => switchTab(tab.id)}>
                     <View style={styles.tabCardHeader}>
-                      <ThemedText style={styles.tabCardTitle} numberOfLines={1}>
-                        {tab.title}
-                      </ThemedText>
+                      <View style={styles.tabCardTitleContainer}>
+                        <ThemedText style={styles.tabCardNumber}>#{index + 1}</ThemedText>
+                        <ThemedText style={styles.tabCardTitle} numberOfLines={1}>
+                          {tab.title}
+                        </ThemedText>
+                      </View>
                       <TouchableOpacity style={styles.tabCardCloseButton} onPress={() => closeTab(tab.id)}>
                         <Ionicons name="close" size={16} color="rgba(255, 255, 255, 0.8)" />
                       </TouchableOpacity>
@@ -931,7 +1102,50 @@ const DAppBrowser: React.FC = () => {
             </ScrollView>
           </View>
         </Animated.View>
-      </Animated.View>
+
+        {showNetworkSwitcher && (
+          <Animated.View
+            style={[
+              styles.networkSwitcherOverlay,
+              {
+                opacity: networkSwitcherOpacity,
+              },
+            ]}
+            pointerEvents={showNetworkSwitcher ? 'auto' : 'none'}
+          >
+            <TouchableOpacity style={styles.networkSwitcherBackdrop} onPress={hideNetworkSwitcherModal} activeOpacity={1} />
+            <Animated.View
+              style={[
+                styles.networkSwitcherModal,
+                {
+                  transform: [{ translateY: networkSwitcherTranslateY }],
+                },
+              ]}
+            >
+              <View style={styles.networkSwitcherHeader}>
+                <ThemedText style={styles.networkSwitcherTitle}>Select Network</ThemedText>
+                <TouchableOpacity onPress={hideNetworkSwitcherModal} style={styles.networkSwitcherCloseButton}>
+                  <Ionicons name="close" size={24} color="white" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.networkSwitcherContent}>
+                <DashboardTiles cards={networkCards} onCardPress={handleNetworkSwitch} showLogo={false} />
+              </View>
+            </Animated.View>
+          </Animated.View>
+        )}
+
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor: 'white',
+              opacity: whiteFlashAnim,
+              pointerEvents: 'none',
+            },
+          ]}
+        />
+      </View>
 
       <View style={styles.bottomNavigation}>
         <View style={styles.navigationLeft}>
@@ -1094,6 +1308,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  networkButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  networkIcon: {
+    width: 24,
+    height: 24,
+  },
   contentContainer: {
     flex: 1,
     position: 'relative',
@@ -1234,12 +1460,23 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
+  tabCardTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  tabCardNumber: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginRight: 6,
+  },
   tabCardTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: 'white',
     flex: 1,
-    marginRight: 8,
   },
   tabCardCloseButton: {
     padding: 4,
@@ -1261,5 +1498,59 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     lineHeight: 16,
+  },
+  networkSwitcherOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+  },
+  networkSwitcherBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  networkSwitcherModal: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '70%',
+    backgroundColor: '#1a1a1a',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+  },
+  networkSwitcherHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  networkSwitcherTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  networkSwitcherCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  networkSwitcherContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
 });
