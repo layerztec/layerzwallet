@@ -2,10 +2,12 @@ import { Asset } from 'expo-asset';
 import { File } from 'expo-file-system';
 import * as Linking from 'expo-linking';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View, Alert, TextInput, ScrollView, Animated, PanResponder } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Alert, TextInput, ScrollView, Animated, PanResponder, Image, AppState, AppStateStatus } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { captureRef } from 'react-native-view-shot';
 
 import { ThemedText } from '@/components/ThemedText';
 import GradientScreen from '@/components/GradientScreen';
@@ -25,30 +27,31 @@ interface BrowserTab {
   canGoForward: boolean;
   history: { url: string; title: string }[];
   historyIndex: number;
+  screenshot?: string; // URI to cached screenshot
+  scrollPosition?: number;
+  timestamp: number; // Last accessed timestamp
+  isLoaded: boolean; // Whether the WebView is currently loaded
 }
+
+const TABS_STORAGE_KEY = '@browser_tabs';
+const ACTIVE_TAB_STORAGE_KEY = '@browser_active_tab';
+const MAX_LOADED_TABS = 3; // Maximum number of tabs to keep loaded in memory
 
 const DAppBrowser: React.FC = () => {
   const { network } = useContext(NetworkContext);
   const router = useRouter();
   const webviewRef = useRef<WebView>(null);
+  const tabWebViewRefs = useRef<{ [key: string]: React.RefObject<WebView | null> }>({});
+  const tabContainerRefs = useRef<{ [key: string]: React.RefObject<View | null> }>({});
   const browserBridgeRef = useRef<BrowserBridge>(null);
   const [js, setJs] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const params = useLocalSearchParams<DappBrowserProps>();
   const initialUrl = params.url || 'https://layerztec.github.io/website/explore/?network=' + network;
 
-  const [tabs, setTabs] = useState<BrowserTab[]>([
-    {
-      id: '1',
-      url: initialUrl,
-      title: 'site-url.com',
-      canGoBack: false,
-      canGoForward: false,
-      history: [{ url: initialUrl, title: 'site-url.com' }],
-      historyIndex: 0,
-    },
-  ]);
-  const [activeTabId, setActiveTabId] = useState<string>('1');
+  const [tabs, setTabs] = useState<BrowserTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string>('');
+  const [isRestoringTabs, setIsRestoringTabs] = useState<boolean>(true);
   const [addressInput, setAddressInput] = useState<string>(initialUrl);
   const [showTabsOverview, setShowTabsOverview] = useState<boolean>(false);
   const [loadingProgress, setLoadingProgress] = useState<number>(0);
@@ -65,6 +68,7 @@ const DAppBrowser: React.FC = () => {
   const lastScrollY = useRef(0);
   const scrollStartY = useRef(0);
   const isAddressBarVisible = useRef(true);
+  const isContentScrollable = useRef(true);
 
   const swipeProgress = useRef(new Animated.Value(0)).current;
   const swipeOverlayOpacity = useRef(new Animated.Value(0)).current;
@@ -162,13 +166,20 @@ const DAppBrowser: React.FC = () => {
           let lastScrollY = 0;
           let ticking = false;
           
+          function checkScrollable() {
+            const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+            const clientHeight = document.documentElement.clientHeight || window.innerHeight;
+            return scrollHeight > clientHeight + 100; // 100px buffer
+          }
+          
           function onScroll() {
             lastScrollY = window.scrollY || window.pageYOffset;
             if (!ticking) {
               window.requestAnimationFrame(() => {
                 window.ReactNativeWebView.postMessage(JSON.stringify({
                   type: 'scroll',
-                  scrollY: lastScrollY
+                  scrollY: lastScrollY,
+                  isScrollable: checkScrollable()
                 }));
                 ticking = false;
               });
@@ -176,7 +187,20 @@ const DAppBrowser: React.FC = () => {
             }
           }
           
+          // Check on load and resize
+          function notifyScrollable() {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'scrollable',
+              isScrollable: checkScrollable()
+            }));
+          }
+          
           window.addEventListener('scroll', onScroll, { passive: true });
+          window.addEventListener('load', notifyScrollable);
+          window.addEventListener('resize', notifyScrollable);
+          
+          // Initial check
+          setTimeout(notifyScrollable, 100);
         `;
 
         setJs(r + '\n' + scrollDetectionScript);
@@ -198,6 +222,130 @@ const DAppBrowser: React.FC = () => {
     };
   }, []);
 
+  // Storage functions
+  const saveTabs = async (tabsToSave: BrowserTab[], activeId: string) => {
+    try {
+      await AsyncStorage.setItem(TABS_STORAGE_KEY, JSON.stringify(tabsToSave));
+      await AsyncStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeId);
+    } catch (error) {
+      console.error('Failed to save tabs:', error);
+    }
+  };
+
+  const loadTabs = async (): Promise<{ tabs: BrowserTab[]; activeTabId: string } | null> => {
+    try {
+      const tabsJson = await AsyncStorage.getItem(TABS_STORAGE_KEY);
+      const activeId = await AsyncStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
+
+      if (tabsJson && activeId) {
+        const parsedTabs = JSON.parse(tabsJson);
+        // Mark all tabs as not loaded initially
+        const tabs = parsedTabs.map((tab: BrowserTab) => ({
+          ...tab,
+          isLoaded: false,
+        }));
+        return { tabs, activeTabId: activeId };
+      }
+    } catch (error) {
+      console.error('Failed to load tabs:', error);
+    }
+    return null;
+  };
+
+  const captureTabScreenshot = async (tabId: string) => {
+    const containerRef = tabContainerRefs.current[tabId];
+    if (!containerRef?.current) return null;
+
+    try {
+      const uri = await captureRef(containerRef.current, {
+        format: 'png',
+        quality: 0.8,
+        result: 'tmpfile',
+      });
+      return uri;
+    } catch (error) {
+      console.error('Failed to capture screenshot:', error);
+      return null;
+    }
+  };
+
+  const unloadInactiveTabs = () => {
+    setTabs((prevTabs) => {
+      // Sort tabs by timestamp (most recent first)
+      const sortedTabs = [...prevTabs].sort((a, b) => b.timestamp - a.timestamp);
+
+      // Keep only the top MAX_LOADED_TABS loaded
+      const tabsToUnload = sortedTabs.slice(MAX_LOADED_TABS);
+
+      return prevTabs.map((tab) => {
+        if (tabsToUnload.find((t) => t.id === tab.id) && tab.id !== activeTabId) {
+          return { ...tab, isLoaded: false };
+        }
+        return tab;
+      });
+    });
+  };
+
+  // Restore tabs on mount
+  useEffect(() => {
+    const restoreTabs = async () => {
+      const restored = await loadTabs();
+
+      if (restored && restored.tabs.length > 0) {
+        setTabs(restored.tabs);
+        setActiveTabId(restored.activeTabId);
+        const activeTab = restored.tabs.find((t) => t.id === restored.activeTabId);
+        if (activeTab) {
+          setAddressInput(activeTab.url);
+        }
+      } else {
+        // Create initial tab if no saved tabs
+        const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
+        const initialTab: BrowserTab = {
+          id: Date.now().toString(),
+          url: homeUrl,
+          title: 'site-url.com',
+          canGoBack: false,
+          canGoForward: false,
+          history: [{ url: homeUrl, title: 'site-url.com' }],
+          historyIndex: 0,
+          timestamp: Date.now(),
+          isLoaded: true,
+        };
+        setTabs([initialTab]);
+        setActiveTabId(initialTab.id);
+        setAddressInput(initialTab.url);
+      }
+
+      setIsRestoringTabs(false);
+    };
+
+    restoreTabs();
+  }, [network]);
+
+  // Save tabs whenever they change
+  useEffect(() => {
+    if (!isRestoringTabs && tabs.length > 0 && activeTabId) {
+      saveTabs(tabs, activeTabId);
+    }
+  }, [tabs, activeTabId, isRestoringTabs]);
+
+  // Handle app state changes (background/foreground)
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'background' || nextAppState === 'inactive') {
+        // Capture screenshot of active tab before backgrounding
+        const screenshot = await captureTabScreenshot(activeTabId);
+        if (screenshot) {
+          setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot } : tab)));
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, [activeTabId]);
+
   const createNewTab = () => {
     const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
     const newTab: BrowserTab = {
@@ -208,10 +356,15 @@ const DAppBrowser: React.FC = () => {
       canGoForward: false,
       history: [{ url: homeUrl, title: 'site-url.com' }],
       historyIndex: 0,
+      timestamp: Date.now(),
+      isLoaded: true,
     };
     setTabs((prev) => [...prev, newTab]);
     setActiveTabId(newTab.id);
     setAddressInput(newTab.url);
+
+    // Unload old tabs if needed
+    setTimeout(unloadInactiveTabs, 100);
   };
 
   const closeTab = (tabId: string) => {
@@ -237,14 +390,26 @@ const DAppBrowser: React.FC = () => {
     }
   };
 
-  const switchTab = (tabId: string) => {
+  const switchTab = async (tabId: string) => {
+    // Capture screenshot of current tab before switching
+    const currentScreenshot = await captureTabScreenshot(activeTabId);
+    if (currentScreenshot) {
+      setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot: currentScreenshot, timestamp: Date.now() } : tab)));
+    }
+
+    // Update active tab and mark it as loaded
     setActiveTabId(tabId);
+    setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === tabId ? { ...tab, isLoaded: true, timestamp: Date.now() } : tab)));
+
     const tab = tabs.find((t) => t.id === tabId);
     if (tab) {
       setAddressInput(tab.url);
-      webviewRef.current?.injectJavaScript(`window.location.href = '${tab.url}';`);
     }
+
     hideTabsOverview();
+
+    // Unload old tabs after switching
+    setTimeout(unloadInactiveTabs, 500);
   };
 
   const showTabsOverviewAnimated = () => {
@@ -303,7 +468,17 @@ const DAppBrowser: React.FC = () => {
   };
 
   const updateActiveTab = (updates: Partial<BrowserTab>) => {
-    setTabs((prev) => prev.map((tab) => (tab.id === activeTabId ? { ...tab, ...updates } : tab)));
+    setTabs((prev) =>
+      prev.map((tab) =>
+        tab.id === activeTabId
+          ? {
+              ...tab,
+              ...updates,
+              timestamp: Date.now(),
+            }
+          : tab
+      )
+    );
   };
 
   const getTabTitle = (url: string): string => {
@@ -367,7 +542,17 @@ const DAppBrowser: React.FC = () => {
   };
 
   const handleScroll = useCallback(
-    (scrollY: number) => {
+    (scrollY: number, isScrollable: boolean = true) => {
+      // Don't hide address bar if content is not scrollable
+      if (!isScrollable || !isContentScrollable.current) {
+        if (!isAddressBarVisible.current) {
+          // Reset to visible if content becomes non-scrollable
+          scrollOffset.setValue(0);
+          isAddressBarVisible.current = true;
+        }
+        return;
+      }
+
       const delta = scrollY - lastScrollY.current;
 
       // Reset scroll start when changing direction or at top
@@ -412,7 +597,16 @@ const DAppBrowser: React.FC = () => {
       try {
         const parsed = JSON.parse(data);
         if (parsed.type === 'scroll' && typeof parsed.scrollY === 'number') {
-          handleScroll(parsed.scrollY);
+          handleScroll(parsed.scrollY, parsed.isScrollable);
+          return;
+        }
+        if (parsed.type === 'scrollable' && typeof parsed.isScrollable === 'boolean') {
+          isContentScrollable.current = parsed.isScrollable;
+          // Reset address bar if content is not scrollable
+          if (!parsed.isScrollable && !isAddressBarVisible.current) {
+            scrollOffset.setValue(0);
+            isAddressBarVisible.current = true;
+          }
           return;
         }
       } catch {
@@ -421,7 +615,7 @@ const DAppBrowser: React.FC = () => {
 
       browserBridgeRef.current?.handleMessage(event);
     },
-    [handleScroll]
+    [handleScroll, scrollOffset]
   );
 
   const handleLoadProgress = useCallback(
@@ -437,7 +631,7 @@ const DAppBrowser: React.FC = () => {
       Animated.timing(progressWidth, {
         toValue: progress,
         duration: 100,
-        useNativeDriver: false,
+        useNativeDriver: true,
       }).start(() => {
         if (progress >= 1) {
           Animated.timing(progressOpacity, {
@@ -554,10 +748,11 @@ const DAppBrowser: React.FC = () => {
                 styles.progressBar,
                 {
                   opacity: progressOpacity,
-                  width: progressWidth.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0%', '100%'],
-                  }),
+                  transform: [
+                    {
+                      scaleX: progressWidth,
+                    },
+                  ],
                 },
               ]}
             />
@@ -637,17 +832,50 @@ const DAppBrowser: React.FC = () => {
               ],
             }}
           >
-            <WebView
-              ref={callbackRef}
-              originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
-              allowsInlineMediaPlayback={true}
-              source={{ uri: currentUrl }}
-              onMessage={handleMessage}
-              onNavigationStateChange={handleNavigationStateChange}
-              onLoadProgress={handleLoadProgress}
-              injectedJavaScriptBeforeContentLoaded={js}
-              webviewDebuggingEnabled={true}
-            />
+            {tabs.map((tab) => {
+              const isActive = tab.id === activeTabId;
+              const shouldRender = isActive || tab.isLoaded;
+
+              // Initialize refs for this tab
+              if (!tabWebViewRefs.current[tab.id]) {
+                tabWebViewRefs.current[tab.id] = React.createRef<WebView>();
+              }
+              if (!tabContainerRefs.current[tab.id]) {
+                tabContainerRefs.current[tab.id] = React.createRef<View>();
+              }
+
+              return (
+                <View
+                  key={tab.id}
+                  ref={tabContainerRefs.current[tab.id]}
+                  style={[
+                    styles.tabContainer,
+                    {
+                      display: isActive ? 'flex' : 'none',
+                    },
+                  ]}
+                >
+                  {/* Show screenshot while loading or if tab is unloaded */}
+                  {tab.screenshot && (!shouldRender || isLoading) && <Image source={{ uri: tab.screenshot }} style={StyleSheet.absoluteFill} resizeMode="cover" />}
+
+                  {/* Only render WebView if tab should be loaded */}
+                  {shouldRender && (
+                    <WebView
+                      ref={isActive ? callbackRef : tabWebViewRefs.current[tab.id]}
+                      originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
+                      allowsInlineMediaPlayback={true}
+                      source={{ uri: tab.url }}
+                      onMessage={isActive ? handleMessage : undefined}
+                      onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
+                      onLoadProgress={isActive ? handleLoadProgress : undefined}
+                      injectedJavaScriptBeforeContentLoaded={js}
+                      webviewDebuggingEnabled={true}
+                      style={{ opacity: tab.screenshot && isLoading ? 0 : 1 }}
+                    />
+                  )}
+                </View>
+              );
+            })}
           </Animated.View>
         </Animated.View>
 
@@ -687,11 +915,15 @@ const DAppBrowser: React.FC = () => {
                     </View>
 
                     <View style={styles.tabCardPreview}>
-                      <View style={styles.tabCardContent}>
-                        <ThemedText style={styles.tabCardUrl} numberOfLines={2}>
-                          {tab.url}
-                        </ThemedText>
-                      </View>
+                      {tab.screenshot ? (
+                        <Image source={{ uri: tab.screenshot }} style={styles.tabCardScreenshot} resizeMode="cover" />
+                      ) : (
+                        <View style={styles.tabCardContent}>
+                          <ThemedText style={styles.tabCardUrl} numberOfLines={2}>
+                            {tab.url}
+                          </ThemedText>
+                        </View>
+                      )}
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -703,49 +935,53 @@ const DAppBrowser: React.FC = () => {
 
       <View style={styles.bottomNavigation}>
         <View style={styles.navigationLeft}>
-          {activeTab?.canGoBack && getBackHistory().length > 0 ? (
-            <Link href="/DAppBrowser" asChild>
-              <TouchableOpacity style={[styles.navButton]} onPress={goBack}>
-                <Link.Trigger>
-                  <View>
-                    <Ionicons name="arrow-back" size={24} color="white" />
-                  </View>
-                </Link.Trigger>
-                <Link.Menu>
-                  {getBackHistory().map((item, index) => {
-                    const historyIndex = (activeTab?.historyIndex || 0) - index - 1;
-                    return <Link.MenuAction key={`back-${historyIndex}`} title={item.title} icon="arrow.left" onPress={() => goToHistoryItem(historyIndex)} />;
-                  })}
-                </Link.Menu>
+          <View style={styles.navButtonContainer}>
+            {activeTab?.canGoBack && getBackHistory().length > 0 ? (
+              <Link href="/DAppBrowser" asChild>
+                <TouchableOpacity style={styles.navButton} onPress={goBack}>
+                  <Link.Trigger>
+                    <View>
+                      <Ionicons name="arrow-back" size={24} color="white" />
+                    </View>
+                  </Link.Trigger>
+                  <Link.Menu>
+                    {getBackHistory().map((item, index) => {
+                      const historyIndex = (activeTab?.historyIndex || 0) - index - 1;
+                      return <Link.MenuAction key={`back-${historyIndex}`} title={item.title} icon="arrow.left" onPress={() => goToHistoryItem(historyIndex)} />;
+                    })}
+                  </Link.Menu>
+                </TouchableOpacity>
+              </Link>
+            ) : (
+              <TouchableOpacity style={styles.navButton} onPress={goBack} disabled={!activeTab?.canGoBack}>
+                <Ionicons name="arrow-back" size={24} color={activeTab?.canGoBack ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
               </TouchableOpacity>
-            </Link>
-          ) : (
-            <TouchableOpacity style={[styles.navButton, styles.disabledButton]} onPress={goBack} disabled={!activeTab?.canGoBack}>
-              <Ionicons name="arrow-back" size={24} color="rgba(255, 255, 255, 0.4)" />
-            </TouchableOpacity>
-          )}
+            )}
+          </View>
 
-          {activeTab?.canGoForward && getForwardHistory().length > 0 ? (
-            <Link href="/DAppBrowser" asChild>
-              <TouchableOpacity style={[styles.navButton]} onPress={goForward}>
-                <Link.Trigger>
-                  <View>
-                    <Ionicons name="arrow-forward" size={24} color="white" />
-                  </View>
-                </Link.Trigger>
-                <Link.Menu>
-                  {getForwardHistory().map((item, index) => {
-                    const historyIndex = (activeTab?.historyIndex || 0) + index + 1;
-                    return <Link.MenuAction key={`forward-${historyIndex}`} title={item.title} icon="arrow.right" onPress={() => goToHistoryItem(historyIndex)} />;
-                  })}
-                </Link.Menu>
+          <View style={styles.navButtonContainer}>
+            {activeTab?.canGoForward && getForwardHistory().length > 0 ? (
+              <Link href="/DAppBrowser" asChild>
+                <TouchableOpacity style={styles.navButton} onPress={goForward}>
+                  <Link.Trigger>
+                    <View>
+                      <Ionicons name="arrow-forward" size={24} color="white" />
+                    </View>
+                  </Link.Trigger>
+                  <Link.Menu>
+                    {getForwardHistory().map((item, index) => {
+                      const historyIndex = (activeTab?.historyIndex || 0) + index + 1;
+                      return <Link.MenuAction key={`forward-${historyIndex}`} title={item.title} icon="arrow.right" onPress={() => goToHistoryItem(historyIndex)} />;
+                    })}
+                  </Link.Menu>
+                </TouchableOpacity>
+              </Link>
+            ) : (
+              <TouchableOpacity style={styles.navButton} onPress={goForward} disabled={!activeTab?.canGoForward}>
+                <Ionicons name="arrow-forward" size={24} color={activeTab?.canGoForward ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
               </TouchableOpacity>
-            </Link>
-          ) : (
-            <TouchableOpacity style={[styles.navButton, styles.disabledButton]} onPress={goForward} disabled={!activeTab?.canGoForward}>
-              <Ionicons name="arrow-forward" size={24} color="rgba(255, 255, 255, 0.4)" />
-            </TouchableOpacity>
-          )}
+            )}
+          </View>
         </View>
 
         <View style={styles.navigationCenter}>
@@ -755,11 +991,13 @@ const DAppBrowser: React.FC = () => {
         </View>
 
         <View style={styles.navigationRight}>
-          <TouchableOpacity style={styles.tabsButton} onPress={showTabsOverviewAnimated}>
-            <View style={styles.tabsOverviewIcon}>
-              <ThemedText style={styles.tabsCount}>{tabs.length}</ThemedText>
-            </View>
-          </TouchableOpacity>
+          <View style={styles.navButtonContainer}>
+            <TouchableOpacity style={styles.navButton} onPress={showTabsOverviewAnimated}>
+              <View style={styles.tabsOverviewIcon}>
+                <ThemedText style={styles.tabsCount}>{tabs.length}</ThemedText>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </GradientScreen>
@@ -833,9 +1071,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     left: 0,
+    width: '100%',
     height: 3,
     backgroundColor: 'rgba(255, 255, 255, 0.6)',
     borderRadius: 2,
+    transformOrigin: 'left',
   },
   addressInput: {
     flex: 1,
@@ -862,6 +1102,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
   },
+  tabContainer: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   swipeIndicator: {
     position: 'absolute',
     left: 20,
@@ -887,19 +1132,28 @@ const styles = StyleSheet.create({
   navigationLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    flex: 1,
+    width: 112, // Fixed width: 2 buttons × 48px + 16px spacing
   },
   navigationCenter: {
     flex: 1,
     alignItems: 'center',
   },
   navigationRight: {
-    flex: 1,
     alignItems: 'flex-end',
+    width: 56, // Fixed width: 1 button × 48px + 8px padding
+  },
+  navButtonContainer: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 4,
   },
   navButton: {
-    padding: 12,
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addTabButton: {
     width: 48,
@@ -908,12 +1162,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  tabsButton: {
-    padding: 12,
-  },
-  disabledButton: {
-    opacity: 0.4,
   },
   tabsOverviewIcon: {
     width: 24,
@@ -999,10 +1247,15 @@ const styles = StyleSheet.create({
   tabCardPreview: {
     flex: 1,
     backgroundColor: 'white',
-    padding: 12,
+    overflow: 'hidden',
+  },
+  tabCardScreenshot: {
+    width: '100%',
+    height: '100%',
   },
   tabCardContent: {
     flex: 1,
+    padding: 12,
   },
   tabCardUrl: {
     fontSize: 12,

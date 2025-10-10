@@ -85,27 +85,42 @@ const BalanceLightning = () => {
   const decimals = getDecimalsByNetwork(network);
 
   const [displayBalance, displaySubBalance] = useMemo<[string, string]>(() => {
+    let pairs: [string | undefined, number | undefined][] = []; // pair of balance and exchange rate
+    let totalBalance = BN(0);
+    let totalUsdValue = BN(0);
+    let noFiat = false;
+
     if (network === NETWORK_LIGHTNING) {
-      if (sparkBalance === undefined || liquidBalance === undefined || arkBalance === undefined) return ['—', '—'];
-      const totalBalance = BN(sparkBalance).plus(liquidBalance).toString();
-      const formattedBalance = formatBalance(totalBalance, decimals);
-      if (sparkExchangeRate === undefined || liquidExchangeRate === undefined || arkExchangeRate === undefined) return [formattedBalance, '—'];
-      const totalUsdValue = BN(sparkBalance)
-        .times(sparkExchangeRate)
-        .plus(BN(liquidBalance).times(liquidExchangeRate))
-        .plus(BN(arkBalance).times(arkExchangeRate))
-        .dividedBy(BN(10).pow(decimals))
-        .toFixed(2);
-      return [formattedBalance, totalUsdValue];
+      pairs = [
+        [sparkBalance, sparkExchangeRate],
+        [liquidBalance, liquidExchangeRate],
+        [arkBalance, arkExchangeRate],
+      ];
     } else if (network === NETWORK_LIGHTNING_TESTNET) {
-      if (liquidBalance === undefined) return ['—', '—'];
-      const formattedBalance = formatBalance(liquidBalance, decimals);
-      if (liquidExchangeRate === undefined) return [formattedBalance, '—'];
-      const totalUsdValue = BN(liquidBalance).times(liquidExchangeRate).dividedBy(BN(10).pow(decimals)).toFixed(2);
-      return [formattedBalance, totalUsdValue];
+      pairs = [[liquidBalance, liquidExchangeRate]];
     }
 
-    return ['Error', 'Error'];
+    for (const [balance, exchangeRate] of pairs) {
+      if (balance === undefined) {
+        // if balance is undefined, we can't calculate anything
+        return ['—', '—'];
+      } else if (balance === '0') {
+        // if balance is 0, we don't need to calculate exchange rate
+        continue;
+      } else if (!exchangeRate) {
+        // if there is no exchange rate, we can't calculate fiat value
+        totalBalance = totalBalance.plus(BN(balance));
+        noFiat = true;
+      } else if (exchangeRate) {
+        // all good
+        totalBalance = totalBalance.plus(BN(balance));
+        totalUsdValue = totalUsdValue.plus(BN(balance).times(exchangeRate));
+      } else {
+        return ['Error', 'Error']; // should never happen
+      }
+    }
+
+    return [formatBalance(totalBalance.toString(), decimals), noFiat ? '—' : totalUsdValue.dividedBy(BN(10).pow(decimals)).toFixed(2)];
   }, [network, sparkBalance, liquidBalance, decimals, sparkExchangeRate, liquidExchangeRate, arkBalance, arkExchangeRate]);
 
   const icons = useMemo(() => {

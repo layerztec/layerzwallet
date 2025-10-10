@@ -73,6 +73,7 @@ const SendLightning: React.FC = () => {
         if (Lnurl.isLightningAddress(invoice2use)) {
           try {
             // need to fetch details, like minimum and maximum sat payment
+            invoice2use = encodeURIComponent(invoice2use.split('@')[0]) + '@' + invoice2use.split('@')[1]; // copensating for router automatically urldecoding the ln address in param
             const ln = new Lnurl(invoice2use);
             const response = await ln.callLnurlPayService();
             if (response) {
