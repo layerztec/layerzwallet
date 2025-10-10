@@ -83,7 +83,7 @@ export default function TermsOfServiceScreen() {
 
             <Animated.View style={[subtitleTransition]}>
               <ThemedText type="paragraph" darkColor="rgba(255, 255, 255, 0.7)" textAlign="center">
-                You are now ready to access your wallet{'\n'}and unlock Bitcoin Layerz 2 potential
+                You are now ready to access your wallet{'\n'}and unlock the full potential that Bitcoin has to offer via Layer2
               </ThemedText>
             </Animated.View>
           </View>
@@ -92,7 +92,7 @@ export default function TermsOfServiceScreen() {
               <TouchableOpacity style={styles.checkboxContainer} onPress={() => handleCheckboxPress('backup')} activeOpacity={0.7} testID="BackupRecoveryPhraseCheckbox">
                 <View style={[styles.checkbox, backupChecked && styles.checkboxChecked]}>{backupChecked && <Ionicons name="checkmark" size={16} />}</View>
                 <ThemedText style={styles.checkboxText} darkColor="rgba(255, 255, 255, 0.9)">
-                  I have backup my recovery phrase and I understand I cannot recover my wallet without it.
+                  I have backed up my recovery phrase and I understand I cannot recover my wallet without it.
                 </ThemedText>
               </TouchableOpacity>
             </Animated.View>
@@ -101,11 +101,10 @@ export default function TermsOfServiceScreen() {
               <TouchableOpacity style={styles.checkboxContainer} onPress={() => handleCheckboxPress('terms')} activeOpacity={0.7} testID="TermsOfServiceCheckbox">
                 <View style={[styles.checkbox, termsChecked && styles.checkboxChecked]}>{termsChecked && <Ionicons name="checkmark" size={16} />}</View>
                 <ThemedText style={styles.checkboxText} darkColor="rgba(255, 255, 255, 0.9)">
-                  I have read and accept the{' '}
+                  I have read and accept the Layerz Tec Ltd{' '}
                   <ThemedText style={[styles.checkboxText, styles.linkText]} darkColor="rgba(255, 255, 255, 0.9)" onPress={handleOpenTerms}>
-                    Terms of Service
-                  </ThemedText>{' '}
-                  of Layerz Tec Ltd.
+                    Terms of Service.
+                  </ThemedText>
                 </ThemedText>
               </TouchableOpacity>
             </Animated.View>
