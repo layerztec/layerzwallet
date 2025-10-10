@@ -2,9 +2,9 @@ import { Asset } from 'expo-asset';
 import { File } from 'expo-file-system';
 import * as Linking from 'expo-linking';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View, Alert, TextInput, ScrollView, Animated } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Alert, TextInput, ScrollView, Animated, PanResponder } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -23,6 +23,8 @@ interface BrowserTab {
   title: string;
   canGoBack: boolean;
   canGoForward: boolean;
+  history: { url: string; title: string }[];
+  historyIndex: number;
 }
 
 const DAppBrowser: React.FC = () => {
@@ -35,7 +37,6 @@ const DAppBrowser: React.FC = () => {
   const params = useLocalSearchParams<DappBrowserProps>();
   const initialUrl = params.url || 'https://layerztec.github.io/website/explore/?network=' + network;
 
-  // Tab management state
   const [tabs, setTabs] = useState<BrowserTab[]>([
     {
       id: '1',
@@ -43,19 +44,111 @@ const DAppBrowser: React.FC = () => {
       title: 'site-url.com',
       canGoBack: false,
       canGoForward: false,
+      history: [{ url: initialUrl, title: 'site-url.com' }],
+      historyIndex: 0,
     },
   ]);
   const [activeTabId, setActiveTabId] = useState<string>('1');
   const [addressInput, setAddressInput] = useState<string>(initialUrl);
   const [showTabsOverview, setShowTabsOverview] = useState<boolean>(false);
+  const [loadingProgress, setLoadingProgress] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Animation values for crossfade and address bar
   const webviewOpacity = useRef(new Animated.Value(1)).current;
   const tabsOpacity = useRef(new Animated.Value(0)).current;
   const addressBarTranslateY = useRef(new Animated.Value(0)).current;
+  const webviewTopMargin = useRef(new Animated.Value(0)).current;
+  const progressWidth = useRef(new Animated.Value(0)).current;
+  const progressOpacity = useRef(new Animated.Value(1)).current;
+
+  const scrollOffset = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+  const scrollStartY = useRef(0);
+  const isAddressBarVisible = useRef(true);
+
+  const swipeProgress = useRef(new Animated.Value(0)).current;
+  const swipeOverlayOpacity = useRef(new Animated.Value(0)).current;
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId);
   const currentUrl = activeTab?.url || initialUrl;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Only capture gesture if it's a horizontal swipe from the left edge
+        // and the webview can go back
+        const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+        const isFromLeftEdge = gestureState.moveX < 50;
+        const isSwipingRight = gestureState.dx > 10;
+        return isHorizontalSwipe && isFromLeftEdge && isSwipingRight && (activeTab?.canGoBack || false);
+      },
+      onPanResponderGrant: () => {
+        swipeProgress.setValue(0);
+        swipeOverlayOpacity.setValue(0.3);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        // Update swipe progress (0 to 1)
+        const progress = Math.min(Math.max(gestureState.dx / 200, 0), 1);
+        swipeProgress.setValue(progress);
+        swipeOverlayOpacity.setValue(0.3 * (1 - progress));
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const shouldGoBack = gestureState.dx > 100 && gestureState.vx > 0.3;
+
+        if (shouldGoBack && activeTab?.canGoBack) {
+          // Animate to completion and go back
+          Animated.parallel([
+            Animated.timing(swipeProgress, {
+              toValue: 1,
+              duration: 150,
+              useNativeDriver: true,
+            }),
+            Animated.timing(swipeOverlayOpacity, {
+              toValue: 0,
+              duration: 150,
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
+            goBack();
+            swipeProgress.setValue(0);
+            swipeOverlayOpacity.setValue(0);
+          });
+        } else {
+          // Animate back to start
+          Animated.parallel([
+            Animated.spring(swipeProgress, {
+              toValue: 0,
+              useNativeDriver: true,
+              tension: 100,
+              friction: 10,
+            }),
+            Animated.timing(swipeOverlayOpacity, {
+              toValue: 0,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+          ]).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        // Reset on termination
+        Animated.parallel([
+          Animated.spring(swipeProgress, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 10,
+          }),
+          Animated.timing(swipeOverlayOpacity, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      },
+    })
+  ).current;
 
   useEffect(() => {
     (async () => {
@@ -64,7 +157,29 @@ const DAppBrowser: React.FC = () => {
         const [{ localUri }] = await Asset.loadAsync(require('assets/js/inpage-bridge.jstxt'));
         const file = new File(localUri || '');
         const r = await file.text();
-        setJs(r);
+
+        const scrollDetectionScript = `
+          let lastScrollY = 0;
+          let ticking = false;
+          
+          function onScroll() {
+            lastScrollY = window.scrollY || window.pageYOffset;
+            if (!ticking) {
+              window.requestAnimationFrame(() => {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                  type: 'scroll',
+                  scrollY: lastScrollY
+                }));
+                ticking = false;
+              });
+              ticking = true;
+            }
+          }
+          
+          window.addEventListener('scroll', onScroll, { passive: true });
+        `;
+
+        setJs(r + '\n' + scrollDetectionScript);
       } catch (error: any) {
         setError('Failed to load DApp browser script: ' + error.message);
       }
@@ -83,14 +198,16 @@ const DAppBrowser: React.FC = () => {
     };
   }, []);
 
-  // Tab management functions
   const createNewTab = () => {
+    const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
     const newTab: BrowserTab = {
       id: Date.now().toString(),
-      url: 'https://layerztec.github.io/website/explore/?network=' + network,
+      url: homeUrl,
       title: 'site-url.com',
       canGoBack: false,
       canGoForward: false,
+      history: [{ url: homeUrl, title: 'site-url.com' }],
+      historyIndex: 0,
     };
     setTabs((prev) => [...prev, newTab]);
     setActiveTabId(newTab.id);
@@ -99,9 +216,13 @@ const DAppBrowser: React.FC = () => {
 
   const closeTab = (tabId: string) => {
     if (tabs.length === 1) {
-      // Don't close the last tab, just navigate to home
       const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
-      updateActiveTab({ url: homeUrl, title: 'site-url.com' });
+      updateActiveTab({
+        url: homeUrl,
+        title: 'site-url.com',
+        history: [{ url: homeUrl, title: 'site-url.com' }],
+        historyIndex: 0,
+      });
       setAddressInput(homeUrl);
       return;
     }
@@ -110,7 +231,6 @@ const DAppBrowser: React.FC = () => {
     setTabs(newTabs);
 
     if (activeTabId === tabId) {
-      // Switch to the last tab if closing active tab
       const newActiveTab = newTabs[newTabs.length - 1];
       setActiveTabId(newActiveTab.id);
       setAddressInput(newActiveTab.url);
@@ -122,14 +242,14 @@ const DAppBrowser: React.FC = () => {
     const tab = tabs.find((t) => t.id === tabId);
     if (tab) {
       setAddressInput(tab.url);
-      // Navigate the webview to the tab's URL
       webviewRef.current?.injectJavaScript(`window.location.href = '${tab.url}';`);
     }
-    hideTabsOverview(); // Hide tabs overview after switching
+    hideTabsOverview();
   };
 
   const showTabsOverviewAnimated = () => {
     setShowTabsOverview(true);
+    isAddressBarVisible.current = false;
     Animated.parallel([
       Animated.timing(webviewOpacity, {
         toValue: 0,
@@ -142,7 +262,12 @@ const DAppBrowser: React.FC = () => {
         useNativeDriver: true,
       }),
       Animated.timing(addressBarTranslateY, {
-        toValue: -80, // Slide up out of view
+        toValue: -120,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(webviewTopMargin, {
+        toValue: -64,
         duration: 300,
         useNativeDriver: true,
       }),
@@ -150,6 +275,7 @@ const DAppBrowser: React.FC = () => {
   };
 
   const hideTabsOverview = () => {
+    isAddressBarVisible.current = true;
     Animated.parallel([
       Animated.timing(webviewOpacity, {
         toValue: 1,
@@ -162,7 +288,12 @@ const DAppBrowser: React.FC = () => {
         useNativeDriver: true,
       }),
       Animated.timing(addressBarTranslateY, {
-        toValue: 0, // Slide back down
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(webviewTopMargin, {
+        toValue: 0,
         duration: 250,
         useNativeDriver: true,
       }),
@@ -188,12 +319,37 @@ const DAppBrowser: React.FC = () => {
     browserBridgeRef.current?.refresh();
   };
 
+  const stopLoading = () => {
+    webviewRef.current?.stopLoading();
+    setIsLoading(false);
+  };
+
   const goBack = () => {
     webviewRef.current?.goBack();
   };
 
   const goForward = () => {
     webviewRef.current?.goForward();
+  };
+
+  const goToHistoryItem = (index: number) => {
+    const tab = tabs.find((t) => t.id === activeTabId);
+    if (!tab || index < 0 || index >= tab.history.length) return;
+
+    const historyItem = tab.history[index];
+    webviewRef.current?.injectJavaScript(`window.location.href = '${historyItem.url}';`);
+  };
+
+  const getBackHistory = () => {
+    const tab = tabs.find((t) => t.id === activeTabId);
+    if (!tab) return [];
+    return tab.history.slice(0, tab.historyIndex).reverse();
+  };
+
+  const getForwardHistory = () => {
+    const tab = tabs.find((t) => t.id === activeTabId);
+    if (!tab) return [];
+    return tab.history.slice(tab.historyIndex + 1);
   };
 
   const unwhitelistCurrentDapp = async () => {
@@ -210,19 +366,117 @@ const DAppBrowser: React.FC = () => {
     Linking.openURL(currentUrl);
   };
 
-  const handleMessage = useCallback((event: WebViewMessageEvent) => {
-    browserBridgeRef.current?.handleMessage(event);
-  }, []);
+  const handleScroll = useCallback(
+    (scrollY: number) => {
+      const delta = scrollY - lastScrollY.current;
+
+      // Reset scroll start when changing direction or at top
+      if (scrollY < 10) {
+        scrollStartY.current = 0;
+        scrollOffset.setValue(0);
+        isAddressBarVisible.current = true;
+      } else if ((delta > 0 && isAddressBarVisible.current) || (delta < 0 && !isAddressBarVisible.current)) {
+        // Starting a new scroll gesture
+        if (Math.abs(scrollY - scrollStartY.current) < 5) {
+          scrollStartY.current = scrollY;
+        }
+      }
+
+      // Calculate scroll distance from start
+      const scrollDistance = scrollY - scrollStartY.current;
+      const maxScrollDistance = 80; // Distance to fully hide/show
+
+      // Clamp the scroll offset between 0 (visible) and 1 (hidden)
+      const progress = Math.max(0, Math.min(1, scrollDistance / maxScrollDistance));
+
+      // Update scroll offset for interpolation
+      scrollOffset.setValue(progress);
+
+      // Track visibility state
+      if (progress > 0.5 && isAddressBarVisible.current) {
+        isAddressBarVisible.current = false;
+      } else if (progress < 0.5 && !isAddressBarVisible.current) {
+        isAddressBarVisible.current = true;
+      }
+
+      // Update last scroll position
+      lastScrollY.current = scrollY;
+    },
+    [scrollOffset]
+  );
+
+  const handleMessage = useCallback(
+    (event: WebViewMessageEvent) => {
+      const data = event.nativeEvent.data;
+
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed.type === 'scroll' && typeof parsed.scrollY === 'number') {
+          handleScroll(parsed.scrollY);
+          return;
+        }
+      } catch {
+        // Not a scroll message, pass to bridge
+      }
+
+      browserBridgeRef.current?.handleMessage(event);
+    },
+    [handleScroll]
+  );
+
+  const handleLoadProgress = useCallback(
+    ({ nativeEvent }: { nativeEvent: { progress: number } }) => {
+      const progress = nativeEvent.progress;
+      setLoadingProgress(progress);
+      setIsLoading(progress < 1);
+
+      if (progress < 1) {
+        progressOpacity.setValue(1);
+      }
+
+      Animated.timing(progressWidth, {
+        toValue: progress,
+        duration: 100,
+        useNativeDriver: false,
+      }).start(() => {
+        if (progress >= 1) {
+          Animated.timing(progressOpacity, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }).start();
+        }
+      });
+    },
+    [progressWidth, progressOpacity]
+  );
 
   const handleNavigationStateChange = useCallback(
     (navState: WebViewNavigation) => {
       const title = getTabTitle(navState.url);
-      updateActiveTab({
-        url: navState.url,
-        title,
-        canGoBack: navState.canGoBack,
-        canGoForward: navState.canGoForward,
-      });
+
+      setTabs((prev) =>
+        prev.map((tab) => {
+          if (tab.id !== activeTabId) return tab;
+
+          const newHistory = [...tab.history.slice(0, tab.historyIndex + 1)];
+
+          if (newHistory[newHistory.length - 1]?.url !== navState.url) {
+            newHistory.push({ url: navState.url, title });
+          }
+
+          return {
+            ...tab,
+            url: navState.url,
+            title,
+            canGoBack: navState.canGoBack,
+            canGoForward: navState.canGoForward,
+            history: newHistory,
+            historyIndex: newHistory.length - 1,
+          };
+        })
+      );
+
       setAddressInput(navState.url);
     },
     [activeTabId]
@@ -231,13 +485,11 @@ const DAppBrowser: React.FC = () => {
   const navigateToAddress = () => {
     let url = addressInput.trim();
 
-    // Add https:// if no protocol is specified
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = 'https://' + url;
     }
 
     try {
-      // Validate URL
       new URL(url);
       webviewRef.current?.injectJavaScript(`window.location.href = '${url}';`);
     } catch {
@@ -273,36 +525,60 @@ const DAppBrowser: React.FC = () => {
     <GradientScreen variant={network}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Address Bar with Animation */}
+      <Animated.View
+        style={{
+          transform: [
+            {
+              translateY: scrollOffset.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, -120],
+              }),
+            },
+          ],
+        }}
+      >
+        <View style={styles.addressContainer}>
+          <View style={styles.addressBarWrapper}>
+            <View style={styles.addressBar}>
+              <ThemedText style={styles.addressText} numberOfLines={1}>
+                {addressInput}
+              </ThemedText>
+              {isLoading && (
+                <TouchableOpacity style={styles.stopButton} onPress={stopLoading}>
+                  <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
+                </TouchableOpacity>
+              )}
+            </View>
+            <Animated.View
+              style={[
+                styles.progressBar,
+                {
+                  opacity: progressOpacity,
+                  width: progressWidth.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '100%'],
+                  }),
+                },
+              ]}
+            />
+          </View>
+          <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
+            <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.9)" />
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+
       <Animated.View
         style={[
-          styles.addressContainer,
+          styles.contentContainer,
           {
-            transform: [{ translateY: addressBarTranslateY }],
+            marginTop: scrollOffset.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, -64],
+            }),
           },
         ]}
       >
-        <TextInput
-          style={styles.addressInput}
-          value={addressInput}
-          onChangeText={setAddressInput}
-          onSubmitEditing={handleAddressSubmit}
-          placeholder="Enter URL..."
-          placeholderTextColor="rgba(255, 255, 255, 0.6)"
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="url"
-          testID="DappBrowserAddressBar"
-          returnKeyType="go"
-        />
-        <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
-          <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.9)" />
-        </TouchableOpacity>
-      </Animated.View>
-
-      {/* Main Content Container with Crossfade Animation */}
-      <View style={styles.contentContainer}>
-        {/* WebView */}
         <Animated.View
           style={[
             styles.webviewContainer,
@@ -315,20 +591,66 @@ const DAppBrowser: React.FC = () => {
               bottom: 0,
             },
           ]}
+          {...panResponder.panHandlers}
         >
-          <WebView
-            ref={callbackRef}
-            originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
-            allowsInlineMediaPlayback={true}
-            source={{ uri: currentUrl }}
-            onMessage={handleMessage}
-            onNavigationStateChange={handleNavigationStateChange}
-            injectedJavaScriptBeforeContentLoaded={js}
-            webviewDebuggingEnabled={true}
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                opacity: swipeOverlayOpacity,
+                backgroundColor: 'black',
+                pointerEvents: 'none',
+              },
+            ]}
           />
+          <Animated.View
+            style={[
+              styles.swipeIndicator,
+              {
+                opacity: swipeProgress.interpolate({
+                  inputRange: [0, 0.3, 1],
+                  outputRange: [0, 1, 0],
+                }),
+                transform: [
+                  {
+                    translateX: swipeProgress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-50, 100],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <Ionicons name="arrow-back" size={32} color="rgba(255, 255, 255, 0.9)" />
+          </Animated.View>
+          <Animated.View
+            style={{
+              flex: 1,
+              transform: [
+                {
+                  translateX: swipeProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 100],
+                  }),
+                },
+              ],
+            }}
+          >
+            <WebView
+              ref={callbackRef}
+              originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
+              allowsInlineMediaPlayback={true}
+              source={{ uri: currentUrl }}
+              onMessage={handleMessage}
+              onNavigationStateChange={handleNavigationStateChange}
+              onLoadProgress={handleLoadProgress}
+              injectedJavaScriptBeforeContentLoaded={js}
+              webviewDebuggingEnabled={true}
+            />
+          </Animated.View>
         </Animated.View>
 
-        {/* Tabs Overview with Crossfade */}
         <Animated.View
           style={[
             styles.tabsOverviewContainer,
@@ -377,29 +699,61 @@ const DAppBrowser: React.FC = () => {
             </ScrollView>
           </View>
         </Animated.View>
-      </View>
+      </Animated.View>
 
-      {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
-        {/* Left side - Back and Forward buttons */}
         <View style={styles.navigationLeft}>
-          <TouchableOpacity style={[styles.navButton, !activeTab?.canGoBack && styles.disabledButton]} onPress={goBack} disabled={!activeTab?.canGoBack}>
-            <Ionicons name="arrow-back" size={24} color={activeTab?.canGoBack ? 'white' : 'rgba(255, 255, 255, 0.4)'} />
-          </TouchableOpacity>
+          {activeTab?.canGoBack && getBackHistory().length > 0 ? (
+            <Link href="/DAppBrowser" asChild>
+              <TouchableOpacity style={[styles.navButton]} onPress={goBack}>
+                <Link.Trigger>
+                  <View>
+                    <Ionicons name="arrow-back" size={24} color="white" />
+                  </View>
+                </Link.Trigger>
+                <Link.Menu>
+                  {getBackHistory().map((item, index) => {
+                    const historyIndex = (activeTab?.historyIndex || 0) - index - 1;
+                    return <Link.MenuAction key={`back-${historyIndex}`} title={item.title} icon="arrow.left" onPress={() => goToHistoryItem(historyIndex)} />;
+                  })}
+                </Link.Menu>
+              </TouchableOpacity>
+            </Link>
+          ) : (
+            <TouchableOpacity style={[styles.navButton, styles.disabledButton]} onPress={goBack} disabled={!activeTab?.canGoBack}>
+              <Ionicons name="arrow-back" size={24} color="rgba(255, 255, 255, 0.4)" />
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity style={[styles.navButton, !activeTab?.canGoForward && styles.disabledButton]} onPress={goForward} disabled={!activeTab?.canGoForward}>
-            <Ionicons name="arrow-forward" size={24} color={activeTab?.canGoForward ? 'white' : 'rgba(255, 255, 255, 0.4)'} />
-          </TouchableOpacity>
+          {activeTab?.canGoForward && getForwardHistory().length > 0 ? (
+            <Link href="/DAppBrowser" asChild>
+              <TouchableOpacity style={[styles.navButton]} onPress={goForward}>
+                <Link.Trigger>
+                  <View>
+                    <Ionicons name="arrow-forward" size={24} color="white" />
+                  </View>
+                </Link.Trigger>
+                <Link.Menu>
+                  {getForwardHistory().map((item, index) => {
+                    const historyIndex = (activeTab?.historyIndex || 0) + index + 1;
+                    return <Link.MenuAction key={`forward-${historyIndex}`} title={item.title} icon="arrow.right" onPress={() => goToHistoryItem(historyIndex)} />;
+                  })}
+                </Link.Menu>
+              </TouchableOpacity>
+            </Link>
+          ) : (
+            <TouchableOpacity style={[styles.navButton, styles.disabledButton]} onPress={goForward} disabled={!activeTab?.canGoForward}>
+              <Ionicons name="arrow-forward" size={24} color="rgba(255, 255, 255, 0.4)" />
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Center - Add tab button (circled) */}
         <View style={styles.navigationCenter}>
           <TouchableOpacity style={styles.addTabButton} onPress={createNewTab}>
             <Ionicons name="add" size={24} color="white" />
           </TouchableOpacity>
         </View>
 
-        {/* Right side - Tabs overview button */}
         <View style={styles.navigationRight}>
           <TouchableOpacity style={styles.tabsButton} onPress={showTabsOverviewAnimated}>
             <View style={styles.tabsOverviewIcon}>
@@ -415,7 +769,6 @@ const DAppBrowser: React.FC = () => {
 export default DAppBrowser;
 
 const styles = StyleSheet.create({
-  // Error and Loading states
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -439,13 +792,50 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
   },
-
-  // Address Bar
   addressContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
+  },
+  addressBarWrapper: {
+    flex: 1,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 20,
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  addressBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    height: 40,
+    zIndex: 1,
+  },
+  addressText: {
+    flex: 1,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  stopButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  progressText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginLeft: 8,
+    fontWeight: '600',
+  },
+  progressBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 2,
   },
   addressInput: {
     flex: 1,
@@ -464,8 +854,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-  // WebView Container
   contentContainer: {
     flex: 1,
     position: 'relative',
@@ -474,8 +862,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
   },
-
-  // Bottom Navigation
+  swipeIndicator: {
+    position: 'absolute',
+    left: 20,
+    top: '50%',
+    marginTop: -16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+    pointerEvents: 'none',
+  },
   bottomNavigation: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -530,8 +930,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-
-  // Animated Tabs Overview
   tabsOverviewContainer: {
     flex: 1,
   },
@@ -539,15 +937,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.85)',
   },
-
-  // Tabs Overview Modal
   tabsOverviewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    paddingTop: 60, // Account for status bar
+    paddingTop: 60,
   },
   tabsOverviewTitle: {
     fontSize: 24,
