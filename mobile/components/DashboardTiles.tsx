@@ -79,7 +79,7 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
       formattedUsdValue = '...';
     }
 
-    if (card.networkId === NETWORK_USDT) {
+    if (card.networkId === NETWORK_USDT && !Number.isNaN(+formattedBalance)) {
       // dont display usd which is basically same as tokens,
       // and truncate to 2 digits after coma only
       formattedUsdValue = '';
