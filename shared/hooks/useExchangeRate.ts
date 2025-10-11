@@ -37,6 +37,8 @@ export const exchangeRateFetcher = async (arg: exchangeRateFetcherArg): Promise<
 export function useExchangeRate(network: Networks, fiat: TFiat) {
   let refreshInterval = 60_000;
 
+  let network2use: Networks = network;
+
   // we do not expect depeg, so we assume all those networks are the same thing,
   // so we hardcode network to bitcoin so that useSWR will use its cache.
   // WHEN and IF depegs become possible, remove
@@ -46,17 +48,17 @@ export function useExchangeRate(network: Networks, fiat: TFiat) {
     case NETWORK_LIQUID:
     case NETWORK_BOTANIX:
     case NETWORK_ROOTSTOCK:
-      network = NETWORK_BITCOIN;
+      network2use = NETWORK_BITCOIN;
   }
   //
 
   const arg: exchangeRateFetcherArg = useMemo(
     () => ({
       cacheKey: 'exchangeRateFetcher',
-      network,
+      network: network2use,
       fiat,
     }),
-    [network, fiat]
+    [network2use, fiat]
   );
 
   const { data, error, isLoading } = useSWR(arg, exchangeRateFetcher, {
