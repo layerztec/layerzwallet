@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { getAvailableNetworks, NETWORK_BITCOIN, Networks } from '@shared/types/networks';
+import { getAvailableNetworks, NETWORK_BITCOIN, NETWORK_USDT, Networks } from '@shared/types/networks';
 import { getNetworkGradient, gradients as sharedGradients } from '@shared/constants/Colors';
 import { getIsTestnet, getTickerByNetwork, getDecimalsByNetwork } from '@shared/models/network-getters';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -77,6 +77,13 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
       formattedUsdValue = `$${formatFiatBalance(balance, getDecimalsByNetwork(card.networkId as any), +exchangeRate)}`;
     } else {
       formattedUsdValue = '...';
+    }
+
+    if (card.networkId === NETWORK_USDT) {
+      // dont display usd which is basically same as tokens,
+      // and truncate to 2 digits after coma only
+      formattedUsdValue = '';
+      formattedBalance = String(Math.floor(+formattedBalance * 100) / 100);
     }
 
     return { ...card, balance: formattedBalance, usdValue: formattedUsdValue };
@@ -180,7 +187,7 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
               <Text style={styles.cardBalance}>
                 {displayCard.balance || '0'} <Text style={styles.cardTicker}>{displayCard.ticker}</Text>
               </Text>
-              <Text style={styles.cardUsdValue}>{displayCard.usdValue || '0.00'}</Text>
+              <Text style={styles.cardUsdValue}>{displayCard.usdValue || ''}</Text>
             </View>
           </View>
         </TouchableOpacity>
