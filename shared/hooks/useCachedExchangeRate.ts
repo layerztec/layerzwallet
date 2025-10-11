@@ -1,5 +1,5 @@
 import { useSWRConfig } from 'swr';
-import { NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_USDT, Networks } from '../types/networks';
+import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_BOTANIX, NETWORK_LIGHTNING, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '../types/networks';
 import { TFiat } from './useExchangeRate';
 import { StringNumber } from '../types/string-number';
 
@@ -18,13 +18,28 @@ export function useCachedExchangeRate(network: Networks, fiat: TFiat): { exchang
     };
   }
 
+  let network2use: Networks = network;
+
   if (network === NETWORK_LIGHTNING) {
     // lightning doesnt have its own exchange rate, its basically btc
-    network = NETWORK_BITCOIN;
+    network2use = NETWORK_BITCOIN;
   }
 
+  // we do not expect depeg, so we assume all those networks are the same thing,
+  // so we hardcode network to bitcoin so that useSWR will use its cache.
+  // WHEN and IF depegs become possible, remove
+  switch (network) {
+    case NETWORK_SPARK:
+    case NETWORK_ARK:
+    case NETWORK_LIQUID:
+    case NETWORK_BOTANIX:
+    case NETWORK_ROOTSTOCK:
+      network2use = NETWORK_BITCOIN;
+  }
+  //
+
   for (const key of cache.keys()) {
-    if (key.includes(`exchangeRateFetcher`) && key.includes(`network:"${network}"`)) {
+    if (key.includes(`exchangeRateFetcher`) && key.includes(`network:"${network2use}"`)) {
       const rate = cache.get(key);
       if (rate?.data) {
         return {
