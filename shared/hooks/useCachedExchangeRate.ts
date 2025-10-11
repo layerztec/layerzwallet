@@ -1,5 +1,5 @@
 import { useSWRConfig } from 'swr';
-import { NETWORK_USDT, Networks } from '../types/networks';
+import { NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_USDT, Networks } from '../types/networks';
 import { TFiat } from './useExchangeRate';
 import { StringNumber } from '../types/string-number';
 
@@ -16,6 +16,11 @@ export function useCachedExchangeRate(network: Networks, fiat: TFiat): { exchang
     return {
       exchangeRate: '1',
     };
+  }
+
+  if (network === NETWORK_LIGHTNING) {
+    // lightning doesnt have its own exchange rate, its basically btc
+    network = NETWORK_BITCOIN;
   }
 
   for (const key of cache.keys()) {
