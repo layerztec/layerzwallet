@@ -18,7 +18,7 @@ import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wal
 import { CreateTransactionTarget, CreateTransactionUtxo } from '@shared/class/wallets/types';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
@@ -48,7 +48,8 @@ const SendBtc: React.FC = () => {
   const [sendData, setSendData] = useState<undefined | { utxos: CreateTransactionUtxo[]; changeAddress: string }>(undefined);
   const [txhex, setTxhex] = useState<string>('');
   const [actualFee, setActualFee] = useState<number>();
-  const { network, setNetwork } = useContext(NetworkContext);
+  const { setNetwork } = useContext(NetworkContext);
+  const network = NETWORK_BITCOIN; // screen is exclusive to bitcoin
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const [showFeeModal, setShowFeeModal] = useState(false);
