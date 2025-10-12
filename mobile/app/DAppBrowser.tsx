@@ -2,7 +2,7 @@ import { Asset } from 'expo-asset';
 import { File } from 'expo-file-system';
 import * as Linking from 'expo-linking';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
-import { StyleSheet, TouchableOpacity, View, Alert, TextInput, ScrollView, Animated, PanResponder, Image, AppState, AppStateStatus, Dimensions } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Alert, TextInput, ScrollView, PanResponder, Image, AppState, AppStateStatus, Dimensions } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +10,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { captureRef } from 'react-native-view-shot';
 import { Image as ExpoImage } from 'expo-image';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import AnimatedReanimated, { useAnimatedStyle, useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, withSpring, interpolate, Extrapolation, runOnJS } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { ThemedText } from '@/components/ThemedText';
 import GradientScreen from '@/components/GradientScreen';
@@ -66,21 +67,22 @@ const DAppBrowser: React.FC = () => {
   const [addressInput, setAddressInput] = useState<string>(initialUrl);
   const [showTabsOverview, setShowTabsOverview] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isAddressInputFocused, setIsAddressInputFocused] = useState<boolean>(false);
 
-  const webviewOpacity = useRef(new Animated.Value(1)).current;
-  const tabsOpacity = useRef(new Animated.Value(0)).current;
-  const addressBarTranslateY = useRef(new Animated.Value(0)).current;
-  const progressWidth = useRef(new Animated.Value(0)).current;
-  const progressOpacity = useRef(new Animated.Value(1)).current;
+  const webviewOpacity = useSharedValue(1);
+  const tabsOpacity = useSharedValue(0);
+  const addressBarTranslateY = useSharedValue(0);
+  const progressWidth = useSharedValue(0);
+  const progressOpacity = useSharedValue(1);
 
-  const scrollOffset = useRef(new Animated.Value(0)).current;
+  const scrollOffset = useSharedValue(0);
   const lastScrollY = useRef(0);
   const scrollStartY = useRef(0);
   const isAddressBarVisible = useRef(true);
   const isContentScrollable = useRef(true);
 
-  const swipeProgress = useRef(new Animated.Value(0)).current;
-  const swipeOverlayOpacity = useRef(new Animated.Value(0)).current;
+  const swipeProgress = useSharedValue(0);
+  const swipeOverlayOpacity = useSharedValue(0);
 
   const modalTranslateY = useSharedValue(0);
   const currentModalPosition = useSharedValue(0);
@@ -88,6 +90,8 @@ const DAppBrowser: React.FC = () => {
   const whiteFlashAnim = useSharedValue(0);
   const lastHandledUrl = useRef<string | undefined>(undefined);
   const [isNetworkSelectorVisible, setIsNetworkSelectorVisible] = useState<boolean>(false);
+  const isManualNavigation = useRef<boolean>(false);
+  const lastManualNavigationUrl = useRef<string | undefined>(undefined);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId);
   const currentUrl = activeTab?.url || initialUrl;
@@ -98,6 +102,54 @@ const DAppBrowser: React.FC = () => {
 
   const whiteFlashAnimatedStyle = useAnimatedStyle(() => ({
     opacity: whiteFlashAnim.value,
+  }));
+
+  const addressBarAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(tabsOpacity.value, [0, 1], [1, 0]),
+    transform: [
+      {
+        translateY: scrollOffset.value * -120 + addressBarTranslateY.value,
+      },
+    ],
+  }));
+
+  const webviewContainerAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: webviewOpacity.value,
+    transform: [{ translateY: addressBarTranslateY.value }],
+  }));
+
+  const tabsOverviewAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: tabsOpacity.value,
+  }));
+
+  const swipeIndicatorAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(swipeProgress.value, [0, 0.3, 1], [0, 1, 0]),
+    transform: [
+      {
+        translateX: interpolate(swipeProgress.value, [0, 1], [-50, 100]),
+      },
+    ],
+  }));
+
+  const swipeOverlayAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: swipeOverlayOpacity.value,
+  }));
+
+  const swipeContentAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateX: interpolate(swipeProgress.value, [0, 1], [0, 100]),
+      },
+    ],
+  }));
+
+  const progressBarAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: progressOpacity.value,
+    transform: [
+      {
+        scaleX: progressWidth.value,
+      },
+    ],
   }));
 
   const panGesture = Gesture.Pan()
@@ -146,64 +198,34 @@ const DAppBrowser: React.FC = () => {
         return isHorizontalSwipe && isFromLeftEdge && isSwipingRight && (activeTab?.canGoBack || false);
       },
       onPanResponderGrant: () => {
-        swipeProgress.setValue(0);
-        swipeOverlayOpacity.setValue(0.3);
+        swipeProgress.value = 0;
+        swipeOverlayOpacity.value = 0.3;
       },
       onPanResponderMove: (_, gestureState) => {
         const progress = Math.min(Math.max(gestureState.dx / 200, 0), 1);
-        swipeProgress.setValue(progress);
-        swipeOverlayOpacity.setValue(0.3 * (1 - progress));
+        swipeProgress.value = progress;
+        swipeOverlayOpacity.value = 0.3 * (1 - progress);
       },
       onPanResponderRelease: (_, gestureState) => {
         const shouldGoBack = gestureState.dx > 100 && gestureState.vx > 0.3;
 
         if (shouldGoBack && activeTab?.canGoBack) {
-          Animated.parallel([
-            Animated.timing(swipeProgress, {
-              toValue: 1,
-              duration: 150,
-              useNativeDriver: true,
-            }),
-            Animated.timing(swipeOverlayOpacity, {
-              toValue: 0,
-              duration: 150,
-              useNativeDriver: true,
-            }),
-          ]).start(() => {
-            goBack();
-            swipeProgress.setValue(0);
-            swipeOverlayOpacity.setValue(0);
+          swipeProgress.value = withTiming(1, { duration: 150 }, (finished) => {
+            if (finished) {
+              runOnJS(goBack)();
+              swipeProgress.value = 0;
+              swipeOverlayOpacity.value = 0;
+            }
           });
+          swipeOverlayOpacity.value = withTiming(0, { duration: 150 });
         } else {
-          Animated.parallel([
-            Animated.spring(swipeProgress, {
-              toValue: 0,
-              useNativeDriver: true,
-              tension: 100,
-              friction: 10,
-            }),
-            Animated.timing(swipeOverlayOpacity, {
-              toValue: 0,
-              duration: 200,
-              useNativeDriver: true,
-            }),
-          ]).start();
+          swipeProgress.value = withSpring(0, { damping: 10, stiffness: 100 });
+          swipeOverlayOpacity.value = withTiming(0, { duration: 200 });
         }
       },
       onPanResponderTerminate: () => {
-        Animated.parallel([
-          Animated.spring(swipeProgress, {
-            toValue: 0,
-            useNativeDriver: true,
-            tension: 100,
-            friction: 10,
-          }),
-          Animated.timing(swipeOverlayOpacity, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-        ]).start();
+        swipeProgress.value = withSpring(0, { damping: 10, stiffness: 100 });
+        swipeOverlayOpacity.value = withTiming(0, { duration: 200 });
       },
     })
   ).current;
@@ -471,7 +493,7 @@ const DAppBrowser: React.FC = () => {
       whiteFlashAnim.value = withTiming(1, { duration: flashDuration }, (finished) => {
         'worklet';
         if (finished) {
-          runOnJS(setNetwork)(selectedNetwork);
+          scheduleOnRN(setNetwork, selectedNetwork);
 
           whiteFlashAnim.value = withTiming(0, { duration: flashDuration }, (finished2) => {
             'worklet';
@@ -480,14 +502,14 @@ const DAppBrowser: React.FC = () => {
               modalTranslateY.value = withTiming(0, { duration: 400 });
 
               const homeUrl = `https://layerztec.github.io/website/explore/?network=${selectedNetwork}`;
-              runOnJS(setIsNetworkSelectorVisible)(false);
-              runOnJS(updateActiveTab)({
+              scheduleOnRN(setIsNetworkSelectorVisible, false);
+              scheduleOnRN(updateActiveTab, {
                 url: homeUrl,
                 title: 'site-url.com',
                 history: [{ url: homeUrl, title: 'site-url.com' }],
                 historyIndex: 0,
               });
-              runOnJS(setAddressInput)(homeUrl);
+              scheduleOnRN(setAddressInput, homeUrl);
             }
           });
         }
@@ -518,12 +540,19 @@ const DAppBrowser: React.FC = () => {
   const closeTab = (tabId: string) => {
     if (tabs.length === 1) {
       const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
-      updateActiveTab({
+      const newTab: BrowserTab = {
+        id: Date.now().toString(),
         url: homeUrl,
         title: 'site-url.com',
+        canGoBack: false,
+        canGoForward: false,
         history: [{ url: homeUrl, title: 'site-url.com' }],
         historyIndex: 0,
-      });
+        timestamp: Date.now(),
+        isLoaded: true,
+      };
+      setTabs([newTab]);
+      setActiveTabId(newTab.id);
       setAddressInput(homeUrl);
       return;
     }
@@ -535,6 +564,10 @@ const DAppBrowser: React.FC = () => {
       const newActiveTab = newTabs[newTabs.length - 1];
       setActiveTabId(newActiveTab.id);
       setAddressInput(newActiveTab.url);
+    }
+
+    if (newTabs.length === 1 && showTabsOverview) {
+      hideTabsOverview();
     }
   };
 
@@ -574,45 +607,21 @@ const DAppBrowser: React.FC = () => {
 
     setShowTabsOverview(true);
     isAddressBarVisible.current = false;
-    Animated.parallel([
-      Animated.timing(webviewOpacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(tabsOpacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(addressBarTranslateY, {
-        toValue: -120,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    scrollOffset.value = 0;
+    webviewOpacity.value = withTiming(0, { duration: 300 });
+    tabsOpacity.value = withTiming(1, { duration: 300 });
+    addressBarTranslateY.value = withTiming(-120, { duration: 300 });
   };
 
   const hideTabsOverview = () => {
     isAddressBarVisible.current = true;
-    Animated.parallel([
-      Animated.timing(webviewOpacity, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(tabsOpacity, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(addressBarTranslateY, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setShowTabsOverview(false);
+    scrollOffset.value = 0;
+    webviewOpacity.value = withTiming(1, { duration: 250 });
+    tabsOpacity.value = withTiming(0, { duration: 250 });
+    addressBarTranslateY.value = withTiming(0, { duration: 250 }, (finished) => {
+      if (finished) {
+        runOnJS(setShowTabsOverview)(false);
+      }
     });
   };
 
@@ -653,11 +662,59 @@ const DAppBrowser: React.FC = () => {
   };
 
   const goBack = () => {
-    webviewRef.current?.goBack();
+    const tab = tabs.find((t) => t.id === activeTabId);
+    if (!tab || tab.historyIndex <= 0) return;
+
+    const newIndex = tab.historyIndex - 1;
+    const historyItem = tab.history[newIndex];
+
+    isManualNavigation.current = true;
+    lastManualNavigationUrl.current = historyItem.url;
+    setTabs((prev) =>
+      prev.map((t) =>
+        t.id === activeTabId
+          ? {
+              ...t,
+              historyIndex: newIndex,
+              url: historyItem.url,
+              title: historyItem.title,
+              canGoBack: newIndex > 0,
+              canGoForward: newIndex < t.history.length - 1,
+            }
+          : t
+      )
+    );
+
+    setAddressInput(historyItem.url);
+    webviewRef.current?.injectJavaScript(`window.location.href = '${historyItem.url}';`);
   };
 
   const goForward = () => {
-    webviewRef.current?.goForward();
+    const tab = tabs.find((t) => t.id === activeTabId);
+    if (!tab || tab.historyIndex >= tab.history.length - 1) return;
+
+    const newIndex = tab.historyIndex + 1;
+    const historyItem = tab.history[newIndex];
+
+    isManualNavigation.current = true;
+    lastManualNavigationUrl.current = historyItem.url;
+    setTabs((prev) =>
+      prev.map((t) =>
+        t.id === activeTabId
+          ? {
+              ...t,
+              historyIndex: newIndex,
+              url: historyItem.url,
+              title: historyItem.title,
+              canGoBack: newIndex > 0,
+              canGoForward: newIndex < t.history.length - 1,
+            }
+          : t
+      )
+    );
+
+    setAddressInput(historyItem.url);
+    webviewRef.current?.injectJavaScript(`window.location.href = '${historyItem.url}';`);
   };
 
   const goToHistoryItem = (index: number) => {
@@ -665,6 +722,25 @@ const DAppBrowser: React.FC = () => {
     if (!tab || index < 0 || index >= tab.history.length) return;
 
     const historyItem = tab.history[index];
+
+    isManualNavigation.current = true;
+    lastManualNavigationUrl.current = historyItem.url;
+    setTabs((prev) =>
+      prev.map((t) =>
+        t.id === activeTabId
+          ? {
+              ...t,
+              historyIndex: index,
+              url: historyItem.url,
+              title: historyItem.title,
+              canGoBack: index > 0,
+              canGoForward: index < t.history.length - 1,
+            }
+          : t
+      )
+    );
+
+    setAddressInput(historyItem.url);
     webviewRef.current?.injectJavaScript(`window.location.href = '${historyItem.url}';`);
   };
 
@@ -698,7 +774,7 @@ const DAppBrowser: React.FC = () => {
     (scrollY: number, isScrollable: boolean = true) => {
       if (!isScrollable || !isContentScrollable.current) {
         if (!isAddressBarVisible.current) {
-          scrollOffset.setValue(0);
+          scrollOffset.value = 0;
           isAddressBarVisible.current = true;
         }
         return;
@@ -708,7 +784,7 @@ const DAppBrowser: React.FC = () => {
 
       if (scrollY < 10) {
         scrollStartY.current = 0;
-        scrollOffset.setValue(0);
+        scrollOffset.value = 0;
         isAddressBarVisible.current = true;
       } else if ((delta > 0 && isAddressBarVisible.current) || (delta < 0 && !isAddressBarVisible.current)) {
         if (Math.abs(scrollY - scrollStartY.current) < 5) {
@@ -721,7 +797,7 @@ const DAppBrowser: React.FC = () => {
 
       const progress = Math.max(0, Math.min(1, scrollDistance / maxScrollDistance));
 
-      scrollOffset.setValue(progress);
+      scrollOffset.value = progress;
 
       if (progress > 0.5 && isAddressBarVisible.current) {
         isAddressBarVisible.current = false;
@@ -747,7 +823,7 @@ const DAppBrowser: React.FC = () => {
         if (parsed.type === 'scrollable' && typeof parsed.isScrollable === 'boolean') {
           isContentScrollable.current = parsed.isScrollable;
           if (!parsed.isScrollable && !isAddressBarVisible.current) {
-            scrollOffset.setValue(0);
+            scrollOffset.value = 0;
             isAddressBarVisible.current = true;
           }
           return;
@@ -765,20 +841,12 @@ const DAppBrowser: React.FC = () => {
       setIsLoading(progress < 1);
 
       if (progress < 1) {
-        progressOpacity.setValue(1);
+        progressOpacity.value = 1;
       }
 
-      Animated.timing(progressWidth, {
-        toValue: progress,
-        duration: 100,
-        useNativeDriver: true,
-      }).start(() => {
-        if (progress >= 1) {
-          Animated.timing(progressOpacity, {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: true,
-          }).start();
+      progressWidth.value = withTiming(progress, { duration: 100 }, (finished) => {
+        if (finished && progress >= 1) {
+          progressOpacity.value = withTiming(0, { duration: 300 });
         }
       });
     },
@@ -787,11 +855,21 @@ const DAppBrowser: React.FC = () => {
 
   const handleNavigationStateChange = useCallback(
     (navState: WebViewNavigation) => {
+      if (isManualNavigation.current || lastManualNavigationUrl.current === navState.url) {
+        isManualNavigation.current = false;
+        lastManualNavigationUrl.current = undefined;
+        return;
+      }
+
       const title = getTabTitle(navState.url);
 
       setTabs((prev) =>
         prev.map((tab) => {
           if (tab.id !== activeTabId) return tab;
+
+          if (tab.url === navState.url) {
+            return tab;
+          }
 
           const newHistory = [...tab.history.slice(0, tab.historyIndex + 1)];
 
@@ -799,14 +877,16 @@ const DAppBrowser: React.FC = () => {
             newHistory.push({ url: navState.url, title });
           }
 
+          const newHistoryIndex = newHistory.length - 1;
+
           return {
             ...tab,
             url: navState.url,
             title,
-            canGoBack: navState.canGoBack,
-            canGoForward: navState.canGoForward,
+            canGoBack: newHistoryIndex > 0,
+            canGoForward: false,
             history: newHistory,
-            historyIndex: newHistory.length - 1,
+            historyIndex: newHistoryIndex,
           };
         })
       );
@@ -844,40 +924,28 @@ const DAppBrowser: React.FC = () => {
         <DashboardTiles cards={networkCards} onCardPress={handleNetworkSwitch} showLogo={true} />
       </View>
 
-      <AnimatedReanimated.View style={[styles.modalContainer, { height: MODAL_MAX_HEIGHT }, modalAnimatedStyle]}>
+      <Animated.View style={[styles.modalContainer, { height: MODAL_MAX_HEIGHT }, modalAnimatedStyle]}>
         <GradientScreen variant={network}>
           <GestureDetector gesture={panGesture}>
-            <Animated.View
-              style={{
-                opacity: tabsOpacity.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [1, 0],
-                }),
-                transform: [
-                  {
-                    translateY: Animated.add(
-                      scrollOffset.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, -120],
-                      }),
-                      addressBarTranslateY
-                    ),
-                  },
-                ],
-              }}
-              pointerEvents={showTabsOverview ? 'none' : 'auto'}
-            >
+            <Animated.View style={addressBarAnimatedStyle} pointerEvents={showTabsOverview ? 'none' : 'auto'}>
               <View style={[styles.addressContainer, isNetworkSelectorVisible && styles.addressContainerWithSelector]}>
                 {isNetworkSelectorVisible && <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={hideNetworkSwitcherModal} />}
                 <TouchableOpacity style={styles.networkButton} onPress={showNetworkSwitcherModal} disabled={isNetworkSelectorVisible}>
                   <ExpoImage source={getNetworkImageAsset(network)} style={styles.networkIcon} contentFit="contain" />
                 </TouchableOpacity>
-                <View style={styles.addressBarWrapper}>
+                <View style={styles.addressBarWrapper} pointerEvents={isNetworkSelectorVisible ? 'none' : 'auto'}>
                   <View style={styles.addressBar}>
                     <TextInput
                       style={styles.addressText}
                       value={addressInput}
                       onChangeText={setAddressInput}
+                      onFocus={() => {
+                        setIsAddressInputFocused(true);
+                        if (isNetworkSelectorVisible) {
+                          setIsNetworkSelectorVisible(false);
+                        }
+                      }}
+                      onBlur={() => setIsAddressInputFocused(false)}
                       onSubmitEditing={() => {
                         let url = addressInput.trim();
                         if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -892,8 +960,13 @@ const DAppBrowser: React.FC = () => {
                       placeholder="Enter URL"
                       placeholderTextColor="rgba(255, 255, 255, 0.5)"
                       selectTextOnFocus={true}
+                      editable={!isNetworkSelectorVisible}
                     />
-                    {isLoading ? (
+                    {isAddressInputFocused ? (
+                      <TouchableOpacity style={styles.stopButton} onPress={() => setAddressInput('')}>
+                        <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
+                      </TouchableOpacity>
+                    ) : isLoading ? (
                       <TouchableOpacity style={styles.stopButton} onPress={stopLoading}>
                         <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
                       </TouchableOpacity>
@@ -903,22 +976,10 @@ const DAppBrowser: React.FC = () => {
                       </TouchableOpacity>
                     )}
                   </View>
-                  <Animated.View
-                    style={[
-                      styles.progressBar,
-                      {
-                        opacity: progressOpacity,
-                        transform: [
-                          {
-                            scaleX: progressWidth,
-                          },
-                        ],
-                      },
-                    ]}
-                  />
+                  <Animated.View style={[styles.progressBar, progressBarAnimatedStyle]} />
                 </View>
-                <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
-                  <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.9)" />
+                <TouchableOpacity style={styles.closeButton} onPress={() => router.back()} disabled={isAddressInputFocused || isNetworkSelectorVisible}>
+                  <Ionicons name="close" size={20} color={isAddressInputFocused || isNetworkSelectorVisible ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.9)'} />
                 </TouchableOpacity>
               </View>
             </Animated.View>
@@ -927,60 +988,12 @@ const DAppBrowser: React.FC = () => {
           <View style={styles.contentContainer}>
             {isNetworkSelectorVisible && <TouchableOpacity style={styles.networkSelectorDismissOverlay} activeOpacity={1} onPress={hideNetworkSwitcherModal} />}
 
-            <Animated.View
-              style={[
-                styles.webviewContainer,
-                {
-                  opacity: webviewOpacity,
-                  flex: 1,
-                },
-              ]}
-              {...panResponder.panHandlers}
-            >
-              <Animated.View
-                style={[
-                  StyleSheet.absoluteFill,
-                  {
-                    opacity: swipeOverlayOpacity,
-                    backgroundColor: 'black',
-                    pointerEvents: 'none',
-                  },
-                ]}
-              />
-              <Animated.View
-                style={[
-                  styles.swipeIndicator,
-                  {
-                    opacity: swipeProgress.interpolate({
-                      inputRange: [0, 0.3, 1],
-                      outputRange: [0, 1, 0],
-                    }),
-                    transform: [
-                      {
-                        translateX: swipeProgress.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [-50, 100],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              >
+            <Animated.View style={[styles.webviewContainer, webviewContainerAnimatedStyle, { flex: 1 }]} {...panResponder.panHandlers}>
+              <Animated.View style={[StyleSheet.absoluteFill, swipeOverlayAnimatedStyle, { backgroundColor: 'black', pointerEvents: 'none' }]} />
+              <Animated.View style={[styles.swipeIndicator, swipeIndicatorAnimatedStyle]}>
                 <Ionicons name="arrow-back" size={32} color="rgba(255, 255, 255, 0.9)" />
               </Animated.View>
-              <Animated.View
-                style={{
-                  flex: 1,
-                  transform: [
-                    {
-                      translateX: swipeProgress.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 100],
-                      }),
-                    },
-                  ],
-                }}
-              >
+              <Animated.View style={[{ flex: 1 }, swipeContentAnimatedStyle]}>
                 {tabs.map((tab) => {
                   const isActive = tab.id === activeTabId;
                   const shouldRender = isActive || tab.isLoaded;
@@ -1026,6 +1039,7 @@ const DAppBrowser: React.FC = () => {
                           injectedJavaScriptBeforeContentLoaded={js}
                           style={{ opacity: tab.screenshot && isLoading ? 0 : 1 }}
                           incognito={false}
+                          scrollEnabled={!isAddressInputFocused}
                         />
                       )}
                     </View>
@@ -1037,8 +1051,8 @@ const DAppBrowser: React.FC = () => {
             <Animated.View
               style={[
                 styles.tabsOverviewContainer,
+                tabsOverviewAnimatedStyle,
                 {
-                  opacity: tabsOpacity,
                   position: 'absolute',
                   top: 0,
                   left: 0,
@@ -1150,8 +1164,8 @@ const DAppBrowser: React.FC = () => {
 
             <View style={styles.navigationRight}>
               <View style={styles.navButtonContainer}>
-                <TouchableOpacity style={styles.navButton} onPress={showTabsOverviewAnimated}>
-                  <View style={styles.tabsOverviewIcon}>
+                <TouchableOpacity style={styles.navButton} onPress={showTabsOverviewAnimated} disabled={tabs.length === 1}>
+                  <View style={[styles.tabsOverviewIcon, tabs.length === 1 && { opacity: 0.3 }]}>
                     <ThemedText style={styles.tabsCount}>{tabs.length}</ThemedText>
                   </View>
                 </TouchableOpacity>
@@ -1159,9 +1173,9 @@ const DAppBrowser: React.FC = () => {
             </View>
           </View>
 
-          <AnimatedReanimated.View style={[styles.whiteFlashOverlayAnimated, whiteFlashAnimatedStyle]} />
+          <Animated.View style={[styles.whiteFlashOverlayAnimated, whiteFlashAnimatedStyle]} />
         </GradientScreen>
-      </AnimatedReanimated.View>
+      </Animated.View>
     </GestureHandlerRootView>
   );
 };
