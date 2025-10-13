@@ -234,8 +234,8 @@ const DAppBrowser: React.FC = () => {
     (async () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const [asset] = await Asset.loadAsync(require('assets/js/inpage-bridge.jstxt'));
-        const file = new File(asset.localUri || '');
+        const [{ localUri }] = await Asset.loadAsync(require('assets/js/inpage-bridge.jstxt'));
+        const file = new File(localUri || '');
         const r = await file.text();
 
         const scrollDetectionScript = `
