@@ -26,7 +26,7 @@ const BackdoorNetworkSwitcher: React.FC = () => {
           onPress={() => handleNetworkSelect(network)}
           activeOpacity={0.7}
         >
-          <View style={styles.networkItemContent}>
+          <View style={styles.networkItemContent} testID={currentNetwork === network ? `selectedNetwork-${network}` : undefined}>
             <Text>{network}</Text>
           </View>
         </TouchableOpacity>
