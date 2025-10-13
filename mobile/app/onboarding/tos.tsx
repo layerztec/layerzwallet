@@ -82,7 +82,7 @@ export default function TermsOfServiceScreen() {
             <View style={{ marginVertical: 10 }} />
 
             <Animated.View style={[subtitleTransition]}>
-              <ThemedText type="paragraph" darkColor="rgba(255, 255, 255, 0.7)" textAlign="center">
+              <ThemedText type="paragraph" darkColor="rgba(255, 255, 255, 0.7)" textAlign="center" testID="TosSubtitle">
                 You are now ready to access your wallet and unlock the full potential that Bitcoin has to offer via Layer2
               </ThemedText>
             </Animated.View>
