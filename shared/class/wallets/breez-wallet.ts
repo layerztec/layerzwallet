@@ -20,12 +20,18 @@ import * as bip21 from 'bip21';
 
 import { createLightningInvoiceResponse, InterfaceLightningWallet } from './interface-lightning-wallet';
 import { CommonTokenTransfer, CommonTransaction } from '@shared/types/common-transaction';
-import { getTokenList } from '@shared/models/token-list';
+import { getTokenInfo, getTokenList } from '@shared/models/token-list';
 import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET } from '@shared/types/networks';
 
 export type BreezConnection = {
   mnemonic: string;
   network: LiquidNetwork;
+};
+
+// L-BTC asset IDs for mainnet and testnet
+export const LBTC_ASSET_IDS = {
+  mainnet: '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d',
+  testnet: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49',
 };
 
 export interface IBreezAdapter {
@@ -201,55 +207,60 @@ export class BreezWallet implements InterfaceLightningWallet {
 
   async getCommonTransactions(): Promise<CommonTransaction[]> {
     const payments = await this.listPayments({});
+    const txMap = new Map<string, CommonTransaction>();
 
-    // convert to common transaction
-    const commonTransactions: CommonTransaction[] = [];
     for (const p of payments) {
-      let tokenTransfers: CommonTokenTransfer[] = [];
-      // Make sure it is a token transfer
-      if (p.details.type === 'liquid' && !Object.values(LBTC_ASSET_IDS).includes(p.details.assetId)) {
-        const tokenId = p.details.assetId;
-        let amount: number | undefined;
-        let address: string | undefined;
-        if (p.details.assetInfo?.amount) {
-          amount = p.details.assetInfo.amount;
-        }
-        if (p.details.destination) {
-          const urnScheme = this.n === 'mainnet' ? 'liquidnetwork' : 'liquidtestnet';
-
-          // in some cases, the destination is not a valid BIP21 address,
-          // but a Lightning invoice or Liquid address
-          let decoded;
-          try {
-            decoded = bip21.decode(p.details.destination, urnScheme);
-          } catch (e) {}
-
-          if (decoded?.address) {
-            address = decoded.address;
-          }
-          if (amount === undefined && decoded?.options.amount) {
-            amount = Number(decoded.options.amount);
-          }
-        }
-
-        tokenTransfers = [{ address, amount, tokenId }];
+      if (!p.txId) {
+        continue;
       }
 
-      const explorerBase = this.n === 'mainnet' ? 'https://liquid.network' : 'https://liquid.network/testnet';
-      commonTransactions.push({
-        txid: p.txId!,
-        network: NETWORK_LIQUID,
-        timestamp: p.timestamp,
-        direction: p.paymentType,
-        amount: p.amountSat,
-        status: p.status === 'complete' ? 'confirmed' : 'pending',
-        fee: p.feesSat,
-        tokenTransfers,
-        explorerUrl: `${explorerBase}/tx/${p.txId}`,
-      });
+      let newTx = txMap.get(p.txId);
+      if (!newTx) {
+        const explorerBase = this.n === 'mainnet' ? 'https://liquid.network' : 'https://liquid.network/testnet';
+        newTx = {
+          txid: p.txId,
+          network: NETWORK_LIQUID,
+          timestamp: p.timestamp,
+          direction: p.paymentType,
+          amount: undefined,
+          status: p.status === 'complete' ? 'confirmed' : 'pending',
+          fee: p.feesSat,
+          explorerUrl: `${explorerBase}/tx/${p.txId}`,
+        };
+      }
+
+      // liquid transaction
+      if (p.details.type === 'liquid') {
+        if (Object.values(LBTC_ASSET_IDS).includes(p.details.assetId)) {
+          // asset is L-BTC
+          newTx.amount = p.amountSat;
+        } else {
+          // token transfer
+          if (!p.details.assetInfo) {
+            // ignore unknown token transfers
+            continue;
+          }
+          const tokenId = p.details.assetId;
+          const address = p.details.destination;
+          // we need to convert assetInfo.amount to absolute value
+          let amount = p.details.assetInfo.amount;
+          const tokenInfo = getTokenInfo(tokenId);
+          amount = Math.abs(amount * Math.pow(10, tokenInfo.decimals));
+          newTx.tokenTransfers = newTx.tokenTransfers ?? [];
+          newTx.tokenTransfers.push({ amount, tokenId, address });
+        }
+      }
+
+      // lightning transaction
+      if (p.details.type === 'lightning') {
+        newTx.amount = p.amountSat;
+      }
+
+      txMap.set(p.txId, newTx);
     }
 
-    return commonTransactions;
+    // convert map to array and sort by timestamp
+    return Array.from(txMap.values()).sort((a, b) => b.timestamp - a.timestamp);
   }
 
   allowLightning() {
@@ -268,12 +279,6 @@ export const getAssertMetadata = (liquidNetwork: LiquidNetwork): AssetMetadata[]
     ticker: token.symbol,
     precision: token.decimals,
   }));
-};
-
-// L-BTC asset IDs for mainnet and testnet
-export const LBTC_ASSET_IDS = {
-  mainnet: '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d',
-  testnet: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49',
 };
 
 // Map our app network to Breez LiquidNetwork type
