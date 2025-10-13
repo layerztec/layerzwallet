@@ -83,7 +83,7 @@ export default function TermsOfServiceScreen() {
 
             <Animated.View style={[subtitleTransition]}>
               <ThemedText type="paragraph" darkColor="rgba(255, 255, 255, 0.7)" textAlign="center">
-                You are now ready to access your wallet{'\n'}and unlock the full potential that Bitcoin has to offer via Layer2
+                You are now ready to access your wallet and unlock the full potential that Bitcoin has to offer via Layer2
               </ThemedText>
             </Animated.View>
           </View>
