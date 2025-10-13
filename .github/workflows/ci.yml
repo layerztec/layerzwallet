@@ -8,6 +8,12 @@ on:
 
 jobs:
   ext-unit:
+    env:
+      TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
+      EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
+      EXPO_PUBLIC_BOLTZ_API_URL: ${{ secrets.EXPO_PUBLIC_BOLTZ_API_URL }}
+      EXPO_PUBLIC_ARK_SERVER_URL: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_URL }}
+      EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project
@@ -30,6 +36,9 @@ jobs:
     env:
       TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
       EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
+      EXPO_PUBLIC_BOLTZ_API_URL: ${{ secrets.EXPO_PUBLIC_BOLTZ_API_URL }}
+      EXPO_PUBLIC_ARK_SERVER_URL: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_URL }}
+      EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project
@@ -90,6 +99,9 @@ jobs:
     env:
       TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
       EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
+      EXPO_PUBLIC_BOLTZ_API_URL: ${{ secrets.EXPO_PUBLIC_BOLTZ_API_URL }}
+      EXPO_PUBLIC_ARK_SERVER_URL: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_URL }}
+      EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project
@@ -161,6 +173,12 @@ jobs:
         run: cd ext && npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
 
   mobile-unit:
+    env:
+      TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
+      EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
+      EXPO_PUBLIC_BOLTZ_API_URL: ${{ secrets.EXPO_PUBLIC_BOLTZ_API_URL }}
+      EXPO_PUBLIC_ARK_SERVER_URL: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_URL }}
+      EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project
@@ -182,6 +200,10 @@ jobs:
   mobile-integration:
     env:
       TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
+      EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
+      EXPO_PUBLIC_BOLTZ_API_URL: ${{ secrets.EXPO_PUBLIC_BOLTZ_API_URL }}
+      EXPO_PUBLIC_ARK_SERVER_URL: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_URL }}
+      EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project
