@@ -28,6 +28,7 @@ function liquidToCommonTokenInfo(token: LiquidTokenInfo): TokenInfo {
     name: token.name,
     decimals: token.decimals,
     symbol: token.symbol,
+    logoURI: token.logoURI,
   };
 }
 

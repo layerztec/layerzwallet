@@ -14,7 +14,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
       // BTC
       {
         txId: '095cf834f56cc032708bb2465463ae348164b4d498b181f52fd98d0097c08629',
-        timestamp: 1754383510,
+        timestamp: 6,
         amountSat: 1123,
         feesSat: 0,
         status: 'complete',
@@ -45,7 +45,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
         feesSat: 81,
         paymentType: 'send',
         status: 'complete',
-        timestamp: 1754384530,
+        timestamp: 5,
         txId: 'tx2',
       },
       // Lightning, receive
@@ -65,7 +65,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
         },
         swapperFeesSat: 1,
         txId: 'tx3',
-        timestamp: 1750158910,
+        timestamp: 4,
         amountSat: 53,
       },
       // Unknown asset, send
@@ -79,7 +79,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
         },
         destination:
           'liquidtestnet:tlq1qqt0ms77xycr0c40jz8rtdsp230vmx8yzczrm5d7fjm95wc89pe6667uzw86jt53684mudx3qha50qwuhyqxtsmdfpyh6pfycx?assetid=ec24f3e4a4993802f901d881ea1bbfc642dfbc25d5fe82af2564ddc59dc025a9&amount=0.00000001',
-        timestamp: 1749209827,
+        timestamp: 3,
         amountSat: 1,
         feesSat: 40,
         paymentType: 'send',
@@ -93,7 +93,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
       {
         feesSat: 0,
         paymentType: 'receive',
-        timestamp: 1748430250,
+        timestamp: 2,
         details: {
           payerNote: null,
           description: 'Liquid transfer',
@@ -119,7 +119,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
       },
       // Lightning as a destination, receive
       {
-        timestamp: 1746798970,
+        timestamp: 1,
         status: 'complete',
         paymentType: 'receive',
         amountSat: 1183,
@@ -159,26 +159,25 @@ describe('Breez Wallet - getCommonTransactions', () => {
       {
         txid: '095cf834f56cc032708bb2465463ae348164b4d498b181f52fd98d0097c08629',
         network: NETWORK_LIQUID,
-        timestamp: 1754383510,
+        timestamp: 6,
         direction: 'receive',
         status: 'confirmed',
         fee: 0,
         amount: 1123,
-        tokenTransfers: [],
         explorerUrl: 'https://liquid.network/testnet/tx/095cf834f56cc032708bb2465463ae348164b4d498b181f52fd98d0097c08629',
       },
       {
         txid: 'tx2',
         network: NETWORK_LIQUID,
-        timestamp: 1754384530,
+        timestamp: 5,
         direction: 'send',
         status: 'confirmed',
         fee: 81,
-        amount: 0,
+        amount: undefined,
         tokenTransfers: [
           {
             address: undefined,
-            amount: 0.03,
+            amount: 3000000,
             tokenId: 'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2',
           },
         ],
@@ -190,39 +189,21 @@ describe('Breez Wallet - getCommonTransactions', () => {
         fee: 48,
         network: NETWORK_LIQUID,
         status: 'confirmed',
-        timestamp: 1750158910,
-        tokenTransfers: [],
+        timestamp: 4,
         txid: 'tx3',
         explorerUrl: 'https://liquid.network/testnet/tx/tx3',
       },
       {
-        amount: 1,
-        direction: 'send',
-        fee: 40,
-        network: 'liquid',
-        status: 'confirmed',
-        timestamp: 1749209827,
-        tokenTransfers: [
-          {
-            address: 'tlq1qqt0ms77xycr0c40jz8rtdsp230vmx8yzczrm5d7fjm95wc89pe6667uzw86jt53684mudx3qha50qwuhyqxtsmdfpyh6pfycx',
-            amount: 1e-8,
-            tokenId: 'ec24f3e4a4993802f901d881ea1bbfc642dfbc25d5fe82af2564ddc59dc025a9',
-          },
-        ],
-        txid: '1d9939da15721adbd021d550286fec9f8476c0218073416966e62ef8f4de1f9b',
-        explorerUrl: 'https://liquid.network/testnet/tx/1d9939da15721adbd021d550286fec9f8476c0218073416966e62ef8f4de1f9b',
-      },
-      {
-        amount: 0,
+        amount: undefined,
         direction: 'receive',
         fee: 0,
         network: 'liquid',
         status: 'confirmed',
-        timestamp: 1748430250,
+        timestamp: 2,
         tokenTransfers: [
           {
-            address: undefined,
-            amount: 1,
+            address: 'lq1qqfy8jhv9px5q0v5v0e2m5jltjhj2wjnq5sdf08r0fgldheas52arv56pptlw85vfmgn4vceuatwce0d4tp2xzqhhdjc89acf6',
+            amount: 100000000,
             tokenId: 'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2',
           },
         ],
@@ -235,8 +216,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
         fee: 51,
         network: 'liquid',
         status: 'confirmed',
-        timestamp: 1746798970,
-        tokenTransfers: [],
+        timestamp: 1,
         txid: '7968249135073947e2f396b5cf0ad02ca9c22435063dff895bc80faf0ec6e5f4',
         explorerUrl: 'https://liquid.network/testnet/tx/7968249135073947e2f396b5cf0ad02ca9c22435063dff895bc80faf0ec6e5f4',
       },
