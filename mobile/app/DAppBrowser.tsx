@@ -71,15 +71,8 @@ const DAppBrowser: React.FC = () => {
 
   const webviewOpacity = useSharedValue(1);
   const tabsOpacity = useSharedValue(0);
-  const addressBarTranslateY = useSharedValue(0);
   const progressWidth = useSharedValue(0);
   const progressOpacity = useSharedValue(1);
-
-  const scrollOffset = useSharedValue(0);
-  const lastScrollY = useRef(0);
-  const scrollStartY = useRef(0);
-  const isAddressBarVisible = useRef(true);
-  const isContentScrollable = useRef(true);
 
   const swipeProgress = useSharedValue(0);
   const swipeOverlayOpacity = useSharedValue(0);
@@ -106,16 +99,10 @@ const DAppBrowser: React.FC = () => {
 
   const addressBarAnimatedStyle = useAnimatedStyle(() => ({
     opacity: interpolate(tabsOpacity.value, [0, 1], [1, 0]),
-    transform: [
-      {
-        translateY: scrollOffset.value * -120 + addressBarTranslateY.value,
-      },
-    ],
   }));
 
   const webviewContainerAnimatedStyle = useAnimatedStyle(() => ({
     opacity: webviewOpacity.value,
-    transform: [{ translateY: addressBarTranslateY.value }],
   }));
 
   const tabsOverviewAnimatedStyle = useAnimatedStyle(() => ({
@@ -238,62 +225,11 @@ const DAppBrowser: React.FC = () => {
         const file = new File(localUri || '');
         const r = await file.text();
 
-        const scrollDetectionScript = `
-          let lastScrollY = 0;
-          let ticking = false;
-          
-          function checkScrollable() {
-            const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
-            const clientHeight = document.documentElement.clientHeight || window.innerHeight;
-            return scrollHeight > clientHeight + 100;
-          }
-          
-          function onScroll() {
-            lastScrollY = window.scrollY || window.pageYOffset;
-            if (!ticking) {
-              window.requestAnimationFrame(() => {
-                window.ReactNativeWebView.postMessage(JSON.stringify({
-                  type: 'scroll',
-                  scrollY: lastScrollY,
-                  isScrollable: checkScrollable()
-                }));
-                ticking = false;
-              });
-              ticking = true;
-            }
-          }
-          
-          function notifyScrollable() {
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'scrollable',
-              isScrollable: checkScrollable()
-            }));
-          }
-          
-          window.addEventListener('scroll', onScroll, { passive: true });
-          window.addEventListener('load', notifyScrollable);
-          window.addEventListener('resize', notifyScrollable);
-          
-          setTimeout(notifyScrollable, 100);
-        `;
-
-        setJs(r + '\n' + scrollDetectionScript);
+        setJs(r);
       } catch (error: any) {
         setError('Failed to load DApp browser script: ' + error.message);
       }
     })();
-  }, []);
-
-  const callbackRef = useCallback((r: WebView | null) => {
-    if (r === null) {
-      return;
-    }
-    webviewRef.current = r;
-    browserBridgeRef.current = new BrowserBridge(r);
-
-    return () => {
-      BrowserBridge.instance = null;
-    };
   }, []);
 
   const saveTabs = async (tabsToSave: BrowserTab[], activeId: string) => {
@@ -606,19 +542,13 @@ const DAppBrowser: React.FC = () => {
     }
 
     setShowTabsOverview(true);
-    isAddressBarVisible.current = false;
-    scrollOffset.value = 0;
     webviewOpacity.value = withTiming(0, { duration: 300 });
     tabsOpacity.value = withTiming(1, { duration: 300 });
-    addressBarTranslateY.value = withTiming(-120, { duration: 300 });
   };
 
   const hideTabsOverview = () => {
-    isAddressBarVisible.current = true;
-    scrollOffset.value = 0;
     webviewOpacity.value = withTiming(1, { duration: 250 });
-    tabsOpacity.value = withTiming(0, { duration: 250 });
-    addressBarTranslateY.value = withTiming(0, { duration: 250 }, (finished) => {
+    tabsOpacity.value = withTiming(0, { duration: 250 }, (finished) => {
       if (finished) {
         runOnJS(setShowTabsOverview)(false);
       }
@@ -770,70 +700,9 @@ const DAppBrowser: React.FC = () => {
     Linking.openURL(currentUrl);
   };
 
-  const handleScroll = useCallback(
-    (scrollY: number, isScrollable: boolean = true) => {
-      if (!isScrollable || !isContentScrollable.current) {
-        if (!isAddressBarVisible.current) {
-          scrollOffset.value = 0;
-          isAddressBarVisible.current = true;
-        }
-        return;
-      }
-
-      const delta = scrollY - lastScrollY.current;
-
-      if (scrollY < 10) {
-        scrollStartY.current = 0;
-        scrollOffset.value = 0;
-        isAddressBarVisible.current = true;
-      } else if ((delta > 0 && isAddressBarVisible.current) || (delta < 0 && !isAddressBarVisible.current)) {
-        if (Math.abs(scrollY - scrollStartY.current) < 5) {
-          scrollStartY.current = scrollY;
-        }
-      }
-
-      const scrollDistance = scrollY - scrollStartY.current;
-      const maxScrollDistance = 80;
-
-      const progress = Math.max(0, Math.min(1, scrollDistance / maxScrollDistance));
-
-      scrollOffset.value = progress;
-
-      if (progress > 0.5 && isAddressBarVisible.current) {
-        isAddressBarVisible.current = false;
-      } else if (progress < 0.5 && !isAddressBarVisible.current) {
-        isAddressBarVisible.current = true;
-      }
-
-      lastScrollY.current = scrollY;
-    },
-    [scrollOffset]
-  );
-
-  const handleMessage = useCallback(
-    (event: WebViewMessageEvent) => {
-      const data = event.nativeEvent.data;
-
-      try {
-        const parsed = JSON.parse(data);
-        if (parsed.type === 'scroll' && typeof parsed.scrollY === 'number') {
-          handleScroll(parsed.scrollY, parsed.isScrollable);
-          return;
-        }
-        if (parsed.type === 'scrollable' && typeof parsed.isScrollable === 'boolean') {
-          isContentScrollable.current = parsed.isScrollable;
-          if (!parsed.isScrollable && !isAddressBarVisible.current) {
-            scrollOffset.value = 0;
-            isAddressBarVisible.current = true;
-          }
-          return;
-        }
-      } catch {}
-
-      browserBridgeRef.current?.handleMessage(event);
-    },
-    [handleScroll, scrollOffset]
-  );
+  const handleMessage = useCallback((event: WebViewMessageEvent) => {
+    browserBridgeRef.current?.handleMessage(event);
+  }, []);
 
   const handleLoadProgress = useCallback(
     ({ nativeEvent }: { nativeEvent: { progress: number } }) => {
@@ -924,7 +793,7 @@ const DAppBrowser: React.FC = () => {
         <DashboardTiles cards={networkCards} onCardPress={handleNetworkSwitch} showLogo={true} />
       </View>
 
-      <Animated.View style={[styles.modalContainer, { height: MODAL_MAX_HEIGHT }, modalAnimatedStyle]}>
+      <Animated.View style={[styles.modalContainer, modalAnimatedStyle]}>
         <GradientScreen variant={network}>
           <GestureDetector gesture={panGesture}>
             <Animated.View style={addressBarAnimatedStyle} pointerEvents={showTabsOverview ? 'none' : 'auto'}>
@@ -988,12 +857,12 @@ const DAppBrowser: React.FC = () => {
           <View style={styles.contentContainer}>
             {isNetworkSelectorVisible && <TouchableOpacity style={styles.networkSelectorDismissOverlay} activeOpacity={1} onPress={hideNetworkSwitcherModal} />}
 
-            <Animated.View style={[styles.webviewContainer, webviewContainerAnimatedStyle, { flex: 1 }]} {...panResponder.panHandlers}>
-              <Animated.View style={[StyleSheet.absoluteFill, swipeOverlayAnimatedStyle, { backgroundColor: 'black', pointerEvents: 'none' }]} />
+            <Animated.View style={[styles.webviewContainer, webviewContainerAnimatedStyle, styles.flex1]} {...panResponder.panHandlers}>
+              <Animated.View style={[StyleSheet.absoluteFill, swipeOverlayAnimatedStyle, styles.swipeOverlay]} />
               <Animated.View style={[styles.swipeIndicator, swipeIndicatorAnimatedStyle]}>
                 <Ionicons name="arrow-back" size={32} color="rgba(255, 255, 255, 0.9)" />
               </Animated.View>
-              <Animated.View style={[{ flex: 1 }, swipeContentAnimatedStyle]}>
+              <Animated.View style={[styles.flex1, swipeContentAnimatedStyle]}>
                 {tabs.map((tab) => {
                   const isActive = tab.id === activeTabId;
                   const shouldRender = isActive || tab.isLoaded;
@@ -1007,12 +876,7 @@ const DAppBrowser: React.FC = () => {
                         }
                       }}
                       collapsable={false}
-                      style={[
-                        styles.tabContainer,
-                        {
-                          display: isActive ? 'flex' : 'none',
-                        },
-                      ]}
+                      style={[styles.tabContainer, isActive ? styles.tabActiveDisplay : styles.tabInactiveDisplay]}
                     >
                       {tab.screenshot && (!shouldRender || isLoading) && <Image source={{ uri: tab.screenshot }} style={StyleSheet.absoluteFill} resizeMode="cover" />}
 
@@ -1037,7 +901,7 @@ const DAppBrowser: React.FC = () => {
                           onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
                           onLoadProgress={isActive ? handleLoadProgress : undefined}
                           injectedJavaScriptBeforeContentLoaded={js}
-                          style={{ opacity: tab.screenshot && isLoading ? 0 : 1 }}
+                          style={tab.screenshot && isLoading ? styles.webviewHidden : styles.webviewLoaded}
                           incognito={false}
                           scrollEnabled={!isAddressInputFocused}
                         />
@@ -1048,20 +912,7 @@ const DAppBrowser: React.FC = () => {
               </Animated.View>
             </Animated.View>
 
-            <Animated.View
-              style={[
-                styles.tabsOverviewContainer,
-                tabsOverviewAnimatedStyle,
-                {
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                },
-              ]}
-              pointerEvents={showTabsOverview ? 'auto' : 'none'}
-            >
+            <Animated.View style={[styles.tabsOverviewContainer, tabsOverviewAnimatedStyle, styles.tabsOverviewAbsolute]} pointerEvents={showTabsOverview ? 'auto' : 'none'}>
               <View style={styles.tabsOverviewBackground}>
                 <View style={styles.tabsOverviewHeader}>
                   <ThemedText style={styles.tabsOverviewTitle}>Tabs</ThemedText>
@@ -1205,6 +1056,36 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  flex1: {
+    flex: 1,
+  },
+  swipeOverlay: {
+    backgroundColor: 'black',
+    pointerEvents: 'none',
+  },
+  tabsOverviewAbsolute: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  tabActiveDisplay: {
+    display: 'flex',
+  },
+  tabInactiveDisplay: {
+    display: 'none',
+  },
+  tabScreenshotAbsolute: {
+    width: '100%',
+    height: '100%',
+  },
+  webviewLoaded: {
+    opacity: 1,
+  },
+  webviewHidden: {
+    opacity: 0,
   },
   whiteFlashOverlayAnimated: {
     ...StyleSheet.absoluteFillObject,
@@ -1364,10 +1245,13 @@ const styles = StyleSheet.create({
   navigationCenter: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   navigationRight: {
-    alignItems: 'flex-end',
-    width: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    width: 112,
   },
   navButtonContainer: {
     width: 48,
