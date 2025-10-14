@@ -1,81 +1,99 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Animated } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
-import { Colors, gradients } from '@shared/constants/Colors';
+import { Colors } from '@shared/constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Rive, { RiveRef } from 'rive-react-native';
+
+const SLIDES = [
+  {
+    id: 1,
+    title: 'Welcome to Layerz',
+    text: 'Meet Layerz!! The next-gen Bitcoin wallet built to unlock the full potential of your coins. Experience Bitcoin not just as sound money, but as a foundation for the future of finance.',
+    duration: 7000,
+  },
+  {
+    id: 2,
+    title: 'Explore Bitcoin Layer 2',
+    text: "Dive into Lightning, Spark, Ark, Citrea, Liquid, Botanix, and more. Layerz makes it easy to harness the power of Bitcoin's evolving second layers.",
+    duration: 7000,
+  },
+  {
+    id: 3,
+    title: 'Self-Custodial & Secure',
+    text: 'Your keys, your control. With Layerz, your funds never leave your device. Trade, explore, and transact with confidence. Anytime, anywhere.',
+    duration: 7000,
+  },
+];
 
 export default function IntroScreen() {
   const router = useRouter();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const riveRef = useRef<RiveRef>(null);
+  const prevIndexRef = useRef(0);
+  const [riveError, setRiveError] = useState<string | null>(null);
 
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const titleOpacity = useRef(new Animated.Value(0)).current;
-  const titleTranslateY = useRef(new Animated.Value(30)).current;
-  const subtitleOpacity = useRef(new Animated.Value(0)).current;
-  const subtitleTranslateY = useRef(new Animated.Value(30)).current;
-  const buttonsOpacity = useRef(new Animated.Value(0)).current;
-  const buttonsTranslateY = useRef(new Animated.Value(40)).current;
+  // Fire Rive trigger when slide changes
+  useEffect(() => {
+    const prevIndex = prevIndexRef.current;
+
+    if (riveRef.current && prevIndex !== currentIndex) {
+      if (prevIndex === 0 && currentIndex === 1) {
+        riveRef.current.fireState('State Machine 1', 'trigger 1to2');
+      } else if (prevIndex === 1 && currentIndex === 2) {
+        riveRef.current.fireState('State Machine 1', 'trigger 2to3');
+      } else if (prevIndex === 2 && currentIndex === 0) {
+        riveRef.current.fireState('State Machine 1', 'trigger 3to1');
+      }
+    }
+
+    prevIndexRef.current = currentIndex;
+  }, [currentIndex]);
 
   useEffect(() => {
-    const animationSequence = Animated.sequence([
-      Animated.timing(logoOpacity, {
-        toValue: 1,
-        duration: 800,
+    // Start progress animation
+    const currentSlide = SLIDES[currentIndex];
+    progressAnim.setValue(0);
+
+    const animation = Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: currentSlide.duration,
+      useNativeDriver: false,
+    });
+
+    animation.start();
+
+    // Auto-advance to next slide
+    const timer = setTimeout(() => {
+      // Fade out
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 300,
         useNativeDriver: true,
-      }),
-
-      Animated.delay(300),
-
-      Animated.parallel([
-        Animated.timing(titleOpacity, {
+      }).start(() => {
+        // Change slide
+        setCurrentIndex((prev) => (prev + 1) % SLIDES.length);
+        // Fade in
+        Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 600,
+          duration: 300,
           useNativeDriver: true,
-        }),
-        Animated.timing(titleTranslateY, {
-          toValue: 0,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-      ]),
+        }).start();
+      });
+    }, currentSlide.duration);
 
-      Animated.delay(200),
+    return () => {
+      animation.stop();
+      clearTimeout(timer);
+    };
+  }, [currentIndex, progressAnim, fadeAnim]);
 
-      Animated.parallel([
-        Animated.timing(subtitleOpacity, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(subtitleTranslateY, {
-          toValue: 0,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-      ]),
-
-      Animated.delay(400),
-
-      Animated.parallel([
-        Animated.timing(buttonsOpacity, {
-          toValue: 1,
-          duration: 700,
-          useNativeDriver: true,
-        }),
-        Animated.timing(buttonsTranslateY, {
-          toValue: 0,
-          duration: 700,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]);
-
-    animationSequence.start();
-  }, [logoOpacity, titleOpacity, titleTranslateY, subtitleOpacity, subtitleTranslateY, buttonsOpacity, buttonsTranslateY]);
-
-  const handleCreateWallet = async () => {
-    router.push('/onboarding/create-wallet-intro');
+  const handleCreateWallet = () => {
+    router.push('/onboarding/create-wallet');
   };
 
   const handleImportWallet = () => {
@@ -83,76 +101,72 @@ export default function IntroScreen() {
   };
 
   return (
-    <LinearGradient colors={gradients.blueGradient} style={styles.container}>
+    <LinearGradient colors={['#000000', '#252932']} style={styles.container}>
       <SafeAreaView style={styles.safeAreaView}>
-        <View style={styles.logoContainer}>
-          <Animated.View
-            style={[
-              {
-                opacity: logoOpacity,
-              },
-            ]}
-          >
-            <Image source={require('@/assets/images/logo.png')} style={styles.image} />
-          </Animated.View>
-        </View>
+        <View style={styles.contentContainer}>
+          {/* Rive Animation */}
+          <View style={styles.animationPlaceholder}>
+            <Rive
+              ref={riveRef}
+              autoplay={true}
+              style={{ width: '100%', height: '100%' }}
+              resourceName="intro"
+              onError={(error) => {
+                setRiveError(error.message || 'Unknown error');
+              }}
+            />
+          </View>
+          {/* Animated Text Content */}
+          <Animated.View style={[styles.textContainer, { opacity: fadeAnim }]}>
+            {/* Title */}
+            <ThemedText style={styles.slideTitle} darkColor="#FFFFFF">
+              {SLIDES[currentIndex].title}
+            </ThemedText>
 
-        <View style={styles.content}>
-          <Animated.View
-            style={[
-              {
-                opacity: titleOpacity,
-                transform: [{ translateY: titleTranslateY }],
-              },
-            ]}
-          >
-            <ThemedText type="title" darkColor={Colors.dark.buttonText}>
-              Welcome to Layerz
+            {/* Text */}
+            <ThemedText style={styles.slideText} darkColor="rgba(255, 255, 255, 0.7)">
+              {SLIDES[currentIndex].text}
             </ThemedText>
           </Animated.View>
 
-          <View style={{ marginVertical: 10 }} />
-
-          <Animated.View
-            style={[
-              {
-                opacity: subtitleOpacity,
-                transform: [{ translateY: subtitleTranslateY }],
-              },
-            ]}
-          >
-            <ThemedText type="paragraph" darkColor={Colors.dark.paragraphText}>
-              From A–Z, You're in Control
-            </ThemedText>
-          </Animated.View>
-        </View>
-
-        <View style={styles.buttonSection}>
-          <Animated.View
-            style={[
-              styles.buttonContainer,
-              {
-                opacity: buttonsOpacity,
-                transform: [{ translateY: buttonsTranslateY }],
-              },
-            ]}
-          >
-            <TouchableOpacity style={styles.button} onPress={handleCreateWallet}>
-              <View style={styles.view}>
-                <ThemedText type="button" darkColor={Colors.dark.buttonText}>
-                  Create Wallet
-                </ThemedText>
+          {/* Progress Bars */}
+          <View style={styles.progressContainer}>
+            {SLIDES.map((slide, index) => (
+              <View key={slide.id} style={styles.progressBar}>
+                <Animated.View
+                  style={[
+                    styles.progressBarFilled,
+                    {
+                      width:
+                        index === currentIndex
+                          ? progressAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ['0%', '100%'],
+                            })
+                          : index < currentIndex
+                            ? '100%'
+                            : '0%',
+                    },
+                  ]}
+                />
               </View>
+            ))}
+          </View>
+
+          {/* Buttons */}
+          <View style={styles.buttonSection}>
+            <TouchableOpacity style={styles.buttonPrimary} onPress={handleCreateWallet}>
+              <ThemedText type="defaultSemiBold" darkColor={Colors.dark.buttonText}>
+                Create Wallet
+              </ThemedText>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button2} onPress={handleImportWallet}>
-              <View style={styles.view}>
-                <ThemedText type="button" darkColor={Colors.dark.buttonText}>
-                  Import Wallet
-                </ThemedText>
-              </View>
+            <TouchableOpacity style={styles.buttonSecondary} onPress={handleImportWallet}>
+              <ThemedText type="defaultSemiBold" darkColor={Colors.dark.buttonText}>
+                Import Wallet
+              </ThemedText>
             </TouchableOpacity>
-          </Animated.View>
+          </View>
         </View>
       </SafeAreaView>
     </LinearGradient>
@@ -162,52 +176,78 @@ export default function IntroScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
   },
   safeAreaView: {
     flex: 1,
   },
-  logoContainer: {
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: 24,
+    justifyContent: 'space-between',
+  },
+  animationPlaceholder: {
+    width: 380,
+    height: 350,
+    alignSelf: 'center',
+    backgroundColor: 'transparent',
+  },
+  textContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 40,
+    paddingHorizontal: 8,
   },
-  image: {
+  slideTitle: {
+    textAlign: 'left',
+    marginBottom: 16,
+    fontSize: 42,
+    fontWeight: '500',
+    lineHeight: 48,
+  },
+  slideText: {
+    textAlign: 'left',
+    marginBottom: 8,
+    lineHeight: 24,
+    fontSize: 16,
+    fontWeight: '400',
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 48,
+    maxWidth: 160,
     alignSelf: 'center',
   },
-  content: {
-    flex: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+  progressBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBarFilled: {
+    height: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 2,
   },
   buttonSection: {
-    flex: 1,
-    justifyContent: 'flex-end',
+    gap: 12,
   },
-  buttonContainer: {
-    marginHorizontal: 16,
-  },
-  button: {
-    alignItems: 'center',
+  buttonPrimary: {
     backgroundColor: Colors.dark.buttonPrimary,
+    borderColor: Colors.dark.buttonBorder,
     borderRadius: 16,
-    marginBottom: 8,
-    height: 56,
+    borderWidth: 1,
     justifyContent: 'center',
-  },
-  button2: {
     alignItems: 'center',
+    height: 56,
+  },
+  buttonSecondary: {
     backgroundColor: Colors.dark.buttonSecondary,
     borderColor: Colors.dark.buttonBorder,
     borderRadius: 16,
     borderWidth: 1,
     justifyContent: 'center',
-    height: 56,
-  },
-  view: {
     alignItems: 'center',
-    paddingBottom: 1,
+    height: 56,
   },
 });
