@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { BIP85 } from 'bip85';
 
 import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
 import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
@@ -73,6 +74,13 @@ export type TSupportedLazyInitWalletNetworks =
   | typeof NETWORK_ARK;
 export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkWallet;
 
+function getSubMnemonic(mnemonic: string, accountNum = 0) {
+  const masterSeed = BIP85.fromMnemonic(mnemonic);
+
+  const child = masterSeed.deriveBIP39(0, 12, accountNum); // 0 is English, 12 is 12 words
+  return child.toMnemonic();
+}
+
 /**
  * Initialize and cache a wallet for the given network/account, using serialization if available.
  *
@@ -92,7 +100,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     // across accounts are the same
     // @see https://github.com/breez/breez-sdk-liquid/issues/1021
     // FIXME: remove once breez implements it ^^^
-    accountNumber = 0;
+    // accountNumber = 0; // FIXME: uncomment this line once we get rid of BIP85: https://github.com/layerztec/layerzwallet/issues/416
   }
 
   // cache hit
@@ -129,8 +137,8 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       // we dont save it to storage
       assert(masterSeed, 'Master seed is not available');
       const sw = new SparkWallet();
-      sw.setSecret(masterSeed);
-      sw.setAccountNumber(accountNumber);
+      sw.setSecret(getSubMnemonic(masterSeed, accountNumber));
+      // sw.setAccountNumber(accountNumber); // FIXME: uncomment this line once we get rid of BIP85: https://github.com/layerztec/layerzwallet/issues/416
       await sw.init();
       cachedWallets[network][accountNumber] = sw;
       return sw;
@@ -140,8 +148,8 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Ark env vars not set');
       assert(masterSeed, 'Master seed is not available');
       const aw = new ArkWallet();
-      aw.setSecret(masterSeed);
-      aw.setAccountNumber(accountNumber);
+      aw.setSecret(getSubMnemonic(masterSeed, accountNumber));
+      // aw.setAccountNumber(accountNumber); // FIXME: uncomment this line once we get rid of BIP85: https://github.com/layerztec/layerzwallet/issues/416
 
       // FIXME: temporarily while mutinynet arkd is down we make this wallet work with mainnet:
       aw.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
@@ -156,8 +164,8 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     if (network === NETWORK_ARK) {
       assert(masterSeed, 'Master seed is not available');
       const aw = new ArkWallet();
-      aw.setSecret(masterSeed);
-      aw.setAccountNumber(accountNumber);
+      aw.setSecret(getSubMnemonic(masterSeed, accountNumber));
+      // aw.setAccountNumber(accountNumber); // FIXME: uncomment this line once we get rid of BIP85: https://github.com/layerztec/layerzwallet/issues/416
       assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Ark env vars not set');
       // fixme: can be moved from env vars to hardcode once Ark mainnet goes public
       aw.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
@@ -174,7 +182,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       assert(masterSeed, 'Master seed is not available');
       const bNetwork = getBreezNetwork(network);
 
-      const bw = new BreezWallet(masterSeed, bNetwork);
+      const bw = new BreezWallet(getSubMnemonic(masterSeed, accountNumber), bNetwork);
       // FIXME: account number!!!!!!!!!!!!!!
       cachedWallets[network][accountNumber] = bw;
       return bw;
@@ -230,6 +238,9 @@ export const sanitizeAndValidateMnemonic = (mnemonic: string): string => {
   if (words.length < 12 || words.length > 24) {
     throw new Error('Invalid mnemonic length. It should be 12 to 24 words.');
   }
+
+  // Check if we can import it
+  BIP85.fromMnemonic(sanitizedMnemonic);
 
   // Validate against BIP39 standards
   if (!validateMnemonic(sanitizedMnemonic)) {
