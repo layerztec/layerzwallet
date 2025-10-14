@@ -281,6 +281,7 @@ const DAppBrowser: React.FC = () => {
 
   const captureTabScreenshot = useCallback(async (tabId: string): Promise<string | null> => {
     const containerRef = tabContainerRefs.current[tabId];
+
     if (!containerRef?.current) {
       return null;
     }
@@ -311,16 +312,18 @@ const DAppBrowser: React.FC = () => {
       tabsToUnload.forEach((tab) => {
         if (tab.id !== activeTabId) {
           delete tabWebViewRefs.current[tab.id];
-          delete tabContainerRefs.current[tab.id];
+          // Keep tabContainerRefs so we can still capture screenshots
         }
       });
 
-      return prevTabs.map((tab) => {
+      const updatedTabs = prevTabs.map((tab) => {
         if (tabsToUnload.find((t) => t.id === tab.id) && tab.id !== activeTabId) {
           return { ...tab, isLoaded: false };
         }
         return tab;
       });
+
+      return updatedTabs;
     });
   }, [activeTabId]);
 
@@ -532,29 +535,53 @@ const DAppBrowser: React.FC = () => {
       return;
     }
 
+    const oldActiveTabId = activeTabId;
+
     try {
-      const currentScreenshot = await captureTabScreenshot(activeTabId);
-      if (currentScreenshot) {
-        setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot: currentScreenshot, timestamp: Date.now() } : tab)));
-      }
+      const currentScreenshot = await captureTabScreenshot(oldActiveTabId);
+
+      // Combine all state updates into a single setTabs call to avoid race conditions
+      setTabs((prevTabs) => {
+        return prevTabs.map((tab) => {
+          // Update screenshot for old active tab
+          if (tab.id === oldActiveTabId && currentScreenshot) {
+            return { ...tab, screenshot: currentScreenshot, timestamp: Date.now() };
+          }
+          // Update isLoaded and timestamp for new active tab
+          if (tab.id === tabId) {
+            return { ...tab, isLoaded: true, timestamp: Date.now() };
+          }
+          return tab;
+        });
+      });
     } catch (error) {
-      console.warn('Screenshot capture failed during tab switch:', error);
+      // Still switch the tab even if screenshot fails
+      setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === tabId ? { ...tab, isLoaded: true, timestamp: Date.now() } : tab)));
     }
 
     setActiveTabId(tabId);
-    setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === tabId ? { ...tab, isLoaded: true, timestamp: Date.now() } : tab)));
 
-    const tab = tabs.find((t) => t.id === tabId);
-    if (tab) {
-      setAddressInput(tab.url);
-    }
+    // Get the tab info from the updated state
+    setTabs((prevTabs) => {
+      const tab = prevTabs.find((t) => t.id === tabId);
+      if (tab) {
+        setAddressInput(tab.url);
+      }
+      return prevTabs;
+    });
 
     hideTabsOverview();
 
-    setTimeout(unloadInactiveTabs, 500);
+    setTimeout(() => {
+      unloadInactiveTabs();
+    }, 500);
   };
 
   const showTabsOverviewAnimated = async () => {
+    // Wait a bit to ensure the page is rendered
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    // Only capture screenshot for the active tab (visible tab)
     const screenshot = await captureTabScreenshot(activeTabId);
     if (screenshot) {
       setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot, timestamp: Date.now() } : tab)));
@@ -574,6 +601,14 @@ const DAppBrowser: React.FC = () => {
         runOnJS(setShowTabsOverview)(false);
       }
     });
+  };
+
+  const toggleTabsOverview = () => {
+    if (showTabsOverview) {
+      hideTabsOverview();
+    } else {
+      showTabsOverviewAnimated();
+    }
   };
 
   const updateActiveTab = (updates: Partial<BrowserTab>) => {
@@ -737,10 +772,18 @@ const DAppBrowser: React.FC = () => {
       progressWidth.value = withTiming(progress, { duration: 100 }, (finished) => {
         if (finished && progress >= 1) {
           progressOpacity.value = withTiming(0, { duration: 300 });
+
+          // Capture screenshot when page finishes loading
+          setTimeout(async () => {
+            const screenshot = await captureTabScreenshot(activeTabId);
+            if (screenshot) {
+              setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot } : tab)));
+            }
+          }, 1000);
         }
       });
     },
-    [progressWidth, progressOpacity]
+    [progressWidth, progressOpacity, activeTabId, captureTabScreenshot]
   );
 
   const handleNavigationStateChange = useCallback(
@@ -892,7 +935,7 @@ const DAppBrowser: React.FC = () => {
                     <View
                       key={`tab-container-${tab.id}`}
                       ref={(ref) => {
-                        if (ref && isActive) {
+                        if (ref) {
                           tabContainerRefs.current[tab.id] = { current: ref };
                         }
                       }}
@@ -936,9 +979,6 @@ const DAppBrowser: React.FC = () => {
               <View style={styles.tabsOverviewBackground}>
                 <View style={styles.tabsOverviewHeader}>
                   <ThemedText style={styles.tabsOverviewTitle}>Tabs</ThemedText>
-                  <TouchableOpacity onPress={hideTabsOverview} style={styles.tabsOverviewCloseButton}>
-                    <Ionicons name="close" size={24} color="white" />
-                  </TouchableOpacity>
                 </View>
 
                 <ScrollView style={styles.tabsOverviewContent} contentContainerStyle={styles.tabsGridContainer}>
@@ -959,7 +999,7 @@ const DAppBrowser: React.FC = () => {
 
                         <View style={styles.tabCardPreview}>
                           {tab.screenshot ? (
-                            <Image source={{ uri: tab.screenshot }} style={styles.tabCardScreenshot} resizeMode="cover" />
+                            <Image key={tab.screenshot} source={{ uri: tab.screenshot }} style={styles.tabCardScreenshot} resizeMode="cover" />
                           ) : (
                             <View style={styles.tabCardContent}>
                               <ThemedText style={styles.tabCardUrl} numberOfLines={2}>
@@ -978,53 +1018,57 @@ const DAppBrowser: React.FC = () => {
 
           <View style={styles.bottomNavigation}>
             <View style={styles.navigationLeft}>
-              <View style={styles.navButtonContainer}>
-                {activeTab?.canGoBack && getBackHistory().length > 0 ? (
-                  <Link href="/DAppBrowser" asChild>
-                    <TouchableOpacity style={styles.navButton} onPress={goBack}>
-                      <Link.Trigger>
-                        <View>
-                          <Ionicons name="arrow-back" size={24} color="white" />
-                        </View>
-                      </Link.Trigger>
-                      <Link.Menu>
-                        {getBackHistory().map((item, index) => {
-                          const historyIndex = (activeTab?.historyIndex || 0) - index - 1;
-                          return <Link.MenuAction key={`back-${historyIndex}`} title={item.title} icon="arrow.left" onPress={() => goToHistoryItem(historyIndex)} />;
-                        })}
-                      </Link.Menu>
-                    </TouchableOpacity>
-                  </Link>
-                ) : (
-                  <TouchableOpacity style={styles.navButton} onPress={goBack} disabled={!activeTab?.canGoBack}>
-                    <Ionicons name="arrow-back" size={24} color={activeTab?.canGoBack ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
-                  </TouchableOpacity>
-                )}
-              </View>
+              {!showTabsOverview && (
+                <>
+                  <View style={styles.navButtonContainer}>
+                    {activeTab?.canGoBack && getBackHistory().length > 0 ? (
+                      <Link href="/DAppBrowser" asChild>
+                        <TouchableOpacity style={styles.navButton} onPress={goBack}>
+                          <Link.Trigger>
+                            <View>
+                              <Ionicons name="arrow-back" size={24} color="white" />
+                            </View>
+                          </Link.Trigger>
+                          <Link.Menu>
+                            {getBackHistory().map((item, index) => {
+                              const historyIndex = (activeTab?.historyIndex || 0) - index - 1;
+                              return <Link.MenuAction key={`back-${historyIndex}`} title={item.title} icon="arrow.left" onPress={() => goToHistoryItem(historyIndex)} />;
+                            })}
+                          </Link.Menu>
+                        </TouchableOpacity>
+                      </Link>
+                    ) : (
+                      <TouchableOpacity style={styles.navButton} onPress={goBack} disabled={!activeTab?.canGoBack}>
+                        <Ionicons name="arrow-back" size={24} color={activeTab?.canGoBack ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
 
-              <View style={styles.navButtonContainer}>
-                {activeTab?.canGoForward && getForwardHistory().length > 0 ? (
-                  <Link href="/DAppBrowser" asChild>
-                    <TouchableOpacity style={styles.navButton} onPress={goForward}>
-                      <Link.Trigger>
-                        <View>
-                          <Ionicons name="arrow-forward" size={24} color="white" />
-                        </View>
-                      </Link.Trigger>
-                      <Link.Menu>
-                        {getForwardHistory().map((item, index) => {
-                          const historyIndex = (activeTab?.historyIndex || 0) + index + 1;
-                          return <Link.MenuAction key={`forward-${historyIndex}`} title={item.title} icon="arrow.right" onPress={() => goToHistoryItem(historyIndex)} />;
-                        })}
-                      </Link.Menu>
-                    </TouchableOpacity>
-                  </Link>
-                ) : (
-                  <TouchableOpacity style={styles.navButton} onPress={goForward} disabled={!activeTab?.canGoForward}>
-                    <Ionicons name="arrow-forward" size={24} color={activeTab?.canGoForward ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
-                  </TouchableOpacity>
-                )}
-              </View>
+                  <View style={styles.navButtonContainer}>
+                    {activeTab?.canGoForward && getForwardHistory().length > 0 ? (
+                      <Link href="/DAppBrowser" asChild>
+                        <TouchableOpacity style={styles.navButton} onPress={goForward}>
+                          <Link.Trigger>
+                            <View>
+                              <Ionicons name="arrow-forward" size={24} color="white" />
+                            </View>
+                          </Link.Trigger>
+                          <Link.Menu>
+                            {getForwardHistory().map((item, index) => {
+                              const historyIndex = (activeTab?.historyIndex || 0) + index + 1;
+                              return <Link.MenuAction key={`forward-${historyIndex}`} title={item.title} icon="arrow.right" onPress={() => goToHistoryItem(historyIndex)} />;
+                            })}
+                          </Link.Menu>
+                        </TouchableOpacity>
+                      </Link>
+                    ) : (
+                      <TouchableOpacity style={styles.navButton} onPress={goForward} disabled={!activeTab?.canGoForward}>
+                        <Ionicons name="arrow-forward" size={24} color={activeTab?.canGoForward ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </>
+              )}
             </View>
 
             <View style={styles.navigationCenter}>
@@ -1038,7 +1082,7 @@ const DAppBrowser: React.FC = () => {
                 <View style={styles.navButton} />
               </View>
               <View style={styles.navButtonContainer}>
-                <TouchableOpacity style={styles.navButton} onPress={showTabsOverviewAnimated} disabled={tabs.length === 1}>
+                <TouchableOpacity style={styles.navButton} onPress={toggleTabsOverview} disabled={tabs.length === 1}>
                   <View style={[styles.tabsOverviewIcon, tabs.length === 1 && { opacity: 0.3 }]}>
                     <ThemedText style={styles.tabsCount}>{tabs.length}</ThemedText>
                   </View>
@@ -1327,7 +1371,7 @@ const styles = StyleSheet.create({
   },
   tabsOverviewHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
@@ -1337,9 +1381,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: 'white',
-  },
-  tabsOverviewCloseButton: {
-    padding: 8,
   },
   tabsOverviewContent: {
     flex: 1,
