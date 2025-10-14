@@ -75,12 +75,6 @@ const DAppBrowser: React.FC = () => {
   const progressWidth = useSharedValue(0);
   const progressOpacity = useSharedValue(1);
 
-  const scrollOffset = useSharedValue(0);
-  const lastScrollY = useRef(0);
-  const scrollStartY = useRef(0);
-  const isAddressBarVisible = useRef(true);
-  const isContentScrollable = useRef(true);
-
   const swipeProgress = useSharedValue(0);
   const swipeOverlayOpacity = useSharedValue(0);
 
@@ -108,7 +102,7 @@ const DAppBrowser: React.FC = () => {
     opacity: interpolate(tabsOpacity.value, [0, 1], [1, 0]),
     transform: [
       {
-        translateY: scrollOffset.value * -120 + addressBarTranslateY.value,
+        translateY: addressBarTranslateY.value,
       },
     ],
   }));
@@ -238,46 +232,7 @@ const DAppBrowser: React.FC = () => {
         const file = new File(localUri || '');
         const r = await file.text();
 
-        const scrollDetectionScript = `
-          let lastScrollY = 0;
-          let ticking = false;
-          
-          function checkScrollable() {
-            const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
-            const clientHeight = document.documentElement.clientHeight || window.innerHeight;
-            return scrollHeight > clientHeight + 100;
-          }
-          
-          function onScroll() {
-            lastScrollY = window.scrollY || window.pageYOffset;
-            if (!ticking) {
-              window.requestAnimationFrame(() => {
-                window.ReactNativeWebView.postMessage(JSON.stringify({
-                  type: 'scroll',
-                  scrollY: lastScrollY,
-                  isScrollable: checkScrollable()
-                }));
-                ticking = false;
-              });
-              ticking = true;
-            }
-          }
-          
-          function notifyScrollable() {
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'scrollable',
-              isScrollable: checkScrollable()
-            }));
-          }
-          
-          window.addEventListener('scroll', onScroll, { passive: true });
-          window.addEventListener('load', notifyScrollable);
-          window.addEventListener('resize', notifyScrollable);
-          
-          setTimeout(notifyScrollable, 100);
-        `;
-
-        setJs(r + '\n' + scrollDetectionScript);
+        setJs(r);
       } catch (error: any) {
         setError('Failed to load DApp browser script: ' + error.message);
       }
@@ -606,16 +561,12 @@ const DAppBrowser: React.FC = () => {
     }
 
     setShowTabsOverview(true);
-    isAddressBarVisible.current = false;
-    scrollOffset.value = 0;
     webviewOpacity.value = withTiming(0, { duration: 300 });
     tabsOpacity.value = withTiming(1, { duration: 300 });
     addressBarTranslateY.value = withTiming(-120, { duration: 300 });
   };
 
   const hideTabsOverview = () => {
-    isAddressBarVisible.current = true;
-    scrollOffset.value = 0;
     webviewOpacity.value = withTiming(1, { duration: 250 });
     tabsOpacity.value = withTiming(0, { duration: 250 });
     addressBarTranslateY.value = withTiming(0, { duration: 250 }, (finished) => {
@@ -770,70 +721,9 @@ const DAppBrowser: React.FC = () => {
     Linking.openURL(currentUrl);
   };
 
-  const handleScroll = useCallback(
-    (scrollY: number, isScrollable: boolean = true) => {
-      if (!isScrollable || !isContentScrollable.current) {
-        if (!isAddressBarVisible.current) {
-          scrollOffset.value = 0;
-          isAddressBarVisible.current = true;
-        }
-        return;
-      }
-
-      const delta = scrollY - lastScrollY.current;
-
-      if (scrollY < 10) {
-        scrollStartY.current = 0;
-        scrollOffset.value = 0;
-        isAddressBarVisible.current = true;
-      } else if ((delta > 0 && isAddressBarVisible.current) || (delta < 0 && !isAddressBarVisible.current)) {
-        if (Math.abs(scrollY - scrollStartY.current) < 5) {
-          scrollStartY.current = scrollY;
-        }
-      }
-
-      const scrollDistance = scrollY - scrollStartY.current;
-      const maxScrollDistance = 80;
-
-      const progress = Math.max(0, Math.min(1, scrollDistance / maxScrollDistance));
-
-      scrollOffset.value = progress;
-
-      if (progress > 0.5 && isAddressBarVisible.current) {
-        isAddressBarVisible.current = false;
-      } else if (progress < 0.5 && !isAddressBarVisible.current) {
-        isAddressBarVisible.current = true;
-      }
-
-      lastScrollY.current = scrollY;
-    },
-    [scrollOffset]
-  );
-
-  const handleMessage = useCallback(
-    (event: WebViewMessageEvent) => {
-      const data = event.nativeEvent.data;
-
-      try {
-        const parsed = JSON.parse(data);
-        if (parsed.type === 'scroll' && typeof parsed.scrollY === 'number') {
-          handleScroll(parsed.scrollY, parsed.isScrollable);
-          return;
-        }
-        if (parsed.type === 'scrollable' && typeof parsed.isScrollable === 'boolean') {
-          isContentScrollable.current = parsed.isScrollable;
-          if (!parsed.isScrollable && !isAddressBarVisible.current) {
-            scrollOffset.value = 0;
-            isAddressBarVisible.current = true;
-          }
-          return;
-        }
-      } catch {}
-
-      browserBridgeRef.current?.handleMessage(event);
-    },
-    [handleScroll, scrollOffset]
-  );
+  const handleMessage = useCallback((event: WebViewMessageEvent) => {
+    browserBridgeRef.current?.handleMessage(event);
+  }, []);
 
   const handleLoadProgress = useCallback(
     ({ nativeEvent }: { nativeEvent: { progress: number } }) => {
