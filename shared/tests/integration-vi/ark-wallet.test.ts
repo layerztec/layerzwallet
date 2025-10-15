@@ -228,8 +228,7 @@ test.skip('ark mainnet can pay lightning invoice', async (context) => {
   console.log({ offchainBalance });
 
   const result = await w.payLightningInvoice(
-    'lnbc19u1p5dd0qvpp5sc5nasn5us76usdaru40c0v8lztnddps9zh2dw0xmr378mag978sdqdveex7mfqv9exkcqzysxqyz5vqsp5rththnuptxdqyne9d4jt0lz037xhy9g8mrmuzy2w70dexryztljs9qxpqysgqw7t08t0csjrenxktlr8hmt6yyydhgczwz8wuyy74p39zx57fl3zkh2mza7updd8jfxpgcx5qdyacxt2znz2yq3rvgs7r9krfa8rf54gq8x8qpe',
-    5
+    'lnbc19u1p5dd0qvpp5sc5nasn5us76usdaru40c0v8lztnddps9zh2dw0xmr378mag978sdqdveex7mfqv9exkcqzysxqyz5vqsp5rththnuptxdqyne9d4jt0lz037xhy9g8mrmuzy2w70dexryztljs9qxpqysgqw7t08t0csjrenxktlr8hmt6yyydhgczwz8wuyy74p39zx57fl3zkh2mza7updd8jfxpgcx5qdyacxt2znz2yq3rvgs7r9krfa8rf54gq8x8qpe'
   );
   assert.ok(result);
 });
