@@ -180,10 +180,11 @@ export function handleQrIntent(rawInput: string, router: Pick<Router, 'push'>): 
       return true;
     }
 
-    case 'posMerchant':
+    case 'posMerchant': {
       const params: PosMerchantParams = { raw: intent.raw };
       router.push({ pathname: '/PosMerchant', params });
       return true;
+    }
 
     case 'unknown':
     default: {

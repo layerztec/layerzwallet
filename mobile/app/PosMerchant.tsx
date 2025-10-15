@@ -3,6 +3,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleShe
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Crypto from 'expo-crypto';
 import bolt11lib from 'bolt11';
+import { Ionicons } from '@expo/vector-icons';
 
 import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
@@ -326,21 +327,6 @@ const PosMerchant: React.FC = () => {
     );
   }
 
-  if (success) {
-    return (
-      <GradientScreen variant={NETWORK_LIGHTNING}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <ScreenHeader title="POS Payment" />
-        <View style={styles.centered}>
-          <ThemedText style={styles.centeredText}>Payment sent!</ThemedText>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()}>
-            <ThemedText style={[styles.secondaryButtonText, { paddingLeft: 10, paddingRight: 10 }]}>Back</ThemedText>
-          </TouchableOpacity>
-        </View>
-      </GradientScreen>
-    );
-  }
-
   if (error) {
     return (
       <GradientScreen variant={NETWORK_LIGHTNING}>
@@ -523,7 +509,7 @@ const PosMerchant: React.FC = () => {
             </TouchableOpacity>
           ) : null}
 
-          {bolt11 && !isSending ? (
+          {bolt11 && !isSending && !success ? (
             <View>
               <LongPressButton onLongPressComplete={actuallySend} title="Hold to confirm send" progressColor="#FFFFFF" backgroundColor="#000000" />
             </View>
@@ -533,6 +519,16 @@ const PosMerchant: React.FC = () => {
             <View style={styles.centered}>
               <ThemedText style={styles.centeredText}>Sending payment...</ThemedText>
               <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" />
+            </View>
+          ) : null}
+
+          {success ? (
+            <View style={styles.centered}>
+              <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
+              <ThemedText style={styles.centeredText}>Payment sent!</ThemedText>
+              <TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()}>
+                <ThemedText style={[styles.secondaryButtonText, { paddingLeft: 10, paddingRight: 10 }]}>Done</ThemedText>
+              </TouchableOpacity>
             </View>
           ) : null}
         </ScrollView>
