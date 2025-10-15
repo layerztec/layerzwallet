@@ -4,6 +4,7 @@ import { ArkTransaction, TxType } from '@arkade-os/sdk';
 
 import { ArkWallet } from '../../class/wallets/ark-wallet';
 import { IStorage } from '../../types/IStorage';
+import { NETWORK_ARK } from '../../types/networks';
 
 const _cache: Record<string, string> = {};
 const storageMock: IStorage = {
@@ -64,14 +65,14 @@ test('ark mainnet can getCommonTransactions', async (context) => {
     {
       amount: 100,
       direction: 'send',
-      network: 'ark',
+      network: NETWORK_ARK,
       timestamp: 1756199879,
       txid: 'c08e5661587fa741aea8d4eb0be3b400aae75cee18b0e0afa70b9ba41d9ca3be',
     },
     {
       amount: 2100,
       direction: 'receive',
-      network: 'ark',
+      network: NETWORK_ARK,
       timestamp: 1755786091,
       txid: '5a41fdc280352cab91fef62a1f407a0c8559ecffb2f85bea1970b72eaf4d6058',
     },

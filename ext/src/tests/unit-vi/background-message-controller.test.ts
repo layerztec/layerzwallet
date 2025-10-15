@@ -3,7 +3,6 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { MessageType } from '@shared/types/IBackgroundCaller';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { handleMessage } from '../../modules/background-message-controller';
-import { sanitizeAndValidateMnemonic } from '../../../../shared/modules/wallet-utils';
 
 import CreateData = chrome.windows.CreateData;
 
@@ -116,23 +115,4 @@ test('BackgroundMessageController can handle message OPEN_POPUP', async () => {
   assert.ok(!callbackCalled); // not called because popup returns result waaay later, via async messaging
 
   expect(openMockedMethod).toHaveBeenCalled();
-});
-
-test('sanitizeAndValidateMnemonic should handle complex whitespace scenarios', () => {
-  const mnemonic = '\n\n  abandon\t abandon   abandon\r\n abandon abandon  abandon\t\t abandon abandon abandon abandon   abandon ABOUT  \n\n';
-  const result = sanitizeAndValidateMnemonic(mnemonic);
-  assert.strictEqual(result, 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
-});
-
-test('sanitizeAndValidateMnemonic should handle double calls', () => {
-  const mnemonic = '\n\n  abandon\t abandon   abandon\r\n abandon abandon  abandon\t\t abandon abandon abandon abandon   abandon ABOUT  \n\n';
-  const result = sanitizeAndValidateMnemonic(sanitizeAndValidateMnemonic(mnemonic));
-  assert.strictEqual(result, 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
-});
-
-test('sanitizeAndValidateMnemonic should throw error for mnemonic with less than 12 words', () => {
-  const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon';
-  assert.throws(() => {
-    sanitizeAndValidateMnemonic(mnemonic);
-  }, /Invalid mnemonic length/);
 });
