@@ -93,7 +93,7 @@ export default function IntroScreen() {
   }, [currentIndex, progressAnim, fadeAnim]);
 
   const handleCreateWallet = () => {
-    router.push('/onboarding/create-wallet');
+    router.push('/onboarding/create-wallet-intro');
   };
 
   const handleImportWallet = () => {
