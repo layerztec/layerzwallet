@@ -58,20 +58,31 @@ appId: com.layerzwallet.mobile
     id: 'BackupRecoveryPhraseCheckbox'
 - tapOn:
     id: 'BackupRecoveryPhraseCheckbox'
+- waitForAnimationToEnd
 
 # Check the terms of service checkbox
 - assertVisible:
     id: 'TermsOfServiceCheckbox'
 - tapOn:
     id: 'TermsOfServiceCheckbox'
+- waitForAnimationToEnd
 
 # Wait for button to become enabled
 - waitForAnimationToEnd
+- waitForAnimationToEnd
 
-# Verify the button is enabled and tap it
+# First check if button is visible
 - assertVisible:
     id: 'LetsGoButton'
-    enabled: true
+
+# Wait for button to become enabled
+- extendedWaitUntil:
+    visible:
+      id: 'LetsGoButton'
+      enabled: true
+    timeout: 10000
+
+# Tap the button
 - tapOn:
     id: 'LetsGoButton'
 - waitForAnimationToEnd
