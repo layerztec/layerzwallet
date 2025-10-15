@@ -101,10 +101,7 @@ export default function TermsOfServiceScreen() {
               <TouchableOpacity style={styles.checkboxContainer} onPress={() => handleCheckboxPress('terms')} activeOpacity={0.7} testID="TermsOfServiceCheckbox">
                 <View style={[styles.checkbox, termsChecked && styles.checkboxChecked]}>{termsChecked && <Ionicons name="checkmark" size={16} />}</View>
                 <ThemedText style={styles.checkboxText} darkColor="rgba(255, 255, 255, 0.9)">
-                  I have read and accept the Layerz Tec Ltd{' '}
-                  <ThemedText style={[styles.checkboxText, styles.linkText]} darkColor="rgba(255, 255, 255, 0.9)" onPress={handleOpenTerms}>
-                    Terms of Service.
-                  </ThemedText>
+                  I have read and accept the Layerz Tec Ltd Terms of Service.
                 </ThemedText>
               </TouchableOpacity>
             </Animated.View>
