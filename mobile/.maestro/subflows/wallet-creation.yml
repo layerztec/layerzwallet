@@ -65,11 +65,15 @@ appId: com.layerzwallet.mobile
 - tapOn:
     id: 'TermsOfServiceCheckbox'
 
+# Wait for button to become enabled
+- waitForAnimationToEnd
+
 # Verify the button is enabled and tap it
 - assertVisible:
-    text: "Let's go"
+    id: 'LetsGoButton'
     enabled: true
-- tapOn: "Let's go"
+- tapOn:
+    id: 'LetsGoButton'
 - waitForAnimationToEnd
 
 # Wait for home screen with Send & Receive buttons
