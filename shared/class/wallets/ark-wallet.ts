@@ -1,5 +1,5 @@
 import { ArkadeLightning, BoltzSwapProvider, decodeInvoice } from '@arkade-os/boltz-swap';
-import { Ramps, SingleKey, TxType, Wallet } from '@arkade-os/sdk';
+import { Ramps, SingleKey, TxType, VtxoManager, Wallet } from '@arkade-os/sdk';
 import { ExpoArkProvider, ExpoIndexerProvider } from '@arkade-os/sdk/adapters/expo';
 import ecc from '@bitcoinerlab/secp256k1';
 import assert from 'assert';
@@ -83,13 +83,28 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
 
     const storage = new ArkCustomStorage();
 
-    this._wallet = await Wallet.create({
+    const wallet = await Wallet.create({
       storage,
       identity,
       arkProvider: new ExpoArkProvider(this._arkServerUrl),
       indexerProvider: new ExpoIndexerProvider(this._arkServerUrl),
       arkServerPublicKey: this._arkServerPublicKey,
     });
+    this._wallet = wallet;
+
+    // initialize VTXO manager in set timeout so it doesnt block the wallet initialization
+    setTimeout(async () => {
+      const manager = new VtxoManager(wallet, {
+        enabled: true, // Enable expiration monitoring
+        thresholdPercentage: 10, // Alert when 10% of lifetime remains (default)
+      });
+      try {
+        const txid = await manager.renewVtxos();
+        console.log('ARK VTXO Renewed:', txid);
+      } catch (error) {
+        console.error('ARK Error renewing VTXOs:', error);
+      }
+    }, 10);
   }
 
   async initLightningSwaps() {
@@ -230,7 +245,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     return Promise.resolve(false);
   }
 
-  async payLightningInvoice(invoice: string, masFeePercentage: number = 1): Promise<boolean> {
+  async payLightningInvoice(invoice: string): Promise<boolean> {
     assert(this._arkadeLightning, 'Ark Lightning not initialized');
     const invoiceDetails = decodeInvoice(invoice);
 
@@ -238,12 +253,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     console.log('Description:', invoiceDetails.description);
     console.log('Payment Hash:', invoiceDetails.paymentHash);
 
-    const maxFeeSats = Math.ceil((invoiceDetails.amountSats / 100) * masFeePercentage);
-
-    const paymentResult = await this._arkadeLightning.sendLightningPayment({
-      invoice,
-      maxFeeSats,
-    });
+    const paymentResult = await this._arkadeLightning.sendLightningPayment({ invoice });
 
     console.log('Payment successful!');
     console.log('Amount:', paymentResult.amount);
