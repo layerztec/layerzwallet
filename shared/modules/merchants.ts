@@ -146,3 +146,100 @@ export const convertMerchantQRToLightningAddress = ({ qrContent, network }: { qr
 
   return null;
 };
+
+/**
+ * @see https://moneybadger-qr-scanner.readme.io/reference/getqrinfo
+ */
+export type PosMetadata = {
+  merchantName: string;
+  amountMin: number;
+  amountMax: number;
+  amountDefault: number;
+  orderReferenceRequired: boolean;
+  orderReferenceDefault?: string;
+  tipEnabled: boolean;
+  currencyISOCode: string;
+  denomination: 'cents' | string;
+  createdAt?: string; // ISO
+};
+
+export const queryForMetadata = async (payload: string): Promise<PosMetadata> => {
+  if (payload.includes('/') || payload.includes('_')) {
+    payload = encodeURIComponent(payload);
+  }
+
+  const response = await fetch(`https://api.cryptoqr.net/scanner/v1/scan?payload=${payload}`, {
+    headers: {
+      'X-API-Key': '4f52bd20-ada0-42d9-8dee-bdc02de56840',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch POS payload metadata: ${response}`);
+  }
+
+  const data: PosMetadata = await response.json();
+  return data;
+};
+
+/**
+ * @see https://moneybadger-qr-scanner.readme.io/reference/scan
+ */
+export type ScanRequest = {
+  scan_id: string;
+  transaction_id?: string;
+  time: string;
+  device_id: string;
+  user_id: string;
+  scan_data: string;
+  allowed_payment_methods?: string[];
+  payment_currencies?: string[];
+  payment_reference?: string;
+  requested_payment_amount?: {
+    currency: string;
+    denomination: string;
+    amount: number;
+  };
+};
+
+export type PaymentRequestStatus = 'REQUESTED' | 'AUTHORIZED' | 'CONFIRMED' | 'EXPIRED' | 'CANCELLED' | 'ERRORED';
+
+export type PaymentRequest = {
+  id: string;
+  created_at: string;
+  amount_cents: number;
+  currency: string;
+  status: PaymentRequestStatus;
+  payment_methods: Record<string, string>;
+  expiry_time: string;
+  merchant_name: string;
+  merchant_code: string;
+  merchant_category_code: string;
+  order_description?: string;
+  notification_url?: string;
+  merchant_info?: Record<string, unknown>;
+};
+
+/**
+ * Initiates a scan by posting to the /scanner/v1/scan endpoint
+ * @param scanRequest - The scan request parameters
+ *
+ * @returns A PaymentRequest object
+ */
+export const initiateScan = async (scanRequest: ScanRequest): Promise<PaymentRequest> => {
+  const response = await fetch('https://api.cryptoqr.net/scanner/v1/scan', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': '4f52bd20-ada0-42d9-8dee-bdc02de56840',
+    },
+    body: JSON.stringify(scanRequest),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to initiate scan: ${response.status} ${response.statusText}`);
+  }
+
+  const data: PaymentRequest = await response.json();
+  return data;
+};

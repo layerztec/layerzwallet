@@ -85,27 +85,27 @@ describe('scan-routing parser', () => {
   test('parses merchant QR code', () => {
     const intent = parseQrIntent('00020126260008za.co.mp0110248723666427530023za.co.electrum.picknpay0122ydgKJviKSomaVw0297RaZw5303710540571.406304CE9C');
 
-    expect(intent.type).toBe('lightning');
+    expect(intent.type).toBe('posMerchant');
     expect(intent).toMatchObject({
-      invoice: '00020126260008za.co.mp0110248723666427530023za.co.electrum.picknpay0122ydgKJviKSomaVw0297RaZw5303710540571.406304CE9C@cryptoqr.net',
+      raw: '00020126260008za.co.mp0110248723666427530023za.co.electrum.picknpay0122ydgKJviKSomaVw0297RaZw5303710540571.406304CE9C',
     });
   });
 
   test('parses merchant QR code 2', () => {
     const intent = parseQrIntent('https://app.scantopay.io/qr?qrcode=8962148867');
 
-    expect(intent.type).toBe('lightning');
+    expect(intent.type).toBe('posMerchant');
     expect(intent).toMatchObject({
-      invoice: 'https%3A%2F%2Fapp.scantopay.io%2Fqr%3Fqrcode%3D8962148867@cryptoqr.net',
+      raw: 'https://app.scantopay.io/qr?qrcode=8962148867',
     });
   });
 
   test('parses merchant QR code 2', () => {
     const intent = parseQrIntent('0337704903');
 
-    expect(intent.type).toBe('lightning');
+    expect(intent.type).toBe('posMerchant');
     expect(intent).toMatchObject({
-      invoice: '0337704903@cryptoqr.net',
+      raw: '0337704903',
     });
   });
 });
@@ -131,8 +131,8 @@ describe('scan-routing handler', () => {
 
     expect(handled).toBe(true);
     expect(push).toHaveBeenCalledWith({
-      pathname: '/SendLightning',
-      params: { network: NETWORK_SPARK, invoice: '00020129530023za.co.electrum.picknpay0122D57H4TMHFZ2TEZ%2Fconfirm520458125303710540115802ZA5916cryptoqrtestscan6002CT6304A440@cryptoqr.net' },
+      pathname: '/PosMerchant',
+      params: { raw: invoice },
     });
   });
 
