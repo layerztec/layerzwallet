@@ -5,6 +5,7 @@ import type { Router } from 'expo-router';
 import { NETWORK_SPARK } from '@shared/types/networks';
 import { SendLightningProps } from '@/app/SendLightning';
 import { SendBtcParams } from '@/app/SendBtc';
+import { PosMerchantParams } from '@/app/PosMerchant';
 import { convertMerchantQRToLightningAddress } from '@shared/modules/merchants';
 
 type LightningIntent = {
@@ -12,6 +13,11 @@ type LightningIntent = {
   invoice: string;
   raw: string;
   hint?: 'bolt11' | 'lnurl' | 'ln-address' | 'bip21';
+};
+
+type PosMerchantIntent = {
+  type: 'posMerchant';
+  raw: string;
 };
 
 type BitcoinIntent = {
@@ -28,7 +34,7 @@ type UnknownIntent = {
   reason?: string;
 };
 
-export type QrIntent = LightningIntent | BitcoinIntent | UnknownIntent;
+export type QrIntent = LightningIntent | BitcoinIntent | PosMerchantIntent | UnknownIntent;
 
 const LIGHTNING_PREFIX_REGEX = /^lightning:/i;
 
@@ -71,9 +77,7 @@ function isValidBitcoinAddress(address: string): boolean {
 }
 
 function detectLightningIntent(raw: string): LightningIntent | undefined {
-  const merchantResult = convertMerchantQRToLightningAddress({ qrContent: raw, network: 'mainnet' });
-
-  const candidate = merchantResult || extractLightningCandidate(raw);
+  const candidate = extractLightningCandidate(raw);
 
   if (isBolt11Invoice(candidate)) {
     return { type: 'lightning', invoice: candidate, raw, hint: 'bolt11' };
@@ -82,6 +86,16 @@ function detectLightningIntent(raw: string): LightningIntent | undefined {
   if (LNURL_REGEX.test(candidate) || LIGHTNING_ADDRESS_REGEX.test(candidate)) {
     const isLnurl = LNURL_REGEX.test(candidate);
     return { type: 'lightning', invoice: candidate, raw, hint: isLnurl ? 'lnurl' : 'ln-address' };
+  }
+
+  return undefined;
+}
+
+function detectPosMerchantIntent(raw: string): PosMerchantIntent | undefined {
+  const merchantResult = convertMerchantQRToLightningAddress({ qrContent: raw, network: 'mainnet' });
+
+  if (merchantResult) {
+    return { type: 'posMerchant', raw };
   }
 
   return undefined;
@@ -133,6 +147,11 @@ export function parseQrIntent(rawInput: string): QrIntent {
     return lightningIntent;
   }
 
+  const posMerchantIntent = detectPosMerchantIntent(raw);
+  if (posMerchantIntent) {
+    return posMerchantIntent;
+  }
+
   const bitcoinIntent = detectBitcoinIntent(raw);
   if (bitcoinIntent) {
     return bitcoinIntent;
@@ -160,6 +179,11 @@ export function handleQrIntent(rawInput: string, router: Pick<Router, 'push'>): 
       router.push({ pathname: '/SendBtc', params });
       return true;
     }
+
+    case 'posMerchant':
+      const params: PosMerchantParams = { raw: intent.raw };
+      router.push({ pathname: '/PosMerchant', params });
+      return true;
 
     case 'unknown':
     default: {
