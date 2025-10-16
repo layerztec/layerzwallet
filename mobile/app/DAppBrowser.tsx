@@ -2,7 +2,7 @@ import { Asset } from 'expo-asset';
 import { File } from 'expo-file-system';
 import * as Linking from 'expo-linking';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
-import { StyleSheet, TouchableOpacity, View, Alert, TextInput, ScrollView, PanResponder, Image, AppState, AppStateStatus, Dimensions } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Alert, TextInput, ScrollView, PanResponder, Image, AppState, AppStateStatus, Dimensions, Text } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +24,7 @@ import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { getNetworkGradient } from '@shared/constants/Colors';
 import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
+import { DAppBrowserTabs } from './DAppBrowserTabs';
 
 export type DappBrowserProps = {
   url?: string;
@@ -39,15 +40,24 @@ interface BrowserTab {
   historyIndex: number;
   screenshot?: string;
   timestamp: number;
-  isLoaded: boolean;
 }
+
+type StoredTab = {
+  id: string;
+  url: string;
+  title: string;
+  history: { url: string; title: string }[];
+  historyIndex: number;
+  timestamp: number;
+  screenshot?: string;
+};
 
 const TABS_STORAGE_KEY = '@browser_tabs';
 const ACTIVE_TAB_STORAGE_KEY = '@browser_active_tab';
-const MAX_LOADED_TABS = 3;
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_MIN_HEIGHT = 120;
 const MODAL_MAX_HEIGHT = SCREEN_HEIGHT;
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 const DAppBrowser: React.FC = () => {
   const { network, setNetwork } = useContext(NetworkContext);
@@ -68,6 +78,8 @@ const DAppBrowser: React.FC = () => {
   const [showTabsOverview, setShowTabsOverview] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isAddressInputFocused, setIsAddressInputFocused] = useState<boolean>(false);
+  const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
+  const [draggedOverIndex, setDraggedOverIndex] = useState<number | null>(null);
 
   const webviewOpacity = useSharedValue(1);
   const tabsOpacity = useSharedValue(0);
@@ -251,33 +263,95 @@ const DAppBrowser: React.FC = () => {
     };
   }, []);
 
-  const saveTabs = async (tabsToSave: BrowserTab[], activeId: string) => {
+  const saveTabs = useCallback(async (tabsToSave: BrowserTab[], activeId: string) => {
     try {
-      await AsyncStorage.setItem(TABS_STORAGE_KEY, JSON.stringify(tabsToSave));
+      const storedTabs: StoredTab[] = tabsToSave.map((t) => ({
+        id: t.id,
+        url: t.url,
+        title: t.title,
+        history: t.history?.length ? t.history : [{ url: t.url, title: t.title || getTabTitle(t.url) }],
+        historyIndex: typeof t.historyIndex === 'number' ? t.historyIndex : Math.max((t.history?.length || 1) - 1, 0),
+        timestamp: t.timestamp || Date.now(),
+        screenshot: t.screenshot,
+      }));
+      await AsyncStorage.setItem(TABS_STORAGE_KEY, JSON.stringify({ version: 1, tabs: storedTabs }));
       await AsyncStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeId);
     } catch (error) {
       console.error('Failed to save tabs:', error);
     }
+  }, []);
+
+  const isValidUrl = (urlString: string): boolean => {
+    try {
+      const url = new URL(urlString);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
   };
 
-  const loadTabs = async (): Promise<{ tabs: BrowserTab[]; activeTabId: string } | null> => {
+  const loadTabs = useCallback(async (): Promise<{ tabs: BrowserTab[]; activeTabId: string } | null> => {
     try {
       const tabsJson = await AsyncStorage.getItem(TABS_STORAGE_KEY);
       const activeId = await AsyncStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
 
-      if (tabsJson && activeId) {
-        const parsedTabs = JSON.parse(tabsJson);
-        const tabs = parsedTabs.map((tab: BrowserTab) => ({
-          ...tab,
-          isLoaded: false,
-        }));
-        return { tabs, activeTabId: activeId };
+      if (!tabsJson || !activeId) return null;
+
+      let raw: any;
+      try {
+        raw = JSON.parse(tabsJson);
+      } catch {
+        return null;
       }
+
+      const storedTabs: StoredTab[] = Array.isArray(raw)
+        ? (raw as any[]).map((t) => ({
+            id: t.id,
+            url: t.url,
+            title: t.title || getTabTitle(t.url),
+            history: t.history && Array.isArray(t.history) && t.history.length > 0 ? t.history : [{ url: t.url, title: t.title || getTabTitle(t.url) }],
+            historyIndex: typeof t.historyIndex === 'number' ? t.historyIndex : Math.max(((t.history && t.history.length) || 1) - 1, 0),
+            timestamp: t.timestamp || Date.now(),
+          }))
+        : (raw?.tabs as StoredTab[]);
+
+      if (!storedTabs || !Array.isArray(storedTabs) || storedTabs.length === 0) return null;
+
+      const now = Date.now();
+      const tabs: BrowserTab[] = storedTabs
+        .filter((t) => {
+          const hasValidUrl = isValidUrl(t.url);
+          const hasValidHistory = t.history && t.history.length > 0 && t.history.every((h) => isValidUrl(h.url));
+          return hasValidUrl && hasValidHistory;
+        })
+        .map((t) => {
+          const history = t.history && t.history.length > 0 ? t.history : [{ url: t.url, title: t.title || getTabTitle(t.url) }];
+          const historyIndex = Math.min(Math.max(t.historyIndex ?? history.length - 1, 0), history.length - 1);
+          const shouldDropScreenshot = !!t.screenshot && now - (t.timestamp || now) > ONE_WEEK_MS;
+          return {
+            id: t.id,
+            url: history[historyIndex]?.url || t.url,
+            title: history[historyIndex]?.title || t.title || getTabTitle(t.url),
+            canGoBack: historyIndex > 0,
+            canGoForward: historyIndex < history.length - 1,
+            history,
+            historyIndex,
+            screenshot: shouldDropScreenshot ? undefined : t.screenshot,
+            timestamp: t.timestamp || Date.now(),
+          } as BrowserTab;
+        });
+
+      if (tabs.length === 0) return null;
+
+      const activeExists = tabs.some((t) => t.id === activeId);
+      const finalActiveId = activeExists ? activeId : tabs[tabs.length - 1].id;
+
+      return { tabs, activeTabId: finalActiveId };
     } catch (error) {
       console.error('Failed to load tabs:', error);
+      return null;
     }
-    return null;
-  };
+  }, []);
 
   const captureTabScreenshot = useCallback(async (tabId: string): Promise<string | null> => {
     const containerRef = tabContainerRefs.current[tabId];
@@ -289,12 +363,14 @@ const DAppBrowser: React.FC = () => {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     try {
-      const uri = await captureRef(containerRef.current, {
+      const base64 = await captureRef(containerRef.current, {
         format: 'png',
         quality: 0.6,
-        result: 'tmpfile',
+        result: 'base64',
+        width: 360,
       });
-      return uri;
+      const dataUrl = `data:image/png;base64,${base64}`;
+      return dataUrl;
     } catch (error: any) {
       if (error?.code !== 'EUNSPECIFIED') {
         console.warn('Failed to capture screenshot for tab:', tabId, error?.message || error);
@@ -303,29 +379,7 @@ const DAppBrowser: React.FC = () => {
     }
   }, []);
 
-  const unloadInactiveTabs = useCallback(() => {
-    setTabs((prevTabs) => {
-      const sortedTabs = [...prevTabs].sort((a, b) => b.timestamp - a.timestamp);
-
-      const tabsToUnload = sortedTabs.slice(MAX_LOADED_TABS);
-
-      tabsToUnload.forEach((tab) => {
-        if (tab.id !== activeTabId) {
-          delete tabWebViewRefs.current[tab.id];
-          // Keep tabContainerRefs so we can still capture screenshots
-        }
-      });
-
-      const updatedTabs = prevTabs.map((tab) => {
-        if (tabsToUnload.find((t) => t.id === tab.id) && tab.id !== activeTabId) {
-          return { ...tab, isLoaded: false };
-        }
-        return tab;
-      });
-
-      return updatedTabs;
-    });
-  }, [activeTabId]);
+  const unloadInactiveTabs = useCallback(() => {}, []);
 
   useEffect(() => {
     const restoreTabs = async () => {
@@ -343,13 +397,12 @@ const DAppBrowser: React.FC = () => {
         const initialTab: BrowserTab = {
           id: Date.now().toString(),
           url: homeUrl,
-          title: 'site-url.com',
+          title: getTabTitle(homeUrl),
           canGoBack: false,
           canGoForward: false,
-          history: [{ url: homeUrl, title: 'site-url.com' }],
+          history: [{ url: homeUrl, title: getTabTitle(homeUrl) }],
           historyIndex: 0,
           timestamp: Date.now(),
-          isLoaded: true,
         };
         setTabs([initialTab]);
         setActiveTabId(initialTab.id);
@@ -360,20 +413,20 @@ const DAppBrowser: React.FC = () => {
     };
 
     restoreTabs();
-  }, [network]);
+  }, [network, loadTabs, captureTabScreenshot]);
 
   useEffect(() => {
     if (!isRestoringTabs && tabs.length > 0 && activeTabId) {
       saveTabs(tabs, activeTabId);
     }
-  }, [tabs, activeTabId, isRestoringTabs]);
+  }, [tabs, activeTabId, isRestoringTabs, saveTabs]);
 
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       if (nextAppState === 'background' || nextAppState === 'inactive') {
         const screenshot = await captureTabScreenshot(activeTabId);
         if (screenshot) {
-          setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot } : tab)));
+          setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot, timestamp: Date.now() } : tab)));
         }
       }
     };
@@ -385,6 +438,12 @@ const DAppBrowser: React.FC = () => {
   useEffect(() => {
     if (params.url && !isRestoringTabs && tabs.length > 0 && lastHandledUrl.current !== params.url) {
       lastHandledUrl.current = params.url;
+
+      if (!isValidUrl(params.url)) {
+        console.warn('Invalid URL from params:', params.url);
+        return;
+      }
+
       const existingTab = tabs.find((tab) => tab.url === params.url);
       if (!existingTab) {
         const newTab: BrowserTab = {
@@ -396,13 +455,10 @@ const DAppBrowser: React.FC = () => {
           history: [{ url: params.url, title: getTabTitle(params.url) }],
           historyIndex: 0,
           timestamp: Date.now(),
-          isLoaded: true,
         };
         setTabs((prev) => [...prev, newTab]);
         setActiveTabId(newTab.id);
         setAddressInput(newTab.url);
-
-        setTimeout(unloadInactiveTabs, 100);
       }
     }
   }, [params.url, isRestoringTabs, tabs, unloadInactiveTabs]);
@@ -460,11 +516,12 @@ const DAppBrowser: React.FC = () => {
               modalTranslateY.value = withTiming(0, { duration: 400 });
 
               const homeUrl = `https://layerztec.github.io/website/explore/?network=${selectedNetwork}`;
+              const homeTitle = 'layerztec.github.io';
               scheduleOnRN(setIsNetworkSelectorVisible, false);
               scheduleOnRN(updateActiveTab, {
                 url: homeUrl,
-                title: 'site-url.com',
-                history: [{ url: homeUrl, title: 'site-url.com' }],
+                title: homeTitle,
+                history: [{ url: homeUrl, title: homeTitle }],
                 historyIndex: 0,
               });
               scheduleOnRN(setAddressInput, homeUrl);
@@ -477,22 +534,28 @@ const DAppBrowser: React.FC = () => {
 
   const createNewTab = () => {
     const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
+    console.debug('[DAppBrowser] Creating new tab with URL:', homeUrl);
+
     const newTab: BrowserTab = {
       id: Date.now().toString(),
       url: homeUrl,
-      title: 'site-url.com',
+      title: getTabTitle(homeUrl),
       canGoBack: false,
       canGoForward: false,
-      history: [{ url: homeUrl, title: 'site-url.com' }],
+      history: [{ url: homeUrl, title: getTabTitle(homeUrl) }],
       historyIndex: 0,
       timestamp: Date.now(),
-      isLoaded: true,
     };
+
+    console.debug('[DAppBrowser] New tab created:', newTab.id, newTab.url, newTab.title);
+
     setTabs((prev) => [...prev, newTab]);
     setActiveTabId(newTab.id);
     setAddressInput(newTab.url);
 
-    setTimeout(unloadInactiveTabs, 100);
+    if (showTabsOverview) {
+      hideTabsOverview();
+    }
   };
 
   const closeTab = (tabId: string) => {
@@ -501,13 +564,12 @@ const DAppBrowser: React.FC = () => {
       const newTab: BrowserTab = {
         id: Date.now().toString(),
         url: homeUrl,
-        title: 'site-url.com',
+        title: getTabTitle(homeUrl),
         canGoBack: false,
         canGoForward: false,
-        history: [{ url: homeUrl, title: 'site-url.com' }],
+        history: [{ url: homeUrl, title: getTabTitle(homeUrl) }],
         historyIndex: 0,
         timestamp: Date.now(),
-        isLoaded: true,
       };
       setTabs([newTab]);
       setActiveTabId(newTab.id);
@@ -539,58 +601,47 @@ const DAppBrowser: React.FC = () => {
 
     try {
       const currentScreenshot = await captureTabScreenshot(oldActiveTabId);
-
-      // Combine all state updates into a single setTabs call to avoid race conditions
-      setTabs((prevTabs) => {
-        return prevTabs.map((tab) => {
-          // Update screenshot for old active tab
-          if (tab.id === oldActiveTabId && currentScreenshot) {
-            return { ...tab, screenshot: currentScreenshot, timestamp: Date.now() };
-          }
-          // Update isLoaded and timestamp for new active tab
-          if (tab.id === tabId) {
-            return { ...tab, isLoaded: true, timestamp: Date.now() };
-          }
-          return tab;
-        });
-      });
-    } catch (error) {
-      // Still switch the tab even if screenshot fails
-      setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === tabId ? { ...tab, isLoaded: true, timestamp: Date.now() } : tab)));
-    }
+      if (currentScreenshot) {
+        setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === oldActiveTabId ? { ...tab, screenshot: currentScreenshot, timestamp: Date.now() } : tab)));
+      }
+    } catch (error) {}
 
     setActiveTabId(tabId);
-
-    // Get the tab info from the updated state
-    setTabs((prevTabs) => {
-      const tab = prevTabs.find((t) => t.id === tabId);
-      if (tab) {
-        setAddressInput(tab.url);
-      }
-      return prevTabs;
-    });
+    const newTab = tabs.find((t) => t.id === tabId);
+    if (newTab) {
+      setAddressInput(newTab.url);
+    }
 
     hideTabsOverview();
+  };
 
-    setTimeout(() => {
-      unloadInactiveTabs();
-    }, 500);
+  const reorderTabs = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= tabs.length || toIndex >= tabs.length) {
+      return;
+    }
+
+    const newTabs = [...tabs];
+    const [movedTab] = newTabs.splice(fromIndex, 1);
+    newTabs.splice(toIndex, 0, movedTab);
+    setTabs(newTabs);
   };
 
   const showTabsOverviewAnimated = async () => {
-    // Wait a bit to ensure the page is rendered
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    // Only capture screenshot for the active tab (visible tab)
-    const screenshot = await captureTabScreenshot(activeTabId);
-    if (screenshot) {
-      setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot, timestamp: Date.now() } : tab)));
-    }
-
+    // Show overview immediately
     setShowTabsOverview(true);
     webviewOpacity.value = withTiming(0, { duration: 300 });
     tabsOpacity.value = withTiming(1, { duration: 300 });
     addressBarTranslateY.value = withTiming(-120, { duration: 300 });
+
+    const now = Date.now();
+    const targetsToCapture = tabs.filter((t) => !t.screenshot || now - (t.timestamp || now) > ONE_WEEK_MS);
+
+    for (const t of targetsToCapture) {
+      const shot = await captureTabScreenshot(t.id);
+      if (shot) {
+        setTabs((prev) => prev.map((tab) => (tab.id === t.id ? { ...tab, screenshot: shot, timestamp: Date.now() } : tab)));
+      }
+    }
   };
 
   const hideTabsOverview = () => {
@@ -612,6 +663,7 @@ const DAppBrowser: React.FC = () => {
   };
 
   const updateActiveTab = (updates: Partial<BrowserTab>) => {
+    console.debug('[DAppBrowser] Updating active tab:', activeTabId, updates);
     setTabs((prev) =>
       prev.map((tab) =>
         tab.id === activeTabId
@@ -630,7 +682,7 @@ const DAppBrowser: React.FC = () => {
       const { hostname } = new URL(url);
       return hostname.replace('www.', '');
     } catch {
-      return 'site-url.com';
+      return url.length > 30 ? url.substring(0, 30) + '...' : url;
     }
   };
 
@@ -777,7 +829,7 @@ const DAppBrowser: React.FC = () => {
           setTimeout(async () => {
             const screenshot = await captureTabScreenshot(activeTabId);
             if (screenshot) {
-              setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot } : tab)));
+              setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot, timestamp: Date.now() } : tab)));
             }
           }, 1000);
         }
@@ -788,13 +840,17 @@ const DAppBrowser: React.FC = () => {
 
   const handleNavigationStateChange = useCallback(
     (navState: WebViewNavigation) => {
+      console.debug('[DAppBrowser] Navigation state change:', navState.url, 'canGoBack:', navState.canGoBack, 'canGoForward:', navState.canGoForward);
+
       if (isManualNavigation.current || lastManualNavigationUrl.current === navState.url) {
+        console.debug('[DAppBrowser] Skipping navigation state change (manual navigation)');
         isManualNavigation.current = false;
         lastManualNavigationUrl.current = undefined;
         return;
       }
 
       const title = getTabTitle(navState.url);
+      console.debug('[DAppBrowser] Updating tab with new navigation:', title);
 
       setTabs((prev) =>
         prev.map((tab) => {
@@ -881,10 +937,20 @@ const DAppBrowser: React.FC = () => {
                       onBlur={() => setIsAddressInputFocused(false)}
                       onSubmitEditing={() => {
                         let url = addressInput.trim();
+                        if (!url) return;
+
+                        // Add protocol if missing
                         if (!url.startsWith('http://') && !url.startsWith('https://')) {
                           url = 'https://' + url;
                         }
-                        updateActiveTab({ url, title: getTabTitle(url) });
+
+                        // Validate the URL before navigating
+                        if (isValidUrl(url)) {
+                          updateActiveTab({ url, title: getTabTitle(url) });
+                        } else {
+                          Alert.alert('Invalid URL', 'Please enter a valid URL');
+                          setAddressInput(activeTab?.url || '');
+                        }
                       }}
                       returnKeyType="go"
                       keyboardType="url"
@@ -929,7 +995,6 @@ const DAppBrowser: React.FC = () => {
               <Animated.View style={[styles.flex1, swipeContentAnimatedStyle]}>
                 {tabs.map((tab) => {
                   const isActive = tab.id === activeTabId;
-                  const shouldRender = isActive || tab.isLoaded;
 
                   return (
                     <View
@@ -942,78 +1007,55 @@ const DAppBrowser: React.FC = () => {
                       collapsable={false}
                       style={[styles.tabContainer, isActive ? styles.tabContainerActive : styles.tabContainerHidden]}
                     >
-                      {tab.screenshot && (!shouldRender || isLoading) && <Image source={{ uri: tab.screenshot }} style={styles.absoluteFill} resizeMode="cover" />}
-                      {shouldRender && (
-                        <WebView
-                          key={`webview-${tab.id}-${tab.url}`}
-                          ref={(ref) => {
-                            if (ref) {
-                              if (!tabWebViewRefs.current[tab.id]) {
-                                tabWebViewRefs.current[tab.id] = { current: ref };
-                              }
-                              if (isActive) {
-                                webviewRef.current = ref;
-                                browserBridgeRef.current = new BrowserBridge(ref);
-                              }
+                      {tab.screenshot && <Image source={{ uri: tab.screenshot }} style={styles.absoluteFill} resizeMode="cover" />}
+                      <WebView
+                        key={`webview-${tab.id}-${tab.url}`}
+                        ref={(ref) => {
+                          if (ref) {
+                            if (!tabWebViewRefs.current[tab.id]) {
+                              tabWebViewRefs.current[tab.id] = { current: ref };
                             }
-                          }}
-                          originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
-                          allowsInlineMediaPlayback={true}
-                          source={{ uri: tab.url }}
-                          onMessage={isActive ? handleMessage : undefined}
-                          onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
-                          onLoadProgress={isActive ? handleLoadProgress : undefined}
-                          injectedJavaScriptBeforeContentLoaded={js}
-                          style={tab.screenshot && isLoading ? styles.webviewHidden : styles.webviewVisible}
-                          incognito={false}
-                          scrollEnabled={!isAddressInputFocused}
-                        />
-                      )}
+                            if (isActive) {
+                              webviewRef.current = ref;
+                              browserBridgeRef.current = new BrowserBridge(ref);
+                            }
+                          }
+                        }}
+                        originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
+                        allowsInlineMediaPlayback={true}
+                        source={{ uri: tab.url }}
+                        onMessage={isActive ? handleMessage : undefined}
+                        onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
+                        onLoadProgress={isActive ? handleLoadProgress : undefined}
+                        injectedJavaScriptBeforeContentLoaded={js}
+                        style={styles.webviewVisible}
+                        incognito={false}
+                        scrollEnabled={!isAddressInputFocused}
+                      />
                     </View>
                   );
                 })}
               </Animated.View>
             </Animated.View>
 
-            <Animated.View style={[styles.tabsOverviewContainer, tabsOverviewAnimatedStyle, styles.tabsOverviewAbsolute]} pointerEvents={showTabsOverview ? 'auto' : 'none'}>
-              <View style={styles.tabsOverviewBackground}>
-                <View style={styles.tabsOverviewHeader}>
-                  <ThemedText style={styles.tabsOverviewTitle}>Tabs</ThemedText>
-                </View>
-
-                <ScrollView style={styles.tabsOverviewContent} contentContainerStyle={styles.tabsGridContainer}>
-                  <View style={styles.tabsGrid}>
-                    {tabs.map((tab, index) => (
-                      <TouchableOpacity key={`tab-card-${tab.id}`} style={[styles.tabCard, activeTabId === tab.id && styles.activeTabCard]} onPress={() => switchTab(tab.id)}>
-                        <View style={styles.tabCardHeader}>
-                          <View style={styles.tabCardTitleContainer}>
-                            <ThemedText style={styles.tabCardNumber}>#{index + 1}</ThemedText>
-                            <ThemedText style={styles.tabCardTitle} numberOfLines={1}>
-                              {tab.title}
-                            </ThemedText>
-                          </View>
-                          <TouchableOpacity style={styles.tabCardCloseButton} onPress={() => closeTab(tab.id)}>
-                            <Ionicons name="close" size={16} color="rgba(255, 255, 255, 0.8)" />
-                          </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.tabCardPreview}>
-                          {tab.screenshot ? (
-                            <Image key={tab.screenshot} source={{ uri: tab.screenshot }} style={styles.tabCardScreenshot} resizeMode="cover" />
-                          ) : (
-                            <View style={styles.tabCardContent}>
-                              <ThemedText style={styles.tabCardUrl} numberOfLines={2}>
-                                {tab.url}
-                              </ThemedText>
-                            </View>
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </ScrollView>
-              </View>
-            </Animated.View>
+            <DAppBrowserTabs
+              tabs={tabs}
+              activeTabId={activeTabId}
+              draggingTabId={draggingTabId}
+              draggedOverIndex={draggedOverIndex}
+              animatedStyle={tabsOverviewAnimatedStyle}
+              pointerEvents={showTabsOverview ? 'auto' : 'none'}
+              onSwitchTab={switchTab}
+              onCloseTab={closeTab}
+              onStartDrag={setDraggingTabId}
+              onDragOver={setDraggedOverIndex}
+              onReorderTabs={reorderTabs}
+              onDragEnd={() => {
+                setDraggingTabId(null);
+                setDraggedOverIndex(null);
+              }}
+              getTabTitle={getTabTitle}
+            />
           </View>
 
           <View style={styles.bottomNavigation}>
@@ -1354,105 +1396,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 20,
-  },
-  tabsOverviewContainer: {
-    flex: 1,
-  },
-  tabsOverviewAbsolute: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  tabsOverviewBackground: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-  },
-  tabsOverviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 60,
-  },
-  tabsOverviewTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  tabsOverviewContent: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  tabsGridContainer: {
-    paddingBottom: 20,
-  },
-  tabsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  tabCard: {
-    width: '45%',
-    aspectRatio: 0.7,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 16,
-  },
-  activeTabCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-  },
-  tabCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-  },
-  tabCardTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 8,
-  },
-  tabCardNumber: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginRight: 6,
-  },
-  tabCardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'white',
-    flex: 1,
-  },
-  tabCardCloseButton: {
-    padding: 4,
-  },
-  tabCardPreview: {
-    flex: 1,
-    backgroundColor: 'white',
-    overflow: 'hidden',
-  },
-  tabCardScreenshot: {
-    width: '100%',
-    height: '100%',
-  },
-  tabCardContent: {
-    flex: 1,
-    padding: 12,
-  },
-  tabCardUrl: {
-    fontSize: 12,
-    color: '#666',
-    lineHeight: 16,
   },
   networkSwitcherOverlay: {
     position: 'absolute',
