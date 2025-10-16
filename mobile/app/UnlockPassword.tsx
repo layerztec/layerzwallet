@@ -64,7 +64,7 @@ export default function UnlockPassword() {
       <LinearGradient colors={gradients.blueGradient} style={styles.container}>
         <SafeAreaView style={styles.safeAreaView}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardContainer}>
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
               <View style={styles.content}>
                 <Animated.View style={[titleTransition]}>
                   <ThemedText type="title" darkColor={Colors.dark.buttonText} textAlign="center">
