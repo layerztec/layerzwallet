@@ -11,12 +11,13 @@ appId: com.layerzwallet.mobile
 - tapOn:
     id: 'ExplorerButton'
 - waitForAnimationToEnd
-- tapOn: 'https://layerztec.github.io/website/explore/?network=rootstock'
+- tapOn:
+    id: 'BrowserAddressBar'
 - eraseText
 - inputText: 'https://metamask.github.io/test-dapp/'
 - pressKey: Enter
-- waitForAnimationToEnd
 - extendedWaitUntil: # wait for page to load
+- extendedWaitUntil:
     visible: 'E2E Test Dapp'
 
 - tapOn: 'Use Layerz Wallet'
@@ -30,7 +31,6 @@ appId: com.layerzwallet.mobile
 - tapOn: 'Allow'
 - waitForAnimationToEnd
 - assertNotVisible: 'Account Access Request'
-
 # signing v4
 
 - scrollUntilVisible:

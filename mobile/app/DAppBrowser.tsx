@@ -960,24 +960,25 @@ const DAppBrowser: React.FC = () => {
                       placeholderTextColor="rgba(255, 255, 255, 0.5)"
                       selectTextOnFocus={true}
                       editable={!isNetworkSelectorVisible}
+                      testID="BrowserAddressBar"
                     />
                     {isAddressInputFocused ? (
                       <TouchableOpacity style={styles.stopButton} onPress={() => setAddressInput('')}>
                         <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
                       </TouchableOpacity>
                     ) : isLoading ? (
-                      <TouchableOpacity style={styles.stopButton} onPress={stopLoading}>
+                      <TouchableOpacity style={styles.stopButton} onPress={stopLoading} testID="BrowserStopButton">
                         <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
                       </TouchableOpacity>
                     ) : (
-                      <TouchableOpacity style={styles.stopButton} onPress={onRefresh}>
+                      <TouchableOpacity style={styles.stopButton} onPress={onRefresh} testID="BrowserRefreshButton">
                         <Ionicons name="reload" size={18} color="rgba(255, 255, 255, 0.8)" />
                       </TouchableOpacity>
                     )}
                   </View>
                   <Animated.View style={[styles.progressBar, progressBarAnimatedStyle]} />
                 </View>
-                <TouchableOpacity style={styles.closeButton} onPress={() => router.back()} disabled={isAddressInputFocused || isNetworkSelectorVisible}>
+                <TouchableOpacity style={styles.closeButton} onPress={() => router.back()} disabled={isAddressInputFocused || isNetworkSelectorVisible} testID="BrowserCloseButton">
                   <Ionicons name="close" size={20} color={isAddressInputFocused || isNetworkSelectorVisible ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.9)'} />
                 </TouchableOpacity>
               </View>
@@ -1080,7 +1081,7 @@ const DAppBrowser: React.FC = () => {
                         </TouchableOpacity>
                       </Link>
                     ) : (
-                      <TouchableOpacity style={styles.navButton} onPress={goBack} disabled={!activeTab?.canGoBack}>
+                      <TouchableOpacity style={styles.navButton} onPress={goBack} disabled={!activeTab?.canGoBack} testID="BrowserBackButton">
                         <Ionicons name="arrow-back" size={24} color={activeTab?.canGoBack ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
                       </TouchableOpacity>
                     )}
@@ -1104,7 +1105,7 @@ const DAppBrowser: React.FC = () => {
                         </TouchableOpacity>
                       </Link>
                     ) : (
-                      <TouchableOpacity style={styles.navButton} onPress={goForward} disabled={!activeTab?.canGoForward}>
+                      <TouchableOpacity style={styles.navButton} onPress={goForward} disabled={!activeTab?.canGoForward} testID="BrowserForwardButton">
                         <Ionicons name="arrow-forward" size={24} color={activeTab?.canGoForward ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
                       </TouchableOpacity>
                     )}
@@ -1114,7 +1115,7 @@ const DAppBrowser: React.FC = () => {
             </View>
 
             <View style={styles.navigationCenter}>
-              <TouchableOpacity style={styles.addTabButton} onPress={createNewTab}>
+              <TouchableOpacity style={styles.addTabButton} onPress={createNewTab} testID="BrowserAddTabButton">
                 <Ionicons name="add" size={24} color="white" />
               </TouchableOpacity>
             </View>
@@ -1124,7 +1125,7 @@ const DAppBrowser: React.FC = () => {
                 <View style={styles.navButton} />
               </View>
               <View style={styles.navButtonContainer}>
-                <TouchableOpacity style={styles.navButton} onPress={toggleTabsOverview} disabled={tabs.length === 1}>
+                <TouchableOpacity style={styles.navButton} onPress={toggleTabsOverview} disabled={tabs.length === 1} testID="BrowserTabsOverviewButton">
                   <View style={[styles.tabsOverviewIcon, tabs.length === 1 && { opacity: 0.3 }]}>
                     <ThemedText style={styles.tabsCount}>{tabs.length}</ThemedText>
                   </View>
