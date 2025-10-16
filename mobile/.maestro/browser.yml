@@ -17,7 +17,6 @@ appId: com.layerzwallet.mobile
 - inputText: 'https://metamask.github.io/test-dapp/'
 - pressKey: Enter
 - extendedWaitUntil: # wait for page to load
-- extendedWaitUntil:
     visible: 'E2E Test Dapp'
 
 - tapOn: 'Use Layerz Wallet'
