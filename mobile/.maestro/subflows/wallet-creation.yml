@@ -71,6 +71,13 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 - waitForAnimationToEnd
 
+# Wait for button to become enabled and visible
+- extendedWaitUntil:
+    visible:
+      id: 'LetsGoButton'
+      enabled: true
+    timeout: 10000
+
 # Tap the button
 - tapOn:
     id: 'LetsGoButton'
