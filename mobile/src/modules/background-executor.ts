@@ -9,23 +9,16 @@ import { getDeviceID } from '@shared/modules/device-id';
 import {
   lazyInitWallet as lazyInitWalletOrig,
   lazyInitWalletReady as lazyInitWalletReadyOrig,
+  setMasterSeed as setMasterSeedOrig,
+  getMasterSeed as getMasterSeedOrig,
   sanitizeAndValidateMnemonic,
   saveBitcoinXpubs,
-  saveSubMnemonics,
   saveWalletState,
   TSupportedLazyInitWalletNetworks,
   clearWalletCache,
 } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, OpenPopupRequest } from '@shared/types/IBackgroundCaller';
-import {
-  ENCRYPTED_PREFIX,
-  STORAGE_KEY_ACCEPTED_TOS,
-  STORAGE_KEY_EVM_XPUB,
-  STORAGE_KEY_MNEMONIC,
-  STORAGE_KEY_SUB_MNEMONIC,
-  STORAGE_KEY_WHITELIST,
-  STORAGE_KEY_SEED_VERIFIED,
-} from '@shared/types/IStorage';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_WHITELIST, STORAGE_KEY_SEED_VERIFIED } from '@shared/types/IStorage';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { BrowserBridge } from '../class/browser-bridge';
 import { LayerzStorage } from '../class/layerz-storage';
@@ -39,6 +32,20 @@ import { ArkWallet } from '@shared/class/wallets/ark-wallet';
  * no need to handle calls via messages, we can just execute them on the spot
  */
 export const BackgroundExecutor: IBackgroundCaller = {
+  setMasterSeed(seed: string): Promise<void> {
+    setMasterSeedOrig(seed);
+    return Promise.resolve();
+  },
+
+  getMasterSeed(): Promise<string> {
+    const masterSeed = getMasterSeedOrig();
+    if (masterSeed) {
+      return Promise.resolve(masterSeed);
+    } else {
+      throw new Error('Internal error: master seed not loaded');
+    }
+  },
+
   async lazyInitWallet(network: TSupportedLazyInitWalletNetworks, accountNumber: number) {
     return lazyInitWalletOrig(network, accountNumber, LayerzStorage, SecureStorage);
   },
@@ -119,7 +126,6 @@ export const BackgroundExecutor: IBackgroundCaller = {
     const xpub = EvmWallet.mnemonicToXpub(sanitizedMnemonic);
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, sanitizedMnemonic);
-    await saveSubMnemonics(SecureStorage, sanitizedMnemonic);
     // we are saving master mnemonic at the end, so that if any of the above fails, we don't end up with a partially working wallet
     await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, sanitizedMnemonic);
 
@@ -134,7 +140,6 @@ export const BackgroundExecutor: IBackgroundCaller = {
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
-    await saveSubMnemonics(SecureStorage, mnemonic);
 
     return { mnemonic };
   },
@@ -211,50 +216,6 @@ export const BackgroundExecutor: IBackgroundCaller = {
     console.log(data);
   },
 
-  async signPersonalMessage(message, accountNumber, password) {
-    const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
-
-    if (!encryptedMnemonic.startsWith(ENCRYPTED_PREFIX)) {
-      return {
-        success: false,
-        bytes: '',
-        message: 'Mnemonic is not encrypted. Please reinstall the app to fix this issue.',
-      };
-    }
-
-    try {
-      const deviceId = await getDeviceID(SecureStorage, Csprng);
-      const decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, deviceId);
-      const evm = new EvmWallet();
-      const bytes = await evm.signPersonalMessage(message, decrypted as string, accountNumber);
-      return { success: true, bytes };
-    } catch {
-      return { success: false, bytes: '', message: 'Bad password' };
-    }
-  },
-
-  async signTypedData(message, accountNumber, password) {
-    const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
-
-    if (!encryptedMnemonic.startsWith(ENCRYPTED_PREFIX)) {
-      return {
-        success: false,
-        bytes: '',
-        message: 'Mnemonic is not encrypted. Please reinstall the app to fix this issue.',
-      };
-    }
-
-    try {
-      const deviceId = await getDeviceID(SecureStorage, Csprng);
-      const decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, deviceId);
-      const evm = new EvmWallet();
-      const bytes = await evm.signTypedDataMessage(message, decrypted as string, accountNumber);
-      return { success: true, bytes };
-    } catch {
-      return { success: false, bytes: '', message: 'Bad password' };
-    }
-  },
-
   async openPopup(...params: OpenPopupRequest) {
     const bridge = BrowserBridge.getInstance();
     if (bridge) {
@@ -280,10 +241,6 @@ export const BackgroundExecutor: IBackgroundCaller = {
       utxos,
       changeAddress,
     };
-  },
-
-  async getSubMnemonic(accountNumber) {
-    return await SecureStorage.getItem(STORAGE_KEY_SUB_MNEMONIC + accountNumber);
   },
 
   async getCommonTransactions(network, accountNumber, afterTxid, limit) {

@@ -30,7 +30,6 @@ import './Popup.css';
 import Receive from './Receive';
 import ReceiveLightning from './ReceiveLightning';
 import SeedBackup from './SeedBackup';
-import ViewSubmnemonic from './ViewSubmnemonic';
 import SendArk from './SendArk';
 import SendBtc from './SendBtc';
 import SendEvm from './SendEvm';
@@ -44,6 +43,7 @@ import SwapXArkClaim from './SwapXArkClaim';
 import SwapXArkDeposit from './SwapXArkDeposit';
 import TestPage from './TestPage';
 import TransactionSuccessEvm from './TransactionSuccessEvm';
+import UnlockPassword from './UnlockPassword';
 
 const AppContent: React.FC = () => {
   const navigate = useNavigate();
@@ -62,12 +62,23 @@ const AppContent: React.FC = () => {
           </Routes>
         );
 
+      /* onboarding - demand creation of password */
       case EStep.PASSWORD:
         return (
           <Routes>
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/onboarding-create-password" element={<OnboardingCreatePassword />} />
             <Route path="*" element={<Navigate to="/onboarding-create-password" replace />} />
+          </Routes>
+        );
+
+      /* not exactly onboarding, but demand password to decrypt mnemonic and have it in runtime */
+      case EStep.UNLOCK_PASSWORD:
+        return (
+          <Routes>
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/unlock-password" element={<UnlockPassword />} />
+            <Route path="*" element={<Navigate to="/unlock-password" replace />} />
           </Routes>
         );
 
@@ -88,7 +99,6 @@ const AppContent: React.FC = () => {
             <Route path="/receive" element={<Receive />} />
             <Route path="/receive-lightning" element={<ReceiveLightning />} />
             <Route path="/seed-backup" element={<SeedBackup />} />
-            <Route path="/ViewSubmnemonic" element={<ViewSubmnemonic />} />
             <Route path="/send-liquid" element={<SendLiquid />} />
             <Route path="/send-evm" element={<SendEvm />} />
             <Route path="/send-ark" element={<SendArk />} />
@@ -133,7 +143,7 @@ const Popup: React.FC = () => {
         <AskPasswordContextProvider>
           <AskMnemonicContextProvider>
             <ScanQrContextProvider>
-              <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller}>
+              <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller} platform={'EXT'}>
                 <SettingsContextProvider storage={LayerzStorage}>
                   <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller} messenger={Messenger}>
                     <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller} messenger={Messenger}>

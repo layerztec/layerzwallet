@@ -4,9 +4,10 @@ import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { AskPasswordContext } from '@/src/hooks/AskPasswordContext';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import assert from 'assert';
+import { EvmWallet } from '@shared/class/evm-wallet';
 
 interface PersonalSignArgs {
   params: any[];
@@ -17,7 +18,6 @@ interface PersonalSignArgs {
 export function PersonalSign(args: PersonalSignArgs) {
   const router = useRouter();
   const { accountNumber } = useContext(AccountNumberContext);
-  const { askPassword } = useContext(AskPasswordContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const onAllowClick = async () => {
@@ -28,14 +28,11 @@ export function PersonalSign(args: PersonalSignArgs) {
       if (Array.isArray(params)) {
         payload = params[0];
       }
-      const password = await askPassword();
-      const signedResponse = await BackgroundExecutor.signPersonalMessage(payload, accountNumber, password);
+      const mnemonic = await BackgroundExecutor.getMasterSeed();
+      const evm = new EvmWallet();
+      const bytes = await evm.signPersonalMessage(payload, mnemonic, accountNumber);
 
-      if (!signedResponse.success) {
-        throw new Error(signedResponse?.message ?? 'Signature error');
-      }
-
-      BrowserBridge.instance?.sendMessage({ for: 'webpage', id: args.id, response: signedResponse.bytes });
+      BrowserBridge.instance?.sendMessage({ for: 'webpage', id: args.id, response: bytes });
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to sign message');

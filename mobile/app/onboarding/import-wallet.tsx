@@ -129,24 +129,27 @@ export default function ImportWalletScreen() {
     setIsLoading(true);
     setError('');
 
+    let sanitizedMnemonic: string = mnemonic;
+
     try {
       // Small delay to allow UI to update
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       try {
-        sanitizeAndValidateMnemonic(mnemonic);
+        sanitizedMnemonic = sanitizeAndValidateMnemonic(mnemonic);
       } catch {
         setError('Invalid mnemonic seed');
         return;
       }
 
-      const response = await BackgroundExecutor.saveMnemonic(mnemonic);
+      const response = await BackgroundExecutor.saveMnemonic(sanitizedMnemonic);
 
       if (!response) {
         setError('Invalid mnemonic seed');
       } else {
+        await BackgroundExecutor.setMasterSeed(sanitizedMnemonic);
         router.dismissAll();
-        router.replace('/onboarding/create-password');
+        router.replace('/onboarding/tos');
       }
     } catch (err) {
       setError('An error occurred while importing the wallet');

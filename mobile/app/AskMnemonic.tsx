@@ -1,5 +1,5 @@
 import assert from 'assert';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TextInput, View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useThemeColor } from '../hooks/useThemeColor';
@@ -22,6 +22,20 @@ export default function AskMnemonicScreen() {
   const textColor = useThemeColor({ light: '#000', dark: '#fff' }, 'text');
   const tintColor = useThemeColor({ light: '#2f95dc', dark: '#fff' }, 'tint');
 
+  // upon load, we check if mnemonic is encrypted and if not, we can just use it
+  // and skip this whole dialogue
+  useEffect(() => {
+    (async () => {
+      const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
+      if (encryptedMnemonic && !encryptedMnemonic.startsWith(ENCRYPTED_PREFIX)) {
+        handleMnemonicSubmit(encryptedMnemonic);
+        router.back();
+      }
+    })();
+    // we need do this only once upon load
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handlePasswordChange = (text: string) => {
     setPassword(text);
     if (error) setError('');
@@ -40,7 +54,12 @@ export default function AskMnemonicScreen() {
       // Get encrypted mnemonic from storage
       const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
       assert(encryptedMnemonic, 'No encrypted mnemonic found');
-      assert(encryptedMnemonic.startsWith(ENCRYPTED_PREFIX), 'Mnemonic not encrypted, reinstall the app');
+      if (!encryptedMnemonic.startsWith(ENCRYPTED_PREFIX)) {
+        // its not encrypted, we can just use it
+        handleMnemonicSubmit(encryptedMnemonic);
+        router.back();
+        return;
+      }
 
       // Decrypt the mnemonic
       const decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, await getDeviceID(SecureStorage, Csprng));
@@ -49,7 +68,7 @@ export default function AskMnemonicScreen() {
       handleMnemonicSubmit(decrypted);
       router.back();
     } catch (decryptError: any) {
-      console.error('Decryption failed:', decryptError);
+      console.log('Decryption failed:', decryptError.message);
       setError('Incorrect password. Please try again.');
       setIsLoading(false);
       // Don't go back - allow user to retry

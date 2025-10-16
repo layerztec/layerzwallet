@@ -5,13 +5,14 @@ import Slider from '@react-native-community/slider';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
-import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance, hexToDec } from '@shared/modules/string-utils';
 import { StringNumber } from '@shared/types/string-number';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import assert from 'assert';
 
 interface SendTransactionArgs {
   params: any[];
@@ -23,7 +24,6 @@ export function SendTransaction(args: SendTransactionArgs) {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { askMnemonic } = useContext(AskMnemonicContext);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [minFees, setMinFees] = useState<StringNumber>(); // min fees user will have to pay for the transaction
   const [maxFees, setMaxFees] = useState<StringNumber>(); // max fees user will have to pay for the transaction
@@ -74,7 +74,7 @@ export function SendTransaction(args: SendTransactionArgs) {
         setMinFees(calculatedMinFee);
         setMaxFees(calculatedMaxFee);
 
-        const mnemonic = await askMnemonic();
+        const mnemonic = await BackgroundExecutor.getMasterSeed();
         const signedBytes = await e.signTransaction(prepared, mnemonic, accountNumber);
         setBytes(signedBytes);
         console.log('signed tx: ' + signedBytes);

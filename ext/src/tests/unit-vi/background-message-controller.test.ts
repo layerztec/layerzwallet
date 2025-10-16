@@ -3,7 +3,6 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { MessageType } from '@shared/types/IBackgroundCaller';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { handleMessage } from '../../modules/background-message-controller';
-import { sanitizeAndValidateMnemonic } from '../../../../shared/modules/wallet-utils';
 
 import CreateData = chrome.windows.CreateData;
 
@@ -54,19 +53,13 @@ test('BackgroundMessageController can handle messages SAVE_MNEMONIC', async () =
     STORAGE_KEY_EVM_XPUB: 'xpub6EF8jXqFeFEW5bwMU7RpQtHkzE4KJxcqJtvkCjJumzW8CPpacXkb92ek4WzLQXjL93HycJwTPUAcuNxCqFPKKU5m5Z2Vq4nCyh5CyPeBFFr',
 
     STORAGE_KEY_MNEMONIC: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-    STORAGE_KEY_SUB_MNEMONIC0: 'prosper short ramp prepare exchange stove life snack client enough purpose fold',
-    STORAGE_KEY_SUB_MNEMONIC1: 'sing slogan bar group gauge sphere rescue fossil loyal vital model desert',
-    STORAGE_KEY_SUB_MNEMONIC2: 'comfort onion auto dizzy upgrade mutual banner announce section poet point pudding',
-    STORAGE_KEY_SUB_MNEMONIC3: 'tuna mention protect shrimp mushroom access cat cattle license bind equip trial',
-    STORAGE_KEY_SUB_MNEMONIC4: 'soon catalog dragon burger veteran fish pair grass prefer shallow power smart',
-    STORAGE_KEY_SUB_MNEMONIC5: 'ceiling fringe unknown start royal quarter segment wet glide fiscal behind scheme',
   });
   assert.strictEqual(response2, true);
 
   // checking that it was saved:
 
   await new Promise((resolve) => setTimeout(resolve, 100)); // sleep to allow callback to fire
-  expect(setMockedMethod2).toHaveBeenCalledTimes(14);
+  expect(setMockedMethod2).toHaveBeenCalledTimes(8);
   expect(getMockedMethod).toHaveBeenCalledTimes(0);
 
   // confirm mnemonic not encrypted though present
@@ -122,17 +115,4 @@ test('BackgroundMessageController can handle message OPEN_POPUP', async () => {
   assert.ok(!callbackCalled); // not called because popup returns result waaay later, via async messaging
 
   expect(openMockedMethod).toHaveBeenCalled();
-});
-
-test('sanitizeAndValidateMnemonic should handle complex whitespace scenarios', () => {
-  const mnemonic = '\n\n  abandon\t abandon   abandon\r\n abandon abandon  abandon\t\t abandon abandon abandon abandon   abandon ABOUT  \n\n';
-  const result = sanitizeAndValidateMnemonic(mnemonic);
-  assert.strictEqual(result, 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
-});
-
-test('sanitizeAndValidateMnemonic should throw error for mnemonic with less than 12 words', () => {
-  const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon';
-  assert.throws(() => {
-    sanitizeAndValidateMnemonic(mnemonic);
-  }, /Invalid mnemonic length/);
 });

@@ -9,7 +9,6 @@ import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
-import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
@@ -40,7 +39,6 @@ const SendArk = () => {
   const [isSending, setIsSending] = useState<boolean>(false);
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { askMnemonic } = useContext(AskMnemonicContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const arkWallet = useRef<ArkWallet | undefined>(undefined);
 
@@ -78,7 +76,7 @@ const SendArk = () => {
       // TODO: validate the address
       // TODO: validate the amount
 
-      await askMnemonic(); // only asking to verify user knows it. will throw if he doesnt
+      await new Promise((r) => setTimeout(r, 200)); // propagate
 
       assert(network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_ARK, 'Internal error: wallet of incorrect type');
       let w = await BackgroundExecutor.lazyInitWallet(network, accountNumber);

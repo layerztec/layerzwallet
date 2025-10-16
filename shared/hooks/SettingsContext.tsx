@@ -14,6 +14,10 @@ export const SETTINGS_CONFIG = {
     options: ['ON', 'OFF'] as const,
     default: 'OFF' as const,
   },
+  seedEncrypted: {
+    options: ['ON', 'OFF'] as const,
+    default: 'OFF' as const,
+  },
   biometricAuth: {
     options: ['ON', 'OFF'] as const,
     default: 'OFF' as const,

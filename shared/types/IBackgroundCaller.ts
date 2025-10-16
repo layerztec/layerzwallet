@@ -10,14 +10,13 @@ export enum MessageType {
   LOG,
   GET_BTC_BALANCE,
   ENCRYPT_MNEMONIC,
-  SIGN_PERSONAL_MESSAGE,
-  SIGN_TYPED_DATA,
   OPEN_POPUP,
   GET_ADDRESS,
   GET_BTC_SEND_DATA,
-  GET_SUB_MNEMONIC,
   GET_COMMON_TRANSACTIONS,
   CLEAR,
+  GET_MASTER_SEED,
+  SET_MASTER_SEED,
 }
 
 // Message types for background script communication
@@ -46,14 +45,6 @@ export type MessageTypeMap = {
     params: LogRequest;
     response: void;
   };
-  [MessageType.SIGN_PERSONAL_MESSAGE]: {
-    params: SignPersonalMessageRequest;
-    response: SignPersonalMessageResponse;
-  };
-  [MessageType.SIGN_TYPED_DATA]: {
-    params: SignTypedDataRequest;
-    response: SignTypedDataResponse;
-  };
   [MessageType.OPEN_POPUP]: {
     params: OpenPopupRequest;
     response: void;
@@ -61,10 +52,6 @@ export type MessageTypeMap = {
   [MessageType.GET_BTC_SEND_DATA]: {
     params: GetBtcSendDataRequest;
     response: GetBtcSendDataResponse;
-  };
-  [MessageType.GET_SUB_MNEMONIC]: {
-    params: GetSubMnemonicRequest;
-    response: GetSubMnemonicResponse;
   };
   [MessageType.GET_COMMON_TRANSACTIONS]: {
     params: GetCommonTransactionsRequest;
@@ -74,6 +61,14 @@ export type MessageTypeMap = {
     params: [];
     response: void;
   };
+  [MessageType.GET_MASTER_SEED]: {
+    params: [];
+    response: GetMasterSeedResponse;
+  };
+  [MessageType.SET_MASTER_SEED]: {
+    params: SetMasterSeedParams;
+    response: void;
+  };
 };
 
 export type GetAddressParams = [network: Networks, accountNumber: number];
@@ -81,6 +76,9 @@ export type GetAddressResponse = string;
 
 export type SaveMnemonicParams = [mnemonic: string];
 export type SaveMnemonicResponse = boolean;
+
+export type SetMasterSeedParams = [seed: string];
+export type GetMasterSeedResponse = string;
 
 export type CreateMnemonicResponse = { mnemonic: string };
 
@@ -92,19 +90,10 @@ export type GetBtcBalanceResponse = { confirmed: number; unconfirmed: number };
 
 export type LogRequest = [data: string];
 
-export type SignPersonalMessageRequest = [message: string | Uint8Array, accountNumber: number, password: string];
-export type SignPersonalMessageResponse = { bytes: string; success: boolean; message?: string };
-
-export type SignTypedDataRequest = [message: any, accountNumber: number, password: string];
-export type SignTypedDataResponse = { bytes: string; success: boolean; message?: string };
-
 export type OpenPopupRequest = [method: string, params: any, id: number, from: string];
 
 export type GetBtcSendDataRequest = [accountNumber: number];
 export type GetBtcSendDataResponse = { utxos: CreateTransactionUtxo[]; changeAddress: string };
-
-export type GetSubMnemonicRequest = [accountNumber: number];
-export type GetSubMnemonicResponse = string;
 
 export type GetCommonTransactionsRequest = [network: Networks, accountNumber: number, afterTxid?: string, limit?: number];
 export type GetCommonTransactionsResponse = CommonTransaction[];
@@ -117,6 +106,8 @@ export interface ProcessRPCRequest {
 }
 
 export interface IBackgroundCaller {
+  setMasterSeed(seed: string): Promise<void>;
+  getMasterSeed(): Promise<string>;
   lazyInitWallet(network: TSupportedLazyInitWalletNetworks, accountNumber: number): Promise<TLazyInitedWallets>;
   lazyInitWalletReady(network: TSupportedLazyInitWalletNetworks, accountNumber: number): boolean;
   getAddress(...params: GetAddressParams): Promise<GetAddressResponse>;
@@ -132,11 +123,8 @@ export interface IBackgroundCaller {
   unwhitelistDapp(dapp: string): Promise<void>;
   getWhitelist(): Promise<string[]>;
   log(...params: LogRequest): Promise<void>;
-  signPersonalMessage(...params: SignPersonalMessageRequest): Promise<SignPersonalMessageResponse>;
-  signTypedData(...params: SignTypedDataRequest): Promise<SignTypedDataResponse>;
   openPopup(...params: OpenPopupRequest): Promise<void>;
   getBtcSendData(...params: GetBtcSendDataRequest): Promise<GetBtcSendDataResponse>;
-  getSubMnemonic(...params: GetSubMnemonicRequest): Promise<GetSubMnemonicResponse>;
   getCommonTransactions(...params: GetCommonTransactionsRequest): Promise<GetCommonTransactionsResponse>;
   clear(): Promise<void>;
   hasSeedVerified(): Promise<boolean>;

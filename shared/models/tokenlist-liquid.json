@@ -39,7 +39,8 @@
     "name": "USDT",
     "symbol": "$",
     "decimals": 8,
-    "chainId": 11
+    "chainId": 11,
+    "logoURI": "https://tether.to/images/tetherTokenWhite.svg"
   },
   {
     "assetId": "3438ecb49fc45c08e687de4749ed628c511e326460ea4336794e1cf02741329e",

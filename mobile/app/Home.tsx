@@ -48,6 +48,7 @@ import { SwapPlatform } from '@shared/types/swap';
 import { ReceiveTokenProps } from './Receive';
 import { SendLiquidParams } from './SendLiquid';
 import { SendTokenEvmProps } from './SendTokenEvm';
+import { SendLightningProps } from './SendLightning';
 
 const Action = ({ network, text }: { network?: Networks; text: string }) => {
   const networkImage = network ? getNetworkImageAsset(network) : null;
@@ -235,7 +236,8 @@ export default function Home() {
     if (network === NETWORK_LIGHTNING_TESTNET) {
       Alert.alert('Spark does not have a testnet');
     } else {
-      router.push({ pathname: '/SendLightning', params: { network: NETWORK_SPARK } });
+      const params: SendLightningProps = { network: NETWORK_SPARK };
+      router.push({ pathname: '/SendLightning', params });
     }
   };
 
@@ -243,13 +245,15 @@ export default function Home() {
     if (network === NETWORK_LIGHTNING_TESTNET) {
       Alert.alert('Ark lightning does not have a testnet');
     } else {
-      router.push({ pathname: '/SendLightning', params: { network: NETWORK_ARK } });
+      const params: SendLightningProps = { network: NETWORK_ARK };
+      router.push({ pathname: '/SendLightning', params });
     }
   };
 
   const handleSendViaLiquid = () => {
     const n = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
-    router.push({ pathname: '/SendLightning', params: { network: n } });
+    const params: SendLightningProps = { network: n };
+    router.push({ pathname: '/SendLightning', params });
   };
 
   const handleTransactionDetails = (transaction: CommonTransaction) => {

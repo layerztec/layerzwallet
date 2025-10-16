@@ -12,7 +12,6 @@ import { ThemedText } from '@/components/ThemedText';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
-import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
@@ -37,7 +36,6 @@ const SendLightning: React.FC = () => {
   const router = useRouter();
   const network = params.network;
   const { scanQr } = useContext(ScanQrContext);
-  const { askMnemonic } = useContext(AskMnemonicContext);
   const [error, setError] = useState<string>('');
   const [sendState, setSendState] = useState<'idle' | 'preparing' | 'prepared' | 'sending' | 'success'>('idle');
   const [feeSats, setFeeSats] = useState<number | null>(null);
@@ -75,6 +73,7 @@ const SendLightning: React.FC = () => {
         if (Lnurl.isLightningAddress(invoice2use)) {
           try {
             // need to fetch details, like minimum and maximum sat payment
+            invoice2use = encodeURIComponent(invoice2use.split('@')[0]) + '@' + invoice2use.split('@')[1]; // copensating for router automatically urldecoding the ln address in param
             const ln = new Lnurl(invoice2use);
             const response = await ln.callLnurlPayService();
             if (response) {
@@ -152,7 +151,7 @@ const SendLightning: React.FC = () => {
     setSendState('preparing');
     setError('');
     try {
-      await askMnemonic(); // verify password
+      await new Promise((r) => setTimeout(r, 200)); // propagate state
 
       setSendState('prepared');
     } catch (error: any) {
@@ -169,8 +168,6 @@ const SendLightning: React.FC = () => {
       assert(walletRef.current, 'Internal error: wallet not initialized');
 
       assert(lnurl && lnAddressAmountToSend && parseInt(lnAddressAmountToSend), 'Internal error: lnurl and amount to send not set');
-
-      await askMnemonic(); // verify password
 
       const bolt11payload = await lnurl.requestBolt11FromLnurlPayService(parseInt(lnAddressAmountToSend), 'LayerzWallet');
 

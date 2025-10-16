@@ -3,14 +3,13 @@ import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, AppState, AppStateStatus, KeyboardAvoidingView, Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
-import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
@@ -19,7 +18,7 @@ import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wal
 import { CreateTransactionTarget, CreateTransactionUtxo } from '@shared/class/wallets/types';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_ARK, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
@@ -49,9 +48,9 @@ const SendBtc: React.FC = () => {
   const [sendData, setSendData] = useState<undefined | { utxos: CreateTransactionUtxo[]; changeAddress: string }>(undefined);
   const [txhex, setTxhex] = useState<string>('');
   const [actualFee, setActualFee] = useState<number>();
-  const { network, setNetwork } = useContext(NetworkContext);
+  const { setNetwork } = useContext(NetworkContext);
+  const network = NETWORK_BITCOIN; // screen is exclusive to bitcoin
   const { accountNumber } = useContext(AccountNumberContext);
-  const { askMnemonic } = useContext(AskMnemonicContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const [showFeeModal, setShowFeeModal] = useState(false);
   const wallet = useRef(new HDSegwitBech32Wallet());
@@ -132,6 +131,16 @@ const SendBtc: React.FC = () => {
     })();
   }, [accountNumber]);
 
+  // dismiss fee modal when app goes to background
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState.match(/inactive|background/)) setShowFeeModal(false);
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, []);
+
   const broadcast = async () => {
     try {
       if (!BlueElectrum.mainConnected) {
@@ -168,7 +177,7 @@ const SendBtc: React.FC = () => {
         throw new Error('recipient address is not valid');
       }
 
-      const mnemonic = await askMnemonic();
+      const mnemonic = await BackgroundExecutor.getMasterSeed();
       w.setSecret(mnemonic);
       w.setDerivationPath(`m/84'/0'/${accountNumber}'`);
 
@@ -197,6 +206,11 @@ const SendBtc: React.FC = () => {
 
   const handleChangeCustom = (text: string) => {
     setCustomFeeRate(Number(text));
+  };
+
+  const handleFeeSelection = (feeRate: number) => {
+    setCustomFeeRate(feeRate);
+    setShowFeeModal(false);
   };
 
   const handleScanQR = async () => {
@@ -300,17 +314,17 @@ const SendBtc: React.FC = () => {
           ) : null}
 
           {!isPreparing && !isPrepared && (
-            <View style={styles.feeContainer}>
+            <TouchableOpacity style={styles.feeContainer} onPress={() => setShowFeeModal(true)}>
               <View style={styles.feeRow}>
                 <ThemedText style={styles.feeLabel}>Network Fee:</ThemedText>
-                <TouchableOpacity style={styles.changeFeeButton} onPress={() => setShowFeeModal(true)}>
+                <View style={styles.changeFeeButton}>
                   <ThemedText style={styles.changeFeeText}>
                     {feeRate} sats/vbyte{feeRateOptions[feeRate] && ` (${feeRateOptions[feeRate]} sats)`}
                   </ThemedText>
                   <Ionicons name="chevron-forward" size={16} color="rgba(255, 255, 255, 0.6)" />
-                </TouchableOpacity>
+                </View>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
 
           {!isPreparing && !isPrepared && (
@@ -361,46 +375,50 @@ const SendBtc: React.FC = () => {
         </View>
       </ScrollView>
 
-      <Modal visible={showFeeModal} animationType="slide" transparent={true}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <ThemedText style={styles.modalTitle}>Select Network Fee</ThemedText>
+      <Modal visible={showFeeModal} animationType="fade" transparent={true}>
+        <KeyboardAvoidingView behavior="padding" style={styles.modalContainer}>
+          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowFeeModal(false)}>
+            <TouchableOpacity style={styles.modalContent} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+              <ThemedText style={styles.modalTitle}>Select Network Fee</ThemedText>
 
-            {estimateFees && (
-              <>
-                <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.slow && styles.selectedFeeOption]} onPress={() => setCustomFeeRate(estimateFees.slow)}>
-                  <ThemedText style={styles.feeOptionText}>
-                    Economy ({estimateFees.slow} sat/vbyte)
-                    {feeRateOptions[estimateFees.slow] ? ` ≈ ${feeRateOptions[estimateFees.slow]} sats` : ''}
-                  </ThemedText>
-                </TouchableOpacity>
+              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+                {estimateFees && (
+                  <>
+                    <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.slow && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.slow)}>
+                      <ThemedText style={styles.feeOptionText}>
+                        Economy ({estimateFees.slow} sat/vbyte)
+                        {feeRateOptions[estimateFees.slow] ? ` ≈ ${feeRateOptions[estimateFees.slow]} sats` : ''}
+                      </ThemedText>
+                    </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.medium && styles.selectedFeeOption]} onPress={() => setCustomFeeRate(estimateFees.medium)}>
-                  <ThemedText style={styles.feeOptionText}>
-                    Standard ({estimateFees.medium} sat/vbyte)
-                    {feeRateOptions[estimateFees.medium] ? ` ≈ ${feeRateOptions[estimateFees.medium]} sats` : ''}
-                  </ThemedText>
-                </TouchableOpacity>
+                    <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.medium && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.medium)}>
+                      <ThemedText style={styles.feeOptionText}>
+                        Standard ({estimateFees.medium} sat/vbyte)
+                        {feeRateOptions[estimateFees.medium] ? ` ≈ ${feeRateOptions[estimateFees.medium]} sats` : ''}
+                      </ThemedText>
+                    </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.fast && styles.selectedFeeOption]} onPress={() => setCustomFeeRate(estimateFees.fast)}>
-                  <ThemedText style={styles.feeOptionText}>
-                    Priority ({estimateFees.fast} sat/vbyte)
-                    {feeRateOptions[estimateFees.fast] ? ` ≈ ${feeRateOptions[estimateFees.fast]} sats` : ''}
-                  </ThemedText>
-                </TouchableOpacity>
-              </>
-            )}
+                    <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.fast && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.fast)}>
+                      <ThemedText style={styles.feeOptionText}>
+                        Priority ({estimateFees.fast} sat/vbyte)
+                        {feeRateOptions[estimateFees.fast] ? ` ≈ ${feeRateOptions[estimateFees.fast]} sats` : ''}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </>
+                )}
 
-            <View style={styles.customFeeContainer}>
-              <ThemedText style={styles.customFeeLabel}>Custom (sat/vbyte)</ThemedText>
-              <TextInput style={styles.customFeeInput} keyboardType="numeric" value={String(feeRate)} onChangeText={handleChangeCustom} />
-            </View>
+                <View style={styles.customFeeContainer}>
+                  <ThemedText style={styles.customFeeLabel}>Custom (sat/vbyte)</ThemedText>
+                  <TextInput style={styles.customFeeInput} keyboardType="numeric" value={String(feeRate)} onChangeText={handleChangeCustom} />
+                </View>
+              </ScrollView>
 
-            <TouchableOpacity style={[styles.doneButton, !customFeeRate && styles.disabledButton]} onPress={() => setShowFeeModal(false)} disabled={!customFeeRate}>
-              <ThemedText style={styles.doneButtonText}>Done</ThemedText>
+              <TouchableOpacity style={[styles.doneButton, !customFeeRate && styles.disabledButton]} onPress={() => setShowFeeModal(false)} disabled={!customFeeRate}>
+                <ThemedText style={styles.doneButtonText}>Done</ThemedText>
+              </TouchableOpacity>
             </TouchableOpacity>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </GradientScreen>
   );
@@ -585,8 +603,6 @@ const styles = StyleSheet.create({
   // Modal styles
   modalContainer: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
@@ -643,6 +659,14 @@ const styles = StyleSheet.create({
   },
   doneButtonText: {
     color: 'rgba(255, 255, 255, 0.9)',
+  },
+  modalScrollView: {
+    maxHeight: 300,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
 });
 
