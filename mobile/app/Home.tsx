@@ -104,7 +104,7 @@ export default function Home() {
       currentModalPosition.value = maxTranslate;
       modalTranslateY.value = maxTranslate;
     }
-  }, [params.fromOnboarding]);
+  }, [params.fromOnboarding, currentModalPosition, modalTranslateY]);
 
   const isEVM = getIsEVM(network);
   const networkImage = getNetworkImageAsset(network);

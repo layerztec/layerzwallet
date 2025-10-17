@@ -5,7 +5,6 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useSegments } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
 import { isDevicePasscodeEnabled } from '@/utils/deviceSecurity';
