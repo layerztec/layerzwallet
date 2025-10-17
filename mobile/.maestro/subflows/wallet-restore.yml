@@ -52,7 +52,8 @@ appId: com.layerzwallet.mobile
     timeout: 300_000 # 5 min
 
 - assertVisible: 'Wallet created\nsuccessfully'
-- assertVisible: 'You are now ready to access your wallet\nand unlock Bitcoin Layerz 2 potential'
+- assertVisible:
+    id: 'TosSubtitle'
 
 # Check the backup recovery phrase checkbox
 - assertVisible:
