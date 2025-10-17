@@ -16,6 +16,7 @@ appId: com.layerzwallet.mobile
 - eraseText
 - inputText: 'https://metamask.github.io/test-dapp/'
 - pressKey: Enter
+- waitForAnimationToEnd
 - extendedWaitUntil: # wait for page to load
     visible: 'E2E Test Dapp'
 
