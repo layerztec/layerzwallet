@@ -1,7 +1,7 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useContext, useEffect, useMemo } from 'react';
 import { Alert, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -154,22 +154,18 @@ export default function Home() {
     router.push('/Swap');
   };
 
-  // Handle network card selection in black background area
   const handleNetworkCardPress = (index: number) => {
     if (index >= 0 && index < networks.length) {
       const selectedNetwork = networks[index];
-
       // Create white flash transition effect
       const flashDuration = 150;
-
       whiteFlashAnim.value = withTiming(1, { duration: flashDuration }, () => {
-        scheduleOnRN(setNetwork, selectedNetwork);
-
         whiteFlashAnim.value = withTiming(0, { duration: flashDuration }, () => {
           // After flash animation completes, expand modal to full height
           currentModalPosition.value = 0;
           modalTranslateY.value = withTiming(0, { duration: 400 });
         });
+        scheduleOnRN(setNetwork, selectedNetwork);
       });
     }
   };
