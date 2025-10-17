@@ -5,9 +5,11 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useSegments } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
 import { isDevicePasscodeEnabled } from '@/utils/deviceSecurity';
+import { Colors } from '@shared/constants/Colors';
 
 interface BiometricLoginScreenProps {
   autoTrigger?: boolean;
@@ -301,7 +303,7 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: Colors.GlobalDarkBackground }]}>
       <View style={styles.content}>
         <View style={styles.splashContainer}>
           <Image source={require('@/assets/images/splash-icon.png')} style={styles.splashIcon} />
@@ -339,7 +341,6 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
   },

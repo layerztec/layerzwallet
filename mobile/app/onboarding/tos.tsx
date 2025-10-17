@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { Colors, gradients } from '@shared/constants/Colors';
+import { Colors } from '@shared/constants/Colors';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { Image } from 'expo-image';
 
@@ -34,8 +34,8 @@ export default function TermsOfServiceScreen() {
       // Accept the terms of service
       await BackgroundExecutor.acceptTermsOfService();
 
-      // Navigate to the main home screen
-      router.replace('/Home');
+      // Navigate to the main home screen with onboarding flag
+      router.replace({ pathname: '/Home', params: { fromOnboarding: 'true' } });
     } catch (error) {
       console.error('Error accepting terms:', error);
       Alert.alert('Error', 'Failed to accept terms. Please try again.');
@@ -65,7 +65,7 @@ export default function TermsOfServiceScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={gradients.blueGradient} style={styles.container}>
+      <View style={[styles.container, { backgroundColor: Colors.GlobalDarkBackground }]}>
         <SafeAreaView style={styles.safeAreaView}>
           <View style={styles.logoContainer}>
             <Animated.View style={[iconTransition]}>
@@ -118,7 +118,7 @@ export default function TermsOfServiceScreen() {
             </TouchableOpacity>
           </Animated.View>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -139,6 +139,8 @@ const styles = StyleSheet.create({
   icon: {
     width: 120,
     height: 120,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 60,
   },
   content: {
     flex: 1,
@@ -153,7 +155,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 20,
     paddingVertical: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 16,
     paddingHorizontal: 16,
   },
