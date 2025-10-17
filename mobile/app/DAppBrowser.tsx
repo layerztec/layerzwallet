@@ -2,7 +2,7 @@ import { Asset } from 'expo-asset';
 import { File } from 'expo-file-system';
 import * as Linking from 'expo-linking';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
-import { StyleSheet, TouchableOpacity, View, Alert, TextInput, ScrollView, PanResponder, Image, AppState, AppStateStatus, Dimensions, Text } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, Dimensions, Text } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { captureRef } from 'react-native-view-shot';
 import { Image as ExpoImage } from 'expo-image';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming, withSpring, interpolate, Extrapolation, runOnJS } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, withSpring, interpolate, runOnJS } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -40,6 +40,8 @@ interface BrowserTab {
   historyIndex: number;
   screenshot?: string;
   timestamp: number;
+  needsScreenshotUpdate?: boolean;
+  isCapturingScreenshot?: boolean;
 }
 
 type StoredTab = {
@@ -78,8 +80,6 @@ const DAppBrowser: React.FC = () => {
   const [showTabsOverview, setShowTabsOverview] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isAddressInputFocused, setIsAddressInputFocused] = useState<boolean>(false);
-  const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
-  const [draggedOverIndex, setDraggedOverIndex] = useState<number | null>(null);
 
   const webviewOpacity = useSharedValue(1);
   const tabsOpacity = useSharedValue(0);
@@ -251,18 +251,6 @@ const DAppBrowser: React.FC = () => {
     })();
   }, []);
 
-  const callbackRef = useCallback((r: WebView | null) => {
-    if (r === null) {
-      return;
-    }
-    webviewRef.current = r;
-    browserBridgeRef.current = new BrowserBridge(r);
-
-    return () => {
-      BrowserBridge.instance = null;
-    };
-  }, []);
-
   const saveTabs = useCallback(async (tabsToSave: BrowserTab[], activeId: string) => {
     try {
       const storedTabs: StoredTab[] = tabsToSave.map((t) => ({
@@ -360,6 +348,8 @@ const DAppBrowser: React.FC = () => {
       return null;
     }
 
+    setTabs((prev) => prev.map((tab) => (tab.id === tabId ? { ...tab, isCapturingScreenshot: true } : tab)));
+
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     try {
@@ -376,10 +366,10 @@ const DAppBrowser: React.FC = () => {
         console.warn('Failed to capture screenshot for tab:', tabId, error?.message || error);
       }
       return null;
+    } finally {
+      setTabs((prev) => prev.map((tab) => (tab.id === tabId ? { ...tab, isCapturingScreenshot: false } : tab)));
     }
   }, []);
-
-  const unloadInactiveTabs = useCallback(() => {}, []);
 
   useEffect(() => {
     const restoreTabs = async () => {
@@ -426,7 +416,7 @@ const DAppBrowser: React.FC = () => {
       if (nextAppState === 'background' || nextAppState === 'inactive') {
         const screenshot = await captureTabScreenshot(activeTabId);
         if (screenshot) {
-          setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot, timestamp: Date.now() } : tab)));
+          setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot, timestamp: Date.now(), needsScreenshotUpdate: false } : tab)));
         }
       }
     };
@@ -461,7 +451,7 @@ const DAppBrowser: React.FC = () => {
         setAddressInput(newTab.url);
       }
     }
-  }, [params.url, isRestoringTabs, tabs, unloadInactiveTabs]);
+  }, [params.url, isRestoringTabs, tabs]);
 
   const availableNetworks = useAvailableNetworks();
 
@@ -602,7 +592,7 @@ const DAppBrowser: React.FC = () => {
     try {
       const currentScreenshot = await captureTabScreenshot(oldActiveTabId);
       if (currentScreenshot) {
-        setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === oldActiveTabId ? { ...tab, screenshot: currentScreenshot, timestamp: Date.now() } : tab)));
+        setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === oldActiveTabId ? { ...tab, screenshot: currentScreenshot, timestamp: Date.now(), needsScreenshotUpdate: false } : tab)));
       }
     } catch (error) {}
 
@@ -615,31 +605,36 @@ const DAppBrowser: React.FC = () => {
     hideTabsOverview();
   };
 
-  const reorderTabs = (fromIndex: number, toIndex: number) => {
-    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= tabs.length || toIndex >= tabs.length) {
-      return;
-    }
-
-    const newTabs = [...tabs];
-    const [movedTab] = newTabs.splice(fromIndex, 1);
-    newTabs.splice(toIndex, 0, movedTab);
-    setTabs(newTabs);
-  };
-
   const showTabsOverviewAnimated = async () => {
-    // Show overview immediately
     setShowTabsOverview(true);
     webviewOpacity.value = withTiming(0, { duration: 300 });
     tabsOpacity.value = withTiming(1, { duration: 300 });
     addressBarTranslateY.value = withTiming(-120, { duration: 300 });
 
+    console.debug('[DAppBrowser] Showing tabs overview. Total tabs:', tabs.length);
+    tabs.forEach((tab, index) => {
+      console.debug(`[DAppBrowser] Tab ${index + 1}:`, {
+        id: tab.id,
+        url: tab.url,
+        title: tab.title,
+        canGoBack: tab.canGoBack,
+        canGoForward: tab.canGoForward,
+        historyLength: tab.history?.length || 0,
+        historyIndex: tab.historyIndex,
+        hasScreenshot: !!tab.screenshot,
+        timestamp: new Date(tab.timestamp).toISOString(),
+        isActive: tab.id === activeTabId,
+        needsScreenshotUpdate: tab.needsScreenshotUpdate,
+      });
+    });
+
     const now = Date.now();
-    const targetsToCapture = tabs.filter((t) => !t.screenshot || now - (t.timestamp || now) > ONE_WEEK_MS);
+    const targetsToCapture = tabs.filter((t) => !t.screenshot || now - (t.timestamp || now) > ONE_WEEK_MS || t.needsScreenshotUpdate);
 
     for (const t of targetsToCapture) {
       const shot = await captureTabScreenshot(t.id);
       if (shot) {
-        setTabs((prev) => prev.map((tab) => (tab.id === t.id ? { ...tab, screenshot: shot, timestamp: Date.now() } : tab)));
+        setTabs((prev) => prev.map((tab) => (tab.id === t.id ? { ...tab, screenshot: shot, timestamp: Date.now(), needsScreenshotUpdate: false } : tab)));
       }
     }
   };
@@ -660,6 +655,40 @@ const DAppBrowser: React.FC = () => {
     } else {
       showTabsOverviewAnimated();
     }
+  };
+
+  const handleCloseAllTabs = () => {
+    Alert.alert('Close All Tabs', 'Are you sure you want to close all tabs?', [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Close All',
+        style: 'destructive',
+        onPress: () => {
+          const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
+          console.debug('[DAppBrowser] Closing all tabs and creating new tab with URL:', homeUrl);
+          const newTab: BrowserTab = {
+            id: Date.now().toString(),
+            url: homeUrl,
+            title: getTabTitle(homeUrl),
+            canGoBack: false,
+            canGoForward: false,
+            history: [{ url: homeUrl, title: getTabTitle(homeUrl) }],
+            historyIndex: 0,
+            timestamp: Date.now(),
+          };
+          console.debug('[DAppBrowser] New tab object:', newTab);
+          setTabs([newTab]);
+          setActiveTabId(newTab.id);
+          setAddressInput(homeUrl);
+          if (showTabsOverview) {
+            hideTabsOverview();
+          }
+        },
+      },
+    ]);
   };
 
   const updateActiveTab = (updates: Partial<BrowserTab>) => {
@@ -684,10 +713,6 @@ const DAppBrowser: React.FC = () => {
     } catch {
       return url.length > 30 ? url.substring(0, 30) + '...' : url;
     }
-  };
-
-  const refresh = () => {
-    browserBridgeRef.current?.refresh();
   };
 
   const stopLoading = () => {
@@ -794,23 +819,22 @@ const DAppBrowser: React.FC = () => {
     return tab.history.slice(tab.historyIndex + 1);
   };
 
-  const unwhitelistCurrentDapp = async () => {
-    try {
-      const { hostname } = new URL(currentUrl);
-      await BackgroundExecutor.unwhitelistDapp(hostname);
-      refresh();
-    } catch {
-      Alert.alert('Error', 'Failed to unwhitelist dapp');
-    }
-  };
-
-  const openInExternalBrowser = () => {
-    Linking.openURL(currentUrl);
-  };
-
   const handleMessage = useCallback((event: WebViewMessageEvent) => {
     browserBridgeRef.current?.handleMessage(event);
   }, []);
+
+  const handleScroll = useCallback(() => {
+    setTabs((prev) =>
+      prev.map((tab) =>
+        tab.id === activeTabId
+          ? {
+              ...tab,
+              needsScreenshotUpdate: true,
+            }
+          : tab
+      )
+    );
+  }, [activeTabId]);
 
   const handleLoadProgress = useCallback(
     ({ nativeEvent }: { nativeEvent: { progress: number } }) => {
@@ -825,11 +849,10 @@ const DAppBrowser: React.FC = () => {
         if (finished && progress >= 1) {
           progressOpacity.value = withTiming(0, { duration: 300 });
 
-          // Capture screenshot when page finishes loading
           setTimeout(async () => {
             const screenshot = await captureTabScreenshot(activeTabId);
             if (screenshot) {
-              setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot, timestamp: Date.now() } : tab)));
+              setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot, timestamp: Date.now(), needsScreenshotUpdate: false } : tab)));
             }
           }, 1000);
         }
@@ -850,15 +873,17 @@ const DAppBrowser: React.FC = () => {
       }
 
       const title = getTabTitle(navState.url);
-      console.debug('[DAppBrowser] Updating tab with new navigation:', title);
 
       setTabs((prev) =>
         prev.map((tab) => {
           if (tab.id !== activeTabId) return tab;
 
           if (tab.url === navState.url) {
+            console.debug('[DAppBrowser] Skipping navigation state change (URL unchanged)');
             return tab;
           }
+
+          console.debug('[DAppBrowser] Updating tab with new navigation:', title);
 
           const newHistory = [...tab.history.slice(0, tab.historyIndex + 1)];
 
@@ -876,6 +901,7 @@ const DAppBrowser: React.FC = () => {
             canGoForward: false,
             history: newHistory,
             historyIndex: newHistoryIndex,
+            needsScreenshotUpdate: true,
           };
         })
       );
@@ -1028,6 +1054,7 @@ const DAppBrowser: React.FC = () => {
                         onMessage={isActive ? handleMessage : undefined}
                         onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
                         onLoadProgress={isActive ? handleLoadProgress : undefined}
+                        onScroll={isActive ? handleScroll : undefined}
                         injectedJavaScriptBeforeContentLoaded={js}
                         style={styles.webviewVisible}
                         incognito={false}
@@ -1042,19 +1069,10 @@ const DAppBrowser: React.FC = () => {
             <DAppBrowserTabs
               tabs={tabs}
               activeTabId={activeTabId}
-              draggingTabId={draggingTabId}
-              draggedOverIndex={draggedOverIndex}
               animatedStyle={tabsOverviewAnimatedStyle}
               pointerEvents={showTabsOverview ? 'auto' : 'none'}
               onSwitchTab={switchTab}
               onCloseTab={closeTab}
-              onStartDrag={setDraggingTabId}
-              onDragOver={setDraggedOverIndex}
-              onReorderTabs={reorderTabs}
-              onDragEnd={() => {
-                setDraggingTabId(null);
-                setDraggedOverIndex(null);
-              }}
               getTabTitle={getTabTitle}
             />
           </View>
@@ -1125,7 +1143,7 @@ const DAppBrowser: React.FC = () => {
                 <View style={styles.navButton} />
               </View>
               <View style={styles.navButtonContainer}>
-                <TouchableOpacity style={styles.navButton} onPress={toggleTabsOverview} disabled={tabs.length === 1} testID="BrowserTabsOverviewButton">
+                <TouchableOpacity style={styles.navButton} onPress={toggleTabsOverview} onLongPress={handleCloseAllTabs} disabled={tabs.length === 1} testID="BrowserTabsOverviewButton">
                   <View style={[styles.tabsOverviewIcon, tabs.length === 1 && { opacity: 0.3 }]}>
                     <ThemedText style={styles.tabsCount}>{tabs.length}</ThemedText>
                   </View>
@@ -1248,12 +1266,6 @@ const styles = StyleSheet.create({
   stopButton: {
     padding: 4,
     marginLeft: 8,
-  },
-  progressText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginLeft: 8,
-    fontWeight: '600',
   },
   progressBar: {
     position: 'absolute',
@@ -1397,59 +1409,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 20,
-  },
-  networkSwitcherOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1000,
-  },
-  networkSwitcherBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  networkSwitcherModal: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '70%',
-    backgroundColor: '#1a1a1a',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
-  },
-  networkSwitcherHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  networkSwitcherTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  networkSwitcherCloseButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  networkSwitcherContent: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
   },
 });

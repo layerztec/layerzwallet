@@ -14,48 +14,21 @@ interface BrowserTab {
   historyIndex: number;
   screenshot?: string;
   timestamp: number;
+  needsScreenshotUpdate?: boolean;
+  isCapturingScreenshot?: boolean;
 }
 
 interface DAppBrowserTabsProps {
   tabs: BrowserTab[];
   activeTabId: string;
-  draggingTabId: string | null;
-  draggedOverIndex: number | null;
   animatedStyle: any;
   pointerEvents: 'auto' | 'none';
   onSwitchTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
-  onStartDrag: (tabId: string) => void;
-  onDragOver: (index: number | null) => void;
-  onReorderTabs: (fromIndex: number, toIndex: number) => void;
-  onDragEnd: () => void;
   getTabTitle: (url: string) => string;
 }
 
-export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({
-  tabs,
-  activeTabId,
-  draggingTabId,
-  draggedOverIndex,
-  animatedStyle,
-  pointerEvents,
-  onSwitchTab,
-  onCloseTab,
-  onStartDrag,
-  onDragOver,
-  onReorderTabs,
-  onDragEnd,
-  getTabTitle,
-}) => {
-  const handleDragEnd = () => {
-    if (draggingTabId !== null && draggedOverIndex !== null) {
-      const fromIndex = tabs.findIndex((tab) => tab.id === draggingTabId);
-      if (fromIndex !== -1 && fromIndex !== draggedOverIndex) {
-        onReorderTabs(fromIndex, draggedOverIndex);
-      }
-    }
-    onDragEnd();
-  };
+export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({ tabs, activeTabId, animatedStyle, pointerEvents, onSwitchTab, onCloseTab, getTabTitle }) => {
   return (
     <Animated.View style={[styles.tabsOverviewContainer, animatedStyle, styles.tabsOverviewAbsolute]} pointerEvents={pointerEvents}>
       <View style={styles.tabsOverviewBackground}>
@@ -71,22 +44,7 @@ export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({
                 tab={tab}
                 index={index}
                 isActive={activeTabId === tab.id}
-                isDragging={draggingTabId === tab.id}
-                isDraggedOver={draggedOverIndex === index}
-                onPress={() => {
-                  if (draggingTabId === null) {
-                    onSwitchTab(tab.id);
-                  } else {
-                    onDragOver(index);
-                    handleDragEnd();
-                  }
-                }}
-                onLongPress={() => onStartDrag(tab.id)}
-                onPressIn={() => {
-                  if (draggingTabId !== null && draggingTabId !== tab.id) {
-                    onDragOver(index);
-                  }
-                }}
+                onPress={() => onSwitchTab(tab.id)}
                 onClose={() => onCloseTab(tab.id)}
                 getTabTitle={getTabTitle}
               />
