@@ -83,7 +83,15 @@ appId: com.layerzwallet.mobile
     id: 'LetsGoButton'
 - waitForAnimationToEnd
 
-# Wait for home screen with Send & Receive buttons
+# Wait for home screen to load (it starts minimized when coming from onboarding)
+- waitForAnimationToEnd
+
+# Tap on the first network card to expand the modal
+- tapOn:
+    id: 'activeNetwork-bitcoin'
+- waitForAnimationToEnd
+
+# Now check if Send & Receive buttons are visible
 - assertVisible:
     id: 'SendButton'
 - assertVisible:
