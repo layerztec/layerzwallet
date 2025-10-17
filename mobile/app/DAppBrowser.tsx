@@ -71,8 +71,7 @@ const DAppBrowser: React.FC = () => {
   const [js, setJs] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const params = useLocalSearchParams<DappBrowserProps>();
-  const initialUrl = params.url || 'https://layerztec.github.io/website/explore/?network=' + network;
-
+  const initialUrl = params.url || 'https://layerztec.github.io/website/explore/?network=' + network; // to test: https://metamask.github.io/test-dapp/ & https://eip6963.org/
   const [tabs, setTabs] = useState<BrowserTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string>('');
   const [isRestoringTabs, setIsRestoringTabs] = useState<boolean>(true);
