@@ -1,34 +1,31 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import GradientFormSheet from '@/components/GradientFormSheet';
 import { ThemedText } from '@/components/ThemedText';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { getSwapPairs } from '@shared/models/swap-providers-list';
-import { capitalizeFirstLetter } from '@shared/modules/string-utils';
-import { Networks } from '@shared/types/networks';
-import { SwapPlatform } from '@shared/types/swap';
+import { getSwapPairs, getSwapTargetName } from '@shared/models/swap-providers-list';
+import { SwapOptions, SwapPlatform } from '@shared/types/swap';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { sleep } from '@shared/modules/sleep';
 
 interface TargetNetworkItem {
-  network: Networks;
+  target: SwapOptions;
   name: string;
 }
 
+export type SwapTargetParams = {
+  fromNetwork: SwapOptions;
+};
+
 const ListItem = ({ item, onPress, active, first, last }: { item: TargetNetworkItem; onPress: () => void; active: boolean; first: boolean; last: boolean }) => {
-  const networkImage = getNetworkImageAsset(item.network);
+  const networkImage = getNetworkImageAsset(item.target);
 
   return (
-    <TouchableOpacity
-      style={[styles.item, active && styles.activeItem, first && styles.firstItem, last && styles.lastItem]}
-      onPress={onPress}
-      activeOpacity={0.7}
-      testID={`SwapTarget-${item.network}`}
-    >
+    <TouchableOpacity style={[styles.item, active && styles.activeItem, first && styles.firstItem, last && styles.lastItem]} onPress={onPress} activeOpacity={0.7} testID={`SwapTarget-${item.target}`}>
       <View style={styles.networkIcon}>{networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null}</View>
       <ThemedText style={styles.networkName}>{item.name}</ThemedText>
     </TouchableOpacity>
@@ -37,24 +34,27 @@ const ListItem = ({ item, onPress, active, first, last }: { item: TargetNetworkI
 
 export default function SwapTarget() {
   const router = useRouter();
+  const params = useLocalSearchParams<SwapTargetParams>();
   const { network } = useContext(NetworkContext);
   const [availableTargets, setAvailableTargets] = useState<TargetNetworkItem[]>([]);
 
+  const fromNetwork = params.fromNetwork;
+
   useEffect(() => {
-    const swapPairs = getSwapPairs(network, SwapPlatform.MOBILE);
-    const targetNetworks = Array.from(new Set(swapPairs.map((pair) => pair.to)));
-    const targets: TargetNetworkItem[] = targetNetworks.map((targetNetwork) => ({
-      network: targetNetwork,
-      name: capitalizeFirstLetter(targetNetwork),
+    const swapPairs = getSwapPairs(fromNetwork, SwapPlatform.MOBILE);
+    const targetsO = Array.from(new Set(swapPairs.map((pair) => pair.to)));
+    const targets: TargetNetworkItem[] = targetsO.map((target) => ({
+      target: target,
+      name: getSwapTargetName(target),
     }));
     setAvailableTargets(targets);
-  }, [network]);
+  }, [fromNetwork]);
 
   const handleClose = () => {
     router.back();
   };
 
-  const handleSelectTarget = async (targetNetwork: Networks) => {
+  const handleSelectTarget = async (targetNetwork: SwapOptions) => {
     router.back();
     // let transition happen and then update the params
     await sleep(100);
@@ -75,14 +75,14 @@ export default function SwapTarget() {
         {/* Target Networks List */}
         <View style={styles.listContainer}>
           {availableTargets.map((item, index) => (
-            <ListItem key={item.network} item={item} onPress={() => handleSelectTarget(item.network)} active={false} first={index === 0} last={index === availableTargets.length - 1} />
+            <ListItem key={item.target} item={item} onPress={() => handleSelectTarget(item.target)} active={false} first={index === 0} last={index === availableTargets.length - 1} />
           ))}
         </View>
 
         {/* Empty State */}
         {availableTargets.length === 0 && (
           <View style={styles.emptyState}>
-            <ThemedText style={styles.emptyText}>No swap targets available for {capitalizeFirstLetter(network)}</ThemedText>
+            <ThemedText style={styles.emptyText}>No swap targets available for {getSwapTargetName(fromNetwork)}</ThemedText>
           </View>
         )}
       </View>

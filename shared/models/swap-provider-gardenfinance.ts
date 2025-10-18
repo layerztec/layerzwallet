@@ -14,10 +14,8 @@ export class SwapProviderGardenFinance implements SwapProvider {
   getSupportedPairs(): SwapPair[] {
     return [
       // btc <-> botanix
-      { from: NETWORK_BITCOIN, to: NETWORK_BOTANIX, platform: SwapPlatform.EXT },
-      { from: NETWORK_BOTANIX, to: NETWORK_BITCOIN, platform: SwapPlatform.EXT },
-      { from: NETWORK_BITCOIN, to: NETWORK_BOTANIX, platform: SwapPlatform.MOBILE },
-      { from: NETWORK_BOTANIX, to: NETWORK_BITCOIN, platform: SwapPlatform.MOBILE },
+      { from: NETWORK_BITCOIN, to: NETWORK_BOTANIX, platform: SwapPlatform.ALL },
+      { from: NETWORK_BOTANIX, to: NETWORK_BITCOIN, platform: SwapPlatform.ALL },
     ];
   }
 

@@ -272,7 +272,7 @@ const BalanceUsdt: React.FC<BalanceProps> = ({ network, accountNumber, Backgroun
 
   const rows = useMemo(() => {
     const result = [];
-    for (const network of [NETWORK_ROOTSTOCK, NETWORK_LIQUID]) {
+    for (const network of [NETWORK_LIQUID, NETWORK_ROOTSTOCK]) {
       const tokens = USDT_TOKENS[network];
       for (const token of tokens) {
         if (!tokenMap[token]) continue;
