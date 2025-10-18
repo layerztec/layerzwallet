@@ -29,7 +29,6 @@ interface DAppBrowserTabItemProps {
 export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, index, isActive, onPress, onClose, getTabTitle }) => {
   const [imageError, setImageError] = useState(false);
 
-  // Show loading indicator only when there's no screenshot AND it's being captured
   const showLoadingIndicator = !tab.screenshot && tab.isCapturingScreenshot;
 
   return (

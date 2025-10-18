@@ -12,7 +12,7 @@ appId: com.layerzwallet.mobile
     id: 'ExplorerButton'
 - waitForAnimationToEnd
 - tapOn:
-    id: 'BrowserAddressBar'
+    id: 'DappBrowserAddressBar'
 - eraseText
 - inputText: 'https://metamask.github.io/test-dapp/'
 - pressKey: Enter

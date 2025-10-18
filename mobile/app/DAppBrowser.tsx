@@ -985,7 +985,7 @@ const DAppBrowser: React.FC = () => {
                       placeholderTextColor="rgba(255, 255, 255, 0.5)"
                       selectTextOnFocus={true}
                       editable={!isNetworkSelectorVisible}
-                      testID="BrowserAddressBar"
+                      testID="DappBrowserAddressBar"
                     />
                     {isAddressInputFocused ? (
                       <TouchableOpacity style={styles.stopButton} onPress={() => setAddressInput('')}>
