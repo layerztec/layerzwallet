@@ -1,54 +1,53 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import React, { useContext, useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
-import { type Href } from 'expo-router';
 import * as Linking from 'expo-linking';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import React, { useContext, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 import Button from '@/components/Button';
 import GradientScreen from '@/components/GradientScreen';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { useSwapBalance } from '@/src/shared-link/hooks/useSwapBalance';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { useBalance } from '@shared/hooks/useBalance';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
-import { getTickerByNetwork, getDecimalsByNetwork } from '@shared/models/network-getters';
-import { formatBalance, formatFiatBalance, capitalizeFirstLetter } from '@shared/modules/string-utils';
-import { getSwapPairs, getSwapProvidersList } from '@shared/models/swap-providers-list';
-import { SwapPlatform, SwapPair, DoSwapResponse } from '@shared/types/swap';
-import { Networks } from '@shared/types/networks';
+import { getSwapProvidersList, getSwapTargetName } from '@shared/models/swap-providers-list';
+import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
+import { NETWORK_LIQUID, Networks } from '@shared/types/networks';
+import { DoSwapResponse, SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapOptions, SwapPlatform } from '@shared/types/swap';
+import { SwapTargetParams } from './SwapTarget';
+
+export type SwapParams = {
+  amount?: string;
+  toNetwork?: SwapOptions;
+  showSwapInterface?: string;
+  fromNetwork?: SwapOptions;
+};
 
 export default function Swap() {
   const router = useRouter();
-  const params = useLocalSearchParams<{
-    amount?: string;
-    toNetwork?: Networks;
-    showSwapInterface?: string;
-    fromNetwork?: string;
-  }>();
+  const params = useLocalSearchParams<SwapParams>();
 
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
 
-  // Use router params for state management
   const [internalAmount, setInternalAmount] = useState('0');
   const amount = params.amount || internalAmount;
-  const targetNetwork = params.toNetwork;
+  const option = params.toNetwork;
+  const fromNetwork = params.fromNetwork || network;
 
-  const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const { exchangeRate } = useCachedExchangeRate(network, 'USD');
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const ticker = getTickerByNetwork(network);
-  const decimals = getDecimalsByNetwork(network);
+  const { balance, actualIsLoading, decimals, ticker } = useSwapBalance(network, fromNetwork, BackgroundExecutor);
 
-  // Format balance for display
   const formattedBalance = formatBalance(balance || '0', decimals);
-  const usdValue = exchangeRate ? formatFiatBalance(amount || '0', 0, Number(exchangeRate)) : '—';
+  const isToken = fromNetwork === SO_LIQUID_USDT || fromNetwork === SO_ROOTSTOCK_USDT;
+  const usdValue = isToken ? '' : exchangeRate ? formatFiatBalance(amount || '0', 0, Number(exchangeRate)) + ' USD' : '';
 
   const handleClose = () => {
     router.back();
@@ -63,7 +62,8 @@ export default function Swap() {
   };
 
   const handleToTokenSelect = () => {
-    router.push({ pathname: '/SwapTarget' });
+    const params: SwapTargetParams = { fromNetwork };
+    router.push({ pathname: '/SwapTarget', params });
   };
 
   const handleMaxPress = () => {
@@ -72,10 +72,16 @@ export default function Swap() {
     router.setParams({ amount: maxAmount });
   };
 
+  const handleBalanceClick = () => {
+    const balanceAmount = formattedBalance;
+    setInternalAmount(balanceAmount);
+    router.setParams({ amount: balanceAmount });
+  };
+
   const handleSwap = async (): Promise<DoSwapResponse> => {
     setError('');
     assert(balance, 'Balance not loaded');
-    assert(targetNetwork, 'Target network not selected');
+    assert(option, 'Target network not selected');
     const amt = parseFloat(amount);
     assert(!isNaN(amt), 'Invalid amount');
     assert(amt > 0, 'Amount should be > 0');
@@ -84,15 +90,23 @@ export default function Swap() {
     const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(decimals)).toString(10);
     assert(new BigNumber(balance).gte(satValue), 'Not enough balance');
 
-    const providers = getSwapProvidersList(network);
-    const provider = providers.find((p) => p.getSupportedPairs().some((pair) => pair.from === network && pair.to === targetNetwork && pair.platform === SwapPlatform.MOBILE));
+    const providers = getSwapProvidersList(fromNetwork);
+    const provider = providers.find((p) =>
+      p.getSupportedPairs().some((pair) => pair.from === fromNetwork && pair.to === option && (pair.platform === SwapPlatform.MOBILE || pair.platform === SwapPlatform.ALL))
+    );
 
     assert(provider, 'No provider found for the selected networks');
 
-    const destinationAddress = await BackgroundExecutor.getAddress(targetNetwork, accountNumber);
+    let destinationAddress = '';
+    if (option === SO_LIQUID_USDT) {
+      destinationAddress = await BackgroundExecutor.getAddress(NETWORK_LIQUID, accountNumber);
+    } else {
+      destinationAddress = await BackgroundExecutor.getAddress(option as Networks, accountNumber);
+    }
+
     assert(destinationAddress, 'No destination address');
 
-    return provider.swap(network, setNetwork, targetNetwork, parseInt(satValue), destinationAddress);
+    return provider.swap(fromNetwork, setNetwork, option, parseInt(satValue), destinationAddress);
   };
 
   const handleExecuteSwap = async () => {
@@ -123,15 +137,16 @@ export default function Swap() {
     }
   };
 
-  const canSwap = targetNetwork && parseFloat(amount) > 0 && !isLoading;
+  const canSwap = option && parseFloat(amount) > 0 && !isLoading && !actualIsLoading;
+  const targetName = option ? getSwapTargetName(option) : '';
 
   let buttonTitle = '';
-  if (!targetNetwork) {
+  if (!option) {
     buttonTitle = 'Select target network';
   } else if (internalAmount === '0') {
     buttonTitle = 'Enter amount';
   } else {
-    buttonTitle = `Swap ${ticker} to ${targetNetwork ? capitalizeFirstLetter(targetNetwork) : '...'}`;
+    buttonTitle = `Swap ${ticker} to ${targetName}`;
   }
 
   return (
@@ -166,10 +181,12 @@ export default function Swap() {
             </View>
           </View>
           <View style={styles.balanceRow}>
-            <ThemedText style={styles.usdText}>{usdValue} USD</ThemedText>
-            <ThemedText style={styles.balanceText}>
-              Balance {formattedBalance} {ticker}
-            </ThemedText>
+            <ThemedText style={styles.usdText}>{usdValue}</ThemedText>
+            <TouchableOpacity onPress={handleBalanceClick} activeOpacity={0.7}>
+              <ThemedText style={styles.balanceText}>
+                Balance {formattedBalance} {ticker}
+              </ThemedText>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -179,7 +196,7 @@ export default function Swap() {
             To
           </ThemedText>
           <TouchableOpacity style={styles.targetButton} onPress={handleToTokenSelect} testID="ToNetworkButton">
-            <ThemedText style={styles.targetButtonText}>{targetNetwork ? capitalizeFirstLetter(targetNetwork) : 'Select target network'}</ThemedText>
+            <ThemedText style={styles.targetButtonText}>{option ? targetName : 'Select target network'}</ThemedText>
             <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.6)" />
           </TouchableOpacity>
         </View>
