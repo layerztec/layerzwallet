@@ -18,10 +18,6 @@ appId: com.layerzwallet.mobile
             NETWORK: ${output.currentNetwork}
       # Wait for network switch to complete
       - waitForAnimationToEnd
-      # Ensure modal is expanded by tapping on the first available network card
-      - tapOn:
-          id: 'activeNetwork-bitcoin'
-      - waitForAnimationToEnd
       - assertVisible:
           id: 'SendButton'
       - assertVisible:
@@ -54,10 +50,6 @@ appId: com.layerzwallet.mobile
           env:
             NETWORK: ${output.currentNetwork}
       # Wait for network switch to complete
-      - waitForAnimationToEnd
-      # Ensure modal is expanded by tapping on the first available network card
-      - tapOn:
-          id: 'activeNetwork-bitcoin'
       - waitForAnimationToEnd
       - assertVisible:
           id: 'ReceiveButton'
