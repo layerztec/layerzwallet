@@ -11,13 +11,14 @@ appId: com.layerzwallet.mobile
       true: ${output.networks.length > 0}
     commands:
       # switch to the next network
+      - evalScript: ${output.currentNetwork = output.networks.shift()}
       - runFlow:
           file: subflows/network-switch.yml
           env:
-            NETWORK: ${output.networks.shift()}
+            NETWORK: ${output.currentNetwork}
       # Ensure modal is expanded by tapping on the network card
       - tapOn:
-          id: ${'activeNetwork-' + NETWORK}
+          id: ${'activeNetwork-' + output.currentNetwork}
       - waitForAnimationToEnd
       - assertVisible:
           id: 'SendButton'
@@ -45,13 +46,14 @@ appId: com.layerzwallet.mobile
       true: ${output.networks.length > 0}
     commands:
       # switch to the next network
+      - evalScript: ${output.currentNetwork = output.networks.shift()}
       - runFlow:
           file: subflows/network-switch.yml
           env:
-            NETWORK: ${output.networks.shift()}
+            NETWORK: ${output.currentNetwork}
       # Ensure modal is expanded by tapping on the network card
       - tapOn:
-          id: ${'activeNetwork-' + NETWORK}
+          id: ${'activeNetwork-' + output.currentNetwork}
       - waitForAnimationToEnd
       - assertVisible:
           id: 'ReceiveButton'
