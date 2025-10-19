@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { BackgroundCaller } from '../../modules/background-caller';
@@ -13,6 +13,10 @@ import { Csprng } from '../../class/rng';
 import { ThemedText } from '../../components/ThemedText';
 import { decrypt, encrypt } from '../../modules/encryption';
 import { Button, Select } from './DesignSystem';
+import Bugsnag from '@bugsnag/js';
+import { getDeviceID } from '@shared/modules/device-id';
+import { LayerzStorage } from '../../class/layerz-storage';
+import { isPlaywrightMode } from '../../utils/playwright-detection';
 
 const pck = require('../../../package.json');
 
@@ -21,6 +25,23 @@ const SettingsPage: React.FC = () => {
   const { setStep } = useContext(InitializationContext);
   const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
   const { settings, updateSetting } = useSettings();
+  const [deviceId, setDeviceId] = useState<string>('');
+
+  useEffect(() => {
+    if (!isPlaywrightMode()) {
+      getDeviceID(LayerzStorage, Csprng)
+        .then((id) => {
+          setDeviceId(id);
+        })
+        .catch((error) => {
+          console.debug('Device identifier not available:', error);
+          setDeviceId('');
+        });
+    } else {
+      console.debug('Device ID disabled in Playwright test mode');
+      setDeviceId('');
+    }
+  }, []);
 
   const assert = (condition: boolean, message: string) => {
     if (!condition) throw new Error('Assertion failed: ' + message);
@@ -43,6 +64,33 @@ const SettingsPage: React.FC = () => {
       await updateSetting(key as any, value);
     } catch (error) {
       console.error('Error updating setting:', error);
+    }
+  };
+
+  const handleDeviceIdClick = async () => {
+    if (deviceId) {
+      try {
+        console.debug('Sending test error to Bugsnag with device ID:', deviceId);
+
+        // Trigger a test error to Bugsnag with the device ID
+        Bugsnag.notify(new Error(`Test error from device: ${deviceId}`), (event) => {
+          event.addMetadata('test', {
+            deviceId: deviceId,
+            timestamp: new Date().toISOString(),
+            testType: 'manual_trigger',
+          });
+        });
+
+        console.debug('Bugsnag notification sent successfully');
+
+        // Copy to clipboard
+        await navigator.clipboard.writeText(deviceId);
+
+        alert(`Test error sent and ID copied to clipboard!\n\nID: ${deviceId}`);
+      } catch (error) {
+        console.error('Error sending to Bugsnag:', error);
+        alert(`Failed to send test error: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
   };
 
@@ -174,6 +222,24 @@ const SettingsPage: React.FC = () => {
         Seed Backup
       </Button>
       <span> </span>
+
+      {deviceId && (
+        <>
+          <Button
+            onClick={handleDeviceIdClick}
+            style={{
+              marginBottom: '10px',
+              backgroundColor: '#FF9500',
+              color: 'white',
+              fontSize: '12px',
+              wordBreak: 'break-all',
+            }}
+          >
+            Device ID: {deviceId}
+          </Button>
+          <span> </span>
+        </>
+      )}
 
       <div id="messages" data-testid="messages"></div>
     </div>

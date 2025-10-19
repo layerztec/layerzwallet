@@ -1,3 +1,7 @@
+/**
+ * Mobile-specific device identifier implementation
+ * Uses iOS identifierForVendor or Android androidId
+ */
 import * as Application from 'expo-application';
 import { Platform } from 'react-native';
 
