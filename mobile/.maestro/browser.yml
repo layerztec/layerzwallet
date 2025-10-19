@@ -8,6 +8,11 @@ appId: com.layerzwallet.mobile
     env:
       NETWORK: 'rootstock'
 
+# Tap on network card to expand modal (buttons are only visible when expanded)
+- tapOn:
+    id: 'activeNetwork-rootstock'
+- waitForAnimationToEnd
+
 - tapOn:
     id: 'ExplorerButton'
 - waitForAnimationToEnd
