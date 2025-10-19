@@ -16,9 +16,11 @@ appId: com.layerzwallet.mobile
           file: subflows/network-switch.yml
           env:
             NETWORK: ${output.currentNetwork}
-      # Ensure modal is expanded by tapping on the network card
+      # Wait for network switch to complete
+      - waitForAnimationToEnd
+      # Ensure modal is expanded by tapping on the first available network card
       - tapOn:
-          id: ${'activeNetwork-' + output.currentNetwork}
+          id: 'activeNetwork-bitcoin'
       - waitForAnimationToEnd
       - assertVisible:
           id: 'SendButton'
@@ -51,9 +53,11 @@ appId: com.layerzwallet.mobile
           file: subflows/network-switch.yml
           env:
             NETWORK: ${output.currentNetwork}
-      # Ensure modal is expanded by tapping on the network card
+      # Wait for network switch to complete
+      - waitForAnimationToEnd
+      # Ensure modal is expanded by tapping on the first available network card
       - tapOn:
-          id: ${'activeNetwork-' + output.currentNetwork}
+          id: 'activeNetwork-bitcoin'
       - waitForAnimationToEnd
       - assertVisible:
           id: 'ReceiveButton'
