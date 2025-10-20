@@ -11,11 +11,10 @@ appId: com.layerzwallet.mobile
       true: ${output.networks.length > 0}
     commands:
       # switch to the next network
-      - evalScript: ${output.currentNetwork = output.networks.shift()}
       - runFlow:
           file: subflows/network-switch.yml
           env:
-            NETWORK: ${output.currentNetwork}
+            NETWORK: ${output.networks.shift()}
       # Wait for network switch to complete
       - waitForAnimationToEnd
       - assertVisible:
@@ -44,11 +43,10 @@ appId: com.layerzwallet.mobile
       true: ${output.networks.length > 0}
     commands:
       # switch to the next network
-      - evalScript: ${output.currentNetwork = output.networks.shift()}
       - runFlow:
           file: subflows/network-switch.yml
           env:
-            NETWORK: ${output.currentNetwork}
+            NETWORK: ${output.networks.shift()}
       # Wait for network switch to complete
       - waitForAnimationToEnd
       - assertVisible:
