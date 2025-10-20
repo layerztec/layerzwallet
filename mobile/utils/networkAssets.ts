@@ -13,6 +13,7 @@ import {
   NETWORK_LIGHTNING_TESTNET,
   NETWORK_USDT,
   NETWORK_ARK,
+  NETWORK_STACKS,
 } from '@shared/types/networks';
 
 /**
@@ -46,6 +47,8 @@ export const getNetworkImageAsset = (network: string): string | null => {
       return require('../assets/images/ui/network/citrea.png');
     case NETWORK_USDT:
       return require('../assets/images/ui/network/tether.png');
+    case NETWORK_STACKS:
+      return require('../assets/images/ui/network/stacks.png');
     default:
       return null;
   }

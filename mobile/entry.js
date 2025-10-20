@@ -9,6 +9,7 @@ import { isMaestroMode } from './src/hooks/AuthStateContext';
 
 let Buffer = require('buffer/').Buffer;
 global.Buffer = Buffer;
+global.process = require('process');
 
 const BUGSNAG_API_KEY = process.env.EXPO_PUBLIC_BUGSNAG_API_KEY;
 

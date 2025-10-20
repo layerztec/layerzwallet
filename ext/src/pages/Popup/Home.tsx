@@ -20,6 +20,7 @@ import {
   NETWORK_LIQUID_TESTNET,
   NETWORK_ROOTSTOCK,
   NETWORK_SPARK,
+  NETWORK_STACKS,
   NETWORK_USDT,
 } from '@shared/types/networks';
 
@@ -60,6 +61,9 @@ const Home: React.FC = () => {
       case NETWORK_ARK_MUTINYNET:
       case NETWORK_ARK:
         navigate('/send-ark');
+        break;
+      case NETWORK_STACKS:
+        // TODO
         break;
       case NETWORK_LIQUID:
       case NETWORK_LIQUID_TESTNET:

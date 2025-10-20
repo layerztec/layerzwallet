@@ -5,11 +5,12 @@ import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
 import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
 import { SparkWallet } from '../class/wallets/spark-wallet';
 import { IStorage, STORAGE_KEY_BTC_XPUB, getSerializedStorageKey } from '../types/IStorage';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
 import { WalletSerializer } from './wallet-serializer';
 import { BreezWallet, getBreezNetwork } from '../class/wallets/breez-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
 import { validateMnemonic } from '../blue_modules/bip39';
+import { StacksWallet } from '../class/wallets/stacks-wallet';
 
 // cache of master seed after it was decrypted from the storage (with user's password).
 let masterSeed: string = '';
@@ -22,6 +23,7 @@ const cachedWallets: Record<TSupportedLazyInitWalletNetworks, Record<number, TLa
   [NETWORK_ARK]: {},
   [NETWORK_LIQUID]: {},
   [NETWORK_LIQUID_TESTNET]: {},
+  [NETWORK_STACKS]: {},
 };
 
 const locks: Record<string, boolean> = {};
@@ -71,8 +73,9 @@ export type TSupportedLazyInitWalletNetworks =
   | typeof NETWORK_LIQUID
   | typeof NETWORK_LIQUID_TESTNET
   | typeof NETWORK_ARK_MUTINYNET
+  | typeof NETWORK_STACKS
   | typeof NETWORK_ARK;
-export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkWallet;
+export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkWallet | StacksWallet;
 
 function getSubMnemonic(mnemonic: string, accountNum = 0) {
   const masterSeed = BIP85.fromMnemonic(mnemonic);
@@ -91,7 +94,7 @@ function getSubMnemonic(mnemonic: string, accountNum = 0) {
  * @returns The initialized wallet instance
  */
 export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, accountNumber: number, storage: IStorage, secureStorage: IStorage): Promise<TLazyInitedWallets> {
-  if (![NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ARK_MUTINYNET, NETWORK_ARK].includes(network)) {
+  if (![NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ARK_MUTINYNET, NETWORK_ARK, NETWORK_STACKS].includes(network)) {
     throw new Error(`Unsupported network for lazyInitWallet: ${network}`);
   }
 
@@ -175,6 +178,16 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       await aw.initLightningSwaps();
       cachedWallets[network][accountNumber] = aw;
       return aw;
+    }
+
+    if (network === NETWORK_STACKS) {
+      assert(masterSeed, 'Master seed is not available');
+      const sw = new StacksWallet();
+      sw.setSecret(masterSeed);
+      await sw.init();
+      sw.setAccountNumber(accountNumber);
+      cachedWallets[network][accountNumber] = sw;
+      return sw;
     }
 
     if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {

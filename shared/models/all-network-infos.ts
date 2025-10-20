@@ -16,6 +16,7 @@ import {
   Networks,
   NETWORK_BOTANIX,
   NETWORK_USDT,
+  NETWORK_STACKS,
 } from '../types/networks';
 
 export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
@@ -182,5 +183,15 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://tether.to',
     isEVM: false,
     sortIndex: 14,
+  },
+  [NETWORK_STACKS]: {
+    chainId: 17,
+    ticker: 'sBTC',
+    decimals: 8,
+    explorerUrl: 'https://explorer.hiro.so/',
+    rpcUrl: '',
+    knowMoreUrl: 'https://stacks.org',
+    isEVM: false,
+    sortIndex: 70,
   },
 };

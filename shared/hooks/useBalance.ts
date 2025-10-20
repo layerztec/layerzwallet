@@ -3,9 +3,21 @@ import useSWR from 'swr';
 
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
+import { StacksWallet } from '../class/wallets/stacks-wallet';
 import { getRpcProvider } from '../models/network-getters';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import {
+  NETWORK_ARK,
+  NETWORK_ARK_MUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_LIGHTNING,
+  NETWORK_LIGHTNING_TESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_SPARK,
+  NETWORK_STACKS,
+  Networks,
+} from '../types/networks';
 import { StringNumber } from '../types/string-number';
 import assert from 'assert';
 
@@ -75,6 +87,16 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
     const virtualBalance = await aw.getOffchainBalance();
     const end = +new Date();
     console.log('ark balance took', (end - start) / 1000, 'sec, balance =', virtualBalance.toString(10));
+    return virtualBalance.toString(10);
+  }
+
+  if (network === NETWORK_STACKS) {
+    const start = +new Date();
+    const sw = await backgroundCaller.lazyInitWallet(network, accountNumber);
+    assert(sw instanceof StacksWallet);
+    const virtualBalance = await sw.getBalance();
+    const end = +new Date();
+    console.log('stacks balance took', (end - start) / 1000, 'sec, balance =', virtualBalance.toString(10));
     return virtualBalance.toString(10);
   }
 
