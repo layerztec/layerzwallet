@@ -24,14 +24,56 @@
   ],
   "groups": [
     {
+      "blend-mode-specializations": [
+        {
+          "appearance": "tinted",
+          "value": "normal"
+        }
+      ],
       "blur-material": null,
       "hidden": false,
       "layers": [
         {
+          "fill-specializations": [
+            {
+              "appearance": "tinted",
+              "value": {
+                "linear-gradient": ["display-p3:0.99405,1.00000,0.98810,0.50000", "display-p3:0.99059,1.00000,0.98668,1.00000"],
+                "orientation": {
+                  "start": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "stop": {
+                    "x": 0.49999999999999956,
+                    "y": 0
+                  }
+                }
+              }
+            }
+          ],
           "image-name": "2 – Layer-purple-improved.svg",
           "name": "2 – Layer-purple-improved"
         },
         {
+          "fill-specializations": [
+            {
+              "appearance": "tinted",
+              "value": {
+                "linear-gradient": ["display-p3:1.00000,1.00000,1.00000,0.50000", "display-p3:0.96783,0.96446,0.96540,1.00000"],
+                "orientation": {
+                  "start": {
+                    "x": 0.5,
+                    "y": 1
+                  },
+                  "stop": {
+                    "x": 0.5,
+                    "y": 0
+                  }
+                }
+              }
+            }
+          ],
           "glass": true,
           "hidden": false,
           "image-name": "1 – Layer-red-improved.svg",
