@@ -3,8 +3,8 @@
     {
       "value" : {
         "linear-gradient" : [
-          "display-p3:0.18242,0.50365,0.83945,1.00000",
-          "display-p3:0.00000,0.00385,0.77883,1.00000"
+          "display-p3:0.24262,0.23576,0.27553,1.00000",
+          "display-p3:0.00000,0.00000,0.00000,1.00000"
         ],
         "orientation" : {
           "start" : {
@@ -20,85 +20,42 @@
     },
     {
       "appearance" : "dark",
-      "value" : "system-dark"
+      "value" : {
+        "solid" : "display-p3:0.00000,0.00000,0.00000,1.00000"
+      }
     }
   ],
   "groups" : [
     {
-      "hidden-specializations" : [
-        {
-          "value" : false
-        },
-        {
-          "appearance" : "dark",
-          "value" : true
-        }
-      ],
+      "blur-material" : null,
+      "hidden" : false,
       "layers" : [
         {
-          "glass" : true,
-          "image-name" : "1 – Layer-white.svg",
-          "name" : "1 – Layer-white",
-          "opacity" : 1
+          "image-name" : "2 – Layer-purple-improved.svg",
+          "name" : "2 – Layer-purple-improved"
         },
-        {
-          "glass" : true,
-          "image-name" : "2 – Layer-white.svg",
-          "name" : "2 – Layer-white",
-          "opacity" : 1
-        }
-      ],
-      "lighting" : "combined",
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
-      },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
-      }
-    },
-    {
-      "blend-mode-specializations" : [
-        {
-          "value" : "normal"
-        },
-        {
-          "appearance" : "dark",
-          "value" : "normal"
-        }
-      ],
-      "blur-material" : 1,
-      "hidden-specializations" : [
-        {
-          "value" : true
-        },
-        {
-          "appearance" : "dark",
-          "value" : false
-        }
-      ],
-      "layers" : [
         {
           "glass" : true,
           "hidden" : false,
-          "image-name" : "1 – Layer.svg",
-          "name" : "1 – Layer"
-        },
-        {
-          "image-name" : "2 – Layer.svg",
-          "name" : "2 – Layer"
+          "image-name" : "1 – Layer-red-improved.svg",
+          "name" : "1 – Layer-red-improved"
         }
       ],
       "lighting" : "combined",
-      "name" : "Group",
+      "position" : {
+        "scale" : 0.9,
+        "translation-in-points" : [
+          5,
+          22
+        ]
+      },
       "shadow" : {
         "kind" : "neutral",
         "opacity" : 0.5
       },
       "specular" : true,
       "translucency" : {
-        "enabled" : true,
+        "enabled" : false,
         "value" : 0.5
       }
     }
