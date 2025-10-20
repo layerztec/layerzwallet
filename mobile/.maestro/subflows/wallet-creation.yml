@@ -50,25 +50,37 @@ appId: com.layerzwallet.mobile
 
 # Verify success message
 - assertVisible: 'Wallet created\nsuccessfully'
-- assertVisible: 'You are now ready to access your wallet\nand unlock Bitcoin Layerz 2 potential'
+- assertVisible:
+    id: 'TosSubtitle'
 
 # Check the backup recovery phrase checkbox
 - assertVisible:
     id: 'BackupRecoveryPhraseCheckbox'
 - tapOn:
     id: 'BackupRecoveryPhraseCheckbox'
+- waitForAnimationToEnd
 
 # Check the terms of service checkbox
 - assertVisible:
     id: 'TermsOfServiceCheckbox'
 - tapOn:
     id: 'TermsOfServiceCheckbox'
+- waitForAnimationToEnd
 
-# Verify the button is enabled and tap it
-- assertVisible:
-    text: "Let's go"
-    enabled: true
-- tapOn: "Let's go"
+# Wait for button to become enabled
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+
+# Wait for button to become enabled and visible
+- extendedWaitUntil:
+    visible:
+      id: 'LetsGoButton'
+      enabled: true
+    timeout: 10000
+
+# Tap the button
+- tapOn:
+    id: 'LetsGoButton'
 - waitForAnimationToEnd
 
 # Wait for home screen with Send & Receive buttons

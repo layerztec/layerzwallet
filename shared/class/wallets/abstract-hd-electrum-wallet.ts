@@ -1356,7 +1356,7 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
         direction,
         amount: tx?.value,
         tokenTransfers: [],
-        status: tx.confirmations > 3 ? 'confirmed' : 'pending',
+        status: tx.confirmations >= 1 ? 'confirmed' : 'pending',
         explorerUrl: `${baseExplorer}/tx/${tx.txid}`,
       });
     }

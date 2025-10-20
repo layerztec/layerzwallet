@@ -29,8 +29,9 @@ module.exports = (async () => {
     return context.resolveRequest(context, ALIASES[moduleName] ?? moduleName, platform);
   };
 
-  // Add custom asset extensions. Used to load inpage-bridge
+  // Add custom asset extensions. Used to load inpage-bridge and Rive animations
   defaultConfig.resolver.assetExts.push('jstxt');
+  defaultConfig.resolver.assetExts.push('riv');
 
   return defaultConfig;
 })();

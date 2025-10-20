@@ -82,8 +82,8 @@ export default function TermsOfServiceScreen() {
             <View style={{ marginVertical: 10 }} />
 
             <Animated.View style={[subtitleTransition]}>
-              <ThemedText type="paragraph" darkColor="rgba(255, 255, 255, 0.7)" textAlign="center">
-                You are now ready to access your wallet{'\n'}and unlock Bitcoin Layerz 2 potential
+              <ThemedText type="paragraph" darkColor="rgba(255, 255, 255, 0.7)" textAlign="center" testID="TosSubtitle">
+                You are now ready to access your wallet and unlock the full potential that Bitcoin has to offer via Layer2
               </ThemedText>
             </Animated.View>
           </View>
@@ -92,7 +92,7 @@ export default function TermsOfServiceScreen() {
               <TouchableOpacity style={styles.checkboxContainer} onPress={() => handleCheckboxPress('backup')} activeOpacity={0.7} testID="BackupRecoveryPhraseCheckbox">
                 <View style={[styles.checkbox, backupChecked && styles.checkboxChecked]}>{backupChecked && <Ionicons name="checkmark" size={16} />}</View>
                 <ThemedText style={styles.checkboxText} darkColor="rgba(255, 255, 255, 0.9)">
-                  I have backup my recovery phrase and I understand I cannot recover my wallet without it.
+                  I have backed up my recovery phrase and I understand I cannot recover my wallet without it.
                 </ThemedText>
               </TouchableOpacity>
             </Animated.View>
@@ -111,7 +111,7 @@ export default function TermsOfServiceScreen() {
             </Animated.View>
           </View>
           <Animated.View style={[styles.buttonSection, buttonTransition]}>
-            <TouchableOpacity style={[styles.button, !isButtonEnabled && styles.buttonDisabled]} onPress={handleAgree} disabled={!isButtonEnabled}>
+            <TouchableOpacity style={[styles.button, !isButtonEnabled && styles.buttonDisabled]} onPress={handleAgree} disabled={!isButtonEnabled} testID="LetsGoButton">
               <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                 {isLoading ? 'Processing...' : "Let's go"}
               </ThemedText>

@@ -18,10 +18,12 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 
 # Run the self test
-- tapOn: 'Run Self Test!'
+- tapOn:
+    id: 'RunSelfTestButton'
 - waitForAnimationToEnd
 
 # Wait for success message
 - extendedWaitUntil:
-    visible: 'ok!'
+    visible:
+      id: 'SelfTestSuccess'
     timeout: 29000
