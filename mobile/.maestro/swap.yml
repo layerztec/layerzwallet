@@ -7,11 +7,6 @@ jsEngine: graaljs
 ---
 - runFlow: subflows/wallet-creation.yml
 
-# Tap on network card to expand modal (buttons are only visible when expanded)
-- tapOn:
-    id: 'activeNetwork-bitcoin'
-- waitForAnimationToEnd
-
 - tapOn:
     id: 'SwapButton'
 - waitForAnimationToEnd

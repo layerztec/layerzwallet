@@ -70,7 +70,6 @@ export type HomeProps = {
   fromNetwork?: string;
   toNetwork?: string;
   amount?: string;
-  fromOnboarding?: string;
 };
 
 export default function Home() {
@@ -95,16 +94,6 @@ export default function Home() {
       router.push('/Swap');
     }
   }, [params.showSwapInterface, router]);
-
-  // Initialize modal position based on navigation source
-  useEffect(() => {
-    if (params.fromOnboarding === 'true') {
-      // Start with modal minimized (down position) when coming from onboarding
-      const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
-      currentModalPosition.value = maxTranslate;
-      modalTranslateY.value = maxTranslate;
-    }
-  }, [params.fromOnboarding, currentModalPosition, modalTranslateY]);
 
   const isEVM = getIsEVM(network);
   const networkImage = getNetworkImageAsset(network);

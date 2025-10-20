@@ -2,11 +2,6 @@ appId: com.layerzwallet.mobile
 ---
 - runFlow: subflows/wallet-creation.yml
 
-# Ensure modal is expanded (wallet-creation.yml should have already done this, but just in case)
-- tapOn:
-    id: 'activeNetwork-bitcoin'
-- waitForAnimationToEnd
-
 # Navigate to Settings
 - tapOn:
     id: 'SettingsButton'
