@@ -5,5 +5,4 @@ appId: com.layerzwallet.mobile
     clearKeychain: true
 
 - runFlow: subflows/skip-dev-client.yml
-- waitForAnimationToEnd
-- assertVisible: 'Welcome to Layerz'
+- assertVisible: 'Create Wallet'
