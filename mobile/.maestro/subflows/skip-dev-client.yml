@@ -12,11 +12,9 @@ appId: com.layerzwallet.mobile
         text: 'Development Build'
     commands:
       - tapOn: 'http://.*'
-      - waitForAnimationToEnd
       - extendedWaitUntil:
           notVisible: 'Downloading.*'
           timeout: 60000
-      - waitForAnimationToEnd
 
 - runFlow:
     when:
@@ -25,4 +23,3 @@ appId: com.layerzwallet.mobile
     commands:
       - tapOn:
           point: 10%,10% # close expo dev client modal
-      - waitForAnimationToEnd
