@@ -171,7 +171,7 @@ var options = {
   plugins: [
     new webpack.DefinePlugin({
       'process.env': JSON.stringify(process.env),
-      'process.env.EXPO_PUBLIC_BUGSNAGJS_API_KEY': JSON.stringify(process.env.EXPO_PUBLIC_BUGSNAGJS_API_KEY),
+      'process.env.BUGSNAGJS_API_KEY': JSON.stringify(process.env.BUGSNAGJS_API_KEY),
       'process.env.EXPO_PUBLIC_BREEZ_API_KEY': JSON.stringify(process.env.EXPO_PUBLIC_BREEZ_API_KEY),
       'process.browser': true,
       'process.version': JSON.stringify(process.version),

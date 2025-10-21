@@ -39,8 +39,6 @@ if (BUGSNAG_API_KEY && !isMaestroMode()) {
 } else {
   if (isMaestroMode()) {
     console.debug('Bugsnag disabled for e2e/Maestro test mode');
-  } else if (!BUGSNAG_API_KEY) {
-    console.warn('Bugsnag API key not found');
   }
 }
 
