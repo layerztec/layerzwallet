@@ -79,6 +79,12 @@ appId: com.layerzwallet.mobile
     id: 'LetsGoButton'
 - waitForAnimationToEnd
 
+# After wallet creation, the modal starts minimized, so we need to tap on a network card to expand it
+# Tap on the Bitcoin network card to expand the modal
+- tapOn:
+    id: 'network-bitcoin'
+- waitForAnimationToEnd
+
 # Wait for home screen with Send & Receive buttons
 - assertVisible:
     id: 'SendButton'
