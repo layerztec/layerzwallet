@@ -3,7 +3,7 @@ import { test } from 'vitest';
 import { StacksWallet } from '../../class/wallets/stacks-wallet';
 import assert from 'assert';
 
-test.only('stacks wallet can get balance', async (context) => {
+test('stacks wallet can get balance', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
     console.warn('TEST_MNEMONIC not set, skipping');
     context.skip();
@@ -38,9 +38,9 @@ test('stacks wallet can get tokens', async (context) => {
       id: 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token::sbtc-token',
       balance: '60000',
       chainId: 0,
-      name: 'sbtc',
+      name: 'sBTC',
       decimals: 8,
-      symbol: 'sbtc',
+      symbol: 'sBTC',
     },
     {
       id: 'STX',
@@ -48,7 +48,7 @@ test('stacks wallet can get tokens', async (context) => {
       name: 'STX',
       chainId: 0,
       symbol: 'STX',
-      decimals: 8,
+      decimals: 6,
     },
   ]);
 });
