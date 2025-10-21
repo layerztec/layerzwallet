@@ -5,8 +5,9 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { ThemedText } from '@/components/ThemedText';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { Colors, gradients } from '@shared/constants/Colors';
+import { Colors } from '@shared/constants/Colors';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 
 export default function CreatePasswordScreen() {
@@ -14,12 +15,16 @@ export default function CreatePasswordScreen() {
   const [repeatPassword, setRepeatPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+  const [isRepeatPasswordFocused, setIsRepeatPasswordFocused] = useState(false);
   const router = useRouter();
 
   const shakeAnimation = useRef(new Animated.Value(0)).current;
   const errorFadeAnimation = useRef(new Animated.Value(0)).current;
   const inputBorderAnimation = useRef(new Animated.Value(0)).current;
   const scaleAnimation = useRef(new Animated.Value(1)).current;
+  const passwordBorderAnimation = useRef(new Animated.Value(0)).current;
+  const repeatPasswordBorderAnimation = useRef(new Animated.Value(0)).current;
 
   const repeatPasswordInputRef = useRef<TextInput>(null);
 
@@ -121,6 +126,40 @@ export default function CreatePasswordScreen() {
     }
   }, [errorMessage, animateError, clearErrorAnimation]);
 
+  // Animate border color on focus/blur
+  useEffect(() => {
+    Animated.timing(passwordBorderAnimation, {
+      toValue: isPasswordFocused ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [isPasswordFocused, passwordBorderAnimation]);
+
+  useEffect(() => {
+    Animated.timing(repeatPasswordBorderAnimation, {
+      toValue: isRepeatPasswordFocused ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [isRepeatPasswordFocused, repeatPasswordBorderAnimation]);
+
+  // Create animated styles for border colors
+  const passwordBorderStyle = {
+    borderColor: passwordBorderAnimation.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['rgba(0, 0, 0, 0.3)', 'rgba(255, 255, 255, 0.8)'],
+    }),
+    borderWidth: 1,
+  };
+
+  const repeatPasswordBorderStyle = {
+    borderColor: repeatPasswordBorderAnimation.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['rgba(0, 0, 0, 0.3)', 'rgba(255, 255, 255, 0.8)'],
+    }),
+    borderWidth: 1,
+  };
+
   const validatePasswords = () => {
     // Reset error message
     setErrorMessage('');
@@ -168,8 +207,9 @@ export default function CreatePasswordScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={gradients.blueGradient} style={styles.container}>
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <SafeAreaView style={styles.safeAreaView}>
+          <ScreenHeader />
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardContainer}>
             <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
               <View style={styles.content}>
@@ -196,35 +236,7 @@ export default function CreatePasswordScreen() {
                     },
                   ]}
                 >
-                  <Animated.View
-                    style={[
-                      styles.inputWrapper,
-                      {
-                        borderColor: inputBorderAnimation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['rgba(255, 255, 255, 0.2)', '#FF6B6B'],
-                        }),
-                        borderWidth: inputBorderAnimation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 1],
-                        }),
-                        shadowOpacity: inputBorderAnimation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 0.3],
-                        }),
-                        shadowColor: '#FF6B6B',
-                        shadowOffset: { width: 0, height: 0 },
-                        shadowRadius: inputBorderAnimation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 8],
-                        }),
-                        elevation: inputBorderAnimation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 5],
-                        }),
-                      },
-                    ]}
-                  >
+                  <Animated.View style={[styles.inputWrapper, passwordBorderStyle]}>
                     <TextInput
                       style={styles.input}
                       placeholder="Enter password"
@@ -233,39 +245,13 @@ export default function CreatePasswordScreen() {
                       secureTextEntry
                       value={password}
                       onChangeText={setPassword}
+                      onFocus={() => setIsPasswordFocused(true)}
+                      onBlur={() => setIsPasswordFocused(false)}
                       testID="EnterPasswordInput"
                     />
                   </Animated.View>
 
-                  <Animated.View
-                    style={[
-                      styles.inputWrapper,
-                      {
-                        borderColor: inputBorderAnimation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['rgba(255, 255, 255, 0.2)', '#FF6B6B'],
-                        }),
-                        borderWidth: inputBorderAnimation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 1],
-                        }),
-                        shadowOpacity: inputBorderAnimation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 0.3],
-                        }),
-                        shadowColor: '#FF6B6B',
-                        shadowOffset: { width: 0, height: 0 },
-                        shadowRadius: inputBorderAnimation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 8],
-                        }),
-                        elevation: inputBorderAnimation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 5],
-                        }),
-                      },
-                    ]}
-                  >
+                  <Animated.View style={[styles.inputWrapper, repeatPasswordBorderStyle]}>
                     <TextInput
                       ref={repeatPasswordInputRef}
                       style={styles.input}
@@ -275,6 +261,8 @@ export default function CreatePasswordScreen() {
                       secureTextEntry
                       value={repeatPassword}
                       onChangeText={setRepeatPassword}
+                      onFocus={() => setIsRepeatPasswordFocused(true)}
+                      onBlur={() => setIsRepeatPasswordFocused(false)}
                       testID="RepeatPasswordInput"
                     />
                   </Animated.View>
@@ -321,7 +309,7 @@ export default function CreatePasswordScreen() {
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -354,7 +342,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     borderRadius: 16,
     marginBottom: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   input: {
     height: 56,

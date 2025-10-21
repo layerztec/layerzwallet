@@ -101,7 +101,7 @@ export default function IntroScreen() {
   };
 
   return (
-    <LinearGradient colors={['#000000', '#252932']} style={styles.container}>
+    <View style={[styles.container, { backgroundColor: Colors.GlobalDarkBackground }]}>
       <SafeAreaView style={styles.safeAreaView}>
         <View style={styles.contentContainer}>
           {/* Rive Animation */}
@@ -169,7 +169,7 @@ export default function IntroScreen() {
           </View>
         </View>
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 }
 

@@ -1,13 +1,21 @@
-import { Networks } from './networks';
+import { NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_USDT, Networks } from './networks';
 
 export enum SwapPlatform {
   MOBILE,
   EXT,
+  ALL,
 }
 
+export const SO_LIQUID_USDT = `${NETWORK_USDT}_${NETWORK_LIQUID}` as const;
+export const SO_ROOTSTOCK_USDT = `${NETWORK_USDT}_${NETWORK_ROOTSTOCK}` as const;
+
+type NetworksWithTokens = typeof SO_LIQUID_USDT | typeof SO_ROOTSTOCK_USDT;
+
+export type SwapOptions = Networks | NetworksWithTokens;
+
 export interface SwapPair {
-  from: Networks;
-  to: Networks;
+  from: SwapOptions;
+  to: SwapOptions;
   platform: SwapPlatform;
 }
 
@@ -40,5 +48,5 @@ export interface SwapProvider {
    *
    * @returns string url to redirect to the swap partner's website (either in webview or in new tab)
    */
-  swap(from: Networks, setNetwork: (network: Networks) => void, to: Networks, amountIn: number, userWalletAddress: string): Promise<DoSwapResponse>;
+  swap(from: SwapOptions, setNetwork: (network: Networks) => void, to: SwapOptions, amountIn: number, userWalletAddress: string): Promise<DoSwapResponse>;
 }

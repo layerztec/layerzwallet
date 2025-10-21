@@ -8,10 +8,8 @@ export class SwapProviderSpark implements SwapProvider {
 
   getSupportedPairs(): SwapPair[] {
     return [
-      { from: NETWORK_BITCOIN, to: NETWORK_SPARK, platform: SwapPlatform.EXT },
-      { from: NETWORK_BITCOIN, to: NETWORK_SPARK, platform: SwapPlatform.MOBILE },
-      // { from: NETWORK_SPARK, to: NETWORK_BITCOIN, platform: SwapPlatform.EXT },
-      // { from: NETWORK_SPARK, to: NETWORK_BITCOIN, platform: SwapPlatform.MOBILE },
+      { from: NETWORK_BITCOIN, to: NETWORK_SPARK, platform: SwapPlatform.ALL },
+      // { from: NETWORK_SPARK, to: NETWORK_BITCOIN, platform: SwapPlatform.ALL },
     ];
   }
 

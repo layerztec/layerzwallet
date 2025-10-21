@@ -119,7 +119,7 @@ const PosMerchant: React.FC = () => {
         const maxZar = data.amountMax / denominationFactor;
         const defaultZar = data.amountDefault / denominationFactor;
 
-        const isFixedPositiveAmount = data.amountMin === data.amountMax && data.amountMin > 0;
+        const isFixedPositiveAmount = (data.amountMin === data.amountMax && data.amountMin > 0) || (data.amountMin > 0 && data.amountMax === 0);
         const isOpenAmount = data.amountMin === 0 && data.amountMax === 0;
 
         if (isFixedPositiveAmount) {
@@ -180,7 +180,7 @@ const PosMerchant: React.FC = () => {
       return 0;
     }
 
-    const isFixedPositiveAmount = metadata.amountMin === metadata.amountMax && metadata.amountMin > 0;
+    const isFixedPositiveAmount = (metadata.amountMin === metadata.amountMax && metadata.amountMin > 0) || (metadata.amountMin > 0 && metadata.amountMax === 0);
     if (isFixedPositiveAmount) {
       return minZar;
     }
@@ -202,7 +202,7 @@ const PosMerchant: React.FC = () => {
       return null;
     }
 
-    const isFixedPositiveAmount = metadata.amountMin === metadata.amountMax && metadata.amountMin > 0;
+    const isFixedPositiveAmount = (metadata.amountMin === metadata.amountMax && metadata.amountMin > 0) || (metadata.amountMin > 0 && metadata.amountMax === 0);
     if (isFixedPositiveAmount) {
       return null;
     }
@@ -430,7 +430,7 @@ const PosMerchant: React.FC = () => {
             </ThemedText>
           </View>
 
-          {metadata.amountMin === metadata.amountMax && metadata.amountMin > 0 ? (
+          {(metadata.amountMin === metadata.amountMax && metadata.amountMin > 0) || (metadata.amountMin > 0 && metadata.amountMax === 0) ? (
             <View style={styles.section}>
               <ThemedText style={styles.sectionTitle}>Amount</ThemedText>
               <ThemedText style={styles.amountDisplay}>R{formatAmount(minZar)}</ThemedText>
