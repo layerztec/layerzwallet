@@ -1,11 +1,12 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useContext, useEffect, useMemo } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import { Alert, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+import Rive, { RiveRef } from 'rive-react-native';
 
 import { DappBrowserProps } from '@/app/DAppBrowser';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
@@ -84,6 +85,7 @@ export default function Home() {
   const currentModalPosition = useSharedValue(0); // Track current modal position using shared value
   const gestureStartPosition = useSharedValue(0); // Track gesture start position using shared value
   const whiteFlashAnim = useSharedValue(0); // Animation for white flash transition
+  const riveRef = useRef<RiveRef>(null); // Ref for Rive animation
 
   // Animated styles
   const modalAnimatedStyle = useAnimatedStyle(() => ({ transform: [{ translateY: modalTranslateY.value }] }));
@@ -448,11 +450,23 @@ export default function Home() {
                 </View>
               ) : (
                 <View style={styles.transactionsList}>
-                  <ThemedText style={styles.transactionDate}>No transactions yet</ThemedText>
+                  <View style={styles.emptyTransactionsContainer}>
+                    <Rive
+                      key={`transactions-${network}`}
+                      ref={riveRef}
+                      autoplay={true}
+                      style={styles.emptyTransactionsAnimation}
+                      resourceName="transactions"
+                      onError={(error) => {
+                        console.log('Rive animation error:', error);
+                      }}
+                    />
+                    <ThemedText style={styles.transactionDate}>No transactions yet. Start by tapping receive and do your first transaction.</ThemedText>
+                  </View>
                 </View>
               )}
 
-              <Button title="Transaction History" onPress={handleTransactionHistory} variant="dark" />
+              {latestTransactions.length > 0 && <Button title="Transaction History" onPress={handleTransactionHistory} variant="dark" />}
             </View>
           </View>
         </GradientScreen>
@@ -625,6 +639,7 @@ const styles = StyleSheet.create({
   transactionDate: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.4)',
+    textAlign: 'center',
   },
   bottomNavigationContainer: {
     position: 'absolute',
@@ -788,5 +803,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     zIndex: 9998,
     pointerEvents: 'none',
+  },
+  emptyTransactionsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 0,
+    width: '100%',
+  },
+  emptyTransactionsAnimation: {
+    width: 368,
+    height: 100,
+    marginBottom: 16,
   },
 });
