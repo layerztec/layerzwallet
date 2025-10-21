@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { ThemedText } from '@/components/ThemedText';
-import { Colors, gradients } from '@shared/constants/Colors';
+import { Colors } from '@shared/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -219,7 +219,7 @@ export default function VerifyRecoveryPhrase() {
   if (verificationComplete) {
     return (
       <View style={styles.container}>
-        <LinearGradient colors={gradients.blueGradient} style={styles.gradient}>
+        <View style={[styles.gradient, { backgroundColor: Colors.GlobalDarkBackground }]}>
           <SafeAreaView style={styles.safeArea}>
             <View style={styles.content}>
               <View style={styles.successContainer}>
@@ -241,14 +241,14 @@ export default function VerifyRecoveryPhrase() {
               </TouchableOpacity>
             </Animated.View>
           </SafeAreaView>
-        </LinearGradient>
+        </View>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={gradients.blueGradient} style={styles.gradient}>
+      <View style={[styles.gradient, { backgroundColor: Colors.GlobalDarkBackground }]}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.content}>
             <View style={styles.titleContainer}>
@@ -291,7 +291,7 @@ export default function VerifyRecoveryPhrase() {
             </Animated.View>
           </Animated.View>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -446,6 +446,8 @@ const styles = StyleSheet.create({
   successIcon: {
     width: 120,
     height: 120,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 60,
   },
   successButton: {
     backgroundColor: Colors.dark.buttonPrimary,

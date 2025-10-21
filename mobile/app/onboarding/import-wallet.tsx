@@ -23,7 +23,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { sanitizeAndValidateMnemonic } from '@shared/modules/wallet-utils';
-import { Colors, gradients } from '@shared/constants/Colors';
+import { Colors } from '@shared/constants/Colors';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 
 export default function ImportWalletScreen() {
@@ -161,7 +161,7 @@ export default function ImportWalletScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={gradients.blueGradient} style={styles.container}>
+      <View style={[styles.container, { backgroundColor: Colors.GlobalDarkBackground }]}>
         <SafeAreaView style={styles.safeAreaView} testID="ImportWalletScreen">
           {isLoading ? (
             <Animated.View style={[styles.loadingContainer, { opacity: fadeAnimation.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
@@ -278,7 +278,7 @@ export default function ImportWalletScreen() {
             </Animated.View>
           )}
         </SafeAreaView>
-      </LinearGradient>
+      </View>
     </View>
   );
 }

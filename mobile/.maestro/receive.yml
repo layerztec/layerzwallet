@@ -15,6 +15,8 @@ appId: com.layerzwallet.mobile
           file: subflows/network-switch.yml
           env:
             NETWORK: ${output.networks.shift()}
+      # Wait for network switch to complete
+      - waitForAnimationToEnd
       - assertVisible:
           id: 'SendButton'
       - assertVisible:
@@ -45,6 +47,8 @@ appId: com.layerzwallet.mobile
           file: subflows/network-switch.yml
           env:
             NETWORK: ${output.networks.shift()}
+      # Wait for network switch to complete
+      - waitForAnimationToEnd
       - assertVisible:
           id: 'ReceiveButton'
       - assertVisible:

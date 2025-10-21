@@ -72,6 +72,7 @@ export type HomeProps = {
   fromNetwork?: string;
   toNetwork?: string;
   amount?: string;
+  fromOnboarding?: string;
 };
 
 export default function Home() {
@@ -86,6 +87,15 @@ export default function Home() {
   const gestureStartPosition = useSharedValue(0); // Track gesture start position using shared value
   const whiteFlashAnim = useSharedValue(0); // Animation for white flash transition
   const riveRef = useRef<RiveRef>(null); // Ref for Rive animation
+
+  // Initialize modal position based on whether coming from onboarding
+  useEffect(() => {
+    if (params.fromOnboarding === 'true') {
+      const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
+      modalTranslateY.value = maxTranslate;
+      currentModalPosition.value = maxTranslate;
+    }
+  }, [params.fromOnboarding, modalTranslateY, currentModalPosition]);
 
   // Animated styles
   const modalAnimatedStyle = useAnimatedStyle(() => ({ transform: [{ translateY: modalTranslateY.value }] }));
