@@ -79,7 +79,10 @@ appId: com.layerzwallet.mobile
     id: 'LetsGoButton'
 - waitForAnimationToEnd
 
-# Wait for home screen with Send & Receive buttons
+# Wait for home screen to load
+- waitForAnimationToEnd
+
+# Check if Send & Receive buttons are visible
 - assertVisible:
     id: 'SendButton'
 - assertVisible:
