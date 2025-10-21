@@ -5,7 +5,6 @@ appId: com.layerzwallet.mobile
     clearKeychain: true
 
 - runFlow: skip-dev-client.yml
-- waitForAnimationToEnd
 - extendedWaitUntil:
     visible: 'Import Wallet'
     timeout: 150000

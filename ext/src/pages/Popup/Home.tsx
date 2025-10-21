@@ -8,7 +8,7 @@ import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { getKnowMoreUrl } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { USDT_TOKENS } from '@shared/models/token-list';
-import { SwapPair, SwapPlatform } from '@shared/types/swap';
+import { SwapPair, SwapPlatform, SO_LIQUID_USDT, SO_ROOTSTOCK_USDT } from '@shared/types/swap';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import {
   NETWORK_ARK,
@@ -21,6 +21,7 @@ import {
   NETWORK_ROOTSTOCK,
   NETWORK_SPARK,
   NETWORK_USDT,
+  Networks,
 } from '@shared/types/networks';
 
 import { BackgroundCaller } from '../../modules/background-caller';
@@ -40,11 +41,13 @@ const Home: React.FC = () => {
   const { accountNumber } = useContext(AccountNumberContext);
   const [swapPairs, setSwapPairs] = useState<SwapPair[]>([]);
   const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
+  const [swapFromNetwork, setSwapFromNetwork] = useState<typeof SO_LIQUID_USDT | typeof SO_ROOTSTOCK_USDT | Networks>(network);
   const availableNetworks = useAvailableNetworks();
 
   useEffect(() => {
     setSwapPairs(getSwapPairs(network, SwapPlatform.EXT));
     setShowSwapInterface(false);
+    setSwapFromNetwork(network);
   }, [network]);
 
   const handleReceive = () => {
@@ -133,6 +136,17 @@ const Home: React.FC = () => {
   };
 
   const handleSwapClick = () => {
+    setSwapFromNetwork(network);
+    setShowSwapInterface(true);
+  };
+
+  const handleSwapTokenViaLiquid = () => {
+    setSwapFromNetwork(SO_LIQUID_USDT);
+    setShowSwapInterface(true);
+  };
+
+  const handleSwapTokenViaRootstock = () => {
+    setSwapFromNetwork(SO_ROOTSTOCK_USDT);
     setShowSwapInterface(true);
   };
 
@@ -185,7 +199,7 @@ const Home: React.FC = () => {
       <Balance network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />
 
       {showSwapInterface ? (
-        <SwapInterfaceView />
+        <SwapInterfaceView fromNetwork={swapFromNetwork} />
       ) : (
         <div>
           <PartnersView />
@@ -295,7 +309,34 @@ const Home: React.FC = () => {
         </Button>
       )}
 
-      {swapPairs.length > 0 ? (
+      {network === NETWORK_USDT ? (
+        // For USDT, check if either liquid or rootstock USDT can be swapped
+        getSwapPairs(SO_LIQUID_USDT, SwapPlatform.EXT).length > 0 || getSwapPairs(SO_ROOTSTOCK_USDT, SwapPlatform.EXT).length > 0 ? (
+          <ActionPopupButton
+            actions={[
+              ...(getSwapPairs(SO_LIQUID_USDT, SwapPlatform.EXT).length > 0
+                ? [
+                    {
+                      label: 'Swap USDT on Liquid',
+                      onClick: handleSwapTokenViaLiquid,
+                    },
+                  ]
+                : []),
+              ...(getSwapPairs(SO_ROOTSTOCK_USDT, SwapPlatform.EXT).length > 0
+                ? [
+                    {
+                      label: 'Swap USDT on Rootstock',
+                      onClick: handleSwapTokenViaRootstock,
+                    },
+                  ]
+                : []),
+              { label: 'Cancel', onClick: () => {} },
+            ]}
+          >
+            <RefreshCwIcon /> Swap
+          </ActionPopupButton>
+        ) : null
+      ) : swapPairs.length > 0 ? (
         <Button onClick={handleSwapClick}>
           <RefreshCwIcon /> Swap
         </Button>

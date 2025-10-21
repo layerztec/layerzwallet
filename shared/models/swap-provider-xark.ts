@@ -8,10 +8,8 @@ export class SwapProviderXArk implements SwapProvider {
 
   getSupportedPairs(): SwapPair[] {
     return [
-      { from: NETWORK_BITCOIN, to: NETWORK_SPARK, platform: SwapPlatform.EXT },
-      { from: NETWORK_BITCOIN, to: NETWORK_SPARK, platform: SwapPlatform.MOBILE },
-      { from: NETWORK_BITCOIN, to: NETWORK_ARK, platform: SwapPlatform.EXT },
-      { from: NETWORK_BITCOIN, to: NETWORK_ARK, platform: SwapPlatform.MOBILE },
+      { from: NETWORK_BITCOIN, to: NETWORK_SPARK, platform: SwapPlatform.ALL },
+      { from: NETWORK_BITCOIN, to: NETWORK_ARK, platform: SwapPlatform.ALL },
     ];
   }
 
