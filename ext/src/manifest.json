@@ -35,7 +35,7 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://notify.bugsnag.com https://sessions.bugsnag.com ws://localhost:3000"
   },
   "devtools_page": "devtools.html",
   "web_accessible_resources": [

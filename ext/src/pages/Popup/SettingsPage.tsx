@@ -70,10 +70,16 @@ const SettingsPage: React.FC = () => {
   const handleDeviceIdClick = async () => {
     if (deviceId) {
       try {
-        console.debug('Sending test error to Bugsnag with device ID:', deviceId);
+        const testError = new Error(`Test error from device: ${deviceId}`);
 
-        // Trigger a test error to Bugsnag with the device ID
-        Bugsnag.notify(new Error(`Test error from device: ${deviceId}`), (event) => {
+        Bugsnag.notify(testError, (event) => {
+          console.log('[Bugsnag] Sending error to dashboard with API key:', (Bugsnag as any)._client?._config?.apiKey);
+          console.log('[Bugsnag] Event details:', {
+            errorClass: event.errors[0]?.errorClass,
+            errorMessage: event.errors[0]?.errorMessage,
+            appType: event.app?.type,
+            releaseStage: event.app?.releaseStage,
+          });
           event.addMetadata('test', {
             deviceId: deviceId,
             timestamp: new Date().toISOString(),
@@ -81,16 +87,16 @@ const SettingsPage: React.FC = () => {
           });
         });
 
-        console.debug('Bugsnag notification sent successfully');
-
-        // Copy to clipboard
         await navigator.clipboard.writeText(deviceId);
 
         alert(`Test error sent and ID copied to clipboard!\n\nID: ${deviceId}`);
       } catch (error) {
-        console.error('Error sending to Bugsnag:', error);
+        console.error('[DeviceIdClick] Error sending to Bugsnag:', error);
+        console.error('[DeviceIdClick] Error stack:', error instanceof Error ? error.stack : 'no stack');
         alert(`Failed to send test error: ${error instanceof Error ? error.message : String(error)}`);
       }
+    } else {
+      console.warn('[DeviceIdClick] No device ID available');
     }
   };
 
