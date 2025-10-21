@@ -1,6 +1,6 @@
 import assert from 'assert';
-import { DoSwapResponse, SwapPair, SwapPlatform, SwapProvider } from '../types/swap';
-import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_ROOTSTOCK, Networks } from '@shared/types/networks';
+import { DoSwapResponse, SwapPair, SwapPlatform, SwapProvider, SwapOptions, SO_LIQUID_USDT } from '../types/swap';
+import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_ROOTSTOCK, Networks } from '../types/networks';
 
 /**
  * @see https://docs.sideshift.ai/
@@ -12,24 +12,27 @@ export class SwapProviderSideshift implements SwapProvider {
   getSupportedPairs(): SwapPair[] {
     return [
       // btc <-> rsk
-      { from: NETWORK_BITCOIN, to: NETWORK_ROOTSTOCK, platform: SwapPlatform.EXT },
-      { from: NETWORK_ROOTSTOCK, to: NETWORK_BITCOIN, platform: SwapPlatform.EXT },
-      { from: NETWORK_BITCOIN, to: NETWORK_ROOTSTOCK, platform: SwapPlatform.MOBILE },
-      { from: NETWORK_ROOTSTOCK, to: NETWORK_BITCOIN, platform: SwapPlatform.MOBILE },
+      { from: NETWORK_BITCOIN, to: NETWORK_ROOTSTOCK, platform: SwapPlatform.ALL },
+      { from: NETWORK_ROOTSTOCK, to: NETWORK_BITCOIN, platform: SwapPlatform.ALL },
       // btc <-> liquid
-      { from: NETWORK_BITCOIN, to: NETWORK_LIQUID, platform: SwapPlatform.EXT },
-      { from: NETWORK_LIQUID, to: NETWORK_BITCOIN, platform: SwapPlatform.EXT },
-      { from: NETWORK_BITCOIN, to: NETWORK_LIQUID, platform: SwapPlatform.MOBILE },
-      { from: NETWORK_LIQUID, to: NETWORK_BITCOIN, platform: SwapPlatform.MOBILE },
+      { from: NETWORK_BITCOIN, to: NETWORK_LIQUID, platform: SwapPlatform.ALL },
+      { from: NETWORK_LIQUID, to: NETWORK_BITCOIN, platform: SwapPlatform.ALL },
+      // btc <-> USDT on liquid
+      { from: NETWORK_BITCOIN, to: SO_LIQUID_USDT, platform: SwapPlatform.ALL },
+      { from: SO_LIQUID_USDT, to: NETWORK_BITCOIN, platform: SwapPlatform.ALL },
       // rsk <-> liquid
-      { from: NETWORK_ROOTSTOCK, to: NETWORK_LIQUID, platform: SwapPlatform.EXT },
-      { from: NETWORK_LIQUID, to: NETWORK_ROOTSTOCK, platform: SwapPlatform.EXT },
-      { from: NETWORK_ROOTSTOCK, to: NETWORK_LIQUID, platform: SwapPlatform.MOBILE },
-      { from: NETWORK_LIQUID, to: NETWORK_ROOTSTOCK, platform: SwapPlatform.MOBILE },
+      { from: NETWORK_ROOTSTOCK, to: NETWORK_LIQUID, platform: SwapPlatform.ALL },
+      { from: NETWORK_LIQUID, to: NETWORK_ROOTSTOCK, platform: SwapPlatform.ALL },
+      // liquid <-> USDT on liquid
+      { from: NETWORK_LIQUID, to: SO_LIQUID_USDT, platform: SwapPlatform.ALL },
+      { from: SO_LIQUID_USDT, to: NETWORK_LIQUID, platform: SwapPlatform.ALL },
+      // rsk <-> USDT on liquid
+      { from: NETWORK_ROOTSTOCK, to: SO_LIQUID_USDT, platform: SwapPlatform.ALL },
+      { from: SO_LIQUID_USDT, to: NETWORK_ROOTSTOCK, platform: SwapPlatform.ALL },
     ];
   }
 
-  swap(from: Networks, setNetwork: (network: Networks) => void, to: Networks, amountIn: number, userWalletAddress: string): Promise<DoSwapResponse> {
+  swap(from: SwapOptions, setNetwork: (network: Networks) => void, to: SwapOptions, amountIn: number, userWalletAddress: string): Promise<DoSwapResponse> {
     const supportedPairs = this.getSupportedPairs();
     const isSupported = supportedPairs.some((pair) => pair.from === from && pair.to === to);
     assert(isSupported, `Swap pair ${from}->${to} not supported by ${this.name}`);
@@ -45,6 +48,9 @@ export class SwapProviderSideshift implements SwapProvider {
       case NETWORK_ROOTSTOCK:
         defaultDepositMethodId = 'rbtc';
         break;
+      case SO_LIQUID_USDT:
+        defaultDepositMethodId = 'usdtla';
+        break;
       default:
         throw new Error(`Swap from ${from} not supported by ${this.name}`);
     }
@@ -59,6 +65,9 @@ export class SwapProviderSideshift implements SwapProvider {
         break;
       case NETWORK_ROOTSTOCK:
         defaultSettleMethodId = 'rbtc';
+        break;
+      case SO_LIQUID_USDT:
+        defaultSettleMethodId = 'usdtla';
         break;
       default:
         throw new Error(`Swap to ${to} not supported by ${this.name}`);

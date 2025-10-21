@@ -1,10 +1,11 @@
-import GradientScreen from '@/components/GradientScreen';
+import { Colors } from '@shared/constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Application from 'expo-application';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View, Switch, Pressable } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Bugsnag from '@bugsnag/expo';
 
 import ScreenHeader from '@/components/navigation/ScreenHeader';
@@ -204,168 +205,170 @@ export default function SettingsScreen() {
   };
 
   return (
-    <GradientScreen variant={network}>
-      <ScreenHeader title="Settings" testID="SettingsScreenTitle" />
+    <View style={[styles.container, { backgroundColor: Colors.GlobalDarkBackground }]}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+        <ScreenHeader title="Settings" testID="SettingsScreenTitle" />
 
-      <ScrollView style={styles.scrollContainer}>
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Data Management</ThemedText>
+        <ScrollView style={styles.scrollContainer}>
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Data Management</ThemedText>
 
-          <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={handleNavigateToSeedBackup}>
-            <ThemedText style={styles.primaryButtonText}>Backup Seed Phrase</ThemedText>
-          </TouchableOpacity>
+            <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={handleNavigateToSeedBackup}>
+              <ThemedText style={styles.primaryButtonText}>Backup Seed Phrase</ThemedText>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.button, styles.dangerButton, isClearing && styles.buttonDisabled]} onPress={handleClearStorage} disabled={isClearing}>
-            <ThemedText style={styles.dangerButtonText}>{isClearing ? 'Clearing...' : 'Clear All App Data'}</ThemedText>
-          </TouchableOpacity>
+            <TouchableOpacity style={[styles.button, styles.dangerButton, isClearing && styles.buttonDisabled]} onPress={handleClearStorage} disabled={isClearing}>
+              <ThemedText style={styles.dangerButtonText}>{isClearing ? 'Clearing...' : 'Clear All App Data'}</ThemedText>
+            </TouchableOpacity>
 
-          <ThemedText style={styles.warningText}>Warning: This will erase all app data including your wallet. You will need to restore your wallet using your seed phrase.</ThemedText>
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Pocket Number</ThemedText>
-          <ThemedText style={styles.accountText}>Current Pocket: {accountNumber}</ThemedText>
-
-          <View style={styles.accountSelectorContainer}>
-            {[0, 1, 2, 3, 4].map((num) => (
-              <TouchableOpacity key={num} style={[styles.accountButton, accountNumber === num && styles.accountButtonActive]} onPress={() => handleAccountChange(num)}>
-                <ThemedText style={[styles.accountButtonText, accountNumber === num && styles.accountButtonTextActive]}>{num}</ThemedText>
-              </TouchableOpacity>
-            ))}
+            <ThemedText style={styles.warningText}>Warning: This will erase all app data including your wallet. You will need to restore your wallet using your seed phrase.</ThemedText>
           </View>
-        </View>
 
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Bitcoin XPUB</ThemedText>
-          <TouchableOpacity style={styles.settingOptionButton} onPress={handleCopyXpub} disabled={!btcXpub} testID="XpubCopyButton">
-            <ThemedText style={styles.settingOptionText} selectable testID="XpubText">
-              {btcXpub || 'Not available'}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Pocket Number</ThemedText>
+            <ThemedText style={styles.accountText}>Current Pocket: {accountNumber}</ThemedText>
+
+            <View style={styles.accountSelectorContainer}>
+              {[0, 1, 2, 3, 4].map((num) => (
+                <TouchableOpacity key={num} style={[styles.accountButton, accountNumber === num && styles.accountButtonActive]} onPress={() => handleAccountChange(num)}>
+                  <ThemedText style={[styles.accountButtonText, accountNumber === num && styles.accountButtonTextActive]}>{num}</ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Bitcoin XPUB</ThemedText>
+            <TouchableOpacity style={styles.settingOptionButton} onPress={handleCopyXpub} disabled={!btcXpub} testID="XpubCopyButton">
+              <ThemedText style={styles.settingOptionText} selectable testID="XpubText">
+                {btcXpub || 'Not available'}
+              </ThemedText>
+            </TouchableOpacity>
+            {!!btcXpub && <ThemedText style={styles.warningText}>Tap to copy</ThemedText>}
+          </View>
+
+          {/* App Settings Section */}
+          <View style={styles.section} testID="AppSettingsSection">
+            <ThemedText style={styles.sectionTitle} testID="AppSettingsTitle">
+              App Settings
             </ThemedText>
-          </TouchableOpacity>
-          {!!btcXpub && <ThemedText style={styles.warningText}>Tap to copy</ThemedText>}
-        </View>
+            {(Object.keys(SETTINGS_CONFIG) as TSettingsKey[])
+              .filter((key) => {
+                // Filter out biometric setting if not available (unless in test mode)
+                if (key === 'biometricAuth' && !biometricInfo.isAvailable && !isMaestroMode()) {
+                  return false;
+                }
+                return true;
+              })
+              .map((key) => {
+                const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
+                const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
 
-        {/* App Settings Section */}
-        <View style={styles.section} testID="AppSettingsSection">
-          <ThemedText style={styles.sectionTitle} testID="AppSettingsTitle">
-            App Settings
-          </ThemedText>
-          {(Object.keys(SETTINGS_CONFIG) as TSettingsKey[])
-            .filter((key) => {
-              // Filter out biometric setting if not available (unless in test mode)
-              if (key === 'biometricAuth' && !biometricInfo.isAvailable && !isMaestroMode()) {
-                return false;
-              }
-              return true;
-            })
-            .map((key) => {
-              const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
-              const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
+                if (key === 'biometricAuth') {
+                  const isDisabled = isUpdatingBiometric;
+                  const isEnabled = currentValue === 'ON';
 
-              if (key === 'biometricAuth') {
-                const isDisabled = isUpdatingBiometric;
-                const isEnabled = currentValue === 'ON';
+                  return (
+                    <View key={key} style={styles.settingContainer} testID={`SettingContainer-${key}`}>
+                      <ThemedText style={styles.settingLabel} testID={`SettingLabel-${key}`}>
+                        {formatSettingName(key)}:
+                      </ThemedText>
+                      <Switch testID={`SettingSwitch-${key}`} value={isEnabled} onValueChange={(value) => handleSettingChange(key, value ? 'ON' : 'OFF')} disabled={isDisabled} />
+                    </View>
+                  );
+                }
 
+                // Default handling for other settings - render as buttons
                 return (
                   <View key={key} style={styles.settingContainer} testID={`SettingContainer-${key}`}>
                     <ThemedText style={styles.settingLabel} testID={`SettingLabel-${key}`}>
                       {formatSettingName(key)}:
                     </ThemedText>
-                    <Switch testID={`SettingSwitch-${key}`} value={isEnabled} onValueChange={(value) => handleSettingChange(key, value ? 'ON' : 'OFF')} disabled={isDisabled} />
+                    <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
+                      {config.options.map((option) => {
+                        return (
+                          <TouchableOpacity
+                            key={option}
+                            style={[styles.settingOptionButton, currentValue === option && styles.settingOptionButtonActive]}
+                            onPress={() => handleSettingChange(key, option)}
+                            testID={`SettingOption-${key}-${option}`}
+                          >
+                            <ThemedText style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive]} testID={`SettingOptionText-${key}-${option}`}>
+                              {formatOptionName(option)}
+                            </ThemedText>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
                   </View>
                 );
-              }
+              })}
+          </View>
 
-              // Default handling for other settings - render as buttons
-              return (
-                <View key={key} style={styles.settingContainer} testID={`SettingContainer-${key}`}>
-                  <ThemedText style={styles.settingLabel} testID={`SettingLabel-${key}`}>
-                    {formatSettingName(key)}:
-                  </ThemedText>
-                  <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
-                    {config.options.map((option) => {
-                      return (
-                        <TouchableOpacity
-                          key={option}
-                          style={[styles.settingOptionButton, currentValue === option && styles.settingOptionButtonActive]}
-                          onPress={() => handleSettingChange(key, option)}
-                          testID={`SettingOption-${key}-${option}`}
-                        >
-                          <ThemedText style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive]} testID={`SettingOptionText-${key}-${option}`}>
-                            {formatOptionName(option)}
-                          </ThemedText>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-              );
-            })}
-        </View>
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Developer Options</ThemedText>
 
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Developer Options</ThemedText>
+            <TouchableOpacity style={[styles.button, styles.selfTestButton]} onPress={handleNavigateToSelfTest} testID="SelfTestButton">
+              <ThemedText style={styles.selfTestButtonText}>Self Test</ThemedText>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.button, styles.selfTestButton]} onPress={handleNavigateToSelfTest} testID="SelfTestButton">
-            <ThemedText style={styles.selfTestButtonText}>Self Test</ThemedText>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.selfTestButton]}
+              onPress={() => {
+                scanQr().then(Alert.alert);
+              }}
+            >
+              <ThemedText style={styles.selfTestButtonText}>ScanQr</ThemedText>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.selfTestButton]}
-            onPress={() => {
-              scanQr().then(Alert.alert);
-            }}
-          >
-            <ThemedText style={styles.selfTestButtonText}>ScanQr</ThemedText>
-          </TouchableOpacity>
+            {deviceId && (
+              <Pressable style={({ pressed }) => [styles.button, styles.selfTestButton, pressed && styles.buttonPressed]} onPress={handleDeviceIdPress} testID="DeviceIdButton">
+                <ThemedText style={styles.deviceIdButtonText} numberOfLines={2}>
+                  ID: {deviceId}
+                </ThemedText>
+              </Pressable>
+            )}
+          </View>
 
-          {deviceId && (
-            <Pressable style={({ pressed }) => [styles.button, styles.selfTestButton, pressed && styles.buttonPressed]} onPress={handleDeviceIdPress} testID="DeviceIdButton">
-              <ThemedText style={styles.deviceIdButtonText} numberOfLines={2}>
-                ID: {deviceId}
-              </ThemedText>
-            </Pressable>
+          {/* Security Section */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Security</ThemedText>
+
+            <TouchableOpacity
+              style={[styles.button, styles.primaryButton]}
+              onPress={() => {
+                Alert.alert('Lock App', 'Are you sure you want to lock the app?', [
+                  {
+                    text: 'Cancel',
+                    style: 'cancel',
+                  },
+                  {
+                    text: 'Lock',
+                    onPress: () => lockApp(),
+                  },
+                ]);
+              }}
+              testID="LockAppButton"
+            >
+              <ThemedText style={styles.primaryButtonText}>Lock App</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.button, styles.dangerButton]} onPress={handleClearStorage} disabled={isClearing} testID="ClearStorageButton">
+              <ThemedText style={styles.dangerButtonText}>{isClearing ? 'Clearing...' : 'Clear Storage'}</ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          <ThemedText style={styles.versionText}>
+            {Application.applicationName} v{Application.nativeApplicationVersion} (build {Application.nativeBuildVersion})
+          </ThemedText>
+          {gitCommitHash && (
+            <TouchableOpacity style={[styles.button, styles.changelogButton]} onPress={() => router.push('/Changelog')}>
+              <ThemedText style={styles.changelogButtonText}>Changelog</ThemedText>
+            </TouchableOpacity>
           )}
-        </View>
-
-        {/* Security Section */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Security</ThemedText>
-
-          <TouchableOpacity
-            style={[styles.button, styles.primaryButton]}
-            onPress={() => {
-              Alert.alert('Lock App', 'Are you sure you want to lock the app?', [
-                {
-                  text: 'Cancel',
-                  style: 'cancel',
-                },
-                {
-                  text: 'Lock',
-                  onPress: () => lockApp(),
-                },
-              ]);
-            }}
-            testID="LockAppButton"
-          >
-            <ThemedText style={styles.primaryButtonText}>Lock App</ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.button, styles.dangerButton]} onPress={handleClearStorage} disabled={isClearing} testID="ClearStorageButton">
-            <ThemedText style={styles.dangerButtonText}>{isClearing ? 'Clearing...' : 'Clear Storage'}</ThemedText>
-          </TouchableOpacity>
-        </View>
-
-        <ThemedText style={styles.versionText}>
-          {Application.applicationName} v{Application.nativeApplicationVersion} (build {Application.nativeBuildVersion})
-        </ThemedText>
-        {gitCommitHash && (
-          <TouchableOpacity style={[styles.button, styles.changelogButton]} onPress={() => router.push('/Changelog')}>
-            <ThemedText style={styles.changelogButtonText}>Changelog</ThemedText>
-          </TouchableOpacity>
-        )}
-      </ScrollView>
-    </GradientScreen>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -375,7 +378,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    padding: 16,
   },
   header: {
     marginBottom: 20,

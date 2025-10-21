@@ -1,7 +1,7 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useContext, useEffect, useMemo } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo } from 'react';
 import { Alert, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -44,11 +44,12 @@ import {
   NETWORK_USDT,
   Networks,
 } from '@shared/types/networks';
-import { SwapPlatform } from '@shared/types/swap';
+import { SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapPlatform } from '@shared/types/swap';
 import { ReceiveTokenProps } from './Receive';
+import { SendLightningProps } from './SendLightning';
 import { SendLiquidParams } from './SendLiquid';
 import { SendTokenEvmProps } from './SendTokenEvm';
-import { SendLightningProps } from './SendLightning';
+import { SwapParams } from './Swap';
 
 const Action = ({ network, text }: { network?: Networks; text: string }) => {
   const networkImage = network ? getNetworkImageAsset(network) : null;
@@ -70,6 +71,7 @@ export type HomeProps = {
   fromNetwork?: string;
   toNetwork?: string;
   amount?: string;
+  fromOnboarding?: string;
 };
 
 export default function Home() {
@@ -83,6 +85,15 @@ export default function Home() {
   const currentModalPosition = useSharedValue(0); // Track current modal position using shared value
   const gestureStartPosition = useSharedValue(0); // Track gesture start position using shared value
   const whiteFlashAnim = useSharedValue(0); // Animation for white flash transition
+
+  // Initialize modal position based on whether coming from onboarding
+  useEffect(() => {
+    if (params.fromOnboarding === 'true') {
+      const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
+      modalTranslateY.value = maxTranslate;
+      currentModalPosition.value = maxTranslate;
+    }
+  }, [params.fromOnboarding, modalTranslateY, currentModalPosition]);
 
   // Animated styles
   const modalAnimatedStyle = useAnimatedStyle(() => ({ transform: [{ translateY: modalTranslateY.value }] }));
@@ -98,7 +109,6 @@ export default function Home() {
   const isEVM = getIsEVM(network);
   const networkImage = getNetworkImageAsset(network);
   const networkIconContent = networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null;
-  const swapPairs = getSwapPairs(network, SwapPlatform.MOBILE);
   const latestTransactions = transactions?.slice(0, 3) || [];
 
   // Network cards for the black background area
@@ -122,6 +132,14 @@ export default function Home() {
       };
     });
   }, [networks, network]);
+
+  const swapEnabled = useMemo(() => {
+    if (network === NETWORK_USDT) {
+      return Boolean(getSwapPairs(SO_LIQUID_USDT, SwapPlatform.MOBILE) || getSwapPairs(SO_ROOTSTOCK_USDT, SwapPlatform.MOBILE));
+    }
+    const swapPairs = getSwapPairs(network, SwapPlatform.MOBILE);
+    return swapPairs.length > 0;
+  }, [network]);
 
   const handleSend = () => {
     switch (network) {
@@ -153,6 +171,16 @@ export default function Home() {
   const handleSwap = () => {
     router.push('/Swap');
   };
+
+  const handleSwapTokenViaLiquid = useCallback(() => {
+    const params: SwapParams = { fromNetwork: SO_LIQUID_USDT };
+    router.push({ pathname: '/Swap', params });
+  }, [router]);
+
+  const handleSwapTokenViaRootstock = useCallback(() => {
+    const params: SwapParams = { fromNetwork: SO_ROOTSTOCK_USDT };
+    router.push({ pathname: '/Swap', params });
+  }, [router]);
 
   const handleNetworkCardPress = (index: number) => {
     if (index >= 0 && index < networks.length) {
@@ -297,6 +325,18 @@ export default function Home() {
     { children: <Action network={NETWORK_LIQUID} text="Receive via Liquid" />, onClick: handleReceiveTokenViaLiquid },
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
+
+  const usdtSwapActions = useMemo(() => {
+    const actions = [];
+    if (getSwapPairs(SO_LIQUID_USDT, SwapPlatform.MOBILE).length > 0) {
+      actions.push({ children: <Action network={NETWORK_LIQUID} text="Swap USDT on Liquid" />, onClick: handleSwapTokenViaLiquid });
+    }
+    if (getSwapPairs(SO_ROOTSTOCK_USDT, SwapPlatform.MOBILE).length > 0) {
+      actions.push({ children: <Action network={NETWORK_ROOTSTOCK} text="Swap USDT on Rootstock" />, onClick: handleSwapTokenViaRootstock });
+    }
+    actions.push({ children: <Action text="Cancel" />, onClick: () => {} });
+    return actions;
+  }, [handleSwapTokenViaLiquid, handleSwapTokenViaRootstock]);
 
   // Handle scroll events for sticky header animation
   const handleScroll = useAnimatedScrollHandler({
@@ -479,13 +519,22 @@ export default function Home() {
               )}
             </View>
 
-            {swapPairs.length > 0 && (
+            {swapEnabled && (
               <View style={styles.swapButton}>
                 <PlatformBlurView intensity={40} tint="light" style={styles.navBlur} />
-                <TouchableOpacity style={styles.swapButtonInner} onPress={handleSwap} activeOpacity={0.8} testID="SwapButton">
-                  <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
-                  <ThemedText style={styles.navButtonText}>Swap</ThemedText>
-                </TouchableOpacity>
+                {network === NETWORK_USDT ? (
+                  <ActionPopupButton actions={usdtSwapActions} title="Choose network to swap">
+                    <TouchableOpacity style={styles.swapButtonInner} activeOpacity={0.8} testID="SwapButton">
+                      <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
+                      <ThemedText style={styles.navButtonText}>Swap</ThemedText>
+                    </TouchableOpacity>
+                  </ActionPopupButton>
+                ) : (
+                  <TouchableOpacity style={styles.swapButtonInner} onPress={handleSwap} activeOpacity={0.8} testID="SwapButton">
+                    <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
+                    <ThemedText style={styles.navButtonText}>Swap</ThemedText>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
           </View>

@@ -3,7 +3,7 @@ import { View, StyleSheet, TouchableOpacity, Image, Animated, ActivityIndicator 
 import { useRouter } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import { ThemedText } from '@/components/ThemedText';
-import { Colors, gradients } from '@shared/constants/Colors';
+import { Colors } from '@shared/constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHorizontalSpringTransition, useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
@@ -51,7 +51,7 @@ export default function CreateWalletIntroScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={gradients.blueGradient} style={styles.container}>
+      <View style={[styles.container, { backgroundColor: Colors.GlobalDarkBackground }]}>
         <SafeAreaView style={styles.safeAreaView}>
           <View style={styles.logoContainer}>
             <Animated.View style={[imageTransition]}>
@@ -96,7 +96,7 @@ export default function CreateWalletIntroScreen() {
             </Animated.View>
           </View>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -118,6 +118,10 @@ const styles = StyleSheet.create({
   image: {
     alignSelf: 'center',
     marginRight: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 60,
+    width: 120,
+    height: 120,
   },
   content: {
     flex: 2,

@@ -102,7 +102,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
         const txid = await manager.renewVtxos();
         console.log('ARK VTXO Renewed:', txid);
       } catch (error) {
-        console.error('ARK Error renewing VTXOs:', error);
+        console.log('ARK Error renewing VTXOs:', error);
       }
     }, 10);
   }

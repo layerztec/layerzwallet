@@ -5,7 +5,6 @@ appId: com.layerzwallet.mobile
     clearKeychain: true
 
 - runFlow: skip-dev-client.yml
-- waitForAnimationToEnd
 - extendedWaitUntil:
     visible: 'Import Wallet'
     timeout: 150000
@@ -72,6 +71,12 @@ appId: com.layerzwallet.mobile
     text: "Let's go"
     enabled: true
 - tapOn: "Let's go"
+- waitForAnimationToEnd
+
+# After wallet restore, the modal starts minimized, so we need to tap on a network card to expand it
+# Tap on the Bitcoin network card to expand the modal
+- tapOn:
+    id: 'network-bitcoin'
 - waitForAnimationToEnd
 
 # Wait for home screen with Send & Receive buttons

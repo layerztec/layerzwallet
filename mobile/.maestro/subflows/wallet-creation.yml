@@ -6,13 +6,9 @@ appId: com.layerzwallet.mobile
 
 - runFlow: skip-dev-client.yml
 
-- waitForAnimationToEnd
-- waitForAnimationToEnd
 - extendedWaitUntil:
     visible: 'Create Wallet'
     timeout: 15000
-- waitForAnimationToEnd
-
 - tapOn: 'Create Wallet'
 - waitForAnimationToEnd
 - tapOn: 'Continue'
@@ -81,6 +77,12 @@ appId: com.layerzwallet.mobile
 # Tap the button
 - tapOn:
     id: 'LetsGoButton'
+- waitForAnimationToEnd
+
+# After wallet creation, the modal starts minimized, so we need to tap on a network card to expand it
+# Tap on the Bitcoin network card to expand the modal
+- tapOn:
+    id: 'network-bitcoin'
 - waitForAnimationToEnd
 
 # Wait for home screen with Send & Receive buttons
