@@ -36,9 +36,9 @@ if (BUGSNAG_API_KEY && !isPlaywrightMode()) {
       return true;
     },
   });
-  
+
   BugsnagPerformance.start({ apiKey: BUGSNAG_API_KEY });
-  
+
   try {
     const reactPlugin = Bugsnag.getPlugin('react');
     if (reactPlugin) {
