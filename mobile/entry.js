@@ -20,13 +20,11 @@ if (BUGSNAG_API_KEY && !isMaestroMode()) {
       console.debug('Initializing Bugsnag with device ID:', deviceId);
       Bugsnag.start({
         apiKey: BUGSNAG_API_KEY,
-        appType: 'mobile-app',
         user: {
           id: deviceId,
         },
         metadata: {
           platform: {
-            type: 'mobile-app',
             os: Platform.OS,
           },
         },
