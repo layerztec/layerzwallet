@@ -231,18 +231,7 @@ const SettingsPage: React.FC = () => {
 
       {deviceId && (
         <>
-          <Button
-            onClick={handleDeviceIdClick}
-            style={{
-              marginBottom: '10px',
-              backgroundColor: '#FF9500',
-              color: 'white',
-              fontSize: '12px',
-              wordBreak: 'break-all',
-            }}
-          >
-            Device ID: {deviceId}
-          </Button>
+          <Button onClick={handleDeviceIdClick}>Device ID: {deviceId}</Button>
           <span> </span>
         </>
       )}
