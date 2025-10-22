@@ -23,7 +23,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
 
   if (!balance && !token.balance) return null;
 
-  let decimalPlaces = 3;
+  let decimalPlaces = token.decimals;
   if (token.name.includes('USD')) {
     decimalPlaces = 2;
   }

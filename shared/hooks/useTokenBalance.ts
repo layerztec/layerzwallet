@@ -44,7 +44,7 @@ export const tokenBalanceFetcher = async (arg: tokenBalanceFetcherArg): Promise<
       return undefined;
     } else if (network === NETWORK_STACKS) {
       const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
-      assert(wallet instanceof StacksWallet, 'Not a Spark wallet');
+      assert(wallet instanceof StacksWallet, 'Not a Stacks wallet');
       const tokenBalances = wallet.getTokenBalances();
       for (const value of tokenBalances.values()) {
         if (value.id === tokenContractAddress) {

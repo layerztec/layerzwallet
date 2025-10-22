@@ -14,7 +14,7 @@ export class StacksWallet {
   private _tokenBalances: CachedTokenInfo[] = [];
 
   async init() {
-    assert(this.secret, 'Internal error: cant init Spark wallet, secret is not set.');
+    assert(this.secret, 'Internal error: cant init Stacks wallet, secret is not set.');
 
     // @ts-ignore
     const wallet = await generateWallet({
