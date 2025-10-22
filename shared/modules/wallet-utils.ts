@@ -145,17 +145,11 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     }
 
     if (network === NETWORK_ARK_MUTINYNET) {
-      assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Ark env vars not set');
       assert(masterSeed, 'Master seed is not available');
       const aw = new ArkWallet();
       aw.setSecret(getSubMnemonic(masterSeed, accountNumber));
       // aw.setAccountNumber(accountNumber); // FIXME: uncomment this line once we get rid of BIP85: https://github.com/layerztec/layerzwallet/issues/416
 
-      // FIXME: temporarily while mutinynet arkd is down we make this wallet work with mainnet:
-      aw.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
-      aw.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
-      aw.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
-      //
       await aw.init(storage);
       cachedWallets[network][accountNumber] = aw;
       return aw;
@@ -166,11 +160,9 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       const aw = new ArkWallet();
       aw.setSecret(getSubMnemonic(masterSeed, accountNumber));
       // aw.setAccountNumber(accountNumber); // FIXME: uncomment this line once we get rid of BIP85: https://github.com/layerztec/layerzwallet/issues/416
-      assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Ark env vars not set');
-      // fixme: can be moved from env vars to hardcode once Ark mainnet goes public
-      aw.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
-      aw.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
-      aw.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
+      aw.setArkServerUrl('https://arkade.computer');
+      aw.setArkServerPublicKey('022b74c2011af089c849383ee527c72325de52df6a788428b68d49e9174053aaba');
+      aw.setBoltzApiUrl('https://api.ark.boltz.exchange');
       await aw.init(storage);
       await aw.initLightningSwaps();
       cachedWallets[network][accountNumber] = aw;

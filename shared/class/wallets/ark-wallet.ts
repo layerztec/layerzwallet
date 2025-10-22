@@ -143,7 +143,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     if ((pendingReverseSwaps ?? []).length > 0) console.log('got', pendingReverseSwaps?.length ?? [], 'pending swaps');
 
     for (const swap of pendingReverseSwaps ?? []) {
-      console.log('claiming...');
+      console.log(`claiming ${swap.id}...`);
       try {
         await this._arkadeLightning.claimVHTLC(swap);
         console.log('claimed!');
