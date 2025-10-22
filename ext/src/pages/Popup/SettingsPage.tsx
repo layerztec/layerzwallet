@@ -17,6 +17,7 @@ import Bugsnag from '@bugsnag/js';
 import { getDeviceID } from '@shared/modules/device-id';
 import { LayerzStorage } from '../../class/layerz-storage';
 import { isPlaywrightMode } from '../../utils/playwright-detection';
+import { BUGSNAG_API_KEY } from './bugsnag-config';
 
 const pck = require('../../../package.json');
 
@@ -26,22 +27,42 @@ const SettingsPage: React.FC = () => {
   const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
   const { settings, updateSetting } = useSettings();
   const [deviceId, setDeviceId] = useState<string>('');
+  const hasBugsnag = Boolean(BUGSNAG_API_KEY);
 
   useEffect(() => {
+    if (!hasBugsnag) {
+      setDeviceId('');
+      if (Bugsnag.isStarted()) {
+        Bugsnag.clearMetadata('device');
+        Bugsnag.setUser();
+      }
+      return;
+    }
+
     if (!isPlaywrightMode()) {
       getDeviceID(LayerzStorage, Csprng)
         .then((id) => {
           setDeviceId(id);
+          if (Bugsnag.isStarted()) {
+            Bugsnag.setUser(id, undefined, undefined);
+            Bugsnag.addMetadata('device', { id, source: 'shared-module' });
+          }
         })
         .catch((error) => {
           console.debug('Device identifier not available:', error);
           setDeviceId('');
+          if (Bugsnag.isStarted()) {
+            Bugsnag.clearMetadata('device');
+          }
         });
     } else {
       console.debug('Device ID disabled in Playwright test mode');
       setDeviceId('');
+      if (Bugsnag.isStarted()) {
+        Bugsnag.clearMetadata('device');
+      }
     }
-  }, []);
+  }, [hasBugsnag]);
 
   const assert = (condition: boolean, message: string) => {
     if (!condition) throw new Error('Assertion failed: ' + message);
@@ -68,18 +89,16 @@ const SettingsPage: React.FC = () => {
   };
 
   const handleDeviceIdClick = async () => {
+    if (!hasBugsnag || !Bugsnag.isStarted()) {
+      console.warn('[DeviceIdClick] Bugsnag not configured — skipping device ID test');
+      return;
+    }
+
     if (deviceId) {
       try {
         const testError = new Error(`Test error from device: ${deviceId}`);
 
         Bugsnag.notify(testError, (event) => {
-          console.log('[Bugsnag] Sending error to dashboard with API key:', (Bugsnag as any)._client?._config?.apiKey);
-          console.log('[Bugsnag] Event details:', {
-            errorClass: event.errors[0]?.errorClass,
-            errorMessage: event.errors[0]?.errorMessage,
-            appType: event.app?.type,
-            releaseStage: event.app?.releaseStage,
-          });
           event.addMetadata('test', {
             deviceId: deviceId,
             timestamp: new Date().toISOString(),
@@ -229,7 +248,7 @@ const SettingsPage: React.FC = () => {
       </Button>
       <span> </span>
 
-      {deviceId && (
+      {deviceId && hasBugsnag && (
         <>
           <Button onClick={handleDeviceIdClick}>Device ID: {deviceId}</Button>
           <span> </span>

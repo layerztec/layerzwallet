@@ -4,22 +4,25 @@ import Bugsnag from '@bugsnag/js';
 import BugsnagPluginReact from '@bugsnag/plugin-react';
 import BugsnagPerformance from '@bugsnag/browser-performance';
 import { isPlaywrightMode } from '../../utils/playwright-detection';
+import { BUGSNAG_API_KEY } from './bugsnag-config';
 
 import Popup from './Popup';
 import './index.css';
 
-const BUGSNAG_API_KEY = process.env.EXPO_PUBLIC_BUGSNAGJS_API_KEY;
-
 let ErrorBoundary = ({ children }) => children;
 
 if (BUGSNAG_API_KEY && !isPlaywrightMode()) {
+  const manifest = typeof chrome !== 'undefined' && chrome.runtime?.getManifest ? chrome.runtime.getManifest() : {};
+
   Bugsnag.start({
     apiKey: BUGSNAG_API_KEY,
     plugins: [new BugsnagPluginReact()],
-    appType: 'browser-extension',
+    appType: 'layerz-extension-popup',
+    appVersion: manifest.version,
     releaseStage: process.env.NODE_ENV === 'production' ? 'production' : 'development',
     enabledReleaseStages: ['development', 'production'],
     collectUserIp: false,
+    generateAnonymousId: false,
     endpoints: {
       notify: 'https://notify.bugsnag.com',
       sessions: 'https://sessions.bugsnag.com',
@@ -28,11 +31,24 @@ if (BUGSNAG_API_KEY && !isPlaywrightMode()) {
       platform: {
         type: 'browser-extension',
         browser: navigator.userAgent,
+        extensionName: manifest.name,
       },
     },
     onError: (event) => {
-      console.log('[Bugsnag] Preparing to send error:', event.errors[0]?.errorMessage);
-      console.log('[Bugsnag] API Key being used:', BUGSNAG_API_KEY);
+      event.errors.forEach((error) => {
+        if (Array.isArray(error.stacktrace)) {
+          error.stacktrace = error.stacktrace.map((frame) => {
+            if (frame.file) {
+              frame.file = frame.file
+                .replace(/chrome-extension:/g, 'chrome_extension:')
+                .replace(/moz-extension:/g, 'moz_extension:')
+                .replace(/safari-extension:/g, 'safari_extension:')
+                .replace(/safari-web-extension:/g, 'safari_web_extension:');
+            }
+            return frame;
+          });
+        }
+      });
       return true;
     },
   });
