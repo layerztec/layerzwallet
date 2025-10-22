@@ -1,7 +1,7 @@
 {
   "name": "layerzwallet",
   "main": "./entry.js",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Manage your Bitcoin across multiple Layer 2 solutions",
   "repository": {
     "type": "git",
