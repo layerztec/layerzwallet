@@ -11,6 +11,7 @@ appId: com.layerzwallet.mobile
     element:
       id: 'SelfTestButton'
     direction: DOWN
+    centerElement: true
 
 # Navigate to Self Test
 - tapOn:

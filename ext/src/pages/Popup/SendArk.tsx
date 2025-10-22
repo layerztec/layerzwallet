@@ -14,7 +14,7 @@ import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { Button, HodlButton, Input, WideButton } from './DesignSystem';
-import { NETWORK_ARK_MUTINYNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 
@@ -74,7 +74,7 @@ const SendArk: React.FC = () => {
 
       await askMnemonic(); // only asking to verify user knows it. will throw if he doesnt
 
-      assert(network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_STACKS, 'Unexpected network');
+      assert(NETWORK_ARK === network || NETWORK_ARK_MUTINYNET === network || NETWORK_SPARK === network || network === NETWORK_STACKS, 'Internal error: wallet of incorrect type');
       let w = await BackgroundCaller.lazyInitWallet(network, accountNumber);
       assert(w instanceof ArkWallet || w instanceof SparkWallet || w instanceof StacksWallet, 'Unexpected wallet type');
 

@@ -18,11 +18,7 @@
           }
         ]
       },
-      "icon": {
-        "dark": "./assets/images/ios-dark.png",
-        "light": "./assets/images/ios-light.png",
-        "tinted": "./assets/images/ios-tinted.png"
-      }
+      "icon": "./assets/appicon.icon"
     },
     "android": {
       "edgeToEdgeEnabled": true,
@@ -88,7 +84,7 @@
       [
         "expo-asset",
         {
-          "assets": ["assets/js/inpage-bridge.jstxt", "assets/animations/intro.riv"]
+          "assets": ["assets/js/inpage-bridge.jstxt", "assets/animations/intro.riv", "assets/animations/transactions.riv"]
         }
       ],
       "expo-secure-store",

@@ -7,7 +7,7 @@ import { usePreventScreenCapture } from 'expo-screen-capture';
 import { ThemedText } from '@/components/ThemedText';
 import { Typography } from '@/constants/Typography';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
-import { Colors, gradients } from '@shared/constants/Colors';
+import { Colors } from '@shared/constants/Colors';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 
 type CreateWalletScreenParams = {
@@ -81,7 +81,7 @@ export default function CreateWalletScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={gradients.blueGradient} style={styles.gradient}>
+      <View style={[styles.gradient, { backgroundColor: Colors.GlobalDarkBackground }]}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.contentContainer}>
             <View style={styles.titleContainer}>
@@ -126,7 +126,7 @@ export default function CreateWalletScreen() {
             </View>
           </View>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
     </View>
   );
 }

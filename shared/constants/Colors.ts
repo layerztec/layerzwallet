@@ -22,6 +22,7 @@ const accent2 = '#9DF9EC';
 const accent3 = '#D9FD5F';
 const accent4 = '#F5B9CD';
 const neutral = '#CECDCD';
+const globalDarkBackground = '#000000';
 
 export const gradients = {
   gradient1: [accent1, accent2] as const,
@@ -74,6 +75,7 @@ export const Colors = {
     buttonText: '#FFFFFF',
     paragraphText: '#B8B8B8',
   },
+  GlobalDarkBackground: globalDarkBackground,
 };
 
 export const getNetworkGradient = (network: string) => {

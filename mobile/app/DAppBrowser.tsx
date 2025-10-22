@@ -141,7 +141,7 @@ const DAppBrowser: React.FC = () => {
         <TouchableOpacity style={[styles.iconButton, !canGoForward && styles.disabledButton]} onPress={goForward} disabled={!canGoForward}>
           <Ionicons name="arrow-forward" size={16} color={canGoForward ? 'white' : '#999'} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton} onPress={refresh}>
+        <TouchableOpacity testID="RefreshButton" style={styles.iconButton} onPress={refresh} onLongPress={() => setAddressInput('')}>
           <Ionicons name="refresh" size={16} color="white" />
         </TouchableOpacity>
         <TouchableOpacity style={[styles.button, styles.unwhitelistButton]} onPress={unwhitelistCurrentDapp}>

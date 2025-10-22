@@ -12,15 +12,11 @@ export class SwapProviderBoltz implements SwapProvider {
   getSupportedPairs(): SwapPair[] {
     return [
       // btc <-> rsk
-      { from: NETWORK_BITCOIN, to: NETWORK_ROOTSTOCK, platform: SwapPlatform.EXT },
-      { from: NETWORK_ROOTSTOCK, to: NETWORK_BITCOIN, platform: SwapPlatform.EXT },
-      { from: NETWORK_BITCOIN, to: NETWORK_ROOTSTOCK, platform: SwapPlatform.MOBILE },
-      { from: NETWORK_ROOTSTOCK, to: NETWORK_BITCOIN, platform: SwapPlatform.MOBILE },
+      { from: NETWORK_BITCOIN, to: NETWORK_ROOTSTOCK, platform: SwapPlatform.ALL },
+      { from: NETWORK_ROOTSTOCK, to: NETWORK_BITCOIN, platform: SwapPlatform.ALL },
       // btc <-> liquid
-      { from: NETWORK_BITCOIN, to: NETWORK_LIQUID, platform: SwapPlatform.EXT },
-      { from: NETWORK_LIQUID, to: NETWORK_BITCOIN, platform: SwapPlatform.EXT },
-      { from: NETWORK_BITCOIN, to: NETWORK_LIQUID, platform: SwapPlatform.MOBILE },
-      { from: NETWORK_LIQUID, to: NETWORK_BITCOIN, platform: SwapPlatform.MOBILE },
+      { from: NETWORK_BITCOIN, to: NETWORK_LIQUID, platform: SwapPlatform.ALL },
+      { from: NETWORK_LIQUID, to: NETWORK_BITCOIN, platform: SwapPlatform.ALL },
     ];
   }
 
