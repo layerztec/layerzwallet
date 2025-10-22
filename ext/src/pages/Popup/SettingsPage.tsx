@@ -102,7 +102,7 @@ const SettingsPage: React.FC = () => {
             w.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
             await w.init();
             assert(
-              (await w.getOffchainReceiveAddress()) === 'sp1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym094800574233rzd',
+              (await w.getOffchainReceiveAddress()) === 'spark1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym094800574x5numh',
               'unexpected spark wallet getOffchainReceiveAddress(): ' + (await w.getOffchainReceiveAddress())
             );
 
