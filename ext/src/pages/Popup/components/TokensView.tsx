@@ -39,6 +39,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
     }
 
     if (network === NETWORK_STACKS) {
+      console.log('send token on stacks', token);
       // TODO
       return;
     }

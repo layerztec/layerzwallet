@@ -143,7 +143,7 @@ export default function Home() {
         router.push('/SendLightning');
         break;
       case NETWORK_STACKS:
-        // TODO
+        router.push('/SendArk');
         break;
       default:
         router.push('/SendEvm');

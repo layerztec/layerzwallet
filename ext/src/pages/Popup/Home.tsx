@@ -63,7 +63,7 @@ const Home: React.FC = () => {
         navigate('/send-ark');
         break;
       case NETWORK_STACKS:
-        // TODO
+        navigate('/send-ark');
         break;
       case NETWORK_LIQUID:
       case NETWORK_LIQUID_TESTNET:

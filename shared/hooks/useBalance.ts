@@ -117,6 +117,10 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
       refreshInterval = 5_000; // transfers are just server interactions, should be fast
       break;
 
+    case NETWORK_STACKS:
+      refreshInterval = 5_000; // stacks block time
+      break;
+
     case NETWORK_LIGHTNING:
     case NETWORK_LIGHTNING_TESTNET:
     case NETWORK_LIQUID:

@@ -1,7 +1,11 @@
 import assert from 'assert';
 import { generateNewAccount, generateWallet, getStxAddress, Wallet as SdkWallet } from '@stacks/wallet-sdk';
 import { createClient } from '@stacks/blockchain-api-client';
+import { broadcastTransaction, makeContractCall, makeSTXTokenTransfer, noneCV, SignedTokenTransferOptions, standardPrincipalCV, uintCV } from '@stacks/transactions';
+
 import { CachedTokenInfo } from '../../types/token-info';
+
+const sbtcId = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token::sbtc-token';
 
 export class StacksWallet {
   private _accountNumber: number = 0;
@@ -95,9 +99,13 @@ export class StacksWallet {
   }
 
   public getTokenBalances() {
-    return this._tokenBalances;
+    // not showing sBTC as we treat it as native coin
+    return this._tokenBalances.filter((t) => t.id !== sbtcId);
   }
 
+  /**
+   * returning sBTC balance, which is technically a token, NOT a native balance (STX)
+   */
   public async getBalance() {
     const address = await this.getOffchainReceiveAddress();
     assert(address, 'Stacks address is missing');
@@ -116,11 +124,80 @@ export class StacksWallet {
 
     // we treat sBTC token as main balance for this wallet
     for (const token of ftBalances?.results || []) {
-      if (token.token === 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token::sbtc-token') {
+      if (token.token === sbtcId) {
         return token.balance;
       }
     }
 
     return 0;
+  }
+
+  /**
+   * sending sBTC, not STX
+   */
+  async pay(address: string, amount: number): Promise<string> {
+    assert(this._sdkWallet, 'Stacks wallet is not initialized');
+    assert(this._sdkWallet.accounts[this._accountNumber], 'Stacks account not found');
+    assert(address, 'Recipient address is required');
+    assert(Number.isFinite(amount) && amount > 0, 'Amount must be a positive number');
+
+    // Ensure cached sBTC balance is sufficient
+    const sbtcTokenId = sbtcId;
+    const sbtc = this._tokenBalances.find((t) => t.id === sbtcTokenId);
+    assert(sbtc && sbtc.balance != null, 'sBTC token balance is unavailable');
+    const available = BigInt(sbtc.balance);
+    assert(available >= BigInt(amount), `Insufficient sBTC balance. Have ${available}, need ${BigInt(amount)}`);
+
+    const senderKey = this._sdkWallet.accounts[this._accountNumber].stxPrivateKey;
+    const senderAddress = await this.getOffchainReceiveAddress();
+
+    const contractAddress = sbtcId.split('.')[0];
+    const contractName = 'sbtc-token';
+
+    const transaction = await makeContractCall({
+      contractAddress,
+      contractName,
+      functionName: 'transfer',
+      functionArgs: [uintCV(BigInt(amount)), standardPrincipalCV(senderAddress), standardPrincipalCV(address), noneCV()],
+      senderKey,
+      network: 'mainnet',
+      postConditionMode: 'allow',
+    });
+
+    const broadcastResponse: any = await broadcastTransaction({ transaction });
+
+    if (broadcastResponse && typeof broadcastResponse.txid === 'string') {
+      return broadcastResponse.txid;
+    }
+
+    if (typeof broadcastResponse === 'string') {
+      return broadcastResponse;
+    }
+
+    throw new Error(`Failed to broadcast sBTC transfer: ${JSON.stringify(broadcastResponse)}`);
+  }
+
+  /**
+   * sending native coin (STX)
+   */
+  async payStx(address: string, amount: number): Promise<string> {
+    assert(this._sdkWallet, 'Stacks wallet is not initialized');
+    assert(this._sdkWallet.accounts[this._accountNumber], 'Stacks account not found');
+
+    const txOptions: SignedTokenTransferOptions = {
+      recipient: address,
+      amount: BigInt(amount),
+      senderKey: this._sdkWallet.accounts[this._accountNumber].stxPrivateKey,
+      network: 'mainnet',
+      // memo: '',
+      // nonce: 0n, // set a nonce manually if you don't want builder to fetch from a Stacks node
+      // fee: 200n, // set a tx fee if you don't want the builder to estimate
+    };
+
+    const transaction = await makeSTXTokenTransfer(txOptions);
+
+    // broadcasting transaction to the specified network
+    const broadcastResponse = await broadcastTransaction({ transaction });
+    return broadcastResponse.txid;
   }
 }
