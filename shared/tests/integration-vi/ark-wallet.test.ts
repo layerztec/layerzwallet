@@ -41,17 +41,11 @@ test('ark mainnet can check balance', async (context) => {
     return;
   }
 
-  if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
-    console.warn('env not set, skipping');
-    context.skip();
-    return;
-  }
-
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
-  w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
-  w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
-  w.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
+  w.setArkServerUrl('https://arkade.computer');
+  w.setArkServerPublicKey('022b74c2011af089c849383ee527c72325de52df6a788428b68d49e9174053aaba');
+  w.setBoltzApiUrl('https://api.ark.boltz.exchange');
   await w.init(storageMock);
 
   const offchainBalance = await w.getOffchainBalance();
@@ -66,17 +60,11 @@ test('ark mainnet can check if our invoice is paid', async (context) => {
     return;
   }
 
-  if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
-    console.warn('env not set, skipping');
-    context.skip();
-    return;
-  }
-
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
-  w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
-  w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
-  w.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
+  w.setArkServerUrl('https://arkade.computer');
+  w.setArkServerPublicKey('022b74c2011af089c849383ee527c72325de52df6a788428b68d49e9174053aaba');
+  w.setBoltzApiUrl('https://api.ark.boltz.exchange');
   await w.init(storageMock);
 
   // Read existing reverse swaps from storage, parse, and append mocked record if not present
@@ -142,17 +130,11 @@ test('ark mainnet switch accounts', async (context) => {
     return;
   }
 
-  if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
-    console.warn('env not set, skipping');
-    context.skip();
-    return;
-  }
-
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
-  w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
-  w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
-  w.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
+  w.setArkServerUrl('https://arkade.computer');
+  w.setArkServerPublicKey('022b74c2011af089c849383ee527c72325de52df6a788428b68d49e9174053aaba');
+  w.setBoltzApiUrl('https://api.ark.boltz.exchange');
   await w.init(storageMock);
 
   //
@@ -178,17 +160,11 @@ test.skip('ark mainnet can create lightning invoice', async (context) => {
     return;
   }
 
-  if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
-    console.warn('env not set, skipping');
-    context.skip();
-    return;
-  }
-
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
-  w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
-  w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
-  w.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
+  w.setArkServerUrl('https://arkade.computer');
+  w.setArkServerPublicKey('022b74c2011af089c849383ee527c72325de52df6a788428b68d49e9174053aaba');
+  w.setBoltzApiUrl('https://api.ark.boltz.exchange');
 
   await w.init(storageMock);
   await w.initLightningSwaps();
@@ -206,17 +182,11 @@ test.skip('ark mainnet can pay lightning invoice', async (context) => {
     return;
   }
 
-  if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
-    console.warn('env not set, skipping');
-    context.skip();
-    return;
-  }
-
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
-  w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
-  w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
-  w.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
+  w.setArkServerUrl('https://arkade.computer');
+  w.setArkServerPublicKey('022b74c2011af089c849383ee527c72325de52df6a788428b68d49e9174053aaba');
+  w.setBoltzApiUrl('https://api.ark.boltz.exchange');
   await w.init(storageMock);
 
   const start = Date.now();
