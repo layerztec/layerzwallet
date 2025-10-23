@@ -1,3 +1,5 @@
+# this flow doesn't work on iOS because maestro doesn't recognize ids in the webview
+# https://github.com/mobile-dev-inc/Maestro/issues/2293
 appId: com.layerzwallet.mobile
 ---
 - runFlow: subflows/wallet-creation.yml
@@ -15,7 +17,7 @@ appId: com.layerzwallet.mobile
     id: 'RefreshButton'
 - longPressOn:
     id: 'DappBrowserAddressBar'
-#
+
 - inputText: 'https://metamask.github.io/test-dapp/'
 - pressKey: Enter
 - waitForAnimationToEnd
@@ -37,7 +39,6 @@ appId: com.layerzwallet.mobile
 - assertNotVisible: 'Account Access Request'
 
 # signing v4
-
 - scrollUntilVisible:
     element: Sign Typed Data V4
     timeout: 90000
