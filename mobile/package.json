@@ -116,7 +116,8 @@
     "swr": "2.3.6",
     "timers-browserify": "^2.0.12",
     "uint8array-extras": "^1.4.0",
-    "url": "^0.11.4"
+    "url": "^0.11.4",
+    "react-native-pager-view": "6.9.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

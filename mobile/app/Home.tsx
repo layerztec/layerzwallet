@@ -5,6 +5,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef } from 'reac
 import { Alert, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import PagerView from 'react-native-pager-view';
 import { scheduleOnRN } from 'react-native-worklets';
 import Rive, { RiveRef } from 'rive-react-native';
 
@@ -87,6 +88,8 @@ export default function Home() {
   const gestureStartPosition = useSharedValue(0); // Track gesture start position using shared value
   const whiteFlashAnim = useSharedValue(0); // Animation for white flash transition
   const riveRef = useRef<RiveRef>(null); // Ref for Rive animation
+  const currentNetworkIndex = useRef<number>(0); // Track current network index
+  const pagerRef = useRef<any>(null);
 
   // Initialize modal position based on whether coming from onboarding
   useEffect(() => {
@@ -96,6 +99,25 @@ export default function Home() {
       currentModalPosition.value = maxTranslate;
     }
   }, [params.fromOnboarding, modalTranslateY, currentModalPosition]);
+
+  // Handle page selected: change network with white flash
+  const onPageSelected = (e: any) => {
+    const idx = e?.nativeEvent?.position;
+    if (typeof idx !== 'number') return;
+    const selectedNetwork = networks[idx];
+    if (!selectedNetwork) return;
+
+    // perform same transition as tapping a card
+    const flashDuration = 150;
+    whiteFlashAnim.value = withTiming(1, { duration: flashDuration }, () => {
+      whiteFlashAnim.value = withTiming(0, { duration: flashDuration }, () => {
+        currentModalPosition.value = 0;
+        modalTranslateY.value = withTiming(0, { duration: 400 });
+      });
+      scheduleOnRN(setNetwork, selectedNetwork);
+    });
+    currentNetworkIndex.current = idx;
+  };
 
   // Animated styles
   const modalAnimatedStyle = useAnimatedStyle(() => ({ transform: [{ translateY: modalTranslateY.value }] }));
@@ -115,6 +137,23 @@ export default function Home() {
 
   // Network cards for the black background area
   const networks = useAvailableNetworks();
+
+  useEffect(() => {
+    const index = networks.findIndex((n) => n === network);
+    if (index !== -1) {
+      currentNetworkIndex.current = index;
+    }
+  }, [network, networks]);
+  useEffect(() => {
+    const index = networks.findIndex((n) => n === network);
+    if (index !== -1 && pagerRef.current && typeof pagerRef.current.setPage === 'function') {
+      try {
+        pagerRef.current.setPage(index);
+      } catch (e) {
+        console.error('Error setting pager page:', e);
+      }
+    }
+  }, [network, networks]);
   const networkCards: LayerCard[] = useMemo(() => {
     return networks.map((networkItem) => {
       const isTestnet = getIsTestnet(networkItem);
@@ -412,6 +451,11 @@ export default function Home() {
 
         <GradientScreen variant={network} scroll={true} onScroll={handleScroll}>
           <View style={[styles.root, styles.contentWithHeader]}>
+            <PagerView ref={pagerRef} style={styles.pagerOverlay} initialPage={currentNetworkIndex.current} onPageSelected={onPageSelected} overScrollMode="never">
+              {networks.map((n, i) => (
+                <View key={`pager-${n}`} style={styles.pagerPage} accessible={false} importantForAccessibility="no-hide-descendants" />
+              ))}
+            </PagerView>
             {/* Network Selector */}
             <View style={styles.networkSelectorContainer}>
               <TouchableOpacity testID="NetworkSwitcherTrigger" style={styles.networkSelector} onPress={handleNetworkSelect} activeOpacity={0.8}>
@@ -813,6 +857,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     zIndex: 9998,
     pointerEvents: 'none',
+  },
+  pagerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9997,
+    backgroundColor: 'transparent',
+  },
+  pagerPage: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
   emptyTransactionsContainer: {
     alignItems: 'center',
