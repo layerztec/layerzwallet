@@ -18,9 +18,10 @@ jobs:
   maestro_test:
     needs: [build_android_for_e2e]
     type: maestro
+    runs_on: linux-large-nested-virtualization
     params:
       retries: 5
-      shards: 3
+      shards: 2
       build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
       flow_path:
         - .maestro/home.yml
