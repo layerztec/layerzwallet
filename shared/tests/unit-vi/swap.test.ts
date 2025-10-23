@@ -3,7 +3,7 @@ import { test } from 'vitest';
 import { SwapProviderBoltz } from '../../models/swap-provider-boltz';
 import { NETWORK_BITCOIN, NETWORK_BOTANIX_TESTNET, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK } from '../../types/networks';
 import { getSwapPairs, getSwapProvidersList } from '../../models/swap-providers-list';
-import { SwapPlatform } from '@shared/types/swap';
+import { SwapPlatform, SO_LIQUID_USDT } from '@shared/types/swap';
 
 test('throws on incorrect swap pair', async () => {
   const swapper = new SwapProviderBoltz();
@@ -41,6 +41,9 @@ test('getSwapPairs() returns correct pairs', () => {
 
   const testnetPairs = getSwapPairs(NETWORK_LIQUID_TESTNET, SwapPlatform.EXT);
   assert.strictEqual(testnetPairs.length, 0); // testnet has no swap pairs
+
+  const usdtPairs = getSwapPairs(SO_LIQUID_USDT, SwapPlatform.EXT);
+  assert.ok(usdtPairs.length > 0); // usdt has swap pairs
 
   // Check for duplicate pairs
   const pairStrings = bitcoinPairs.map((pair) => `${pair.from}-${pair.to}`);

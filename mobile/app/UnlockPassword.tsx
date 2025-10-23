@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { Colors, gradients } from '@shared/constants/Colors';
+import { Colors } from '@shared/constants/Colors';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { SecureStorage } from '@/src/class/secure-storage';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
@@ -22,6 +22,7 @@ import { Csprng } from '@/src/class/rng';
 export default function UnlockPassword() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(true); // Start focused since input auto-focuses
   const router = useRouter();
 
   const passwordInputRef = useRef<TextInput>(null);
@@ -29,6 +30,7 @@ export default function UnlockPassword() {
   const shakeAnimation = useRef(new Animated.Value(0)).current;
   const inputBorderAnimation = useRef(new Animated.Value(0)).current;
   const scaleAnimation = useRef(new Animated.Value(1)).current;
+  const passwordBorderAnimation = useRef(new Animated.Value(1)).current; // Start with focused state
 
   const titleTransition = useSequentialSpringAnimation(200);
   const subtitleTransition = useSequentialSpringAnimation(400);
@@ -40,6 +42,24 @@ export default function UnlockPassword() {
       setTimeout(() => passwordInputRef.current?.focus(), 1_500);
     }
   }, []);
+
+  // Animate border color on focus/blur
+  useEffect(() => {
+    Animated.timing(passwordBorderAnimation, {
+      toValue: isPasswordFocused ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [isPasswordFocused, passwordBorderAnimation]);
+
+  // Create animated border style
+  const passwordBorderStyle = {
+    borderColor: passwordBorderAnimation.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['rgba(0, 0, 0, 0.3)', 'rgba(255, 255, 255, 0.8)'],
+    }),
+    borderWidth: 1,
+  };
 
   const handleUnlockPassword = async () => {
     setIsLoading(true);
@@ -61,7 +81,7 @@ export default function UnlockPassword() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={gradients.blueGradient} style={styles.container}>
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <SafeAreaView style={styles.safeAreaView}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardContainer}>
             <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -89,35 +109,7 @@ export default function UnlockPassword() {
                     },
                   ]}
                 >
-                  <Animated.View
-                    style={[
-                      styles.inputWrapper,
-                      {
-                        borderColor: inputBorderAnimation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['rgba(255, 255, 255, 0.2)', '#FF6B6B'],
-                        }),
-                        borderWidth: inputBorderAnimation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 1],
-                        }),
-                        shadowOpacity: inputBorderAnimation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 0.3],
-                        }),
-                        shadowColor: '#FF6B6B',
-                        shadowOffset: { width: 0, height: 0 },
-                        shadowRadius: inputBorderAnimation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 8],
-                        }),
-                        elevation: inputBorderAnimation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 5],
-                        }),
-                      },
-                    ]}
-                  >
+                  <Animated.View style={[styles.inputWrapper, passwordBorderStyle]}>
                     <TextInput
                       ref={passwordInputRef}
                       style={styles.input}
@@ -127,6 +119,8 @@ export default function UnlockPassword() {
                       secureTextEntry
                       value={password}
                       onChangeText={setPassword}
+                      onFocus={() => setIsPasswordFocused(true)}
+                      onBlur={() => setIsPasswordFocused(false)}
                       testID="EnterPasswordInput"
                     />
                   </Animated.View>
@@ -148,7 +142,7 @@ export default function UnlockPassword() {
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -181,7 +175,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     borderRadius: 16,
     marginBottom: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   input: {
     height: 56,
