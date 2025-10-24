@@ -24,17 +24,11 @@ test('ark mainnet can getCommonTransactions', async (context) => {
     return;
   }
 
-  if (!(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL)) {
-    console.warn('env not set, skipping');
-    context.skip();
-    return;
-  }
-
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
-  w.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
-  w.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
-  w.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
+  w.setArkServerUrl('https://arkade.computer');
+  w.setArkServerPublicKey('022b74c2011af089c849383ee527c72325de52df6a788428b68d49e9174053aaba');
+  w.setBoltzApiUrl('https://api.ark.boltz.exchange');
   await w.init(storageMock);
 
   const transfers: ArkTransaction[] = [
