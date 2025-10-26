@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { ThemedText } from '@/components/ThemedText';
@@ -26,9 +26,18 @@ interface DAppBrowserTabsProps {
   onSwitchTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
   getTabTitle: (url: string) => string;
+  onEnsurePreview: (tabId: string) => void | Promise<void>;
 }
 
-export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({ tabs, activeTabId, animatedStyle, pointerEvents, onSwitchTab, onCloseTab, getTabTitle }) => {
+export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({ tabs, activeTabId, animatedStyle, pointerEvents, onSwitchTab, onCloseTab, getTabTitle, onEnsurePreview }) => {
+  useEffect(() => {
+    console.debug('[DAppBrowserTabs] render', {
+      tabCount: tabs.length,
+      activeTabId,
+      tabIds: tabs.map((tab) => tab.id),
+    });
+  }, [tabs, activeTabId]);
+
   return (
     <Animated.View style={[styles.tabsOverviewContainer, animatedStyle, styles.tabsOverviewAbsolute]} pointerEvents={pointerEvents}>
       <View style={styles.tabsOverviewBackground}>
@@ -44,9 +53,19 @@ export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({ tabs, activeTa
                 tab={tab}
                 index={index}
                 isActive={activeTabId === tab.id}
-                onPress={() => onSwitchTab(tab.id)}
-                onClose={() => onCloseTab(tab.id)}
+                onPress={() => {
+                  console.debug('[DAppBrowserTabs] tab pressed', { tabId: tab.id, index });
+                  onSwitchTab(tab.id);
+                }}
+                onClose={() => {
+                  console.debug('[DAppBrowserTabs] tab close pressed', { tabId: tab.id, index });
+                  onCloseTab(tab.id);
+                }}
                 getTabTitle={getTabTitle}
+                onEnsurePreview={() => {
+                  console.debug('[DAppBrowserTabs] ensure preview requested', { tabId: tab.id, index });
+                  void onEnsurePreview(tab.id);
+                }}
               />
             ))}
           </View>

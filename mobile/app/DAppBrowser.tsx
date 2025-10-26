@@ -2,7 +2,7 @@ import { Asset } from 'expo-asset';
 import { File } from 'expo-file-system';
 import * as Linking from 'expo-linking';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
-import { StyleSheet, TouchableOpacity, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, Dimensions, Text } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, Dimensions, Text, ViewStyle, StyleProp } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +30,24 @@ export type DappBrowserProps = {
   url?: string;
 };
 
+const getTabTitle = (url: string): string => {
+  try {
+    const { hostname } = new URL(url);
+    return hostname.replace('www.', '');
+  } catch {
+    return url.length > 30 ? url.substring(0, 30) + '...' : url;
+  }
+};
+
+const isValidUrl = (urlString: string): boolean => {
+  try {
+    const url = new URL(urlString);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 interface BrowserTab {
   id: string;
   url: string;
@@ -40,9 +58,16 @@ interface BrowserTab {
   historyIndex: number;
   screenshot?: string;
   timestamp: number;
-  needsScreenshotUpdate?: boolean;
-  isCapturingScreenshot?: boolean;
 }
+
+interface ScreenshotManifestEntry {
+  key: string;
+  size: number;
+  timestamp: number;
+  lastAccessed: number;
+}
+
+type ScreenshotManifest = { [tabId: string]: ScreenshotManifestEntry };
 
 type StoredTab = {
   id: string;
@@ -51,15 +76,17 @@ type StoredTab = {
   history: { url: string; title: string }[];
   historyIndex: number;
   timestamp: number;
-  screenshot?: string;
 };
 
 const TABS_STORAGE_KEY = '@browser_tabs';
 const ACTIVE_TAB_STORAGE_KEY = '@browser_active_tab';
+const SCREENSHOT_MANIFEST_KEY = '@browser_screenshot_manifest';
+const SCREENSHOT_KEY_PREFIX = '@browser_screenshot_';
+const MAX_SCREENSHOTS_CACHE = 20; // Keep max 20 screenshots in storage
+const SCREENSHOT_EXPIRE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_MIN_HEIGHT = 120;
 const MODAL_MAX_HEIGHT = SCREEN_HEIGHT;
-const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 const DAppBrowser: React.FC = () => {
   const { network, setNetwork } = useContext(NetworkContext);
@@ -68,6 +95,7 @@ const DAppBrowser: React.FC = () => {
   const tabWebViewRefs = useRef<{ [key: string]: React.RefObject<WebView | null> }>({});
   const tabContainerRefs = useRef<{ [key: string]: React.RefObject<View | null> }>({});
   const browserBridgeRef = useRef<BrowserBridge>(null);
+  const addressInputRef = useRef<TextInput>(null);
   const [js, setJs] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const params = useLocalSearchParams<DappBrowserProps>();
@@ -78,7 +106,7 @@ const DAppBrowser: React.FC = () => {
   const [addressInput, setAddressInput] = useState<string>(initialUrl);
   const [showTabsOverview, setShowTabsOverview] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isAddressInputFocused, setIsAddressInputFocused] = useState<boolean>(false);
+  const [isAddressInputFocused, setIsAddressInputFocused] = useState(false);
 
   const webviewOpacity = useSharedValue(1);
   const tabsOpacity = useSharedValue(0);
@@ -98,8 +126,28 @@ const DAppBrowser: React.FC = () => {
   const isManualNavigation = useRef<boolean>(false);
   const lastManualNavigationUrl = useRef<string | undefined>(undefined);
 
+  const setAddressBarValue = useCallback((value: string, options?: { ensureStartVisible?: boolean }) => {
+    setAddressInput(value);
+    if (!options?.ensureStartVisible) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      if (addressInputRef.current?.isFocused() || !addressInputRef.current) {
+        return;
+      }
+
+      try {
+        addressInputRef.current.setNativeProps({ selection: { start: 0, end: 0 } });
+      } catch (error) {
+        // Ignore native selection errors on unsupported platforms
+      }
+    });
+  }, []);
+
   const activeTab = tabs.find((tab) => tab.id === activeTabId);
   const currentUrl = activeTab?.url || initialUrl;
+  const selectionAtStart = useMemo(() => ({ start: 0, end: 0 }), []);
 
   const modalAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: modalTranslateY.value }],
@@ -259,23 +307,152 @@ const DAppBrowser: React.FC = () => {
         history: t.history?.length ? t.history : [{ url: t.url, title: t.title || getTabTitle(t.url) }],
         historyIndex: typeof t.historyIndex === 'number' ? t.historyIndex : Math.max((t.history?.length || 1) - 1, 0),
         timestamp: t.timestamp || Date.now(),
-        screenshot: t.screenshot,
       }));
+
+      console.debug('[DAppBrowser] Saving tabs to storage', {
+        tabCount: storedTabs.length,
+        activeId,
+        tabIds: storedTabs.map((t) => t.id),
+      });
+
       await AsyncStorage.setItem(TABS_STORAGE_KEY, JSON.stringify({ version: 1, tabs: storedTabs }));
       await AsyncStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeId);
     } catch (error) {
-      console.error('Failed to save tabs:', error);
+      console.error('[DAppBrowser] Failed to save tabs:', error);
     }
   }, []);
 
-  const isValidUrl = (urlString: string): boolean => {
+  const loadScreenshotManifest = useCallback(async (): Promise<ScreenshotManifest> => {
     try {
-      const url = new URL(urlString);
-      return url.protocol === 'http:' || url.protocol === 'https:';
-    } catch {
-      return false;
+      const manifestJson = await AsyncStorage.getItem(SCREENSHOT_MANIFEST_KEY);
+      if (!manifestJson) return {};
+      return JSON.parse(manifestJson);
+    } catch (error) {
+      console.error('[DAppBrowser] Failed to load screenshot manifest:', error);
+      return {};
     }
-  };
+  }, []);
+
+  const saveScreenshotManifest = useCallback(async (manifest: ScreenshotManifest) => {
+    try {
+      await AsyncStorage.setItem(SCREENSHOT_MANIFEST_KEY, JSON.stringify(manifest));
+    } catch (error) {
+      console.error('[DAppBrowser] Failed to save screenshot manifest:', error);
+    }
+  }, []);
+
+  const saveScreenshot = useCallback(
+    async (tabId: string, screenshotData: string) => {
+      try {
+        const key = `${SCREENSHOT_KEY_PREFIX}${tabId}`;
+        const now = Date.now();
+
+        await AsyncStorage.setItem(key, screenshotData);
+
+        const manifest = await loadScreenshotManifest();
+        manifest[tabId] = {
+          key,
+          size: screenshotData.length,
+          timestamp: now,
+          lastAccessed: now,
+        };
+
+        // Clean up old screenshots if we exceed the cache limit
+        const entries = Object.entries(manifest);
+        if (entries.length > MAX_SCREENSHOTS_CACHE) {
+          // Sort by lastAccessed, oldest first
+          entries.sort(([, a], [, b]) => a.lastAccessed - b.lastAccessed);
+
+          // Remove oldest screenshots beyond the limit
+          const toRemove = entries.slice(0, entries.length - MAX_SCREENSHOTS_CACHE);
+          for (const [oldTabId, entry] of toRemove) {
+            await AsyncStorage.removeItem(entry.key);
+            delete manifest[oldTabId];
+            console.debug('[DAppBrowser] Evicted old screenshot', { tabId: oldTabId });
+          }
+        }
+
+        await saveScreenshotManifest(manifest);
+
+        console.debug('[DAppBrowser] Saved screenshot', {
+          tabId,
+          size: screenshotData.length,
+          manifestSize: Object.keys(manifest).length,
+        });
+      } catch (error) {
+        console.error('[DAppBrowser] Failed to save screenshot:', error);
+      }
+    },
+    [loadScreenshotManifest, saveScreenshotManifest]
+  );
+
+  const loadScreenshot = useCallback(
+    async (tabId: string): Promise<string | null> => {
+      try {
+        const manifest = await loadScreenshotManifest();
+        const entry = manifest[tabId];
+
+        if (!entry) {
+          console.debug('[DAppBrowser] No screenshot in manifest', { tabId });
+          return null;
+        }
+
+        // Check if expired
+        const now = Date.now();
+        if (now - entry.timestamp > SCREENSHOT_EXPIRE_MS) {
+          console.debug('[DAppBrowser] Screenshot expired', { tabId });
+          await AsyncStorage.removeItem(entry.key);
+          delete manifest[tabId];
+          await saveScreenshotManifest(manifest);
+          return null;
+        }
+
+        const screenshotData = await AsyncStorage.getItem(entry.key);
+
+        if (!screenshotData) {
+          console.debug('[DAppBrowser] Screenshot missing from storage', { tabId });
+          delete manifest[tabId];
+          await saveScreenshotManifest(manifest);
+          return null;
+        }
+
+        // Update last accessed time
+        entry.lastAccessed = now;
+        manifest[tabId] = entry;
+        await saveScreenshotManifest(manifest);
+
+        console.debug('[DAppBrowser] Loaded screenshot', {
+          tabId,
+          size: screenshotData.length,
+        });
+
+        return screenshotData;
+      } catch (error) {
+        console.error('[DAppBrowser] Failed to load screenshot:', error);
+        return null;
+      }
+    },
+    [loadScreenshotManifest, saveScreenshotManifest]
+  );
+
+  const deleteScreenshot = useCallback(
+    async (tabId: string) => {
+      try {
+        const manifest = await loadScreenshotManifest();
+        const entry = manifest[tabId];
+
+        if (entry) {
+          await AsyncStorage.removeItem(entry.key);
+          delete manifest[tabId];
+          await saveScreenshotManifest(manifest);
+          console.debug('[DAppBrowser] Deleted screenshot', { tabId });
+        }
+      } catch (error) {
+        console.error('[DAppBrowser] Failed to delete screenshot:', error);
+      }
+    },
+    [loadScreenshotManifest, saveScreenshotManifest]
+  );
 
   const loadTabs = useCallback(async (): Promise<{ tabs: BrowserTab[]; activeTabId: string } | null> => {
     try {
@@ -304,7 +481,6 @@ const DAppBrowser: React.FC = () => {
 
       if (!storedTabs || !Array.isArray(storedTabs) || storedTabs.length === 0) return null;
 
-      const now = Date.now();
       const tabs: BrowserTab[] = storedTabs
         .filter((t) => {
           const hasValidUrl = isValidUrl(t.url);
@@ -314,7 +490,6 @@ const DAppBrowser: React.FC = () => {
         .map((t) => {
           const history = t.history && t.history.length > 0 ? t.history : [{ url: t.url, title: t.title || getTabTitle(t.url) }];
           const historyIndex = Math.min(Math.max(t.historyIndex ?? history.length - 1, 0), history.length - 1);
-          const shouldDropScreenshot = !!t.screenshot && now - (t.timestamp || now) > ONE_WEEK_MS;
           return {
             id: t.id,
             url: history[historyIndex]?.url || t.url,
@@ -323,7 +498,6 @@ const DAppBrowser: React.FC = () => {
             canGoForward: historyIndex < history.length - 1,
             history,
             historyIndex,
-            screenshot: shouldDropScreenshot ? undefined : t.screenshot,
             timestamp: t.timestamp || Date.now(),
           } as BrowserTab;
         });
@@ -333,42 +507,150 @@ const DAppBrowser: React.FC = () => {
       const activeExists = tabs.some((t) => t.id === activeId);
       const finalActiveId = activeExists ? activeId : tabs[tabs.length - 1].id;
 
+      console.debug('[DAppBrowser] Loaded tabs from storage', {
+        tabCount: tabs.length,
+        activeId: finalActiveId,
+        tabIds: tabs.map((t) => t.id),
+      });
+
       return { tabs, activeTabId: finalActiveId };
     } catch (error) {
-      console.error('Failed to load tabs:', error);
+      console.error('[DAppBrowser] Failed to load tabs:', error);
       return null;
     }
   }, []);
 
-  const captureTabScreenshot = useCallback(async (tabId: string): Promise<string | null> => {
-    const containerRef = tabContainerRefs.current[tabId];
+  const captureTabScreenshot = useCallback(
+    async (tabId: string): Promise<string | null> => {
+      const containerRef = tabContainerRefs.current[tabId];
 
-    if (!containerRef?.current) {
-      return null;
-    }
-
-    setTabs((prev) => prev.map((tab) => (tab.id === tabId ? { ...tab, isCapturingScreenshot: true } : tab)));
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    try {
-      const base64 = await captureRef(containerRef.current, {
-        format: 'png',
-        quality: 0.6,
-        result: 'base64',
-        width: 360,
-      });
-      const dataUrl = `data:image/png;base64,${base64}`;
-      return dataUrl;
-    } catch (error: any) {
-      if (error?.code !== 'EUNSPECIFIED') {
-        console.warn('Failed to capture screenshot for tab:', tabId, error?.message || error);
+      if (!containerRef?.current) {
+        console.debug('[DAppBrowser] captureTabScreenshot skipped - no container', { tabId });
+        return null;
       }
-      return null;
-    } finally {
-      setTabs((prev) => prev.map((tab) => (tab.id === tabId ? { ...tab, isCapturingScreenshot: false } : tab)));
+
+      console.debug('[DAppBrowser] captureTabScreenshot start', {
+        tabId,
+        availableRefs: Object.keys(tabContainerRefs.current),
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      try {
+        const base64 = await captureRef(containerRef.current, {
+          format: 'png',
+          quality: 0.6,
+          result: 'base64',
+          width: 360,
+        });
+        const dataUrl = `data:image/png;base64,${base64}`;
+
+        console.debug('[DAppBrowser] captureTabScreenshot success', {
+          tabId,
+          dataLength: dataUrl.length,
+        });
+
+        // Save to separate storage
+        await saveScreenshot(tabId, dataUrl);
+
+        // Update tab state with screenshot
+        setTabs((prev) =>
+          prev.map((tab) =>
+            tab.id === tabId
+              ? {
+                  ...tab,
+                  screenshot: dataUrl,
+                  timestamp: Date.now(),
+                }
+              : tab
+          )
+        );
+
+        return dataUrl;
+      } catch (error: any) {
+        if (error?.code !== 'EUNSPECIFIED') {
+          console.warn('[DAppBrowser] Failed to capture screenshot for tab:', tabId, error?.message || error);
+        }
+        return null;
+      } finally {
+        console.debug('[DAppBrowser] captureTabScreenshot end', { tabId });
+      }
+    },
+    [saveScreenshot]
+  );
+
+  const ensureTabPreview = useCallback(
+    async (tabId: string) => {
+      const tab = tabs.find((t) => t.id === tabId);
+      if (!tab) {
+        console.debug('[DAppBrowser] ensureTabPreview skipped - tab missing', { tabId });
+        return;
+      }
+
+      // If we already have a screenshot in memory, we're done
+      if (tab.screenshot) {
+        console.debug('[DAppBrowser] ensureTabPreview skipped - screenshot exists', { tabId });
+        return;
+      }
+
+      console.debug('[DAppBrowser] ensureTabPreview start', {
+        tabId,
+        url: tab.url,
+      });
+
+      // Try to load from storage first
+      const storedScreenshot = await loadScreenshot(tabId);
+      if (storedScreenshot) {
+        console.debug('[DAppBrowser] ensureTabPreview loaded from storage', { tabId });
+        setTabs((prev) =>
+          prev.map((currentTab) =>
+            currentTab.id === tabId
+              ? {
+                  ...currentTab,
+                  screenshot: storedScreenshot,
+                }
+              : currentTab
+          )
+        );
+        return;
+      }
+
+      // No stored screenshot, need to capture
+      console.debug('[DAppBrowser] ensureTabPreview capturing new screenshot', { tabId });
+      await captureTabScreenshot(tabId);
+    },
+    [tabs, loadScreenshot, captureTabScreenshot]
+  );
+
+  // Load screenshots when tabs overview is shown
+  useEffect(() => {
+    if (!showTabsOverview || isRestoringTabs) {
+      return;
     }
-  }, []);
+
+    // Load screenshots from storage for tabs that don't have them in memory
+    const loadScreenshots = async () => {
+      for (const tab of tabs) {
+        if (!tab.screenshot) {
+          const storedScreenshot = await loadScreenshot(tab.id);
+          if (storedScreenshot) {
+            setTabs((prev) =>
+              prev.map((t) =>
+                t.id === tab.id
+                  ? {
+                      ...t,
+                      screenshot: storedScreenshot,
+                    }
+                  : t
+              )
+            );
+          }
+        }
+      }
+    };
+
+    loadScreenshots();
+  }, [showTabsOverview, tabs, isRestoringTabs, loadScreenshot]);
 
   useEffect(() => {
     const restoreTabs = async () => {
@@ -379,7 +661,7 @@ const DAppBrowser: React.FC = () => {
         setActiveTabId(restored.activeTabId);
         const activeTab = restored.tabs.find((t) => t.id === restored.activeTabId);
         if (activeTab) {
-          setAddressInput(activeTab.url);
+          setAddressBarValue(activeTab.url, { ensureStartVisible: true });
         }
       } else {
         const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
@@ -395,14 +677,14 @@ const DAppBrowser: React.FC = () => {
         };
         setTabs([initialTab]);
         setActiveTabId(initialTab.id);
-        setAddressInput(initialTab.url);
+        setAddressBarValue(initialTab.url, { ensureStartVisible: true });
       }
 
       setIsRestoringTabs(false);
     };
 
     restoreTabs();
-  }, [network, loadTabs, captureTabScreenshot]);
+  }, [network, loadTabs, captureTabScreenshot, setAddressBarValue]);
 
   useEffect(() => {
     if (!isRestoringTabs && tabs.length > 0 && activeTabId) {
@@ -413,9 +695,9 @@ const DAppBrowser: React.FC = () => {
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       if (nextAppState === 'background' || nextAppState === 'inactive') {
-        const screenshot = await captureTabScreenshot(activeTabId);
-        if (screenshot) {
-          setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot, timestamp: Date.now(), needsScreenshotUpdate: false } : tab)));
+        // Capture active tab screenshot when app goes to background
+        if (activeTabId) {
+          await captureTabScreenshot(activeTabId);
         }
       }
     };
@@ -447,10 +729,10 @@ const DAppBrowser: React.FC = () => {
         };
         setTabs((prev) => [...prev, newTab]);
         setActiveTabId(newTab.id);
-        setAddressInput(newTab.url);
+        setAddressBarValue(newTab.url, { ensureStartVisible: true });
       }
     }
-  }, [params.url, isRestoringTabs, tabs]);
+  }, [params.url, isRestoringTabs, tabs, setAddressBarValue]);
 
   const availableNetworks = useAvailableNetworks();
 
@@ -513,7 +795,7 @@ const DAppBrowser: React.FC = () => {
                 history: [{ url: homeUrl, title: homeTitle }],
                 historyIndex: 0,
               });
-              scheduleOnRN(setAddressInput, homeUrl);
+              scheduleOnRN(setAddressBarValue, homeUrl, { ensureStartVisible: true });
             }
           });
         }
@@ -540,7 +822,7 @@ const DAppBrowser: React.FC = () => {
 
     setTabs((prev) => [...prev, newTab]);
     setActiveTabId(newTab.id);
-    setAddressInput(newTab.url);
+    setAddressBarValue(newTab.url, { ensureStartVisible: true });
 
     if (showTabsOverview) {
       hideTabsOverview();
@@ -548,8 +830,14 @@ const DAppBrowser: React.FC = () => {
   };
 
   const closeTab = (tabId: string) => {
+    console.debug('[DAppBrowser] Closing tab request', { tabId, totalTabs: tabs.length });
+
+    // Delete screenshot from storage
+    deleteScreenshot(tabId);
+
     if (tabs.length === 1) {
       const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
+      console.debug('[DAppBrowser] Closing last tab, creating fallback home tab', { homeUrl });
       const newTab: BrowserTab = {
         id: Date.now().toString(),
         url: homeUrl,
@@ -562,17 +850,20 @@ const DAppBrowser: React.FC = () => {
       };
       setTabs([newTab]);
       setActiveTabId(newTab.id);
-      setAddressInput(homeUrl);
+      setAddressBarValue(homeUrl, { ensureStartVisible: true });
       return;
     }
 
     const newTabs = tabs.filter((tab) => tab.id !== tabId);
     setTabs(newTabs);
 
+    console.debug('[DAppBrowser] Tab closed', { tabId, remainingTabs: newTabs.length });
+
     if (activeTabId === tabId) {
       const newActiveTab = newTabs[newTabs.length - 1];
+      console.debug('[DAppBrowser] Active tab closed, activating fallback', { tabId: newActiveTab.id });
       setActiveTabId(newActiveTab.id);
-      setAddressInput(newActiveTab.url);
+      setAddressBarValue(newActiveTab.url, { ensureStartVisible: true });
     }
 
     if (newTabs.length === 1 && showTabsOverview) {
@@ -581,74 +872,81 @@ const DAppBrowser: React.FC = () => {
   };
 
   const switchTab = async (tabId: string) => {
+    console.debug('[DAppBrowser] switchTab invoked', { from: activeTabId, to: tabId });
     if (activeTabId === tabId) {
+      console.debug('[DAppBrowser] switchTab early exit - already active');
       hideTabsOverview();
       return;
     }
 
     const oldActiveTabId = activeTabId;
+    if (addressInputRef.current?.isFocused()) {
+      addressInputRef.current.blur();
+      setIsAddressInputFocused(false);
+    }
 
-    try {
-      const currentScreenshot = await captureTabScreenshot(oldActiveTabId);
-      if (currentScreenshot) {
-        setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === oldActiveTabId ? { ...tab, screenshot: currentScreenshot, timestamp: Date.now(), needsScreenshotUpdate: false } : tab)));
-      }
-    } catch (error) {}
+    // Capture screenshot of old active tab (don't block on this)
+    if (oldActiveTabId) {
+      captureTabScreenshot(oldActiveTabId).catch((error) => {
+        console.warn('[DAppBrowser] Failed to capture screenshot while switching tabs', { from: oldActiveTabId, error });
+      });
+    }
 
     setActiveTabId(tabId);
     const newTab = tabs.find((t) => t.id === tabId);
     if (newTab) {
-      setAddressInput(newTab.url);
+      console.debug('[DAppBrowser] Tab activated', { tabId: newTab.id, url: newTab.url });
+      setAddressBarValue(newTab.url, { ensureStartVisible: true });
     }
 
     hideTabsOverview();
   };
 
   const showTabsOverviewAnimated = async () => {
+    console.debug('[DAppBrowser] Showing tabs overview', { totalTabs: tabs.length, activeTabId });
+
+    // Capture screenshot of active tab BEFORE starting animation
+    if (activeTabId) {
+      try {
+        await captureTabScreenshot(activeTabId);
+      } catch (error) {
+        console.warn('[DAppBrowser] Failed to capture active tab screenshot:', error);
+      }
+    }
+
+    // Now start the animation
     setShowTabsOverview(true);
+    console.debug('[DAppBrowser] Tabs overview animation starting');
     webviewOpacity.value = withTiming(0, { duration: 300 });
     tabsOpacity.value = withTiming(1, { duration: 300 });
     addressBarTranslateY.value = withTiming(-120, { duration: 300 });
 
-    console.debug('[DAppBrowser] Showing tabs overview. Total tabs:', tabs.length);
     tabs.forEach((tab, index) => {
       console.debug(`[DAppBrowser] Tab ${index + 1}:`, {
         id: tab.id,
         url: tab.url,
         title: tab.title,
-        canGoBack: tab.canGoBack,
-        canGoForward: tab.canGoForward,
-        historyLength: tab.history?.length || 0,
-        historyIndex: tab.historyIndex,
         hasScreenshot: !!tab.screenshot,
         timestamp: new Date(tab.timestamp).toISOString(),
         isActive: tab.id === activeTabId,
-        needsScreenshotUpdate: tab.needsScreenshotUpdate,
       });
     });
-
-    const now = Date.now();
-    const targetsToCapture = tabs.filter((t) => !t.screenshot || now - (t.timestamp || now) > ONE_WEEK_MS || t.needsScreenshotUpdate);
-
-    for (const t of targetsToCapture) {
-      const shot = await captureTabScreenshot(t.id);
-      if (shot) {
-        setTabs((prev) => prev.map((tab) => (tab.id === t.id ? { ...tab, screenshot: shot, timestamp: Date.now(), needsScreenshotUpdate: false } : tab)));
-      }
-    }
   };
 
   const hideTabsOverview = () => {
+    console.debug('[DAppBrowser] Hiding tabs overview');
     webviewOpacity.value = withTiming(1, { duration: 250 });
     tabsOpacity.value = withTiming(0, { duration: 250 });
     addressBarTranslateY.value = withTiming(0, { duration: 250 }, (finished) => {
       if (finished) {
         runOnJS(setShowTabsOverview)(false);
+        console.debug('[DAppBrowser] Tabs overview hidden');
       }
     });
   };
 
   const toggleTabsOverview = () => {
+    console.debug('[DAppBrowser] Toggling tabs overview', { currentlyVisible: showTabsOverview });
     if (showTabsOverview) {
       hideTabsOverview();
     } else {
@@ -681,7 +979,7 @@ const DAppBrowser: React.FC = () => {
           console.debug('[DAppBrowser] New tab object:', newTab);
           setTabs([newTab]);
           setActiveTabId(newTab.id);
-          setAddressInput(homeUrl);
+          setAddressBarValue(homeUrl, { ensureStartVisible: true });
           if (showTabsOverview) {
             hideTabsOverview();
           }
@@ -703,15 +1001,6 @@ const DAppBrowser: React.FC = () => {
           : tab
       )
     );
-  };
-
-  const getTabTitle = (url: string): string => {
-    try {
-      const { hostname } = new URL(url);
-      return hostname.replace('www.', '');
-    } catch {
-      return url.length > 30 ? url.substring(0, 30) + '...' : url;
-    }
   };
 
   const stopLoading = () => {
@@ -747,7 +1036,7 @@ const DAppBrowser: React.FC = () => {
       )
     );
 
-    setAddressInput(historyItem.url);
+    setAddressBarValue(historyItem.url, { ensureStartVisible: true });
     webviewRef.current?.injectJavaScript(`window.location.href = '${historyItem.url}';`);
   };
 
@@ -775,7 +1064,7 @@ const DAppBrowser: React.FC = () => {
       )
     );
 
-    setAddressInput(historyItem.url);
+    setAddressBarValue(historyItem.url, { ensureStartVisible: true });
     webviewRef.current?.injectJavaScript(`window.location.href = '${historyItem.url}';`);
   };
 
@@ -802,7 +1091,7 @@ const DAppBrowser: React.FC = () => {
       )
     );
 
-    setAddressInput(historyItem.url);
+    setAddressBarValue(historyItem.url, { ensureStartVisible: true });
     webviewRef.current?.injectJavaScript(`window.location.href = '${historyItem.url}';`);
   };
 
@@ -822,19 +1111,6 @@ const DAppBrowser: React.FC = () => {
     browserBridgeRef.current?.handleMessage(event);
   }, []);
 
-  const handleScroll = useCallback(() => {
-    setTabs((prev) =>
-      prev.map((tab) =>
-        tab.id === activeTabId
-          ? {
-              ...tab,
-              needsScreenshotUpdate: true,
-            }
-          : tab
-      )
-    );
-  }, [activeTabId]);
-
   const handleLoadProgress = useCallback(
     ({ nativeEvent }: { nativeEvent: { progress: number } }) => {
       const progress = nativeEvent.progress;
@@ -848,11 +1124,9 @@ const DAppBrowser: React.FC = () => {
         if (finished && progress >= 1) {
           progressOpacity.value = withTiming(0, { duration: 300 });
 
+          // Capture screenshot after load completes
           setTimeout(async () => {
-            const screenshot = await captureTabScreenshot(activeTabId);
-            if (screenshot) {
-              setTabs((prevTabs) => prevTabs.map((tab) => (tab.id === activeTabId ? { ...tab, screenshot, timestamp: Date.now(), needsScreenshotUpdate: false } : tab)));
-            }
+            await captureTabScreenshot(activeTabId);
           }, 1000);
         }
       });
@@ -905,9 +1179,12 @@ const DAppBrowser: React.FC = () => {
         })
       );
 
-      setAddressInput(navState.url);
+      // Only update address input if it's not currently focused (user is not typing)
+      if (!isAddressInputFocused) {
+        setAddressBarValue(navState.url, { ensureStartVisible: true });
+      }
     },
-    [activeTabId]
+    [activeTabId, isAddressInputFocused, setAddressBarValue]
   );
 
   if (error) {
@@ -950,8 +1227,11 @@ const DAppBrowser: React.FC = () => {
                 <View style={styles.addressBarWrapper} pointerEvents={isNetworkSelectorVisible ? 'none' : 'auto'}>
                   <View style={styles.addressBar}>
                     <TextInput
+                      ref={addressInputRef}
+                      key={isAddressInputFocused ? 'address-input-focused' : 'address-input-blurred'}
                       style={styles.addressText}
                       value={addressInput}
+                      selection={isAddressInputFocused ? undefined : selectionAtStart}
                       onChangeText={setAddressInput}
                       onFocus={() => {
                         setIsAddressInputFocused(true);
@@ -959,7 +1239,12 @@ const DAppBrowser: React.FC = () => {
                           setIsNetworkSelectorVisible(false);
                         }
                       }}
-                      onBlur={() => setIsAddressInputFocused(false)}
+                      onBlur={() => {
+                        setIsAddressInputFocused(false);
+                        if (activeTab?.url) {
+                          setAddressBarValue(activeTab.url, { ensureStartVisible: true });
+                        }
+                      }}
                       onSubmitEditing={() => {
                         let url = addressInput.trim();
                         if (!url) return;
@@ -974,7 +1259,7 @@ const DAppBrowser: React.FC = () => {
                           updateActiveTab({ url, title: getTabTitle(url) });
                         } else {
                           Alert.alert('Invalid URL', 'Please enter a valid URL');
-                          setAddressInput(activeTab?.url || '');
+                          setAddressBarValue(activeTab?.url || '', { ensureStartVisible: true });
                         }
                       }}
                       returnKeyType="go"
@@ -1021,17 +1306,32 @@ const DAppBrowser: React.FC = () => {
               <Animated.View style={[styles.flex1, swipeContentAnimatedStyle]}>
                 {tabs.map((tab) => {
                   const isActive = tab.id === activeTabId;
+                  const containerStyles: StyleProp<ViewStyle>[] = [styles.tabContainer];
+
+                  if (isActive) {
+                    containerStyles.push(styles.tabContainerActive);
+                  } else {
+                    containerStyles.push(styles.tabContainerHidden);
+                  }
 
                   return (
                     <View
                       key={`tab-container-${tab.id}`}
                       ref={(ref) => {
                         if (ref) {
+                          const wasPresent = !!tabContainerRefs.current[tab.id];
                           tabContainerRefs.current[tab.id] = { current: ref };
+                          if (!wasPresent) {
+                            console.debug('[DAppBrowser] Tab container mounted', {
+                              tabId: tab.id,
+                              isActive,
+                              totalRefs: Object.keys(tabContainerRefs.current).length,
+                            });
+                          }
                         }
                       }}
                       collapsable={false}
-                      style={[styles.tabContainer, isActive ? styles.tabContainerActive : styles.tabContainerHidden]}
+                      style={containerStyles}
                     >
                       {tab.screenshot && <Image source={{ uri: tab.screenshot }} style={styles.absoluteFill} resizeMode="cover" />}
                       <WebView
@@ -1053,7 +1353,6 @@ const DAppBrowser: React.FC = () => {
                         onMessage={isActive ? handleMessage : undefined}
                         onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
                         onLoadProgress={isActive ? handleLoadProgress : undefined}
-                        onScroll={isActive ? handleScroll : undefined}
                         injectedJavaScriptBeforeContentLoaded={js}
                         style={styles.webviewVisible}
                         incognito={false}
@@ -1073,6 +1372,7 @@ const DAppBrowser: React.FC = () => {
               onSwitchTab={switchTab}
               onCloseTab={closeTab}
               getTabTitle={getTabTitle}
+              onEnsurePreview={ensureTabPreview}
             />
           </View>
 
@@ -1315,14 +1615,23 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: '100%',
     height: '100%',
   },
   tabContainerActive: {
-    display: 'flex',
+    zIndex: 1,
+    opacity: 1,
+    pointerEvents: 'auto',
   },
   tabContainerHidden: {
-    display: 'none',
+    zIndex: 0,
+    opacity: 0,
+    pointerEvents: 'none',
   },
   swipeOverlayStyle: {
     backgroundColor: 'black',

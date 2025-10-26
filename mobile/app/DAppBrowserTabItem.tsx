@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { TouchableOpacity, View, Image, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { TouchableOpacity, View, Image, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
 
@@ -13,8 +13,6 @@ interface BrowserTab {
   historyIndex: number;
   screenshot?: string;
   timestamp: number;
-  needsScreenshotUpdate?: boolean;
-  isCapturingScreenshot?: boolean;
 }
 
 interface DAppBrowserTabItemProps {
@@ -24,12 +22,33 @@ interface DAppBrowserTabItemProps {
   onPress: () => void;
   onClose: () => void;
   getTabTitle: (url: string) => string;
+  onEnsurePreview: () => void;
 }
 
-export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, index, isActive, onPress, onClose, getTabTitle }) => {
+export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, index, isActive, onPress, onClose, getTabTitle, onEnsurePreview }) => {
   const [imageError, setImageError] = useState(false);
 
-  const showLoadingIndicator = !tab.screenshot && tab.isCapturingScreenshot;
+  console.debug('[DAppBrowserTabItem] render', {
+    tabId: tab.id,
+    index,
+    hasScreenshot: !!tab.screenshot,
+    screenshotLength: tab.screenshot?.length || 0,
+    imageError,
+  });
+
+  useEffect(() => {
+    if (!tab.screenshot) {
+      console.debug('[DAppBrowserTabItem] ensure preview (missing screenshot)', { tabId: tab.id, index });
+      onEnsurePreview();
+    }
+  }, [tab.id, tab.screenshot, index, onEnsurePreview]);
+
+  useEffect(() => {
+    if (tab.screenshot) {
+      console.debug('[DAppBrowserTabItem] screenshot available', { tabId: tab.id, index });
+      setImageError(false);
+    }
+  }, [tab.id, tab.screenshot, index]);
 
   return (
     <TouchableOpacity style={[styles.tabCard, isActive && styles.activeTabCard]} onPress={onPress}>
@@ -53,9 +72,22 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, ind
               source={{ uri: tab.screenshot }}
               style={styles.tabCardScreenshot}
               resizeMode="cover"
+              onLoad={(e) => {
+                console.debug('[DAppBrowserTabItem] Screenshot loaded successfully', {
+                  tabId: tab.id,
+                  index,
+                  dimensions: e.nativeEvent.source,
+                });
+              }}
               onError={(error) => {
-                console.warn('[DAppBrowserTabItem] Failed to load screenshot for tab:', tab.id, error.nativeEvent.error);
+                console.warn('[DAppBrowserTabItem] Failed to load screenshot', {
+                  tabId: tab.id,
+                  error: error.nativeEvent.error,
+                  screenshotLength: tab.screenshot?.length,
+                  screenshotPrefix: tab.screenshot?.substring(0, 100),
+                });
                 setImageError(true);
+                onEnsurePreview();
               }}
             />
             {imageError && (
@@ -65,16 +97,17 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, ind
               </View>
             )}
           </>
-        ) : showLoadingIndicator ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
-          </View>
         ) : (
           <View style={styles.placeholderContainer}>
             <Ionicons name="globe-outline" size={48} color="rgba(255, 255, 255, 0.3)" />
             <Text style={styles.placeholderText}>{getTabTitle(tab.url)}</Text>
           </View>
         )}
+        <View style={styles.tabCardUrlOverlay}>
+          <ThemedText style={styles.tabCardUrlText} numberOfLines={1} ellipsizeMode="middle">
+            {tab.url || 'Untitled Tab'}
+          </ThemedText>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -159,6 +192,19 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
     textAlign: 'center',
     paddingHorizontal: 12,
+  },
+  tabCardUrlOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  tabCardUrlText: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   errorContainer: {
     ...StyleSheet.absoluteFillObject,
