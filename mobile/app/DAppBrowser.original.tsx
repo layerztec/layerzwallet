@@ -345,74 +345,42 @@ const DAppBrowser: React.FC = () => {
     async (tabId: string, screenshotData: string) => {
       try {
         const key = `${SCREENSHOT_KEY_PREFIX}${tabId}`;
-        const manifest = await loadScreenshotManifest();
-        const size = screenshotData.length;
         const now = Date.now();
-
-        let entries = Object.entries(manifest);
-        let totalSize = entries.reduce((acc, [, entry]) => acc + entry.size, 0);
-        const MAX_TOTAL_SIZE = MAX_SCREENSHOTS_CACHE * 500 * 1024;
-
-        entries = entries.filter(([id, entry]) => {
-          const isExpired = now - entry.timestamp > SCREENSHOT_EXPIRE_MS;
-          if (isExpired) {
-            console.debug('[DAppBrowser] Pruning expired screenshot', { tabId: id });
-            totalSize -= entry.size;
-            AsyncStorage.removeItem(entry.key);
-            delete manifest[id];
-            return false;
-          }
-          return true;
-        });
-
-        if (entries.length >= MAX_SCREENSHOTS_CACHE || totalSize + size > MAX_TOTAL_SIZE) {
-          entries.sort(([, a], [, b]) => a.lastAccessed - b.lastAccessed);
-
-          while (entries.length >= MAX_SCREENSHOTS_CACHE || totalSize + size > MAX_TOTAL_SIZE) {
-            const entryToPrune = entries.shift();
-            if (entryToPrune) {
-              const [idToPrune, details] = entryToPrune;
-              console.debug('[DAppBrowser] Pruning LRU screenshot to make space', { tabId: idToPrune });
-              totalSize -= details.size;
-              AsyncStorage.removeItem(details.key);
-              delete manifest[idToPrune];
-            } else {
-              break;
-            }
-          }
-        }
 
         await AsyncStorage.setItem(key, screenshotData);
 
+        const manifest = await loadScreenshotManifest();
         manifest[tabId] = {
           key,
-          size,
+          size: screenshotData.length,
           timestamp: now,
           lastAccessed: now,
         };
 
-        await saveScreenshotManifest(manifest);
+        // Clean up old screenshots if we exceed the cache limit
+        const entries = Object.entries(manifest);
+        if (entries.length > MAX_SCREENSHOTS_CACHE) {
+          // Sort by lastAccessed, oldest first
+          entries.sort(([, a], [, b]) => a.lastAccessed - b.lastAccessed);
 
-        console.debug('[DAppBrowser] Screenshot saved successfully', {
-          tabId,
-          size,
-          newCacheCount: Object.keys(manifest).length,
-        });
-      } catch (error: any) {
-        console.error('[DAppBrowser] Failed to save screenshot:', error);
-
-        if (error?.message?.includes('SQLITE_FULL') || error?.message?.includes('database or disk is full')) {
-          console.warn('[DAppBrowser] Disk full detected, clearing all screenshot cache');
-          try {
-            const manifest = await loadScreenshotManifest();
-            const keysToRemove = Object.values(manifest).map((entry) => entry.key);
-            await AsyncStorage.multiRemove(keysToRemove);
-            await AsyncStorage.setItem(SCREENSHOT_MANIFEST_KEY, JSON.stringify({}));
-            console.debug('[DAppBrowser] Screenshot cache cleared successfully');
-          } catch (clearError) {
-            console.error('[DAppBrowser] Failed to clear screenshot cache:', clearError);
+          // Remove oldest screenshots beyond the limit
+          const toRemove = entries.slice(0, entries.length - MAX_SCREENSHOTS_CACHE);
+          for (const [oldTabId, entry] of toRemove) {
+            await AsyncStorage.removeItem(entry.key);
+            delete manifest[oldTabId];
+            console.debug('[DAppBrowser] Evicted old screenshot', { tabId: oldTabId });
           }
         }
+
+        await saveScreenshotManifest(manifest);
+
+        console.debug('[DAppBrowser] Saved screenshot', {
+          tabId,
+          size: screenshotData.length,
+          manifestSize: Object.keys(manifest).length,
+        });
+      } catch (error) {
+        console.error('[DAppBrowser] Failed to save screenshot:', error);
       }
     },
     [loadScreenshotManifest, saveScreenshotManifest]

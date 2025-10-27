@@ -52,7 +52,6 @@ export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({ tabs, activeTa
                 key={`tab-card-${tab.id}`}
                 tab={tab}
                 index={index}
-                isActive={activeTabId === tab.id}
                 onPress={() => {
                   console.debug('[DAppBrowserTabs] tab pressed', { tabId: tab.id, index });
                   onSwitchTab(tab.id);
