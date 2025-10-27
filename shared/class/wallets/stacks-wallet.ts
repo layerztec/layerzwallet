@@ -281,4 +281,51 @@ export class StacksWallet {
 
     return txs;
   }
+
+  async transferTokens(tokenId: string, amount: bigint, address: string): Promise<string> {
+    assert(this._sdkWallet, 'Stacks wallet is not initialized');
+    assert(this._sdkWallet.accounts[this._accountNumber], 'Stacks account not found');
+    assert(address, 'Recipient address is required');
+    assert(amount > 0, `Amount must be a positive number (got ${amount})`);
+
+    if (tokenId === 'STX') {
+      // its actually a native token
+      return this.payStx(address, Number(amount));
+    }
+
+    // Ensure cached balance is sufficient
+    const tokenBalance = this._tokenBalances.find((t) => t.id === tokenId);
+    assert(tokenBalance && tokenBalance.balance != null, 'token balance is unavailable');
+    const available = BigInt(tokenBalance.balance);
+    assert(available >= BigInt(amount), `Insufficient token balance. Have ${available}, need ${BigInt(amount)}`);
+
+    const senderKey = this._sdkWallet.accounts[this._accountNumber].stxPrivateKey;
+    const senderAddress = await this.getOffchainReceiveAddress();
+
+    const contractAddress = tokenId.split('.')[0];
+    const contractName = tokenId.split('::')[0].split('.')[1];
+    assert(contractName, `Incorrect Stacks contract name for token ${tokenId}`);
+
+    const transaction = await makeContractCall({
+      contractAddress,
+      contractName,
+      functionName: 'transfer',
+      functionArgs: [uintCV(BigInt(amount)), standardPrincipalCV(senderAddress), standardPrincipalCV(address), noneCV()],
+      senderKey,
+      network: 'mainnet',
+      postConditionMode: 'allow',
+    });
+
+    const broadcastResponse: any = await broadcastTransaction({ transaction });
+
+    if (broadcastResponse && typeof broadcastResponse.txid === 'string') {
+      return broadcastResponse.txid;
+    }
+
+    if (typeof broadcastResponse === 'string') {
+      return broadcastResponse;
+    }
+
+    throw new Error(`Failed to broadcast sBTC transfer: ${JSON.stringify(broadcastResponse)}`);
+  }
 }

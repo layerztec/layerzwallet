@@ -111,8 +111,8 @@ export function useTokenDiscovery(network: Networks, accountNumber: number, back
     // Initial fetch
     fetchTokens();
 
-    // Set up periodic refresh only for NETWORK_SPARK
-    if (network === NETWORK_SPARK) {
+    // Set up periodic refresh only for NETWORK_SPARK & NETWORK_STACKS
+    if (network === NETWORK_SPARK || network === NETWORK_STACKS) {
       intervalRef.current = setInterval(fetchTokens, refreshInterval);
     }
 

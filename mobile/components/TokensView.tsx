@@ -55,7 +55,15 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
       });
       return;
     } else if (network === NETWORK_STACKS) {
-      // TODO
+      router.push({
+        pathname: '/SendTokenStacks',
+        params: {
+          tokenId: token.id,
+          tokenSymbol: token.symbol,
+          tokenName: token.name,
+          tokenDecimals: token.decimals.toString(),
+        },
+      });
       return;
     }
 

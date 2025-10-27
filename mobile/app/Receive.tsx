@@ -17,8 +17,9 @@ import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 import { StringNumber } from '@shared/types/string-number';
-import { NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { NETWORK_SPARK, NETWORK_STACKS, Networks } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { getGradientPrimaryColor } from '@/utils/gradientUtils';
 
 export type ReceiveTokenProps = {
@@ -40,6 +41,12 @@ export default function ReceiveScreen() {
   const pressScaleAnim = useRef(new Animated.Value(1)).current;
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const [sparkTokenReceiveInfo, setSparkTokenReceiveInfo] = useState<{
+    symbol: string;
+    name: string;
+    decimals: number;
+    amountDelta: StringNumber;
+  } | null>(null);
+  const [stacksTokenReceiveInfo, setStacksTokenReceiveInfo] = useState<{
     symbol: string;
     name: string;
     decimals: number;
@@ -99,6 +106,64 @@ export default function ReceiveScreen() {
               symbol: token.tokenMetadata.tokenTicker,
               name: token.tokenMetadata.tokenName,
               decimals: token.tokenMetadata.decimals,
+              amountDelta: delta,
+            });
+            if (tokenPollRef.current) {
+              clearInterval(tokenPollRef.current as number);
+            }
+            return;
+          }
+        }
+      };
+
+      tokenPollRef.current = setInterval(poll, 2000);
+    };
+
+    start();
+
+    return () => {
+      cancelled = true;
+      if (tokenPollRef.current) {
+        clearInterval(tokenPollRef.current as number);
+      }
+    };
+  }, [accountNumber, network]);
+
+  // Stacks token polling: cache initial holdings and detect increases
+  useEffect(() => {
+    if (network !== NETWORK_STACKS) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const start = async () => {
+      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      if (cancelled) return;
+      if (!(wallet instanceof StacksWallet)) return;
+
+      await wallet.fetchTokenBalances();
+      const initialMap = new Map<string, string>();
+      for (const token of wallet.getTokenBalances()) {
+        initialMap.set(token.id, String(token.balance ?? '0'));
+      }
+      tokenInitialRef.current = initialMap;
+
+      const poll = async () => {
+        const w = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        if (!(w instanceof StacksWallet)) return;
+        await w.fetchTokenBalances();
+        const currentTokens = w.getTokenBalances();
+        for (const token of currentTokens) {
+          const key = token.id;
+          const current = new BigNumber(String(token.balance ?? '0'));
+          const initial = new BigNumber(tokenInitialRef.current?.get(key) ?? '0');
+          if (current.gt(initial)) {
+            const delta = current.minus(initial).toString(10);
+            setStacksTokenReceiveInfo({
+              symbol: token.symbol,
+              name: token.name,
+              decimals: token.decimals,
               amountDelta: delta,
             });
             if (tokenPollRef.current) {
@@ -251,6 +316,28 @@ export default function ReceiveScreen() {
                 Received: +{formatBalance(String(sparkTokenReceiveInfo.amountDelta), sparkTokenReceiveInfo.decimals, 8)} {sparkTokenReceiveInfo.symbol}
               </ThemedText>
               <ThemedText style={styles.tokenSuccessSubtitle}>{sparkTokenReceiveInfo.name}</ThemedText>
+            </View>
+          </View>
+        </ScrollView>
+      </GradientScreen>
+    );
+  }
+
+  if (network === NETWORK_STACKS && stacksTokenReceiveInfo) {
+    return (
+      <GradientScreen variant={network}>
+        <Stack.Screen options={{ headerShown: false }} />
+
+        <ScreenHeader title={`Receive on ${capitalizeFirstLetter(network)}`} />
+
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.contentContainer}>
+            <View style={styles.tokenSuccessContainer}>
+              <Ionicons name="checkmark-circle" size={64} color="#4CAF50" style={styles.tokenSuccessIcon} />
+              <ThemedText style={styles.tokenSuccessTitle}>
+                Received: +{formatBalance(String(stacksTokenReceiveInfo.amountDelta), stacksTokenReceiveInfo.decimals, 8)} {stacksTokenReceiveInfo.symbol}
+              </ThemedText>
+              <ThemedText style={styles.tokenSuccessSubtitle}>{stacksTokenReceiveInfo.name}</ThemedText>
             </View>
           </View>
         </ScrollView>

@@ -44,6 +44,7 @@ import SwapXArkDeposit from './SwapXArkDeposit';
 import TestPage from './TestPage';
 import TransactionSuccessEvm from './TransactionSuccessEvm';
 import UnlockPassword from './UnlockPassword';
+import SendTokenStacks from './SendTokenStacks';
 
 const AppContent: React.FC = () => {
   const navigate = useNavigate();
@@ -104,6 +105,7 @@ const AppContent: React.FC = () => {
             <Route path="/send-ark" element={<SendArk />} />
             <Route path="/send-token-evm" element={<SendTokenEvm />} />
             <Route path="/send-token-spark" element={<SendTokenSpark />} />
+            <Route path="/send-token-stacks" element={<SendTokenStacks />} />
             <Route path="/send-btc" element={<SendBtc />} />
             <Route path="/send-lightning" element={<SendLightning />} />
             <Route path="/swap-details" element={<SwapDetails />} />

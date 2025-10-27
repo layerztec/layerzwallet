@@ -14,6 +14,7 @@ import { BackgroundCaller } from '../../../modules/background-caller';
 import { SendTokenEvmProps } from '../SendTokenEvm';
 import { SendTokenSparkProps } from '../SendTokenSpark';
 import { LayerzStorage } from '../../../class/layerz-storage';
+import { SendTokenStacksProps } from '@/pages/Popup/SendTokenStacks';
 
 const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
   const { network } = useContext(NetworkContext);
@@ -40,7 +41,8 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
 
     if (network === NETWORK_STACKS) {
       console.log('send token on stacks', token);
-      // TODO
+      const state: SendTokenStacksProps = { tokenPublicKey: token.id };
+      navigate('/send-token-stacks', { state });
       return;
     }
 
