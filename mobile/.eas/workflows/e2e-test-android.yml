@@ -22,7 +22,7 @@ jobs:
       retries: 2
       runs_on: linux-large-nested-virtualization
       device_identifier: pixel_9
-      shards: 7
+      shards: 1
       record_screen: true
       build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
       flow_path:
