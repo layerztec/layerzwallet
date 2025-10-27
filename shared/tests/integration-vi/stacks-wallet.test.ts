@@ -67,3 +67,18 @@ test('stacks wallet can get tokens', async (context) => {
     },
   ]);
 });
+
+test('stacks wallet can get common txs', async (context) => {
+  if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
+    context.skip();
+    return;
+  }
+
+  const w = new StacksWallet();
+  w.setSecret(process.env.TEST_MNEMONIC);
+  await w.init();
+
+  const txs = await w.getCommonTransactions();
+  assert.ok(txs.length > 0);
+});

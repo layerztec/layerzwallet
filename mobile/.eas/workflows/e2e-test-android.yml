@@ -15,7 +15,7 @@ jobs:
       platform: android
       profile: preview
 
-  maestro_test1:
+  maestro_test:
     needs: [build_android_for_e2e]
     type: maestro
     params:
@@ -23,59 +23,11 @@ jobs:
       build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
       flow_path:
         - .maestro/home.yml
-
-  maestro_test2:
-    needs: [build_android_for_e2e]
-    type: maestro
-    params:
-      retries: 5
-      build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
-      flow_path:
         - .maestro/wallet-creation-and-selftest.yml
-
-  maestro_test3:
-    needs: [build_android_for_e2e]
-    type: maestro
-    params:
-      retries: 5
-      build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
-      flow_path:
         - .maestro/receive.yml
-
-  maestro_test4:
-    needs: [build_android_for_e2e]
-    type: maestro
-    params:
-      retries: 5
-      build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
-      flow_path:
         - .maestro/restore.yml
-
-  maestro_test5:
-    needs: [build_android_for_e2e]
-    type: maestro
-    params:
-      retries: 5
-      build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
-      flow_path:
         - .maestro/browser.yml
-
-  maestro_test6:
-    needs: [build_android_for_e2e]
-    type: maestro
-    params:
-      retries: 5
-      build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
-      flow_path:
         - .maestro/swap.yml
-
-  maestro_test7:
-    needs: [build_android_for_e2e]
-    type: maestro
-    params:
-      retries: 5
-      build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
-      flow_path:
         - .maestro/biometric-toggle-test.yml
 
   upload_build_to_appetize:
