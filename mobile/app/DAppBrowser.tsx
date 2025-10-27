@@ -1,13 +1,12 @@
 import { Asset } from 'expo-asset';
-import { File } from 'expo-file-system';
-import * as Linking from 'expo-linking';
+import * as FileSystem from 'expo-file-system';
+import { File as ExpoFsFile, Directory } from 'expo-file-system';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
 import { StyleSheet, TouchableOpacity, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, Dimensions, Text, ViewStyle, StyleProp } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { captureRef } from 'react-native-view-shot';
 import { Image as ExpoImage } from 'expo-image';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, withSpring, interpolate, runOnJS } from 'react-native-reanimated';
@@ -25,6 +24,7 @@ import { getNetworkGradient } from '@shared/constants/Colors';
 import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { DAppBrowserTabs } from './DAppBrowserTabs';
+import { useScreenshotManager } from './hooks/useScreenshotManager';
 
 export type DappBrowserProps = {
   url?: string;
@@ -80,10 +80,40 @@ type StoredTab = {
 
 const TABS_STORAGE_KEY = '@browser_tabs';
 const ACTIVE_TAB_STORAGE_KEY = '@browser_active_tab';
-const SCREENSHOT_MANIFEST_KEY = '@browser_screenshot_manifest';
-const SCREENSHOT_KEY_PREFIX = '@browser_screenshot_';
-const MAX_SCREENSHOTS_CACHE = 20; // Keep max 20 screenshots in storage
-const SCREENSHOT_EXPIRE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+const getScreenshotDir = (): string | null => {
+  try {
+    const cacheDir = (FileSystem as any).cacheDirectory;
+    const docDir = (FileSystem as any).documentDirectory;
+
+    console.debug('[DAppBrowser] getScreenshotDir called', { cacheDir, docDir });
+
+    const base = cacheDir || docDir;
+
+    if (!base || typeof base !== 'string') {
+      console.warn('[DAppBrowser] FileSystem directories not available', {
+        base,
+        type: typeof base,
+        cacheDir,
+        docDir,
+      });
+      return null;
+    }
+
+    if (!base.startsWith('file://')) {
+      console.warn('[DAppBrowser] FileSystem base directory has invalid format', { base });
+      return null;
+    }
+
+    const dir = `${base.endsWith('/') ? base : base + '/'}browser_screens/`;
+    console.debug('[DAppBrowser] Screenshot directory resolved', { dir });
+    return dir;
+  } catch (error) {
+    console.error('[DAppBrowser] Error getting screenshot directory', error);
+    return null;
+  }
+};
+
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_MIN_HEIGHT = 120;
 const MODAL_MAX_HEIGHT = SCREEN_HEIGHT;
@@ -139,9 +169,7 @@ const DAppBrowser: React.FC = () => {
 
       try {
         addressInputRef.current.setNativeProps({ selection: { start: 0, end: 0 } });
-      } catch (error) {
-        // Ignore native selection errors on unsupported platforms
-      }
+      } catch (error) {}
     });
   }, []);
 
@@ -288,203 +316,103 @@ const DAppBrowser: React.FC = () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const [{ localUri }] = await Asset.loadAsync(require('assets/js/inpage-bridge.jstxt'));
-        const file = new File(localUri || '');
-        const r = await file.text();
 
-        setJs(r);
+        if (!localUri) {
+          throw new Error('Bridge asset URI is undefined');
+        }
+
+        const bridgeFile = new ExpoFsFile(localUri);
+        const bridgeScript = await bridgeFile.text();
+
+        setJs(bridgeScript);
       } catch (error: any) {
         setError('Failed to load DApp browser script: ' + error.message);
       }
     })();
-  }, []);
+  }, [network, setAddressBarValue]);
 
-  const saveTabs = useCallback(async (tabsToSave: BrowserTab[], activeId: string) => {
-    try {
-      const storedTabs: StoredTab[] = tabsToSave.map((t) => ({
-        id: t.id,
-        url: t.url,
-        title: t.title,
-        history: t.history?.length ? t.history : [{ url: t.url, title: t.title || getTabTitle(t.url) }],
-        historyIndex: typeof t.historyIndex === 'number' ? t.historyIndex : Math.max((t.history?.length || 1) - 1, 0),
-        timestamp: t.timestamp || Date.now(),
-      }));
-
-      console.debug('[DAppBrowser] Saving tabs to storage', {
-        tabCount: storedTabs.length,
-        activeId,
-        tabIds: storedTabs.map((t) => t.id),
-      });
-
-      await AsyncStorage.setItem(TABS_STORAGE_KEY, JSON.stringify({ version: 1, tabs: storedTabs }));
-      await AsyncStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeId);
-    } catch (error) {
-      console.error('[DAppBrowser] Failed to save tabs:', error);
-    }
-  }, []);
-
-  const loadScreenshotManifest = useCallback(async (): Promise<ScreenshotManifest> => {
-    try {
-      const manifestJson = await AsyncStorage.getItem(SCREENSHOT_MANIFEST_KEY);
-      if (!manifestJson) return {};
-      return JSON.parse(manifestJson);
-    } catch (error) {
-      console.error('[DAppBrowser] Failed to load screenshot manifest:', error);
-      return {};
-    }
-  }, []);
-
-  const saveScreenshotManifest = useCallback(async (manifest: ScreenshotManifest) => {
-    try {
-      await AsyncStorage.setItem(SCREENSHOT_MANIFEST_KEY, JSON.stringify(manifest));
-    } catch (error) {
-      console.error('[DAppBrowser] Failed to save screenshot manifest:', error);
-    }
-  }, []);
-
-  const saveScreenshot = useCallback(
-    async (tabId: string, screenshotData: string) => {
+  // Centralized purge + UI reset to DRY error handling paths
+  const isPurgingRef = useRef(false);
+  const hasPurgedRef = useRef(false);
+  const purgeAndReset = useCallback(
+    async (reason?: string) => {
+      if (isPurgingRef.current || hasPurgedRef.current) return;
+      isPurgingRef.current = true;
       try {
-        const key = `${SCREENSHOT_KEY_PREFIX}${tabId}`;
-        const manifest = await loadScreenshotManifest();
-        const size = screenshotData.length;
-        const now = Date.now();
+        try {
+          await AsyncStorage.clear();
+          console.warn('[DAppBrowser] Purged AsyncStorage', reason ? `(${reason})` : '');
+        } catch (purgeErr) {
+          console.error('[DAppBrowser] Failed to purge AsyncStorage', purgeErr);
+        }
 
-        let entries = Object.entries(manifest);
-        let totalSize = entries.reduce((acc, [, entry]) => acc + entry.size, 0);
-        const MAX_TOTAL_SIZE = MAX_SCREENSHOTS_CACHE * 500 * 1024;
-
-        entries = entries.filter(([id, entry]) => {
-          const isExpired = now - entry.timestamp > SCREENSHOT_EXPIRE_MS;
-          if (isExpired) {
-            console.debug('[DAppBrowser] Pruning expired screenshot', { tabId: id });
-            totalSize -= entry.size;
-            AsyncStorage.removeItem(entry.key);
-            delete manifest[id];
-            return false;
-          }
-          return true;
-        });
-
-        if (entries.length >= MAX_SCREENSHOTS_CACHE || totalSize + size > MAX_TOTAL_SIZE) {
-          entries.sort(([, a], [, b]) => a.lastAccessed - b.lastAccessed);
-
-          while (entries.length >= MAX_SCREENSHOTS_CACHE || totalSize + size > MAX_TOTAL_SIZE) {
-            const entryToPrune = entries.shift();
-            if (entryToPrune) {
-              const [idToPrune, details] = entryToPrune;
-              console.debug('[DAppBrowser] Pruning LRU screenshot to make space', { tabId: idToPrune });
-              totalSize -= details.size;
-              AsyncStorage.removeItem(details.key);
-              delete manifest[idToPrune];
-            } else {
-              break;
+        try {
+          const dir = getScreenshotDir();
+          if (dir) {
+            const directory = new Directory(dir);
+            if (directory.exists) {
+              await directory.delete();
             }
+            await directory.create();
           }
+        } catch (e) {
+          console.error('[DAppBrowser] Failed to purge screenshot files:', e);
         }
 
-        await AsyncStorage.setItem(key, screenshotData);
-
-        manifest[tabId] = {
-          key,
-          size,
-          timestamp: now,
-          lastAccessed: now,
+        const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
+        const newTab: BrowserTab = {
+          id: Date.now().toString(),
+          url: homeUrl,
+          title: getTabTitle(homeUrl),
+          canGoBack: false,
+          canGoForward: false,
+          history: [{ url: homeUrl, title: getTabTitle(homeUrl) }],
+          historyIndex: 0,
+          timestamp: Date.now(),
         };
+        setTabs([newTab]);
+        setActiveTabId(newTab.id);
+        setAddressBarValue(homeUrl, { ensureStartVisible: true });
+        setShowTabsOverview(false);
 
-        await saveScreenshotManifest(manifest);
-
-        console.debug('[DAppBrowser] Screenshot saved successfully', {
-          tabId,
-          size,
-          newCacheCount: Object.keys(manifest).length,
-        });
-      } catch (error: any) {
-        console.error('[DAppBrowser] Failed to save screenshot:', error);
-
-        if (error?.message?.includes('SQLITE_FULL') || error?.message?.includes('database or disk is full')) {
-          console.warn('[DAppBrowser] Disk full detected, clearing all screenshot cache');
-          try {
-            const manifest = await loadScreenshotManifest();
-            const keysToRemove = Object.values(manifest).map((entry) => entry.key);
-            await AsyncStorage.multiRemove(keysToRemove);
-            await AsyncStorage.setItem(SCREENSHOT_MANIFEST_KEY, JSON.stringify({}));
-            console.debug('[DAppBrowser] Screenshot cache cleared successfully');
-          } catch (clearError) {
-            console.error('[DAppBrowser] Failed to clear screenshot cache:', clearError);
-          }
-        }
+        // Mark as purged so we only do this once during app lifetime
+        hasPurgedRef.current = true;
+      } finally {
+        isPurgingRef.current = false;
       }
     },
-    [loadScreenshotManifest, saveScreenshotManifest]
+    [network, setAddressBarValue]
   );
 
-  const loadScreenshot = useCallback(
-    async (tabId: string): Promise<string | null> => {
+  const saveTabs = useCallback(
+    async (tabsToSave: BrowserTab[], activeId: string) => {
       try {
-        const manifest = await loadScreenshotManifest();
-        const entry = manifest[tabId];
+        const storedTabs: StoredTab[] = tabsToSave.map((t) => ({
+          id: t.id,
+          url: t.url,
+          title: t.title,
+          history: t.history?.length ? t.history : [{ url: t.url, title: t.title || getTabTitle(t.url) }],
+          historyIndex: typeof t.historyIndex === 'number' ? t.historyIndex : Math.max((t.history?.length || 1) - 1, 0),
+          timestamp: t.timestamp || Date.now(),
+        }));
 
-        if (!entry) {
-          console.debug('[DAppBrowser] No screenshot in manifest', { tabId });
-          return null;
-        }
-
-        // Check if expired
-        const now = Date.now();
-        if (now - entry.timestamp > SCREENSHOT_EXPIRE_MS) {
-          console.debug('[DAppBrowser] Screenshot expired', { tabId });
-          await AsyncStorage.removeItem(entry.key);
-          delete manifest[tabId];
-          await saveScreenshotManifest(manifest);
-          return null;
-        }
-
-        const screenshotData = await AsyncStorage.getItem(entry.key);
-
-        if (!screenshotData) {
-          console.debug('[DAppBrowser] Screenshot missing from storage', { tabId });
-          delete manifest[tabId];
-          await saveScreenshotManifest(manifest);
-          return null;
-        }
-
-        // Update last accessed time
-        entry.lastAccessed = now;
-        manifest[tabId] = entry;
-        await saveScreenshotManifest(manifest);
-
-        console.debug('[DAppBrowser] Loaded screenshot', {
-          tabId,
-          size: screenshotData.length,
+        console.debug('[DAppBrowser] Saving tabs to storage', {
+          tabCount: storedTabs.length,
+          activeId,
+          tabIds: storedTabs.map((t) => t.id),
         });
 
-        return screenshotData;
+        await AsyncStorage.setItem(TABS_STORAGE_KEY, JSON.stringify({ version: 1, tabs: storedTabs }));
+        await AsyncStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeId);
       } catch (error) {
-        console.error('[DAppBrowser] Failed to load screenshot:', error);
-        return null;
+        console.error('[DAppBrowser] Failed to save tabs:', error);
+        await purgeAndReset('saveTabs error');
       }
     },
-    [loadScreenshotManifest, saveScreenshotManifest]
+    [purgeAndReset]
   );
 
-  const deleteScreenshot = useCallback(
-    async (tabId: string) => {
-      try {
-        const manifest = await loadScreenshotManifest();
-        const entry = manifest[tabId];
-
-        if (entry) {
-          await AsyncStorage.removeItem(entry.key);
-          delete manifest[tabId];
-          await saveScreenshotManifest(manifest);
-          console.debug('[DAppBrowser] Deleted screenshot', { tabId });
-        }
-      } catch (error) {
-        console.error('[DAppBrowser] Failed to delete screenshot:', error);
-      }
-    },
-    [loadScreenshotManifest, saveScreenshotManifest]
-  );
+  const screenshots = useScreenshotManager(purgeAndReset);
 
   const loadTabs = useCallback(async (): Promise<{ tabs: BrowserTab[]; activeTabId: string } | null> => {
     try {
@@ -548,9 +476,10 @@ const DAppBrowser: React.FC = () => {
       return { tabs, activeTabId: finalActiveId };
     } catch (error) {
       console.error('[DAppBrowser] Failed to load tabs:', error);
+      await purgeAndReset('loadTabs error');
       return null;
     }
-  }, []);
+  }, [purgeAndReset]);
 
   const captureTabScreenshot = useCallback(
     async (tabId: string): Promise<string | null> => {
@@ -569,36 +498,23 @@ const DAppBrowser: React.FC = () => {
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       try {
-        const base64 = await captureRef(containerRef.current, {
-          format: 'png',
-          quality: 0.6,
-          result: 'base64',
-          width: 360,
-        });
-        const dataUrl = `data:image/png;base64,${base64}`;
+        const fileUri = await screenshots.capture(containerRef, tabId);
 
-        console.debug('[DAppBrowser] captureTabScreenshot success', {
-          tabId,
-          dataLength: dataUrl.length,
-        });
+        if (fileUri) {
+          setTabs((prev) =>
+            prev.map((tab) =>
+              tab.id === tabId
+                ? {
+                    ...tab,
+                    screenshot: fileUri,
+                    timestamp: Date.now(),
+                  }
+                : tab
+            )
+          );
+        }
 
-        // Save to separate storage
-        await saveScreenshot(tabId, dataUrl);
-
-        // Update tab state with screenshot
-        setTabs((prev) =>
-          prev.map((tab) =>
-            tab.id === tabId
-              ? {
-                  ...tab,
-                  screenshot: dataUrl,
-                  timestamp: Date.now(),
-                }
-              : tab
-          )
-        );
-
-        return dataUrl;
+        return fileUri;
       } catch (error: any) {
         if (error?.code !== 'EUNSPECIFIED') {
           console.warn('[DAppBrowser] Failed to capture screenshot for tab:', tabId, error?.message || error);
@@ -608,7 +524,7 @@ const DAppBrowser: React.FC = () => {
         console.debug('[DAppBrowser] captureTabScreenshot end', { tabId });
       }
     },
-    [saveScreenshot]
+    [screenshots]
   );
 
   const ensureTabPreview = useCallback(
@@ -619,7 +535,6 @@ const DAppBrowser: React.FC = () => {
         return;
       }
 
-      // If we already have a screenshot in memory, we're done
       if (tab.screenshot) {
         console.debug('[DAppBrowser] ensureTabPreview skipped - screenshot exists', { tabId });
         return;
@@ -630,8 +545,7 @@ const DAppBrowser: React.FC = () => {
         url: tab.url,
       });
 
-      // Try to load from storage first
-      const storedScreenshot = await loadScreenshot(tabId);
+      const storedScreenshot = await screenshots.load(tabId);
       if (storedScreenshot) {
         console.debug('[DAppBrowser] ensureTabPreview loaded from storage', { tabId });
         setTabs((prev) =>
@@ -647,11 +561,10 @@ const DAppBrowser: React.FC = () => {
         return;
       }
 
-      // No stored screenshot, need to capture
       console.debug('[DAppBrowser] ensureTabPreview capturing new screenshot', { tabId });
       await captureTabScreenshot(tabId);
     },
-    [tabs, loadScreenshot, captureTabScreenshot]
+    [tabs, screenshots, captureTabScreenshot]
   );
 
   // Load screenshots when tabs overview is shown
@@ -664,7 +577,7 @@ const DAppBrowser: React.FC = () => {
     const loadScreenshots = async () => {
       for (const tab of tabs) {
         if (!tab.screenshot) {
-          const storedScreenshot = await loadScreenshot(tab.id);
+          const storedScreenshot = await screenshots.load(tab.id);
           if (storedScreenshot) {
             setTabs((prev) =>
               prev.map((t) =>
@@ -682,7 +595,7 @@ const DAppBrowser: React.FC = () => {
     };
 
     loadScreenshots();
-  }, [showTabsOverview, tabs, isRestoringTabs, loadScreenshot]);
+  }, [showTabsOverview, tabs, isRestoringTabs, screenshots]);
 
   useEffect(() => {
     const restoreTabs = async () => {
@@ -725,9 +638,20 @@ const DAppBrowser: React.FC = () => {
   }, [tabs, activeTabId, isRestoringTabs, saveTabs]);
 
   useEffect(() => {
+    const currentTabIds = new Set(tabs.map((t) => t.id));
+    const refTabIds = Object.keys(tabWebViewRefs.current);
+
+    refTabIds.forEach((tabId) => {
+      if (!currentTabIds.has(tabId)) {
+        delete tabWebViewRefs.current[tabId];
+        delete tabContainerRefs.current[tabId];
+      }
+    });
+  }, [tabs]);
+
+  useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       if (nextAppState === 'background' || nextAppState === 'inactive') {
-        // Capture active tab screenshot when app goes to background
         if (activeTabId) {
           await captureTabScreenshot(activeTabId);
         }
@@ -865,7 +789,7 @@ const DAppBrowser: React.FC = () => {
     console.debug('[DAppBrowser] Closing tab request', { tabId, totalTabs: tabs.length });
 
     // Delete screenshot from storage
-    deleteScreenshot(tabId);
+    screenshots.remove(tabId);
 
     if (tabs.length === 1) {
       const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
@@ -1286,7 +1210,6 @@ const DAppBrowser: React.FC = () => {
                           url = 'https://' + url;
                         }
 
-                        // Validate the URL before navigating
                         if (isValidUrl(url)) {
                           updateActiveTab({ url, title: getTabTitle(url) });
                         } else {
