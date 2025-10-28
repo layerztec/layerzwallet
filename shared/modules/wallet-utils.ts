@@ -168,7 +168,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       assert(masterSeed, 'Master seed is not available');
       const sw = new StacksWallet();
       sw.setSecret(masterSeed);
-      await sw.init();
+      await sw.init(storage);
       sw.setAccountNumber(accountNumber);
       cachedWallets[network][accountNumber] = sw;
       return sw;

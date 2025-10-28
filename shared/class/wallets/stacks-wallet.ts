@@ -6,17 +6,24 @@ import { broadcastTransaction, makeContractCall, makeSTXTokenTransfer, noneCV, S
 import { CachedTokenInfo } from '../../types/token-info';
 import { CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_STACKS } from '../../types/networks';
+import { IStorage } from '../../types/IStorage';
 
 const sbtcId = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token::sbtc-token';
+const baseUrl = 'https://api.mainnet.hiro.so';
+
+const STORAGE_KEY = 'STACKS_TOKEN_METADATA';
 
 export class StacksWallet {
   private _accountNumber: number = 0;
   private _sdkWallet: SdkWallet | undefined = undefined;
   private secret: string = '';
   private _tokenBalances: CachedTokenInfo[] = [];
+  private _storage: IStorage | undefined = undefined;
 
-  async init() {
+  async init(storage: IStorage) {
     assert(this.secret, 'Internal error: cant init Stacks wallet, secret is not set.');
+
+    this._storage = storage;
 
     // @ts-ignore
     const wallet = await generateWallet({
@@ -54,7 +61,7 @@ export class StacksWallet {
     const address = await this.getOffchainReceiveAddress();
     assert(address, 'Stacks address is missing');
 
-    const client = createClient({ baseUrl: 'https://api.mainnet.hiro.so' });
+    const client = createClient({ baseUrl });
 
     // tokens:
     const { data: ftBalances } = await client.GET('/extended/v2/addresses/{principal}/balances/ft', {
@@ -66,16 +73,36 @@ export class StacksWallet {
 
     const tokens: CachedTokenInfo[] = [];
     for (const token of ftBalances?.results || []) {
+      const tokenId = token.token.split('::')[0];
+
+      let tokenMetadata: any = undefined;
+
+      const cachedTokenMetadata = await this._storage?.getItem(`${STORAGE_KEY}-${tokenId}`);
+      if (cachedTokenMetadata) {
+        tokenMetadata = JSON.parse(cachedTokenMetadata) as unknown;
+      } else {
+        // @ts-ignore
+        const response = await client.GET('/metadata/v1/ft/{principal}', {
+          params: {
+            path: { principal: tokenId },
+          },
+        });
+        tokenMetadata = response.data;
+
+        await this._storage?.setItem(`${STORAGE_KEY}-${tokenId}`, JSON.stringify(tokenMetadata));
+      }
+
       const nameParts = token.token.split('::');
-      let name = nameParts[1] ? nameParts[1].replace('-token', '') : '?';
-      if (name === 'sbtc') name = 'sBTC';
+      let nameParsed = nameParts[1] ? nameParts[1].replace('-token', '') : '?';
+      if (nameParsed === 'sbtc') nameParsed = 'sBTC';
       tokens.push({
+        logoURI: tokenMetadata?.image_uri || undefined,
         id: token.token,
         balance: token.balance,
         chainId: 0, // N/A on stacks
-        name,
-        decimals: 8, // ???
-        symbol: name,
+        name: tokenMetadata?.name || nameParsed,
+        decimals: tokenMetadata?.decimals || 8,
+        symbol: tokenMetadata?.synmbol || nameParsed,
       });
     }
 
@@ -89,6 +116,7 @@ export class StacksWallet {
     assert(balance, 'Failed to fetch Stacks balance');
 
     tokens.push({
+      logoURI: 'https://static.tildacdn.net/tild6638-6331-4134-b936-386137393566/favicon_6.ico',
       id: 'STX',
       balance: balance.balance,
       name: 'STX',
@@ -112,9 +140,7 @@ export class StacksWallet {
     const address = await this.getOffchainReceiveAddress();
     assert(address, 'Stacks address is missing');
 
-    const client = createClient({
-      baseUrl: 'https://api.mainnet.hiro.so', // or 'https://api.testnet.hiro.so' for testnet
-    });
+    const client = createClient({ baseUrl });
 
     // tokens:
     const { data: ftBalances } = await client.GET('/extended/v2/addresses/{principal}/balances/ft', {
@@ -210,7 +236,7 @@ export class StacksWallet {
     const address = await this.getOffchainReceiveAddress();
     assert(address, 'Stacks address is missing');
 
-    const client = createClient({ baseUrl: 'https://api.mainnet.hiro.so' });
+    const client = createClient({ baseUrl });
 
     const { data } = await client.GET('/extended/v1/address/{principal}/transactions', {
       params: {

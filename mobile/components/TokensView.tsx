@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useContext } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Image } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -77,7 +77,11 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
     <TouchableOpacity style={styles.tokenRow} onPress={goToSend} activeOpacity={0.7}>
       {/* Token Icon */}
       <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
-        <ThemedText style={styles.tokenIconText}>{token?.symbol?.charAt(0) || '?'}</ThemedText>
+        {token.logoURI ? (
+          <Image source={{ uri: token.logoURI }} style={styles.tokenIconImage} resizeMode="cover" />
+        ) : (
+          <ThemedText style={styles.tokenIconText}>{token?.symbol?.charAt(0) || '?'}</ThemedText>
+        )}
       </View>
 
       {/* Token Name */}
@@ -159,6 +163,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
+  },
+  tokenIconImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 19,
   },
   tokenIconText: {
     fontSize: 16,
