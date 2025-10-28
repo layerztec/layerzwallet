@@ -102,7 +102,7 @@ export class StacksWallet {
         chainId: 0, // N/A on stacks
         name: tokenMetadata?.name || nameParsed,
         decimals: tokenMetadata?.decimals || 8,
-        symbol: tokenMetadata?.synmbol || nameParsed,
+        symbol: tokenMetadata?.symbol || nameParsed,
       });
     }
 
