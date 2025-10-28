@@ -8,12 +8,13 @@ import { getDeviceID } from '@shared/modules/device-id';
 import { clearWalletCache, lazyInitWallet, sanitizeAndValidateMnemonic, saveBitcoinXpubs, saveWalletState, setMasterSeed, getMasterSeed } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, MessageType, MessageTypeMap, OpenPopupRequest, ProcessRPCRequest } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { Csprng } from '../../src/class/rng';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
 import { encrypt } from '../modules/encryption';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 
 // All possible background messages with their params
 type TBackgroundMessage = { [K in keyof MessageTypeMap]: { type: K; params: MessageTypeMap[K]['params'] } }[keyof MessageTypeMap];
@@ -78,6 +79,10 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
     } else if (network === NETWORK_ARK_MUTINYNET || network === NETWORK_ARK) {
       const aw = await lazyInitWallet(network, accountNumber, LayerzStorage, SecureStorage);
       assert(aw instanceof ArkWallet);
+      return await aw.getOffchainReceiveAddress();
+    } else if (network === NETWORK_STACKS) {
+      const aw = await lazyInitWallet(network, accountNumber, LayerzStorage, SecureStorage);
+      assert(aw instanceof StacksWallet);
       return await aw.getOffchainReceiveAddress();
     } else if (network === NETWORK_SPARK) {
       throw new Error('this should never happen: temporarily executed on the spot in the BackgroundCaller'); // fixme

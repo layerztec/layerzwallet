@@ -8,7 +8,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
-import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { getTokenIconColor } from '@shared/models/token-list';
 import { formatBalance } from '@shared/modules/string-utils';
@@ -23,7 +23,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
 
   if (!balance && !token.balance) return null;
 
-  let decimalPlaces = 3;
+  let decimalPlaces = token.decimals;
   if (token.name.includes('USD')) {
     decimalPlaces = 2;
   }
@@ -52,6 +52,17 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
       router.push({
         pathname: '/SendLiquid',
         params: { assetId: token.id },
+      });
+      return;
+    } else if (network === NETWORK_STACKS) {
+      router.push({
+        pathname: '/SendTokenStacks',
+        params: {
+          tokenId: token.id,
+          tokenSymbol: token.symbol,
+          tokenName: token.name,
+          tokenDecimals: token.decimals.toString(),
+        },
       });
       return;
     }

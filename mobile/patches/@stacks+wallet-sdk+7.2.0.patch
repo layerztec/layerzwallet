@@ -1,0 +1,22 @@
+diff --git a/node_modules/@stacks/wallet-sdk/dist/generate.js b/node_modules/@stacks/wallet-sdk/dist/generate.js
+index a53b946..4e48069 100644
+--- a/node_modules/@stacks/wallet-sdk/dist/generate.js
++++ b/node_modules/@stacks/wallet-sdk/dist/generate.js
+@@ -15,14 +15,14 @@ function randomSeedPhrase(entropy = 256) {
+ exports.randomSeedPhrase = randomSeedPhrase;
+ exports.generateSecretKey = randomSeedPhrase;
+ const generateWallet = async ({ secretKey, password, }) => {
+-    const ciphertextBytes = await (0, encryption_1.encryptMnemonic)(secretKey, password);
+-    const encryptedSecretKey = (0, common_1.bytesToHex)(ciphertextBytes);
++//    const ciphertextBytes = await (0, encryption_1.encryptMnemonic)(secretKey, password);
++//    const encryptedSecretKey = (0, common_1.bytesToHex)(ciphertextBytes);
+     const rootPrivateKey = await (0, bip39_1.mnemonicToSeed)(secretKey);
+     const rootNode = bip32_1.HDKey.fromMasterSeed(rootPrivateKey);
+     const walletKeys = await (0, derive_1.deriveWalletKeys)(rootNode);
+     const wallet = {
+         ...walletKeys,
+-        encryptedSecretKey,
++//        encryptedSecretKey,
+         accounts: [],
+         config: {
+             accounts: [],

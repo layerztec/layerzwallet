@@ -17,8 +17,9 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 
 export type SendArkParams = {
   toAddress?: string;
@@ -40,7 +41,7 @@ const SendArk = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
-  const arkWallet = useRef<ArkWallet | undefined>(undefined);
+  const arkWallet = useRef<ArkWallet | SparkWallet | StacksWallet | undefined>(undefined);
 
   const actualSend = async () => {
     let startTs = Date.now();
@@ -78,9 +79,9 @@ const SendArk = () => {
 
       await new Promise((r) => setTimeout(r, 200)); // propagate
 
-      assert(network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_ARK, 'Internal error: wallet of incorrect type');
+      assert(network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_ARK || network === NETWORK_STACKS, 'Internal error: wallet of incorrect type');
       let w = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-      assert(w instanceof ArkWallet || w instanceof SparkWallet, 'Internal error: incorrect wallet instance');
+      assert(w instanceof ArkWallet || w instanceof SparkWallet || w instanceof StacksWallet, 'Internal error: incorrect wallet instance');
 
       arkWallet.current = w;
       setIsPrepared(true);

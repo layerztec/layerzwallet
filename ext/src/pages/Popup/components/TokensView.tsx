@@ -6,7 +6,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
-import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 
@@ -14,6 +14,7 @@ import { BackgroundCaller } from '../../../modules/background-caller';
 import { SendTokenEvmProps } from '../SendTokenEvm';
 import { SendTokenSparkProps } from '../SendTokenSpark';
 import { LayerzStorage } from '../../../class/layerz-storage';
+import { SendTokenStacksProps } from '@/pages/Popup/SendTokenStacks';
 
 const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
   const { network } = useContext(NetworkContext);
@@ -24,7 +25,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
 
   if (!balance && !token.balance) return null;
 
-  const formattedBalance = formatBalance(balance ?? token.balance ?? '0', token.decimals, 2);
+  const formattedBalance = formatBalance(balance ?? token.balance ?? '0', token.decimals, token.decimals);
 
   const navigateToSendToken = () => {
     if (network === NETWORK_SPARK) {
@@ -35,6 +36,13 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
 
     if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
       navigate(`/send-liquid?assetId=${token.id}`);
+      return;
+    }
+
+    if (network === NETWORK_STACKS) {
+      console.log('send token on stacks', token);
+      const state: SendTokenStacksProps = { tokenPublicKey: token.id };
+      navigate('/send-token-stacks', { state });
       return;
     }
 

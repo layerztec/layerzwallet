@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Networks, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET } from '../types/networks';
+import { Networks, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_STACKS } from '../types/networks';
 import { CachedTokenInfo } from '../types/token-info';
 import { getTokenList } from '../models/token-list';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { SparkWallet } from '../class/wallets/spark-wallet';
 import assert from 'assert';
 import { IStorage } from '../types/IStorage';
+import { StacksWallet } from '../class/wallets/stacks-wallet';
 
 const STORAGE_KEY_CACHED_TOKEN_LIST = 'STORAGE_KEY_CACHED_TOKEN_LIST';
 
@@ -73,6 +74,17 @@ export function useTokenDiscovery(network: Networks, accountNumber: number, back
         if (tokenInfos.length > 0) await storage.setItem(cacheKey, JSON.stringify(tokenInfos)); // saving to cache
 
         setTokenList(tokenInfos);
+      } else if (network === NETWORK_STACKS) {
+        const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
+        assert(wallet instanceof StacksWallet, 'Not a Stacks wallet');
+
+        await wallet.fetchTokenBalances();
+        const tokenInfos: CachedTokenInfo[] = [];
+        for (const token of wallet.getTokenBalances()) {
+          tokenInfos.push(token);
+        }
+
+        setTokenList(tokenInfos);
       } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
         const tokens = getTokenList(network).map((token) => ({
           ...token,
@@ -99,8 +111,8 @@ export function useTokenDiscovery(network: Networks, accountNumber: number, back
     // Initial fetch
     fetchTokens();
 
-    // Set up periodic refresh only for NETWORK_SPARK
-    if (network === NETWORK_SPARK) {
+    // Set up periodic refresh only for NETWORK_SPARK & NETWORK_STACKS
+    if (network === NETWORK_SPARK || network === NETWORK_STACKS) {
       intervalRef.current = setInterval(fetchTokens, refreshInterval);
     }
 
