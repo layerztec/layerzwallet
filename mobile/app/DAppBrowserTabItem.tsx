@@ -24,46 +24,26 @@ interface DAppBrowserTabItemProps {
   onEnsurePreview: () => void;
 }
 
-export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, index, onPress, onClose, getTabTitle, onEnsurePreview }) => {
+export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, index, onPress, onClose, onEnsurePreview }) => {
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>(tab.screenshot ? 'loaded' : 'loading');
-  const [retryAttempts, setRetryAttempts] = useState(0);
-
-  console.debug('[DAppBrowserTabItem] render', {
-    tabId: tab.id,
-    index,
-    hasScreenshot: !!tab.screenshot,
-    status,
-    retryAttempts,
-  });
 
   useEffect(() => {
-    // If the component is told it has a screenshot, but its status is not 'loaded', sync it.
     if (tab.screenshot && status !== 'loaded') {
-      console.debug('[DAppBrowserTabItem] Sync: Screenshot arrived, setting status to loaded', { tabId: tab.id });
       setStatus('loaded');
-      setRetryAttempts(0);
-    }
-    // If the component is told it has no screenshot, but its status is 'loaded', it means the screenshot was removed.
-    else if (!tab.screenshot && status === 'loaded') {
-      console.debug('[DAppBrowserTabItem] Sync: Screenshot removed, setting status to loading', { tabId: tab.id });
+    } else if (!tab.screenshot && status === 'loaded') {
       setStatus('loading');
     }
   }, [tab.screenshot, status, tab.id]);
 
   useEffect(() => {
-    // This effect triggers the loading process
     if (status === 'loading') {
-      console.debug('[DAppBrowserTabItem] Effect: Status is loading, ensuring preview.', { tabId: tab.id, index });
       onEnsurePreview();
 
-      // Set a timeout to prevent indefinite loading state
       const timeout = setTimeout(() => {
-        // Re-check inside timeout to avoid race conditions
         if (status === 'loading') {
-          console.warn('[DAppBrowserTabItem] Screenshot load timeout', { tabId: tab.id });
           setStatus('error');
         }
-      }, 10000); // 10 seconds
+      }, 10000);
 
       return () => clearTimeout(timeout);
     }
@@ -91,16 +71,9 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, ind
             style={styles.tabCardScreenshot}
             resizeMode="cover"
             onLoad={() => {
-              // Already in 'loaded' state, but this confirms the image data is valid.
-              console.debug('[DAppBrowserTabItem] Screenshot image loaded successfully', { tabId: tab.id });
               if (status !== 'loaded') setStatus('loaded');
             }}
             onError={(error) => {
-              console.warn('[DAppBrowserTabItem] Failed to load screenshot URI', {
-                tabId: tab.id,
-                error: error.nativeEvent.error,
-                retryAttempts,
-              });
               setStatus('error');
             }}
           />
@@ -110,16 +83,13 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, ind
             <Text style={styles.loadingText}>Loading preview...</Text>
           </View>
         ) : (
-          // This covers 'error' status and any other edge cases
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle-outline" size={48} color="rgba(255, 255, 255, 0.4)" />
             <Text style={styles.errorText}>Preview unavailable</Text>
             <TouchableOpacity
               style={styles.retryButton}
               onPress={() => {
-                console.log('[DAppBrowserTabItem] Manual retry pressed', { tabId: tab.id });
                 setStatus('loading');
-                setRetryAttempts((prev) => prev + 1);
                 onEnsurePreview();
               }}
             >

@@ -25,24 +25,17 @@ const getScreenshotDir = (): string | null => {
     const base = cacheDir || docDir;
 
     if (!base || typeof base !== 'string') {
-      console.warn('[ScreenshotManager] FileSystem directories not available', {
-        base,
-        type: typeof base,
-        cacheDir,
-        docDir,
-      });
       return null;
     }
 
     if (!base.startsWith('file://')) {
-      console.warn('[ScreenshotManager] FileSystem base directory has invalid format', { base });
       return null;
     }
 
     const dir = `${base.endsWith('/') ? base : base + '/'}browser_screens/`;
     return dir;
   } catch (error) {
-    console.error('[ScreenshotManager] Error getting screenshot directory', error);
+    console.error('[WebViewPreviewManager] Error getting screenshot directory', error);
     return null;
   }
 };
@@ -51,14 +44,14 @@ const isValidFileUri = (uri: string): boolean => {
   return typeof uri === 'string' && uri.length > 0 && uri.startsWith('file://');
 };
 
-export const useScreenshotManager = (onError?: (reason: string) => void) => {
+export const useWebViewPreviewManager = (onError?: (reason: string) => void) => {
   const loadManifest = useCallback(async (): Promise<ScreenshotManifest> => {
     try {
       const manifestJson = await AsyncStorage.getItem(SCREENSHOT_MANIFEST_KEY);
       if (!manifestJson) return {};
       return JSON.parse(manifestJson);
     } catch (error) {
-      console.error('[ScreenshotManager] Failed to load manifest:', error);
+      console.error('[WebViewPreviewManager] Failed to load manifest:', error);
       onError?.('loadManifest error');
       return {};
     }
@@ -69,7 +62,7 @@ export const useScreenshotManager = (onError?: (reason: string) => void) => {
       try {
         await AsyncStorage.setItem(SCREENSHOT_MANIFEST_KEY, JSON.stringify(manifest));
       } catch (error) {
-        console.error('[ScreenshotManager] Failed to save manifest:', error);
+        console.error('[WebViewPreviewManager] Failed to save manifest:', error);
         onError?.('saveManifest error');
       }
     },
@@ -80,16 +73,15 @@ export const useScreenshotManager = (onError?: (reason: string) => void) => {
     try {
       const dir = getScreenshotDir();
       if (!dir) {
-        console.warn('[ScreenshotManager] Cannot ensure directory - unavailable');
         return;
       }
       const directory = new Directory(dir);
       if (!directory.exists) {
         await directory.create();
-        console.debug('[ScreenshotManager] Created directory', { dir });
+        console.debug('[WebViewPreviewManager] Created directory', { dir });
       }
     } catch (e) {
-      console.error('[ScreenshotManager] Failed to ensure directory:', e);
+      console.error('[WebViewPreviewManager] Failed to ensure directory:', e);
     }
   }, []);
 
@@ -101,7 +93,7 @@ export const useScreenshotManager = (onError?: (reason: string) => void) => {
     for (const [id, entry] of entries) {
       const isExpired = now - entry.timestamp > SCREENSHOT_EXPIRE_MS;
       if (isExpired) {
-        console.debug('[ScreenshotManager] Pruning expired screenshot', { tabId: id });
+        console.debug('[WebViewPreviewManager] Pruning expired screenshot', { tabId: id });
         try {
           const file = new ExpoFsFile(entry.key);
           await file.delete();
@@ -130,7 +122,7 @@ export const useScreenshotManager = (onError?: (reason: string) => void) => {
 
     for (const [id, entry] of entries) {
       if (entries.length - toDelete.length > MAX_SCREENSHOTS_CACHE || totalSize + maxSize > MAX_TOTAL_SIZE) {
-        console.debug('[ScreenshotManager] Pruning LRU screenshot', { tabId: id });
+        console.debug('[WebViewPreviewManager] Pruning LRU screenshot', { tabId: id });
         toDelete.push(entry.key);
         totalSize -= entry.size;
       } else {
@@ -165,7 +157,6 @@ export const useScreenshotManager = (onError?: (reason: string) => void) => {
         const base64 = screenshotData.startsWith('data:') ? screenshotData.split(',')[1] || '' : screenshotData;
         const dir = getScreenshotDir();
         if (!dir) {
-          console.warn('[ScreenshotManager] Cannot save - directory unavailable', { tabId });
           return null;
         }
 
@@ -173,7 +164,6 @@ export const useScreenshotManager = (onError?: (reason: string) => void) => {
         const fileUri = dir + filename;
 
         if (!isValidFileUri(fileUri)) {
-          console.warn('[ScreenshotManager] Cannot save - invalid file URI', { tabId, fileUri });
           return null;
         }
 
@@ -195,7 +185,7 @@ export const useScreenshotManager = (onError?: (reason: string) => void) => {
 
         await saveManifest(manifest);
 
-        console.debug('[ScreenshotManager] Screenshot saved', {
+        console.debug('[WebViewPreviewManager] Screenshot saved', {
           tabId,
           size: estimatedSize,
           cacheCount: Object.keys(manifest).length,
@@ -203,7 +193,7 @@ export const useScreenshotManager = (onError?: (reason: string) => void) => {
 
         return fileUri;
       } catch (error: any) {
-        console.error('[ScreenshotManager] Failed to save screenshot:', error);
+        console.error('[WebViewPreviewManager] Failed to save screenshot:', error);
         onError?.('saveScreenshot error');
         return null;
       }
@@ -222,7 +212,6 @@ export const useScreenshotManager = (onError?: (reason: string) => void) => {
         }
 
         if (!isValidFileUri(entry.key)) {
-          console.warn('[ScreenshotManager] Invalid file URI in manifest', { tabId, uri: entry.key });
           delete manifest[tabId];
           await saveManifest(manifest);
           return null;
@@ -230,7 +219,7 @@ export const useScreenshotManager = (onError?: (reason: string) => void) => {
 
         const now = Date.now();
         if (now - entry.timestamp > SCREENSHOT_EXPIRE_MS) {
-          console.debug('[ScreenshotManager] Screenshot expired', { tabId });
+          console.debug('[WebViewPreviewManager] Screenshot expired', { tabId });
           try {
             const file = new ExpoFsFile(entry.key);
             await file.delete();
@@ -242,7 +231,7 @@ export const useScreenshotManager = (onError?: (reason: string) => void) => {
 
         const file = new ExpoFsFile(entry.key);
         if (!file.exists) {
-          console.debug('[ScreenshotManager] Screenshot file missing', { tabId });
+          console.debug('[WebViewPreviewManager] Screenshot file missing', { tabId });
           delete manifest[tabId];
           await saveManifest(manifest);
           return null;
@@ -254,7 +243,7 @@ export const useScreenshotManager = (onError?: (reason: string) => void) => {
 
         return entry.key;
       } catch (error) {
-        console.error('[ScreenshotManager] Failed to load screenshot:', error);
+        console.error('[WebViewPreviewManager] Failed to load screenshot:', error);
         onError?.('loadScreenshot error');
         return null;
       }
@@ -273,18 +262,14 @@ export const useScreenshotManager = (onError?: (reason: string) => void) => {
             try {
               const file = new ExpoFsFile(entry.key);
               await file.delete();
-            } catch (deleteError) {
-              console.warn('[ScreenshotManager] Failed to delete file', { tabId, error: deleteError });
-            }
-          } else {
-            console.warn('[ScreenshotManager] Skipping deletion of invalid URI', { tabId, uri: entry.key });
+            } catch (deleteError) {}
           }
 
           delete manifest[tabId];
           await saveManifest(manifest);
         }
       } catch (error) {
-        console.error('[ScreenshotManager] Failed to delete screenshot:', error);
+        console.error('[WebViewPreviewManager] Failed to delete screenshot:', error);
         onError?.('deleteScreenshot error');
       }
     },
@@ -294,7 +279,7 @@ export const useScreenshotManager = (onError?: (reason: string) => void) => {
   const capture = useCallback(
     async (containerRef: React.RefObject<any>, tabId: string): Promise<string | null> => {
       if (!containerRef?.current) {
-        console.debug('[ScreenshotManager] Capture skipped - no container', { tabId });
+        console.debug('[WebViewPreviewManager] Capture skipped - no container', { tabId });
         return null;
       }
 
@@ -313,7 +298,6 @@ export const useScreenshotManager = (onError?: (reason: string) => void) => {
         return fileUri || dataUrl;
       } catch (error: any) {
         if (error?.code !== 'EUNSPECIFIED') {
-          console.warn('[ScreenshotManager] Failed to capture:', tabId, error?.message || error);
         }
         return null;
       }

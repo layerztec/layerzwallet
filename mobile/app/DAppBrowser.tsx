@@ -2,7 +2,7 @@ import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system';
 import { File as ExpoFsFile, Directory } from 'expo-file-system';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
-import { StyleSheet, TouchableOpacity, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, Dimensions, Text, ViewStyle, StyleProp } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, Dimensions, ViewStyle, StyleProp } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,12 +11,10 @@ import { Image as ExpoImage } from 'expo-image';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, withSpring, interpolate, runOnJS } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-
 import { ThemedText } from '@/components/ThemedText';
 import GradientScreen from '@/components/GradientScreen';
 import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
 import { BrowserBridge } from '@/src/class/browser-bridge';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
@@ -24,7 +22,7 @@ import { getNetworkGradient } from '@shared/constants/Colors';
 import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { DAppBrowserTabs } from './DAppBrowserTabs';
-import { useScreenshotManager } from './hooks/useScreenshotManager';
+import { useWebViewPreviewManager } from './hooks/useWebViewPreviewManager';
 
 export type DappBrowserProps = {
   url?: string;
@@ -60,15 +58,6 @@ interface BrowserTab {
   timestamp: number;
 }
 
-interface ScreenshotManifestEntry {
-  key: string;
-  size: number;
-  timestamp: number;
-  lastAccessed: number;
-}
-
-type ScreenshotManifest = { [tabId: string]: ScreenshotManifestEntry };
-
 type StoredTab = {
   id: string;
   url: string;
@@ -86,30 +75,19 @@ const getScreenshotDir = (): string | null => {
     const cacheDir = (FileSystem as any).cacheDirectory;
     const docDir = (FileSystem as any).documentDirectory;
 
-    console.debug('[DAppBrowser] getScreenshotDir called', { cacheDir, docDir });
-
     const base = cacheDir || docDir;
 
     if (!base || typeof base !== 'string') {
-      console.warn('[DAppBrowser] FileSystem directories not available', {
-        base,
-        type: typeof base,
-        cacheDir,
-        docDir,
-      });
       return null;
     }
 
     if (!base.startsWith('file://')) {
-      console.warn('[DAppBrowser] FileSystem base directory has invalid format', { base });
       return null;
     }
 
     const dir = `${base.endsWith('/') ? base : base + '/'}browser_screens/`;
-    console.debug('[DAppBrowser] Screenshot directory resolved', { dir });
     return dir;
   } catch (error) {
-    console.error('[DAppBrowser] Error getting screenshot directory', error);
     return null;
   }
 };
@@ -174,7 +152,6 @@ const DAppBrowser: React.FC = () => {
   }, []);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId);
-  const currentUrl = activeTab?.url || initialUrl;
   const selectionAtStart = useMemo(() => ({ start: 0, end: 0 }), []);
 
   const modalAnimatedStyle = useAnimatedStyle(() => ({
@@ -331,7 +308,6 @@ const DAppBrowser: React.FC = () => {
     })();
   }, [network, setAddressBarValue]);
 
-  // Centralized purge + UI reset to DRY error handling paths
   const isPurgingRef = useRef(false);
   const hasPurgedRef = useRef(false);
   const purgeAndReset = useCallback(
@@ -341,10 +317,7 @@ const DAppBrowser: React.FC = () => {
       try {
         try {
           await AsyncStorage.clear();
-          console.warn('[DAppBrowser] Purged AsyncStorage', reason ? `(${reason})` : '');
-        } catch (purgeErr) {
-          console.error('[DAppBrowser] Failed to purge AsyncStorage', purgeErr);
-        }
+        } catch (purgeErr) {}
 
         try {
           const dir = getScreenshotDir();
@@ -355,9 +328,7 @@ const DAppBrowser: React.FC = () => {
             }
             await directory.create();
           }
-        } catch (e) {
-          console.error('[DAppBrowser] Failed to purge screenshot files:', e);
-        }
+        } catch (e) {}
 
         const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
         const newTab: BrowserTab = {
@@ -375,7 +346,6 @@ const DAppBrowser: React.FC = () => {
         setAddressBarValue(homeUrl, { ensureStartVisible: true });
         setShowTabsOverview(false);
 
-        // Mark as purged so we only do this once during app lifetime
         hasPurgedRef.current = true;
       } finally {
         isPurgingRef.current = false;
@@ -396,23 +366,16 @@ const DAppBrowser: React.FC = () => {
           timestamp: t.timestamp || Date.now(),
         }));
 
-        console.debug('[DAppBrowser] Saving tabs to storage', {
-          tabCount: storedTabs.length,
-          activeId,
-          tabIds: storedTabs.map((t) => t.id),
-        });
-
         await AsyncStorage.setItem(TABS_STORAGE_KEY, JSON.stringify({ version: 1, tabs: storedTabs }));
         await AsyncStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeId);
       } catch (error) {
-        console.error('[DAppBrowser] Failed to save tabs:', error);
         await purgeAndReset('saveTabs error');
       }
     },
     [purgeAndReset]
   );
 
-  const screenshots = useScreenshotManager(purgeAndReset);
+  const screenshots = useWebViewPreviewManager(purgeAndReset);
 
   const loadTabs = useCallback(async (): Promise<{ tabs: BrowserTab[]; activeTabId: string } | null> => {
     try {
@@ -467,15 +430,8 @@ const DAppBrowser: React.FC = () => {
       const activeExists = tabs.some((t) => t.id === activeId);
       const finalActiveId = activeExists ? activeId : tabs[tabs.length - 1].id;
 
-      console.debug('[DAppBrowser] Loaded tabs from storage', {
-        tabCount: tabs.length,
-        activeId: finalActiveId,
-        tabIds: tabs.map((t) => t.id),
-      });
-
       return { tabs, activeTabId: finalActiveId };
     } catch (error) {
-      console.error('[DAppBrowser] Failed to load tabs:', error);
       await purgeAndReset('loadTabs error');
       return null;
     }
@@ -486,14 +442,8 @@ const DAppBrowser: React.FC = () => {
       const containerRef = tabContainerRefs.current[tabId];
 
       if (!containerRef?.current) {
-        console.debug('[DAppBrowser] captureTabScreenshot skipped - no container', { tabId });
         return null;
       }
-
-      console.debug('[DAppBrowser] captureTabScreenshot start', {
-        tabId,
-        availableRefs: Object.keys(tabContainerRefs.current),
-      });
 
       await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -517,11 +467,8 @@ const DAppBrowser: React.FC = () => {
         return fileUri;
       } catch (error: any) {
         if (error?.code !== 'EUNSPECIFIED') {
-          console.warn('[DAppBrowser] Failed to capture screenshot for tab:', tabId, error?.message || error);
         }
         return null;
-      } finally {
-        console.debug('[DAppBrowser] captureTabScreenshot end', { tabId });
       }
     },
     [screenshots]
@@ -531,23 +478,15 @@ const DAppBrowser: React.FC = () => {
     async (tabId: string) => {
       const tab = tabs.find((t) => t.id === tabId);
       if (!tab) {
-        console.debug('[DAppBrowser] ensureTabPreview skipped - tab missing', { tabId });
         return;
       }
 
       if (tab.screenshot) {
-        console.debug('[DAppBrowser] ensureTabPreview skipped - screenshot exists', { tabId });
         return;
       }
 
-      console.debug('[DAppBrowser] ensureTabPreview start', {
-        tabId,
-        url: tab.url,
-      });
-
       const storedScreenshot = await screenshots.load(tabId);
       if (storedScreenshot) {
-        console.debug('[DAppBrowser] ensureTabPreview loaded from storage', { tabId });
         setTabs((prev) =>
           prev.map((currentTab) =>
             currentTab.id === tabId
@@ -561,19 +500,16 @@ const DAppBrowser: React.FC = () => {
         return;
       }
 
-      console.debug('[DAppBrowser] ensureTabPreview capturing new screenshot', { tabId });
       await captureTabScreenshot(tabId);
     },
     [tabs, screenshots, captureTabScreenshot]
   );
 
-  // Load screenshots when tabs overview is shown
   useEffect(() => {
     if (!showTabsOverview || isRestoringTabs) {
       return;
     }
 
-    // Load screenshots from storage for tabs that don't have them in memory
     const loadScreenshots = async () => {
       for (const tab of tabs) {
         if (!tab.screenshot) {
@@ -761,7 +697,6 @@ const DAppBrowser: React.FC = () => {
 
   const createNewTab = () => {
     const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
-    console.debug('[DAppBrowser] Creating new tab with URL:', homeUrl);
 
     const newTab: BrowserTab = {
       id: Date.now().toString(),
@@ -774,8 +709,6 @@ const DAppBrowser: React.FC = () => {
       timestamp: Date.now(),
     };
 
-    console.debug('[DAppBrowser] New tab created:', newTab.id, newTab.url, newTab.title);
-
     setTabs((prev) => [...prev, newTab]);
     setActiveTabId(newTab.id);
     setAddressBarValue(newTab.url, { ensureStartVisible: true });
@@ -786,14 +719,11 @@ const DAppBrowser: React.FC = () => {
   };
 
   const closeTab = (tabId: string) => {
-    console.debug('[DAppBrowser] Closing tab request', { tabId, totalTabs: tabs.length });
-
-    // Delete screenshot from storage
     screenshots.remove(tabId);
 
     if (tabs.length === 1) {
       const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
-      console.debug('[DAppBrowser] Closing last tab, creating fallback home tab', { homeUrl });
+
       const newTab: BrowserTab = {
         id: Date.now().toString(),
         url: homeUrl,
@@ -813,11 +743,9 @@ const DAppBrowser: React.FC = () => {
     const newTabs = tabs.filter((tab) => tab.id !== tabId);
     setTabs(newTabs);
 
-    console.debug('[DAppBrowser] Tab closed', { tabId, remainingTabs: newTabs.length });
-
     if (activeTabId === tabId) {
       const newActiveTab = newTabs[newTabs.length - 1];
-      console.debug('[DAppBrowser] Active tab closed, activating fallback', { tabId: newActiveTab.id });
+
       setActiveTabId(newActiveTab.id);
       setAddressBarValue(newActiveTab.url, { ensureStartVisible: true });
     }
@@ -828,9 +756,7 @@ const DAppBrowser: React.FC = () => {
   };
 
   const switchTab = async (tabId: string) => {
-    console.debug('[DAppBrowser] switchTab invoked', { from: activeTabId, to: tabId });
     if (activeTabId === tabId) {
-      console.debug('[DAppBrowser] switchTab early exit - already active');
       hideTabsOverview();
       return;
     }
@@ -841,17 +767,13 @@ const DAppBrowser: React.FC = () => {
       setIsAddressInputFocused(false);
     }
 
-    // Capture screenshot of old active tab (don't block on this)
     if (oldActiveTabId) {
-      captureTabScreenshot(oldActiveTabId).catch((error) => {
-        console.warn('[DAppBrowser] Failed to capture screenshot while switching tabs', { from: oldActiveTabId, error });
-      });
+      captureTabScreenshot(oldActiveTabId).catch((error) => {});
     }
 
     setActiveTabId(tabId);
     const newTab = tabs.find((t) => t.id === tabId);
     if (newTab) {
-      console.debug('[DAppBrowser] Tab activated', { tabId: newTab.id, url: newTab.url });
       setAddressBarValue(newTab.url, { ensureStartVisible: true });
     }
 
@@ -859,50 +781,32 @@ const DAppBrowser: React.FC = () => {
   };
 
   const showTabsOverviewAnimated = async () => {
-    console.debug('[DAppBrowser] Showing tabs overview', { totalTabs: tabs.length, activeTabId });
-
-    // Capture screenshot of active tab BEFORE starting animation
     if (activeTabId) {
       try {
         await captureTabScreenshot(activeTabId);
-      } catch (error) {
-        console.warn('[DAppBrowser] Failed to capture active tab screenshot:', error);
-      }
+      } catch (error) {}
     }
 
-    // Now start the animation
     setShowTabsOverview(true);
-    console.debug('[DAppBrowser] Tabs overview animation starting');
+
     webviewOpacity.value = withTiming(0, { duration: 300 });
     tabsOpacity.value = withTiming(1, { duration: 300 });
     addressBarTranslateY.value = withTiming(-120, { duration: 300 });
 
-    tabs.forEach((tab, index) => {
-      console.debug(`[DAppBrowser] Tab ${index + 1}:`, {
-        id: tab.id,
-        url: tab.url,
-        title: tab.title,
-        hasScreenshot: !!tab.screenshot,
-        timestamp: new Date(tab.timestamp).toISOString(),
-        isActive: tab.id === activeTabId,
-      });
-    });
+    tabs.forEach((tab, index) => {});
   };
 
   const hideTabsOverview = () => {
-    console.debug('[DAppBrowser] Hiding tabs overview');
     webviewOpacity.value = withTiming(1, { duration: 250 });
     tabsOpacity.value = withTiming(0, { duration: 250 });
     addressBarTranslateY.value = withTiming(0, { duration: 250 }, (finished) => {
       if (finished) {
         runOnJS(setShowTabsOverview)(false);
-        console.debug('[DAppBrowser] Tabs overview hidden');
       }
     });
   };
 
   const toggleTabsOverview = () => {
-    console.debug('[DAppBrowser] Toggling tabs overview', { currentlyVisible: showTabsOverview });
     if (showTabsOverview) {
       hideTabsOverview();
     } else {
@@ -921,7 +825,7 @@ const DAppBrowser: React.FC = () => {
         style: 'destructive',
         onPress: () => {
           const homeUrl = 'https://layerztec.github.io/website/explore/?network=' + network;
-          console.debug('[DAppBrowser] Closing all tabs and creating new tab with URL:', homeUrl);
+
           const newTab: BrowserTab = {
             id: Date.now().toString(),
             url: homeUrl,
@@ -932,7 +836,7 @@ const DAppBrowser: React.FC = () => {
             historyIndex: 0,
             timestamp: Date.now(),
           };
-          console.debug('[DAppBrowser] New tab object:', newTab);
+
           setTabs([newTab]);
           setActiveTabId(newTab.id);
           setAddressBarValue(homeUrl, { ensureStartVisible: true });
@@ -945,7 +849,6 @@ const DAppBrowser: React.FC = () => {
   };
 
   const updateActiveTab = (updates: Partial<BrowserTab>) => {
-    console.debug('[DAppBrowser] Updating active tab:', activeTabId, updates);
     setTabs((prev) =>
       prev.map((tab) =>
         tab.id === activeTabId
@@ -1080,7 +983,6 @@ const DAppBrowser: React.FC = () => {
         if (finished && progress >= 1) {
           progressOpacity.value = withTiming(0, { duration: 300 });
 
-          // Capture screenshot after load completes
           setTimeout(async () => {
             await captureTabScreenshot(activeTabId);
           }, 1000);
@@ -1092,10 +994,7 @@ const DAppBrowser: React.FC = () => {
 
   const handleNavigationStateChange = useCallback(
     (navState: WebViewNavigation) => {
-      console.debug('[DAppBrowser] Navigation state change:', navState.url, 'canGoBack:', navState.canGoBack, 'canGoForward:', navState.canGoForward);
-
       if (isManualNavigation.current || lastManualNavigationUrl.current === navState.url) {
-        console.debug('[DAppBrowser] Skipping navigation state change (manual navigation)');
         isManualNavigation.current = false;
         lastManualNavigationUrl.current = undefined;
         return;
@@ -1108,11 +1007,8 @@ const DAppBrowser: React.FC = () => {
           if (tab.id !== activeTabId) return tab;
 
           if (tab.url === navState.url) {
-            console.debug('[DAppBrowser] Skipping navigation state change (URL unchanged)');
             return tab;
           }
-
-          console.debug('[DAppBrowser] Updating tab with new navigation:', title);
 
           const newHistory = [...tab.history.slice(0, tab.historyIndex + 1)];
 
@@ -1135,7 +1031,6 @@ const DAppBrowser: React.FC = () => {
         })
       );
 
-      // Only update address input if it's not currently focused (user is not typing)
       if (!isAddressInputFocused) {
         setAddressBarValue(navState.url, { ensureStartVisible: true });
       }
@@ -1277,11 +1172,6 @@ const DAppBrowser: React.FC = () => {
                           const wasPresent = !!tabContainerRefs.current[tab.id];
                           tabContainerRefs.current[tab.id] = { current: ref };
                           if (!wasPresent) {
-                            console.debug('[DAppBrowser] Tab container mounted', {
-                              tabId: tab.id,
-                              isActive,
-                              totalRefs: Object.keys(tabContainerRefs.current).length,
-                            });
                           }
                         }
                       }}
