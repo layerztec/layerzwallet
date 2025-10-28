@@ -3,6 +3,13 @@ import { test } from 'vitest';
 import { StacksWallet } from '../../class/wallets/stacks-wallet';
 import assert from 'assert';
 
+const storageMock = {
+  async setItem(key: string, value: string) {},
+  async getItem(key: string) {
+    return '';
+  },
+};
+
 test('stacks wallet can generate addresses for different accounts', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
     console.warn('TEST_MNEMONIC not set, skipping');
@@ -12,7 +19,7 @@ test('stacks wallet can generate addresses for different accounts', async (conte
 
   const w = new StacksWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
-  await w.init();
+  await w.init(storageMock);
 
   w.setAccountNumber(0);
   assert.strictEqual(await w.getOffchainReceiveAddress(), 'SP2R874DNSDKVF0Z281M8H9A2CCNZ3HDH4W2DZNT6');

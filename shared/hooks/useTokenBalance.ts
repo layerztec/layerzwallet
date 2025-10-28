@@ -8,7 +8,7 @@ import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { getIsEVM, getRpcProvider } from '../models/network-getters';
 import { SparkWallet } from '../class/wallets/spark-wallet';
 import { BreezWallet } from '../class/wallets/breez-wallet';
-import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
+import { StacksWallet } from '../class/wallets/stacks-wallet';
 
 interface tokenBalanceFetcherArg {
   cacheKey: string;
