@@ -117,7 +117,7 @@ const SendArk = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.contentContainer}>
           <View style={styles.networkBadge}>
-            <ThemedText style={styles.networkText}>{network === NETWORK_SPARK ? 'SPARK' : 'ARK'} NETWORK</ThemedText>
+            <ThemedText style={styles.networkText}>{network.toUpperCase()} LAYER</ThemedText>
           </View>
 
           {error ? (
