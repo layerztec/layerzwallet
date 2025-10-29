@@ -63,10 +63,8 @@ const Home: React.FC = () => {
       case NETWORK_SPARK:
       case NETWORK_ARK_MUTINYNET:
       case NETWORK_ARK:
-        navigate('/send-ark');
-        break;
       case NETWORK_STACKS:
-        navigate('/send-ark');
+        navigate('/send-account-based');
         break;
       case NETWORK_LIQUID:
       case NETWORK_LIQUID_TESTNET:
