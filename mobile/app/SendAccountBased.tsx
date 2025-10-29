@@ -20,19 +20,14 @@ import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
-import { InterfaceAccountBasedWallet } from '@shared/class/wallets/interface-account-based-wallet';
 
-export type SendAccountBasedParams = {
+export type SendArkParams = {
   toAddress?: string;
   amount?: string;
 };
 
-/**
- * This screen is used to send native-coin transactions for all
- * single-address wallets (Ark, Spark, Stacks)
- */
-const SendAccountBased = () => {
-  const params = useLocalSearchParams<SendAccountBasedParams>();
+const SendArk = () => {
+  const params = useLocalSearchParams<SendArkParams>();
   const router = useRouter();
   const { scanQr } = useContext(ScanQrContext);
 
@@ -46,7 +41,7 @@ const SendAccountBased = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
-  const accountBasedWallet = useRef<InterfaceAccountBasedWallet | undefined>(undefined);
+  const arkWallet = useRef<ArkWallet | SparkWallet | StacksWallet | undefined>(undefined);
 
   const actualSend = async () => {
     let startTs = Date.now();
@@ -56,14 +51,14 @@ const SendAccountBased = () => {
       const satValueBN = new BigNumber(amount);
       const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString(10);
 
-      if (!accountBasedWallet) {
-        throw new Error('Internal error: accountBasedWallet is not set');
+      if (!arkWallet) {
+        throw new Error('Internal error: ArkWallet is not set');
       }
       console.log('actual value to send:', +satValue);
 
       startTs = Date.now();
-      const transactionId = await accountBasedWallet.current?.pay(toAddress, +satValue);
-      assert(transactionId, 'Internal error: accountBasedWallet.pay() failed');
+      const transactionId = await arkWallet.current?.pay(toAddress, +satValue);
+      assert(transactionId, 'Internal error: ArkWallet.pay() failed');
       console.log('submitted txid:', transactionId);
 
       setIsSuccess(true);
@@ -88,7 +83,7 @@ const SendAccountBased = () => {
       let w = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(w instanceof ArkWallet || w instanceof SparkWallet || w instanceof StacksWallet, 'Internal error: incorrect wallet instance');
 
-      accountBasedWallet.current = w;
+      arkWallet.current = w;
       setIsPrepared(true);
     } catch (error: any) {
       console.error(error.message);
@@ -122,7 +117,7 @@ const SendAccountBased = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.contentContainer}>
           <View style={styles.networkBadge}>
-            <ThemedText style={styles.networkText}>{network.toUpperCase()} LAYER</ThemedText>
+            <ThemedText style={styles.networkText}>{network === NETWORK_SPARK ? 'SPARK' : 'ARK'} NETWORK</ThemedText>
           </View>
 
           {error ? (
@@ -382,4 +377,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SendAccountBased;
+export default SendArk;

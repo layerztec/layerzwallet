@@ -1,8 +1,7 @@
 import BigNumber from 'bignumber.js';
 import useSWR from 'swr';
 
-import { SparkWallet } from '../class/wallets/spark-wallet';
-import { BreezWallet } from '../class/wallets/breez-wallet';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
 import { StacksWallet } from '../class/wallets/stacks-wallet';
 import { getRpcProvider } from '../models/network-getters';
@@ -67,7 +66,6 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
 
   if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
     const bw = await backgroundCaller.lazyInitWallet(network, accountNumber);
-    assert(bw instanceof BreezWallet);
     const balance = await bw.getBalance();
     return balance.toString(10);
   }
@@ -96,7 +94,7 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
     const start = +new Date();
     const sw = await backgroundCaller.lazyInitWallet(network, accountNumber);
     assert(sw instanceof StacksWallet);
-    const virtualBalance = await sw.getOffchainBalance();
+    const virtualBalance = await sw.getBalance();
     const end = +new Date();
     console.log('stacks balance took', (end - start) / 1000, 'sec, balance =', virtualBalance.toString(10));
     return virtualBalance.toString(10);

@@ -66,6 +66,12 @@ const Home: React.FC = () => {
       case NETWORK_STACKS:
         navigate('/send-account-based');
         break;
+      case NETWORK_STACKS:
+        navigate('/send-ark');
+        break;
+      case NETWORK_STACKS:
+        navigate('/send-ark');
+        break;
       case NETWORK_LIQUID:
       case NETWORK_LIQUID_TESTNET:
         navigate('/send-liquid');

@@ -21,7 +21,7 @@ test('stacks wallet can get balance', async (context) => {
   w.setSecret(process.env.TEST_MNEMONIC);
   await w.init(storageMock);
 
-  const balance = await w.getOffchainBalance();
+  const balance = await w.getBalance();
 
   assert(+balance > 0, `unexpected balance: ${balance}`);
 });
@@ -41,7 +41,7 @@ test.skip('stacks send', async (context) => {
   const toAddress = await w.getOffchainReceiveAddress();
   w.setAccountNumber(0);
 
-  const balance = await w.getOffchainBalance();
+  const balance = await w.getBalance();
   await w.fetchTokenBalances();
 
   await w.pay(toAddress, 100);

@@ -19,10 +19,9 @@ import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 
 /**
- * This screen is used to send native-coin transactions for all
- * single-address wallets (Ark, Spark, Stacks)
+ * This screen is used for both ArkWallet and SparkWallet
  */
-const SendAccountBased: React.FC = () => {
+const SendArk: React.FC = () => {
   const scanQr = useScanQR();
   const navigate = useNavigate();
   const [toAddress, setToAddress] = useState<string>('');
@@ -36,7 +35,7 @@ const SendAccountBased: React.FC = () => {
   const { accountNumber } = useContext(AccountNumberContext);
   const { askMnemonic } = useContext(AskMnemonicContext);
   const { balance } = useBalance(network, accountNumber, BackgroundCaller);
-  const accountBasedWallet = useRef<ArkWallet | SparkWallet | StacksWallet | undefined>(undefined);
+  const arkWallet = useRef<ArkWallet | SparkWallet | StacksWallet | undefined>(undefined);
 
   const actualSend = async () => {
     let startTs = Date.now();
@@ -46,15 +45,15 @@ const SendAccountBased: React.FC = () => {
       const satValueBN = new BigNumber(amount);
       const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString(10);
 
-      if (!accountBasedWallet) {
-        throw new Error('Internal error: accountBasedWallet is not set');
+      if (!arkWallet) {
+        throw new Error('Internal error: ArkWallet is not set');
       }
 
       console.log('actual value to send:', +satValue);
 
       startTs = Date.now();
-      const transactionId = await accountBasedWallet.current?.pay(toAddress, +satValue);
-      assert(transactionId, 'Internal error: accountBasedWallet.pay() failed');
+      const transactionId = await arkWallet.current?.pay(toAddress, +satValue);
+      assert(transactionId, 'Internal error: ArkWallet.pay() failed');
       console.log('submitted txid:', transactionId);
 
       setIsSuccess(true);
@@ -79,7 +78,7 @@ const SendAccountBased: React.FC = () => {
       let w = await BackgroundCaller.lazyInitWallet(network, accountNumber);
       assert(w instanceof ArkWallet || w instanceof SparkWallet || w instanceof StacksWallet, 'Unexpected wallet type');
 
-      accountBasedWallet.current = w;
+      arkWallet.current = w;
       setIsPrepared(true);
     } catch (error: any) {
       console.error(error.message);
@@ -202,4 +201,4 @@ const SendAccountBased: React.FC = () => {
   );
 };
 
-export default SendAccountBased;
+export default SendArk;
