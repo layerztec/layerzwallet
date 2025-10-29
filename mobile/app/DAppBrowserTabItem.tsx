@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, View, Image, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
+import { BROWSER_CONSTANTS } from './DAppBrowser';
 
 interface BrowserTab {
   id: string;
@@ -43,11 +44,12 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, ind
         if (status === 'loading') {
           setStatus('error');
         }
-      }, 10000);
+      }, BROWSER_CONSTANTS.TIMEOUTS.LOADING_TIMEOUT);
 
       return () => clearTimeout(timeout);
     }
-  }, [status, tab.id, index, onEnsurePreview]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, tab.id, index]);
 
   return (
     <TouchableOpacity style={styles.tabCard} onPress={onPress}>
@@ -74,6 +76,12 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, ind
               if (status !== 'loaded') setStatus('loaded');
             }}
             onError={(error) => {
+              console.error(`[Tab Preview] Failed to load screenshot for tab ${tab.id}:`, error.nativeEvent?.error);
+              console.error('[Tab Preview] Tab details:', {
+                tabId: tab.id,
+                url: tab.url,
+                screenshotUri: tab.screenshot,
+              });
               setStatus('error');
             }}
           />

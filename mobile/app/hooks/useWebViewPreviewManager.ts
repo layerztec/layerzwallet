@@ -283,7 +283,7 @@ export const useWebViewPreviewManager = (onError?: (reason: string) => void) => 
         return null;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Delay removed - caller should handle timing via captureTabScreenshot delay parameter
 
       try {
         const base64 = await captureRef(containerRef.current, {

@@ -1,7 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { ThemedText } from '@/components/ThemedText';
 import { DAppBrowserTabItem } from './DAppBrowserTabItem';
 
 interface BrowserTab {
@@ -29,22 +28,10 @@ interface DAppBrowserTabsProps {
   onEnsurePreview: (tabId: string) => void | Promise<void>;
 }
 
-export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({ tabs, activeTabId, animatedStyle, pointerEvents, onSwitchTab, onCloseTab, getTabTitle, onEnsurePreview }) => {
-  useEffect(() => {
-    console.debug('[DAppBrowserTabs] render', {
-      tabCount: tabs.length,
-      activeTabId,
-      tabIds: tabs.map((tab) => tab.id),
-    });
-  }, [tabs, activeTabId]);
-
+export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({ tabs, animatedStyle, pointerEvents, onSwitchTab, onCloseTab, getTabTitle, onEnsurePreview }) => {
   return (
     <Animated.View style={[styles.tabsOverviewContainer, animatedStyle, styles.tabsOverviewAbsolute]} pointerEvents={pointerEvents}>
       <View style={styles.tabsOverviewBackground}>
-        <View style={styles.tabsOverviewHeader}>
-          <ThemedText style={styles.tabsOverviewTitle}>Tabs</ThemedText>
-        </View>
-
         <ScrollView style={styles.tabsOverviewContent} contentContainerStyle={styles.tabsGridContainer}>
           <View style={styles.tabsGrid}>
             {tabs.map((tab, index) => (
@@ -53,16 +40,13 @@ export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({ tabs, activeTa
                 tab={tab}
                 index={index}
                 onPress={() => {
-                  console.debug('[DAppBrowserTabs] tab pressed', { tabId: tab.id, index });
                   onSwitchTab(tab.id);
                 }}
                 onClose={() => {
-                  console.debug('[DAppBrowserTabs] tab close pressed', { tabId: tab.id, index });
                   onCloseTab(tab.id);
                 }}
                 getTabTitle={getTabTitle}
                 onEnsurePreview={() => {
-                  console.debug('[DAppBrowserTabs] ensure preview requested', { tabId: tab.id, index });
                   void onEnsurePreview(tab.id);
                 }}
               />
@@ -89,22 +73,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.85)',
   },
-  tabsOverviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 60,
-  },
-  tabsOverviewTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-  },
   tabsOverviewContent: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingTop: 100,
   },
   tabsGridContainer: {
     paddingBottom: 20,
