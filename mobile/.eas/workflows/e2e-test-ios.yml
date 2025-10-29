@@ -29,6 +29,7 @@ jobs:
         - .maestro/restore.yml
         - .maestro/swap.yml
         - .maestro/biometric-toggle-test.yml
+        - .maestro/send-spark.yml
         # this flow doesn't work on iOS because maestro doesn't recognize ids in the webview
         # https://github.com/mobile-dev-inc/Maestro/issues/2293
         # - .maestro/browser.yml
