@@ -13,10 +13,11 @@ import { CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET } from '../../types/networks';
 import { AbstractHDElectrumWallet } from './abstract-hd-electrum-wallet';
 import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
+import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 
 const bip32 = BIP32Factory(ecc);
 
-export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLightningWallet {
+export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet {
   private _wallet: Wallet | undefined = undefined;
   private _arkadeLightning: ArkadeLightning | undefined = undefined;
   private _arkServerUrl: string = 'https://mutinynet.arkade.sh';

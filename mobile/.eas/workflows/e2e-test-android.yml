@@ -15,21 +15,83 @@ jobs:
       platform: android
       profile: preview
 
-  maestro_test:
+  maestro_test_1:
     needs: [build_android_for_e2e]
     type: maestro
+    runs_on: linux-large-nested-virtualization
     params:
-      retries: 5
-      shards: 3
+      retries: 3
       build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
+      device_identifier: 'pixel_9'
       flow_path:
         - .maestro/home.yml
+
+  maestro_test_2:
+    needs: [build_android_for_e2e]
+    type: maestro
+    runs_on: linux-large-nested-virtualization
+    params:
+      retries: 3
+      build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
+      device_identifier: 'pixel_9'
+      flow_path:
         - .maestro/wallet-creation-and-selftest.yml
+
+  maestro_test_3:
+    needs: [build_android_for_e2e]
+    type: maestro
+    runs_on: linux-large-nested-virtualization
+    params:
+      retries: 3
+      build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
+      device_identifier: 'pixel_9'
+      flow_path:
         - .maestro/receive.yml
+
+  maestro_test_4:
+    needs: [build_android_for_e2e]
+    type: maestro
+    runs_on: linux-large-nested-virtualization
+    params:
+      retries: 3
+      build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
+      device_identifier: 'pixel_9'
+      flow_path:
         - .maestro/restore.yml
+
+  maestro_test_5:
+    needs: [build_android_for_e2e]
+    type: maestro
+    runs_on: linux-large-nested-virtualization
+    params:
+      retries: 3
+      build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
+      device_identifier: 'pixel_9'
+      flow_path:
         - .maestro/browser.yml
+
+  maestro_test_6:
+    needs: [build_android_for_e2e]
+    type: maestro
+    runs_on: linux-large-nested-virtualization
+    params:
+      retries: 3
+      build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
+      device_identifier: 'pixel_9'
+      flow_path:
         - .maestro/swap.yml
+
+  maestro_test_7:
+    needs: [build_android_for_e2e]
+    type: maestro
+    runs_on: linux-large-nested-virtualization
+    params:
+      retries: 3
+      build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
+      device_identifier: 'pixel_9'
+      flow_path:
         - .maestro/biometric-toggle-test.yml
+
   upload_build_to_appetize:
     needs: [build_android_for_e2e]
 

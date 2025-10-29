@@ -11,7 +11,8 @@ import BigNumber from 'bignumber.js';
 import { useNavigate } from 'react-router';
 import { formatBalance } from '@shared/modules/string-utils';
 import { ThemedText } from '../../components/ThemedText';
-import { NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
+import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 
 const Receive: React.FC = () => {
@@ -25,6 +26,12 @@ const Receive: React.FC = () => {
   const tokenInitialRef = useRef<Map<string, string> | null>(null);
   const tokenPollRef = useRef<NodeJS.Timeout | number | null>(null);
   const [sparkTokenReceiveInfo, setSparkTokenReceiveInfo] = useState<{
+    symbol: string;
+    name: string;
+    decimals: number;
+    amountDelta: StringNumber;
+  } | null>(null);
+  const [stacksTokenReceiveInfo, setStacksTokenReceiveInfo] = useState<{
     symbol: string;
     name: string;
     decimals: number;
@@ -122,6 +129,64 @@ const Receive: React.FC = () => {
     };
   }, [accountNumber, network]);
 
+  // Stacks token polling: cache initial holdings and detect increases
+  useEffect(() => {
+    if (network !== NETWORK_STACKS) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const start = async () => {
+      const wallet = await BackgroundCaller.lazyInitWallet(network, accountNumber);
+      if (cancelled) return;
+      if (!(wallet instanceof StacksWallet)) return;
+
+      await wallet.fetchTokenBalances();
+      const initialMap = new Map<string, string>();
+      for (const token of wallet.getTokenBalances()) {
+        initialMap.set(token.id, String(token.balance ?? '0'));
+      }
+      tokenInitialRef.current = initialMap;
+
+      const poll = async () => {
+        const w = await BackgroundCaller.lazyInitWallet(network, accountNumber);
+        if (!(w instanceof StacksWallet)) return;
+        await w.fetchTokenBalances();
+        const currentTokens = w.getTokenBalances();
+        for (const token of currentTokens) {
+          const key = token.id;
+          const current = new BigNumber(String(token.balance ?? '0'));
+          const initial = new BigNumber(tokenInitialRef.current?.get(key) ?? '0');
+          if (current.gt(initial)) {
+            const delta = current.minus(initial).toString(10);
+            setStacksTokenReceiveInfo({
+              symbol: token.symbol,
+              name: token.name,
+              decimals: token.decimals,
+              amountDelta: delta,
+            });
+            if (tokenPollRef.current) {
+              clearInterval(tokenPollRef.current as number);
+            }
+            return;
+          }
+        }
+      };
+
+      tokenPollRef.current = setInterval(poll, 2_000);
+    };
+
+    start();
+
+    return () => {
+      cancelled = true;
+      if (tokenPollRef.current) {
+        clearInterval(tokenPollRef.current as number);
+      }
+    };
+  }, [accountNumber, network]);
+
   // If a SPARK token was received, show dedicated success block (separate from native balance success)
   if (network === NETWORK_SPARK && sparkTokenReceiveInfo) {
     return (
@@ -136,6 +201,48 @@ const Receive: React.FC = () => {
             </ThemedText>
           </h2>
           <div style={{ color: '#666', fontSize: '14px', marginBottom: '4px' }}>{sparkTokenReceiveInfo.name}</div>
+          {getExplorerUrlByNetwork(network) ? (
+            <a
+              href={`${getExplorerUrlByNetwork(network)}/address/${address}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: '#808080',
+                fontSize: '0.7em',
+                textDecoration: 'none',
+                display: 'block',
+                textAlign: 'center',
+                margin: '15px 0',
+                padding: '8px',
+                borderRadius: '5px',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f0f0f0')}
+              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <ThemedText>View on Explorer</ThemedText>
+            </a>
+          ) : null}
+          <WideButton onClick={() => navigate('/')}>Back to Wallet</WideButton>
+        </div>
+      </div>
+    );
+  }
+
+  // If a STACKS token was received, show dedicated success block (separate from native balance success)
+  if (network === NETWORK_STACKS && stacksTokenReceiveInfo) {
+    return (
+      <div style={{ position: 'relative' }}>
+        <ThemedText type="headline">Receive on {network.charAt(0).toUpperCase() + network.slice(1)}</ThemedText>
+
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <div style={{ color: '#4CAF50', fontSize: '48px', marginBottom: '20px' }}>✓</div>
+          <h2 style={{ color: '#4CAF50', marginBottom: '15px' }}>
+            <ThemedText type="headline">
+              Received: +{formatBalance(String(stacksTokenReceiveInfo.amountDelta), stacksTokenReceiveInfo.decimals, 8)} {stacksTokenReceiveInfo.symbol}
+            </ThemedText>
+          </h2>
+          <div style={{ color: '#666', fontSize: '14px', marginBottom: '4px' }}>{stacksTokenReceiveInfo.name}</div>
           {getExplorerUrlByNetwork(network) ? (
             <a
               href={`${getExplorerUrlByNetwork(network)}/address/${address}`}

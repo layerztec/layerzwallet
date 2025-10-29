@@ -140,7 +140,7 @@ export function ProtectedRouteStack() {
         <Stack.Screen name="Changelog" options={{ headerShown: false }} />
         <Stack.Screen name="SeedBackup" options={{ headerShown: false }} />
         <Stack.Screen name="selftest" options={{ title: 'Self Test' }} />
-        <Stack.Screen name="SendArk" options={{ title: 'Send ARK' }} />
+        <Stack.Screen name="SendAccountBased" options={{ headerShown: false }} />
         <Stack.Screen name="SendBtc" options={{ title: 'Send BTC' }} />
         <Stack.Screen name="SendEvm" options={{ title: 'Send' }} />
         <Stack.Screen name="Swap" options={{ headerShown: false }} />

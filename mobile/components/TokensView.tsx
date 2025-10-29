@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useContext } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Image } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -8,7 +8,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
-import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { getTokenIconColor } from '@shared/models/token-list';
 import { formatBalance } from '@shared/modules/string-utils';
@@ -23,7 +23,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
 
   if (!balance && !token.balance) return null;
 
-  let decimalPlaces = 3;
+  let decimalPlaces = token.decimals;
   if (token.name.includes('USD')) {
     decimalPlaces = 2;
   }
@@ -54,6 +54,17 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
         params: { assetId: token.id },
       });
       return;
+    } else if (network === NETWORK_STACKS) {
+      router.push({
+        pathname: '/SendTokenStacks',
+        params: {
+          tokenId: token.id,
+          tokenSymbol: token.symbol,
+          tokenName: token.name,
+          tokenDecimals: token.decimals.toString(),
+        },
+      });
+      return;
     }
 
     router.push({
@@ -66,7 +77,11 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
     <TouchableOpacity style={styles.tokenRow} onPress={goToSend} activeOpacity={0.7}>
       {/* Token Icon */}
       <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
-        <ThemedText style={styles.tokenIconText}>{token?.symbol?.charAt(0) || '?'}</ThemedText>
+        {token.logoURI ? (
+          <Image source={{ uri: token.logoURI }} style={styles.tokenIconImage} resizeMode="cover" />
+        ) : (
+          <ThemedText style={styles.tokenIconText}>{token?.symbol?.charAt(0) || '?'}</ThemedText>
+        )}
       </View>
 
       {/* Token Name */}
@@ -148,6 +163,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
+  },
+  tokenIconImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 19,
   },
   tokenIconText: {
     fontSize: 16,

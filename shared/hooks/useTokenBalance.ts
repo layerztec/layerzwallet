@@ -2,12 +2,13 @@ import useSWR from 'swr';
 import assert from 'assert';
 import { ethers } from 'ethers';
 
-import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { getIsEVM, getRpcProvider } from '../models/network-getters';
 import { SparkWallet } from '../class/wallets/spark-wallet';
 import { BreezWallet } from '../class/wallets/breez-wallet';
+import { StacksWallet } from '../class/wallets/stacks-wallet';
 
 interface tokenBalanceFetcherArg {
   cacheKey: string;
@@ -37,6 +38,16 @@ export const tokenBalanceFetcher = async (arg: tokenBalanceFetcherArg): Promise<
       const tokenBalances = wallet.getTokenBalances();
       for (const value of tokenBalances.values()) {
         if (value.tokenMetadata.tokenPublicKey === tokenContractAddress) {
+          return String(value.balance);
+        }
+      }
+      return undefined;
+    } else if (network === NETWORK_STACKS) {
+      const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof StacksWallet, 'Not a Stacks wallet');
+      const tokenBalances = wallet.getTokenBalances();
+      for (const value of tokenBalances.values()) {
+        if (value.id === tokenContractAddress) {
           return String(value.balance);
         }
       }

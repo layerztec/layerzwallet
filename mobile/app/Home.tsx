@@ -42,6 +42,7 @@ import {
   NETWORK_LIQUID_TESTNET,
   NETWORK_ROOTSTOCK,
   NETWORK_SPARK,
+  NETWORK_STACKS,
   NETWORK_USDT,
   Networks,
 } from '@shared/types/networks';
@@ -151,7 +152,8 @@ export default function Home() {
       case NETWORK_ARK:
       case NETWORK_SPARK:
       case NETWORK_ARK_MUTINYNET:
-        router.push('/SendArk');
+      case NETWORK_STACKS:
+        router.push('/SendAccountBased');
         break;
       case NETWORK_LIQUID:
       case NETWORK_LIQUID_TESTNET:

@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { AllNetworkInfos } from '../models/all-network-infos';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
@@ -17,6 +18,7 @@ import {
   NETWORK_LIQUID_TESTNET,
   NETWORK_ROOTSTOCK,
   NETWORK_SPARK,
+  NETWORK_STACKS,
   NETWORK_USDT,
   Networks,
 } from '../types/networks';
@@ -65,6 +67,12 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
     if (network === NETWORK_SPARK) {
       const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
       assert(wallet instanceof SparkWallet, 'Not a Spark wallet');
+      return await wallet.getCommonTransactions();
+    }
+
+    if (network === NETWORK_STACKS) {
+      const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof StacksWallet, 'Not a Stacks wallet');
       return await wallet.getCommonTransactions();
     }
 
