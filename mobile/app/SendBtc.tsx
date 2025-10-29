@@ -251,7 +251,7 @@ const SendBtc: React.FC = () => {
               {xArkSwapTo ? (
                 <ThemedText style={styles.successSubMessage}>
                   {xArkSwapTo === NETWORK_SPARK ? 'Spark swap ' : 'Ark swap '}
-                  initiated! Wait for 3 confirmations, then you will be able to claim the funds on the
+                  initiated! Wait for {xArkSwapTo === NETWORK_SPARK ? '3 confirmations' : '1 confirmation'}, then you will be able to claim the funds on the
                   {xArkSwapTo === NETWORK_SPARK ? ' Spark' : ' Ark'} network.
                 </ThemedText>
               ) : (

@@ -10,7 +10,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
-import { getDecimalsByNetwork, getExplorerUrlByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { getTokenInfo, getTokenIconColor } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
@@ -250,7 +250,7 @@ export default function TransactionDetails() {
         </View>
 
         {/* Open in explorer */}
-        <TouchableOpacity disabled={!getExplorerUrlByNetwork(network)} style={[styles.explorerButton, !getExplorerUrlByNetwork(network) && { opacity: 0.6 }]} onPress={handleOpenInExplorer}>
+        <TouchableOpacity disabled={!transaction.explorerUrl} style={[styles.explorerButton, !transaction.explorerUrl && { opacity: 0.6 }]} onPress={handleOpenInExplorer}>
           <ThemedText style={styles.explorerText}>Open in explorer</ThemedText>
         </TouchableOpacity>
       </View>
