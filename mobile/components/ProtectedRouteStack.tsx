@@ -143,6 +143,7 @@ export function ProtectedRouteStack() {
         <Stack.Screen name="SendAccountBased" options={{ headerShown: false }} />
         <Stack.Screen name="SendBtc" options={{ title: 'Send BTC' }} />
         <Stack.Screen name="SendEvm" options={{ title: 'Send' }} />
+        <Stack.Screen name="send" options={{ headerShown: false }} />
         <Stack.Screen name="Swap" options={{ headerShown: false }} />
         <Stack.Screen
           name="SwapTarget"

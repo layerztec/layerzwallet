@@ -169,4 +169,16 @@ export const BackgroundCaller: IBackgroundCaller = {
     }
     return null;
   },
+
+  async validateAddress(...params) {
+    // for spark we handle it here
+    const [network, accountNumber, address] = params;
+    if (network === NETWORK_SPARK) {
+      const wallet = await BackgroundCaller.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof SparkWallet);
+      return wallet.isAddressValid(address);
+    }
+
+    return await Messenger.sendGenericMessageToBackground(MessageType.VALIDATE_ADDRESS, params);
+  },
 };

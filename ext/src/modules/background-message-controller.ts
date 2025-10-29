@@ -21,7 +21,7 @@ type TBackgroundMessage = { [K in keyof MessageTypeMap]: { type: K; params: Mess
 // Function type for sending a response from background
 type TSendResponse = (response: MessageTypeMap[keyof MessageTypeMap]['response'] | { error: true; message: string }) => void;
 // Allowed method names for background executor
-type TMethods = 'getAddress' | 'saveMnemonic' | 'createMnemonic' | 'getBtcBalance' | 'encryptMnemonic' | 'getBtcSendData' | 'clear' | 'getMasterSeed' | 'setMasterSeed';
+type TMethods = 'getAddress' | 'saveMnemonic' | 'createMnemonic' | 'getBtcBalance' | 'encryptMnemonic' | 'getBtcSendData' | 'clear' | 'getMasterSeed' | 'setMasterSeed' | 'validateAddress';
 
 async function handleOpenPopup([method, params, id, from]: OpenPopupRequest, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) {
   if (!sender.tab?.id) {
@@ -180,6 +180,24 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
   async clear() {
     clearWalletCache();
   },
+
+  async validateAddress(network, accountNumber, address) {
+    if (network === NETWORK_BITCOIN) {
+      const wallet = await lazyInitWallet(network, accountNumber, LayerzStorage, SecureStorage);
+      assert(wallet instanceof WatchOnlyWallet);
+      return wallet.isAddressValid(address);
+    } else if (network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET) {
+      const wallet = await lazyInitWallet(network, accountNumber, LayerzStorage, SecureStorage);
+      assert(wallet instanceof ArkWallet);
+      return wallet.isAddressValid(address);
+    } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
+      const wallet = await lazyInitWallet(network, accountNumber, LayerzStorage, SecureStorage);
+      assert(wallet instanceof BreezWallet);
+      throw new Error('Not implemented');
+    } else {
+      throw new Error('Invalid network');
+    }
+  },
 };
 
 const callBackgroundMethod = async (method: Function, params: any, sendResponse: Function) => {
@@ -203,6 +221,7 @@ const MessageHandlerMap = {
   [MessageType.CLEAR]: BackgroundExtensionExecutor.clear,
   [MessageType.GET_MASTER_SEED]: BackgroundExtensionExecutor.getMasterSeed,
   [MessageType.SET_MASTER_SEED]: BackgroundExtensionExecutor.setMasterSeed,
+  [MessageType.VALIDATE_ADDRESS]: BackgroundExtensionExecutor.validateAddress,
 };
 
 export function handleMessage(msg: TBackgroundMessage, sender: chrome.runtime.MessageSender, sendResponse: TSendResponse) {
