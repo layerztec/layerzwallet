@@ -7,13 +7,14 @@ import { CachedTokenInfo } from '../../types/token-info';
 import { CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_STACKS } from '../../types/networks';
 import { IStorage } from '../../types/IStorage';
+import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 
 const sbtcId = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token::sbtc-token';
 const baseUrl = 'https://api.mainnet.hiro.so';
 
 const STORAGE_KEY = 'STACKS_TOKEN_METADATA';
 
-export class StacksWallet {
+export class StacksWallet implements InterfaceAccountBasedWallet {
   private _accountNumber: number = 0;
   private _sdkWallet: SdkWallet | undefined = undefined;
   private secret: string = '';
@@ -136,7 +137,7 @@ export class StacksWallet {
   /**
    * returning sBTC balance, which is technically a token, NOT a native balance (STX)
    */
-  public async getBalance() {
+  public async getOffchainBalance(): Promise<number> {
     const address = await this.getOffchainReceiveAddress();
     assert(address, 'Stacks address is missing');
 
@@ -153,7 +154,7 @@ export class StacksWallet {
     // we treat sBTC token as main balance for this wallet
     for (const token of ftBalances?.results || []) {
       if (token.token === sbtcId) {
-        return token.balance;
+        return Number(token.balance);
       }
     }
 

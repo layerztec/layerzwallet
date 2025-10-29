@@ -10,7 +10,7 @@ const MAIN_APP_SCREENS = [
   'Settings',
   'Swap',
   'Receive',
-  'SendArk',
+  'SendAccountBased',
   'SendBtc',
   'SendEvm',
   'Transactions',

@@ -10,6 +10,7 @@ import { NETWORK_BITCOIN, NETWORK_SPARK } from '../../types/networks';
 import * as BlueElectrum from '../../blue_modules/BlueElectrum';
 import { CommonSwap } from '../../types/common-swap';
 import { AllNetworkInfos } from '../../models/all-network-infos';
+import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 
 // copypasted from `node_modules/@buildonspark/spark-sdk/dist/...` since its not exported
 type Bech32mTokenIdentifier = `btkn1${string}` | `btknrt1${string}` | `btknt1${string}` | `btkns1${string}` | `btknl1${string}`;
@@ -21,7 +22,7 @@ export interface ISparkAdapter {
 // not exposed in the SDK
 export type StaticDepositQuoteOutput = Awaited<ReturnType<SDK['getClaimStaticDepositQuote']>>;
 
-export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
+export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet {
   private _sdkWallet: Awaited<ReturnType<typeof SDK.initialize>>['wallet'] | undefined = undefined;
   protected adapter: ISparkAdapter;
 
@@ -100,7 +101,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet {
     return transfer.id;
   }
 
-  async getOffchainBalance() {
+  async getOffchainBalance(): Promise<number> {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
     const balance = await this._sdkWallet.getBalance();
     this._lastBalanceFetch = Date.now();

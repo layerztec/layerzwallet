@@ -152,7 +152,8 @@ export default function Home() {
       case NETWORK_ARK:
       case NETWORK_SPARK:
       case NETWORK_ARK_MUTINYNET:
-        router.push('/SendArk');
+      case NETWORK_STACKS:
+        router.push('/SendAccountBased');
         break;
       case NETWORK_LIQUID:
       case NETWORK_LIQUID_TESTNET:
@@ -161,9 +162,6 @@ export default function Home() {
       case NETWORK_LIGHTNING:
       case NETWORK_LIGHTNING_TESTNET:
         router.push('/SendLightning');
-        break;
-      case NETWORK_STACKS:
-        router.push('/SendArk');
         break;
       default:
         router.push('/SendEvm');
