@@ -25,7 +25,7 @@ interface DAppBrowserTabsProps {
   onSwitchTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
   getTabTitle: (url: string) => string;
-  onEnsurePreview: (tabId: string) => void | Promise<void>;
+  onEnsurePreview: (tabId: string, forceReload?: boolean) => void | Promise<void>;
 }
 
 export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({ tabs, animatedStyle, pointerEvents, onSwitchTab, onCloseTab, getTabTitle, onEnsurePreview }) => {
@@ -46,8 +46,8 @@ export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({ tabs, animated
                   onCloseTab(tab.id);
                 }}
                 getTabTitle={getTabTitle}
-                onEnsurePreview={() => {
-                  void onEnsurePreview(tab.id);
+                onEnsurePreview={(forceReload) => {
+                  void onEnsurePreview(tab.id, forceReload);
                 }}
               />
             ))}

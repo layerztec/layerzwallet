@@ -1,6 +1,5 @@
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import * as FileSystem from 'expo-file-system';
-import { File as ExpoFsFile, Directory } from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { captureRef } from 'react-native-view-shot';
 
@@ -15,126 +14,80 @@ type ScreenshotManifest = { [tabId: string]: ScreenshotManifestEntry };
 
 const SCREENSHOT_MANIFEST_KEY = '@browser_screenshot_manifest';
 const MAX_SCREENSHOTS_CACHE = 20;
+const MAX_TOTAL_SIZE = MAX_SCREENSHOTS_CACHE * 500 * 1024;
 const SCREENSHOT_EXPIRE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const getScreenshotDir = (): string | null => {
-  try {
-    const cacheDir = (FileSystem as any).cacheDirectory;
-    const docDir = (FileSystem as any).documentDirectory;
-
-    const base = cacheDir || docDir;
-
-    if (!base || typeof base !== 'string') {
-      return null;
-    }
-
-    if (!base.startsWith('file://')) {
-      return null;
-    }
-
-    const dir = `${base.endsWith('/') ? base : base + '/'}browser_screens/`;
-    return dir;
-  } catch (error) {
-    console.error('[WebViewPreviewManager] Error getting screenshot directory', error);
-    return null;
-  }
+  const base = (FileSystem as any).cacheDirectory || (FileSystem as any).documentDirectory;
+  if (!base || !base.startsWith('file://')) return null;
+  return `${base.endsWith('/') ? base : base + '/'}browser_screens/`;
 };
 
-const isValidFileUri = (uri: string): boolean => {
-  return typeof uri === 'string' && uri.length > 0 && uri.startsWith('file://');
-};
+const isValidFileUri = (uri: string): boolean => uri?.startsWith('file://');
 
 export const useWebViewPreviewManager = (onError?: (reason: string) => void) => {
   const loadManifest = useCallback(async (): Promise<ScreenshotManifest> => {
     try {
       const manifestJson = await AsyncStorage.getItem(SCREENSHOT_MANIFEST_KEY);
-      if (!manifestJson) return {};
-      return JSON.parse(manifestJson);
-    } catch (error) {
-      console.error('[WebViewPreviewManager] Failed to load manifest:', error);
-      onError?.('loadManifest error');
+      return manifestJson ? JSON.parse(manifestJson) : {};
+    } catch {
       return {};
     }
-  }, [onError]);
+  }, []);
 
-  const saveManifest = useCallback(
-    async (manifest: ScreenshotManifest) => {
-      try {
-        await AsyncStorage.setItem(SCREENSHOT_MANIFEST_KEY, JSON.stringify(manifest));
-      } catch (error) {
-        console.error('[WebViewPreviewManager] Failed to save manifest:', error);
-        onError?.('saveManifest error');
-      }
-    },
-    [onError]
-  );
+  const saveManifest = useCallback(async (manifest: ScreenshotManifest) => {
+    try {
+      await AsyncStorage.setItem(SCREENSHOT_MANIFEST_KEY, JSON.stringify(manifest));
+    } catch {}
+  }, []);
 
   const ensureDirectory = useCallback(async () => {
     try {
       const dir = getScreenshotDir();
-      if (!dir) {
-        return;
-      }
-      const directory = new Directory(dir);
-      if (!directory.exists) {
-        await directory.create();
-        console.debug('[WebViewPreviewManager] Created directory', { dir });
-      }
-    } catch (e) {
-      console.error('[WebViewPreviewManager] Failed to ensure directory:', e);
-    }
+      if (!dir) return;
+      const directory = new FileSystem.Directory(dir);
+      if (!directory.exists) await directory.create();
+    } catch {}
   }, []);
 
-  const pruneExpired = useCallback(async (manifest: ScreenshotManifest): Promise<ScreenshotManifest> => {
+  const deleteFile = async (key: string) => {
+    try {
+      await new FileSystem.File(key).delete();
+    } catch {}
+  };
+
+  const pruneCache = useCallback(async (manifest: ScreenshotManifest, newSize: number = 0): Promise<ScreenshotManifest> => {
     const now = Date.now();
     const entries = Object.entries(manifest);
     const pruned: ScreenshotManifest = {};
+    let totalSize = 0;
 
-    for (const [id, entry] of entries) {
+    // Remove expired entries
+    const validEntries = entries.filter(([, entry]) => {
       const isExpired = now - entry.timestamp > SCREENSHOT_EXPIRE_MS;
       if (isExpired) {
-        console.debug('[WebViewPreviewManager] Pruning expired screenshot', { tabId: id });
-        try {
-          const file = new ExpoFsFile(entry.key);
-          await file.delete();
-        } catch {}
-      } else {
-        pruned[id] = entry;
+        deleteFile(entry.key);
+        return false;
       }
+      totalSize += entry.size;
+      return true;
+    });
+
+    // Check if pruning is needed
+    if (validEntries.length < MAX_SCREENSHOTS_CACHE && totalSize + newSize <= MAX_TOTAL_SIZE) {
+      return Object.fromEntries(validEntries);
     }
 
-    return pruned;
-  }, []);
+    // Remove LRU entries
+    validEntries.sort(([, a], [, b]) => a.lastAccessed - b.lastAccessed);
 
-  const pruneLRU = useCallback(async (manifest: ScreenshotManifest, maxSize: number): Promise<ScreenshotManifest> => {
-    const entries = Object.entries(manifest);
-    let totalSize = entries.reduce((acc, [, entry]) => acc + entry.size, 0);
-    const MAX_TOTAL_SIZE = MAX_SCREENSHOTS_CACHE * 500 * 1024;
-
-    if (entries.length < MAX_SCREENSHOTS_CACHE && totalSize <= MAX_TOTAL_SIZE) {
-      return manifest;
-    }
-
-    entries.sort(([, a], [, b]) => a.lastAccessed - b.lastAccessed);
-
-    const pruned: ScreenshotManifest = {};
-    const toDelete: string[] = [];
-
-    for (const [id, entry] of entries) {
-      if (entries.length - toDelete.length > MAX_SCREENSHOTS_CACHE || totalSize + maxSize > MAX_TOTAL_SIZE) {
-        console.debug('[WebViewPreviewManager] Pruning LRU screenshot', { tabId: id });
-        toDelete.push(entry.key);
+    for (const [id, entry] of validEntries) {
+      if (Object.keys(pruned).length >= MAX_SCREENSHOTS_CACHE || totalSize + newSize > MAX_TOTAL_SIZE) {
+        deleteFile(entry.key);
         totalSize -= entry.size;
       } else {
         pruned[id] = entry;
       }
-    }
-
-    for (const key of toDelete) {
-      try {
-        const file = new ExpoFsFile(key);
-        await file.delete();
-      } catch {}
     }
 
     return pruned;
@@ -146,59 +99,36 @@ export const useWebViewPreviewManager = (onError?: (reason: string) => void) => 
         let manifest = await loadManifest();
         await ensureDirectory();
 
-        const previous = manifest[tabId];
-        if (previous?.key) {
-          try {
-            const file = new ExpoFsFile(previous.key);
-            await file.delete();
-          } catch {}
-        }
+        // Delete previous screenshot
+        if (manifest[tabId]?.key) await deleteFile(manifest[tabId].key);
 
         const base64 = screenshotData.startsWith('data:') ? screenshotData.split(',')[1] || '' : screenshotData;
         const dir = getScreenshotDir();
-        if (!dir) {
-          return null;
-        }
+        if (!dir) return null;
 
-        const filename = `tab_${tabId}_${Date.now()}.png`;
-        const fileUri = dir + filename;
-
-        if (!isValidFileUri(fileUri)) {
-          return null;
-        }
+        const fileUri = `${dir}tab_${tabId}_${Date.now()}.png`;
+        if (!isValidFileUri(fileUri)) return null;
 
         const estimatedSize = Math.floor(base64.length * 0.75);
 
-        manifest = await pruneExpired(manifest);
-        manifest = await pruneLRU(manifest, estimatedSize);
+        // Prune cache before saving
+        manifest = await pruneCache(manifest, estimatedSize);
 
-        const screenshotFile = new ExpoFsFile(fileUri);
-        await screenshotFile.write(base64, { encoding: 'base64' as const });
+        // Write file
+        await new FileSystem.File(fileUri).write(base64, { encoding: 'base64' });
 
+        // Update manifest
         const now = Date.now();
-        manifest[tabId] = {
-          key: fileUri,
-          size: estimatedSize,
-          timestamp: now,
-          lastAccessed: now,
-        };
-
+        manifest[tabId] = { key: fileUri, size: estimatedSize, timestamp: now, lastAccessed: now };
         await saveManifest(manifest);
 
-        console.debug('[WebViewPreviewManager] Screenshot saved', {
-          tabId,
-          size: estimatedSize,
-          cacheCount: Object.keys(manifest).length,
-        });
-
         return fileUri;
-      } catch (error: any) {
-        console.error('[WebViewPreviewManager] Failed to save screenshot:', error);
+      } catch {
         onError?.('saveScreenshot error');
         return null;
       }
     },
-    [loadManifest, saveManifest, ensureDirectory, pruneExpired, pruneLRU, onError]
+    [loadManifest, saveManifest, ensureDirectory, pruneCache, onError]
   );
 
   const load = useCallback(
@@ -207,48 +137,29 @@ export const useWebViewPreviewManager = (onError?: (reason: string) => void) => 
         const manifest = await loadManifest();
         const entry = manifest[tabId];
 
-        if (!entry) {
-          return null;
-        }
-
-        if (!isValidFileUri(entry.key)) {
-          delete manifest[tabId];
-          await saveManifest(manifest);
-          return null;
-        }
+        if (!entry || !isValidFileUri(entry.key)) return null;
 
         const now = Date.now();
-        if (now - entry.timestamp > SCREENSHOT_EXPIRE_MS) {
-          console.debug('[WebViewPreviewManager] Screenshot expired', { tabId });
-          try {
-            const file = new ExpoFsFile(entry.key);
-            await file.delete();
-          } catch {}
+        const isExpired = now - entry.timestamp > SCREENSHOT_EXPIRE_MS;
+        const file = new FileSystem.File(entry.key);
+
+        if (isExpired || !file.exists) {
+          await deleteFile(entry.key);
           delete manifest[tabId];
           await saveManifest(manifest);
           return null;
         }
 
-        const file = new ExpoFsFile(entry.key);
-        if (!file.exists) {
-          console.debug('[WebViewPreviewManager] Screenshot file missing', { tabId });
-          delete manifest[tabId];
-          await saveManifest(manifest);
-          return null;
-        }
-
+        // Update last accessed time (don't await to avoid blocking)
         entry.lastAccessed = now;
-        manifest[tabId] = entry;
-        await saveManifest(manifest);
+        saveManifest(manifest);
 
         return entry.key;
-      } catch (error) {
-        console.error('[WebViewPreviewManager] Failed to load screenshot:', error);
-        onError?.('loadScreenshot error');
+      } catch {
         return null;
       }
     },
-    [loadManifest, saveManifest, onError]
+    [loadManifest, saveManifest]
   );
 
   const remove = useCallback(
@@ -256,34 +167,19 @@ export const useWebViewPreviewManager = (onError?: (reason: string) => void) => 
       try {
         const manifest = await loadManifest();
         const entry = manifest[tabId];
-
-        if (entry) {
-          if (isValidFileUri(entry.key)) {
-            try {
-              const file = new ExpoFsFile(entry.key);
-              await file.delete();
-            } catch (deleteError) {}
-          }
-
+        if (entry?.key) {
+          await deleteFile(entry.key);
           delete manifest[tabId];
           await saveManifest(manifest);
         }
-      } catch (error) {
-        console.error('[WebViewPreviewManager] Failed to delete screenshot:', error);
-        onError?.('deleteScreenshot error');
-      }
+      } catch {}
     },
-    [loadManifest, saveManifest, onError]
+    [loadManifest, saveManifest]
   );
 
   const capture = useCallback(
     async (containerRef: React.RefObject<any>, tabId: string): Promise<string | null> => {
-      if (!containerRef?.current) {
-        console.debug('[WebViewPreviewManager] Capture skipped - no container', { tabId });
-        return null;
-      }
-
-      // Delay removed - caller should handle timing via captureTabScreenshot delay parameter
+      if (!containerRef?.current) return null;
 
       try {
         const base64 = await captureRef(containerRef.current, {
@@ -293,23 +189,13 @@ export const useWebViewPreviewManager = (onError?: (reason: string) => void) => 
           width: 360,
         });
         const dataUrl = `data:image/png;base64,${base64}`;
-
-        const fileUri = await save(tabId, dataUrl);
-        return fileUri || dataUrl;
-      } catch (error: any) {
-        if (error?.code !== 'EUNSPECIFIED') {
-        }
+        return (await save(tabId, dataUrl)) || dataUrl;
+      } catch {
         return null;
       }
     },
     [save]
   );
 
-  return {
-    save,
-    load,
-    remove,
-    capture,
-    ensureDirectory,
-  };
+  return { save, load, remove, capture, ensureDirectory };
 };

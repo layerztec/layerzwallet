@@ -22,7 +22,7 @@ interface DAppBrowserTabItemProps {
   onPress: () => void;
   onClose: () => void;
   getTabTitle: (url: string) => string;
-  onEnsurePreview: () => void;
+  onEnsurePreview: (forceReload?: boolean) => void;
 }
 
 export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, index, onPress, onClose, onEnsurePreview }) => {
@@ -75,6 +75,8 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, ind
             resizeMode="cover"
             onError={() => {
               setImageError(true);
+              // Try to reload from storage if the screenshot URI is invalid
+              onEnsurePreview(true);
             }}
           />
         ) : (

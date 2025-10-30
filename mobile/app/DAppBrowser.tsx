@@ -172,6 +172,7 @@ const DAppBrowser: React.FC = () => {
   const isManualNavigation = useRef<boolean>(false);
   const lastManualNavigationUrl = useRef<string | undefined>(undefined);
   const loadingScreenshotsRef = useRef<Set<string>>(new Set());
+  const tabsNeedingScreenshotsRef = useRef<Set<string>>(new Set());
 
   const setAddressBarValue = useCallback((value: string, options?: { ensureStartVisible?: boolean }) => {
     setAddressInput(value);
@@ -521,11 +522,7 @@ const DAppBrowser: React.FC = () => {
   );
 
   const ensureTabPreview = useCallback(
-    async (tabId: string) => {
-      if (loadingScreenshotsRef.current.has(tabId)) {
-        return;
-      }
-
+    async (tabId: string, forceReload = false) => {
       let shouldProceed = false;
       let hasScreenshot = false;
 
@@ -536,32 +533,37 @@ const DAppBrowser: React.FC = () => {
         return prev;
       });
 
-      if (!shouldProceed || hasScreenshot) {
+      if (!shouldProceed || (hasScreenshot && !forceReload)) {
         return;
       }
 
-      loadingScreenshotsRef.current.add(tabId);
+      // Try to load from storage first
+      const storedScreenshot = await screenshots.load(tabId);
+      if (storedScreenshot) {
+        setTabs((prev) => {
+          const stillExists = prev.find((t) => t.id === tabId);
+          if (!stillExists) return prev;
 
-      try {
-        const storedScreenshot = await screenshots.load(tabId);
-        if (storedScreenshot) {
-          setTabs((prev) => {
-            const stillExists = prev.find((t) => t.id === tabId);
-            if (!stillExists) return prev;
+          return prev.map((currentTab) =>
+            currentTab.id === tabId
+              ? {
+                  ...currentTab,
+                  screenshot: storedScreenshot,
+                }
+              : currentTab
+          );
+        });
+      } else {
+        // If no stored screenshot, mark tab as needing one and trigger reload
+        if (!tabsNeedingScreenshotsRef.current.has(tabId)) {
+          tabsNeedingScreenshotsRef.current.add(tabId);
 
-            return prev.map((currentTab) =>
-              currentTab.id === tabId
-                ? {
-                    ...currentTab,
-                    screenshot: storedScreenshot,
-                  }
-                : currentTab
-            );
-          });
+          // Try forcing the WebView to load by triggering a reload
+          const webviewRef = tabWebViewRefs.current[tabId];
+          if (webviewRef?.current) {
+            webviewRef.current.reload();
+          }
         }
-      } catch (error: any) {
-      } finally {
-        loadingScreenshotsRef.current.delete(tabId);
       }
     },
     [screenshots]
@@ -622,20 +624,6 @@ const DAppBrowser: React.FC = () => {
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
   }, [activeTabId, captureTabScreenshot]);
-
-  // Ensure first tab gets a screenshot after initial load
-  useEffect(() => {
-    if (isRestoringTabs || !activeTabId) return;
-
-    const timer = setTimeout(async () => {
-      const tab = tabs.find((t) => t.id === activeTabId);
-      if (tab && !tab.screenshot) {
-        await captureTabScreenshot(activeTabId, BROWSER_CONSTANTS.TIMEOUTS.POST_LOAD_CAPTURE);
-      }
-    }, BROWSER_CONSTANTS.TIMEOUTS.POST_LOAD_CAPTURE + 500);
-
-    return () => clearTimeout(timer);
-  }, [isRestoringTabs, activeTabId, tabs, captureTabScreenshot]);
 
   useEffect(() => {
     if (params.url && !isRestoringTabs && tabs.length > 0 && lastHandledUrl.current !== params.url) {
@@ -788,11 +776,22 @@ const DAppBrowser: React.FC = () => {
     tabsOpacity.value = withTiming(1, { duration: BROWSER_CONSTANTS.ANIMATION.STANDARD });
     addressBarTranslateY.value = withTiming(-120, { duration: BROWSER_CONSTANTS.ANIMATION.STANDARD });
 
+    // Capture current tab screenshot
     if (activeTabId) {
       captureTabScreenshot(activeTabId).catch(() => {});
     }
 
-    tabs.forEach((tab, index) => {});
+    // Ensure all tabs have screenshots (stagger to avoid overwhelming the system)
+    tabs.forEach((tab, index) => {
+      if (!tab.screenshot) {
+        setTimeout(
+          () => {
+            ensureTabPreview(tab.id, false).catch(() => {});
+          },
+          500 + index * 300
+        ); // Start after 500ms, then 300ms delay between each tab
+      }
+    });
   };
 
   const hideTabsOverview = () => {
@@ -980,6 +979,19 @@ const DAppBrowser: React.FC = () => {
       });
     },
     [progressWidth, progressOpacity, activeTabId, captureTabScreenshot]
+  );
+
+  const handleInactiveTabLoad = useCallback(
+    async (tabId: string) => {
+      // Check if this tab needs a screenshot
+      if (tabsNeedingScreenshotsRef.current.has(tabId)) {
+        tabsNeedingScreenshotsRef.current.delete(tabId);
+        // Wait a bit for the page to render
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await captureTabScreenshot(tabId, 0);
+      }
+    },
+    [captureTabScreenshot]
   );
 
   const handleNavigationStateChange = useCallback(
@@ -1188,6 +1200,13 @@ const DAppBrowser: React.FC = () => {
                         onMessage={isActive ? handleMessage : undefined}
                         onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
                         onLoadProgress={isActive ? handleLoadProgress : undefined}
+                        onLoadEnd={
+                          !isActive
+                            ? () => {
+                                handleInactiveTabLoad(tab.id);
+                              }
+                            : undefined
+                        }
                         injectedJavaScriptBeforeContentLoaded={js}
                         style={styles.webviewVisible}
                         incognito={false}
