@@ -8,9 +8,10 @@ import GradientScreen from '@/components/GradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
+import { getNetworkGradient } from '@shared/constants/Colors';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
+import { formatBalance } from '@shared/modules/string-utils';
 import { useSendFlow } from './_layout';
 
 const SendConfirm: React.FC = () => {
@@ -25,16 +26,27 @@ const SendConfirm: React.FC = () => {
   const createdTransaction = bitcoin?.createdTransaction;
   const txhex = createdTransaction?.txhex || '';
   const actualFee = createdTransaction?.actualFee || 0;
-  const usdValue = exchangeRate ? formatFiatBalance(amount || '0', 0, Number(exchangeRate)) + ' USD' : '';
-  const usdFee = exchangeRate
-    ? formatFiatBalance(
-        BigNumber(actualFee)
-          .dividedBy(new BigNumber(10).pow(getDecimalsByNetwork(network)))
-          .toString() || '0',
-        0,
-        Number(exchangeRate)
-      ) + ' USD'
+  const feeInNative = formatBalance(String(actualFee), getDecimalsByNetwork(network), 8);
+  const decimals = getDecimalsByNetwork(network);
+
+  // Get network-specific background color
+  const networkGradient = getNetworkGradient(network);
+  const networkBackgroundColor = networkGradient[0]; // Use the first (darker) color from the gradient
+
+  // USD conversions - amount is already in native units (BTC), fee is in base units (sats)
+  const usdValue = exchangeRate
+    ? `$${BigNumber(amount || '0')
+        .multipliedBy(Number(exchangeRate))
+        .toFixed(2)}`
     : '';
+  const feeInNativeUnits = BigNumber(actualFee).dividedBy(new BigNumber(10).pow(decimals));
+  const usdFee = exchangeRate ? `$${feeInNativeUnits.multipliedBy(Number(exchangeRate)).toFixed(2)}` : '';
+
+  // Calculate total (amount + fee)
+  const totalAmount = BigNumber(amount || '0').plus(feeInNativeUnits);
+
+  // Calculate total USD
+  const totalUsd = exchangeRate ? `$${totalAmount.multipliedBy(Number(exchangeRate)).toFixed(2)}` : '';
 
   // Redirect back if no transaction is available
   if (!createdTransaction) {
@@ -72,22 +84,42 @@ const SendConfirm: React.FC = () => {
 
   const formatAddressWithOpacity = (addr: string) => {
     if (!addr) return null;
-    const groups = addr.match(/.{1,4}/g) || [];
+    if (addr.length < 8) return <ThemedText style={styles.addressDisplay}>{addr}</ThemedText>;
+
+    // Split address in half
+    const midpoint = Math.floor(addr.length / 2);
+    const firstHalf = addr.substring(0, midpoint);
+    const secondHalf = addr.substring(midpoint);
+
+    // Highlight first 4 and last 4 characters
+    const first4 = addr.substring(0, 4);
+    const last4 = addr.substring(addr.length - 4);
+
+    const nonBreakingSpace = '\u00A0';
 
     return (
-      <>
-        {groups.map((group, index) => {
-          const isFirstOrLast = index === 0 || index === groups.length - 1;
-          const opacity = isFirstOrLast ? 1 : 0.6;
-
-          return (
-            <ThemedText key={index} style={[styles.addressDisplay, { opacity }]}>
-              {group}
-              {index < groups.length - 1 && ' '}
-            </ThemedText>
-          );
-        })}
-      </>
+      <View style={styles.addressContainer}>
+        {/* First line - contains first 4 chars */}
+        <ThemedText style={styles.addressDisplay} allowFontScaling={false}>
+          <ThemedText style={[styles.addressHighlight, styles.addressLetterSpacing]} allowFontScaling={false}>
+            {first4}
+          </ThemedText>
+          <ThemedText style={[styles.addressDisplay, styles.addressLetterSpacing]} allowFontScaling={false}>
+            {nonBreakingSpace}
+            {firstHalf.substring(4)}
+          </ThemedText>
+        </ThemedText>
+        {/* Second line - contains last 4 chars */}
+        <ThemedText style={styles.addressDisplay} allowFontScaling={false}>
+          <ThemedText style={[styles.addressDisplay, styles.addressLetterSpacing]} allowFontScaling={false}>
+            {secondHalf.substring(0, secondHalf.length - 4)}
+            {nonBreakingSpace}
+          </ThemedText>
+          <ThemedText style={[styles.addressHighlight, styles.addressLetterSpacing]} allowFontScaling={false}>
+            {last4}
+          </ThemedText>
+        </ThemedText>
+      </View>
     );
   };
 
@@ -126,39 +158,59 @@ const SendConfirm: React.FC = () => {
             </View>
           ) : (
             <>
-              <View style={styles.transactionDetails}>
-                <View style={styles.detailRow}>
-                  <ThemedText style={styles.detailLabel}>Amount</ThemedText>
-                  <View style={styles.amountContainer}>
-                    <ThemedText style={styles.detailValue}>
-                      {amount} {getTickerByNetwork(network)}
-                    </ThemedText>
-                    {usdValue && <ThemedText style={styles.usdValue}>{usdValue}</ThemedText>}
-                  </View>
+              {/* Total Section */}
+              <View style={styles.totalSection}>
+                <View style={styles.sectionHeader}>
+                  <ThemedText style={styles.sectionHeaderText}>Total</ThemedText>
                 </View>
-
-                <View style={styles.divider} />
-
-                <View style={styles.detailRow}>
-                  <ThemedText style={styles.detailLabel}>Network Fee</ThemedText>
-                  <View style={styles.amountContainer}>
-                    <ThemedText style={styles.detailValue}>
-                      {formatBalance(String(actualFee), getDecimalsByNetwork(network), 8)} {getTickerByNetwork(network)}
-                    </ThemedText>
-                    {usdFee && <ThemedText style={styles.usdValue}>{usdFee}</ThemedText>}
-                  </View>
-                </View>
-
-                <View style={styles.divider} />
-
-                <View style={styles.detailRow}>
-                  <ThemedText style={styles.detailLabel}>To</ThemedText>
-                  <View style={styles.addressTextContainer}>{formatAddressWithOpacity(address)}</View>
+                <View style={[styles.totalCard, { backgroundColor: networkBackgroundColor }]}>
+                  <ThemedText style={styles.totalAmount}>
+                    {totalAmount.toString()} {getTickerByNetwork(network)}
+                  </ThemedText>
+                  {totalUsd && <ThemedText style={styles.totalUsd}>{totalUsd}</ThemedText>}
                 </View>
               </View>
 
+              {/* Details Section */}
+              <View style={styles.detailsSection}>
+                <View style={styles.sectionHeader}>
+                  <ThemedText style={styles.sectionHeaderText}>Details</ThemedText>
+                </View>
+                <View style={[styles.detailsCard, { backgroundColor: networkBackgroundColor }]}>
+                  <View style={styles.detailRow}>
+                    <ThemedText style={styles.detailLabel}>Amount</ThemedText>
+                    <View style={styles.detailValueContainer}>
+                      <ThemedText style={styles.detailValue}>
+                        {amount} {getTickerByNetwork(network)}
+                      </ThemedText>
+                      {usdValue && <ThemedText style={styles.detailUsd}>{usdValue}</ThemedText>}
+                    </View>
+                  </View>
+
+                  <View style={styles.divider} />
+
+                  <View style={styles.detailRow}>
+                    <ThemedText style={styles.detailLabel}>Network Fee</ThemedText>
+                    <View style={styles.detailValueContainer}>
+                      <ThemedText style={styles.detailValue}>
+                        {feeInNative} {getTickerByNetwork(network)}
+                      </ThemedText>
+                      {usdFee && <ThemedText style={styles.detailUsd}>{usdFee}</ThemedText>}
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* Send to Section */}
+              <View style={styles.sendToSection}>
+                <View style={styles.sectionHeader}>
+                  <ThemedText style={styles.sectionHeaderText}>Send to</ThemedText>
+                </View>
+                <View style={[styles.addressCard, { backgroundColor: networkBackgroundColor }]}>{formatAddressWithOpacity(address)}</View>
+              </View>
+
               <TouchableOpacity style={[styles.sendButton, isBroadcasting && styles.disabledButton]} onPress={broadcast} disabled={isBroadcasting}>
-                <ThemedText style={styles.sendButtonText}>{isBroadcasting ? 'Sending...' : 'Send'}</ThemedText>
+                <ThemedText style={styles.sendButtonText}>{isBroadcasting ? 'Sending...' : 'Confirm Send'}</ThemedText>
               </TouchableOpacity>
             </>
           )}
@@ -172,25 +224,10 @@ const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
   },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 16,
-  },
   container: {
     flex: 1,
     paddingHorizontal: 16,
     justifyContent: 'space-between',
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 20,
-    gap: 12,
-  },
-  loadingText: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 16,
   },
   errorContainer: {
     flex: 1,
@@ -211,58 +248,112 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 24,
   },
-  transactionDetails: {
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+  totalSection: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 18,
+    padding: 2,
+    marginBottom: 32,
+  },
+  sectionHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 2,
+    paddingBottom: 4,
+  },
+  sectionHeaderText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'left',
+  },
+  totalCard: {
     borderRadius: 20,
     paddingVertical: 24,
-    marginBottom: 30,
+    paddingHorizontal: 0,
+    alignItems: 'center',
+    gap: 4,
+  },
+  totalAmount: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+  },
+  totalUsd: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.5)',
+    textAlign: 'center',
+  },
+  detailsSection: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 18,
+    padding: 2,
+    marginBottom: 32,
+  },
+  detailsCard: {
+    borderRadius: 20,
+    paddingVertical: 16,
+  },
+  sendToSection: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 18,
+    padding: 2,
+    marginBottom: 32,
+  },
+  addressCard: {
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    minHeight: 79,
+    justifyContent: 'center',
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingVertical: 0,
+    paddingHorizontal: 16,
   },
   detailLabel: {
     color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 16,
     fontWeight: '400',
   },
+  detailValueContainer: {
+    alignItems: 'flex-end',
+    gap: 2,
+  },
   detailValue: {
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'right',
   },
-  amountContainer: {
-    alignItems: 'flex-end',
-  },
-  usdValue: {
+  detailUsd: {
     color: 'rgba(255, 255, 255, 0.5)',
     fontSize: 16,
-    marginTop: 4,
-  },
-  addressValue: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 16,
-    textAlign: 'right',
-    flex: 1,
-    marginLeft: 12,
+    fontWeight: '400',
   },
   addressDisplay: {
-    textAlign: 'center',
+    fontFamily: 'monospace',
     lineHeight: 24,
     color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 16,
+    fontSize: 18,
+    textAlign: 'center',
+    flexShrink: 0,
   },
-  addressTextContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
+  addressHighlight: {
+    color: 'rgb(255, 255, 255)',
+  },
+  addressLetterSpacing: {
+    letterSpacing: 1.6,
+  },
+  addressContainer: {
     alignItems: 'center',
-    flex: 1,
-    marginLeft: 12,
+    justifyContent: 'center',
+    width: '100%',
+    maxWidth: 380,
+    alignSelf: 'center',
   },
   divider: {
     height: 1,
@@ -278,6 +369,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 8,
     marginTop: 'auto',
+    height: 56,
   },
   sendButtonText: {
     color: 'rgba(255, 255, 255, 0.9)',
