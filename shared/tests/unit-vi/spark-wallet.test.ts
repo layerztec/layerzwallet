@@ -137,7 +137,7 @@ describe('Spark Wallet', () => {
     wallet.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
     await wallet.init();
     const address = await wallet.getOffchainReceiveAddress();
-    assert.strictEqual(address, 'sp1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym094800574233rzd');
+    assert.strictEqual(address, 'spark1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym094800574x5numh');
   });
 
   it('can get offchain receive address (account 0)', async () => {
@@ -146,7 +146,7 @@ describe('Spark Wallet', () => {
     wallet.setAccountNumber(0);
     await wallet.init();
     const address = await wallet.getOffchainReceiveAddress();
-    assert.strictEqual(address, 'sp1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym094800574233rzd');
+    assert.strictEqual(address, 'spark1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym094800574x5numh');
   });
 
   it('can set account number', async () => {

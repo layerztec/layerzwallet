@@ -16,10 +16,9 @@ import type {
   SendPaymentResponse,
 } from '@breeztech/breez-sdk-liquid';
 import bolt11 from 'bolt11';
-import * as bip21 from 'bip21';
 
 import { createLightningInvoiceResponse, InterfaceLightningWallet } from './interface-lightning-wallet';
-import { CommonTokenTransfer, CommonTransaction } from '@shared/types/common-transaction';
+import { CommonTransaction } from '@shared/types/common-transaction';
 import { getTokenInfo, getTokenList } from '@shared/models/token-list';
 import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET } from '@shared/types/networks';
 

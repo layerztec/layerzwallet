@@ -28,8 +28,11 @@ jobs:
         - .maestro/receive.yml
         - .maestro/restore.yml
         - .maestro/swap.yml
-        #        - .maestro/browser.yml # always fails on CI, passes locally
         - .maestro/biometric-toggle-test.yml
+        - .maestro/send-spark.yml
+        # this flow doesn't work on iOS because maestro doesn't recognize ids in the webview
+        # https://github.com/mobile-dev-inc/Maestro/issues/2293
+        # - .maestro/browser.yml
   upload_build_to_appetize:
     needs: [build_ios_for_e2e]
 

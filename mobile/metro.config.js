@@ -3,6 +3,7 @@ const path = require('path');
 
 const ALIASES = {
   ws: path.resolve(__dirname, './dummy-ws.js'),
+  crypto: require.resolve('crypto-browserify'),
 };
 
 module.exports = (async () => {

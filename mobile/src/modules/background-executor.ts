@@ -19,13 +19,14 @@ import {
 } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, OpenPopupRequest } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_WHITELIST, STORAGE_KEY_SEED_VERIFIED } from '@shared/types/IStorage';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { BrowserBridge } from '../class/browser-bridge';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
 import { SecureStorage } from '../class/secure-storage';
 import { decrypt, encrypt } from '../modules/encryption';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 
 /**
  * A drop-in replacement for BackgroundCaller in `ext` project. Since we have only one js context on mobile,
@@ -68,6 +69,10 @@ export const BackgroundExecutor: IBackgroundCaller = {
     } else if (network === NETWORK_SPARK) {
       const sp = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(sp instanceof SparkWallet);
+      return String(await sp.getOffchainReceiveAddress());
+    } else if (network === NETWORK_STACKS) {
+      const sp = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      assert(sp instanceof StacksWallet);
       return String(await sp.getOffchainReceiveAddress());
     } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
       const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);

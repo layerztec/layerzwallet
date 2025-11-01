@@ -13,6 +13,7 @@ import {
   NETWORK_LIGHTNING,
   NETWORK_LIGHTNING_TESTNET,
   NETWORK_SPARK,
+  NETWORK_STACKS,
 } from '../types/networks';
 
 const primaryColor = '#011474';
@@ -44,6 +45,7 @@ export const gradients = {
   [NETWORK_LIGHTNING_TESTNET]: ['#581C87', '#7C3AED'] as const, // Purple gradient
   [NETWORK_USDT]: ['#058787', '#22AAAA'] as const,
   [NETWORK_SPARK]: ['#05161D', '#1E242E'] as const, // Light gray gradient
+  [NETWORK_STACKS]: ['#7C2D12', '#fc6432'] as const, // orange
 };
 
 export const Colors = {

@@ -15,7 +15,7 @@ describe('SparkWallet', () => {
     w.setSecret(process.env.TEST_MNEMONIC);
     await w.init();
 
-    assert.strictEqual(await w.getOffchainReceiveAddress(), 'sp1pgssx2srkm6344nxzngx9n8stj5uxp544dgm3mrdgpeulr8phutzdx89q62t0n');
+    assert.strictEqual(await w.getOffchainReceiveAddress(), 'spark1pgssx2srkm6344nxzngx9n8stj5uxp544dgm3mrdgpeulr8phutzdx89vlg5kf');
     assert.ok((await w.getOffchainBalance()) >= 1);
     // console.log('balance=', await w.getOffchainBalance());
   });

@@ -1,15 +1,15 @@
 import assert from 'assert';
-import { BIP85 } from 'bip85';
 
 import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
 import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
 import { SparkWallet } from '../class/wallets/spark-wallet';
 import { IStorage, STORAGE_KEY_BTC_XPUB, getSerializedStorageKey } from '../types/IStorage';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
 import { WalletSerializer } from './wallet-serializer';
 import { BreezWallet, getBreezNetwork } from '../class/wallets/breez-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
 import { validateMnemonic } from '../blue_modules/bip39';
+import { StacksWallet } from '../class/wallets/stacks-wallet';
 
 // cache of master seed after it was decrypted from the storage (with user's password).
 let masterSeed: string = '';
@@ -22,6 +22,7 @@ const cachedWallets: Record<TSupportedLazyInitWalletNetworks, Record<number, TLa
   [NETWORK_ARK]: {},
   [NETWORK_LIQUID]: {},
   [NETWORK_LIQUID_TESTNET]: {},
+  [NETWORK_STACKS]: {},
 };
 
 const locks: Record<string, boolean> = {};
@@ -71,15 +72,9 @@ export type TSupportedLazyInitWalletNetworks =
   | typeof NETWORK_LIQUID
   | typeof NETWORK_LIQUID_TESTNET
   | typeof NETWORK_ARK_MUTINYNET
+  | typeof NETWORK_STACKS
   | typeof NETWORK_ARK;
-export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkWallet;
-
-function getSubMnemonic(mnemonic: string, accountNum = 0) {
-  const masterSeed = BIP85.fromMnemonic(mnemonic);
-
-  const child = masterSeed.deriveBIP39(0, 12, accountNum); // 0 is English, 12 is 12 words
-  return child.toMnemonic();
-}
+export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkWallet | StacksWallet;
 
 /**
  * Initialize and cache a wallet for the given network/account, using serialization if available.
@@ -91,7 +86,7 @@ function getSubMnemonic(mnemonic: string, accountNum = 0) {
  * @returns The initialized wallet instance
  */
 export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, accountNumber: number, storage: IStorage, secureStorage: IStorage): Promise<TLazyInitedWallets> {
-  if (![NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ARK_MUTINYNET, NETWORK_ARK].includes(network)) {
+  if (![NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ARK_MUTINYNET, NETWORK_ARK, NETWORK_STACKS].includes(network)) {
     throw new Error(`Unsupported network for lazyInitWallet: ${network}`);
   }
 
@@ -100,7 +95,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     // across accounts are the same
     // @see https://github.com/breez/breez-sdk-liquid/issues/1021
     // FIXME: remove once breez implements it ^^^
-    // accountNumber = 0; // FIXME: uncomment this line once we get rid of BIP85: https://github.com/layerztec/layerzwallet/issues/416
+    accountNumber = 0;
   }
 
   // cache hit
@@ -137,25 +132,19 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       // we dont save it to storage
       assert(masterSeed, 'Master seed is not available');
       const sw = new SparkWallet();
-      sw.setSecret(getSubMnemonic(masterSeed, accountNumber));
-      // sw.setAccountNumber(accountNumber); // FIXME: uncomment this line once we get rid of BIP85: https://github.com/layerztec/layerzwallet/issues/416
+      sw.setSecret(masterSeed);
+      sw.setAccountNumber(accountNumber);
       await sw.init();
       cachedWallets[network][accountNumber] = sw;
       return sw;
     }
 
     if (network === NETWORK_ARK_MUTINYNET) {
-      assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Ark env vars not set');
       assert(masterSeed, 'Master seed is not available');
       const aw = new ArkWallet();
-      aw.setSecret(getSubMnemonic(masterSeed, accountNumber));
-      // aw.setAccountNumber(accountNumber); // FIXME: uncomment this line once we get rid of BIP85: https://github.com/layerztec/layerzwallet/issues/416
+      aw.setSecret(masterSeed);
+      aw.setAccountNumber(accountNumber);
 
-      // FIXME: temporarily while mutinynet arkd is down we make this wallet work with mainnet:
-      aw.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
-      aw.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
-      aw.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
-      //
       await aw.init(storage);
       cachedWallets[network][accountNumber] = aw;
       return aw;
@@ -164,17 +153,25 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     if (network === NETWORK_ARK) {
       assert(masterSeed, 'Master seed is not available');
       const aw = new ArkWallet();
-      aw.setSecret(getSubMnemonic(masterSeed, accountNumber));
-      // aw.setAccountNumber(accountNumber); // FIXME: uncomment this line once we get rid of BIP85: https://github.com/layerztec/layerzwallet/issues/416
-      assert(process.env.EXPO_PUBLIC_ARK_SERVER_URL && process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY && process.env.EXPO_PUBLIC_BOLTZ_API_URL, 'Ark env vars not set');
-      // fixme: can be moved from env vars to hardcode once Ark mainnet goes public
-      aw.setArkServerUrl(process.env.EXPO_PUBLIC_ARK_SERVER_URL);
-      aw.setArkServerPublicKey(process.env.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY);
-      aw.setBoltzApiUrl(process.env.EXPO_PUBLIC_BOLTZ_API_URL);
+      aw.setSecret(masterSeed);
+      aw.setAccountNumber(accountNumber);
+      aw.setArkServerUrl('https://arkade.computer');
+      aw.setArkServerPublicKey('022b74c2011af089c849383ee527c72325de52df6a788428b68d49e9174053aaba');
+      aw.setBoltzApiUrl('https://api.ark.boltz.exchange');
       await aw.init(storage);
       await aw.initLightningSwaps();
       cachedWallets[network][accountNumber] = aw;
       return aw;
+    }
+
+    if (network === NETWORK_STACKS) {
+      assert(masterSeed, 'Master seed is not available');
+      const sw = new StacksWallet();
+      sw.setSecret(masterSeed);
+      await sw.init(storage);
+      sw.setAccountNumber(accountNumber);
+      cachedWallets[network][accountNumber] = sw;
+      return sw;
     }
 
     if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
@@ -182,7 +179,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       assert(masterSeed, 'Master seed is not available');
       const bNetwork = getBreezNetwork(network);
 
-      const bw = new BreezWallet(getSubMnemonic(masterSeed, accountNumber), bNetwork);
+      const bw = new BreezWallet(masterSeed, bNetwork);
       // FIXME: account number!!!!!!!!!!!!!!
       cachedWallets[network][accountNumber] = bw;
       return bw;
@@ -238,9 +235,6 @@ export const sanitizeAndValidateMnemonic = (mnemonic: string): string => {
   if (words.length < 12 || words.length > 24) {
     throw new Error('Invalid mnemonic length. It should be 12 to 24 words.');
   }
-
-  // Check if we can import it
-  BIP85.fromMnemonic(sanitizedMnemonic);
 
   // Validate against BIP39 standards
   if (!validateMnemonic(sanitizedMnemonic)) {
