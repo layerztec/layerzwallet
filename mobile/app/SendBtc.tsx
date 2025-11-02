@@ -13,7 +13,6 @@ import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
-import { TFeeEstimate } from '@shared/blue_modules/BlueElectrum';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 import { CreateTransactionTarget, CreateTransactionUtxo } from '@shared/class/wallets/types';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -45,7 +44,6 @@ const SendBtc: React.FC = () => {
   const [isPrepared, setIsPrepared] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [customFeeRate, setCustomFeeRate] = useState<number | undefined>();
-  const [estimateFees, setEstimateFees] = useState<undefined | TFeeEstimate>();
   const [sendData, setSendData] = useState<undefined | { utxos: CreateTransactionUtxo[]; changeAddress: string }>(undefined);
   const [txhex, setTxhex] = useState<string>('');
   const [actualFee, setActualFee] = useState<number>();
@@ -57,9 +55,8 @@ const SendBtc: React.FC = () => {
 
   const feeRate = useMemo(() => {
     if (customFeeRate !== undefined) return customFeeRate;
-    if (estimateFees) return estimateFees.medium;
     return 1;
-  }, [customFeeRate, estimateFees]);
+  }, [customFeeRate]);
 
   // for each value from estimateFees we calculate the actual fee for the transaction
   const feeRateOptions: TFeeRateOptions = useMemo(() => {
@@ -67,11 +64,6 @@ const SendBtc: React.FC = () => {
       return {};
     }
     const options = new Set<number>([feeRate]);
-    if (estimateFees) {
-      options.add(estimateFees.slow);
-      options.add(estimateFees.medium);
-      options.add(estimateFees.fast);
-    }
 
     // construct targets, if something goes wrong, we will try to construct a transaction with minimum amount
     const satValueBN = new BigNumber(parseFloat(amount));
@@ -102,21 +94,7 @@ const SendBtc: React.FC = () => {
     });
 
     return result;
-  }, [feeRate, estimateFees, sendData?.utxos, amount, toAddress, network]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        if (!BlueElectrum.mainConnected) {
-          await BlueElectrum.connectMain();
-        }
-        const r = await BlueElectrum.estimateFees();
-        setEstimateFees(r);
-      } catch (e) {
-        console.info('Failed to fetch fees', e);
-      }
-    })();
-  }, []);
+  }, [feeRate, sendData?.utxos, amount, toAddress, network]);
 
   useEffect(() => {
     (async () => {
@@ -311,7 +289,6 @@ const SendBtc: React.FC = () => {
                 router.push({
                   pathname: '/FeeSelector',
                   params: {
-                    estimateFees: estimateFees ? JSON.stringify(estimateFees) : '',
                     feeRateOptions: JSON.stringify(feeRateOptions),
                     currentFeeRate: String(feeRate),
                     toAddress: toAddress,

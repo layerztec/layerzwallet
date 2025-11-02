@@ -1,21 +1,22 @@
-import React, { useState } from 'react';
-import { View, TouchableOpacity, TextInput, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, TouchableOpacity, TextInput, ScrollView, StyleSheet, LayoutAnimation, Platform, UIManager, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import GradientScreen from '@/components/GradientScreen';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
+import { TFeeEstimate } from '@shared/blue_modules/BlueElectrum';
 
-type TFeeEstimate = {
-  slow: number;
-  medium: number;
-  fast: number;
-};
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 type TFeeRateOptions = { [rate: number]: number };
 
 const FeeSelector = () => {
   const router = useRouter();
   const params = useLocalSearchParams<{
-    estimateFees: string;
     feeRateOptions: string;
     currentFeeRate: string;
     toAddress?: string;
@@ -23,16 +24,38 @@ const FeeSelector = () => {
     xArkSwapTo?: string;
   }>();
 
-  const estimateFees: TFeeEstimate | undefined = params.estimateFees && params.estimateFees !== '' ? JSON.parse(params.estimateFees) : undefined;
   const feeRateOptions: TFeeRateOptions = params.feeRateOptions && params.feeRateOptions !== '' ? JSON.parse(params.feeRateOptions) : {};
   const initialFeeRate = params.currentFeeRate ? Number(params.currentFeeRate) : 1;
 
+  const [estimateFees, setEstimateFees] = useState<TFeeEstimate | undefined>(undefined);
   const [feeRate, setFeeRate] = useState(initialFeeRate);
   const [customFeeRate, setCustomFeeRate] = useState<number | undefined>(initialFeeRate);
+  const [isCustomInputFocused, setIsCustomInputFocused] = useState(false);
+  const [isLoadingFees, setIsLoadingFees] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setIsLoadingFees(true);
+        if (!BlueElectrum.mainConnected) {
+          await BlueElectrum.connectMain();
+        }
+        const r = await BlueElectrum.estimateFees();
+        setEstimateFees(r);
+      } catch (e) {
+        console.info('Failed to fetch fees', e);
+      } finally {
+        setIsLoadingFees(false);
+      }
+    })();
+  }, []);
 
   const handleFeeSelection = (rate: number) => {
     setFeeRate(rate);
     setCustomFeeRate(rate);
+
+    router.setParams({ selectedFeeRate: String(rate) });
+    router.back();
   };
 
   const handleChangeCustom = (text: string) => {
@@ -43,65 +66,70 @@ const FeeSelector = () => {
     }
   };
 
+  const handleCustomInputFocus = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsCustomInputFocused(true);
+  };
+
+  const handleCustomInputBlur = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsCustomInputFocused(false);
+  };
+
   const handleDone = () => {
     if (customFeeRate) {
-      const sendBtcParams: Record<string, string> = {
-        selectedFeeRate: String(customFeeRate),
-      };
-
-      if (params.toAddress) sendBtcParams.toAddress = params.toAddress;
-      if (params.amount) sendBtcParams.amount = params.amount;
-      if (params.xArkSwapTo) sendBtcParams.xArkSwapTo = params.xArkSwapTo;
-
-      router.navigate({
-        pathname: '/SendBtc',
-        params: sendBtcParams,
-      });
+      router.setParams({ selectedFeeRate: String(customFeeRate) });
+      router.back();
     }
   };
 
   return (
-    <GradientScreen>
-      <View style={styles.container}>
-        <ThemedText style={styles.title}>Select Network Fee</ThemedText>
+    <SafeAreaView style={styles.container}>
+      <ThemedText style={styles.title}>Select Network Fee</ThemedText>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {estimateFees && (
-            <>
-              <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.slow && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.slow)}>
-                <ThemedText style={styles.feeOptionText}>
-                  Economy ({estimateFees.slow} sat/vbyte)
-                  {feeRateOptions[estimateFees.slow] ? ` ≈ ${feeRateOptions[estimateFees.slow]} sats` : ''}
-                </ThemedText>
-              </TouchableOpacity>
+      {!isCustomInputFocused && isLoadingFees && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" />
+          <ThemedText style={styles.loadingText}>Loading fee estimates...</ThemedText>
+        </View>
+      )}
 
-              <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.medium && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.medium)}>
-                <ThemedText style={styles.feeOptionText}>
-                  Standard ({estimateFees.medium} sat/vbyte)
-                  {feeRateOptions[estimateFees.medium] ? ` ≈ ${feeRateOptions[estimateFees.medium]} sats` : ''}
-                </ThemedText>
-              </TouchableOpacity>
+      {!isCustomInputFocused && estimateFees && (
+        <View style={styles.estimatesContainer}>
+          <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.slow && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.slow)}>
+            <ThemedText style={styles.feeOptionText}>
+              Economy ({estimateFees.slow} sat/vbyte)
+              {feeRateOptions[estimateFees.slow] ? ` ≈ ${feeRateOptions[estimateFees.slow]} sats` : ''}
+            </ThemedText>
+          </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.fast && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.fast)}>
-                <ThemedText style={styles.feeOptionText}>
-                  Priority ({estimateFees.fast} sat/vbyte)
-                  {feeRateOptions[estimateFees.fast] ? ` ≈ ${feeRateOptions[estimateFees.fast]} sats` : ''}
-                </ThemedText>
-              </TouchableOpacity>
-            </>
-          )}
+          <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.medium && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.medium)}>
+            <ThemedText style={styles.feeOptionText}>
+              Standard ({estimateFees.medium} sat/vbyte)
+              {feeRateOptions[estimateFees.medium] ? ` ≈ ${feeRateOptions[estimateFees.medium]} sats` : ''}
+            </ThemedText>
+          </TouchableOpacity>
 
-          <View style={styles.customFeeContainer}>
-            <ThemedText style={styles.customFeeLabel}>Custom (sat/vbyte)</ThemedText>
-            <TextInput style={styles.customFeeInput} keyboardType="numeric" value={String(feeRate)} onChangeText={handleChangeCustom} />
-          </View>
-        </ScrollView>
+          <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.fast && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.fast)}>
+            <ThemedText style={styles.feeOptionText}>
+              Priority ({estimateFees.fast} sat/vbyte)
+              {feeRateOptions[estimateFees.fast] ? ` ≈ ${feeRateOptions[estimateFees.fast]} sats` : ''}
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+      )}
 
-        <TouchableOpacity style={[styles.doneButton, !customFeeRate && styles.disabledButton]} onPress={handleDone} disabled={!customFeeRate}>
-          <ThemedText style={styles.doneButtonText}>Done</ThemedText>
-        </TouchableOpacity>
+      <View style={styles.customFeeContainer}>
+        <ThemedText style={styles.customFeeLabel}>Custom (sat/vbyte)</ThemedText>
+        <TextInput style={styles.customFeeInput} keyboardType="numeric" value={String(feeRate)} onChangeText={handleChangeCustom} onFocus={handleCustomInputFocus} onBlur={handleCustomInputBlur} />
       </View>
-    </GradientScreen>
+
+      <View style={styles.spacer} />
+
+      <TouchableOpacity style={[styles.doneButton, !customFeeRate && styles.disabledButton]} onPress={handleDone} disabled={!customFeeRate}>
+        <ThemedText style={styles.doneButtonText}>Done</ThemedText>
+      </TouchableOpacity>
+    </SafeAreaView>
   );
 };
 
@@ -117,8 +145,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  scrollView: {
-    maxHeight: 400,
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 12,
+  },
+  loadingText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  estimatesContainer: {
+    marginBottom: 16,
   },
   feeOption: {
     padding: 16,
@@ -150,6 +188,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     color: 'rgba(255, 255, 255, 0.9)',
+  },
+  spacer: {
+    flex: 1,
   },
   doneButton: {
     backgroundColor: '#000000',
