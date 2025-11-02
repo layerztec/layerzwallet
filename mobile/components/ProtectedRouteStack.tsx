@@ -143,6 +143,20 @@ export function ProtectedRouteStack() {
         <Stack.Screen name="SendAccountBased" options={{ headerShown: false }} />
         <Stack.Screen name="SendBtc" options={{ title: 'Send BTC' }} />
         <Stack.Screen name="SendEvm" options={{ title: 'Send' }} />
+        <Stack.Screen
+          name="FeeSelector"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.7],
+            sheetGrabberVisible: true,
+            headerTransparent: false,
+            gestureEnabled: true,
+            headerShown: false,
+            contentStyle: {
+              height: '100%',
+            },
+          }}
+        />
         <Stack.Screen name="Swap" options={{ headerShown: false }} />
         <Stack.Screen
           name="SwapTarget"

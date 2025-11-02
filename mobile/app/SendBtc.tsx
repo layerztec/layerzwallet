@@ -3,7 +3,7 @@ import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, AppStateStatus, KeyboardAvoidingView, Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, AppState, AppStateStatus, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import GradientScreen from '@/components/GradientScreen';
@@ -28,6 +28,7 @@ type TFeeRateOptions = { [rate: number]: number };
 export type SendBtcParams = {
   toAddress?: string;
   amount?: string;
+  selectedFeeRate?: string;
   xArkSwapTo?: Networks;
 };
 
@@ -52,7 +53,6 @@ const SendBtc: React.FC = () => {
   const network = NETWORK_BITCOIN; // screen is exclusive to bitcoin
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
-  const [showFeeModal, setShowFeeModal] = useState(false);
   const wallet = useRef(new HDSegwitBech32Wallet());
 
   const feeRate = useMemo(() => {
@@ -131,15 +131,15 @@ const SendBtc: React.FC = () => {
     })();
   }, [accountNumber]);
 
-  // dismiss fee modal when app goes to background
+  // Handle selected fee rate from FeeSelector screen
   useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState.match(/inactive|background/)) setShowFeeModal(false);
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => subscription.remove();
-  }, []);
+    if (params.selectedFeeRate) {
+      const feeRate = Number(params.selectedFeeRate);
+      if (!isNaN(feeRate)) {
+        setCustomFeeRate(feeRate);
+      }
+    }
+  }, [params.selectedFeeRate]);
 
   const broadcast = async () => {
     try {
@@ -202,15 +202,6 @@ const SendBtc: React.FC = () => {
     } finally {
       setIsPreparing(false);
     }
-  };
-
-  const handleChangeCustom = (text: string) => {
-    setCustomFeeRate(Number(text));
-  };
-
-  const handleFeeSelection = (feeRate: number) => {
-    setCustomFeeRate(feeRate);
-    setShowFeeModal(false);
   };
 
   const handleScanQR = async () => {
@@ -314,7 +305,22 @@ const SendBtc: React.FC = () => {
           ) : null}
 
           {!isPreparing && !isPrepared && (
-            <TouchableOpacity style={styles.feeContainer} onPress={() => setShowFeeModal(true)}>
+            <TouchableOpacity
+              style={styles.feeContainer}
+              onPress={() => {
+                router.push({
+                  pathname: '/FeeSelector',
+                  params: {
+                    estimateFees: estimateFees ? JSON.stringify(estimateFees) : '',
+                    feeRateOptions: JSON.stringify(feeRateOptions),
+                    currentFeeRate: String(feeRate),
+                    toAddress: toAddress,
+                    amount: amount,
+                    ...(xArkSwapTo && { xArkSwapTo: xArkSwapTo }),
+                  },
+                });
+              }}
+            >
               <View style={styles.feeRow}>
                 <ThemedText style={styles.feeLabel}>Network Fee:</ThemedText>
                 <View style={styles.changeFeeButton}>
@@ -374,52 +380,6 @@ const SendBtc: React.FC = () => {
           )}
         </View>
       </ScrollView>
-
-      <Modal visible={showFeeModal} animationType="fade" transparent={true}>
-        <KeyboardAvoidingView behavior="padding" style={styles.modalContainer}>
-          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowFeeModal(false)}>
-            <TouchableOpacity style={styles.modalContent} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-              <ThemedText style={styles.modalTitle}>Select Network Fee</ThemedText>
-
-              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-                {estimateFees && (
-                  <>
-                    <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.slow && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.slow)}>
-                      <ThemedText style={styles.feeOptionText}>
-                        Economy ({estimateFees.slow} sat/vbyte)
-                        {feeRateOptions[estimateFees.slow] ? ` ≈ ${feeRateOptions[estimateFees.slow]} sats` : ''}
-                      </ThemedText>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.medium && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.medium)}>
-                      <ThemedText style={styles.feeOptionText}>
-                        Standard ({estimateFees.medium} sat/vbyte)
-                        {feeRateOptions[estimateFees.medium] ? ` ≈ ${feeRateOptions[estimateFees.medium]} sats` : ''}
-                      </ThemedText>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.fast && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.fast)}>
-                      <ThemedText style={styles.feeOptionText}>
-                        Priority ({estimateFees.fast} sat/vbyte)
-                        {feeRateOptions[estimateFees.fast] ? ` ≈ ${feeRateOptions[estimateFees.fast]} sats` : ''}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  </>
-                )}
-
-                <View style={styles.customFeeContainer}>
-                  <ThemedText style={styles.customFeeLabel}>Custom (sat/vbyte)</ThemedText>
-                  <TextInput style={styles.customFeeInput} keyboardType="numeric" value={String(feeRate)} onChangeText={handleChangeCustom} />
-                </View>
-              </ScrollView>
-
-              <TouchableOpacity style={[styles.doneButton, !customFeeRate && styles.disabledButton]} onPress={() => setShowFeeModal(false)} disabled={!customFeeRate}>
-                <ThemedText style={styles.doneButtonText}>Done</ThemedText>
-              </TouchableOpacity>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </Modal>
     </GradientScreen>
   );
 };
@@ -599,74 +559,6 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     color: 'rgba(255, 255, 255, 0.9)',
-  },
-  // Modal styles
-  modalContainer: {
-    flex: 1,
-  },
-  modalContent: {
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  modalTitle: {
-    marginBottom: 20,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-  },
-  feeOption: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    marginBottom: 8,
-    borderRadius: 12,
-  },
-  selectedFeeOption: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderWidth: 1,
-  },
-  feeOptionText: {
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  customFeeContainer: {
-    marginTop: 16,
-  },
-  customFeeLabel: {
-    marginBottom: 8,
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  customFeeInput: {
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  doneButton: {
-    backgroundColor: '#000000',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  doneButtonText: {
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  modalScrollView: {
-    maxHeight: 300,
-  },
-  modalBackdrop: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
   },
 });
 
