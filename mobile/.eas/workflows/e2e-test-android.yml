@@ -92,6 +92,17 @@ jobs:
       flow_path:
         - .maestro/biometric-toggle-test.yml
 
+  maestro_test_8:
+    needs: [build_android_for_e2e]
+    type: maestro
+    runs_on: linux-large-nested-virtualization
+    params:
+      retries: 3
+      build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
+      device_identifier: 'pixel_9'
+      flow_path:
+        - .maestro/send-spark.yml
+
   upload_build_to_appetize:
     needs: [build_android_for_e2e]
 

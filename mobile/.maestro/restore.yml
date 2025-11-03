@@ -25,7 +25,7 @@ jsEngine: graaljs
       - assertVisible:
           id: 'LayerBalance'
       - extendedWaitUntil:
-          notVisible: '???'
+          notVisible: '—'
           timeout: 60000
 
       - copyTextFrom:
