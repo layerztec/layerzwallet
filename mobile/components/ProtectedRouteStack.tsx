@@ -160,6 +160,7 @@ export function ProtectedRouteStack() {
             },
           }}
         />
+        <Stack.Screen name="send" options={{ headerShown: false }} />
         <Stack.Screen name="Swap" options={{ headerShown: false }} />
         <Stack.Screen
           name="SwapTarget"

@@ -20,6 +20,13 @@ import { ThemedText } from '@/components/ThemedText';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { CachedTokenInfo } from '@shared/types/token-info';
 
+export type SendTokenStacksParams = {
+  tokenId: string;
+  tokenSymbol: string;
+  tokenName: string;
+  tokenDecimals: string;
+};
+
 // Enum for the different steps in the send token flow
 export enum SendTokenStacksStep {
   Init,
@@ -31,12 +38,8 @@ export enum SendTokenStacksStep {
 }
 
 export default function SendTokenStacksScreen() {
-  const params = useLocalSearchParams<{
-    tokenId: string;
-    tokenSymbol: string;
-    tokenName: string;
-    tokenDecimals: string;
-  }>();
+  const params = useLocalSearchParams<SendTokenStacksParams>();
+  const allowMemo = params.tokenId === 'STX';
 
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
@@ -45,10 +48,10 @@ export default function SendTokenStacksScreen() {
   // State management
   const [step, setStep] = useState<SendTokenStacksStep>(SendTokenStacksStep.Init);
   const [toAddress, setToAddress] = useState<string>('');
+  const [memo, setMemo] = useState<string>('');
   const [amountToSend, setAmountToSend] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [token, setToken] = useState<CachedTokenInfo>();
-  // const [tokenIdentifier, setTokenIdentifier] = useState<string>('');
 
   const tokenPublicKey = params.tokenId || '';
   const { balance: balanceNative } = useBalance(network, accountNumber, BackgroundExecutor);
@@ -102,7 +105,7 @@ export default function SendTokenStacksScreen() {
 
       const satValueToSend = new BigNumber(amountToSend).multipliedBy(new BigNumber(10).pow(token.decimals)).toFixed(0);
 
-      const transactionId = await wallet.transferTokens(token.id, BigInt(satValueToSend), toAddress);
+      const transactionId = await wallet.transferTokens(token.id, BigInt(satValueToSend), toAddress, memo);
 
       if (transactionId) {
         setStep(SendTokenStacksStep.Sent);
@@ -238,9 +241,33 @@ export default function SendTokenStacksScreen() {
                   />
                   {/* Available Balance */}
                   <Text style={[styles.balanceText, { color: textColor, opacity: 0.8, marginTop: 8 }]}>
-                    {`Available balance: ${token?.symbol} ${balance ? formatBalance(balance, token?.decimals ?? 0, 2) : ''}`}
+                    {`Available balance: ${token?.symbol} ${balance ? formatBalance(balance, token?.decimals ?? 2, token?.decimals ?? 2) : ''}`}
                   </Text>
                 </View>
+
+                {/* Memo */}
+                {allowMemo ? (
+                  <View style={styles.section}>
+                    <View style={styles.amountHeader}>
+                      <Text style={[styles.label, { color: textColor }]}>Memo</Text>
+                    </View>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        {
+                          color: textColor,
+                          borderColor: borderColor,
+                          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                        },
+                      ]}
+                      value={memo}
+                      onChangeText={setMemo}
+                      placeholder=""
+                      placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                      editable={step === SendTokenStacksStep.Init}
+                    />
+                  </View>
+                ) : null}
               </>
             )}
 

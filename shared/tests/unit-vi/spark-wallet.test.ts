@@ -162,4 +162,19 @@ describe('Spark Wallet', () => {
 
     assert.strictEqual(Object.keys(addressesHashmap).length, 5, 'addressesHashmap: ' + JSON.stringify(addressesHashmap));
   });
+
+  it('can validate Spark addresses', () => {
+    const wallet = new SparkWallet();
+
+    // Test valid Spark addresses
+    assert.strictEqual(wallet.isAddressValid('spark1pgssx2srkm6344nxzngx9n8stj5uxp544dgm3mrdgpeulr8phutzdx89vlg5kf'), true);
+
+    // Test invalid addresses
+    assert.strictEqual(wallet.isAddressValid(''), false);
+    assert.strictEqual(wallet.isAddressValid('invalid'), false);
+    assert.strictEqual(wallet.isAddressValid('bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'), false);
+    assert.strictEqual(wallet.isAddressValid('0x742d35Cc6634C0532925a3b8D'), false);
+    assert.strictEqual(wallet.isAddressValid('spark1invalid'), false);
+    assert.strictEqual(wallet.isAddressValid('spark1'), false);
+  });
 });

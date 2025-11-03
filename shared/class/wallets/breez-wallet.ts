@@ -265,6 +265,17 @@ export class BreezWallet implements InterfaceLightningWallet {
   allowLightning() {
     return true;
   }
+
+  /**
+   * Validates a Liquid address, we use regex because breez api does not expose a function to validate addresses easily
+   * @param address - The address to validate
+   * @returns true if the address is valid, false otherwise
+   */
+  static isAddressValid(address: string): boolean {
+    const BLECH32_RE = new RegExp(`^(?:lq|tlq)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{20,120}$`);
+    const LIQUID_CONF_BASE58_RE = new RegExp(`^(?:VJ|V)[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{25,90}$`);
+    return BLECH32_RE.test(address) || LIQUID_CONF_BASE58_RE.test(address);
+  }
 }
 
 export const getAssertMetadata = (liquidNetwork: LiquidNetwork): AssetMetadata[] => {

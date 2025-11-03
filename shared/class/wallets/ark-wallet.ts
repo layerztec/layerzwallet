@@ -1,5 +1,5 @@
 import { ArkadeLightning, BoltzSwapProvider, decodeInvoice } from '@arkade-os/boltz-swap';
-import { Ramps, SingleKey, TxType, VtxoManager, Wallet } from '@arkade-os/sdk';
+import { ArkAddress, Ramps, SingleKey, TxType, VtxoManager, Wallet } from '@arkade-os/sdk';
 import { ExpoArkProvider, ExpoIndexerProvider } from '@arkade-os/sdk/adapters/expo';
 import ecc from '@bitcoinerlab/secp256k1';
 import assert from 'assert';
@@ -327,5 +327,24 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     const boardingUtxos = (await this._wallet.getBoardingUtxos()).filter((utxo) => utxo.txid === txid);
 
     await new Ramps(this._wallet).onboard(boardingUtxos);
+  }
+
+  /**
+   * Static method to validate ARK addresses
+   * Uses ArkAddress.decode from @arkade-os/sdk to validate the address format
+   * @param address The address to validate
+   * @returns true if the address is valid, false otherwise
+   */
+  static isAddressValid(address: string): boolean {
+    try {
+      ArkAddress.decode(address);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  isAddressValid(address: string): boolean {
+    return ArkWallet.isAddressValid(address);
   }
 }
