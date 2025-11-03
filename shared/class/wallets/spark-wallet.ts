@@ -1,6 +1,6 @@
 import assert from 'assert';
 import bolt11 from 'bolt11';
-import { SparkWallet as SDK, TokenBalanceMap } from '@buildonspark/spark-sdk';
+import { SparkWallet as SDK, TokenBalanceMap, isValidSparkAddress } from '@buildonspark/spark-sdk';
 import BigNumber from 'bignumber.js';
 
 import { ArkWallet } from './ark-wallet';
@@ -297,5 +297,25 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     });
 
     await BlueElectrum.broadcastV2(hex);
+  }
+
+  /**
+   * Static method to validate Spark addresses without creating an instance
+   * @param address The Spark address to validate
+   * @returns true if the address is valid, false otherwise
+   */
+  static isAddressValid(address: string): boolean {
+    try {
+      return isValidSparkAddress(address);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Another way to call {@link SparkWallet.isAddressValid}
+   */
+  isAddressValid(address: string): boolean {
+    return SparkWallet.isAddressValid(address);
   }
 }

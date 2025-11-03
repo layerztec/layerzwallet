@@ -4,8 +4,9 @@ import BigNumber from 'bignumber.js';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 
+import AmountInput from '@/components/AmountInput';
 import Button from '@/components/Button';
 import GradientScreen from '@/components/GradientScreen';
 import { ThemedText } from '@/components/ThemedText';
@@ -19,6 +20,7 @@ import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { NETWORK_LIQUID, Networks } from '@shared/types/networks';
 import { DoSwapResponse, SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapOptions, SwapPlatform } from '@shared/types/swap';
 import { SwapTargetParams } from './SwapTarget';
+import { Denomination } from './send/_layout';
 
 export type SwapParams = {
   amount?: string;
@@ -42,6 +44,7 @@ export default function Swap() {
   const { exchangeRate } = useCachedExchangeRate(network, 'USD');
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [denomination, setDenomination] = useState<Denomination>('Native');
 
   const { balance, actualIsLoading, decimals, ticker } = useSwapBalance(network, fromNetwork, BackgroundExecutor);
 
@@ -137,6 +140,10 @@ export default function Swap() {
     }
   };
 
+  const handleDenominationSwitch = () => {
+    setDenomination(denomination === 'Native' ? 'Fiat' : 'Native');
+  };
+
   const canSwap = option && parseFloat(amount) > 0 && !isLoading && !actualIsLoading;
   const targetName = option ? getSwapTargetName(option) : '';
 
@@ -161,33 +168,20 @@ export default function Swap() {
         </View>
 
         {/* From Token Input */}
-        <View style={styles.tokenCard}>
-          <View style={styles.tokenInputHeader}>
-            <TouchableOpacity style={styles.maxButton} onPress={handleMaxPress}>
-              <ThemedText style={styles.maxButtonText}>max</ThemedText>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.tokenInputRow}>
-            <View style={styles.amountContainer}>
-              <TextInput
-                style={styles.amountInput}
-                value={amount}
-                onChangeText={handleAmountChange}
-                placeholder="0.0"
-                placeholderTextColor="rgba(255, 255, 255, 0.5)"
-                keyboardType="numeric"
-                testID="AmountInput"
-              />
-            </View>
-          </View>
-          <View style={styles.balanceRow}>
-            <ThemedText style={styles.usdText}>{usdValue}</ThemedText>
-            <TouchableOpacity onPress={handleBalanceClick} activeOpacity={0.7}>
-              <ThemedText style={styles.balanceText}>
-                Balance {formattedBalance} {ticker}
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.inputSection}>
+          <AmountInput
+            value={amount}
+            onChangeText={handleAmountChange}
+            ticker={ticker}
+            balance={formattedBalance}
+            exchangeRate={exchangeRate}
+            denomination={denomination}
+            decimals={decimals}
+            onDenominationSwitch={handleDenominationSwitch}
+            onMaxPress={handleMaxPress}
+            onBalancePress={handleMaxPress}
+            testID="AmountInput"
+          />
         </View>
 
         {/* To Token Selection */}
@@ -254,64 +248,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tokenCard: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 20,
-    padding: 16,
-    height: 86,
-    position: 'relative',
+  inputSection: {
     marginBottom: 20,
-  },
-  tokenInputHeader: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    zIndex: 1,
-  },
-  maxButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-  },
-  maxButtonText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
-  },
-  tokenInputRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginTop: 2,
-  },
-  amountContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    flex: 1,
-  },
-  amountInput: {
-    fontSize: 24,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '600',
-    fontFamily: 'Inter',
-    padding: 0,
-    margin: 0,
-    minWidth: '50%',
-  },
-  balanceRow: {
-    marginTop: 4,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  usdText: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontWeight: '400',
-  },
-  balanceText: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontWeight: '600',
   },
   toSection: {
     marginBottom: 20,
