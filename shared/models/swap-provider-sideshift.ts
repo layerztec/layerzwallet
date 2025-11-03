@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { DoSwapResponse, SwapPair, SwapPlatform, SwapProvider, SwapOptions, SO_LIQUID_USDT } from '../types/swap';
+import { DoSwapResponse, SwapPair, SwapPlatform, SwapProvider, SwapOptions, SO_LIQUID_USDT, SO_STACKS_STX } from '../types/swap';
 import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_ROOTSTOCK, Networks } from '../types/networks';
 
 /**
@@ -20,6 +20,8 @@ export class SwapProviderSideshift implements SwapProvider {
       // btc <-> USDT on liquid
       { from: NETWORK_BITCOIN, to: SO_LIQUID_USDT, platform: SwapPlatform.ALL },
       { from: SO_LIQUID_USDT, to: NETWORK_BITCOIN, platform: SwapPlatform.ALL },
+      // btc --> STX on stacks
+      { from: NETWORK_BITCOIN, to: SO_STACKS_STX, platform: SwapPlatform.ALL },
       // rsk <-> liquid
       { from: NETWORK_ROOTSTOCK, to: NETWORK_LIQUID, platform: SwapPlatform.ALL },
       { from: NETWORK_LIQUID, to: NETWORK_ROOTSTOCK, platform: SwapPlatform.ALL },
@@ -68,6 +70,9 @@ export class SwapProviderSideshift implements SwapProvider {
         break;
       case SO_LIQUID_USDT:
         defaultSettleMethodId = 'usdtla';
+        break;
+      case SO_STACKS_STX:
+        defaultSettleMethodId = 'stx';
         break;
       default:
         throw new Error(`Swap to ${to} not supported by ${this.name}`);
