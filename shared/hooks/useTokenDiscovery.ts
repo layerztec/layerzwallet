@@ -10,7 +10,7 @@ import { StacksWallet } from '../class/wallets/stacks-wallet';
 
 const STORAGE_KEY_CACHED_TOKEN_LIST = 'STORAGE_KEY_CACHED_TOKEN_LIST';
 
-export function useTokenDiscovery(network: Networks, accountNumber: number, backgroundCaller: IBackgroundCaller, storage: IStorage, refreshInterval = 2_000) {
+export function useTokenDiscovery(network: Networks, accountNumber: number, backgroundCaller: IBackgroundCaller, storage: IStorage, refreshInterval = 3_000) {
   const [tokenList, setTokenList] = useState<CachedTokenInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
