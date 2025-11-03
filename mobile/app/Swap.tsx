@@ -16,8 +16,8 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { getSwapProvidersList, getSwapTargetName } from '@shared/models/swap-providers-list';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { NETWORK_LIQUID, Networks } from '@shared/types/networks';
-import { DoSwapResponse, SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapOptions, SwapPlatform } from '@shared/types/swap';
+import { NETWORK_LIQUID, NETWORK_STACKS, Networks } from '@shared/types/networks';
+import { DoSwapResponse, SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SO_STACKS_STX, SwapOptions, SwapPlatform } from '@shared/types/swap';
 import { SwapTargetParams } from './SwapTarget';
 
 export type SwapParams = {
@@ -100,6 +100,8 @@ export default function Swap() {
     let destinationAddress = '';
     if (option === SO_LIQUID_USDT) {
       destinationAddress = await BackgroundExecutor.getAddress(NETWORK_LIQUID, accountNumber);
+    } else if (option === SO_STACKS_STX) {
+      destinationAddress = await BackgroundExecutor.getAddress(NETWORK_STACKS, accountNumber);
     } else {
       destinationAddress = await BackgroundExecutor.getAddress(option as Networks, accountNumber);
     }

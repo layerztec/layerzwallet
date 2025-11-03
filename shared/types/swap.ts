@@ -1,4 +1,4 @@
-import { NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_USDT, Networks } from './networks';
+import { NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_STACKS, NETWORK_USDT, Networks } from './networks';
 
 export enum SwapPlatform {
   MOBILE,
@@ -8,8 +8,9 @@ export enum SwapPlatform {
 
 export const SO_LIQUID_USDT = `${NETWORK_USDT}_${NETWORK_LIQUID}` as const;
 export const SO_ROOTSTOCK_USDT = `${NETWORK_USDT}_${NETWORK_ROOTSTOCK}` as const;
+export const SO_STACKS_STX = `STX_${NETWORK_STACKS}` as const;
 
-type NetworksWithTokens = typeof SO_LIQUID_USDT | typeof SO_ROOTSTOCK_USDT;
+type NetworksWithTokens = typeof SO_LIQUID_USDT | typeof SO_ROOTSTOCK_USDT | typeof SO_STACKS_STX;
 
 export type SwapOptions = Networks | NetworksWithTokens;
 
