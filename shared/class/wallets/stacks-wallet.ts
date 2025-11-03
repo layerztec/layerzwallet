@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { generateNewAccount, generateWallet, getStxAddress, Wallet as SdkWallet } from '@stacks/wallet-sdk';
 import { createClient } from '@stacks/blockchain-api-client';
-import { broadcastTransaction, makeContractCall, makeSTXTokenTransfer, noneCV, SignedTokenTransferOptions, standardPrincipalCV, uintCV } from '@stacks/transactions';
+import { broadcastTransaction, makeContractCall, makeSTXTokenTransfer, noneCV, SignedTokenTransferOptions, standardPrincipalCV, uintCV, validateStacksAddress } from '@stacks/transactions';
 
 import { CachedTokenInfo } from '../../types/token-info';
 import { CommonTransaction } from '../../types/common-transaction';
@@ -355,5 +355,18 @@ export class StacksWallet implements InterfaceAccountBasedWallet {
     }
 
     throw new Error(`Failed to broadcast sBTC transfer: ${JSON.stringify(broadcastResponse)}`);
+  }
+
+  /**
+   * Static method to validate Stacks addresses
+   * @param address The address to validate
+   * @returns true if the address is valid, false otherwise
+   */
+  static isAddressValid(address: string): boolean {
+    try {
+      return validateStacksAddress(address);
+    } catch (error) {
+      return false;
+    }
   }
 }

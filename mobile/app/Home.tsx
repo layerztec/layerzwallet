@@ -147,7 +147,7 @@ export default function Home() {
   const handleSend = () => {
     switch (network) {
       case NETWORK_BITCOIN:
-        router.push('/SendBtc');
+        router.push('/send');
         break;
       case NETWORK_ARK:
       case NETWORK_SPARK:
