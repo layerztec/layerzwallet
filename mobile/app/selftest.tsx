@@ -1,20 +1,69 @@
-import { Button, StyleSheet } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity, View, ScrollView, Pressable, Switch } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as Application from 'expo-application';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Bugsnag from '@bugsnag/expo';
 
 import { ThemedText } from '@/components/ThemedText';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 import { decrypt, encrypt } from '../src/modules/encryption';
 import assert from 'assert';
-import { useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 
 import { Csprng } from '@/src/class/rng';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
+import SettingsRow from '@/components/SettingsRow';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { LayerzStorage } from '@/src/class/layerz-storage';
+import { STORAGE_KEY_BTC_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { getDeviceIdentifier } from '@/src/utils/device-id';
+import { ScanQrContext } from '@/src/hooks/ScanQrContext';
+import { SETTINGS_CONFIG } from '@shared/hooks/SettingsContext';
+import { useSettings } from '@shared/hooks/useSettings';
+import { capitalizeFirstLetter } from '@shared/modules/string-utils';
+import { useAuthState } from '@/src/hooks/AuthStateContext';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { SecureStorage } from '@/src/class/secure-storage';
+import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
+import { useRouter } from 'expo-router';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { getGradientColors } from '@/utils/gradientUtils';
+
+type TSettingsKey = keyof typeof SETTINGS_CONFIG;
 
 export default function TabThreeScreen() {
+  const router = useRouter();
+  const { setStep } = useContext(InitializationContext);
+  const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
+  const { scanQr } = useContext(ScanQrContext);
+  const { settings, updateSetting } = useSettings();
+  const { lockApp } = useAuthState();
+  const { network } = useContext(NetworkContext);
   const [testState, setTestState] = useState<'not_started' | 'running' | 'ok' | 'error'>('not_started');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [isClearing, setIsClearing] = useState(false);
+  const [btcXpub, setBtcXpub] = useState('');
+  const [deviceId, setDeviceId] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      const xpub = await LayerzStorage.getItem(STORAGE_KEY_BTC_XPUB + accountNumber);
+      setBtcXpub(xpub);
+
+      // Load device identifier
+      try {
+        const id = await getDeviceIdentifier();
+        setDeviceId(id);
+      } catch (error) {
+        console.debug('Device identifier not available:', error);
+        setDeviceId('');
+      }
+    })();
+  }, [accountNumber]);
 
   const handleSelfTest = async () => {
     try {
@@ -76,28 +125,445 @@ export default function TabThreeScreen() {
     }
   };
 
+  const handleAccountChange = (newAccountNumber: number) => {
+    setAccountNumber(newAccountNumber);
+  };
+
+  const handleCopyXpub = async () => {
+    if (btcXpub) {
+      await Clipboard.setStringAsync(btcXpub);
+      Alert.alert('Copied', 'Bitcoin XPUB copied to clipboard');
+    }
+  };
+
+  const handleSettingChange = async (key: TSettingsKey, value: (typeof SETTINGS_CONFIG)[TSettingsKey]['options'][number]) => {
+    try {
+      await updateSetting(key, value);
+    } catch (error) {
+      console.error('Error updating setting:', error);
+    }
+  };
+
+  const formatSettingName = (key: string) => {
+    return key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+  };
+
+  const formatOptionName = (option: string) => {
+    return capitalizeFirstLetter(option);
+  };
+
+  const handleScanQr = () => {
+    scanQr().then((result) => {
+      Alert.alert('QR Code', result);
+    });
+  };
+
+  const handleDeviceIdPress = async () => {
+    if (deviceId) {
+      try {
+        console.debug('Sending test error to Bugsnag with device ID:', deviceId);
+
+        // Trigger a test error to Bugsnag with the device ID
+        Bugsnag.notify(new Error(`Test error from device: ${deviceId}`), (event: any) => {
+          event.addMetadata('test', {
+            deviceId: deviceId,
+            timestamp: new Date().toISOString(),
+            testType: 'manual_trigger',
+          });
+        });
+
+        console.debug('Bugsnag notification sent successfully');
+
+        // Copy to clipboard
+        await Clipboard.setStringAsync(deviceId);
+
+        Alert.alert('Test Error Sent', `ID: ${deviceId}\n\nTest error sent and ID copied to clipboard!`);
+      } catch (error) {
+        console.error('Error sending to Bugsnag:', error);
+        Alert.alert('Error', `Failed to send test error: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  };
+
+  const handleLockApp = () => {
+    Alert.alert('Lock App', 'Are you sure you want to lock the app?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Lock',
+        onPress: () => lockApp(),
+      },
+    ]);
+  };
+
+  const handleClearStorage = async () => {
+    Alert.alert('Clear Storage', 'Are you sure you want to clear all app data? This action cannot be undone.', [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: async () => {
+          setIsClearing(true);
+          try {
+            await BackgroundExecutor.clear();
+            await AsyncStorage.clear();
+            await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, '');
+            Alert.alert('Storage Cleared', 'All app data has been cleared successfully. The app will now restart.', [
+              {
+                text: 'OK',
+                onPress: () => {
+                  router.dismissAll();
+                  router.replace('/');
+                  setStep(EStep.INTRO);
+                },
+              },
+            ]);
+          } catch (error) {
+            console.error('Error clearing storage:', error);
+            Alert.alert('Error', 'Failed to clear storage. Please try again.');
+          } finally {
+            setIsClearing(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  const gradientColors = getGradientColors(network);
+  const backgroundColor = gradientColors[0];
+
   return (
-    <SafeAreaView style={styles.container}>
-      {(() => {
-        switch (testState) {
-          case 'not_started':
-            return <Button title={'Run Self Test!'} onPress={handleSelfTest} testID="RunSelfTestButton" />;
-          case 'running':
-            return <ThemedText>running</ThemedText>;
-          case 'error':
-            return <ThemedText>Error: {errorMessage}</ThemedText>;
-          case 'ok':
-            return <ThemedText testID="SelfTestSuccess">ok!</ThemedText>;
-        }
-      })()}
-    </SafeAreaView>
+    <View style={[styles.container, { backgroundColor }]}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+        <ScreenHeader title="Tools" testID="ToolsScreenTitle" />
+
+        <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+          {/* Self Test Section */}
+          <View style={styles.sectionContainer}>
+            <ThemedText style={styles.sectionHeader}>Self Test</ThemedText>
+            <View style={styles.settingsGroup}>
+              <TouchableOpacity style={[styles.testButton, testState === 'running' && styles.testButtonDisabled]} onPress={handleSelfTest} disabled={testState === 'running'} testID="RunTestButton">
+                <ThemedText style={styles.testButtonText}>{testState === 'running' ? 'Running...' : 'Run Self Test'}</ThemedText>
+              </TouchableOpacity>
+              {testState === 'ok' && (
+                <View style={styles.testResult}>
+                  <ThemedText style={styles.testResultSuccess} testID="SelfTestSuccess">
+                    ✓ Test Passed
+                  </ThemedText>
+                </View>
+              )}
+              {testState === 'error' && (
+                <View style={styles.testResult}>
+                  <ThemedText style={styles.testResultError}>✗ Test Failed</ThemedText>
+                  <ThemedText style={styles.testResultErrorMessage}>{errorMessage}</ThemedText>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Pocket Number Section */}
+          <View style={styles.sectionContainer}>
+            <ThemedText style={styles.sectionHeader}>Pocket Number</ThemedText>
+            <View style={styles.settingsGroup}>
+              <View style={styles.pocketSection}>
+                <ThemedText style={styles.accountText}>Current Pocket: {accountNumber}</ThemedText>
+                <View style={styles.accountButtonContainer}>
+                  {[0, 1, 2, 3, 4].map((num) => (
+                    <TouchableOpacity key={num} style={[styles.accountButton, accountNumber === num && styles.accountButtonActive]} onPress={() => handleAccountChange(num)}>
+                      <ThemedText style={[styles.accountButtonText, accountNumber === num && styles.accountButtonTextActive]}>{num}</ThemedText>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Bitcoin XPUB Section */}
+          <View style={styles.sectionContainer}>
+            <ThemedText style={styles.sectionHeader}>Bitcoin XPUB</ThemedText>
+            <View style={styles.settingsGroup}>
+              <TouchableOpacity style={styles.xpubContainer} onPress={handleCopyXpub} disabled={!btcXpub} testID="XpubCopyButton">
+                <ThemedText style={styles.xpubText} selectable testID="XpubText" numberOfLines={2}>
+                  {btcXpub || 'Not available'}
+                </ThemedText>
+              </TouchableOpacity>
+              {!!btcXpub && <ThemedText style={styles.xpubHint}>Tap to copy</ThemedText>}
+            </View>
+          </View>
+
+          {/* App Settings Section */}
+          <View style={styles.sectionContainer}>
+            <ThemedText style={styles.sectionHeader}>App Settings</ThemedText>
+            <View style={styles.settingsGroup}>
+              {(Object.keys(SETTINGS_CONFIG) as TSettingsKey[])
+                .filter((key) => key !== 'biometricAuth') // Biometrics is in main settings
+                .map((key, index, array) => {
+                  const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
+                  const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
+
+                  return (
+                    <View key={key}>
+                      <View style={styles.settingContainer} testID={`SettingContainer-${key}`}>
+                        <ThemedText style={styles.settingLabel} testID={`SettingLabel-${key}`}>
+                          {formatSettingName(key)}
+                        </ThemedText>
+                        <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
+                          {config.options.map((option) => (
+                            <TouchableOpacity
+                              key={option}
+                              style={[styles.settingOption, currentValue === option && styles.settingOptionActive]}
+                              onPress={() => handleSettingChange(key, option)}
+                              testID={`SettingOption-${key}-${option}`}
+                            >
+                              <ThemedText style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive]} testID={`SettingOptionText-${key}-${option}`}>
+                                {formatOptionName(option)}
+                              </ThemedText>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                      {index < array.length - 1 && <View style={styles.divider} />}
+                    </View>
+                  );
+                })}
+            </View>
+          </View>
+
+          {/* Developer Options Section */}
+          <View style={styles.sectionContainer}>
+            <ThemedText style={styles.sectionHeader}>Developer Options</ThemedText>
+            <View style={styles.settingsGroup}>
+              <SettingsRow title="Scan QR Code" onPress={handleScanQr} />
+              {deviceId && (
+                <>
+                  <View style={styles.divider} />
+                  <Pressable style={({ pressed }) => [styles.deviceIdRow, pressed && styles.deviceIdRowPressed]} onPress={handleDeviceIdPress} testID="DeviceIdButton">
+                    <ThemedText style={styles.deviceIdText} numberOfLines={2}>
+                      Device ID: {deviceId}
+                    </ThemedText>
+                    <ThemedText style={styles.deviceIdHint}>Tap to send test error & copy</ThemedText>
+                  </Pressable>
+                </>
+              )}
+            </View>
+          </View>
+
+          {/* Security Actions Section */}
+          <View style={styles.sectionContainer}>
+            <ThemedText style={styles.sectionHeader}>Security Actions</ThemedText>
+            <View style={styles.settingsGroup}>
+              <SettingsRow title="Lock App" onPress={handleLockApp} testID="LockAppButton" />
+              <View style={styles.divider} />
+              <SettingsRow title="Clear All Data" onPress={handleClearStorage} disabled={isClearing} testID="ClearStorageButton" />
+            </View>
+            <ThemedText style={styles.warningText}>⚠️ Clear All Data will erase everything including your wallet. Make sure you have backed up your seed phrase!</ThemedText>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 40,
+  },
+  sectionContainer: {
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  sectionHeader: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 8,
+    marginLeft: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  settingsGroup: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  testButton: {
+    height: 56,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(52, 199, 89, 0.2)',
+  },
+  testButtonDisabled: {
+    opacity: 0.5,
+  },
+  testButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(52, 199, 89, 1)',
+  },
+  testResult: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  testResultSuccess: {
+    fontSize: 16,
+    color: 'rgba(52, 199, 89, 1)',
+    fontWeight: '600',
+  },
+  testResultError: {
+    fontSize: 16,
+    color: 'rgba(255, 59, 48, 1)',
+    fontWeight: '600',
+  },
+  testResultErrorMessage: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 8,
+  },
+  pocketSection: {
+    padding: 16,
+  },
+  accountText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  accountButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  accountButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  accountButtonActive: {
+    backgroundColor: 'rgba(100, 149, 237, 0.9)',
+    borderColor: 'rgba(100, 149, 237, 1)',
+  },
+  accountButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  accountButtonTextActive: {
+    color: 'white',
+  },
+  xpubContainer: {
+    padding: 16,
+  },
+  xpubText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontFamily: 'monospace',
+  },
+  xpubHint: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  settingContainer: {
+    padding: 16,
+  },
+  settingLabel: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  settingOptionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  settingOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  settingOptionActive: {
+    backgroundColor: 'rgba(100, 149, 237, 0.9)',
+    borderColor: 'rgba(100, 149, 237, 1)',
+  },
+  settingOptionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  settingOptionButtonActive: {
+    backgroundColor: 'rgba(100, 149, 237, 0.9)',
+    borderColor: 'rgba(100, 149, 237, 1)',
+  },
+  settingOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  settingOptionTextActive: {
+    color: 'white',
+  },
+  deviceIdRow: {
+    padding: 16,
+  },
+  deviceIdRowPressed: {
+    opacity: 0.7,
+  },
+  deviceIdTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: 4,
+  },
+  deviceIdValue: {
+    fontSize: 13,
+    fontFamily: 'monospace',
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  deviceIdText: {
+    fontSize: 13,
+    fontFamily: 'monospace',
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 4,
+  },
+  deviceIdHint: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginLeft: 16,
+  },
+  warningText: {
+    fontSize: 12,
+    color: 'rgba(255, 59, 48, 0.9)',
+    marginTop: 8,
+    marginHorizontal: 16,
+    lineHeight: 16,
   },
 });

@@ -98,6 +98,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 16,
+    paddingHorizontal: 16,
     minHeight: 56,
   },
   textContainer: {
