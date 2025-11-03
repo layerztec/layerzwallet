@@ -209,16 +209,17 @@ export class StacksWallet implements InterfaceAccountBasedWallet {
   /**
    * sending native coin (STX)
    */
-  async payStx(address: string, amount: number): Promise<string> {
+  async payStx(address: string, amount: number, memo?: string): Promise<string> {
     assert(this._sdkWallet, 'Stacks wallet is not initialized');
     assert(this._sdkWallet.accounts[this._accountNumber], 'Stacks account not found');
 
+    console.warn('paying STX with memo:', memo);
     const txOptions: SignedTokenTransferOptions = {
       recipient: address,
       amount: BigInt(amount),
       senderKey: this._sdkWallet.accounts[this._accountNumber].stxPrivateKey,
       network: 'mainnet',
-      // memo: '',
+      memo,
       // nonce: 0n, // set a nonce manually if you don't want builder to fetch from a Stacks node
       // fee: 200n, // set a tx fee if you don't want the builder to estimate
     };
@@ -309,7 +310,7 @@ export class StacksWallet implements InterfaceAccountBasedWallet {
     return txs;
   }
 
-  async transferTokens(tokenId: string, amount: bigint, address: string): Promise<string> {
+  async transferTokens(tokenId: string, amount: bigint, address: string, memo?: string): Promise<string> {
     assert(this._sdkWallet, 'Stacks wallet is not initialized');
     assert(this._sdkWallet.accounts[this._accountNumber], 'Stacks account not found');
     assert(address, 'Recipient address is required');
@@ -317,7 +318,7 @@ export class StacksWallet implements InterfaceAccountBasedWallet {
 
     if (tokenId === 'STX') {
       // its actually a native token
-      return this.payStx(address, Number(amount));
+      return this.payStx(address, Number(amount), memo);
     }
 
     // Ensure cached balance is sufficient
