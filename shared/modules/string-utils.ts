@@ -55,7 +55,11 @@ export async function generateUUID(csprng: ICsprng): Promise<string> {
   ].join('-');
 }
 
-export function formatBalance(balance: StringNumber, decimals: number, decimalPlaces = 8): string {
+export function formatBalance(balance: StringNumber, decimals: number, decimalPlaces = 8): StringNumber {
+  if (decimals === 0) {
+    return balance;
+  }
+
   return new BigNumber(balance)
     .dividedBy(new BigNumber(10).pow(decimals))
     .toFixed(decimalPlaces)

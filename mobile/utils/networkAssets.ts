@@ -15,7 +15,7 @@ import {
   NETWORK_ARK,
   NETWORK_STACKS,
 } from '@shared/types/networks';
-import { SO_LIQUID_USDT } from '@shared/types/swap';
+import { SO_LIQUID_USDT, SO_STACKS_STX } from '@shared/types/swap';
 
 /**
  * Gets the image asset for a given network
@@ -35,6 +35,8 @@ export const getNetworkImageAsset = (network: string): string | null => {
     case NETWORK_LIQUID_TESTNET:
     case SO_LIQUID_USDT:
       return require('../assets/images/ui/network/liquid.png');
+    case SO_STACKS_STX:
+      return require('../assets/images/ui/network/stacks.png');
     case NETWORK_ROOTSTOCK:
       return require('../assets/images/ui/network/rootstock.png');
     case NETWORK_BOTANIX:

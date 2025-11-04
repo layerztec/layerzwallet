@@ -10,7 +10,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image as ExpoImage } from 'expo-image';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, withSpring, interpolate, runOnJS } from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 import { ThemedText } from '@/components/ThemedText';
 import GradientScreen from '@/components/GradientScreen';
 import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
@@ -1081,7 +1080,6 @@ const DAppBrowser: React.FC = () => {
                   <View style={styles.addressBar}>
                     <TextInput
                       ref={addressInputRef}
-                      key={isAddressInputFocused ? 'address-input-focused' : 'address-input-blurred'}
                       style={styles.addressText}
                       value={addressInput}
                       selection={isAddressInputFocused ? undefined : selectionAtStart}
@@ -1140,7 +1138,7 @@ const DAppBrowser: React.FC = () => {
                   </View>
                   <Animated.View style={[styles.progressBar, progressBarAnimatedStyle]} />
                 </View>
-                <TouchableOpacity style={styles.closeButton} onPress={() => router.back()} disabled={isAddressInputFocused || isNetworkSelectorVisible} testID="BrowserCloseButton">
+                <TouchableOpacity style={styles.closeButton} onPress={() => router.back()} disabled={isNetworkSelectorVisible} testID="BrowserCloseButton">
                   <Ionicons name="close" size={20} color={isAddressInputFocused || isNetworkSelectorVisible ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.9)'} />
                 </TouchableOpacity>
               </View>

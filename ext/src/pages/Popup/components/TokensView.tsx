@@ -12,7 +12,6 @@ import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-uti
 
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { SendTokenEvmProps } from '../SendTokenEvm';
-import { SendTokenSparkProps } from '../SendTokenSpark';
 import { LayerzStorage } from '../../../class/layerz-storage';
 import { SendTokenStacksProps } from '@/pages/Popup/SendTokenStacks';
 
@@ -28,19 +27,13 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
   const formattedBalance = formatBalance(balance ?? token.balance ?? '0', token.decimals, token.decimals);
 
   const navigateToSendToken = () => {
-    if (network === NETWORK_SPARK) {
-      const state: SendTokenSparkProps = { tokenPublicKey: token.id };
-      navigate('/send-token-spark', { state });
-      return;
-    }
-
     if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
       navigate(`/send-liquid?assetId=${token.id}`);
       return;
     }
 
-    if (network === NETWORK_STACKS) {
-      console.log('send token on stacks', token);
+    if (network === NETWORK_STACKS || network === NETWORK_SPARK) {
+      console.log('send token', token);
       const state: SendTokenStacksProps = { tokenPublicKey: token.id };
       navigate('/send-token-stacks', { state });
       return;

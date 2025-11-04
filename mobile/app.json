@@ -84,7 +84,7 @@
       [
         "expo-asset",
         {
-          "assets": ["assets/js/inpage-bridge.jstxt", "assets/animations/intro.riv", "assets/animations/transactions.riv"]
+          "assets": ["assets/js/inpage-bridge.jstxt", "assets/animations/intro.riv", "assets/animations/transactions.riv", "assets/animations/success.riv"]
         }
       ],
       "expo-secure-store",
