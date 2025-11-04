@@ -184,7 +184,7 @@ const SendConfirm: React.FC = () => {
     };
   });
 
-  // Redirect back if no transaction is available (after all hooks)
+  // Redirect back if no transaction is available
   if (!createdTransaction) {
     router.replace('/send/send-amount');
     return null;
