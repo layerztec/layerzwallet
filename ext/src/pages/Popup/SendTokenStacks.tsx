@@ -7,14 +7,14 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_STACKS } from '@shared/types/networks';
 import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { HodlButton, Input, WideButton, Button } from './DesignSystem';
 import { useBalance } from '@shared/hooks/useBalance';
-import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { useScanQR } from '../../hooks/ScanQrContext';
+import { walletCanHaveTokens } from '@shared/class/wallets/interface-can-have-tokens';
+import { TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 
 export interface SendTokenStacksProps {
   tokenPublicKey: string;
@@ -53,8 +53,8 @@ const SendTokenStacks: React.FC = () => {
   useEffect(() => {
     const loadToken = async () => {
       try {
-        const wallet = await BackgroundCaller.lazyInitWallet(NETWORK_STACKS, accountNumber);
-        assert(wallet instanceof StacksWallet, 'Not a Stacks wallet');
+        const wallet = await BackgroundCaller.lazyInitWallet(network as TSupportedLazyInitWalletNetworks, accountNumber);
+        assert(walletCanHaveTokens(wallet), 'Not a wallet that can have tokens');
 
         const tokenBalances = wallet.getTokenBalances();
 
@@ -72,7 +72,7 @@ const SendTokenStacks: React.FC = () => {
     };
 
     loadToken();
-  }, [accountNumber, tokenPublicKey]);
+  }, [accountNumber, network, tokenPublicKey]);
 
   useEffect(() => {
     // do nothing, just to trigger a re-render when balanceNative changes
@@ -83,12 +83,12 @@ const SendTokenStacks: React.FC = () => {
       assert(token, 'internal error: token not loaded');
       setStep(SendTokenStacksStep.Sending);
       await new Promise((resolve) => setTimeout(resolve, 200)); // propagate ui
-      const wallet = await BackgroundCaller.lazyInitWallet(NETWORK_STACKS, accountNumber);
-      assert(wallet instanceof StacksWallet, 'Not a Stacks wallet');
+      const wallet = await BackgroundCaller.lazyInitWallet(network as TSupportedLazyInitWalletNetworks, accountNumber);
+      assert(walletCanHaveTokens(wallet), 'Not a wallet that can have tokens');
 
       const satValueToSend = new BigNumber(amountToSend).multipliedBy(new BigNumber(10).pow(token.decimals)).toFixed(0);
 
-      const transactionId = await wallet.transferTokens(token.id, BigInt(satValueToSend), toAddress, memo);
+      const transactionId = await wallet.transferToken(token.id, BigInt(satValueToSend), toAddress, memo);
 
       if (transactionId) {
         setStep(SendTokenStacksStep.Sent);

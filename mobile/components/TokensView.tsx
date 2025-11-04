@@ -37,9 +37,10 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
   const iconColor = getTokenIconColor(token?.name);
 
   const goToSend = () => {
-    if (network === NETWORK_SPARK) {
+    if (network === NETWORK_SPARK || network === NETWORK_STACKS) {
+      console.warn('Sending token', token.id, token.symbol, token.name, token.decimals);
       router.push({
-        pathname: '/SendTokenSpark',
+        pathname: '/SendTokenStacks',
         params: {
           tokenId: token.id,
           tokenSymbol: token.symbol,
@@ -54,17 +55,6 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
         params: { assetId: token.id },
       });
       return;
-    } else if (network === NETWORK_STACKS) {
-      router.push({
-        pathname: '/SendTokenStacks',
-        params: {
-          tokenId: token.id,
-          tokenSymbol: token.symbol,
-          tokenName: token.name,
-          tokenDecimals: token.decimals.toString(),
-        },
-      });
-      return;
     }
 
     router.push({
@@ -74,7 +64,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
   };
 
   return (
-    <TouchableOpacity style={styles.tokenRow} onPress={goToSend} activeOpacity={0.7}>
+    <TouchableOpacity style={styles.tokenRow} onPress={goToSend} activeOpacity={0.7} testID={`token-row-${token.id}`}>
       {/* Token Icon */}
       <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
         {token.logoURI ? (
@@ -89,7 +79,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
 
       {/* Token Amount and Price */}
       <View style={styles.tokenAmounts}>
-        <ThemedText style={styles.tokenAmount}>
+        <ThemedText style={styles.tokenAmount} testID={`token-amount-${token.id}`}>
           {formattedBalance} {token?.symbol}
         </ThemedText>
         <ThemedText style={styles.tokenPrice}>$TODO</ThemedText>

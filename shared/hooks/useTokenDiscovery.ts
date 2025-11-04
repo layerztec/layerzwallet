@@ -8,9 +8,9 @@ import assert from 'assert';
 import { IStorage } from '../types/IStorage';
 import { StacksWallet } from '../class/wallets/stacks-wallet';
 
-const STORAGE_KEY_CACHED_TOKEN_LIST = 'STORAGE_KEY_CACHED_TOKEN_LIST';
+const STORAGE_KEY_CACHED_TOKEN_LIST = 'STORAGE_KEY_CACHED_TOKEN_LIST_V2';
 
-export function useTokenDiscovery(network: Networks, accountNumber: number, backgroundCaller: IBackgroundCaller, storage: IStorage, refreshInterval = 3_000) {
+export function useTokenDiscovery(network: Networks, accountNumber: number, backgroundCaller: IBackgroundCaller, storage: IStorage, refreshInterval = 5_000) {
   const [tokenList, setTokenList] = useState<CachedTokenInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -58,18 +58,7 @@ export function useTokenDiscovery(network: Networks, accountNumber: number, back
           if (await restoreCachedTokens(cacheKey)) return;
         }
 
-        const tokenInfos: CachedTokenInfo[] = [];
-
-        for (const [, token] of wallet.getTokenBalances()) {
-          tokenInfos.push({
-            id: token.tokenMetadata.tokenPublicKey,
-            chainId: 0, // SPARK doesn't have a traditional chainId
-            name: token.tokenMetadata.tokenName,
-            decimals: token.tokenMetadata.decimals,
-            symbol: token.tokenMetadata.tokenTicker,
-            balance: String(token.balance),
-          });
-        }
+        const tokenInfos: CachedTokenInfo[] = wallet.getTokenBalances();
 
         if (tokenInfos.length > 0) await storage.setItem(cacheKey, JSON.stringify(tokenInfos)); // saving to cache
 
