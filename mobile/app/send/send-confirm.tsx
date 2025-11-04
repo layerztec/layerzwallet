@@ -41,9 +41,9 @@ const SendConfirm: React.FC = () => {
 
   // Get network-specific background color
   const networkGradient = getNetworkGradient(network);
-  const networkBackgroundColor = networkGradient[0]; // Use the first (darker) color from the gradient
+  const networkBackgroundColor = networkGradient[0];
 
-  // USD conversions - amount is already in native units (BTC), fee is in base units (sats)
+  // USD conversions
   const usdValue = exchangeRate
     ? `$${BigNumber(amount || '0')
         .multipliedBy(Number(exchangeRate))
@@ -97,17 +97,16 @@ const SendConfirm: React.FC = () => {
       detailsOpacity.value = withTiming(0, { duration: 600 });
       sendToOpacity.value = withTiming(0, { duration: 600 });
 
-      // Step 2: After sections fade out, move total section down smoothly (starts at 600ms, takes 800ms)
-      // Move down enough to make room for Rive animation: Rive height (200px) + margins (40px) + initial top (32px)
+      // Step 2: After sections fade out, move total section down smoothly
       timeout1 = setTimeout(() => {
-        setHideHeader(true); // Hide header when total section starts moving
+        setHideHeader(true);
         totalTop.value = withTiming(480, {
           duration: 800,
           easing: Easing.out(Easing.ease),
         });
       }, 600);
 
-      // Step 3: After total section finishes moving, show Rive animation (starts at 600ms + 800ms = 1400ms)
+      // Step 3: After total section finishes moving, show Rive animation
       timeout2 = setTimeout(() => {
         setShowRiveAnimation(true);
       }, 1400);
@@ -281,7 +280,6 @@ const SendConfirm: React.FC = () => {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-        {/* Button fixed outside scrollable area */}
         {!error && (
           <TouchableOpacity style={[styles.sendButton, isBroadcasting && styles.disabledButton]} onPress={isSuccess ? handleBack : broadcast} disabled={isBroadcasting}>
             <ThemedText style={styles.sendButtonText}>{isSuccess ? 'Back to Wallet' : isBroadcasting ? 'Sending...' : 'Confirm Send'}</ThemedText>
@@ -305,7 +303,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 80, // Space for absolutely positioned button (56px height + 24px spacing)
+    paddingBottom: 80,
   },
   container: {
     flex: 1,
@@ -373,7 +371,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 18,
     padding: 2,
-    marginTop: 198, // Space for absolutely positioned total section (~120px height + 32px top + 8px spacing)
+    marginTop: 198,
     marginBottom: 32,
   },
   detailsCard: {

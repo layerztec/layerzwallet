@@ -8,9 +8,9 @@ import GradientScreen from '@/components/GradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { getTickerByNetwork } from '@shared/models/network-getters';
+import { validateAddress } from '@shared/modules/wallet-utils';
 import { useSendFlow } from './_layout';
 
 const SendAddress: React.FC = () => {
@@ -46,7 +46,7 @@ const SendAddress: React.FC = () => {
     setErrorMessage('');
 
     try {
-      const isValid = await BackgroundExecutor.validateAddress(network, accountNumber, localAddress);
+      const isValid = validateAddress(network, localAddress);
       if (isValid) {
         setContextAddress(localAddress);
         router.push('/send/send-amount');

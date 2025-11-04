@@ -15,6 +15,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { validateAddress } from '@shared/modules/wallet-utils';
 import { sleep } from '@shared/modules/sleep';
 import { formatBalance } from '@shared/modules/string-utils';
 import { useSendFlow } from './_layout';
@@ -226,7 +227,7 @@ const SendAmount: React.FC = () => {
         const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString(10);
 
         // Validate address
-        const isAddressValid = await BackgroundExecutor.validateAddress(network, accountNumber, address);
+        const isAddressValid = validateAddress(network, address);
         if (!isAddressValid) {
           throw new Error('Recipient address is not valid');
         }
@@ -271,10 +272,10 @@ const SendAmount: React.FC = () => {
   const expandAnimation = useSharedValue(0);
   const chevronRotation = useSharedValue(0);
   useEffect(() => {
-    const duration = 200; // Increased duration for smoother title transition
+    const duration = 200;
     if (isFeeSelectorExpanded) {
       expandAnimation.value = withTiming(1, { duration });
-      chevronRotation.value = withTiming(90, { duration }); // Rotate 90 degrees from forward (→) to down (↓)
+      chevronRotation.value = withTiming(90, { duration });
     } else {
       expandAnimation.value = withTiming(0, { duration });
       chevronRotation.value = withTiming(0, { duration });
@@ -297,8 +298,7 @@ const SendAmount: React.FC = () => {
   // Animated title styles
   const animatedTitleStyle = useAnimatedStyle(() => {
     const fontSize = interpolate(expandAnimation.value, [0, 1], [14, 18], Extrapolation.CLAMP);
-    const opacity = interpolate(expandAnimation.value, [0, 1], [0.5, 1], Extrapolation.CLAMP); // Fully white when expanded
-    // Use white color with full opacity, then apply opacity animation
+    const opacity = interpolate(expandAnimation.value, [0, 1], [0.5, 1], Extrapolation.CLAMP);
     return { fontSize, color: 'rgba(255, 255, 255, 1)', opacity };
   });
 
