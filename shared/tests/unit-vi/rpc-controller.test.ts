@@ -94,9 +94,6 @@ const backgroundCallerMock2: IBackgroundCaller = {
   getMnemonicForVerification() {
     return Promise.resolve(null);
   },
-  validateAddress() {
-    return Promise.resolve(true);
-  },
 };
 
 beforeEach(() => {

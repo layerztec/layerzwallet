@@ -267,26 +267,4 @@ export const BackgroundExecutor: IBackgroundCaller = {
   async clear() {
     clearWalletCache();
   },
-
-  async validateAddress(network, accountNumber, address) {
-    if (network === NETWORK_BITCOIN) {
-      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-      assert(wallet instanceof WatchOnlyWallet);
-      return wallet.isAddressValid(address);
-    } else if (network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET) {
-      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-      assert(wallet instanceof ArkWallet);
-      return wallet.isAddressValid(address);
-    } else if (network === NETWORK_SPARK) {
-      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-      assert(wallet instanceof SparkWallet);
-      return wallet.isAddressValid(address);
-    } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
-      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-      assert(wallet instanceof BreezWallet);
-      throw new Error('Not implemented');
-    } else {
-      throw new Error('Invalid network');
-    }
-  },
 };

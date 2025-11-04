@@ -17,7 +17,6 @@ export enum MessageType {
   CLEAR,
   GET_MASTER_SEED,
   SET_MASTER_SEED,
-  VALIDATE_ADDRESS,
 }
 
 // Message types for background script communication
@@ -70,10 +69,6 @@ export type MessageTypeMap = {
     params: SetMasterSeedParams;
     response: void;
   };
-  [MessageType.VALIDATE_ADDRESS]: {
-    params: ValidateAddressRequest;
-    response: ValidateAddressResponse;
-  };
 };
 
 export type GetAddressParams = [network: Networks, accountNumber: number];
@@ -102,9 +97,6 @@ export type GetBtcSendDataResponse = { utxos: CreateTransactionUtxo[]; changeAdd
 
 export type GetCommonTransactionsRequest = [network: Networks, accountNumber: number, afterTxid?: string, limit?: number];
 export type GetCommonTransactionsResponse = CommonTransaction[];
-
-export type ValidateAddressRequest = [network: Networks, accountNumber: number, address: string];
-export type ValidateAddressResponse = boolean;
 
 export interface ProcessRPCRequest {
   method: string;
@@ -138,5 +130,4 @@ export interface IBackgroundCaller {
   hasSeedVerified(): Promise<boolean>;
   setSeedVerified(): Promise<void>;
   getMnemonicForVerification(): Promise<string | null>;
-  validateAddress(...params: ValidateAddressRequest): Promise<ValidateAddressResponse>;
 }
