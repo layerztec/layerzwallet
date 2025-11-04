@@ -21,7 +21,7 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 - extendedWaitUntil: # wait for page to load
     visible:
-      text: "E2E Test Dapp"
+      text: 'E2E Test Dapp'
     timeout: 60000
 
 - tapOn: 'Use Layerz Wallet'
