@@ -2,7 +2,7 @@
 # https://github.com/mobile-dev-inc/Maestro/issues/2293
 appId: com.layerzwallet.mobile
 ---
-# - runFlow: subflows/wallet-creation.yml
+- runFlow: subflows/wallet-creation.yml
 
 # Switch to Rootstock network
 - runFlow:
