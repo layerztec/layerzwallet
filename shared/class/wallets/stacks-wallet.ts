@@ -8,13 +8,14 @@ import { CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_STACKS } from '../../types/networks';
 import { IStorage } from '../../types/IStorage';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
+import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
 
 const sbtcId = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token::sbtc-token';
 const baseUrl = 'https://api.mainnet.hiro.so';
 
 const STORAGE_KEY = 'STACKS_TOKEN_METADATA';
 
-export class StacksWallet implements InterfaceAccountBasedWallet {
+export class StacksWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveTokens {
   private _accountNumber: number = 0;
   private _sdkWallet: SdkWallet | undefined = undefined;
   private secret: string = '';
@@ -310,7 +311,7 @@ export class StacksWallet implements InterfaceAccountBasedWallet {
     return txs;
   }
 
-  async transferTokens(tokenId: string, amount: bigint, address: string, memo?: string): Promise<string> {
+  async transferToken(tokenId: string, amount: bigint, address: string, memo?: string): Promise<string> {
     assert(this._sdkWallet, 'Stacks wallet is not initialized');
     assert(this._sdkWallet.accounts[this._accountNumber], 'Stacks account not found');
     assert(address, 'Recipient address is required');

@@ -11,14 +11,14 @@ import LongPressButton from '@/components/LongPressButton';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useBalance } from '@shared/hooks/useBalance';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_STACKS } from '@shared/types/networks';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { ThemedText } from '@/components/ThemedText';
-import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { CachedTokenInfo } from '@shared/types/token-info';
+import { walletCanHaveTokens } from '@shared/class/wallets/interface-can-have-tokens';
+import { TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 
 export type SendTokenStacksParams = {
   tokenId: string;
@@ -68,8 +68,8 @@ export default function SendTokenStacksScreen() {
   useEffect(() => {
     const loadToken = async () => {
       try {
-        const wallet = await BackgroundExecutor.lazyInitWallet(NETWORK_STACKS, accountNumber);
-        assert(wallet instanceof StacksWallet, 'Not a Stacks wallet');
+        const wallet = await BackgroundExecutor.lazyInitWallet(network as TSupportedLazyInitWalletNetworks, accountNumber);
+        assert(walletCanHaveTokens(wallet), 'Not a wallet that can have tokens');
 
         const tokenBalances = wallet.getTokenBalances();
 
@@ -87,7 +87,7 @@ export default function SendTokenStacksScreen() {
     };
 
     loadToken();
-  }, [accountNumber, tokenPublicKey]);
+  }, [accountNumber, network, tokenPublicKey]);
 
   // Re-render trigger when balanceNative changes
   useEffect(() => {
@@ -100,12 +100,12 @@ export default function SendTokenStacksScreen() {
       assert(token, 'internal error: token not loaded');
       setStep(SendTokenStacksStep.Sending);
       await new Promise((resolve) => setTimeout(resolve, 200)); // propagate ui
-      const wallet = await BackgroundExecutor.lazyInitWallet(NETWORK_STACKS, accountNumber);
-      assert(wallet instanceof StacksWallet, 'Not a Stacks wallet');
+      const wallet = await BackgroundExecutor.lazyInitWallet(network as TSupportedLazyInitWalletNetworks, accountNumber);
+      assert(walletCanHaveTokens(wallet), 'Not a wallet that can have tokens');
 
       const satValueToSend = new BigNumber(amountToSend).multipliedBy(new BigNumber(10).pow(token.decimals)).toFixed(0);
 
-      const transactionId = await wallet.transferTokens(token.id, BigInt(satValueToSend), toAddress, memo);
+      const transactionId = await wallet.transferToken(token.id, BigInt(satValueToSend), toAddress, memo);
 
       if (transactionId) {
         setStep(SendTokenStacksStep.Sent);
@@ -163,8 +163,7 @@ export default function SendTokenStacksScreen() {
   }, [balance, token]);
 
   const resetToInit = () => {
-    setStep(SendTokenStacksStep.Init);
-    setError('');
+    router.replace('/Home');
   };
 
   // Validate required parameters after all hooks
@@ -204,6 +203,7 @@ export default function SendTokenStacksScreen() {
                       value={toAddress}
                       onChangeText={setToAddress}
                       placeholder="Enter the recipient's address"
+                      testID="recipient-address-input"
                       placeholderTextColor="rgba(255, 255, 255, 0.6)"
                       autoCapitalize="none"
                       autoCorrect={false}
@@ -235,6 +235,7 @@ export default function SendTokenStacksScreen() {
                     value={amountToSend}
                     onChangeText={setAmountToSend}
                     placeholder="0.00"
+                    testID="amount-input"
                     placeholderTextColor="rgba(255, 255, 255, 0.6)"
                     keyboardType="decimal-pad"
                     editable={step === SendTokenStacksStep.Init}
@@ -296,7 +297,7 @@ export default function SendTokenStacksScreen() {
             {/* Action Buttons */}
             <View style={styles.buttonContainer}>
               {step === SendTokenStacksStep.Init && (
-                <TouchableOpacity style={styles.sendButton} onPress={prepareTransaction} activeOpacity={0.7}>
+                <TouchableOpacity style={styles.sendButton} onPress={prepareTransaction} activeOpacity={0.7} testID="send-screen-send-button">
                   <Ionicons name="send" size={20} color="#FFFFFF" style={styles.sendIcon} />
                   <Text style={styles.sendButtonText}>Send</Text>
                 </TouchableOpacity>
@@ -327,7 +328,7 @@ export default function SendTokenStacksScreen() {
                 <Text style={[styles.successTitle, { color: textColor }]}>Transaction Sent!</Text>
                 <Text style={[styles.successMessage, { color: textColor, opacity: 0.8 }]}>Your token transfer was successful.</Text>
                 <TouchableOpacity style={[styles.sendAnotherButton, { backgroundColor: successColor }]} onPress={resetToInit} activeOpacity={0.7}>
-                  <Text style={styles.sendAnotherButtonText}>Send Another</Text>
+                  <Text style={styles.sendAnotherButtonText}>Back to Wallet</Text>
                 </TouchableOpacity>
               </View>
             )}

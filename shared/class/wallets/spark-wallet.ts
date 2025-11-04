@@ -11,6 +11,8 @@ import * as BlueElectrum from '../../blue_modules/BlueElectrum';
 import { CommonSwap } from '../../types/common-swap';
 import { AllNetworkInfos } from '../../models/all-network-infos';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
+import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
+import { CachedTokenInfo } from '../../types/token-info';
 
 // copypasted from `node_modules/@buildonspark/spark-sdk/dist/...` since its not exported
 type Bech32mTokenIdentifier = `btkn1${string}` | `btknrt1${string}` | `btknt1${string}` | `btkns1${string}` | `btknl1${string}`;
@@ -22,7 +24,7 @@ export interface ISparkAdapter {
 // not exposed in the SDK
 export type StaticDepositQuoteOutput = Awaited<ReturnType<SDK['getClaimStaticDepositQuote']>>;
 
-export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet {
+export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet, InterfaceCanHaveTokens {
   private _sdkWallet: Awaited<ReturnType<typeof SDK.initialize>>['wallet'] | undefined = undefined;
   protected adapter: ISparkAdapter;
 
@@ -109,9 +111,20 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     return Number(balance.balance);
   }
 
-  getTokenBalances(): TokenBalanceMap {
+  getTokenBalances(): CachedTokenInfo[] {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
-    return this.tokenBalances;
+    const ret: CachedTokenInfo[] = [];
+    for (const [tokenIdentifier, { balance, tokenMetadata }] of this.tokenBalances.entries()) {
+      ret.push({
+        name: tokenMetadata.tokenName,
+        symbol: tokenMetadata.tokenTicker,
+        chainId: 0, // N/A
+        decimals: tokenMetadata.decimals,
+        id: tokenIdentifier,
+        balance: balance.toString(),
+      });
+    }
+    return ret;
   }
 
   async createLightningInvoice(amountSats: number, memo: string = ''): Promise<createLightningInvoiceResponse> {
@@ -193,7 +206,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     return commonTransactions;
   }
 
-  async transferTokens(tokenIdentifier: string, tokenAmount: bigint, receiverSparkAddress: string): Promise<string> {
+  async transferToken(tokenIdentifier: string, tokenAmount: bigint, receiverSparkAddress: string): Promise<string> {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
     return await this._sdkWallet.transferTokens({ receiverSparkAddress, tokenAmount, tokenIdentifier: tokenIdentifier as Bech32mTokenIdentifier });
@@ -282,6 +295,14 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
       creditAmountSats: quote.creditAmountSats,
       sspSignature: quote.signature,
     });
+  }
+
+  async fetchTokenBalances(): Promise<void> {
+    if (this._lastBalanceFetch > 0 && Date.now() - this._lastBalanceFetch > 5_000) {
+      // tokens are fetched in `getOffchainBalance`, but since it was called a long time ago lets call it again
+      // so we wont have stale data
+      await this.getOffchainBalance();
+    }
   }
 
   async refundDeposit(txid: string, destinationAddress: string): Promise<void> {
