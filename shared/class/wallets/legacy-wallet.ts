@@ -480,7 +480,7 @@ export class LegacyWallet extends AbstractWallet {
    * @param address
    * @returns {boolean}
    */
-  isAddressValid(address: string): boolean {
+  static isAddressValid(address: string): boolean {
     try {
       bitcoin.address.toOutputScript(address); // throws, no?
 
@@ -495,6 +495,13 @@ export class LegacyWallet extends AbstractWallet {
     } catch (e) {
       return false;
     }
+  }
+
+  /**
+   * Another way to call {@link LegacyWallet.isAddressValid}
+   */
+  isAddressValid(address: string): boolean {
+    return LegacyWallet.isAddressValid(address);
   }
 
   /**

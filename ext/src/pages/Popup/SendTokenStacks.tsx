@@ -37,14 +37,16 @@ const SendTokenStacks: React.FC = () => {
   const { accountNumber } = useContext(AccountNumberContext);
   const scanQr = useScanQR();
   const { tokenPublicKey } = location.state as SendTokenStacksProps;
+  const allowMemo = tokenPublicKey === 'STX';
   const { balance: balanceNative } = useBalance(network, accountNumber, BackgroundCaller);
   const { balance } = useTokenBalance(network, accountNumber, tokenPublicKey, BackgroundCaller);
 
   const [toAddress, setToAddress] = useState<string>('');
+  const [memo, setMemo] = useState<string>('');
   const [amountToSend, setAmountToSend] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [token, setToken] = useState<CachedTokenInfo>();
-  // const [tokenIdentifier, setTokenIdentifier] = useState<string>('');
+
   const { askMnemonic } = useContext(AskMnemonicContext);
 
   // loading token
@@ -86,7 +88,7 @@ const SendTokenStacks: React.FC = () => {
 
       const satValueToSend = new BigNumber(amountToSend).multipliedBy(new BigNumber(10).pow(token.decimals)).toFixed(0);
 
-      const transactionId = await wallet.transferTokens(token.id, BigInt(satValueToSend), toAddress);
+      const transactionId = await wallet.transferTokens(token.id, BigInt(satValueToSend), toAddress, memo);
 
       if (transactionId) {
         setStep(SendTokenStacksStep.Sent);
@@ -165,17 +167,22 @@ const SendTokenStacks: React.FC = () => {
               </Button>
             </div>
           </div>
-          <hr />
           <div style={{ textAlign: 'left' }}>
             <b>Amount</b>
             <div style={{ marginBottom: '10px' }}></div>
             <Input type="numbers" data-testid="amount-input" placeholder="0.00" onChange={(event) => setAmountToSend(event.target.value)} />
             <div style={{ color: 'gray', width: '100%', marginBottom: '15px' }}>
               <span style={{ fontSize: 16 }}>
-                Available balance: {token?.symbol} {balance ? formatBalance(balance, token?.decimals ?? 0, 2) : ''}
+                Available balance: {token?.symbol} {balance ? formatBalance(balance, token?.decimals ?? 2, token?.decimals ?? 2) : ''}
               </span>
             </div>
           </div>
+          {allowMemo ? (
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ marginBottom: '10px' }}></div>
+              <Input data-testid="memo-input" placeholder="memo" onChange={(event) => setMemo(event.target.value)} />
+            </div>
+          ) : null}
         </>
       ) : null}
 

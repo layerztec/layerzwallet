@@ -1,15 +1,32 @@
 import assert from 'assert';
 
-import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
-import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
-import { SparkWallet } from '../class/wallets/spark-wallet';
-import { IStorage, STORAGE_KEY_BTC_XPUB, getSerializedStorageKey } from '../types/IStorage';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
-import { WalletSerializer } from './wallet-serializer';
-import { BreezWallet, getBreezNetwork } from '../class/wallets/breez-wallet';
-import { ArkWallet } from '../class/wallets/ark-wallet';
 import { validateMnemonic } from '../blue_modules/bip39';
+import { EvmWallet } from '../class/evm-wallet';
+import { ArkWallet } from '../class/wallets/ark-wallet';
+import { BreezWallet, getBreezNetwork } from '../class/wallets/breez-wallet';
+import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
+import { LegacyWallet } from '../class/wallets/legacy-wallet';
+import { SparkWallet } from '../class/wallets/spark-wallet';
 import { StacksWallet } from '../class/wallets/stacks-wallet';
+import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
+import { IStorage, STORAGE_KEY_BTC_XPUB, getSerializedStorageKey } from '../types/IStorage';
+import {
+  NETWORK_ALPEN_TESTNET,
+  NETWORK_ARK,
+  NETWORK_ARK_MUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_BOTANIX,
+  NETWORK_BOTANIX_TESTNET,
+  NETWORK_CITREA_TESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_ROOTSTOCK,
+  NETWORK_SEPOLIA,
+  NETWORK_SPARK,
+  NETWORK_STACKS,
+  Networks,
+} from '../types/networks';
+import { WalletSerializer } from './wallet-serializer';
 
 // cache of master seed after it was decrypted from the storage (with user's password).
 let masterSeed: string = '';
@@ -249,3 +266,44 @@ export const clearWalletCache = () => {
     cachedWallets[network] = {};
   });
 };
+
+/**
+ * Validates an address for a given network
+ * @param network The network to validate the address for
+ * @param address The address to validate
+ * @returns true if the address is valid for the network, false otherwise
+ */
+export function validateAddress(network: Networks, address: string): boolean {
+  try {
+    const a = address.trim();
+    if (!a) return false;
+    switch (network) {
+      case NETWORK_BITCOIN:
+        return LegacyWallet.isAddressValid(a);
+      case NETWORK_LIQUID:
+      case NETWORK_LIQUID_TESTNET:
+        return BreezWallet.isAddressValid(a);
+      case NETWORK_SPARK:
+        return SparkWallet.isAddressValid(a);
+      case NETWORK_ARK:
+      case NETWORK_ARK_MUTINYNET:
+        return ArkWallet.isAddressValid(a);
+      case NETWORK_STACKS:
+        return StacksWallet.isAddressValid(a);
+      // EVM networks
+      case NETWORK_ROOTSTOCK:
+      case NETWORK_BOTANIX:
+      case NETWORK_BOTANIX_TESTNET:
+      case NETWORK_ALPEN_TESTNET:
+      case NETWORK_SEPOLIA:
+      case NETWORK_CITREA_TESTNET:
+        return EvmWallet.isAddressValid(a);
+      default:
+        // For unknown networks, return false
+        return false;
+    }
+  } catch (error) {
+    // If any error occurs during validation, consider the address invalid
+    return false;
+  }
+}
