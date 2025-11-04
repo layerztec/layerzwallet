@@ -177,6 +177,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     marginTop: 'auto',
+    marginBottom: 24,
   },
   continueButtonText: {
     color: 'rgba(255, 255, 255, 0.9)',
