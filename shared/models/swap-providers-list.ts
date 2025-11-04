@@ -1,4 +1,4 @@
-import { SO_LIQUID_USDT, SwapOptions, SwapPair, SwapPlatform, SwapProvider } from '../types/swap';
+import { SO_LIQUID_USDT, SO_STACKS_STX, SwapOptions, SwapPair, SwapPlatform, SwapProvider } from '../types/swap';
 import { SwapProviderBoltz } from './swap-provider-boltz';
 import { SwapProviderOnramper } from './swap-provider-onramper';
 import { SwapProviderSideshift } from './swap-provider-sideshift';
@@ -41,6 +41,8 @@ export function getSwapTargetName(target: SwapOptions): string {
   switch (target) {
     case SO_LIQUID_USDT:
       return 'USDT on Liquid';
+    case SO_STACKS_STX:
+      return 'STX on Stacks';
     default:
       return capitalizeFirstLetter(target);
   }
