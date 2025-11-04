@@ -58,12 +58,6 @@ const SendConfirm: React.FC = () => {
   // Calculate total USD
   const totalUsd = exchangeRate ? `$${totalAmount.multipliedBy(Number(exchangeRate)).toFixed(2)}` : '';
 
-  // Redirect back if no transaction is available
-  if (!createdTransaction) {
-    router.replace('/send/send-amount');
-    return null;
-  }
-
   const broadcast = async () => {
     setIsBroadcasting(true);
     setError('');
@@ -189,6 +183,12 @@ const SendConfirm: React.FC = () => {
       top: totalTop.value,
     };
   });
+
+  // Redirect back if no transaction is available (after all hooks)
+  if (!createdTransaction) {
+    router.replace('/send/send-amount');
+    return null;
+  }
 
   return (
     <GradientScreen variant={network} scroll={false}>
