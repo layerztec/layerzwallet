@@ -272,10 +272,10 @@ const SendAmount: React.FC = () => {
   const expandAnimation = useSharedValue(0);
   const chevronRotation = useSharedValue(0);
   useEffect(() => {
-    const duration = 100;
+    const duration = 200;
     if (isFeeSelectorExpanded) {
       expandAnimation.value = withTiming(1, { duration });
-      chevronRotation.value = withTiming(1, { duration });
+      chevronRotation.value = withTiming(90, { duration });
     } else {
       expandAnimation.value = withTiming(0, { duration });
       chevronRotation.value = withTiming(0, { duration });
@@ -294,6 +294,26 @@ const SendAmount: React.FC = () => {
   });
 
   const animatedChevronStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${chevronRotation.value}deg` }] }));
+
+  // Animated title styles
+  const animatedTitleStyle = useAnimatedStyle(() => {
+    const fontSize = interpolate(expandAnimation.value, [0, 1], [14, 18], Extrapolation.CLAMP);
+    const opacity = interpolate(expandAnimation.value, [0, 1], [0.5, 1], Extrapolation.CLAMP);
+    return { fontSize, color: 'rgba(255, 255, 255, 1)', opacity };
+  });
+
+  // Animated subtitle (fee info) styles
+  const animatedSubtitleStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(expandAnimation.value, [0, 1], [1, 0], Extrapolation.CLAMP);
+    const translateY = interpolate(expandAnimation.value, [0, 1], [0, -10], Extrapolation.CLAMP);
+    const height = interpolate(expandAnimation.value, [0, 1], [20, 0], Extrapolation.CLAMP);
+    return {
+      opacity,
+      transform: [{ translateY }],
+      height,
+      overflow: 'hidden' as const,
+    };
+  });
 
   return (
     <GradientScreen variant={network} scroll={true}>
@@ -361,33 +381,24 @@ const SendAmount: React.FC = () => {
 
           {!isLoading && !feeLoadingError && (
             <View style={styles.feeSelectorContainer}>
-              <TouchableOpacity style={isFeeSelectorExpanded ? styles.feeSelectorExpandedHeader : styles.feeSelectorHeader} onPress={toggleFeeSelector}>
-                {isFeeSelectorExpanded ? (
-                  <>
-                    <ThemedText style={styles.feeSelectorTitle}>Network Fee</ThemedText>
-                    <Animated.View style={animatedChevronStyle}>
-                      <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.6)" />
-                    </Animated.View>
-                  </>
-                ) : (
-                  <>
-                    <View style={styles.feeSelectorCollapsedContent}>
-                      <ThemedText style={styles.feeSelectorLabel}>Network Fee</ThemedText>
-                      <ThemedText style={styles.feeSelectorSelected}>
-                        {feeName}
-                        {feeRateOptions[feeRate] && ` - ${formatFee(feeRateOptions[feeRate])}`}
-                      </ThemedText>
-                    </View>
-                    <Animated.View style={animatedChevronStyle}>
-                      <Ionicons name="chevron-forward" size={20} color="rgba(255, 255, 255, 0.6)" />
-                    </Animated.View>
-                  </>
-                )}
+              <TouchableOpacity activeOpacity={0.7} style={isFeeSelectorExpanded ? styles.feeSelectorExpandedHeader : styles.feeSelectorHeader} onPress={toggleFeeSelector}>
+                <View style={styles.feeSelectorCollapsedContent}>
+                  <Animated.Text style={[styles.feeSelectorLabel, animatedTitleStyle]}>Network Fee</Animated.Text>
+                  <Animated.View style={animatedSubtitleStyle}>
+                    <ThemedText style={styles.feeSelectorSelected}>
+                      {feeName}
+                      {feeRateOptions[feeRate] && ` - ${formatFee(feeRateOptions[feeRate])}`}
+                    </ThemedText>
+                  </Animated.View>
+                </View>
+                <Animated.View style={animatedChevronStyle}>
+                  <Ionicons name="chevron-forward" size={20} color="rgba(255, 255, 255, 0.6)" />
+                </Animated.View>
               </TouchableOpacity>
 
               {estimateFees && (
                 <Animated.View style={[styles.feeOptionsContainer, animatedFeeOptionsStyle]}>
-                  <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.fast && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.fast)}>
+                  <TouchableOpacity activeOpacity={0.7} style={styles.feeOption} onPress={() => handleFeeSelection(estimateFees.fast)}>
                     <View style={styles.feeOptionContent}>
                       <ThemedText style={styles.feeOptionName}>Fast</ThemedText>
                       <ThemedText style={styles.feeOptionRate}>{estimateFees.fast} sats v/b</ThemedText>
@@ -395,7 +406,7 @@ const SendAmount: React.FC = () => {
                     <ThemedText style={styles.feeOptionAmount}>{feeRateOptions[estimateFees.fast] ? formatFee(feeRateOptions[estimateFees.fast]) : ''}</ThemedText>
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.medium && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.medium)}>
+                  <TouchableOpacity activeOpacity={0.7} style={styles.feeOption} onPress={() => handleFeeSelection(estimateFees.medium)}>
                     <View style={styles.feeOptionContent}>
                       <ThemedText style={styles.feeOptionName}>Medium</ThemedText>
                       <ThemedText style={styles.feeOptionRate}>{estimateFees.medium} sats v/b</ThemedText>
@@ -403,7 +414,7 @@ const SendAmount: React.FC = () => {
                     <ThemedText style={styles.feeOptionAmount}>{feeRateOptions[estimateFees.medium] ? formatFee(feeRateOptions[estimateFees.medium]) : ''}</ThemedText>
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.slow && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.slow)}>
+                  <TouchableOpacity activeOpacity={0.7} style={styles.feeOption} onPress={() => handleFeeSelection(estimateFees.slow)}>
                     <View style={styles.feeOptionContent}>
                       <ThemedText style={styles.feeOptionName}>Slow</ThemedText>
                       <ThemedText style={styles.feeOptionRate}>{estimateFees.slow} sats v/b</ThemedText>
@@ -513,11 +524,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.01)',
     height: 64,
-  },
-  selectedFeeOption: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   feeOptionContent: {
     flex: 1,
@@ -546,6 +554,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 8,
     marginTop: 'auto',
+    marginBottom: 24,
   },
   continueButtonText: {
     color: 'rgba(255, 255, 255, 0.9)',
