@@ -101,7 +101,7 @@ export default function Swap() {
     assert(provider, 'No provider found for the selected networks');
 
     let destinationAddress = '';
-    if (option === SO_LIQUID_USDT) {
+    if (option === SO_LIQUID_USDT || option === SO_ROOTSTOCK_USDT) {
       destinationAddress = await BackgroundExecutor.getAddress(NETWORK_LIQUID, accountNumber);
     } else if (option === SO_STACKS_STX) {
       destinationAddress = await BackgroundExecutor.getAddress(NETWORK_STACKS, accountNumber);

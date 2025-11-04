@@ -213,7 +213,6 @@ export class StacksWallet implements InterfaceAccountBasedWallet {
     assert(this._sdkWallet, 'Stacks wallet is not initialized');
     assert(this._sdkWallet.accounts[this._accountNumber], 'Stacks account not found');
 
-    console.warn('paying STX with memo:', memo);
     const txOptions: SignedTokenTransferOptions = {
       recipient: address,
       amount: BigInt(amount),
