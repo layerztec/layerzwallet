@@ -542,13 +542,13 @@ export default function Home() {
                   <ActionPopupButton actions={usdtSwapActions} title="Choose network to swap">
                     <TouchableOpacity style={styles.swapButtonInner} activeOpacity={0.8} testID="SwapButton">
                       <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
-                      <ThemedText style={styles.navButtonText}>Swap</ThemedText>
+                      <ThemedText style={styles.navButtonText}>Transfer</ThemedText>
                     </TouchableOpacity>
                   </ActionPopupButton>
                 ) : (
                   <TouchableOpacity style={styles.swapButtonInner} onPress={handleSwap} activeOpacity={0.8} testID="SwapButton">
                     <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
-                    <ThemedText style={styles.navButtonText}>Swap</ThemedText>
+                    <ThemedText style={styles.navButtonText}>Transfer</ThemedText>
                   </TouchableOpacity>
                 )}
               </View>
