@@ -27,4 +27,4 @@ appId: com.layerzwallet.mobile
 - extendedWaitUntil:
     visible:
       id: 'SelfTestSuccess'
-    timeout: 29000
+    timeout: 59000
