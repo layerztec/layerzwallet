@@ -8,8 +8,8 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useSwapBalance } from '@shared/hooks/useSwapBalance';
 import { getSwapPairs, getSwapProvidersList, getSwapTargetName } from '@shared/models/swap-providers-list';
-import { NETWORK_LIQUID, Networks } from '@shared/types/networks';
-import { SwapPair, SwapPlatform, SwapOptions, SO_LIQUID_USDT, SO_ROOTSTOCK_USDT } from '@shared/types/swap';
+import { NETWORK_LIQUID, NETWORK_STACKS, Networks } from '@shared/types/networks';
+import { SwapPair, SwapPlatform, SwapOptions, SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SO_STACKS_STX } from '@shared/types/swap';
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { Button, Input } from '../DesignSystem';
 
@@ -61,6 +61,8 @@ const SwapInterfaceView: React.FC<SwapInterfaceViewProps> = ({ fromNetwork }) =>
     let destinationAddress = '';
     if (targetNetwork === SO_LIQUID_USDT || targetNetwork === SO_ROOTSTOCK_USDT) {
       destinationAddress = await BackgroundCaller.getAddress(NETWORK_LIQUID, accountNumber);
+    } else if (targetNetwork === SO_STACKS_STX) {
+      destinationAddress = await BackgroundCaller.getAddress(NETWORK_STACKS, accountNumber);
     } else {
       destinationAddress = await BackgroundCaller.getAddress(targetNetwork as Networks, accountNumber);
     }

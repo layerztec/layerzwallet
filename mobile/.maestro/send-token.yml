@@ -1,0 +1,62 @@
+# Testplan:
+# - restore the wallet
+# - send 1 CRPRT token via Spark token transfer screen
+# - check that balance decreased
+
+appId: com.layerzwallet.mobile
+jsEngine: graaljs
+---
+- runFlow:
+    file: subflows/wallet-restore.yml
+    env:
+      MNEMONIC: ${MAESTRO_TEST_MNEMONIC}
+
+# switch network
+- runFlow:
+    file: subflows/network-switch.yml
+    env:
+      NETWORK: 'spark'
+# wait for the balance to load
+- assertVisible:
+    id: 'LayerBalance'
+- extendedWaitUntil:
+    notVisible: '—'
+    timeout: 60000
+
+- copyTextFrom:
+    id: 'token-amount-btkn1mjpzcvak0mk9xv4kjdztwl6udk5rkgzetyz4qdz8375mk0wpvpqqe0alhv'
+- evalScript: ${output.balance = maestro.copiedText}
+- evalScript: ${console.log(output.balance);}
+- evalScript: ${console.log(parseFloat(output.balance));}
+# guard against NaN:
+- evalScript: ${if (parseFloat(output.balance) > 0) {} else throw new Error("bad balance = " + output.balance)  }
+
+# ok, balance copied, lets send it so hardcoded address from our 2nd account
+- tapOn:
+    id: 'token-row-btkn1mjpzcvak0mk9xv4kjdztwl6udk5rkgzetyz4qdz8375mk0wpvpqqe0alhv'
+- tapOn:
+    id: 'recipient-address-input'
+- inputText: 'spark1pgssyjcyyypuufme5g6n4rg7avcxkx029am5ccpfn63d5ryr6d308m0j4akqhx'
+- tapOn:
+    id: 'amount-input'
+- inputText: '1'
+- tapOn:
+    id: 'send-screen-send-button'
+- tapOn:
+    id: 'send-screen-send-button'
+- longPressOn: 'Hold to confirm send'
+- waitForAnimationToEnd:
+    timeout: 29000
+- assertVisible: 'Transaction Sent!'
+- tapOn: 'Back to Wallet'
+- runFlow: subflows/sleep.yml # sleeping till balance updates
+- runFlow: subflows/sleep.yml
+
+# checking that balance is updated
+- copyTextFrom:
+    id: 'token-amount-btkn1mjpzcvak0mk9xv4kjdztwl6udk5rkgzetyz4qdz8375mk0wpvpqqe0alhv'
+- evalScript: ${output.balance2 = maestro.copiedText}
+- evalScript: ${console.log(output.balance2);}
+- evalScript: ${console.log(parseFloat(output.balance2));}
+# check:
+- evalScript: ${if (output.balance > output.balance2) {} else throw new Error("bad balance = " + output.balance + " vs " + output.balance2)  }

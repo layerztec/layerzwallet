@@ -6,9 +6,8 @@ import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTST
 import { StringNumber } from '../types/string-number';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { getIsEVM, getRpcProvider } from '../models/network-getters';
-import { SparkWallet } from '../class/wallets/spark-wallet';
 import { BreezWallet } from '../class/wallets/breez-wallet';
-import { StacksWallet } from '../class/wallets/stacks-wallet';
+import { walletCanHaveTokens } from '../class/wallets/interface-can-have-tokens';
 
 interface tokenBalanceFetcherArg {
   cacheKey: string;
@@ -31,22 +30,12 @@ export const tokenBalanceFetcher = async (arg: tokenBalanceFetcherArg): Promise<
       throw new Error('tokenBalanceFetcher: not supported');
     }
 
-    if (network === NETWORK_SPARK) {
+    if (network === NETWORK_SPARK || network === NETWORK_STACKS) {
       const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
-      assert(wallet instanceof SparkWallet, 'Not a Spark wallet');
+      assert(walletCanHaveTokens(wallet), 'Not a wallet that can have tokens');
       // Find the token balance where tokenMetadata.tokenPublicKey matches tokenContractAddress
       const tokenBalances = wallet.getTokenBalances();
-      for (const value of tokenBalances.values()) {
-        if (value.tokenMetadata.tokenPublicKey === tokenContractAddress) {
-          return String(value.balance);
-        }
-      }
-      return undefined;
-    } else if (network === NETWORK_STACKS) {
-      const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
-      assert(wallet instanceof StacksWallet, 'Not a Stacks wallet');
-      const tokenBalances = wallet.getTokenBalances();
-      for (const value of tokenBalances.values()) {
+      for (const value of tokenBalances) {
         if (value.id === tokenContractAddress) {
           return String(value.balance);
         }

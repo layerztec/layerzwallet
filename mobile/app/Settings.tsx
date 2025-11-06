@@ -1,28 +1,19 @@
-import { Colors } from '@shared/constants/Colors';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Application from 'expo-application';
-import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { Alert, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import SettingsRow from '@/components/SettingsRow';
 import { LayerzStorage } from '@/src/class/layerz-storage';
-import { SecureStorage } from '@/src/class/secure-storage';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
+import { InitializationContext } from '@shared/hooks/InitializationContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useSettings } from '@shared/hooks/useSettings';
-import { STORAGE_KEY_BTC_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
-import { getDeviceIdentifier } from '@/src/utils/device-id';
 import { getGradientColors } from '@/utils/gradientUtils';
 
 const gitCommitHash = require('../git_commit_hash.json');
@@ -117,7 +108,7 @@ export default function SettingsScreen() {
                 </View>
               ) : (
                 <View style={[styles.badge, styles.badgeWarning]}>
-                  <Ionicons name="close" size={12} color="white" />
+                  <Ionicons name="close" size={12} color="black" />
                   <ThemedText style={styles.badgeText}>backup</ThemedText>
                 </View>
               )}
@@ -207,7 +198,6 @@ export default function SettingsScreen() {
             style={styles.scrollContainer}
           />
 
-          {/* Version Info - Pinned to bottom */}
           <View style={styles.versionContainer}>
             <ThemedText style={styles.versionText}>
               {Application.applicationName} v{Application.nativeApplicationVersion}
@@ -281,7 +271,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'white',
+    color: 'black',
   },
   statusCheckContainer: {
     marginRight: 16,
