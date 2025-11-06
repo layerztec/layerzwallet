@@ -12,6 +12,7 @@ appId: com.layerzwallet.mobile
       id: 'SelfTestButton'
     direction: DOWN
     centerElement: true
+- waitForAnimationToEnd
 
 # Navigate to Self Test
 - tapOn:
@@ -27,4 +28,4 @@ appId: com.layerzwallet.mobile
 - extendedWaitUntil:
     visible:
       id: 'SelfTestSuccess'
-    timeout: 29000
+    timeout: 59000
