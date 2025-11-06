@@ -49,8 +49,10 @@ jsEngine: graaljs
     timeout: 29000
 - assertVisible: 'Transaction Sent!'
 - tapOn: 'Back to Wallet'
-- runFlow: subflows/sleep.yml # sleeping till balance updates
-- runFlow: subflows/sleep.yml
+- runFlow: # sleeping till balance updates
+    file: subflows/sleep.yml
+    env:
+      TIMEOUT: 12000
 
 # checking that balance is updated
 - copyTextFrom:
