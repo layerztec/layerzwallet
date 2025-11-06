@@ -4,7 +4,6 @@ appId: com.layerzwallet.mobile
 # If TIMEOUT is not provided, sleep for 3 seconds
 # If TIMEOUT is provided, sleep for the given number of milliseconds
 
-- evalScript: await new Promise(resolve => setTimeout(resolve, TIMEOUT || 3000));
 - evalScript: ${console.log('sleeping', TIMEOUT || 3000 );}
 - evalScript: ${output.counter = Date.now()}
 - evalScript: ${console.log(output.counter);}
