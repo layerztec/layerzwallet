@@ -25,6 +25,7 @@ import { InitializationContextProvider } from '@shared/hooks/InitializationConte
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
 import { ProtectedRouteStack } from '@/components/ProtectedRouteStack';
+import { ActionPopupProvider } from '@/contexts/ActionPopupContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -95,10 +96,12 @@ export default function RootLayout() {
                 <AuthStateContextProvider>
                   <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                     <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
-                      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                        <ProtectedRouteStack />
-                        <StatusBar style="light" />
-                      </ThemeProvider>
+                      <ActionPopupProvider>
+                        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                          <ProtectedRouteStack />
+                          <StatusBar style="light" />
+                        </ThemeProvider>
+                      </ActionPopupProvider>
                     </NetworkContextProvider>
                   </AccountNumberContextProvider>
                 </AuthStateContextProvider>
