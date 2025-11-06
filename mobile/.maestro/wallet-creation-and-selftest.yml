@@ -12,6 +12,7 @@ appId: com.layerzwallet.mobile
       id: 'SelfTestButton'
     direction: DOWN
     centerElement: true
+- waitForAnimationToEnd
 
 # Navigate to Self Test
 - tapOn:
