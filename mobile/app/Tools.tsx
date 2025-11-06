@@ -1,10 +1,11 @@
-import { Alert, StyleSheet, TouchableOpacity, View, ScrollView, Pressable, Switch } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity, View, SectionList, Pressable } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import * as Application from 'expo-application';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Bugsnag from '@bugsnag/expo';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 import { decrypt, encrypt } from '../src/modules/encryption';
@@ -14,8 +15,6 @@ import { useContext, useEffect, useState } from 'react';
 import { Csprng } from '@/src/class/rng';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import ScreenHeader from '@/components/navigation/ScreenHeader';
 import SettingsRow from '@/components/SettingsRow';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { LayerzStorage } from '@/src/class/layerz-storage';
@@ -234,133 +233,179 @@ export default function TabThreeScreen() {
   const gradientColors = getGradientColors(network);
   const backgroundColor = gradientColors[0];
 
-  return (
-    <View style={[styles.container, { backgroundColor }]}>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
-        <ScreenHeader title="Tools" testID="ToolsScreenTitle" />
+  const sections = [
+    {
+      title: 'Self Test',
+      key: 'selfTest',
+      data: ['selfTest'],
+    },
+    {
+      title: 'Pocket Number',
+      key: 'pocketNumber',
+      data: ['pocketNumber'],
+    },
+    {
+      title: 'Bitcoin XPUB',
+      key: 'bitcoinXpub',
+      data: ['bitcoinXpub'],
+    },
+    {
+      title: 'App Settings',
+      key: 'appSettings',
+      data: ['appSettings'],
+    },
+    {
+      title: 'Developer Options',
+      key: 'developerOptions',
+      data: ['developerOptions'],
+    },
+    {
+      title: 'Security Actions',
+      key: 'securityActions',
+      data: ['securityActions'],
+    },
+  ];
 
-        <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-          {/* Self Test Section */}
-          <View style={styles.sectionContainer}>
-            <ThemedText style={styles.sectionHeader}>Self Test</ThemedText>
-            <View style={styles.settingsGroup}>
-              <TouchableOpacity style={[styles.testButton, testState === 'running' && styles.testButtonDisabled]} onPress={handleSelfTest} disabled={testState === 'running'} testID="RunTestButton">
-                <ThemedText style={styles.testButtonText}>{testState === 'running' ? 'Running...' : 'Run Self Test'}</ThemedText>
-              </TouchableOpacity>
-              {testState === 'ok' && (
-                <View style={styles.testResult}>
-                  <ThemedText style={styles.testResultSuccess} testID="SelfTestSuccess">
-                    ✓ Test Passed
-                  </ThemedText>
-                </View>
-              )}
-              {testState === 'error' && (
-                <View style={styles.testResult}>
-                  <ThemedText style={styles.testResultError}>✗ Test Failed</ThemedText>
-                  <ThemedText style={styles.testResultErrorMessage}>{errorMessage}</ThemedText>
-                </View>
-              )}
-            </View>
+  const renderSectionHeader = ({ section }: { section: { title: string } }) => <ThemedText style={styles.sectionHeader}>{section.title}</ThemedText>;
+
+  const renderItem = ({ item, section }: { item: string; section: { key: string } }) => {
+    switch (section.key) {
+      case 'selfTest':
+        return (
+          <View style={styles.settingsGroup}>
+            <TouchableOpacity style={[styles.testButton, testState === 'running' && styles.testButtonDisabled]} onPress={handleSelfTest} disabled={testState === 'running'} testID="RunSelfTestButton">
+              <ThemedText style={styles.testButtonText}>{testState === 'running' ? 'Running...' : 'Run Self Test'}</ThemedText>
+            </TouchableOpacity>
+            {testState === 'ok' && (
+              <View style={styles.testResult}>
+                <ThemedText style={styles.testResultSuccess} testID="SelfTestSuccess">
+                  ✓ Test Passed
+                </ThemedText>
+              </View>
+            )}
+            {testState === 'error' && (
+              <View style={styles.testResult}>
+                <ThemedText style={styles.testResultError}>✗ Test Failed</ThemedText>
+                <ThemedText style={styles.testResultErrorMessage}>{errorMessage}</ThemedText>
+              </View>
+            )}
           </View>
+        );
 
-          {/* Pocket Number Section */}
-          <View style={styles.sectionContainer}>
-            <ThemedText style={styles.sectionHeader}>Pocket Number</ThemedText>
-            <View style={styles.settingsGroup}>
-              <View style={styles.pocketSection}>
-                <ThemedText style={styles.accountText}>Current Pocket: {accountNumber}</ThemedText>
-                <View style={styles.accountButtonContainer}>
-                  {[0, 1, 2, 3, 4].map((num) => (
-                    <TouchableOpacity key={num} style={[styles.accountButton, accountNumber === num && styles.accountButtonActive]} onPress={() => handleAccountChange(num)}>
-                      <ThemedText style={[styles.accountButtonText, accountNumber === num && styles.accountButtonTextActive]}>{num}</ThemedText>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+      case 'pocketNumber':
+        return (
+          <View style={styles.settingsGroup}>
+            <View style={styles.pocketSection}>
+              <ThemedText style={styles.accountText}>Current Pocket: {accountNumber}</ThemedText>
+              <View style={styles.accountButtonContainer}>
+                {[0, 1, 2, 3, 4].map((num) => (
+                  <TouchableOpacity key={num} style={[styles.accountButton, accountNumber === num && styles.accountButtonActive]} onPress={() => handleAccountChange(num)}>
+                    <ThemedText style={[styles.accountButtonText, accountNumber === num && styles.accountButtonTextActive]}>{num}</ThemedText>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
           </View>
+        );
 
-          {/* Bitcoin XPUB Section */}
-          <View style={styles.sectionContainer}>
-            <ThemedText style={styles.sectionHeader}>Bitcoin XPUB</ThemedText>
-            <View style={styles.settingsGroup}>
-              <TouchableOpacity style={styles.xpubContainer} onPress={handleCopyXpub} disabled={!btcXpub} testID="XpubCopyButton">
-                <ThemedText style={styles.xpubText} selectable testID="XpubText" numberOfLines={2}>
-                  {btcXpub || 'Not available'}
-                </ThemedText>
-              </TouchableOpacity>
-              {!!btcXpub && <ThemedText style={styles.xpubHint}>Tap to copy</ThemedText>}
-            </View>
+      case 'bitcoinXpub':
+        return (
+          <View style={styles.settingsGroup}>
+            <TouchableOpacity style={styles.xpubContainer} onPress={handleCopyXpub} disabled={!btcXpub} testID="XpubCopyButton">
+              <ThemedText style={styles.xpubText} selectable testID="XpubText" numberOfLines={2}>
+                {btcXpub || 'Not available'}
+              </ThemedText>
+            </TouchableOpacity>
+            {!!btcXpub && <ThemedText style={styles.xpubHint}>Tap to copy</ThemedText>}
           </View>
+        );
 
-          {/* App Settings Section */}
-          <View style={styles.sectionContainer}>
-            <ThemedText style={styles.sectionHeader}>App Settings</ThemedText>
-            <View style={styles.settingsGroup}>
-              {(Object.keys(SETTINGS_CONFIG) as TSettingsKey[])
-                .filter((key) => key !== 'biometricAuth') // Biometrics is in main settings
-                .map((key, index, array) => {
-                  const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
-                  const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
+      case 'appSettings':
+        return (
+          <View style={styles.settingsGroup}>
+            {(Object.keys(SETTINGS_CONFIG) as TSettingsKey[])
+              .filter((key) => key !== 'biometricAuth')
+              .map((key, index, array) => {
+                const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
+                const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
 
-                  return (
-                    <View key={key}>
-                      <View style={styles.settingContainer} testID={`SettingContainer-${key}`}>
-                        <ThemedText style={styles.settingLabel} testID={`SettingLabel-${key}`}>
-                          {formatSettingName(key)}
-                        </ThemedText>
-                        <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
-                          {config.options.map((option) => (
-                            <TouchableOpacity
-                              key={option}
-                              style={[styles.settingOption, currentValue === option && styles.settingOptionActive]}
-                              onPress={() => handleSettingChange(key, option)}
-                              testID={`SettingOption-${key}-${option}`}
-                            >
-                              <ThemedText style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive]} testID={`SettingOptionText-${key}-${option}`}>
-                                {formatOptionName(option)}
-                              </ThemedText>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
+                return (
+                  <View key={key}>
+                    <View style={styles.settingContainer} testID={`SettingContainer-${key}`}>
+                      <ThemedText style={styles.settingLabel} testID={`SettingLabel-${key}`}>
+                        {formatSettingName(key)}
+                      </ThemedText>
+                      <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
+                        {config.options.map((option) => (
+                          <TouchableOpacity
+                            key={option}
+                            style={[styles.settingOption, currentValue === option && styles.settingOptionActive]}
+                            onPress={() => handleSettingChange(key, option)}
+                            testID={`SettingOption-${key}-${option}`}
+                          >
+                            <ThemedText style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive]} testID={`SettingOptionText-${key}-${option}`}>
+                              {formatOptionName(option)}
+                            </ThemedText>
+                          </TouchableOpacity>
+                        ))}
                       </View>
-                      {index < array.length - 1 && <View style={styles.divider} />}
                     </View>
-                  );
-                })}
-            </View>
+                    {index < array.length - 1 && <View style={styles.divider} />}
+                  </View>
+                );
+              })}
           </View>
+        );
 
-          {/* Developer Options Section */}
-          <View style={styles.sectionContainer}>
-            <ThemedText style={styles.sectionHeader}>Developer Options</ThemedText>
-            <View style={styles.settingsGroup}>
-              <SettingsRow title="Scan QR Code" onPress={handleScanQr} />
-              {deviceId && (
-                <>
-                  <View style={styles.divider} />
-                  <Pressable style={({ pressed }) => [styles.deviceIdRow, pressed && styles.deviceIdRowPressed]} onPress={handleDeviceIdPress} testID="DeviceIdButton">
-                    <ThemedText style={styles.deviceIdText} numberOfLines={2}>
-                      Device ID: {deviceId}
-                    </ThemedText>
-                    <ThemedText style={styles.deviceIdHint}>Tap to send test error & copy</ThemedText>
-                  </Pressable>
-                </>
-              )}
-            </View>
+      case 'developerOptions':
+        return (
+          <View style={styles.settingsGroup}>
+            <SettingsRow title="Scan QR Code" onPress={handleScanQr} />
+            {deviceId && (
+              <>
+                <View style={styles.divider} />
+                <Pressable style={({ pressed }) => [styles.deviceIdRow, pressed && styles.deviceIdRowPressed]} onPress={handleDeviceIdPress} testID="DeviceIdButton">
+                  <ThemedText style={styles.deviceIdText} numberOfLines={2}>
+                    Device ID: {deviceId}
+                  </ThemedText>
+                  <ThemedText style={styles.deviceIdHint}>Tap to send test error & copy</ThemedText>
+                </Pressable>
+              </>
+            )}
           </View>
+        );
 
-          {/* Security Actions Section */}
-          <View style={styles.sectionContainer}>
-            <ThemedText style={styles.sectionHeader}>Security Actions</ThemedText>
+      case 'securityActions':
+        return (
+          <>
             <View style={styles.settingsGroup}>
               <SettingsRow title="Lock App" onPress={handleLockApp} testID="LockAppButton" />
               <View style={styles.divider} />
               <SettingsRow title="Clear All Data" onPress={handleClearStorage} disabled={isClearing} testID="ClearStorageButton" />
             </View>
             <ThemedText style={styles.warningText}>⚠️ Clear All Data will erase everything including your wallet. Make sure you have backed up your seed phrase!</ThemedText>
-          </View>
-        </ScrollView>
+          </>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor }]}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+        <ScreenHeader title="Tools" />
+        <SectionList
+          sections={sections}
+          keyExtractor={(item, index) => item + index}
+          renderItem={renderItem}
+          contentInsetAdjustmentBehavior="automatic"
+          automaticallyAdjustContentInsets
+          renderSectionHeader={renderSectionHeader}
+          contentContainerStyle={styles.scrollContent}
+          style={styles.scrollContainer}
+        />
       </SafeAreaView>
     </View>
   );
@@ -378,16 +423,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 40,
-  },
-  sectionContainer: {
-    marginTop: 24,
-    marginBottom: 8,
   },
   sectionHeader: {
     fontSize: 13,
     fontWeight: '400',
     color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: 24,
     marginBottom: 8,
     marginLeft: 16,
     textTransform: 'uppercase',

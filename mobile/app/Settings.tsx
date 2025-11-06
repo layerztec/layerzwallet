@@ -19,10 +19,8 @@ import { getGradientColors } from '@/utils/gradientUtils';
 const gitCommitHash = require('../git_commit_hash.json');
 
 export default function SettingsScreen() {
-  const { askMnemonic } = useContext(AskMnemonicContext);
   const router = useRouter();
-  const { setStep } = useContext(InitializationContext);
-  const { settings, updateSetting } = useSettings();
+  const { settings } = useSettings();
   const { network } = useContext(NetworkContext);
   const biometricInfo = useBiometrics();
   const { enableBiometricAuth, disableBiometricAuth } = useAuthState();
@@ -70,7 +68,7 @@ export default function SettingsScreen() {
   };
 
   const handleToolsPress = () => {
-    router.push('/selftest');
+    router.push('/Tools');
   };
 
   const handleSupportPress = () => {
@@ -126,10 +124,11 @@ export default function SettingsScreen() {
           id: 'biometrics',
           title: 'Biometrics',
           onPress: handleBiometricsPress,
+          hideChevron: isBiometricsEnabled,
           renderAccessory: () =>
             isBiometricsEnabled ? (
               <View style={styles.statusCheckContainer}>
-                <Ionicons name="checkmark" size={20} color="rgba(100, 149, 237, 1)" />
+                <Ionicons name="checkmark" size={20} color="white" />
               </View>
             ) : null,
         },
@@ -137,10 +136,11 @@ export default function SettingsScreen() {
           id: 'password',
           title: 'Password',
           onPress: handlePasswordPress,
+          hideChevron: isPasswordSet,
           renderAccessory: () =>
             isPasswordSet ? (
               <View style={styles.statusCheckContainer}>
-                <Ionicons name="checkmark" size={20} color="rgba(100, 149, 237, 1)" />
+                <Ionicons name="checkmark" size={20} color="white" />
               </View>
             ) : null,
         },
@@ -169,7 +169,7 @@ export default function SettingsScreen() {
             <View key={item.id}>
               <View style={styles.rowContainer}>
                 <View style={styles.rowContent}>
-                  <SettingsRow title={item.title} onPress={item.onPress} />
+                  <SettingsRow title={item.title} onPress={item.onPress} hideChevron={item.hideChevron} />
                 </View>
                 {item.renderAccessory && item.renderAccessory()}
               </View>
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   badgeSuccess: {
-    backgroundColor: 'rgba(100, 149, 237, 0.9)',
+    backgroundColor: 'white',
   },
   badgeWarning: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
