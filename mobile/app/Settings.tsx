@@ -151,7 +151,7 @@ export default function SettingsScreen() {
       key: 'options',
       hasBackground: false,
       data: [
-        { id: 'tools', title: 'Tools', onPress: handleToolsPress },
+        { id: 'tools', title: 'Tools', onPress: handleToolsPress, testID: 'ToolsButton' },
         { id: 'support', title: 'Support', onPress: handleSupportPress },
         { id: 'about', title: 'About', onPress: handleAboutPress },
       ],
@@ -169,7 +169,7 @@ export default function SettingsScreen() {
             <View key={item.id}>
               <View style={styles.rowContainer}>
                 <View style={styles.rowContent}>
-                  <SettingsRow title={item.title} onPress={item.onPress} hideChevron={item.hideChevron} />
+                  <SettingsRow title={item.title} onPress={item.onPress} hideChevron={item.hideChevron} testID={item.testID} />
                 </View>
                 {item.renderAccessory && item.renderAccessory()}
               </View>
