@@ -59,7 +59,7 @@ const Balance = () => {
 
       {canBuyWithFiat && (
         <TouchableOpacity style={styles.buyButton} onPress={handleBuyClick} activeOpacity={0.8}>
-          <ThemedText style={styles.buyButtonText}>Buy Bitcoin</ThemedText>
+          <ThemedText style={styles.buyButtonText}>Fund</ThemedText>
         </TouchableOpacity>
       )}
     </View>
