@@ -249,6 +249,18 @@ export function ProtectedRouteStack() {
             },
           }}
         />
+        <Stack.Screen
+          name="ActionPopupModal"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            headerShown: false,
+            gestureEnabled: true,
+            contentStyle: {
+              backgroundColor: 'transparent',
+            },
+          }}
+        />
       </Stack.Protected>
 
       <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />

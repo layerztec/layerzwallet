@@ -163,7 +163,7 @@ export default function Swap() {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <ThemedText style={styles.title}>Swap</ThemedText>
+          <ThemedText style={styles.title}>Transfer</ThemedText>
           <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
             <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.8)" />
           </TouchableOpacity>
