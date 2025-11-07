@@ -10,25 +10,17 @@ appId: com.layerzwallet.mobile
 - assertVisible:
     id: SettingsScreenTitle
 
-# First scroll down to get to the lower part of settings
-- scroll
-
-# Look directly for the biometric toggle buttons by testID
-# Test toggling biometric auth from OFF to ON (optional)
-- tapOn:
-    id: 'SettingOption-biometricAuth-OFF'
-    optional: true
-
-# Wait for any processing
+# Wait for settings to load
 - waitForAnimationToEnd:
-    timeout: 3000
+    timeout: 2000
 
-# Try to toggle to ON
+# Look for the Biometrics text in the Security section
+# Tap on the Biometrics row to enable it
 - tapOn:
-    id: 'SettingOption-biometricAuth-ON'
+    text: 'Biometrics'
     optional: true
 
-# Wait for any processing
+# Wait for any processing or alerts
 - waitForAnimationToEnd:
     timeout: 3000
 
@@ -40,13 +32,16 @@ appId: com.layerzwallet.mobile
     text: 'OK'
     optional: true
 - tapOn:
+    text: 'Enable'
+    optional: true
+- tapOn:
     text: 'Simulating successful biometric setup for testing'
     optional: true
 - tapOn:
     text: 'OK'
     optional: true
 - tapOn:
-    text: 'Biometric Authentication Unavailable'
+    text: 'Not Available'
     optional: true
 - tapOn:
     text: 'OK'

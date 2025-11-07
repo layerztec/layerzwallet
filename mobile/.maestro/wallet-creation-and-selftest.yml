@@ -6,17 +6,25 @@ appId: com.layerzwallet.mobile
 - tapOn:
     id: 'SettingsButton'
 
-# Scroll to the bottom to find the Self Test button as emu screen can be small
+# Scroll to the bottom to find the Tools button
 - scrollUntilVisible:
     element:
-      id: 'SelfTestButton'
+      id: 'ToolsButton'
     direction: DOWN
     centerElement: true
 - waitForAnimationToEnd
 
-# Navigate to Self Test
+# Navigate to Tools
 - tapOn:
-    id: 'SelfTestButton'
+    id: 'ToolsButton'
+- waitForAnimationToEnd
+
+# Scroll to find the self test button
+- scrollUntilVisible:
+    element:
+      id: 'RunSelfTestButton'
+    direction: DOWN
+    centerElement: true
 - waitForAnimationToEnd
 
 # Run the self test
