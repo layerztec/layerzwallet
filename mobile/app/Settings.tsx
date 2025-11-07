@@ -1,7 +1,7 @@
 import * as Application from 'expo-application';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { Alert, SectionList, StyleSheet, View } from 'react-native';
+import { Alert, SectionList, SectionListData, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
@@ -10,13 +10,28 @@ import SettingsRow from '@/components/SettingsRow';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
-import { InitializationContext } from '@shared/hooks/InitializationContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useSettings } from '@shared/hooks/useSettings';
-import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { getGradientColors } from '@/utils/gradientUtils';
 
 const gitCommitHash = require('../git_commit_hash.json');
+
+// Types for settings items and sections
+interface SettingsItem {
+  id: string;
+  title: string;
+  onPress: () => void;
+  hideChevron?: boolean;
+  testID?: string;
+  renderAccessory?: () => React.ReactElement | null;
+}
+
+interface SettingsSection extends SectionListData<SettingsItem> {
+  title: string;
+  key: string;
+  hasBackground: boolean;
+  data: SettingsItem[];
+}
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -87,7 +102,7 @@ export default function SettingsScreen() {
   const isBiometricsEnabled = settings.biometricAuth === 'ON';
   const isPasswordSet = settings.seedEncrypted === 'ON';
 
-  const sections = [
+  const sections: SettingsSection[] = [
     {
       title: 'Your Wallet',
       key: 'wallet',
@@ -158,12 +173,12 @@ export default function SettingsScreen() {
     },
   ];
 
-  const renderSectionHeader = ({ section }: any) => <ThemedText style={styles.sectionHeader}>{section.title}</ThemedText>;
+  const renderSectionHeader = ({ section }: { section: SettingsSection }) => <ThemedText style={styles.sectionHeader}>{section.title}</ThemedText>;
 
-  const renderSectionFooter = ({ section }: any) => {
+  const renderSectionFooter = ({ section }: { section: SettingsSection }) => {
     return (
       <View style={[styles.settingsGroup, !section.hasBackground && styles.settingsGroupTransparent]}>
-        {section.data.map((item: any, index: number) => {
+        {section.data.map((item: SettingsItem, index: number) => {
           const isLastItem = index === section.data.length - 1;
           return (
             <View key={item.id}>
@@ -187,7 +202,7 @@ export default function SettingsScreen() {
         <ScreenHeader title="Settings" testID="SettingsScreenTitle" />
 
         <View style={{ flex: 1 }}>
-          <SectionList
+          <SectionList<SettingsItem, SettingsSection>
             sections={sections}
             keyExtractor={(item) => item.id}
             renderItem={() => null}
