@@ -4,6 +4,7 @@
     "noEmit": false,
     "moduleResolution": "bundler",
     "strict": true,
+    "jsx": "react-native",
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["./src/shared-link/*"],

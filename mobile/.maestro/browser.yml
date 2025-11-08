@@ -13,18 +13,16 @@ appId: com.layerzwallet.mobile
 - tapOn:
     id: 'ExplorerButton'
 - waitForAnimationToEnd
-- longPressOn: # clear the address bar
-    id: 'RefreshButton'
-- longPressOn:
+- tapOn:
     id: 'DappBrowserAddressBar'
-
+- waitForAnimationToEnd
 - inputText: 'https://metamask.github.io/test-dapp/'
 - pressKey: Enter
 - waitForAnimationToEnd
-- tapOn: 'unwhitelist'
-- waitForAnimationToEnd
 - extendedWaitUntil: # wait for page to load
-    visible: 'E2E Test Dapp'
+    visible:
+      text: 'E2E Test Dapp'
+    timeout: 60000
 
 - tapOn: 'Use Layerz Wallet'
 - waitForAnimationToEnd
