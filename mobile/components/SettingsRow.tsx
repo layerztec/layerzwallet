@@ -15,6 +15,7 @@ interface SettingsRowProps {
   showSwitch?: boolean;
   switchValue?: boolean;
   onSwitchToggle?: (value: boolean) => void;
+  hideChevron?: boolean;
 }
 
 export default function SettingsRow({
@@ -28,6 +29,7 @@ export default function SettingsRow({
   showSwitch = false,
   switchValue = false,
   onSwitchToggle,
+  hideChevron = false,
 }: SettingsRowProps) {
   const ContainerComponent = onPress && !showSwitch ? Pressable : View;
 
@@ -73,7 +75,8 @@ export default function SettingsRow({
             />
           </View>
         ) : (
-          onPress && (
+          onPress &&
+          !hideChevron && (
             <View style={styles.chevronContainer}>
               <Ionicons name="chevron-forward" size={20} color={disabled ? Colors.dark.tabIconDefault : Colors.dark.buttonText} />
             </View>
@@ -98,6 +101,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 16,
+    paddingHorizontal: 16,
     minHeight: 56,
   },
   textContainer: {
