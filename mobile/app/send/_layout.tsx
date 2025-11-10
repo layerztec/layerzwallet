@@ -17,7 +17,7 @@ export interface BtcSendData {
 export interface CreatedTransaction {
   txhex: string;
   actualFee: number;
-  feeRate: number;
+  feeRate?: number;
 }
 
 export interface BitcoinNetworkData {
@@ -27,7 +27,6 @@ export interface BitcoinNetworkData {
   isLoadingSendData: boolean;
   isLoadingFees: boolean;
   feeLoadingError: string | undefined;
-  createdTransaction: CreatedTransaction | undefined;
 }
 
 // Denomination type
@@ -44,6 +43,9 @@ export interface SendFlowContextData {
 
   // Bitcoin-specific data
   bitcoin: BitcoinNetworkData | undefined;
+
+  // Generic created transaction
+  createdTransaction: CreatedTransaction | undefined;
 
   // Generic actions
   setNetwork: (network: Networks) => void;
@@ -84,7 +86,9 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
   const [btcFeeLoadingError, setBtcFeeLoadingError] = useState<string | undefined>(undefined);
   const [isBtcLoadingSendData, setIsBtcLoadingSendData] = useState(false);
   const [isBtcLoadingFees, setIsBtcLoadingFees] = useState(false);
-  const [btcCreatedTransaction, setBtcCreatedTransaction] = useState<CreatedTransaction | undefined>(undefined);
+
+  // Generic created transaction (for all networks)
+  const [createdTransaction, setCreatedTransaction] = useState<CreatedTransaction | undefined>(undefined);
 
   // Create Bitcoin wallet instance once
   const btcWallet = useRef(new HDSegwitBech32Wallet()).current;
@@ -136,7 +140,7 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
     setAmount('');
     setToken(undefined);
     setDenomination('Native');
-    setBtcCreatedTransaction(undefined);
+    setCreatedTransaction(undefined);
   };
 
   // Construct Bitcoin-specific data object
@@ -149,7 +153,6 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
           feeLoadingError: btcFeeLoadingError,
           isLoadingSendData: isBtcLoadingSendData,
           isLoadingFees: isBtcLoadingFees,
-          createdTransaction: btcCreatedTransaction,
         }
       : undefined;
 
@@ -162,12 +165,13 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
         token,
         denomination,
         bitcoin: bitcoinData,
+        createdTransaction,
         setNetwork,
         setAddress,
         setAmount,
         setToken,
         setDenomination,
-        setCreatedTransaction: setBtcCreatedTransaction,
+        setCreatedTransaction,
         reset,
       }}
     >
@@ -191,7 +195,8 @@ export default function SendLayout() {
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="send-address" />
-        <Stack.Screen name="send-amount" />
+        <Stack.Screen name="send-amount-btc" />
+        <Stack.Screen name="send-amount-evm" />
         <Stack.Screen name="send-confirm" />
       </Stack>
     </SendFlowProvider>

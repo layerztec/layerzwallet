@@ -136,22 +136,22 @@ describe('scan-routing handler', () => {
     });
   });
 
-  test('routes bitcoin payloads to SendBtc', () => {
+  test('routes bitcoin payloads to send', () => {
     const push = vi.fn();
     const router = { push };
     const handled = handleQrIntent('bitcoin:bc1qt4t9xl2gmjvxgmp5gev6m8e6s9c85979ta7jeh?amount=0.25', router);
 
     expect(handled).toBe(true);
-    expect(push).toHaveBeenCalledWith({ pathname: '/SendBtc', params: { toAddress: 'bc1qt4t9xl2gmjvxgmp5gev6m8e6s9c85979ta7jeh', amount: '0.25' } });
+    expect(push).toHaveBeenCalledWith({ pathname: '/send', params: { address: 'bc1qt4t9xl2gmjvxgmp5gev6m8e6s9c85979ta7jeh', amount: '0.25' } });
   });
 
-  test('routes bitcoin payloads to SendBtc 2', () => {
+  test('routes bitcoin payloads to send 2', () => {
     const push = vi.fn();
     const router = { push };
     const handled = handleQrIntent('bitcoin:1DzJepHCRD2C9vpFjk11eXJi97juEZ3ftv?amount=0.004&message=wheres the money lebowski', router);
 
     expect(handled).toBe(true);
-    expect(push).toHaveBeenCalledWith({ pathname: '/SendBtc', params: { toAddress: '1DzJepHCRD2C9vpFjk11eXJi97juEZ3ftv', amount: '0.004' } });
+    expect(push).toHaveBeenCalledWith({ pathname: '/send', params: { address: '1DzJepHCRD2C9vpFjk11eXJi97juEZ3ftv', amount: '0.004' } });
   });
 
   test('returns false for malformed/unknown payloads', () => {

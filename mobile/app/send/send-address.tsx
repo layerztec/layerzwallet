@@ -7,17 +7,17 @@ import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity
 import GradientScreen from '@/components/GradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
+import TokensView from '@/components/TokensView';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { getTickerByNetwork } from '@shared/models/network-getters';
+import { getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
+import { CachedTokenInfo } from '@shared/types/token-info';
 import { validateAddress } from '@shared/modules/wallet-utils';
 import { useSendFlow } from './_layout';
 
 const SendAddress: React.FC = () => {
   const { scanQr } = useContext(ScanQrContext);
   const router = useRouter();
-  const { network, address: contextAddress, setAddress: setContextAddress } = useSendFlow();
-  const { accountNumber } = useContext(AccountNumberContext);
+  const { network, address: contextAddress, setAddress: setContextAddress, token, setToken, setAmount } = useSendFlow();
 
   const [localAddress, setLocalAddress] = useState(contextAddress);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -30,6 +30,9 @@ const SendAddress: React.FC = () => {
         const decoded = bip21.decode(scanned);
         if (decoded?.address) {
           setLocalAddress(decoded.address);
+        }
+        if (decoded?.options?.amount) {
+          setAmount(String(decoded.options.amount));
         }
       } catch {
         setLocalAddress(scanned);
@@ -49,7 +52,11 @@ const SendAddress: React.FC = () => {
       const isValid = validateAddress(network, localAddress);
       if (isValid) {
         setContextAddress(localAddress);
-        router.push('/send/send-amount');
+        if (getIsEVM(network)) {
+          router.push('/send/send-amount-evm');
+        } else {
+          router.push('/send/send-amount-btc');
+        }
       } else {
         setErrorMessage('Invalid address');
       }
@@ -60,6 +67,11 @@ const SendAddress: React.FC = () => {
 
   const handleInputWrapperPress = () => {
     inputRef.current?.focus();
+  };
+
+  const handleTokenPress = (clickedToken: CachedTokenInfo) => {
+    setToken(token ? undefined : clickedToken.id);
+    setAmount('');
   };
 
   return (
@@ -96,6 +108,8 @@ const SendAddress: React.FC = () => {
               </View>
             )}
           </View>
+
+          <TokensView onTokenPress={handleTokenPress} selectedToken={token} />
 
           <TouchableOpacity style={[styles.continueButton, !localAddress.trim() && styles.disabledButton]} onPress={handleContinue} disabled={!localAddress.trim()}>
             <ThemedText style={styles.continueButtonText}>Next</ThemedText>
@@ -149,16 +163,6 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  successContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    gap: 6,
-  },
-  successText: {
-    color: '#4CAF50',
-    fontSize: 14,
   },
   errorContainer: {
     flexDirection: 'row',
