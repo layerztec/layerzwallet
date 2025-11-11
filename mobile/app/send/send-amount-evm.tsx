@@ -12,7 +12,6 @@ import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
 import { withAsset, SendAssetProps } from '@/hooks/withAsset';
 import { useSendFlow } from './_layout';
@@ -123,7 +122,7 @@ const SendAmountEvm: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker
   return (
     <GradientScreen variant={network} scroll={true}>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScreenSendHeader network={network} title={`Send ${getTickerByNetwork(network)}`} />
+      <ScreenSendHeader network={network} title={`Send ${ticker}`} />
 
       <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
         <View style={styles.container}>
