@@ -15,12 +15,12 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { validateAddress } from '@shared/modules/wallet-utils';
 import { sleep } from '@shared/modules/sleep';
 import { formatBalance } from '@shared/modules/string-utils';
+import { validateAddress } from '@shared/modules/wallet-utils';
 import { useSendFlow } from './_layout';
 
-const SendAmount: React.FC = () => {
+const SendAmountBtc: React.FC = () => {
   const router = useRouter();
   const { network, address, amount: contextAmount, setAmount: setContextAmount, setCreatedTransaction, bitcoin, denomination, setDenomination } = useSendFlow();
   const { accountNumber } = useContext(AccountNumberContext);
@@ -47,7 +47,6 @@ const SendAmount: React.FC = () => {
     }
   };
 
-  // Helper function to format fee based on denomination
   const formatFee = (feeInSats: number): string => {
     if (denomination === 'Fiat' && exchangeRate) {
       const feeInNative = new BigNumber(feeInSats).dividedBy(new BigNumber(10).pow(getDecimalsByNetwork(network)));
@@ -76,7 +75,6 @@ const SendAmount: React.FC = () => {
     return 'Network Fee';
   }, [estimateFees, feeRate]);
 
-  // Calculate fee options for each fee rate
   const feeRateOptions: { [rate: number]: number } = useMemo(() => {
     if (!sendData?.utxos || !address || !wallet) {
       return {};
@@ -106,7 +104,6 @@ const SendAmount: React.FC = () => {
         result[v] = fee;
       } catch (e: any) {
         if (e.message.includes('Not enough')) {
-          // If we don't have enough funds, construct maximum possible transaction
           const targets2 = targets.map((t, index) => (index > 0 ? { ...t, value: 546 } : { address: t.address }));
           try {
             const { fee } = wallet.coinselect(sendData.utxos, targets2, v);
@@ -119,7 +116,6 @@ const SendAmount: React.FC = () => {
     return result;
   }, [feeRate, estimateFees, sendData?.utxos, localAmount, address, network, wallet]);
 
-  // Calculate the maximum amount that can be sent
   const maxAmount: string | undefined = useMemo(() => {
     if (!sendData?.utxos || !address || !wallet) {
       return;
@@ -132,7 +128,6 @@ const SendAmount: React.FC = () => {
       return new BigNumber(res1.outputs[0].value).dividedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString();
     } catch (e: any) {
       if (e.message.includes('Not enough')) {
-        // If we don't have enough funds, let's try to lower the fee rate
         try {
           const res2 = wallet.coinselect(sendData.utxos, targets, 1);
           return new BigNumber(res2.outputs[0].value).dividedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString();
@@ -153,7 +148,7 @@ const SendAmount: React.FC = () => {
     if (normalized === '' || /^\d*\.?\d*$/.test(normalized)) {
       const numValue = normalized === '' ? undefined : Number(normalized);
       setCustomFeeRate(numValue);
-      setSelectedFeeRate(undefined); // Clear selected fee when using custom
+      setSelectedFeeRate(undefined);
     }
   };
 
@@ -218,26 +213,22 @@ const SendAmount: React.FC = () => {
       setTransactionError(null);
       setIsCreatingTransaction(true);
 
-      await sleep(100); // Wait for the UI to update
+      await sleep(100);
 
       try {
-        // Validate amount
         const amt = parseFloat(localAmount);
         const satValueBN = new BigNumber(amt);
         const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString(10);
 
-        // Validate address
         const isAddressValid = validateAddress(network, address);
         if (!isAddressValid) {
           throw new Error('Recipient address is not valid');
         }
 
-        // Get mnemonic and set up wallet
         const mnemonic = await BackgroundExecutor.getMasterSeed();
         wallet.setSecret(mnemonic);
         wallet.setDerivationPath(`m/84'/0'/${accountNumber}'`);
 
-        // Construct transaction
         const targets: CreateTransactionTarget[] = [
           {
             address: address,
@@ -268,14 +259,13 @@ const SendAmount: React.FC = () => {
     }
   };
 
-  // Animated fee selector
   const expandAnimation = useSharedValue(0);
   const chevronRotation = useSharedValue(0);
   useEffect(() => {
-    const duration = 200;
+    const duration = 100;
     if (isFeeSelectorExpanded) {
       expandAnimation.value = withTiming(1, { duration });
-      chevronRotation.value = withTiming(90, { duration });
+      chevronRotation.value = withTiming(1, { duration });
     } else {
       expandAnimation.value = withTiming(0, { duration });
       chevronRotation.value = withTiming(0, { duration });
@@ -283,37 +273,12 @@ const SendAmount: React.FC = () => {
   }, [isFeeSelectorExpanded, expandAnimation, chevronRotation]);
 
   const animatedFeeOptionsStyle = useAnimatedStyle(() => {
-    const height = interpolate(
-      expandAnimation.value,
-      [0, 1],
-      [0, estimateFees ? 192 : 0], // 3 options * 64px height each
-      Extrapolation.CLAMP
-    );
+    const height = interpolate(expandAnimation.value, [0, 1], [0, estimateFees ? 192 : 0], Extrapolation.CLAMP);
     const opacity = interpolate(expandAnimation.value, [0, 0.1, 1], [0, 0, 1], Extrapolation.CLAMP);
     return { height, opacity };
   });
 
   const animatedChevronStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${chevronRotation.value}deg` }] }));
-
-  // Animated title styles
-  const animatedTitleStyle = useAnimatedStyle(() => {
-    const fontSize = interpolate(expandAnimation.value, [0, 1], [14, 18], Extrapolation.CLAMP);
-    const opacity = interpolate(expandAnimation.value, [0, 1], [0.5, 1], Extrapolation.CLAMP);
-    return { fontSize, color: 'rgba(255, 255, 255, 1)', opacity };
-  });
-
-  // Animated subtitle (fee info) styles
-  const animatedSubtitleStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(expandAnimation.value, [0, 1], [1, 0], Extrapolation.CLAMP);
-    const translateY = interpolate(expandAnimation.value, [0, 1], [0, -10], Extrapolation.CLAMP);
-    const height = interpolate(expandAnimation.value, [0, 1], [20, 0], Extrapolation.CLAMP);
-    return {
-      opacity,
-      transform: [{ translateY }],
-      height,
-      overflow: 'hidden' as const,
-    };
-  });
 
   return (
     <GradientScreen variant={network} scroll={true}>
@@ -381,24 +346,33 @@ const SendAmount: React.FC = () => {
 
           {!isLoading && !feeLoadingError && (
             <View style={styles.feeSelectorContainer}>
-              <TouchableOpacity activeOpacity={0.7} style={isFeeSelectorExpanded ? styles.feeSelectorExpandedHeader : styles.feeSelectorHeader} onPress={toggleFeeSelector}>
-                <View style={styles.feeSelectorCollapsedContent}>
-                  <Animated.Text style={[styles.feeSelectorLabel, animatedTitleStyle]}>Network Fee</Animated.Text>
-                  <Animated.View style={animatedSubtitleStyle}>
-                    <ThemedText style={styles.feeSelectorSelected}>
-                      {feeName}
-                      {feeRateOptions[feeRate] && ` - ${formatFee(feeRateOptions[feeRate])}`}
-                    </ThemedText>
-                  </Animated.View>
-                </View>
-                <Animated.View style={animatedChevronStyle}>
-                  <Ionicons name="chevron-forward" size={20} color="rgba(255, 255, 255, 0.6)" />
-                </Animated.View>
+              <TouchableOpacity style={isFeeSelectorExpanded ? styles.feeSelectorExpandedHeader : styles.feeSelectorHeader} onPress={toggleFeeSelector}>
+                {isFeeSelectorExpanded ? (
+                  <>
+                    <ThemedText style={styles.feeSelectorTitle}>Network Fee</ThemedText>
+                    <Animated.View style={animatedChevronStyle}>
+                      <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.6)" />
+                    </Animated.View>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.feeSelectorCollapsedContent}>
+                      <ThemedText style={styles.feeSelectorLabel}>Network Fee</ThemedText>
+                      <ThemedText style={styles.feeSelectorSelected}>
+                        {feeName}
+                        {feeRateOptions[feeRate] && ` - ${formatFee(feeRateOptions[feeRate])}`}
+                      </ThemedText>
+                    </View>
+                    <Animated.View style={animatedChevronStyle}>
+                      <Ionicons name="chevron-forward" size={20} color="rgba(255, 255, 255, 0.6)" />
+                    </Animated.View>
+                  </>
+                )}
               </TouchableOpacity>
 
               {estimateFees && (
                 <Animated.View style={[styles.feeOptionsContainer, animatedFeeOptionsStyle]}>
-                  <TouchableOpacity activeOpacity={0.7} style={styles.feeOption} onPress={() => handleFeeSelection(estimateFees.fast)}>
+                  <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.fast && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.fast)}>
                     <View style={styles.feeOptionContent}>
                       <ThemedText style={styles.feeOptionName}>Fast</ThemedText>
                       <ThemedText style={styles.feeOptionRate}>{estimateFees.fast} sats v/b</ThemedText>
@@ -406,7 +380,7 @@ const SendAmount: React.FC = () => {
                     <ThemedText style={styles.feeOptionAmount}>{feeRateOptions[estimateFees.fast] ? formatFee(feeRateOptions[estimateFees.fast]) : ''}</ThemedText>
                   </TouchableOpacity>
 
-                  <TouchableOpacity activeOpacity={0.7} style={styles.feeOption} onPress={() => handleFeeSelection(estimateFees.medium)}>
+                  <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.medium && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.medium)}>
                     <View style={styles.feeOptionContent}>
                       <ThemedText style={styles.feeOptionName}>Medium</ThemedText>
                       <ThemedText style={styles.feeOptionRate}>{estimateFees.medium} sats v/b</ThemedText>
@@ -414,7 +388,7 @@ const SendAmount: React.FC = () => {
                     <ThemedText style={styles.feeOptionAmount}>{feeRateOptions[estimateFees.medium] ? formatFee(feeRateOptions[estimateFees.medium]) : ''}</ThemedText>
                   </TouchableOpacity>
 
-                  <TouchableOpacity activeOpacity={0.7} style={styles.feeOption} onPress={() => handleFeeSelection(estimateFees.slow)}>
+                  <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.slow && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.slow)}>
                     <View style={styles.feeOptionContent}>
                       <ThemedText style={styles.feeOptionName}>Slow</ThemedText>
                       <ThemedText style={styles.feeOptionRate}>{estimateFees.slow} sats v/b</ThemedText>
@@ -524,8 +498,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.01)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     height: 64,
+  },
+  selectedFeeOption: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   feeOptionContent: {
     flex: 1,
@@ -554,7 +531,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 8,
     marginTop: 'auto',
-    marginBottom: 24,
   },
   continueButtonText: {
     color: 'rgba(255, 255, 255, 0.9)',
@@ -608,4 +584,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SendAmount;
+export default SendAmountBtc;

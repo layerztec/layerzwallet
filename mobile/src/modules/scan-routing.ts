@@ -4,9 +4,9 @@ import * as bitcoin from 'bitcoinjs-lib';
 import type { Router } from 'expo-router';
 import { NETWORK_SPARK } from '@shared/types/networks';
 import { SendLightningProps } from '@/app/SendLightning';
-import { SendBtcParams } from '@/app/SendBtc';
 import { PosMerchantParams } from '@/app/PosMerchant';
 import { convertMerchantQRToLightningAddress } from '@shared/modules/merchants';
+import { SendParams } from '@/app/send';
 
 type LightningIntent = {
   type: 'lightning';
@@ -171,12 +171,12 @@ export function handleQrIntent(rawInput: string, router: Pick<Router, 'push'>): 
     }
 
     case 'bitcoin': {
-      const params: SendBtcParams = { toAddress: intent.address };
+      const params: SendParams = { address: intent.address };
       if (intent.amount) {
         params.amount = intent.amount;
       }
 
-      router.push({ pathname: '/SendBtc', params });
+      router.push({ pathname: '/send', params });
       return true;
     }
 

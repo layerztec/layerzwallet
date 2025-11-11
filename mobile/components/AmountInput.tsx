@@ -52,7 +52,8 @@ export default function AmountInput({
   // Convert native to fiat
   const nativeToFiat = useCallback(
     (nativeValue: string): string => {
-      if (!exchangeRateNumber || !nativeValue || nativeValue === '') return '0';
+      if (nativeValue === '0') return '0';
+      if (!exchangeRateNumber || !nativeValue || nativeValue === '') return '—';
       const cached = conversionCache.current.get(nativeValue);
       if (cached !== undefined) {
         return cached;
@@ -68,7 +69,8 @@ export default function AmountInput({
   // Convert fiat to native
   const fiatToNative = useCallback(
     (fiatValue: string): string => {
-      if (!exchangeRateNumber || !fiatValue || fiatValue === '') return '0';
+      if (fiatValue === '0') return '0';
+      if (!exchangeRateNumber || !fiatValue || fiatValue === '') return '—';
       for (const [nativeKey, fiatValueInCache] of conversionCache.current.entries()) {
         if (fiatValueInCache === fiatValue) {
           return nativeKey;

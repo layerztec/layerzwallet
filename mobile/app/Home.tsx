@@ -47,6 +47,7 @@ import {
   Networks,
 } from '@shared/types/networks';
 import { SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapPlatform } from '@shared/types/swap';
+import { CachedTokenInfo } from '@shared/types/token-info';
 import { ReceiveTokenProps } from './Receive';
 import { SendLightningProps } from './SendLightning';
 import { SendLiquidParams } from './SendLiquid';
@@ -164,7 +165,7 @@ export default function Home() {
         router.push('/SendLightning');
         break;
       default:
-        router.push('/SendEvm');
+        router.push('/send');
     }
   };
 
@@ -229,6 +230,32 @@ export default function Home() {
         Alert.alert('Explorer', 'Explorer not available for this network');
       }
     }
+  };
+
+  const handleTokenPress = (token: CachedTokenInfo) => {
+    if (network === NETWORK_SPARK || network === NETWORK_STACKS) {
+      router.push({
+        pathname: '/SendTokenStacks',
+        params: {
+          tokenId: token.id,
+          tokenSymbol: token.symbol,
+          tokenName: token.name,
+          tokenDecimals: token.decimals.toString(),
+        },
+      });
+      return;
+    } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
+      router.push({
+        pathname: '/SendLiquid',
+        params: { assetId: token.id },
+      });
+      return;
+    }
+
+    router.push({
+      pathname: '/send',
+      params: { token: token.id },
+    });
   };
 
   // Lightning Network specific handlers
@@ -444,7 +471,7 @@ export default function Home() {
             <SwapList />
 
             {/* Tokens Section */}
-            <TokensView />
+            <TokensView onTokenPress={handleTokenPress} />
 
             {/* Transactions Section */}
             <View style={styles.transactionsContainer}>

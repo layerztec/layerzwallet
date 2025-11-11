@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import BigNumber from 'bignumber.js';
-import { Stack, useRouter } from 'expo-router';
+import { Redirect, Stack, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Rive, { RiveRef } from 'rive-react-native';
 
@@ -10,15 +10,18 @@ import GradientScreen from '@/components/GradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
+import { EvmWallet } from '@shared/class/evm-wallet';
 import { getNetworkGradient } from '@shared/constants/Colors';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
-import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { getDecimalsByNetwork, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
+import { NETWORK_BITCOIN } from '@shared/types/networks';
+import { withAsset, SendAssetProps } from '@/hooks/withAsset';
 import { useSendFlow } from './_layout';
 
-const SendConfirm: React.FC = () => {
+const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const router = useRouter();
-  const { network, address, amount, bitcoin } = useSendFlow();
+  const { network, address, amount, createdTransaction } = useSendFlow();
   const { exchangeRate } = useCachedExchangeRate(network, 'USD');
 
   const [error, setError] = useState<string>('');
@@ -32,54 +35,12 @@ const SendConfirm: React.FC = () => {
   const sendToOpacity = useSharedValue(1);
   const totalTop = useSharedValue(32); // Initial top position for total section
   const riveRef = useRef<RiveRef>(null);
+  const networkBackgroundColor = getNetworkGradient(network)[0];
 
-  const createdTransaction = bitcoin?.createdTransaction;
-  const txhex = createdTransaction?.txhex || '';
-  const actualFee = createdTransaction?.actualFee || 0;
-  const feeInNative = formatBalance(String(actualFee), getDecimalsByNetwork(network), 8);
-  const decimals = getDecimalsByNetwork(network);
-
-  // Get network-specific background color
-  const networkGradient = getNetworkGradient(network);
-  const networkBackgroundColor = networkGradient[0];
-
-  // USD conversions
-  const usdValue = exchangeRate
-    ? `$${BigNumber(amount || '0')
-        .multipliedBy(Number(exchangeRate))
-        .toFixed(2)}`
-    : '';
-  const feeInNativeUnits = BigNumber(actualFee).dividedBy(new BigNumber(10).pow(decimals));
-  const usdFee = exchangeRate ? `$${feeInNativeUnits.multipliedBy(Number(exchangeRate)).toFixed(2)}` : '';
-
-  // Calculate total (amount + fee)
-  const totalAmount = BigNumber(amount || '0').plus(feeInNativeUnits);
-
-  // Calculate total USD
-  const totalUsd = exchangeRate ? `$${totalAmount.multipliedBy(Number(exchangeRate)).toFixed(2)}` : '';
-
-  const broadcast = async () => {
-    setIsBroadcasting(true);
-    setError('');
-
-    try {
-      if (!BlueElectrum.mainConnected) {
-        await BlueElectrum.connectMain();
-      }
-
-      const result = await BlueElectrum.broadcastV2(txhex);
-      if (!result) {
-        throw new Error('Transaction broadcast failed');
-      }
-
-      setIsSuccess(true);
-    } catch (error: any) {
-      console.error('Failed to broadcast transaction:', error);
-      setError(error.message || 'Failed to broadcast transaction');
-    } finally {
-      setIsBroadcasting(false);
-    }
-  };
+  // Animated styles
+  const detailsAnimatedStyle = useAnimatedStyle(() => ({ opacity: detailsOpacity.value }));
+  const sendToAnimatedStyle = useAnimatedStyle(() => ({ opacity: sendToOpacity.value }));
+  const totalAnimatedStyle = useAnimatedStyle(() => ({ top: totalTop.value }));
 
   // Animate sections when success - sequential animations
   useEffect(() => {
@@ -120,7 +81,74 @@ const SendConfirm: React.FC = () => {
     };
   }, [isSuccess, detailsOpacity, sendToOpacity, totalTop]);
 
-  const handleBack = () => {
+  // Redirect back in case no transaction is available
+  if (!createdTransaction) {
+    Alert.alert('No transaction available');
+    return <Redirect href="/Home" />;
+  }
+
+  const { txhex, actualFee } = createdTransaction;
+  const networkDecimals = getDecimalsByNetwork(network);
+  const nativeTicker = getTickerByNetwork(network);
+  const feeInNative = formatBalance(String(actualFee), networkDecimals, 8);
+  const feeInNativeUnits = BigNumber(actualFee).dividedBy(new BigNumber(10).pow(networkDecimals));
+
+  // For token sends, amount is in token units, fee is in native units
+  // For native sends, both are in native units
+  const isTokenSend = !!token;
+
+  // USD conversions
+  const amountUsdValue = exchangeRate && !isTokenSend ? `$${BigNumber(amount).multipliedBy(Number(exchangeRate)).toFixed(2)}` : '';
+  const usdFee = exchangeRate ? `$${feeInNativeUnits.multipliedBy(Number(exchangeRate)).toFixed(2)}` : '';
+
+  // Total calculation
+  let totalUsd: string;
+  let totalDisplay: string;
+
+  if (isTokenSend) {
+    // For token sends, only show token amount in total (fee shown separately in details)
+    totalUsd = '';
+    totalDisplay = `${amount} ${ticker}`;
+  } else {
+    const totalAmount = BigNumber(amount).plus(feeInNativeUnits);
+    totalUsd = exchangeRate ? `$${totalAmount.multipliedBy(Number(exchangeRate)).toFixed(2)}` : '';
+    totalDisplay = `${totalAmount.toString()} ${ticker}`;
+  }
+
+  const broadcast = async () => {
+    setIsBroadcasting(true);
+    setError('');
+
+    try {
+      if (network === NETWORK_BITCOIN) {
+        if (!BlueElectrum.mainConnected) {
+          await BlueElectrum.connectMain();
+        }
+
+        const result = await BlueElectrum.broadcastV2(txhex);
+        if (!result) {
+          throw new Error('Transaction broadcast failed');
+        }
+      } else if (getIsEVM(network)) {
+        const e = new EvmWallet();
+        const txid = await e.broadcastTransaction(network, txhex);
+        if (!txid || typeof txid !== 'string') {
+          throw new Error('Transaction broadcast failed');
+        }
+      } else {
+        throw new Error('Unsupported network for broadcasting');
+      }
+
+      setIsSuccess(true);
+    } catch (error: any) {
+      console.error('Failed to broadcast transaction:', error);
+      setError(error.message || 'Failed to broadcast transaction');
+    } finally {
+      setIsBroadcasting(false);
+    }
+  };
+
+  const handleHome = () => {
     router.replace('/Home');
   };
 
@@ -165,35 +193,10 @@ const SendConfirm: React.FC = () => {
     );
   };
 
-  // Animated styles
-  const detailsAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: detailsOpacity.value,
-    };
-  });
-
-  const sendToAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: sendToOpacity.value,
-    };
-  });
-
-  const totalAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      top: totalTop.value,
-    };
-  });
-
-  // Redirect back if no transaction is available
-  if (!createdTransaction) {
-    router.replace('/send/send-amount');
-    return null;
-  }
-
   return (
     <GradientScreen variant={network} scroll={false}>
       <Stack.Screen options={{ headerShown: false }} />
-      {!hideHeader && <ScreenSendHeader network={network} title={`Send ${getTickerByNetwork(network)}`} />}
+      {!hideHeader && <ScreenSendHeader network={network} title={`Send ${ticker}`} />}
 
       <View style={styles.fixedContainer}>
         <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
@@ -231,9 +234,7 @@ const SendConfirm: React.FC = () => {
                       <ThemedText style={styles.sectionHeaderText}>Total</ThemedText>
                     </View>
                     <View style={[styles.totalCard, { backgroundColor: networkBackgroundColor }]}>
-                      <ThemedText style={styles.totalAmount}>
-                        {totalAmount.toString()} {getTickerByNetwork(network)}
-                      </ThemedText>
+                      <ThemedText style={styles.totalAmount}>{totalDisplay}</ThemedText>
                       {totalUsd && <ThemedText style={styles.totalUsd}>{totalUsd}</ThemedText>}
                     </View>
                   </Animated.View>
@@ -248,9 +249,9 @@ const SendConfirm: React.FC = () => {
                         <ThemedText style={styles.detailLabel}>Amount</ThemedText>
                         <View style={styles.detailValueContainer}>
                           <ThemedText style={styles.detailValue}>
-                            {amount} {getTickerByNetwork(network)}
+                            {amount} {ticker}
                           </ThemedText>
-                          {usdValue && <ThemedText style={styles.detailUsd}>{usdValue}</ThemedText>}
+                          {amountUsdValue && <ThemedText style={styles.detailUsd}>{amountUsdValue}</ThemedText>}
                         </View>
                       </View>
 
@@ -260,7 +261,7 @@ const SendConfirm: React.FC = () => {
                         <ThemedText style={styles.detailLabel}>Network Fee</ThemedText>
                         <View style={styles.detailValueContainer}>
                           <ThemedText style={styles.detailValue}>
-                            {feeInNative} {getTickerByNetwork(network)}
+                            {feeInNative} {nativeTicker}
                           </ThemedText>
                           {usdFee && <ThemedText style={styles.detailUsd}>{usdFee}</ThemedText>}
                         </View>
@@ -281,7 +282,7 @@ const SendConfirm: React.FC = () => {
           </ScrollView>
         </KeyboardAvoidingView>
         {!error && (
-          <TouchableOpacity style={[styles.sendButton, isBroadcasting && styles.disabledButton]} onPress={isSuccess ? handleBack : broadcast} disabled={isBroadcasting}>
+          <TouchableOpacity style={[styles.sendButton, isBroadcasting && styles.disabledButton]} onPress={isSuccess ? handleHome : broadcast} disabled={isBroadcasting}>
             <ThemedText style={styles.sendButtonText}>{isSuccess ? 'Back to Wallet' : isBroadcasting ? 'Sending...' : 'Confirm Send'}</ThemedText>
           </TouchableOpacity>
         )}
@@ -494,4 +495,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SendConfirm;
+export default withAsset(SendConfirm);

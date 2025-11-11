@@ -1,23 +1,20 @@
-import { useRouter } from 'expo-router';
 import React, { useContext } from 'react';
-import { StyleSheet, TouchableOpacity, View, Image } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
+import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
-import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
-import { CachedTokenInfo } from '@shared/types/token-info';
 import { getTokenIconColor } from '@shared/models/token-list';
 import { formatBalance } from '@shared/modules/string-utils';
-import { LayerzStorage } from '@/src/class/layerz-storage';
+import { CachedTokenInfo } from '@shared/types/token-info';
 
-const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
+const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenInfo) => void; selected: boolean }> = ({ token, onPress, selected }) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const router = useRouter();
 
   const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundExecutor);
 
@@ -36,35 +33,12 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
 
   const iconColor = getTokenIconColor(token?.name);
 
-  const goToSend = () => {
-    if (network === NETWORK_SPARK || network === NETWORK_STACKS) {
-      console.warn('Sending token', token.id, token.symbol, token.name, token.decimals);
-      router.push({
-        pathname: '/SendTokenStacks',
-        params: {
-          tokenId: token.id,
-          tokenSymbol: token.symbol,
-          tokenName: token.name,
-          tokenDecimals: token.decimals.toString(),
-        },
-      });
-      return;
-    } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
-      router.push({
-        pathname: '/SendLiquid',
-        params: { assetId: token.id },
-      });
-      return;
-    }
-
-    router.push({
-      pathname: '/SendTokenEvm',
-      params: { contractAddress: token.id },
-    });
+  const handleTokenPress = () => {
+    onPress(token);
   };
 
   return (
-    <TouchableOpacity style={styles.tokenRow} onPress={goToSend} activeOpacity={0.7} testID={`token-row-${token.id}`}>
+    <TouchableOpacity style={[styles.tokenRow, selected && styles.selectedTokenRow]} onPress={handleTokenPress} activeOpacity={0.7} testID={`token-row-${token.id}`}>
       {/* Token Icon */}
       <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
         {token.logoURI ? (
@@ -88,7 +62,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
   );
 };
 
-const TokensView: React.FC = () => {
+const TokensView: React.FC<{ onTokenPress: (token: CachedTokenInfo) => void; selectedToken?: string }> = ({ onTokenPress, selectedToken }) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { tokenList, error } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
@@ -111,7 +85,7 @@ const TokensView: React.FC = () => {
       <ThemedText style={styles.title}>Tokens</ThemedText>
       <View style={styles.tokensList}>
         {tokenList.map((token) => (
-          <TokenRow key={token.id} token={token} />
+          <TokenRow key={token.id} token={token} onPress={onTokenPress} selected={selectedToken === token.id} />
         ))}
       </View>
     </View>
@@ -122,9 +96,9 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: 'rgba(0, 0, 0, 0.15)',
     borderRadius: 20,
-    padding: 16,
     overflow: 'hidden',
     marginBottom: 20,
+    paddingVertical: 16,
   },
   title: {
     fontSize: 20,
@@ -145,6 +119,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 46,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
   },
   tokenIcon: {
     width: 38,
@@ -183,6 +159,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: 'rgba(255, 255, 255, 0.3)',
+  },
+  selectedTokenRow: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
 });
 
