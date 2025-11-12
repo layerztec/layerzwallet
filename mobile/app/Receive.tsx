@@ -412,10 +412,6 @@ const styles = StyleSheet.create({
     minHeight: 100,
     justifyContent: 'center',
   },
-  addressContainerPressed: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    transform: [{ scale: 0.98 }],
-  },
   addressDisplay: {
     textAlign: 'center',
     lineHeight: 24,
@@ -427,24 +423,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  addressCopyText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  refreshButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    width: '100%',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 16,
-    marginBottom: 30,
-    minWidth: 120,
-    gap: 12,
   },
   actionButtons: {
     width: '100%',
@@ -464,19 +442,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
-  },
-  copyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    paddingVertical: 16,
-    borderRadius: 16,
-    gap: 12,
-  },
-  copyButtonText: {
-    color: 'rgba(255, 255, 255, 0.8)',
   },
   successMessage: {
     color: 'rgba(255, 255, 255, 0.8)',

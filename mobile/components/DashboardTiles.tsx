@@ -264,7 +264,7 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
   );
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.dashboardContainer}>
       <View style={styles.container}>
         <View style={styles.selectedNetworkIndicator} testID={`activeNetwork-${currentNetworkId}`}>
           <Text style={styles.hiddenText}>{currentNetworkId}</Text>
@@ -456,5 +456,8 @@ const styles = StyleSheet.create({
   logo: {
     width: 120,
     height: 60,
+  },
+  dashboardContainer: {
+    flex: 1,
   },
 });

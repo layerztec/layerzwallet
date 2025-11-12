@@ -37,7 +37,7 @@ export default function ManualBackupIntroScreen() {
               </ThemedText>
             </Animated.View>
 
-            <View style={{ marginVertical: 10 }} />
+            <View style={styles.spacer} />
 
             <Animated.View style={[subtitleTransition]}>
               <ThemedText type="paragraph" darkColor={Colors.dark.text} textAlign="center">
@@ -102,17 +102,12 @@ const styles = StyleSheet.create({
     alignContent: 'center',
     marginBottom: 8,
   },
-  button2: {
-    alignItems: 'center',
-    backgroundColor: Colors.dark.buttonSecondary,
-    borderColor: Colors.dark.buttonBorder,
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingVertical: 22,
-  },
   view: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
+  },
+  spacer: {
+    marginVertical: 10,
   },
 });

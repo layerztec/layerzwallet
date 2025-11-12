@@ -66,7 +66,7 @@ export default function CreateWalletIntroScreen() {
               </ThemedText>
             </Animated.View>
 
-            <View style={{ marginVertical: 10 }} />
+            <View style={styles.spacer} />
 
             <Animated.View style={[subtitleTransition]}>
               <ThemedText type="paragraph" darkColor={Colors.dark.text} textAlign="center">
@@ -81,7 +81,7 @@ export default function CreateWalletIntroScreen() {
                 <View style={styles.view}>
                   {isLoading ? (
                     <>
-                      <ActivityIndicator size="small" color={Colors.dark.buttonText} style={{ marginRight: 8 }} />
+                      <ActivityIndicator size="small" color={Colors.dark.buttonText} style={styles.activityIndicator} />
                       <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                         Loading...
                       </ThemedText>
@@ -147,17 +147,15 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.6,
   },
-  button2: {
-    alignItems: 'center',
-    backgroundColor: Colors.dark.buttonSecondary,
-    borderColor: Colors.dark.buttonBorder,
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingVertical: 22,
-  },
   view: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
+  },
+  spacer: {
+    marginVertical: 10,
+  },
+  activityIndicator: {
+    marginRight: 8,
   },
 });

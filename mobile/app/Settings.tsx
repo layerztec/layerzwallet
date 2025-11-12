@@ -201,7 +201,7 @@ export default function SettingsScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
         <ScreenHeader title="Settings" testID="SettingsScreenTitle" />
 
-        <View style={{ flex: 1 }}>
+        <View style={styles.sectionListContainer}>
           <SectionList<SettingsItem, SettingsSection>
             sections={sections}
             keyExtractor={(item) => item.id}
@@ -311,5 +311,8 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.4)',
     textAlign: 'center',
     marginTop: 2,
+  },
+  sectionListContainer: {
+    flex: 1,
   },
 });
