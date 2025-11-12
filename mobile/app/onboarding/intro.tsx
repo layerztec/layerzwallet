@@ -109,7 +109,7 @@ export default function IntroScreen() {
             <Rive
               ref={riveRef}
               autoplay={true}
-              style={{ width: '100%', height: '100%' }}
+              style={styles.riveAnimation}
               resourceName="intro"
               onError={(error) => {
                 setRiveError(error.message || 'Unknown error');
@@ -249,5 +249,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     height: 56,
+  },
+  riveAnimation: {
+    width: '100%',
+    height: '100%',
   },
 });

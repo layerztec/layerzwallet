@@ -311,9 +311,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  contentContainer: {
-    flex: 1,
-  },
   scrollableContent: {
     flex: 1,
   },
@@ -388,30 +385,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  bottomButtonContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  verifyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-  },
-  continueButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.dark.buttonPrimary,
-    borderRadius: 16,
-    height: 56,
-    marginHorizontal: 16,
-  },
   skipButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -422,12 +395,6 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 20,
   },
-  disabledButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-
   errorContainer: {
     flex: 1,
     alignItems: 'center',
@@ -468,12 +435,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.95)',
     textAlign: 'center',
     marginBottom: 16,
-  },
-  subtitle: {
-    ...Typography.paragraph,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    marginBottom: 40,
   },
   errorMessage: {
     ...Typography.paragraph,

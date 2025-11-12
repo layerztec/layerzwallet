@@ -363,7 +363,7 @@ const SendLightning: React.FC = () => {
 
               {/* Confirm Payment */}
               {sendState === 'prepared' && (
-                <View style={{ marginTop: 50 }}>
+                <View style={styles.lightningAddressConfirmContainer}>
                   <LongPressButton
                     style={styles.confirmButton}
                     textStyle={styles.confirmButtonText}
@@ -612,6 +612,9 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     color: 'rgba(255, 255, 255, 0.9)',
+  },
+  lightningAddressConfirmContainer: {
+    marginTop: 50,
   },
 });
 

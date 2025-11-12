@@ -181,8 +181,8 @@ export default function SendTokenStacksScreen() {
         <ThemedText style={styles.networkText}>on {capitalizeFirstLetter(network)}</ThemedText>
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView style={{ flex: 1, padding: 16 }} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoidingView}>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <>
             {/* Form fields - only show when not sent */}
             {step !== SendTokenStacksStep.Sent && (
@@ -304,7 +304,7 @@ export default function SendTokenStacksScreen() {
               )}
 
               {step === SendTokenStacksStep.Prepared && (
-                <View style={{ width: '100%' }}>
+                <View style={styles.preparedContainer}>
                   <LongPressButton
                     onLongPressComplete={actuallySend}
                     style={styles.confirmButton}
@@ -490,5 +490,15 @@ const styles = StyleSheet.create({
   networkText: {
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+    padding: 16,
+  },
+  preparedContainer: {
+    width: '100%',
   },
 });

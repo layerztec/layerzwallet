@@ -79,7 +79,7 @@ export default function TermsOfServiceScreen() {
               </ThemedText>
             </Animated.View>
 
-            <View style={{ marginVertical: 10 }} />
+            <View style={styles.spacer} />
 
             <Animated.View style={[subtitleTransition]}>
               <ThemedText type="paragraph" darkColor="rgba(255, 255, 255, 0.7)" textAlign="center" testID="TosSubtitle">
@@ -195,5 +195,8 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  spacer: {
+    marginVertical: 10,
   },
 });

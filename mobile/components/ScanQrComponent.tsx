@@ -41,6 +41,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  gestureHandlerRoot: {
+    flex: 1,
+  },
 });
 
 // Memoized camera component to prevent re-renders during sheet interactions
@@ -152,7 +155,7 @@ export default function ScanQrComponent() {
   };
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={styles.gestureHandlerRoot}>
       <GradientFormSheet variant={network}>{renderCameraContent()}</GradientFormSheet>
     </GestureHandlerRootView>
   );

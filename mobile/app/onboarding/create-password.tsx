@@ -219,7 +219,7 @@ export default function CreatePasswordScreen() {
                   </ThemedText>
                 </Animated.View>
 
-                <View style={{ marginVertical: 10 }} />
+                <View style={styles.spacer} />
 
                 <Animated.View style={[subtitleTransition]}>
                   <ThemedText type="paragraph" darkColor={Colors.dark.text} textAlign="center">
@@ -372,5 +372,8 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  spacer: {
+    marginVertical: 10,
   },
 });

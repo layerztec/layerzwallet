@@ -187,7 +187,7 @@ export default function ImportWalletScreen() {
                     },
                   ]}
                 >
-                  <Image source={require('@/assets/images/ui/importing.png')} style={{ width: 80, height: 80 }} />
+                  <Image source={require('@/assets/images/ui/importing.png')} style={styles.loadingImage} />
                 </Animated.View>
                 <ThemedText style={styles.loadingTitle} darkColor="rgba(255, 255, 255, 0.9)">
                   Importing wallet...
@@ -403,5 +403,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 24,
+  },
+  loadingImage: {
+    width: 80,
+    height: 80,
   },
 });

@@ -2,6 +2,7 @@ import GradientScreen from '@/components/GradientScreen';
 import { Networks } from '@shared/types/networks';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import WebView from 'react-native-webview';
 
 export type OnrampProps = {
@@ -20,11 +21,17 @@ const Onramp: React.FC = () => {
       <WebView
         originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
         allowsInlineMediaPlayback={true}
-        style={{ flex: 1 }}
+        style={styles.webView}
         source={{ uri: `https://layerztec.github.io/website/onramp/?address=${address}&network=${network}` }}
       />
     </GradientScreen>
   );
 };
+
+const styles = StyleSheet.create({
+  webView: {
+    flex: 1,
+  },
+});
 
 export default Onramp;
