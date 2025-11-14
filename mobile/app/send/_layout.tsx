@@ -40,6 +40,7 @@ export interface SendFlowContextData {
   amount: string;
   token?: string;
   denomination: Denomination;
+  memo: string;
 
   // Bitcoin-specific data
   bitcoin: BitcoinNetworkData | undefined;
@@ -53,6 +54,7 @@ export interface SendFlowContextData {
   setAmount: (amount: string) => void;
   setToken: (token?: string) => void;
   setDenomination: (denomination: Denomination) => void;
+  setMemo: (memo: string) => void;
   setCreatedTransaction: (transaction: CreatedTransaction | undefined) => void;
   reset: () => void;
 }
@@ -79,6 +81,7 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
   const [amount, setAmount] = useState<string>('');
   const [token, setToken] = useState<string | undefined>(undefined);
   const [denomination, setDenomination] = useState<Denomination>('Native');
+  const [memo, setMemo] = useState<string>('');
 
   // Bitcoin-specific state
   const [btcSendData, setBtcSendData] = useState<BtcSendData | undefined>(undefined);
@@ -140,6 +143,7 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
     setAmount('');
     setToken(undefined);
     setDenomination('Native');
+    setMemo('');
     setCreatedTransaction(undefined);
   };
 
@@ -164,6 +168,7 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
         amount,
         token,
         denomination,
+        memo,
         bitcoin: bitcoinData,
         createdTransaction,
         setNetwork,
@@ -171,6 +176,7 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
         setAmount,
         setToken,
         setDenomination,
+        setMemo,
         setCreatedTransaction,
         reset,
       }}
@@ -197,6 +203,7 @@ export default function SendLayout() {
         <Stack.Screen name="send-address" />
         <Stack.Screen name="send-amount-btc" />
         <Stack.Screen name="send-amount-evm" />
+        <Stack.Screen name="send-amount-acc" />
         <Stack.Screen name="send-confirm" />
       </Stack>
     </SendFlowProvider>

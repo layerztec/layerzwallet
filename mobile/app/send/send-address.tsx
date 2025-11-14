@@ -9,15 +9,16 @@ import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
-import { getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
-import { CachedTokenInfo } from '@shared/types/token-info';
+import { getIsAccountBased, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { validateAddress } from '@shared/modules/wallet-utils';
+import { NETWORK_BITCOIN } from '@shared/types/networks';
+import { CachedTokenInfo } from '@shared/types/token-info';
 import { useSendFlow } from './_layout';
 
 const SendAddress: React.FC = () => {
   const { scanQr } = useContext(ScanQrContext);
   const router = useRouter();
-  const { network, address: contextAddress, setAddress: setContextAddress, token, setToken, setAmount } = useSendFlow();
+  const { network, address: contextAddress, setAddress: setContextAddress, token, setToken, setAmount, setDenomination, setMemo } = useSendFlow();
 
   const [localAddress, setLocalAddress] = useState(contextAddress);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -49,16 +50,18 @@ const SendAddress: React.FC = () => {
     setErrorMessage('');
 
     try {
-      const isValid = validateAddress(network, localAddress);
-      if (isValid) {
-        setContextAddress(localAddress);
-        if (getIsEVM(network)) {
-          router.push('/send/send-amount-evm');
-        } else {
-          router.push('/send/send-amount-btc');
-        }
+      if (!validateAddress(network, localAddress)) {
+        throw new Error('Invalid address');
+      }
+      setContextAddress(localAddress);
+      if (getIsEVM(network)) {
+        router.push('/send/send-amount-evm');
+      } else if (getIsAccountBased(network)) {
+        router.push('/send/send-amount-acc');
+      } else if (network === NETWORK_BITCOIN) {
+        router.push('/send/send-amount-btc');
       } else {
-        setErrorMessage('Invalid address');
+        throw new Error('Invalid network');
       }
     } catch (error: any) {
       setErrorMessage(error.message || 'Failed to validate address');
@@ -70,8 +73,10 @@ const SendAddress: React.FC = () => {
   };
 
   const handleTokenPress = (clickedToken: CachedTokenInfo) => {
-    setToken(token ? undefined : clickedToken.id);
+    setToken(token === clickedToken.id ? undefined : clickedToken.id);
     setAmount('');
+    setDenomination('Native');
+    setMemo('');
   };
 
   return (
@@ -83,7 +88,7 @@ const SendAddress: React.FC = () => {
         <View style={styles.container}>
           <View style={styles.inputSection}>
             <View style={styles.inputContainer}>
-              <TouchableOpacity style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1}>
+              <TouchableOpacity style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1} testID="send-address-input">
                 <ThemedText style={styles.inputLabel}>To</ThemedText>
                 <TextInput
                   ref={inputRef}
@@ -111,7 +116,7 @@ const SendAddress: React.FC = () => {
 
           <TokensView onTokenPress={handleTokenPress} selectedToken={token} />
 
-          <TouchableOpacity style={[styles.continueButton, !localAddress.trim() && styles.disabledButton]} onPress={handleContinue} disabled={!localAddress.trim()}>
+          <TouchableOpacity style={[styles.continueButton, !localAddress.trim() && styles.disabledButton]} onPress={handleContinue} disabled={!localAddress.trim()} testID="send-address-next-button">
             <ThemedText style={styles.continueButtonText}>Next</ThemedText>
           </TouchableOpacity>
         </View>

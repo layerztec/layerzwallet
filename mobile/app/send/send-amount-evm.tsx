@@ -9,11 +9,11 @@ import AmountInput from '@/components/AmountInput';
 import GradientScreen from '@/components/GradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
+import { SendAssetProps, withAsset } from '@/hooks/withAsset';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { formatBalance } from '@shared/modules/string-utils';
-import { withAsset, SendAssetProps } from '@/hooks/withAsset';
 import { useSendFlow } from './_layout';
 
 const SendAmountEvm: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker, token, decimals }) => {
@@ -51,6 +51,9 @@ const SendAmountEvm: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker
     if (!recipientAddress?.trim()) return 'Recipient address is required';
     if (!EvmWallet.isAddressValid(recipientAddress)) return 'Invalid recipient address';
     if (!localAmount) return 'Please enter an amount';
+    if (localAmount.includes('.') && localAmount.split('.')[1]?.length > decimals) {
+      return `Maximum ${decimals} decimal place${decimals !== 1 ? 's' : ''} allowed`;
+    }
     const amt = parseFloat(localAmount);
     if (isNaN(amt) || amt <= 0) return 'Amount must be greater than 0';
     if (!balance) return 'Balance not loaded';
