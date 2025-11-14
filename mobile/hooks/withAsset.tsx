@@ -1,14 +1,16 @@
 import React, { useContext } from 'react';
+
+import { useSendFlow } from '@/app/send/_layout';
+import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
+import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { getTokenInfo } from '@shared/models/token-list';
-import { TokenInfo } from '@shared/types/token-info';
 import { StringNumber } from '@shared/types/string-number';
-import { useSendFlow } from '@/app/send/_layout';
+import { TokenInfo } from '@shared/types/token-info';
 
 export interface SendAssetProps {
   balance: StringNumber | undefined;
@@ -26,7 +28,12 @@ export const withAsset = <P extends object>(Component: React.ComponentType<P & S
     const { network, token } = useSendFlow();
     const { accountNumber } = useContext(AccountNumberContext);
     const { balance: tokenBalance } = useTokenBalance(network, accountNumber, token!, BackgroundExecutor);
-    const tokenInfo = getTokenInfo(token!);
+    const { tokenList } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
+    const tokenInfo = tokenList.find((t) => t.id === token);
+
+    if (!tokenInfo) {
+      return null;
+    }
 
     return (
       <Component

@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { Redirect, Stack, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Rive, { RiveRef } from 'rive-react-native';
@@ -9,19 +10,26 @@ import Rive, { RiveRef } from 'rive-react-native';
 import GradientScreen from '@/components/GradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
+import { SendAssetProps, withAsset } from '@/hooks/withAsset';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { walletCanHaveTokens } from '@/src/shared-link/class/wallets/interface-can-have-tokens';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { getNetworkGradient } from '@shared/constants/Colors';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
-import { getDecimalsByNetwork, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
+import { getDecimalsByNetwork, getIsAccountBased, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_BITCOIN } from '@shared/types/networks';
-import { withAsset, SendAssetProps } from '@/hooks/withAsset';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { useSendFlow } from './_layout';
 
 const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const router = useRouter();
-  const { network, address, amount, createdTransaction } = useSendFlow();
+  const { network, address, amount, createdTransaction, memo } = useSendFlow();
+  const { accountNumber } = useContext(AccountNumberContext);
   const { exchangeRate } = useCachedExchangeRate(network, 'USD');
 
   const [error, setError] = useState<string>('');
@@ -82,12 +90,12 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   }, [isSuccess, detailsOpacity, sendToOpacity, totalTop]);
 
   // Redirect back in case no transaction is available
-  if (!createdTransaction) {
+  if (!getIsAccountBased(network) && !createdTransaction) {
     Alert.alert('No transaction available');
     return <Redirect href="/Home" />;
   }
 
-  const { txhex, actualFee } = createdTransaction;
+  const { txhex, actualFee } = createdTransaction ?? { txhex: undefined, actualFee: 0 };
   const networkDecimals = getDecimalsByNetwork(network);
   const nativeTicker = getTickerByNetwork(network);
   const feeInNative = formatBalance(String(actualFee), networkDecimals, 8);
@@ -112,7 +120,7 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   } else {
     const totalAmount = BigNumber(amount).plus(feeInNativeUnits);
     totalUsd = exchangeRate ? `$${totalAmount.multipliedBy(Number(exchangeRate)).toFixed(2)}` : '';
-    totalDisplay = `${totalAmount.toString()} ${ticker}`;
+    totalDisplay = `${totalAmount.toFixed()} ${ticker}`;
   }
 
   const broadcast = async () => {
@@ -120,16 +128,38 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
     setError('');
 
     try {
-      if (network === NETWORK_BITCOIN) {
+      if (network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_STACKS) {
+        const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        assert(wallet instanceof ArkWallet || wallet instanceof SparkWallet || wallet instanceof StacksWallet, 'Internal error: incorrect wallet instance');
+
+        // Check if we're sending a token and the wallet supports tokens
+        if (token && walletCanHaveTokens(wallet)) {
+          const tokenDecimals = token.decimals;
+          const amountInBase = BigInt(new BigNumber(amount).multipliedBy(new BigNumber(10).pow(tokenDecimals)).toString(10));
+          const transactionId = await wallet.transferToken(token.id, amountInBase, address, memo || undefined);
+          if (!transactionId) {
+            throw new Error('Transaction failed');
+          }
+        } else {
+          // Native coin transfer
+          const networkDecimals = getDecimalsByNetwork(network);
+          const amountInBase = new BigNumber(amount).multipliedBy(new BigNumber(10).pow(networkDecimals)).toString(10);
+          const transactionId = await wallet.pay(address, Number(amountInBase));
+          if (!transactionId) {
+            throw new Error('Transaction failed');
+          }
+        }
+      } else if (network === NETWORK_BITCOIN) {
+        assert(txhex, 'Transaction hex is required');
         if (!BlueElectrum.mainConnected) {
           await BlueElectrum.connectMain();
         }
-
         const result = await BlueElectrum.broadcastV2(txhex);
         if (!result) {
           throw new Error('Transaction broadcast failed');
         }
       } else if (getIsEVM(network)) {
+        assert(txhex, 'Transaction hex is required');
         const e = new EvmWallet();
         const txid = await e.broadcastTransaction(network, txhex);
         if (!txid || typeof txid !== 'string') {
@@ -169,7 +199,6 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
 
     return (
       <View style={styles.addressContainer}>
-        {/* First line - contains first 4 chars */}
         <ThemedText style={styles.addressDisplay} allowFontScaling={false}>
           <ThemedText style={[styles.addressHighlight, styles.addressLetterSpacing]} allowFontScaling={false}>
             {first4}
@@ -179,7 +208,6 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
             {firstHalf.substring(4)}
           </ThemedText>
         </ThemedText>
-        {/* Second line - contains last 4 chars */}
         <ThemedText style={styles.addressDisplay} allowFontScaling={false}>
           <ThemedText style={[styles.addressDisplay, styles.addressLetterSpacing]} allowFontScaling={false}>
             {secondHalf.substring(0, secondHalf.length - 4)}
@@ -202,7 +230,6 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
         <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
           <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <View style={styles.container}>
-              {/* Rive Success Animation */}
               {showRiveAnimation && (
                 <View style={styles.riveContainer}>
                   <Rive
@@ -282,8 +309,10 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
           </ScrollView>
         </KeyboardAvoidingView>
         {!error && (
-          <TouchableOpacity style={[styles.sendButton, isBroadcasting && styles.disabledButton]} onPress={isSuccess ? handleHome : broadcast} disabled={isBroadcasting}>
-            <ThemedText style={styles.sendButtonText}>{isSuccess ? 'Back to Wallet' : isBroadcasting ? 'Sending...' : 'Confirm Send'}</ThemedText>
+          <TouchableOpacity style={[styles.sendButton, isBroadcasting && styles.disabledButton]} onPress={isSuccess ? handleHome : broadcast} disabled={isBroadcasting} testID="send-confirm-button">
+            <ThemedText style={styles.sendButtonText} testID={isSuccess ? 'send-success-text' : undefined}>
+              {isSuccess ? 'Back to Wallet' : isBroadcasting ? 'Sending...' : 'Confirm Send'}
+            </ThemedText>
           </TouchableOpacity>
         )}
       </View>

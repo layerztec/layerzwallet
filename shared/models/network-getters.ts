@@ -1,8 +1,8 @@
 import BigNumber from 'bignumber.js';
 import { ethers } from 'ethers';
 
-import { getAvailableNetworks, NETWORK_BITCOIN, Networks } from '../types/networks';
 import { hexStr } from '../modules/string-utils';
+import { getAvailableNetworks, NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
 import { AllNetworkInfos } from './all-network-infos';
 
 /**
@@ -93,4 +93,8 @@ export function getIsEVM(network: Networks): boolean {
   }
 
   return Boolean(AllNetworkInfos[network].isEVM);
+}
+
+export function getIsAccountBased(network: Networks): boolean {
+  return network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_STACKS;
 }

@@ -154,7 +154,7 @@ export default function Home() {
       case NETWORK_SPARK:
       case NETWORK_ARK_MUTINYNET:
       case NETWORK_STACKS:
-        router.push('/SendAccountBased');
+        router.push('/send');
         break;
       case NETWORK_LIQUID:
       case NETWORK_LIQUID_TESTNET:
@@ -233,18 +233,7 @@ export default function Home() {
   };
 
   const handleTokenPress = (token: CachedTokenInfo) => {
-    if (network === NETWORK_SPARK || network === NETWORK_STACKS) {
-      router.push({
-        pathname: '/SendTokenStacks',
-        params: {
-          tokenId: token.id,
-          tokenSymbol: token.symbol,
-          tokenName: token.name,
-          tokenDecimals: token.decimals.toString(),
-        },
-      });
-      return;
-    } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
+    if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
       router.push({
         pathname: '/SendLiquid',
         params: { assetId: token.id },

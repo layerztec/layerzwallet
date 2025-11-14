@@ -140,6 +140,7 @@ const SendAmountBtc: React.FC = () => {
     const normalized = text.replace(',', '.');
     if (normalized === '' || /^\d*\.?\d*$/.test(normalized)) {
       setLocalAmount(normalized);
+      setValidationError(null);
     }
   };
 
@@ -171,11 +172,16 @@ const SendAmountBtc: React.FC = () => {
 
   const validateAmount = () => {
     if (!localAmount || !balance) return { isValid: false, error: 'Please enter an amount' };
+    const networkDecimals = getDecimalsByNetwork(network);
+    if (localAmount.includes('.') && localAmount.split('.')[1]?.length > networkDecimals) {
+      return { isValid: false, error: `Maximum ${networkDecimals} decimal place${networkDecimals !== 1 ? 's' : ''} allowed` };
+    }
+
     const amt = parseFloat(localAmount);
     if (isNaN(amt) || amt <= 0) return { isValid: false, error: 'Amount must be greater than 0' };
 
     const satValueBN = new BigNumber(amt);
-    const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toString(10);
+    const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(networkDecimals)).toString(10);
     if (!new BigNumber(balance).gte(satValue)) {
       return { isValid: false, error: 'Insufficient balance' };
     }

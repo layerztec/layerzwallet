@@ -1,122 +1,115 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Networks, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_STACKS } from '../types/networks';
-import { CachedTokenInfo } from '../types/token-info';
+import assert from 'assert';
+import useSWR from 'swr';
+
+import { SparkWallet } from '../class/wallets/spark-wallet';
+import { StacksWallet } from '../class/wallets/stacks-wallet';
 import { getTokenList } from '../models/token-list';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
-import { SparkWallet } from '../class/wallets/spark-wallet';
-import assert from 'assert';
 import { IStorage } from '../types/IStorage';
-import { StacksWallet } from '../class/wallets/stacks-wallet';
+import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
+import { CachedTokenInfo } from '../types/token-info';
 
 const STORAGE_KEY_CACHED_TOKEN_LIST = 'STORAGE_KEY_CACHED_TOKEN_LIST_V2';
 
+interface tokenDiscoveryFetcherArg {
+  cacheKey: string;
+  network: Networks;
+  accountNumber: number;
+  backgroundCaller: IBackgroundCaller;
+  storage: IStorage;
+}
+
+/**
+ * returns cached tokens from storage if present, null otherwise
+ */
+async function restoreCachedTokens(cacheKey: string, storage: IStorage): Promise<CachedTokenInfo[] | null> {
+  try {
+    const cachedTokensString = await storage.getItem(cacheKey);
+    const cachedTokens = JSON.parse(cachedTokensString);
+    if (Array.isArray(cachedTokens) && cachedTokens.length > 0) {
+      return cachedTokens;
+    }
+  } catch (_) {}
+  return null;
+}
+
+export const tokenDiscoveryFetcher = async (arg: tokenDiscoveryFetcherArg): Promise<CachedTokenInfo[]> => {
+  const { network, accountNumber, backgroundCaller, storage } = arg;
+
+  if (network === NETWORK_SPARK) {
+    const cacheKey = STORAGE_KEY_CACHED_TOKEN_LIST + network + accountNumber;
+
+    if (!backgroundCaller.lazyInitWalletReady(network, accountNumber)) {
+      // wallet not ready, definitely can use cached tokens (if any)
+      const cachedTokens = await restoreCachedTokens(cacheKey, storage);
+      if (cachedTokens) return cachedTokens;
+    }
+
+    // Lazy initialize Spark wallet
+    const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
+    assert(wallet instanceof SparkWallet, 'Not a Spark wallet');
+
+    // we do NOT fetch from network, we rely on cached value inside wallet internals
+    if (!wallet._lastBalanceFetch) {
+      // balance never fetched yet, so we can use cached tokens (if any)
+      const cachedTokens = await restoreCachedTokens(cacheKey, storage);
+      if (cachedTokens) return cachedTokens;
+    }
+
+    const tokenInfos: CachedTokenInfo[] = wallet.getTokenBalances();
+    if (tokenInfos.length > 0) {
+      await storage.setItem(cacheKey, JSON.stringify(tokenInfos)); // saving to cache
+    }
+    return tokenInfos;
+  } else if (network === NETWORK_STACKS) {
+    const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
+    assert(wallet instanceof StacksWallet, 'Not a Stacks wallet');
+
+    await wallet.fetchTokenBalances();
+    const tokenInfos: CachedTokenInfo[] = [];
+    for (const token of wallet.getTokenBalances()) {
+      tokenInfos.push(token);
+    }
+
+    return tokenInfos;
+  } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
+    const tokens = getTokenList(network).map((token) => ({
+      ...token,
+      balance: undefined,
+    }));
+    return tokens;
+  } else {
+    // For all other networks, return the standard token list
+    // Adapt TokenInfo[] to CachedTokenInfo[] by adding a default balance
+    const tokens = getTokenList(network).map((token) => ({
+      ...token,
+      balance: undefined,
+    }));
+    return tokens;
+  }
+};
+
 export function useTokenDiscovery(network: Networks, accountNumber: number, backgroundCaller: IBackgroundCaller, storage: IStorage, refreshInterval = 5_000) {
-  const [tokenList, setTokenList] = useState<CachedTokenInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | number | null>(null);
+  // Only enable refresh interval for NETWORK_SPARK & NETWORK_STACKS
+  const shouldRefresh = network === NETWORK_SPARK || network === NETWORK_STACKS;
 
-  /**
-   * returns true if cached tokens are present, and successfully restored to state, false otherwise
-   */
-  const restoreCachedTokens = useCallback(
-    async (cacheKey: string) => {
-      try {
-        const cachedTokensString = await storage.getItem(cacheKey);
-        const cachedTokens = JSON.parse(cachedTokensString);
-        if (Array.isArray(cachedTokens) && cachedTokens.length > 0) {
-          setTokenList(cachedTokens);
-          return true;
-        }
-      } catch (_) {}
-      return false;
-    },
-    [storage]
-  );
+  const arg: tokenDiscoveryFetcherArg = {
+    cacheKey: 'tokenDiscoveryFetcher',
+    network,
+    accountNumber,
+    backgroundCaller,
+    storage,
+  };
 
-  const fetchTokens = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      if (network === NETWORK_SPARK) {
-        const cacheKey = STORAGE_KEY_CACHED_TOKEN_LIST + network + accountNumber;
-
-        if (!backgroundCaller.lazyInitWalletReady(network, accountNumber)) {
-          // wallet not ready, definately can use cached tokens (if any)
-          if (await restoreCachedTokens(cacheKey)) return;
-        }
-
-        // Lazy initialize Spark wallet
-        const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
-        assert(wallet instanceof SparkWallet, 'Not a Spark wallet');
-
-        // we do NOT fetch from network, we rely on cached value inside wallet internals
-
-        if (!wallet._lastBalanceFetch) {
-          // balance never fetched yet, so we can use cached tokens (if any)
-          if (await restoreCachedTokens(cacheKey)) return;
-        }
-
-        const tokenInfos: CachedTokenInfo[] = wallet.getTokenBalances();
-
-        if (tokenInfos.length > 0) await storage.setItem(cacheKey, JSON.stringify(tokenInfos)); // saving to cache
-
-        setTokenList(tokenInfos);
-      } else if (network === NETWORK_STACKS) {
-        const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
-        assert(wallet instanceof StacksWallet, 'Not a Stacks wallet');
-
-        await wallet.fetchTokenBalances();
-        const tokenInfos: CachedTokenInfo[] = [];
-        for (const token of wallet.getTokenBalances()) {
-          tokenInfos.push(token);
-        }
-
-        setTokenList(tokenInfos);
-      } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
-        const tokens = getTokenList(network).map((token) => ({
-          ...token,
-          balance: undefined,
-        }));
-        setTokenList(tokens);
-      } else {
-        // For all other networks, return the standard token list
-        // Adapt TokenInfo[] to CachedTokenInfo[] by adding a default balance
-        const tokens = getTokenList(network).map((token) => ({
-          ...token,
-          balance: undefined,
-        }));
-        setTokenList(tokens);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [network, accountNumber, backgroundCaller, restoreCachedTokens, storage]);
-
-  useEffect(() => {
-    // Initial fetch
-    fetchTokens();
-
-    // Set up periodic refresh only for NETWORK_SPARK & NETWORK_STACKS
-    if (network === NETWORK_SPARK || network === NETWORK_STACKS) {
-      intervalRef.current = setInterval(fetchTokens, refreshInterval);
-    }
-
-    // Cleanup
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [fetchTokens, refreshInterval, network]);
+  const { data, error, isLoading } = useSWR(arg, tokenDiscoveryFetcher, {
+    refreshInterval: shouldRefresh ? refreshInterval : undefined,
+    refreshWhenHidden: false,
+    keepPreviousData: true,
+  });
 
   return {
-    tokenList,
+    tokenList: data ?? [],
     isLoading,
-    error,
+    error: error instanceof Error ? error : error ? new Error('Unknown error') : null,
   };
 }
