@@ -11,7 +11,7 @@ import TokensView from '@/components/TokensView';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { getIsAccountBased, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { validateAddress } from '@shared/modules/wallet-utils';
-import { NETWORK_BITCOIN } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { useSendFlow } from './_layout';
 
@@ -60,6 +60,8 @@ const SendAddress: React.FC = () => {
         router.push('/send/send-amount-acc');
       } else if (network === NETWORK_BITCOIN) {
         router.push('/send/send-amount-btc');
+      } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
+        router.push('/send/send-amount-liquid');
       } else {
         throw new Error('Invalid network');
       }
