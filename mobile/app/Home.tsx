@@ -32,25 +32,11 @@ import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { USDT_TOKENS } from '@shared/models/token-list';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import {
-  NETWORK_ARK,
-  NETWORK_ARK_MUTINYNET,
-  NETWORK_BITCOIN,
-  NETWORK_LIGHTNING,
-  NETWORK_LIGHTNING_TESTNET,
-  NETWORK_LIQUID,
-  NETWORK_LIQUID_TESTNET,
-  NETWORK_ROOTSTOCK,
-  NETWORK_SPARK,
-  NETWORK_STACKS,
-  NETWORK_USDT,
-  Networks,
-} from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
 import { SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapPlatform } from '@shared/types/swap';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { ReceiveTokenProps } from './Receive';
 import { SendLightningProps } from './SendLightning';
-import { SendLiquidParams } from './SendLiquid';
 import { SendTokenEvmProps } from './SendTokenEvm';
 import { SwapParams } from './Swap';
 
@@ -147,19 +133,6 @@ export default function Home() {
 
   const handleSend = () => {
     switch (network) {
-      case NETWORK_BITCOIN:
-        router.push('/send');
-        break;
-      case NETWORK_ARK:
-      case NETWORK_SPARK:
-      case NETWORK_ARK_MUTINYNET:
-      case NETWORK_STACKS:
-        router.push('/send');
-        break;
-      case NETWORK_LIQUID:
-      case NETWORK_LIQUID_TESTNET:
-        router.push('/SendLiquid');
-        break;
       case NETWORK_LIGHTNING:
       case NETWORK_LIGHTNING_TESTNET:
         router.push('/SendLightning');
@@ -233,14 +206,6 @@ export default function Home() {
   };
 
   const handleTokenPress = (token: CachedTokenInfo) => {
-    if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
-      router.push({
-        pathname: '/SendLiquid',
-        params: { assetId: token.id },
-      });
-      return;
-    }
-
     router.push({
       pathname: '/send',
       params: { token: token.id },
@@ -317,8 +282,7 @@ export default function Home() {
   };
 
   const handleSendUSDTViaLiquid = () => {
-    const params: SendLiquidParams = { assetId: USDT_TOKENS[NETWORK_LIQUID][0], network: NETWORK_LIQUID };
-    router.push({ pathname: '/SendLiquid', params });
+    router.push({ pathname: '/send', params: { token: USDT_TOKENS[NETWORK_LIQUID][0], network: NETWORK_LIQUID } });
   };
 
   // USDT send and receive actions
