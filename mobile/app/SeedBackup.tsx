@@ -274,7 +274,6 @@ export default function SeedBackupScreen() {
     <GradientScreen variant={network}>
       <ScreenHeader title="Recovery Phrase" />
       <View style={styles.container}>
-        {/* Warning Section */}
         <View style={styles.warningSection}>
           <View style={styles.warningHeader}>
             <Ionicons name="alert-circle-outline" size={28} color="rgba(255, 255, 255, 0.9)" />
@@ -285,7 +284,6 @@ export default function SeedBackupScreen() {
           </ThemedText>
         </View>
 
-        {/* Reveal Area */}
         <TouchableOpacity
           style={[styles.revealContainer, isRevealed && styles.revealContainerRevealed]}
           onPress={handleRevealSeedPhrase}
@@ -315,7 +313,6 @@ export default function SeedBackupScreen() {
           )}
         </TouchableOpacity>
 
-        {/* Action Buttons */}
         <View style={styles.actionsContainer}>
           <Button title="View QR code" variant="secondary" onPress={handleViewQRCode} disabled={!mnemonic} style={styles.actionButton} />
 
@@ -432,7 +429,6 @@ const styles = StyleSheet.create({
   actionButton: {
     marginBottom: 0,
   },
-  // Verification UI styles
   verificationContainer: {
     flex: 1,
     padding: 20,
@@ -528,7 +524,6 @@ const styles = StyleSheet.create({
     color: '#FF6B6B',
     textAlign: 'center',
   },
-  // Success UI styles
   verificationCompleteContainer: {
     flex: 1,
     padding: 20,
