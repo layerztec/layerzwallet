@@ -1,8 +1,8 @@
 import assert from 'assert';
-import React, { useEffect, useState, useRef } from 'react';
-import { TextInput, View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Animated, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useEffect, useState } from 'react';
+import { TextInput, View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useThemeColor } from '../hooks/useThemeColor';
 import { useAskMnemonic } from '../src/hooks/AskMnemonicContext';
 
 import { getDeviceID } from '@shared/modules/device-id';
@@ -10,30 +10,17 @@ import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { SecureStorage } from '../src/class/secure-storage';
 import { Csprng } from '../src/class/rng';
 import { decrypt } from '../src/modules/encryption';
-import { ThemedText } from '@/components/ThemedText';
-import { Colors } from '@shared/constants/Colors';
-import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
-import ScreenHeader from '@/components/navigation/ScreenHeader';
 
 export default function AskMnemonicScreen() {
   const [password, setPassword] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [isPasswordFocused, setIsPasswordFocused] = useState<boolean>(true);
   const router = useRouter();
   const { handleMnemonicSubmit } = useAskMnemonic();
 
-  const passwordInputRef = useRef<TextInput>(null);
-
-  const shakeAnimation = useRef(new Animated.Value(0)).current;
-  const errorFadeAnimation = useRef(new Animated.Value(0)).current;
-  const scaleAnimation = useRef(new Animated.Value(1)).current;
-  const passwordBorderAnimation = useRef(new Animated.Value(1)).current;
-
-  const titleTransition = useSequentialSpringAnimation(200);
-  const subtitleTransition = useSequentialSpringAnimation(400);
-  const inputTransition = useSequentialSpringAnimation(600);
-  const buttonTransition = useSequentialSpringAnimation(800);
+  const backgroundColor = useThemeColor({ light: '#fff', dark: '#000' }, 'background');
+  const textColor = useThemeColor({ light: '#000', dark: '#fff' }, 'text');
+  const tintColor = useThemeColor({ light: '#2f95dc', dark: '#fff' }, 'tint');
 
   // upon load, we check if mnemonic is encrypted and if not, we can just use it
   // and skip this whole dialogue
@@ -49,49 +36,6 @@ export default function AskMnemonicScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (passwordInputRef.current && !password) {
-      setTimeout(() => passwordInputRef.current?.focus(), 300);
-    }
-  }, [password]);
-
-  useEffect(() => {
-    Animated.timing(passwordBorderAnimation, {
-      toValue: isPasswordFocused ? 1 : 0,
-      duration: 200,
-      useNativeDriver: false,
-    }).start();
-  }, [isPasswordFocused, passwordBorderAnimation]);
-
-  const passwordBorderStyle = {
-    borderColor: passwordBorderAnimation.interpolate({
-      inputRange: [0, 1],
-      outputRange: ['rgba(0, 0, 0, 0.3)', 'rgba(255, 255, 255, 0.8)'],
-    }),
-    borderWidth: 1,
-  };
-
-  const animateError = () => {
-    shakeAnimation.setValue(0);
-    errorFadeAnimation.setValue(0);
-    scaleAnimation.setValue(1);
-
-    Animated.parallel([
-      Animated.sequence([
-        Animated.timing(shakeAnimation, { toValue: 10, duration: 50, useNativeDriver: true }),
-        Animated.timing(shakeAnimation, { toValue: -10, duration: 50, useNativeDriver: true }),
-        Animated.timing(shakeAnimation, { toValue: 8, duration: 50, useNativeDriver: true }),
-        Animated.timing(shakeAnimation, { toValue: -8, duration: 50, useNativeDriver: true }),
-        Animated.timing(shakeAnimation, { toValue: 0, duration: 50, useNativeDriver: true }),
-      ]),
-      Animated.spring(errorFadeAnimation, { toValue: 1, tension: 150, friction: 8, useNativeDriver: true }),
-      Animated.sequence([
-        Animated.spring(scaleAnimation, { toValue: 0.98, tension: 200, friction: 8, useNativeDriver: true }),
-        Animated.spring(scaleAnimation, { toValue: 1, tension: 200, friction: 8, useNativeDriver: true }),
-      ]),
-    ]).start();
-  };
-
   const handlePasswordChange = (text: string) => {
     setPassword(text);
     if (error) setError('');
@@ -100,7 +44,6 @@ export default function AskMnemonicScreen() {
   const onOkPress = async () => {
     if (!password.trim()) {
       setError('Password is required');
-      animateError();
       return;
     }
 
@@ -127,9 +70,7 @@ export default function AskMnemonicScreen() {
     } catch (decryptError: any) {
       console.log('Decryption failed:', decryptError.message);
       setError('Incorrect password. Please try again.');
-      animateError();
       setIsLoading(false);
-      setPassword('');
       // Don't go back - allow user to retry
     }
   };
@@ -141,173 +82,119 @@ export default function AskMnemonicScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.container, { backgroundColor: '#000000' }]}>
-        <SafeAreaView style={styles.safeAreaView}>
-          <ScreenHeader onBackPress={onCancelPress} />
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardContainer}>
-            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
-              <View style={styles.content}>
-                <Animated.View style={[titleTransition]}>
-                  <ThemedText type="title" darkColor={Colors.dark.buttonText} textAlign="center">
-                    Unlock wallet
-                  </ThemedText>
-                </Animated.View>
+    <View style={[styles.centeredView, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+      <View style={[styles.modalView, { backgroundColor }]}>
+        <Text style={[styles.modalTitle, { color: textColor }]}>Unlock your wallet</Text>
 
-                <View style={styles.spacer} />
+        {error ? (
+          <View style={styles.errorContainer}>
+            <Text style={[styles.errorText, { color: '#dc3545' }]}>{error}</Text>
+          </View>
+        ) : null}
 
-                <Animated.View style={[subtitleTransition]}>
-                  <ThemedText type="paragraph" darkColor={Colors.dark.text} textAlign="center">
-                    Enter your password to view your recovery phrase
-                  </ThemedText>
-                </Animated.View>
+        <TextInput
+          style={[styles.input, { color: textColor, borderColor: tintColor }]}
+          secureTextEntry
+          placeholder="Enter your password"
+          autoCapitalize="none"
+          placeholderTextColor="#888"
+          value={password}
+          onChangeText={handlePasswordChange}
+          autoFocus
+          editable={!isLoading}
+        />
 
-                <Animated.View
-                  style={[
-                    styles.inputContainer,
-                    inputTransition,
-                    {
-                      transform: [{ translateX: shakeAnimation }, { scale: scaleAnimation }],
-                    },
-                  ]}
-                >
-                  {password && !error ? (
-                    <View style={styles.loadingContainer}>
-                      <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.9)" />
-                      <ThemedText style={styles.loadingText} darkColor="rgba(255, 255, 255, 0.7)">
-                        {isLoading ? 'Unlocking...' : 'Processing...'}
-                      </ThemedText>
-                    </View>
-                  ) : (
-                    <Animated.View style={[styles.inputWrapper, passwordBorderStyle]}>
-                      <TextInput
-                        ref={passwordInputRef}
-                        style={styles.input}
-                        placeholder="Enter password"
-                        placeholderTextColor="rgba(255, 255, 255, 0.5)"
-                        autoCapitalize="none"
-                        secureTextEntry
-                        value={password}
-                        onChangeText={handlePasswordChange}
-                        onFocus={() => setIsPasswordFocused(true)}
-                        onBlur={() => setIsPasswordFocused(false)}
-                        editable={!isLoading}
-                        testID="PasswordInput"
-                      />
-                    </Animated.View>
-                  )}
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={tintColor} />
+            <Text style={[styles.loadingText, { color: '#666' }]}>Decrypting wallet...</Text>
+          </View>
+        )}
 
-                  {error ? (
-                    <Animated.View
-                      style={[
-                        styles.errorContainer,
-                        {
-                          opacity: errorFadeAnimation,
-                          transform: [
-                            {
-                              scale: errorFadeAnimation.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [0.8, 1],
-                              }),
-                            },
-                          ],
-                        },
-                      ]}
-                    >
-                      <ThemedText style={styles.errorText} darkColor="#FF6B6B">
-                        {error}
-                      </ThemedText>
-                    </Animated.View>
-                  ) : null}
-                </Animated.View>
-              </View>
-
-              <Animated.View style={[styles.buttonSection, buttonTransition]}>
-                <TouchableOpacity style={[styles.button, isLoading || !password ? styles.buttonDisabled : null]} onPress={onOkPress} disabled={isLoading || !password} testID="UnlockButton">
-                  <ThemedText type="button" darkColor={Colors.dark.buttonText}>
-                    {isLoading ? 'Unlocking...' : 'Unlock'}
-                  </ThemedText>
-                </TouchableOpacity>
-              </Animated.View>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
+        <View style={styles.buttonContainer}>
+          <Pressable style={[styles.button, styles.buttonCancel, isLoading && styles.buttonDisabled]} onPress={onCancelPress} disabled={isLoading}>
+            <Text style={styles.buttonText}>Cancel</Text>
+          </Pressable>
+          <Pressable style={[styles.button, styles.buttonConfirm, isLoading && styles.buttonDisabled]} onPress={onOkPress} disabled={isLoading}>
+            <Text style={styles.buttonText}>{isLoading ? 'Unlocking...' : 'Unlock'}</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  centeredView: {
     flex: 1,
-  },
-  safeAreaView: {
-    flex: 1,
-  },
-  keyboardContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'space-between',
-    paddingBottom: 20,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40,
-  },
-  spacer: {
-    height: 16,
-  },
-  inputContainer: {
-    marginTop: 40,
-  },
-  inputWrapper: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  input: {
-    color: Colors.dark.buttonText,
-    fontSize: 16,
-    padding: 18,
-    fontWeight: '500',
-  },
-  loadingContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 16,
-    padding: 40,
-    alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 15,
-    textAlign: 'center',
+  modalView: {
+    width: '80%',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    marginBottom: 15,
+    fontSize: 18,
+    fontWeight: '700',
   },
   errorContainer: {
-    marginTop: 8,
-    marginBottom: 12,
+    marginBottom: 15,
   },
   errorText: {
     fontSize: 14,
     textAlign: 'center',
   },
-  buttonSection: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
+  input: {
+    width: '100%',
+    padding: 10,
+    borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: 20,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  loadingText: {
+    marginLeft: 10,
+    fontSize: 14,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
   },
   button: {
-    backgroundColor: Colors.dark.buttonPrimary,
-    borderRadius: 16,
-    paddingVertical: 18,
+    borderRadius: 10,
+    padding: 10,
+    elevation: 2,
+    minWidth: '40%',
     alignItems: 'center',
-    justifyContent: 'center',
+  },
+  buttonConfirm: {
+    backgroundColor: '#515f9c',
+  },
+  buttonCancel: {
+    backgroundColor: '#888',
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: '700',
   },
 });
