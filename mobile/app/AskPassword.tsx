@@ -1,17 +1,48 @@
-import React, { useState } from 'react';
-import { TextInput, View, Text, Pressable, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { TextInput, View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Animated, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useThemeColor } from '../hooks/useThemeColor';
 import { useAskPassword } from '../src/hooks/AskPasswordContext';
+import { ThemedText } from '@/components/ThemedText';
+import { Colors } from '@shared/constants/Colors';
+import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 
 export default function AskPasswordScreen() {
   const [password, setPassword] = useState<string>('');
+  const [isPasswordFocused, setIsPasswordFocused] = useState<boolean>(true);
   const router = useRouter();
   const { handlePasswordSubmit } = useAskPassword();
 
-  const backgroundColor = useThemeColor({ light: '#fff', dark: '#000' }, 'background');
-  const textColor = useThemeColor({ light: '#000', dark: '#fff' }, 'text');
-  const tintColor = useThemeColor({ light: '#2f95dc', dark: '#fff' }, 'tint');
+  const passwordInputRef = useRef<TextInput>(null);
+  const passwordBorderAnimation = useRef(new Animated.Value(1)).current;
+
+  const titleTransition = useSequentialSpringAnimation(200);
+  const subtitleTransition = useSequentialSpringAnimation(400);
+  const inputTransition = useSequentialSpringAnimation(600);
+  const buttonTransition = useSequentialSpringAnimation(800);
+
+  useEffect(() => {
+    if (passwordInputRef.current && !password) {
+      setTimeout(() => passwordInputRef.current?.focus(), 300);
+    }
+  }, [password]);
+
+  useEffect(() => {
+    Animated.timing(passwordBorderAnimation, {
+      toValue: isPasswordFocused ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [isPasswordFocused, passwordBorderAnimation]);
+
+  const passwordBorderStyle = {
+    borderColor: passwordBorderAnimation.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['rgba(0, 0, 0, 0.3)', 'rgba(255, 255, 255, 0.8)'],
+    }),
+    borderWidth: 1,
+  };
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
@@ -30,92 +61,133 @@ export default function AskPasswordScreen() {
   };
 
   return (
-    <View style={[styles.centeredView, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoidingView}>
-        <View style={[styles.modalView, { backgroundColor }]}>
-          <Text style={[styles.modalTitle, { color: textColor }]}>Unlock your wallet?</Text>
-          <TextInput
-            style={[styles.input, { color: textColor, borderColor: tintColor }]}
-            secureTextEntry
-            placeholder="Enter your password"
-            placeholderTextColor="#888"
-            value={password}
-            onChangeText={handlePasswordChange}
-            autoFocus
-          />
-          <View style={styles.buttonContainer}>
-            <Pressable style={[styles.button, styles.buttonCancel]} onPress={onCancelPress}>
-              <Text style={styles.buttonText}>Cancel</Text>
-            </Pressable>
-            <Pressable style={[styles.button, styles.buttonConfirm]} onPress={onOkPress}>
-              <Text style={styles.buttonText}>OK</Text>
-            </Pressable>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
+    <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
+        <SafeAreaView style={styles.safeAreaView}>
+          <ScreenHeader onBackPress={onCancelPress} />
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardContainer}>
+            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
+              <View style={styles.content}>
+                <Animated.View style={[titleTransition]}>
+                  <ThemedText type="title" darkColor={Colors.dark.buttonText} textAlign="center">
+                    Unlock wallet
+                  </ThemedText>
+                </Animated.View>
+
+                <View style={styles.spacer} />
+
+                <Animated.View style={[subtitleTransition]}>
+                  <ThemedText type="paragraph" darkColor={Colors.dark.text} textAlign="center">
+                    Enter your password to continue
+                  </ThemedText>
+                </Animated.View>
+
+                <Animated.View style={[styles.inputContainer, inputTransition]}>
+                  {password ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.9)" />
+                      <ThemedText style={styles.loadingText} darkColor="rgba(255, 255, 255, 0.7)">
+                        Processing...
+                      </ThemedText>
+                    </View>
+                  ) : (
+                    <Animated.View style={[styles.inputWrapper, passwordBorderStyle]}>
+                      <TextInput
+                        ref={passwordInputRef}
+                        style={styles.input}
+                        placeholder="Enter password"
+                        placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                        autoCapitalize="none"
+                        secureTextEntry
+                        value={password}
+                        onChangeText={handlePasswordChange}
+                        onFocus={() => setIsPasswordFocused(true)}
+                        onBlur={() => setIsPasswordFocused(false)}
+                        testID="PasswordInput"
+                      />
+                    </Animated.View>
+                  )}
+                </Animated.View>
+              </View>
+
+              <Animated.View style={[styles.buttonSection, buttonTransition]}>
+                <TouchableOpacity style={[styles.button, !password ? styles.buttonDisabled : null]} onPress={onOkPress} disabled={!password} testID="SubmitButton">
+                  <ThemedText type="button" darkColor={Colors.dark.buttonText}>
+                    Continue
+                  </ThemedText>
+                </TouchableOpacity>
+              </Animated.View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  centeredView: {
+  container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  keyboardAvoidingView: {
+  safeAreaView: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 50,
   },
-  modalView: {
-    width: '80%',
-    borderRadius: 10,
-    padding: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+  keyboardContainer: {
+    flex: 1,
   },
-  modalTitle: {
-    marginBottom: 15,
-    fontSize: 18,
-    fontWeight: '700',
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
+    paddingBottom: 20,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 40,
+  },
+  spacer: {
+    height: 16,
+  },
+  inputContainer: {
+    marginTop: 40,
+  },
+  inputWrapper: {
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
   },
   input: {
-    width: '100%',
-    padding: 10,
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 20,
+    color: Colors.dark.buttonText,
+    fontSize: 16,
+    padding: 18,
+    fontWeight: '500',
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
+  loadingContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 16,
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  buttonSection: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
   },
   button: {
-    borderRadius: 5,
-    padding: 10,
-    elevation: 2,
-    minWidth: '40%',
+    backgroundColor: Colors.dark.buttonPrimary,
+    borderRadius: 16,
+    paddingVertical: 18,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  buttonConfirm: {
-    backgroundColor: '#2196F3',
-  },
-  buttonCancel: {
-    backgroundColor: '#888',
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: '700',
+  buttonDisabled: {
+    opacity: 0.5,
   },
 });
