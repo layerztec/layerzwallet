@@ -139,6 +139,19 @@ export function ProtectedRouteStack() {
         <Stack.Screen name="BackdoorNetworkSwitcher" options={{ headerShown: false }} />
         <Stack.Screen name="Changelog" options={{ headerShown: false }} />
         <Stack.Screen name="SeedBackup" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="SeedBackupQR"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.7],
+            sheetGrabberVisible: true,
+            headerShown: false,
+            gestureEnabled: true,
+            contentStyle: {
+              height: '100%',
+            },
+          }}
+        />
         <Stack.Screen name="Tools" options={{ headerShown: false }} />
         <Stack.Screen name="SendAccountBased" options={{ headerShown: false }} />
         <Stack.Screen name="SendBtc" options={{ title: 'Send BTC' }} />
