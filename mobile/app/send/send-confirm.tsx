@@ -16,6 +16,7 @@ import { walletCanHaveTokens } from '@/src/shared-link/class/wallets/interface-c
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { getNetworkGradient } from '@shared/constants/Colors';
@@ -23,12 +24,12 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { getDecimalsByNetwork, getIsAccountBased, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { useSendFlow } from './_layout';
 
 const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const router = useRouter();
-  const { network, address, amount, createdTransaction, memo } = useSendFlow();
+  const { network, address, amount, createdTransaction, memo, liquidPrepareResult } = useSendFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const { exchangeRate } = useCachedExchangeRate(network, 'USD');
 
@@ -90,16 +91,23 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   }, [isSuccess, detailsOpacity, sendToOpacity, totalTop]);
 
   // Redirect back in case no transaction is available
-  if (!getIsAccountBased(network) && !createdTransaction) {
+  const isLiquid = network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET;
+  if (!getIsAccountBased(network) && !createdTransaction && !liquidPrepareResult) {
     Alert.alert('No transaction available');
     return <Redirect href="/Home" />;
   }
 
+  // For Liquid, use prepare result; for others, use created transaction
   const { txhex, actualFee } = createdTransaction ?? { txhex: undefined, actualFee: 0 };
   const networkDecimals = getDecimalsByNetwork(network);
   const nativeTicker = getTickerByNetwork(network);
-  const feeInNative = formatBalance(String(actualFee), networkDecimals, 8);
-  const feeInNativeUnits = BigNumber(actualFee).dividedBy(new BigNumber(10).pow(networkDecimals));
+
+  // For Liquid, get fee from prepare result
+  const liquidFee = liquidPrepareResult?.feesSat ?? 0;
+  const feeToUse = isLiquid ? liquidFee : actualFee;
+
+  const feeInNative = formatBalance(String(feeToUse), networkDecimals, 8);
+  const feeInNativeUnits = BigNumber(feeToUse).dividedBy(new BigNumber(10).pow(networkDecimals));
 
   // For token sends, amount is in token units, fee is in native units
   // For native sends, both are in native units
@@ -164,6 +172,14 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
         const txid = await e.broadcastTransaction(network, txhex);
         if (!txid || typeof txid !== 'string') {
           throw new Error('Transaction broadcast failed');
+        }
+      } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
+        assert(liquidPrepareResult, 'Liquid prepare result is required');
+        const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        assert(wallet instanceof BreezWallet);
+        const result = await wallet.sendPayment({ prepareResponse: liquidPrepareResult });
+        if (!result) {
+          throw new Error('Transaction failed');
         }
       } else {
         throw new Error('Unsupported network for broadcasting');

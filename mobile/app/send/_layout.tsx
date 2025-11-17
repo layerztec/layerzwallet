@@ -1,3 +1,7 @@
+import type { PrepareSendResponse } from '@breeztech/breez-sdk-liquid';
+import { Stack } from 'expo-router';
+import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
+
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { TFeeEstimate } from '@shared/blue_modules/BlueElectrum';
@@ -5,8 +9,6 @@ import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wal
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { NETWORK_BITCOIN, Networks } from '@shared/types/networks';
-import { Stack } from 'expo-router';
-import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
 
 // Bitcoin-specific data types
 export interface BtcSendData {
@@ -45,6 +47,9 @@ export interface SendFlowContextData {
   // Bitcoin-specific data
   bitcoin: BitcoinNetworkData | undefined;
 
+  // Liquid-specific data
+  liquidPrepareResult: PrepareSendResponse | undefined;
+
   // Generic created transaction
   createdTransaction: CreatedTransaction | undefined;
 
@@ -56,6 +61,7 @@ export interface SendFlowContextData {
   setDenomination: (denomination: Denomination) => void;
   setMemo: (memo: string) => void;
   setCreatedTransaction: (transaction: CreatedTransaction | undefined) => void;
+  setLiquidPrepareResult: (result: PrepareSendResponse | undefined) => void;
   reset: () => void;
 }
 
@@ -89,6 +95,9 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
   const [btcFeeLoadingError, setBtcFeeLoadingError] = useState<string | undefined>(undefined);
   const [isBtcLoadingSendData, setIsBtcLoadingSendData] = useState(false);
   const [isBtcLoadingFees, setIsBtcLoadingFees] = useState(false);
+
+  // Liquid-specific state
+  const [liquidPrepareResult, setLiquidPrepareResult] = useState<PrepareSendResponse | undefined>(undefined);
 
   // Generic created transaction (for all networks)
   const [createdTransaction, setCreatedTransaction] = useState<CreatedTransaction | undefined>(undefined);
@@ -145,6 +154,7 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
     setDenomination('Native');
     setMemo('');
     setCreatedTransaction(undefined);
+    setLiquidPrepareResult(undefined);
   };
 
   // Construct Bitcoin-specific data object
@@ -170,6 +180,7 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
         denomination,
         memo,
         bitcoin: bitcoinData,
+        liquidPrepareResult,
         createdTransaction,
         setNetwork,
         setAddress,
@@ -178,6 +189,7 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
         setDenomination,
         setMemo,
         setCreatedTransaction,
+        setLiquidPrepareResult,
         reset,
       }}
     >
@@ -204,6 +216,7 @@ export default function SendLayout() {
         <Stack.Screen name="send-amount-btc" />
         <Stack.Screen name="send-amount-evm" />
         <Stack.Screen name="send-amount-acc" />
+        <Stack.Screen name="send-amount-liquid" />
         <Stack.Screen name="send-confirm" />
       </Stack>
     </SendFlowProvider>
