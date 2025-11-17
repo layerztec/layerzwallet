@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -12,11 +12,19 @@ import { getTokenIconColor } from '@shared/models/token-list';
 import { formatBalance } from '@shared/modules/string-utils';
 import { CachedTokenInfo } from '@shared/types/token-info';
 
-const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenInfo) => void; selected: boolean }> = ({ token, onPress, selected }) => {
+const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenInfo) => void; selected: boolean; setShow: (show: boolean) => void }> = ({ token, onPress, selected, setShow }) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
 
   const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundExecutor);
+
+  useEffect(() => {
+    console.info('balance', balance);
+    console.info('token.balance', token.balance);
+    if (!balance && !token.balance) return;
+    console.info('setting show to true');
+    setShow(true);
+  }, [token, balance, setShow]);
 
   if (!balance && !token.balance) return null;
 
@@ -66,6 +74,7 @@ const TokensView: React.FC<{ onTokenPress: (token: CachedTokenInfo) => void; sel
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { tokenList, error } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
+  const [show, setShow] = useState(false);
 
   if (error) {
     return (
@@ -81,11 +90,11 @@ const TokensView: React.FC<{ onTokenPress: (token: CachedTokenInfo) => void; sel
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, !show && styles.hiddenContainer]}>
       <ThemedText style={styles.title}>Tokens</ThemedText>
       <View style={styles.tokensList}>
         {tokenList.map((token) => (
-          <TokenRow key={token.id} token={token} onPress={onTokenPress} selected={selectedToken === token.id} />
+          <TokenRow key={token.id} token={token} onPress={onTokenPress} selected={selectedToken === token.id} setShow={setShow} />
         ))}
       </View>
     </View>
@@ -99,6 +108,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 20,
     paddingVertical: 16,
+  },
+  hiddenContainer: {
+    display: 'none',
   },
   title: {
     fontSize: 20,

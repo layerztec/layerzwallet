@@ -1,5 +1,5 @@
 import { ArrowDownRightIcon, SendIcon } from 'lucide-react';
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -15,12 +15,17 @@ import { SendTokenEvmProps } from '../SendTokenEvm';
 import { LayerzStorage } from '../../../class/layerz-storage';
 import { SendTokenStacksProps } from '@/pages/Popup/SendTokenStacks';
 
-const TokenRow: React.FC<{ token: CachedTokenInfo }> = ({ token }) => {
+const TokenRow: React.FC<{ token: CachedTokenInfo; setShow: (show: boolean) => void }> = ({ token, setShow }) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const navigate = useNavigate();
 
   const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundCaller);
+
+  useEffect(() => {
+    if (!balance && !token.balance) return;
+    setShow(true);
+  }, [token, balance, setShow]);
 
   if (!balance && !token.balance) return null;
 
@@ -109,6 +114,7 @@ const TokensView: React.FC = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { tokenList, error } = useTokenDiscovery(network, accountNumber, BackgroundCaller, LayerzStorage);
+  const [show, setShow] = useState(false);
 
   if (error) {
     return (
@@ -124,11 +130,11 @@ const TokensView: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: 10, marginTop: 10 }}>
+    <div style={{ padding: 10, marginTop: 10, display: !show ? 'none' : 'block' }}>
       <h2 style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' }}>Tokens</h2>
       <div>
         {tokenList.map((token) => (
-          <TokenRow key={token.id} token={token} />
+          <TokenRow key={token.id} token={token} setShow={setShow} />
         ))}
       </div>
     </div>
