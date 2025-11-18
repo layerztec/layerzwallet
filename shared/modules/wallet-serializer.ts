@@ -60,7 +60,8 @@ export class WalletSerializer {
     'next_free_address_index',
     'next_free_change_address_index',
     'unconfirmed_balance',
-    'unconfirmed_balance',
+    'external_addresses_cache',
+    'internal_addresses_cache',
   ];
 
   // Properties specific to WatchOnlyWallet

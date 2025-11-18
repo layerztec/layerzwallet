@@ -8,7 +8,7 @@ import { useNavigate, useLocation } from 'react-router';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { TFeeEstimate } from '@shared/blue_modules/BlueElectrum';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
-import { CreateTransactionTarget, CreateTransactionUtxo } from '@shared/class/wallets/types';
+import { CreateTransactionTarget } from '@shared/class/wallets/types';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { NETWORK_SPARK, Networks } from '@shared/types/networks';
@@ -22,6 +22,7 @@ import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
 import { Button, HodlButton, Input, Modal, RadioButton, WideButton } from './DesignSystem';
 import ClipboardBackdoor from './components/ClipboardBackdoor';
+import { GetBtcSendDataResponse } from '@shared/types/IBackgroundCaller';
 
 type TFeeRateOptions = { [rate: number]: number };
 
@@ -43,7 +44,7 @@ const SendBtc: React.FC = () => {
   const [sendState, setSendState] = useState<'idle' | 'preparing' | 'prepared' | 'success'>('idle');
   const [customFeeRate, setCustomFeeRate] = useState<number | undefined>(); // fee rate that user selected
   const [estimateFees, setEstimateFees] = useState<undefined | TFeeEstimate>(); // estimated fees that we are loading from electrum
-  const [sendData, setSendData] = useState<undefined | { utxos: CreateTransactionUtxo[]; changeAddress: string }>(undefined);
+  const [sendData, setSendData] = useState<undefined | GetBtcSendDataResponse>(undefined);
   const [txhex, setTxhex] = useState<string>('');
   const [actualFee, setActualFee] = useState<number>();
   const { network, setNetwork } = useContext(NetworkContext);
@@ -204,6 +205,12 @@ const SendBtc: React.FC = () => {
           value: Number(satValue),
         },
       ];
+
+      // setting up internals of a wallet to properly function:
+      for (const [key, value] of Object.entries(sendData.extraProperties)) {
+        (w as any)[key] = value;
+      }
+
       const { tx, fee } = w.createTransaction(sendData.utxos, targets, feeRate, sendData.changeAddress);
       assert(tx, 'Internal error: Wallet.createTransaction failed');
       setTxhex(tx.toHex());
