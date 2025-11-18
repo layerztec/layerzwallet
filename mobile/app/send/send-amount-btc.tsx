@@ -242,6 +242,11 @@ const SendAmountBtc: React.FC = () => {
           },
         ];
 
+        // setting up internals of a wallet to properly function:
+        for (const [key, value] of Object.entries(sendData.extraProperties)) {
+          (wallet as any)[key] = value;
+        }
+
         const { tx, fee } = wallet.createTransaction(sendData.utxos, targets, feeRate, sendData.changeAddress);
 
         if (!tx) {

@@ -27,6 +27,7 @@ import { SecureStorage } from '../class/secure-storage';
 import { decrypt, encrypt } from '../modules/encryption';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
+import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 
 /**
  * A drop-in replacement for BackgroundCaller in `ext` project. Since we have only one js context on mobile,
@@ -242,9 +243,16 @@ export const BackgroundExecutor: IBackgroundCaller = {
     const changeAddress = await wallet.getChangeAddressAsync();
     const utxos = wallet.getUtxo();
     await saveWalletState(LayerzStorage, wallet, NETWORK_BITCOIN, accountNumber);
+    assert(wallet._hdWalletInstance instanceof HDSegwitBech32Wallet, 'Internal error: not an instance of HDSegwitBech32Wallet');
     return {
       utxos,
       changeAddress,
+      extraProperties: {
+        internal_addresses_cache: wallet._hdWalletInstance.internal_addresses_cache,
+        external_addresses_cache: wallet._hdWalletInstance.external_addresses_cache,
+        next_free_address_index: wallet._hdWalletInstance.next_free_address_index,
+        next_free_change_address_index: wallet._hdWalletInstance.next_free_change_address_index,
+      },
     };
   },
 
