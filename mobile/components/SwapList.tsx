@@ -1,5 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import React, { useContext } from 'react';
+import React, { useContext, useImperativeHandle, forwardRef } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -76,10 +76,16 @@ const SwapItem = ({ swap }: { swap: CommonSwap }) => {
   );
 };
 
-const SwapList = () => {
+const SwapList = forwardRef<{ refresh: () => void }>((props, ref) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { swaps } = useSwaps(network, accountNumber, BackgroundExecutor);
+  const { swaps, mutate } = useSwaps(network, accountNumber, BackgroundExecutor);
+
+  useImperativeHandle(ref, () => ({
+    refresh: () => {
+      mutate();
+    },
+  }));
 
   if (!swaps || swaps.length === 0) {
     return null;
@@ -96,7 +102,9 @@ const SwapList = () => {
       </View>
     </View>
   );
-};
+});
+
+SwapList.displayName = 'SwapList';
 
 export default SwapList;
 

@@ -1,6 +1,6 @@
 import BN from 'bignumber.js';
 import { ShoppingCartIcon } from 'lucide-react';
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useImperativeHandle, useMemo, useState, forwardRef } from 'react';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useAccountBalance } from '@shared/hooks/useAccountBalance';
@@ -40,8 +40,14 @@ type TTokenBalances = Record<string, string>;
 type TTokenMap = Record<string, CachedTokenInfo>;
 
 // Default balance component for regular networks
-const BalanceDefault: React.FC<BalanceProps> = ({ network, accountNumber, BackgroundCaller }) => {
-  const { balance } = useBalance(network, accountNumber, BackgroundCaller);
+const BalanceDefault = forwardRef<{ refresh: () => void }, BalanceProps>(({ network, accountNumber, BackgroundCaller }, ref) => {
+  const { balance, mutate } = useBalance(network, accountNumber, BackgroundCaller);
+
+  useImperativeHandle(ref, () => ({
+    refresh: () => {
+      mutate();
+    },
+  }));
   const { exchangeRate } = useExchangeRate(network, 'USD');
   const availableNetworks = useAvailableNetworks();
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
@@ -92,9 +98,11 @@ const BalanceDefault: React.FC<BalanceProps> = ({ network, accountNumber, Backgr
       </h3>
     </>
   );
-};
+});
 
-const BalanceLightning: React.FC<BalanceProps> = ({ network, accountNumber, BackgroundCaller }) => {
+BalanceDefault.displayName = 'BalanceDefault';
+
+const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceProps>(({ network, accountNumber, BackgroundCaller }, ref) => {
   const availableNetworks = useAvailableNetworks();
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
 
@@ -102,9 +110,17 @@ const BalanceLightning: React.FC<BalanceProps> = ({ network, accountNumber, Back
   // Each underlying network has its own balance and exchange rate
   // Multiple useBalance hooks are needed since each network manages separate state
   const liquidNetwork = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
-  const { balance: sparkBalance } = useBalance(NETWORK_SPARK, accountNumber, BackgroundCaller);
-  const { balance: arkBalance } = useBalance(NETWORK_ARK, accountNumber, BackgroundCaller);
-  const { balance: liquidBalance } = useBalance(liquidNetwork, accountNumber, BackgroundCaller);
+  const { balance: sparkBalance, mutate: mutateSpark } = useBalance(NETWORK_SPARK, accountNumber, BackgroundCaller);
+  const { balance: arkBalance, mutate: mutateArk } = useBalance(NETWORK_ARK, accountNumber, BackgroundCaller);
+  const { balance: liquidBalance, mutate: mutateLiquid } = useBalance(liquidNetwork, accountNumber, BackgroundCaller);
+
+  useImperativeHandle(ref, () => ({
+    refresh: () => {
+      mutateSpark();
+      mutateArk();
+      mutateLiquid();
+    },
+  }));
   const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK, 'USD');
   const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARK, 'USD');
   const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, 'USD');
@@ -211,7 +227,9 @@ const BalanceLightning: React.FC<BalanceProps> = ({ network, accountNumber, Back
       </h3>
     </>
   );
-};
+});
+
+BalanceLightning.displayName = 'BalanceLightning';
 
 // Component for individual USDT token balance row
 const USDTTokenRow: React.FC<{
@@ -242,13 +260,20 @@ const USDTTokenRow: React.FC<{
 };
 
 // Balance component for USDT network (aggregates tokens from Rootstock and Liquid)
-const BalanceUsdt: React.FC<BalanceProps> = ({ network, accountNumber, BackgroundCaller }) => {
+const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceProps>(({ network, accountNumber, BackgroundCaller }, ref) => {
   const availableNetworks = useAvailableNetworks();
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
-  const { tokenList: rsTokenListOrig } = useTokenDiscovery(NETWORK_ROOTSTOCK, accountNumber, BackgroundCaller, LayerzStorage);
-  const { tokenList: liquidTokenListOrig } = useTokenDiscovery(NETWORK_LIQUID, accountNumber, BackgroundCaller, LayerzStorage);
+  const { tokenList: rsTokenListOrig, mutate: mutateRsTokens } = useTokenDiscovery(NETWORK_ROOTSTOCK, accountNumber, BackgroundCaller, LayerzStorage);
+  const { tokenList: liquidTokenListOrig, mutate: mutateLiquidTokens } = useTokenDiscovery(NETWORK_LIQUID, accountNumber, BackgroundCaller, LayerzStorage);
   const [tokenBalances, setTokenBalances] = useState<TTokenBalances>({});
   const ticker = getTickerByNetwork(network);
+
+  useImperativeHandle(ref, () => ({
+    refresh: () => {
+      mutateRsTokens();
+      mutateLiquidTokens();
+    },
+  }));
 
   const tokenMap = useMemo<TTokenMap>(() => {
     const map: TTokenMap = {};
@@ -305,17 +330,21 @@ const BalanceUsdt: React.FC<BalanceProps> = ({ network, accountNumber, Backgroun
       </h3>
     </>
   );
-};
+});
+
+BalanceUsdt.displayName = 'BalanceUsdt';
 
 // Main component that routes to the appropriate balance view
-const Balance: React.FC<BalanceProps> = ({ network, accountNumber, BackgroundCaller }) => {
+const Balance = forwardRef<{ refresh: () => void }, BalanceProps>(({ network, accountNumber, BackgroundCaller }, ref) => {
   if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET) {
-    return <BalanceLightning network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />;
+    return <BalanceLightning ref={ref} network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />;
   }
   if (network === NETWORK_USDT) {
-    return <BalanceUsdt network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />;
+    return <BalanceUsdt ref={ref} network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />;
   }
-  return <BalanceDefault network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />;
-};
+  return <BalanceDefault ref={ref} network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />;
+});
+
+Balance.displayName = 'Balance';
 
 export default Balance;

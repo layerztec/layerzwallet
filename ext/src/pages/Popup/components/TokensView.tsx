@@ -1,5 +1,5 @@
 import { ArrowDownRightIcon, SendIcon } from 'lucide-react';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useImperativeHandle, useState, forwardRef } from 'react';
 import { useNavigate } from 'react-router';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -110,11 +110,17 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; setShow: (show: boolean) => v
   );
 };
 
-const TokensView: React.FC = () => {
+const TokensView = forwardRef<{ refresh: () => void }>((props, ref) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { tokenList, error } = useTokenDiscovery(network, accountNumber, BackgroundCaller, LayerzStorage);
+  const { tokenList, error, mutate } = useTokenDiscovery(network, accountNumber, BackgroundCaller, LayerzStorage);
   const [show, setShow] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    refresh: () => {
+      mutate();
+    },
+  }));
 
   if (error) {
     return (
@@ -139,6 +145,8 @@ const TokensView: React.FC = () => {
       </div>
     </div>
   );
-};
+});
+
+TokensView.displayName = 'TokensView';
 
 export default TokensView;

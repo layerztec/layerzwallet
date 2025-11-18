@@ -135,7 +135,7 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
   }
 
   const arg: balanceFetcherArg = { cacheKey: 'balanceFetcher', accountNumber, network, backgroundCaller };
-  const { data, error, isLoading } = useSWR(arg, balanceFetcher, {
+  const { data, error, isLoading, mutate } = useSWR(arg, balanceFetcher, {
     use: [keyCleanupMiddleware],
     refreshInterval,
     refreshWhenHidden: false,
@@ -146,5 +146,6 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
     balance: data,
     isLoading,
     error,
+    mutate,
   };
 }

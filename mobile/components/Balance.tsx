@@ -2,7 +2,7 @@ import BN from 'bignumber.js';
 import PlatformBlurView from '@/components/PlatformBlurView';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useImperativeHandle, useMemo, useState, forwardRef } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { OnrampProps } from '@/app/Onramp';
@@ -23,14 +23,20 @@ import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_L
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { USDT_TOKENS } from '@shared/models/token-list';
 
-const Balance = () => {
+const Balance = forwardRef<{ refresh: () => void }>((props, ref) => {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
+  const { balance, mutate, isLoading } = useBalance(network, accountNumber, BackgroundExecutor);
   const { exchangeRate } = useExchangeRate(network, 'USD');
   const ticker = getTickerByNetwork(network);
   const canBuyWithFiat = fiatOnRamp?.[network]?.canBuyWithFiat;
+
+  useImperativeHandle(ref, () => ({
+    refresh: () => {
+      mutate();
+    },
+  }));
 
   const [displayBalance, displaySubBalance] = useMemo(() => {
     const decimals = getDecimalsByNetwork(network);
@@ -64,9 +70,11 @@ const Balance = () => {
       )}
     </View>
   );
-};
+});
 
-const BalanceLightning = () => {
+Balance.displayName = 'Balance';
+
+const BalanceLightning = forwardRef<{ refresh: () => void }>((props, ref) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
 
@@ -74,12 +82,20 @@ const BalanceLightning = () => {
   // Each underlying network has its own balance and exchange rate
   // Multiple useBalance hooks are needed since each network manages separate state
   const liquidNetwork = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
-  const { balance: sparkBalance } = useBalance(NETWORK_SPARK, accountNumber, BackgroundExecutor);
-  const { balance: arkBalance } = useBalance(NETWORK_ARK, accountNumber, BackgroundExecutor);
-  const { balance: liquidBalance } = useBalance(liquidNetwork, accountNumber, BackgroundExecutor);
+  const { balance: sparkBalance, mutate: mutateSpark } = useBalance(NETWORK_SPARK, accountNumber, BackgroundExecutor);
+  const { balance: arkBalance, mutate: mutateArk } = useBalance(NETWORK_ARK, accountNumber, BackgroundExecutor);
+  const { balance: liquidBalance, mutate: mutateLiquid } = useBalance(liquidNetwork, accountNumber, BackgroundExecutor);
   const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK, 'USD');
   const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARK, 'USD');
   const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, 'USD');
+
+  useImperativeHandle(ref, () => ({
+    refresh: () => {
+      mutateSpark();
+      mutateArk();
+      mutateLiquid();
+    },
+  }));
 
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);
@@ -193,7 +209,9 @@ const BalanceLightning = () => {
       <View style={styles.listBalanceContainer}>{rows}</View>
     </>
   );
-};
+});
+
+BalanceLightning.displayName = 'BalanceLightning';
 
 type TTokenBalances = Record<string, string>;
 type TTokenMap = Record<string, CachedTokenInfo>;
@@ -230,13 +248,20 @@ const TokenRow = ({ network, token, setTokenBalances }: { network: Networks; tok
 };
 
 // Balance component for USDT network (aggregates tokens from Rootstock and Liquid)
-const BalanceUsdt = () => {
+const BalanceUsdt = forwardRef<{ refresh: () => void }>((props, ref) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { tokenList: rsTokenListOrig } = useTokenDiscovery(NETWORK_ROOTSTOCK, accountNumber, BackgroundExecutor, LayerzStorage);
-  const { tokenList: liquidTokenListOrig } = useTokenDiscovery(NETWORK_LIQUID, accountNumber, BackgroundExecutor, LayerzStorage);
+  const { tokenList: rsTokenListOrig, mutate: mutateRsTokens } = useTokenDiscovery(NETWORK_ROOTSTOCK, accountNumber, BackgroundExecutor, LayerzStorage);
+  const { tokenList: liquidTokenListOrig, mutate: mutateLiquidTokens } = useTokenDiscovery(NETWORK_LIQUID, accountNumber, BackgroundExecutor, LayerzStorage);
   const [tokenBalances, setTokenBalances] = useState<TTokenBalances>({});
   const ticker = getTickerByNetwork(network);
+
+  useImperativeHandle(ref, () => ({
+    refresh: () => {
+      mutateRsTokens();
+      mutateLiquidTokens();
+    },
+  }));
 
   const rsTokenMap = useMemo<TTokenMap>(() => {
     const map: TTokenMap = {};
@@ -298,19 +323,25 @@ const BalanceUsdt = () => {
       <View style={styles.listBalanceContainer}>{rows}</View>
     </>
   );
-};
+});
 
-export default function BalanceRoot() {
+BalanceUsdt.displayName = 'BalanceUsdt';
+
+const BalanceRoot = forwardRef<{ refresh: () => void }>((props, ref) => {
   const { network } = useContext(NetworkContext);
 
   if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET) {
-    return <BalanceLightning />;
+    return <BalanceLightning ref={ref} />;
   }
   if (network === NETWORK_USDT) {
-    return <BalanceUsdt />;
+    return <BalanceUsdt ref={ref} />;
   }
-  return <Balance />;
-}
+  return <Balance ref={ref} />;
+});
+
+BalanceRoot.displayName = 'BalanceRoot';
+
+export default BalanceRoot;
 
 const styles = StyleSheet.create({
   balanceSection: {

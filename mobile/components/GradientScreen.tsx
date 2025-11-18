@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { NativeScrollEvent, NativeSyntheticEvent, StyleSheet, ViewStyle } from 'react-native';
+import { NativeScrollEvent, NativeSyntheticEvent, RefreshControl, StyleSheet, ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,9 +12,10 @@ interface GradientScreenProps {
   variant?: string;
   scroll?: boolean;
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  refreshControl?: React.ReactElement<React.ComponentProps<typeof RefreshControl>>;
 }
 
-const GradientScreen: React.FC<GradientScreenProps> = ({ children, style, variant = 'base', scroll = false, onScroll }) => {
+const GradientScreen: React.FC<GradientScreenProps> = ({ children, style, variant = 'base', scroll = false, onScroll, refreshControl }) => {
   const gradientColors = getGradientColors(variant);
   return (
     <LinearGradient colors={gradientColors} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.gradient}>
@@ -26,6 +27,7 @@ const GradientScreen: React.FC<GradientScreenProps> = ({ children, style, varian
           keyboardShouldPersistTaps="handled"
           onScroll={onScroll}
           scrollEventThrottle={16}
+          refreshControl={refreshControl}
         >
           <SafeAreaView style={[styles.safeArea, style]} edges={['top', 'left', 'right', 'bottom']}>
             {children}
@@ -43,10 +45,12 @@ const GradientScreen: React.FC<GradientScreenProps> = ({ children, style, varian
 const styles = StyleSheet.create({
   gradient: {
     flex: 1,
+    paddingTop: 120, // hack to lower loading indicator
   },
   safeArea: {
     flex: 1,
     backgroundColor: 'transparent',
+    marginTop: -120,
   },
   scrollView: {
     flex: 1,

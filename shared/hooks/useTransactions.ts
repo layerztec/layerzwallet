@@ -150,7 +150,7 @@ export function useTransactions(network: Networks, accountNumber: number, backgr
   }
 
   const arg: txFetcherArg = { cacheKey: 'txFetcher', accountNumber, network, backgroundCaller };
-  const { data, error, isLoading } = useSWR(arg, txFetcher, {
+  const { data, error, isLoading, mutate } = useSWR(arg, txFetcher, {
     use: [keyCleanupMiddleware],
     refreshInterval,
     refreshWhenHidden: false,
@@ -161,5 +161,6 @@ export function useTransactions(network: Networks, accountNumber: number, backgr
     transactions: data,
     isLoading,
     error,
+    mutate,
   };
 }
