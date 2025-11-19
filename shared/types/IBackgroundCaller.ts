@@ -93,7 +93,20 @@ export type LogRequest = [data: string];
 export type OpenPopupRequest = [method: string, params: any, id: number, from: string];
 
 export type GetBtcSendDataRequest = [accountNumber: number];
-export type GetBtcSendDataResponse = { utxos: CreateTransactionUtxo[]; changeAddress: string };
+export type GetBtcSendDataResponse = {
+  utxos: CreateTransactionUtxo[];
+  changeAddress: string;
+  /**
+   * those properties need to be set-up so the freshly-instantiated wallet object will
+   * be able to craft the transaction
+   */
+  extraProperties: {
+    internal_addresses_cache: Record<number, string>;
+    external_addresses_cache: Record<number, string>;
+    next_free_address_index: number;
+    next_free_change_address_index: number;
+  };
+};
 
 export type GetCommonTransactionsRequest = [network: Networks, accountNumber: number, afterTxid?: string, limit?: number];
 export type GetCommonTransactionsResponse = CommonTransaction[];

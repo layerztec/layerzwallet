@@ -9,12 +9,10 @@ import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wal
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { NETWORK_BITCOIN, Networks } from '@shared/types/networks';
+import { GetBtcSendDataResponse } from '@shared/types/IBackgroundCaller';
 
 // Bitcoin-specific data types
-export interface BtcSendData {
-  utxos: any[];
-  changeAddress: string;
-}
+export type BtcSendData = GetBtcSendDataResponse;
 
 export interface CreatedTransaction {
   txhex: string;
