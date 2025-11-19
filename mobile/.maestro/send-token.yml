@@ -51,6 +51,7 @@ jsEngine: graaljs
     visible:
       id: 'send-success-text'
     timeout: 29000
+- waitForAnimationToEnd
 - tapOn: 'Back to Wallet'
 - runFlow: # sleeping till balance updates
     file: subflows/sleep.yml
