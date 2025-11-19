@@ -164,6 +164,7 @@ export default function AmountInput({
           editable={!disabled}
           onFocus={() => (isFocused.current = true)}
           onBlur={() => (isFocused.current = false)}
+          testID={testID ? `${testID}-field` : undefined}
         />
       </View>
 
