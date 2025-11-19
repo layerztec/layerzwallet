@@ -41,7 +41,7 @@ jsEngine: graaljs
     id: 'send-address-next-button'
 - waitForAnimationToEnd
 - tapOn:
-    id: 'send-amount-acc-input'
+    id: 'send-amount-acc-input-field'
 - inputText: '1'
 - tapOn:
     id: 'send-amount-acc-next-button'
