@@ -23,7 +23,6 @@ const MAIN_APP_SCREENS = [
   'SwapDetails',
   'Onramp',
   'AskPassword',
-  'AskMnemonic',
   'DAppBrowser',
   'Action',
   'PocketSwitch',
