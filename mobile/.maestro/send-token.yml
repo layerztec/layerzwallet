@@ -42,9 +42,12 @@ jsEngine: graaljs
 - waitForAnimationToEnd
 - tapOn:
     id: 'send-amount-acc-input'
+    point: 10%,10% # avoid max button
 - inputText: '1'
 - tapOn:
     id: 'send-amount-acc-next-button'
+- waitForAnimationToEnd
+- assertVisible: '1 CRPRT'
 - tapOn:
     id: 'send-confirm-button'
 - extendedWaitUntil:

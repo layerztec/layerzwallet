@@ -14,7 +14,6 @@ import '../src/modules/spark-adapter'; // needed to be imported before we can us
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { SwrCacheProvider } from '@/src/class/swr-cache-provider';
-import { AskMnemonicContextProvider } from '@/src/hooks/AskMnemonicContext';
 import { AskPasswordContextProvider } from '@/src/hooks/AskPasswordContext';
 import { AuthStateContextProvider } from '@/src/hooks/AuthStateContext';
 import { ScanQrContextProvider } from '@/src/hooks/ScanQrContext';
@@ -90,24 +89,22 @@ export default function RootLayout() {
     >
       <ScanQrContextProvider>
         <AskPasswordContextProvider>
-          <AskMnemonicContextProvider>
-            <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} platform={'MOBILE'}>
-              <SettingsContextProvider storage={LayerzStorage}>
-                <AuthStateContextProvider>
-                  <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
-                    <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
-                      <ActionPopupProvider>
-                        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                          <ProtectedRouteStack />
-                          <StatusBar style="light" />
-                        </ThemeProvider>
-                      </ActionPopupProvider>
-                    </NetworkContextProvider>
-                  </AccountNumberContextProvider>
-                </AuthStateContextProvider>
-              </SettingsContextProvider>
-            </InitializationContextProvider>
-          </AskMnemonicContextProvider>
+          <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} platform={'MOBILE'}>
+            <SettingsContextProvider storage={LayerzStorage}>
+              <AuthStateContextProvider>
+                <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
+                  <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
+                    <ActionPopupProvider>
+                      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                        <ProtectedRouteStack />
+                        <StatusBar style="light" />
+                      </ThemeProvider>
+                    </ActionPopupProvider>
+                  </NetworkContextProvider>
+                </AccountNumberContextProvider>
+              </AuthStateContextProvider>
+            </SettingsContextProvider>
+          </InitializationContextProvider>
         </AskPasswordContextProvider>
       </ScanQrContextProvider>
     </SWRConfig>

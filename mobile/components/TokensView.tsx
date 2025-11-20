@@ -15,14 +15,10 @@ import { CachedTokenInfo } from '@shared/types/token-info';
 const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenInfo) => void; selected: boolean; setShow: (show: boolean) => void }> = ({ token, onPress, selected, setShow }) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-
   const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundExecutor);
 
   useEffect(() => {
-    console.info('balance', balance);
-    console.info('token.balance', token.balance);
-    if (!balance && !token.balance) return;
-    console.info('setting show to true');
+    if ((!balance || balance === '0') && (!token.balance || token.balance === '0')) return;
     setShow(true);
   }, [token, balance, setShow]);
 

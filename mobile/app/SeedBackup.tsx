@@ -8,9 +8,9 @@ import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import Button from '@/components/Button';
-import { AskMnemonicContext } from '@/src/hooks/AskMnemonicContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { usePreventScreenCapture } from 'expo-screen-capture';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
 
 const TOTAL_WORDS = 12;
 const ERROR_TIMEOUT_MS = 2000;
@@ -80,7 +80,6 @@ SelectableWordDisplay.displayName = 'SelectableWordDisplay';
 export default function SeedBackupScreen() {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
-  const { askMnemonic } = useContext(AskMnemonicContext);
   const [mnemonic, setMnemonic] = useState<string>('');
   const [isRevealed, setIsRevealed] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -105,10 +104,8 @@ export default function SeedBackupScreen() {
   React.useEffect(() => {
     const loadMnemonic = async () => {
       try {
-        const seedPhrase = await askMnemonic();
-        if (seedPhrase) {
-          setMnemonic(seedPhrase);
-        }
+        const seedPhrase = await BackgroundExecutor.getMasterSeed();
+        setMnemonic(seedPhrase);
       } catch (error) {
         console.error('Failed to get mnemonic:', error);
         Alert.alert('Error', 'Failed to retrieve seed phrase. Please try again.');
@@ -117,7 +114,7 @@ export default function SeedBackupScreen() {
       }
     };
     loadMnemonic();
-  }, [askMnemonic]);
+  }, []);
 
   useEffect(() => {
     if (isVerifying && mnemonic) {
@@ -224,7 +221,7 @@ export default function SeedBackupScreen() {
 
   if (verificationComplete) {
     return (
-      <GradientScreen variant={network}>
+      <GradientScreen variant={network} scroll={true}>
         <ScreenHeader title="Recovery Phrase" onBackPress={handleBackFromVerification} />
         <View style={styles.verificationCompleteContainer}>
           <View style={styles.successIconContainer}>
@@ -242,7 +239,7 @@ export default function SeedBackupScreen() {
 
   if (isVerifying) {
     return (
-      <GradientScreen variant={network}>
+      <GradientScreen variant={network} scroll={true}>
         <ScreenHeader title="Verify Recovery Phrase" onBackPress={handleBackFromVerification} />
         <View style={styles.verificationContainer}>
           <View style={styles.verificationHeader}>
@@ -271,7 +268,7 @@ export default function SeedBackupScreen() {
   }
 
   return (
-    <GradientScreen variant={network}>
+    <GradientScreen variant={network} scroll={true}>
       <ScreenHeader title="Recovery Phrase" />
       <View style={styles.container}>
         <View style={styles.warningSection}>

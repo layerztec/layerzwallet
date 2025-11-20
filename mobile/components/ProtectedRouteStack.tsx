@@ -207,7 +207,6 @@ export function ProtectedRouteStack() {
         />
         <Stack.Screen name="Onramp" options={{ headerShown: true }} />
         <Stack.Screen name="AskPassword" options={{ presentation: 'modal', headerShown: false }} />
-        <Stack.Screen name="AskMnemonic" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="DAppBrowser" options={{ headerShown: true, title: 'Browser' }} />
         <Stack.Screen
           name="Action"

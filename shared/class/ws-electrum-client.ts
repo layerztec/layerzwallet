@@ -112,8 +112,8 @@ export class WsElectrumClient {
     return new Promise(async (resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Timeout waiting for Electrum connection')), defaultTimeoutMs);
 
-      for (let c = 0; c <= defaultTimeoutMs / 1_000; c++) {
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // sleep
+      for (let c = 0; c <= defaultTimeoutMs / 100; c++) {
+        await new Promise((resolve) => setTimeout(resolve, 100)); // sleep
         if (this.isConnected) {
           clearTimeout(timeout);
           resolve(true);
