@@ -219,6 +219,23 @@ export default function SeedBackupScreen() {
     [handleWordPress, showError, buttonOpacity, mnemonic]
   );
 
+  const renderMnemonicWord = useCallback(
+    ({ item }: { item: { word: string; index: number } }) => (
+      <View style={styles.wordItem}>
+        <View style={styles.wordNumber}>
+          <ThemedText style={styles.wordNumberText}>{item.index + 1}</ThemedText>
+        </View>
+        <ThemedText style={styles.wordText}>{item.word}</ThemedText>
+      </View>
+    ),
+    []
+  );
+
+  const mnemonicWordsData = useMemo(() => {
+    if (!mnemonic) return [];
+    return mnemonic.split(' ').map((word, index) => ({ word, index, id: index.toString() }));
+  }, [mnemonic]);
+
   if (verificationComplete) {
     return (
       <GradientScreen variant={network} scroll={true}>
@@ -239,36 +256,36 @@ export default function SeedBackupScreen() {
 
   if (isVerifying) {
     return (
-      <GradientScreen variant={network} scroll={true}>
+      <GradientScreen variant={network} scroll={false}>
         <ScreenHeader title="Verify Recovery Phrase" onBackPress={handleBackFromVerification} />
-        <View style={styles.verificationContainer}>
-          <View style={styles.verificationHeader}>
-            <ThemedText style={styles.verificationTitle}>Tap the words in the correct order</ThemedText>
-            <ThemedText style={styles.verificationSubtitle}>Select each word in the same order as your recovery phrase</ThemedText>
-          </View>
-
-          {showError && (
-            <View style={styles.errorContainer}>
-              <ThemedText style={styles.errorText}>Incorrect word. Please try again.</ThemedText>
-            </View>
-          )}
-
-          <FlatList
-            data={scrambledWords}
-            renderItem={renderWordItem}
-            keyExtractor={(item) => item.id.toString()}
-            numColumns={2}
-            columnWrapperStyle={styles.verificationWordRow}
-            contentContainerStyle={styles.verificationWordList}
-            scrollEnabled={true}
-          />
+        <View style={styles.verificationHeader}>
+          <ThemedText style={styles.verificationTitle}>Tap the words in the correct order</ThemedText>
+          <ThemedText style={styles.verificationSubtitle}>Select each word in the same order as your recovery phrase</ThemedText>
         </View>
+
+        <FlatList
+          data={scrambledWords}
+          renderItem={renderWordItem}
+          keyExtractor={(item) => item.id.toString()}
+          numColumns={2}
+          columnWrapperStyle={styles.verificationWordRow}
+          contentContainerStyle={styles.verificationWordList}
+          scrollEnabled={true}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            showError ? (
+              <View style={styles.errorContainer}>
+                <ThemedText style={styles.errorText}>Incorrect word. Please try again.</ThemedText>
+              </View>
+            ) : null
+          }
+        />
       </GradientScreen>
     );
   }
 
   return (
-    <GradientScreen variant={network} scroll={true}>
+    <GradientScreen variant={network} scroll>
       <ScreenHeader title="Recovery Phrase" />
       <View style={styles.container}>
         <View style={styles.warningSection}>
@@ -281,34 +298,29 @@ export default function SeedBackupScreen() {
           </ThemedText>
         </View>
 
-        <TouchableOpacity
-          style={[styles.revealContainer, isRevealed && styles.revealContainerRevealed]}
-          onPress={handleRevealSeedPhrase}
-          disabled={isLoading || isRevealed}
-          activeOpacity={isRevealed ? 1 : 0.8}
-        >
+        <View style={[styles.revealContainer, isRevealed && styles.revealContainerRevealed]}>
           {isLoading ? (
             <View style={styles.revealContent}>
               <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.9)" />
             </View>
           ) : !isRevealed ? (
-            <Animated.View style={styles.revealContent}>
+            <TouchableOpacity style={styles.revealContent} onPress={handleRevealSeedPhrase} activeOpacity={0.8}>
               <Ionicons name="eye-outline" size={80} color="rgba(255, 255, 255, 0.9)" />
               <ThemedText style={styles.revealText}>tap to reveal</ThemedText>
-            </Animated.View>
+            </TouchableOpacity>
           ) : (
             <View style={styles.mnemonicDisplay}>
-              {mnemonic.split(' ').map((word, index) => (
-                <View key={index} style={styles.wordItem}>
+              {mnemonicWordsData.map((item) => (
+                <View key={item.id} style={styles.wordItem}>
                   <View style={styles.wordNumber}>
-                    <ThemedText style={styles.wordNumberText}>{index + 1}</ThemedText>
+                    <ThemedText style={styles.wordNumberText}>{item.index + 1}</ThemedText>
                   </View>
-                  <ThemedText style={styles.wordText}>{word}</ThemedText>
+                  <ThemedText style={styles.wordText}>{item.word}</ThemedText>
                 </View>
               ))}
             </View>
           )}
-        </TouchableOpacity>
+        </View>
 
         <View style={styles.actionsContainer}>
           <Button title="View QR code" variant="secondary" onPress={handleViewQRCode} disabled={!mnemonic} style={styles.actionButton} />
@@ -365,7 +377,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     minHeight: 280,
-    padding: 24,
+    paddingVertical: 24,
     overflow: 'hidden',
   },
   revealContainerRevealed: {
@@ -390,6 +402,13 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     justifyContent: 'space-between',
+  },
+  mnemonicContentContainer: {
+    paddingBottom: 10,
+  },
+  mnemonicColumnWrapper: {
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
   wordItem: {
     flexDirection: 'row',
@@ -426,12 +445,10 @@ const styles = StyleSheet.create({
   actionButton: {
     marginBottom: 0,
   },
-  verificationContainer: {
-    flex: 1,
-    padding: 20,
-  },
   verificationHeader: {
     marginBottom: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   verificationTitle: {
     fontSize: 24,
@@ -447,6 +464,7 @@ const styles = StyleSheet.create({
   },
   verificationWordList: {
     paddingBottom: 20,
+    paddingHorizontal: 20,
   },
   verificationWordRow: {
     justifyContent: 'space-between',
@@ -513,6 +531,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
+    marginHorizontal: 20,
     borderWidth: 1,
     borderColor: '#F44336',
   },
