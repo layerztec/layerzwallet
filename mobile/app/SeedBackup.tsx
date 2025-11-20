@@ -224,7 +224,7 @@ export default function SeedBackupScreen() {
 
   if (verificationComplete) {
     return (
-      <GradientScreen variant={network}>
+      <GradientScreen variant={network} scroll={true}>
         <ScreenHeader title="Recovery Phrase" onBackPress={handleBackFromVerification} />
         <View style={styles.verificationCompleteContainer}>
           <View style={styles.successIconContainer}>
@@ -242,7 +242,7 @@ export default function SeedBackupScreen() {
 
   if (isVerifying) {
     return (
-      <GradientScreen variant={network}>
+      <GradientScreen variant={network} scroll={true}>
         <ScreenHeader title="Verify Recovery Phrase" onBackPress={handleBackFromVerification} />
         <View style={styles.verificationContainer}>
           <View style={styles.verificationHeader}>
@@ -271,7 +271,7 @@ export default function SeedBackupScreen() {
   }
 
   return (
-    <GradientScreen variant={network}>
+    <GradientScreen variant={network} scroll={true}>
       <ScreenHeader title="Recovery Phrase" />
       <View style={styles.container}>
         <View style={styles.warningSection}>
