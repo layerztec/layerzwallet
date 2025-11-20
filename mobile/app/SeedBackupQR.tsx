@@ -7,6 +7,7 @@ import { usePreventScreenCapture } from 'expo-screen-capture';
 
 import { ThemedText } from '@/components/ThemedText';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import GradientScreen from '@/components/GradientScreen';
 
 export default function SeedBackupQRScreen() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function SeedBackupQRScreen() {
   usePreventScreenCapture();
 
   return (
-    <View style={styles.container}>
+    <GradientScreen variant={network}>
       <View style={styles.header}>
         <ThemedText style={styles.title}>Recovery Phrase</ThemedText>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
@@ -26,16 +27,11 @@ export default function SeedBackupQRScreen() {
       <View style={styles.qrCodeSection}>
         <View style={styles.qrCodeWrapper}>{mnemonic && <QRCode value={mnemonic} size={280} color="#000033" backgroundColor="white" />}</View>
       </View>
-    </View>
+    </GradientScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'rgb(90, 98, 135)',
-    paddingTop: 20,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
