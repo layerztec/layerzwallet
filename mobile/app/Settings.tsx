@@ -91,9 +91,7 @@ export default function SettingsScreen() {
   };
 
   const handleAboutPress = () => {
-    if (gitCommitHash) {
-      router.push('/Changelog');
-    }
+    router.push('/About');
   };
 
   const gradientColors = getGradientColors(network);
