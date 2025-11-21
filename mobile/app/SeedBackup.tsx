@@ -11,6 +11,7 @@ import Button from '@/components/Button';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { usePreventScreenCapture } from 'expo-screen-capture';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { LayerzStorage } from '@/src/class/layerz-storage';
 
 const TOTAL_WORDS = 12;
 const ERROR_TIMEOUT_MS = 2000;
@@ -206,8 +207,10 @@ export default function SeedBackupScreen() {
     setVerificationComplete(false);
   };
 
-  const handleContinueFromSuccess = () => {
+  const handleContinueFromSuccess = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // Save that the seed has been backed up
+    await LayerzStorage.setItem('SEED_BACKED_UP', 'true');
     router.back();
   };
 

@@ -114,7 +114,7 @@ export default function SettingsScreen() {
             <View style={styles.statusBadgeContainer}>
               {seedBackedUp ? (
                 <View style={[styles.badge, styles.badgeSuccess]}>
-                  <Ionicons name="checkmark" size={12} color="white" />
+                  <Ionicons name="checkmark" size={12} color="black" />
                   <ThemedText style={styles.badgeText}>backup</ThemedText>
                 </View>
               ) : (
