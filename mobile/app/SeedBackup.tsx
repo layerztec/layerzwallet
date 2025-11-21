@@ -11,6 +11,11 @@ import Button from '@/components/Button';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { usePreventScreenCapture } from 'expo-screen-capture';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { LayerzStorage } from '@/src/class/layerz-storage';
+import { useAuthState } from '@/src/hooks/AuthStateContext';
+import { useAskPassword } from '@/src/hooks/AskPasswordContext';
+import { useSettings } from '@shared/hooks/useSettings';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 const TOTAL_WORDS = 12;
 const ERROR_TIMEOUT_MS = 2000;
@@ -80,9 +85,12 @@ SelectableWordDisplay.displayName = 'SelectableWordDisplay';
 export default function SeedBackupScreen() {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
+  const { settings } = useSettings();
+  const { authenticateWithBiometrics } = useAuthState();
+  const { askPassword } = useAskPassword();
   const [mnemonic, setMnemonic] = useState<string>('');
   const [isRevealed, setIsRevealed] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [scrambledWords, setScrambledWords] = useState<WordItem[]>([]);
   const [selectedWords, setSelectedWords] = useState<WordItem[]>([]);
@@ -99,21 +107,6 @@ export default function SeedBackupScreen() {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
-  }, []);
-
-  React.useEffect(() => {
-    const loadMnemonic = async () => {
-      try {
-        const seedPhrase = await BackgroundExecutor.getMasterSeed();
-        setMnemonic(seedPhrase);
-      } catch (error) {
-        console.error('Failed to get mnemonic:', error);
-        Alert.alert('Error', 'Failed to retrieve seed phrase. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadMnemonic();
   }, []);
 
   useEffect(() => {
@@ -143,14 +136,58 @@ export default function SeedBackupScreen() {
     }).start();
   }, [showError, buttonOpacity]);
 
-  const handleRevealSeedPhrase = () => {
-    if (mnemonic && !isLoading && !isRevealed) {
-      setIsRevealed(true);
-      Animated.timing(blurOpacity, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver: true,
-      }).start();
+  const handleRevealSeedPhrase = async () => {
+    if (isLoading || isRevealed) return;
+
+    try {
+      setIsLoading(true);
+
+      const isBiometricEnabled = settings.biometricAuth === 'ON';
+      const isPasswordEnabled = settings.seedEncrypted === 'ON';
+
+      let authenticated = false;
+
+      if (isBiometricEnabled) {
+        const result = await authenticateWithBiometrics();
+        authenticated = result.success;
+
+        if (!authenticated) {
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      if (!authenticated && isPasswordEnabled) {
+        try {
+          await askPassword();
+          authenticated = true;
+        } catch (error) {
+          console.error('Password authentication cancelled or failed:', error);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      if (!isBiometricEnabled && !isPasswordEnabled) {
+        authenticated = true;
+      }
+
+      if (authenticated) {
+        const seedPhrase = await BackgroundExecutor.getMasterSeed();
+        setMnemonic(seedPhrase);
+        setIsRevealed(true);
+
+        Animated.timing(blurOpacity, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }).start();
+      }
+    } catch (error) {
+      console.error('Failed to get mnemonic:', error);
+      Alert.alert('Error', 'Failed to retrieve seed phrase. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -206,8 +243,9 @@ export default function SeedBackupScreen() {
     setVerificationComplete(false);
   };
 
-  const handleContinueFromSuccess = () => {
+  const handleContinueFromSuccess = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await LayerzStorage.setItem('SEED_BACKED_UP', 'true');
     router.back();
   };
 
