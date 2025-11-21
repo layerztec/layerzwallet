@@ -219,18 +219,6 @@ export default function SeedBackupScreen() {
     [handleWordPress, showError, buttonOpacity, mnemonic]
   );
 
-  const renderMnemonicWord = useCallback(
-    ({ item }: { item: { word: string; index: number } }) => (
-      <View style={styles.wordItem}>
-        <View style={styles.wordNumber}>
-          <ThemedText style={styles.wordNumberText}>{item.index + 1}</ThemedText>
-        </View>
-        <ThemedText style={styles.wordText}>{item.word}</ThemedText>
-      </View>
-    ),
-    []
-  );
-
   const mnemonicWordsData = useMemo(() => {
     if (!mnemonic) return [];
     return mnemonic.split(' ').map((word, index) => ({ word, index, id: index.toString() }));
@@ -238,7 +226,7 @@ export default function SeedBackupScreen() {
 
   if (verificationComplete) {
     return (
-      <GradientScreen variant={network} scroll={true}>
+      <GradientScreen variant={network} scroll>
         <ScreenHeader title="Recovery Phrase" onBackPress={handleBackFromVerification} />
         <View style={styles.verificationCompleteContainer}>
           <View style={styles.successIconContainer}>
@@ -256,7 +244,7 @@ export default function SeedBackupScreen() {
 
   if (isVerifying) {
     return (
-      <GradientScreen variant={network} scroll={false}>
+      <GradientScreen variant={network}>
         <ScreenHeader title="Verify Recovery Phrase" onBackPress={handleBackFromVerification} />
         <View style={styles.verificationHeader}>
           <ThemedText style={styles.verificationTitle}>Tap the words in the correct order</ThemedText>
