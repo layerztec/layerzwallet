@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useImperativeHandle, useState, forwardRef } from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -66,11 +66,17 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenI
   );
 };
 
-const TokensView: React.FC<{ onTokenPress: (token: CachedTokenInfo) => void; selectedToken?: string }> = ({ onTokenPress, selectedToken }) => {
+const TokensView = forwardRef<{ refresh: () => void }, { onTokenPress: (token: CachedTokenInfo) => void; selectedToken?: string }>(({ onTokenPress, selectedToken }, ref) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { tokenList, error } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
+  const { tokenList, error, mutate } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
   const [show, setShow] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    refresh: () => {
+      mutate();
+    },
+  }));
 
   if (error) {
     return (
@@ -95,7 +101,9 @@ const TokensView: React.FC<{ onTokenPress: (token: CachedTokenInfo) => void; sel
       </View>
     </View>
   );
-};
+});
+
+TokensView.displayName = 'TokensView';
 
 const styles = StyleSheet.create({
   container: {

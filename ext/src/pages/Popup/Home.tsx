@@ -1,15 +1,16 @@
-import { ArrowDownRightIcon, Info, SendIcon, RefreshCwIcon } from 'lucide-react';
-import React, { useContext, useEffect, useState } from 'react';
+import { ArrowDownRightIcon, Info, RefreshCwIcon, SendIcon } from 'lucide-react';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { getSwapPairs } from '@shared/models/swap-providers-list';
-import { getKnowMoreUrl } from '@shared/models/network-getters';
-import { capitalizeFirstLetter } from '@shared/modules/string-utils';
-import { USDT_TOKENS } from '@shared/models/token-list';
-import { SwapPair, SwapPlatform, SO_LIQUID_USDT, SO_ROOTSTOCK_USDT } from '@shared/types/swap';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
+import { useTransactions } from '@shared/hooks/useTransactions';
+import { getKnowMoreUrl } from '@shared/models/network-getters';
+import { getSwapPairs } from '@shared/models/swap-providers-list';
+import { USDT_TOKENS } from '@shared/models/token-list';
+import { sleep } from '@shared/modules/sleep';
+import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import {
   NETWORK_ARK,
   NETWORK_ARK_MUTINYNET,
@@ -24,14 +25,15 @@ import {
   NETWORK_USDT,
   Networks,
 } from '@shared/types/networks';
+import { SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapPair, SwapPlatform } from '@shared/types/swap';
 
 import { BackgroundCaller } from '../../modules/background-caller';
+import Balance from './components/Balance';
 import PartnersView from './components/PartnersView';
+import SwapInterfaceView from './components/SwapInterfaceView';
+import SwapListView from './components/SwapListView';
 import TokensView from './components/TokensView';
 import { ActionPopupButton, Button, Switch } from './DesignSystem';
-import SwapInterfaceView from './components/SwapInterfaceView';
-import Balance from './components/Balance';
-import SwapListView from './components/SwapListView';
 import { ReceiveLightningProps } from './ReceiveLightning';
 import { SendLightningProps } from './SendLightning';
 
@@ -44,6 +46,11 @@ const Home: React.FC = () => {
   const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
   const [swapFromNetwork, setSwapFromNetwork] = useState<typeof SO_LIQUID_USDT | typeof SO_ROOTSTOCK_USDT | Networks>(network);
   const availableNetworks = useAvailableNetworks();
+  const { mutate: mutateTransactions } = useTransactions(network, accountNumber, BackgroundCaller);
+  const balanceRef = useRef<{ refresh: () => void }>(null);
+  const tokensViewRef = useRef<{ refresh: () => void }>(null);
+  const swapListRef = useRef<{ refresh: () => void }>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     setSwapPairs(getSwapPairs(network, SwapPlatform.EXT));
@@ -173,6 +180,19 @@ const Home: React.FC = () => {
     navigate('/receive');
   };
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      balanceRef.current?.refresh();
+      tokensViewRef.current?.refresh();
+      swapListRef.current?.refresh();
+      mutateTransactions();
+      await sleep(3000); // wait for 3 seconds to simulate a refresh
+    } finally {
+      setRefreshing(false);
+    }
+  }, [mutateTransactions]);
+
   return (
     <div>
       <Switch items={availableNetworks} activeItem={network} onItemClick={setNetwork} />
@@ -197,20 +217,41 @@ const Home: React.FC = () => {
           </a>
         </div>
       ) : null}
+      <div style={{ textAlign: 'right', marginTop: '4px', marginBottom: '10px' }}>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          style={{
+            padding: '4px 8px',
+            fontSize: '12px',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            backgroundColor: refreshing ? '#f0f0f0' : 'white',
+            cursor: refreshing ? 'not-allowed' : 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            color: refreshing ? '#999' : '#333',
+          }}
+          title="Refresh"
+        >
+          <RefreshCwIcon size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+        </button>
+      </div>
 
-      <Balance network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />
+      <Balance ref={balanceRef} network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />
 
       {showSwapInterface ? (
         <SwapInterfaceView fromNetwork={swapFromNetwork} />
       ) : (
         <div>
           <PartnersView />
-          <TokensView />
+          <TokensView ref={tokensViewRef} />
         </div>
       )}
 
       <br />
-      <SwapListView />
+      <SwapListView ref={swapListRef} />
       <br />
 
       {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (

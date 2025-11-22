@@ -101,7 +101,7 @@ export function useTokenDiscovery(network: Networks, accountNumber: number, back
     storage,
   };
 
-  const { data, error, isLoading } = useSWR(arg, tokenDiscoveryFetcher, {
+  const { data, error, isLoading, mutate } = useSWR(arg, tokenDiscoveryFetcher, {
     refreshInterval: shouldRefresh ? refreshInterval : undefined,
     refreshWhenHidden: false,
     keepPreviousData: true,
@@ -111,5 +111,6 @@ export function useTokenDiscovery(network: Networks, accountNumber: number, back
     tokenList: data ?? [],
     isLoading,
     error: error instanceof Error ? error : error ? new Error('Unknown error') : null,
+    mutate,
   };
 }

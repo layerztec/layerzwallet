@@ -1,8 +1,8 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useContext, useEffect, useMemo, useRef } from 'react';
-import { Alert, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Dimensions, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -30,6 +30,7 @@ import { useTransactions } from '@shared/hooks/useTransactions';
 import { getExplorerUrlByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { USDT_TOKENS } from '@shared/models/token-list';
+import { sleep } from '@shared/modules/sleep';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { NETWORK_ARK, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
@@ -68,13 +69,17 @@ export default function Home() {
   const { accountNumber } = useContext(AccountNumberContext);
   const router = useRouter();
   const params = useLocalSearchParams<HomeProps>();
-  const { transactions, error: transactionsError } = useTransactions(network, accountNumber, BackgroundExecutor);
+  const { transactions, error: transactionsError, mutate: mutateTransactions } = useTransactions(network, accountNumber, BackgroundExecutor);
   const scrollY = useSharedValue(0); // Scroll animation for sticky header
   const modalTranslateY = useSharedValue(0); // Modal state and animations
   const currentModalPosition = useSharedValue(0); // Track current modal position using shared value
   const gestureStartPosition = useSharedValue(0); // Track gesture start position using shared value
   const whiteFlashAnim = useSharedValue(0); // Animation for white flash transition
   const riveRef = useRef<RiveRef>(null); // Ref for Rive animation
+  const balanceRef = useRef<{ refresh: () => void }>(null);
+  const tokensViewRef = useRef<{ refresh: () => void }>(null);
+  const swapListRef = useRef<{ refresh: () => void }>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Initialize modal position based on whether coming from onboarding
   useEffect(() => {
@@ -269,6 +274,19 @@ export default function Home() {
     router.push({ pathname: '/TransactionDetails', params: { transaction: JSON.stringify(transaction) } });
   };
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      balanceRef.current?.refresh();
+      tokensViewRef.current?.refresh();
+      swapListRef.current?.refresh();
+      mutateTransactions();
+      await sleep(3000); // wait for 3 seconds to simulate a refresh
+    } finally {
+      setRefreshing(false);
+    }
+  }, [mutateTransactions]);
+
   const lightningSendActions = [
     { children: <Action network={NETWORK_SPARK} text="Send via Spark" />, onClick: handleSendViaSpark },
     { children: <Action network={NETWORK_LIQUID} text="Send via Liquid" />, onClick: handleSendViaLiquid },
@@ -392,7 +410,12 @@ export default function Home() {
         {/* Invisible Settings Button for Maestro Testing */}
         <TouchableOpacity style={styles.maestroSettingsButton} onPress={goToSettings} testID="SettingsButton" accessibilityLabel="Settings" />
 
-        <GradientScreen variant={network} scroll={true} onScroll={handleScroll}>
+        <GradientScreen
+          variant={network}
+          scroll={true}
+          onScroll={handleScroll}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="rgba(255, 255, 255, 0.8)" />}
+        >
           <View style={[styles.root, styles.contentWithHeader]}>
             {/* Network Selector */}
             <View style={styles.networkSelectorContainer}>
@@ -415,16 +438,16 @@ export default function Home() {
             )}
 
             {/* Balance Section */}
-            <Balance />
+            <Balance ref={balanceRef} />
 
             {/* Explorer Button for EVM networks */}
             {isEVM && <Button title="🔍 Explore" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
 
             {/* Swap List Section */}
-            <SwapList />
+            <SwapList ref={swapListRef} />
 
             {/* Tokens Section */}
-            <TokensView onTokenPress={handleTokenPress} />
+            <TokensView ref={tokensViewRef} onTokenPress={handleTokenPress} />
 
             {/* Transactions Section */}
             <View style={styles.transactionsContainer}>

@@ -67,7 +67,7 @@ export function useSwaps(network: Networks, accountNumber: number, backgroundCal
   }
 
   const arg: swapFetcherArg = { cacheKey: 'swapFetcher', accountNumber, network, backgroundCaller };
-  const { data, error, isLoading } = useSWR(arg, swapFetcher, {
+  const { data, error, isLoading, mutate } = useSWR(arg, swapFetcher, {
     use: [keyCleanupMiddleware],
     refreshInterval,
     refreshWhenHidden: false,
@@ -78,5 +78,6 @@ export function useSwaps(network: Networks, accountNumber: number, backgroundCal
     swaps: data,
     isLoading,
     error,
+    mutate,
   };
 }

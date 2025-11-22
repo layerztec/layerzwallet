@@ -1,5 +1,5 @@
 import { ArrowUpDown } from 'lucide-react';
-import React, { useContext } from 'react';
+import React, { useContext, useImperativeHandle, forwardRef } from 'react';
 import { useNavigate } from 'react-router';
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -102,10 +102,16 @@ const SwapItem: React.FC<SwapItemProps> = ({ swap }) => {
   );
 };
 
-const SwapListView: React.FC = () => {
+const SwapListView = forwardRef<{ refresh: () => void }>((props, ref) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { swaps } = useSwaps(network, accountNumber, BackgroundCaller);
+  const { swaps, mutate } = useSwaps(network, accountNumber, BackgroundCaller);
+
+  useImperativeHandle(ref, () => ({
+    refresh: () => {
+      mutate();
+    },
+  }));
 
   if (!swaps || swaps.length === 0) {
     return null;
@@ -141,6 +147,8 @@ const SwapListView: React.FC = () => {
       </div>
     </div>
   );
-};
+});
+
+SwapListView.displayName = 'SwapListView';
 
 export default SwapListView;
