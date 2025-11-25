@@ -52,7 +52,7 @@ const Action = ({ network, text }: { network?: Networks; text: string }) => {
   );
 };
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const MODAL_MIN_HEIGHT = 120; // Height when dragged down (header + some content)
 const MODAL_MAX_HEIGHT = SCREEN_HEIGHT; // Full height modal
 
