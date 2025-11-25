@@ -11,7 +11,6 @@ import Button from '@/components/Button';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { usePreventScreenCapture } from 'expo-screen-capture';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { LayerzStorage } from '@/src/class/layerz-storage';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useAskPassword } from '@/src/hooks/AskPasswordContext';
 import { useSettings } from '@shared/hooks/useSettings';
@@ -243,9 +242,11 @@ export default function SeedBackupScreen() {
     setVerificationComplete(false);
   };
 
+  const settingsContext = useSettings();
+
   const handleContinueFromSuccess = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await LayerzStorage.setItem('SEED_BACKED_UP', 'true');
+    await settingsContext.updateSetting('seedBackedUp', true);
     router.back();
   };
 

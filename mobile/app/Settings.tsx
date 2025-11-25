@@ -2,13 +2,12 @@ import * as Application from 'expo-application';
 import { useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import React, { useContext, useEffect, useState } from 'react';
-import { Alert, SectionList, SectionListData, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, SectionList, SectionListData, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import SettingsRow from '@/components/SettingsRow';
-import { LayerzStorage } from '@/src/class/layerz-storage';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -36,24 +35,27 @@ interface SettingsSection extends SectionListData<SettingsItem> {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { settings } = useSettings();
+  const { settings, updateSetting } = useSettings();
   const { network } = useContext(NetworkContext);
   const biometricInfo = useBiometrics();
   const { enableBiometricAuth, disableBiometricAuth } = useAuthState();
-  const [seedBackedUp, setSeedBackedUp] = useState(false);
-
-  // Check if seed is backed up (you might want to implement actual logic)
-  useEffect(() => {
-    (async () => {
-      // Check if user has already backed up their seed
-      // This is a placeholder - implement actual backup tracking logic
-      const hasBackedUp = await LayerzStorage.getItem('SEED_BACKED_UP');
-      setSeedBackedUp(hasBackedUp === 'true');
-    })();
-  }, []);
+  const hasBackedUpSeed = settings.seedBackedUp;
+  const [badgeTapCount, setBadgeTapCount] = useState(0);
 
   const handleRecoveryPhrasePress = () => {
     router.push('/SeedBackup');
+  };
+
+  const handleBadgeTap = async () => {
+    const newCount = badgeTapCount + 1;
+    setBadgeTapCount(newCount);
+
+    if (newCount >= 10) {
+      // Toggle the seedBackedUp setting
+      await updateSetting('seedBackedUp', !hasBackedUpSeed);
+      setBadgeTapCount(0);
+      Alert.alert('Debug', `Seed backup status toggled to ${!hasBackedUpSeed ? 'backed up' : 'not backed up'}`);
+    }
   };
 
   const handleBiometricsPress = async () => {
@@ -116,8 +118,8 @@ export default function SettingsScreen() {
           title: 'Recovery Phrase',
           onPress: handleRecoveryPhrasePress,
           renderAccessory: () => (
-            <View style={styles.statusBadgeContainer}>
-              {seedBackedUp ? (
+            <Pressable onPress={handleBadgeTap} style={styles.statusBadgeContainer}>
+              {hasBackedUpSeed ? (
                 <View style={[styles.badge, styles.badgeSuccess]}>
                   <Ionicons name="checkmark" size={12} color="black" />
                   <ThemedText style={styles.badgeText}>backup</ThemedText>
@@ -128,7 +130,7 @@ export default function SettingsScreen() {
                   <ThemedText style={styles.badgeText}>backup</ThemedText>
                 </View>
               )}
-            </View>
+            </Pressable>
           ),
         },
       ],
