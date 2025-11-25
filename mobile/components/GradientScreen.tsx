@@ -45,12 +45,10 @@ const GradientScreen: React.FC<GradientScreenProps> = ({ children, style, varian
 const styles = StyleSheet.create({
   gradient: {
     flex: 1,
-    paddingTop: 120, // hack to lower loading indicator
   },
   safeArea: {
     flex: 1,
     backgroundColor: 'transparent',
-    marginTop: -120,
   },
   scrollView: {
     flex: 1,
