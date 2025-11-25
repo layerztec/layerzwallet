@@ -1,8 +1,8 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Dimensions, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, RefreshControl, RefreshControlProps, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -80,6 +80,7 @@ export default function Home() {
   const tokensViewRef = useRef<{ refresh: () => void }>(null);
   const swapListRef = useRef<{ refresh: () => void }>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshOptions, setRefreshOptions] = useState<Partial<RefreshControlProps>>({});
 
   // Initialize modal position based on whether coming from onboarding
   useEffect(() => {
@@ -347,6 +348,15 @@ export default function Home() {
     },
   });
 
+  // hack to set refresh options after the modal is mounted
+  useFocusEffect(
+    useCallback(() => {
+      setTimeout(() => {
+        setRefreshOptions({ progressViewOffset: 120, tintColor: 'rgba(255, 255, 255, 0.8)' });
+      }, 100);
+    }, [])
+  );
+
   // Modal gesture handling with bounds using new Gesture API
   const panGesture = Gesture.Pan()
     .onStart(() => {
@@ -410,12 +420,7 @@ export default function Home() {
         {/* Invisible Settings Button for Maestro Testing */}
         <TouchableOpacity style={styles.maestroSettingsButton} onPress={goToSettings} testID="SettingsButton" accessibilityLabel="Settings" />
 
-        <GradientScreen
-          variant={network}
-          scroll={true}
-          onScroll={handleScroll}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="rgba(255, 255, 255, 0.8)" />}
-        >
+        <GradientScreen variant={network} scroll={true} onScroll={handleScroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} {...refreshOptions} />}>
           <View style={[styles.root, styles.contentWithHeader]}>
             {/* Network Selector */}
             <View style={styles.networkSelectorContainer}>
