@@ -1,5 +1,6 @@
 import * as Application from 'expo-application';
 import { useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
 import React, { useContext, useEffect, useState } from 'react';
 import { Alert, SectionList, SectionListData, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -86,8 +87,12 @@ export default function SettingsScreen() {
     router.push('/Tools');
   };
 
-  const handleSupportPress = () => {
-    Alert.alert('Support', 'Support options coming soon!');
+  const handleSupportPress = async () => {
+    try {
+      await Linking.openURL('https://layerzwallet.com/support');
+    } catch (error) {
+      Alert.alert('Unable to open support page', 'Please try again later.');
+    }
   };
 
   const handleAboutPress = () => {
