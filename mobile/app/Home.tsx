@@ -198,17 +198,7 @@ export default function Home() {
   };
 
   const handleExplorer = () => {
-    if (isEVM) {
-      router.push('/DAppBrowser');
-    } else {
-      const explorerUrl = getExplorerUrlByNetwork(network);
-      if (explorerUrl) {
-        const params: DappBrowserProps = { url: explorerUrl };
-        router.push({ pathname: '/DAppBrowser', params });
-      } else {
-        Alert.alert('Explorer', 'Explorer not available for this network');
-      }
-    }
+    router.push('/DAppBrowser');
   };
 
   const handleTokenPress = (token: CachedTokenInfo) => {
@@ -445,8 +435,8 @@ export default function Home() {
             {/* Balance Section */}
             <Balance ref={balanceRef} />
 
-            {/* Explorer Button for EVM networks */}
-            {isEVM && <Button title="🔍 Explore" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />}
+            {/* Explorer Button */}
+            <Button title="🔍 Explore" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />
 
             {/* Swap List Section */}
             <SwapList ref={swapListRef} />
