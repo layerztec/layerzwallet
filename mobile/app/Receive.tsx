@@ -298,10 +298,11 @@ export default function ReceiveScreen() {
                       size={320}
                       backgroundColor={'#ffffff'}
                       color="black"
-                      logo={require('@/assets/images/splash-icon.png')}
+                      logo={require('@/assets/images/logo-qr.png')}
                       logoSize={70}
-                      logoBackgroundColor={getGradientPrimaryColor(network)}
-                      logoBorderRadius={10}
+                      logoMargin={6}
+                      logoBackgroundColor={'#000000'}
+                      logoBorderRadius={12}
                     />
                   </View>
 
