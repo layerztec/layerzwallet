@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, StyleSheet, Alert, Pressable, Image, Linking, Text, AppState, AppStateStatus } from 'react-native';
+import { View, StyleSheet, Alert, Pressable, Linking, Text, AppState, AppStateStatus } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import * as LocalAuthentication from 'expo-local-authentication';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useSegments } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { Image as ExpoImage } from 'expo-image';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
 import { isDevicePasscodeEnabled } from '@/utils/deviceSecurity';
@@ -305,7 +304,7 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
     <View style={[styles.container, { backgroundColor: Colors.GlobalDarkBackground }]}>
       <View style={styles.content}>
         <View style={styles.splashContainer}>
-          <Image source={require('@/assets/images/splash-icon.png')} style={styles.splashIcon} />
+          <ExpoImage source={require('@/assets/images/splash-icon.jpg')} style={styles.splashIcon} contentFit="contain" />
         </View>
 
         {!biometricInfo.isLoading && !biometricInfo.isAvailable && hasDevicePasscode === false && (
@@ -328,7 +327,7 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
         {authState.hasAttemptedAuth && !authState.isAuthenticating && !(hasDevicePasscode === false && !biometricInfo.isAvailable) && (
           <View style={styles.buttonContainer}>
             <Pressable style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]} onPress={handleAuthenticate}>
-              <Ionicons name={getBiometricIcon()} size={24} color="rgba(255, 255, 255, 0.8)" />
+              <Text style={styles.retryButtonText}>Tap to unlock</Text>
             </Pressable>
           </View>
         )}
@@ -355,8 +354,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   splashIcon: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
   },
   buttonContainer: {
     position: 'absolute',
@@ -367,8 +366,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     padding: 16,
     borderRadius: 50,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  retryButtonText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 1,
   },
   retryButtonPressed: {
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
