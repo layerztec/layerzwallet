@@ -14,6 +14,7 @@ import assert from 'assert';
 import { decrypt } from '@/src/modules/encryption';
 import { getDeviceID } from '@shared/modules/device-id';
 import { Csprng } from '@/src/class/rng';
+import { AuthStateContext } from '@/src/hooks/AuthStateContext';
 
 /**
  * If user has a seed encrypted, we need to ask for a password to decrypt the seed. This screen is
@@ -24,6 +25,7 @@ export default function UnlockPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(true); // Start focused since input auto-focuses
   const router = useRouter();
+  const authContext = useContext(AuthStateContext);
 
   const passwordInputRef = useRef<TextInput>(null);
 
@@ -69,6 +71,11 @@ export default function UnlockPassword() {
       assert(encryptedMnemonic.startsWith(ENCRYPTED_PREFIX), 'Mnemonic not encrypted, reinstall the app');
       const decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, await getDeviceID(SecureStorage, Csprng));
       await BackgroundExecutor.setMasterSeed(decrypted);
+
+      // If biometrics are enabled, mark as authenticated since password unlock is equivalent
+      if (authContext.isBiometricEnabled) {
+        authContext.setAuthenticated(true);
+      }
 
       // Navigate to home
       router.replace('/Home');

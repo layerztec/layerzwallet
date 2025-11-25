@@ -135,7 +135,7 @@ export default function TabThreeScreen() {
     }
   };
 
-  const handleSettingChange = async (key: TSettingsKey, value: (typeof SETTINGS_CONFIG)[TSettingsKey]['options'][number]) => {
+  const handleSettingChange = async (key: TSettingsKey, value: any) => {
     try {
       await updateSetting(key, value);
     } catch (error) {
@@ -329,6 +329,9 @@ export default function TabThreeScreen() {
                 const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
                 const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
 
+                // Skip settings that don't have options (like seedBackedUp)
+                if (!('options' in config)) return null;
+
                 return (
                   <View key={key}>
                     <View style={styles.settingContainer} testID={`SettingContainer-${key}`}>
@@ -336,7 +339,7 @@ export default function TabThreeScreen() {
                         {formatSettingName(key)}
                       </ThemedText>
                       <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
-                        {config.options.map((option) => (
+                        {config.options.map((option: any) => (
                           <TouchableOpacity
                             key={option}
                             style={[styles.settingOption, currentValue === option && styles.settingOptionActive]}
