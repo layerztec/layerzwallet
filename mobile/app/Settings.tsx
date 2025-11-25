@@ -14,6 +14,8 @@ import { useBiometrics } from '@/hooks/useBiometrics';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useSettings } from '@shared/hooks/useSettings';
 import { getGradientColors } from '@/utils/gradientUtils';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { SecureStorage } from '@/src/class/secure-storage';
 
 const gitCommitHash = require('../git_commit_hash.json');
 
@@ -41,14 +43,19 @@ export default function SettingsScreen() {
   const biometricInfo = useBiometrics();
   const { enableBiometricAuth, disableBiometricAuth } = useAuthState();
   const [seedBackedUp, setSeedBackedUp] = useState(false);
+  const [isPasswordSet, setIsPasswordSet] = useState(false);
 
-  // Check if seed is backed up (you might want to implement actual logic)
+  // initial load: check if seed is backed up & if seed is encrypted
   useEffect(() => {
     (async () => {
       // Check if user has already backed up their seed
       // This is a placeholder - implement actual backup tracking logic
       const hasBackedUp = await LayerzStorage.getItem('SEED_BACKED_UP');
       setSeedBackedUp(hasBackedUp === 'true');
+
+      // we ignore what setting is stored in the settings, we check actual state of seed (whether it is encrypted or not)
+      const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
+      setIsPasswordSet(encryptedMnemonic.startsWith(ENCRYPTED_PREFIX));
     })();
   }, []);
 
@@ -80,6 +87,10 @@ export default function SettingsScreen() {
   };
 
   const handlePasswordPress = () => {
+    if (isPasswordSet) {
+      // no operation, we dont have option to remove encryption yet
+      return;
+    }
     router.push('/onboarding/create-password');
   };
 
@@ -103,7 +114,6 @@ export default function SettingsScreen() {
   const backgroundColor = gradientColors[0];
 
   const isBiometricsEnabled = settings.biometricAuth === 'ON';
-  const isPasswordSet = settings.seedEncrypted === 'ON';
 
   const sections: SettingsSection[] = [
     {
