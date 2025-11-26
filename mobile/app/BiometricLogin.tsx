@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, StyleSheet, Alert, Pressable, Linking, Text, AppState, AppStateStatus } from 'react-native';
-import * as Haptics from 'expo-haptics';
-import { useRouter, useSegments } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 import { Image as ExpoImage } from 'expo-image';
-import { useAuthState } from '@/src/hooks/AuthStateContext';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, AppState, AppStateStatus, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+
 import { useBiometrics } from '@/hooks/useBiometrics';
+import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { isDevicePasscodeEnabled } from '@/utils/deviceSecurity';
 import { Colors } from '@shared/constants/Colors';
 
@@ -230,23 +231,25 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
       if (appStateRef.current === 'active' && nextAppState.match(/inactive|background/)) {
         if (!authState.isAuthenticating) {
           wasInBackground.current = true;
-          console.debug('BiometricLogin: App went to true background');
+          console.debug('BiometricLogin: App went to inactive/background');
         } else {
           console.debug('BiometricLogin: App went inactive due to biometric UI');
         }
       }
 
-      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active' && wasInBackground.current) {
+      // Trigger auth when app becomes active from inactive state
+      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
         const hasValidAuth = biometricInfo.isAvailable || hasDevicePasscode;
 
-        console.debug('BiometricLogin: App returned from true background', {
+        console.debug('BiometricLogin: App returned to active from inactive', {
           hasValidAuth,
           isAuthenticating: authState.isAuthenticating,
           userCancelled: authState.userCancelled,
+          wasInBackground: wasInBackground.current,
         });
 
         if (hasValidAuth && !authState.isAuthenticating) {
-          console.debug('BiometricLogin: Auto-triggering on true background return');
+          console.debug('BiometricLogin: Auto-triggering authentication on app active');
           wasInBackground.current = false;
 
           setAuthState((prev) => ({
@@ -256,7 +259,7 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
           }));
           performAuthentication(false);
         } else {
-          console.debug('BiometricLogin: Background return auto-trigger skipped', {
+          console.debug('BiometricLogin: Auth trigger skipped', {
             hasValidAuth,
             isAuthenticating: authState.isAuthenticating,
             userCancelled: authState.userCancelled,
@@ -280,25 +283,6 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
       };
     }, [])
   );
-
-  const getBiometricIcon = () => {
-    if (!biometricInfo.isAvailable || !biometricInfo.biometricType) {
-      if (hasDevicePasscode) {
-        return 'lock-closed-outline';
-      }
-      return 'shield-outline';
-    }
-
-    switch (biometricInfo.biometricType) {
-      case 'FaceID':
-        return 'scan-outline';
-      case 'TouchID':
-      case 'Fingerprint':
-        return 'finger-print-outline';
-      default:
-        return 'shield-outline';
-    }
-  };
 
   return (
     <View style={[styles.container, { backgroundColor: Colors.GlobalDarkBackground }]}>
