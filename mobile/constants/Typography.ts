@@ -28,4 +28,9 @@ export const Typography = {
     fontFamily: fontFamily.medium,
     fontWeight: '500',
   },
+  sfProRounded: {
+    fontSize: 36,
+    fontFamily: 'SF-Pro-Rounded-Semibold',
+    lineHeight: 42,
+  },
 } as const;

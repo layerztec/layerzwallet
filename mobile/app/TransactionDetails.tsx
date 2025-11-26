@@ -201,7 +201,7 @@ export default function TransactionDetails() {
 
         {/* Amounts */}
         <View style={styles.amountsBlock}>
-          <ThemedText style={styles.amountPrimary}>
+          <ThemedText type="sfProRounded" style={styles.amountPrimary}>
             {amountPrimary}
             <ThemedText style={styles.amountTicker}> {amountTicker}</ThemedText>
           </ThemedText>
@@ -298,8 +298,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   amountPrimary: {
-    fontSize: 30,
-    paddingTop: 8,
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
   },
