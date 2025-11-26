@@ -14,6 +14,7 @@ import assert from 'assert';
 import { decrypt } from '@/src/modules/encryption';
 import { getDeviceID } from '@shared/modules/device-id';
 import { Csprng } from '@/src/class/rng';
+import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 
 /**
  * If user has a seed encrypted, we need to ask for a password to decrypt the seed. This screen is
@@ -24,6 +25,7 @@ export default function UnlockPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(true); // Start focused since input auto-focuses
   const router = useRouter();
+  const { setStep } = useContext(InitializationContext);
 
   const passwordInputRef = useRef<TextInput>(null);
 
@@ -63,17 +65,20 @@ export default function UnlockPassword() {
 
   const handleUnlockPassword = async () => {
     setIsLoading(true);
+
     try {
       const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
       assert(encryptedMnemonic, 'No encrypted mnemonic found');
       assert(encryptedMnemonic.startsWith(ENCRYPTED_PREFIX), 'Mnemonic not encrypted, reinstall the app');
+
       const decrypted = await decrypt(encryptedMnemonic.replace(ENCRYPTED_PREFIX, ''), password, await getDeviceID(SecureStorage, Csprng));
       await BackgroundExecutor.setMasterSeed(decrypted);
-
       // Navigate to home
+      setStep(EStep.READY);
+
       router.replace('/Home');
     } catch (error: any) {
-      console.log('Error decrypting wallet:', error);
+      Alert.alert('Unlock Failed', error?.message || 'Incorrect password. Please try again.');
     } finally {
       setIsLoading(false);
     }
