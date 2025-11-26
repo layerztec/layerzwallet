@@ -12,6 +12,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useCachedBalance } from '@shared/hooks/useCachedBalance';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
+import { ThemedText } from '@/components/ThemedText';
 
 const logo = require('@/assets/images/ui/logo-main-screen.svg');
 
@@ -184,9 +185,9 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
 
           <View style={styles.bottomRow}>
             <View style={styles.cardBalanceContainer}>
-              <Text style={styles.cardBalance}>
-                {displayCard.balance || '0'} <Text style={styles.cardTicker}>{displayCard.ticker}</Text>
-              </Text>
+              <ThemedText type="sfProRounded" style={styles.cardBalance}>
+                {displayCard.balance || '0'} <ThemedText style={styles.cardTicker}>{displayCard.ticker}</ThemedText>
+              </ThemedText>
               <Text style={styles.cardUsdValue}>{displayCard.usdValue || ''}</Text>
             </View>
           </View>
@@ -397,7 +398,7 @@ const styles = StyleSheet.create({
   cardBalance: {
     color: 'white',
     fontSize: 20,
-    fontWeight: 'bold',
+    lineHeight: 23,
     textAlign: 'left',
   },
   cardTicker: {
