@@ -75,7 +75,7 @@ export default function UnlockPassword() {
 
       router.replace('/Home');
     } catch (error: any) {
-      Alert.alert('Unlock Failed', error?.message || 'Incorrect password. Please try again.');
+      Alert.alert('Unlock Failed', 'Incorrect password. Please try again.');
     } finally {
       setIsLoading(false);
     }
