@@ -64,9 +64,9 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
 
     if (transaction.amount !== undefined && exchangeRate) {
       const usdAmount = formatFiatBalance(Math.abs(transaction.amount).toString(), decimals, exchangeRate);
-      return `${usdAmount} USD`;
+      return `$${usdAmount}`;
     }
-    return '0.00 USD';
+    return '$0.00';
   }, [isZeroAmountWithSingleToken, transaction.amount, exchangeRate, decimals]);
 
   const formattedTransactionDate = useMemo(() => {
