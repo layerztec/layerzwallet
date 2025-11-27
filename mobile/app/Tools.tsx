@@ -324,13 +324,10 @@ export default function TabThreeScreen() {
         return (
           <View style={styles.settingsGroup}>
             {(Object.keys(SETTINGS_CONFIG) as TSettingsKey[])
-              .filter((key) => key !== 'biometricAuth')
+              .filter((key) => key !== 'biometricAuth' && key !== 'seedBackedUp')
               .map((key, index, array) => {
                 const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
                 const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
-
-                // Skip settings that don't have options (like seedBackedUp)
-                if (!('options' in config)) return null;
 
                 return (
                   <View key={key}>
@@ -339,18 +336,19 @@ export default function TabThreeScreen() {
                         {formatSettingName(key)}
                       </ThemedText>
                       <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
-                        {config.options.map((option: any) => (
-                          <TouchableOpacity
-                            key={option}
-                            style={[styles.settingOption, currentValue === option && styles.settingOptionActive]}
-                            onPress={() => handleSettingChange(key, option)}
-                            testID={`SettingOption-${key}-${option}`}
-                          >
-                            <ThemedText style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive]} testID={`SettingOptionText-${key}-${option}`}>
-                              {formatOptionName(option)}
-                            </ThemedText>
-                          </TouchableOpacity>
-                        ))}
+                        {'options' in config &&
+                          config.options.map((option: any) => (
+                            <TouchableOpacity
+                              key={option}
+                              style={[styles.settingOption, currentValue === option && styles.settingOptionActive]}
+                              onPress={() => handleSettingChange(key, option)}
+                              testID={`SettingOption-${key}-${option}`}
+                            >
+                              <ThemedText style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive]} testID={`SettingOptionText-${key}-${option}`}>
+                                {formatOptionName(option)}
+                              </ThemedText>
+                            </TouchableOpacity>
+                          ))}
                       </View>
                     </View>
                     {index < array.length - 1 && <View style={styles.divider} />}

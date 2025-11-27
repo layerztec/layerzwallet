@@ -13,6 +13,8 @@ import { useBiometrics } from '@/hooks/useBiometrics';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useSettings } from '@shared/hooks/useSettings';
 import { getGradientColors } from '@/utils/gradientUtils';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { SecureStorage } from '@/src/class/secure-storage';
 
 const gitCommitHash = require('../git_commit_hash.json');
 
@@ -39,8 +41,18 @@ export default function SettingsScreen() {
   const { network } = useContext(NetworkContext);
   const biometricInfo = useBiometrics();
   const { enableBiometricAuth, disableBiometricAuth } = useAuthState();
-  const hasBackedUpSeed = settings.seedBackedUp;
+  const hasBackedUpSeed = settings.seedBackedUp === 'ON';
   const [badgeTapCount, setBadgeTapCount] = useState(0);
+  const [isPasswordSet, setIsPasswordSet] = useState(false);
+
+  // initial load: check if seed is encrypted
+  useEffect(() => {
+    (async () => {
+      // we ignore what setting is stored in the settings, we check actual state of seed (whether it is encrypted or not)
+      const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
+      setIsPasswordSet(encryptedMnemonic.startsWith(ENCRYPTED_PREFIX));
+    })();
+  }, []);
 
   const handleRecoveryPhrasePress = () => {
     router.push('/SeedBackup');
@@ -52,9 +64,9 @@ export default function SettingsScreen() {
 
     if (newCount >= 10) {
       // Toggle the seedBackedUp setting
-      await updateSetting('seedBackedUp', !hasBackedUpSeed);
+      await updateSetting('seedBackedUp', hasBackedUpSeed ? 'OFF' : 'ON');
       setBadgeTapCount(0);
-      Alert.alert('Debug', `Seed backup status toggled to ${!hasBackedUpSeed ? 'backed up' : 'not backed up'}`);
+      Alert.alert('Debug', `Seed backup status toggled to ${hasBackedUpSeed ? 'not backed up' : 'backed up'}`);
     }
   };
 
@@ -82,6 +94,10 @@ export default function SettingsScreen() {
   };
 
   const handlePasswordPress = () => {
+    if (isPasswordSet) {
+      // no operation, we dont have option to remove encryption yet
+      return;
+    }
     router.push('/onboarding/create-password');
   };
 
@@ -105,7 +121,6 @@ export default function SettingsScreen() {
   const backgroundColor = gradientColors[0];
 
   const isBiometricsEnabled = settings.biometricAuth === 'ON';
-  const isPasswordSet = settings.seedEncrypted === 'ON';
 
   const sections: SettingsSection[] = [
     {

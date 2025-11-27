@@ -23,7 +23,8 @@ export const SETTINGS_CONFIG = {
     default: 'OFF' as const,
   },
   seedBackedUp: {
-    default: false as boolean,
+    options: ['ON', 'OFF'] as const,
+    default: 'OFF' as const,
   },
 } as const;
 

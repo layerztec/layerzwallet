@@ -83,7 +83,7 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshOptions, setRefreshOptions] = useState<Partial<RefreshControlProps>>({});
   const settingsContext = useSettings();
-  const hasBackedUpSeed = settingsContext.settings.seedBackedUp;
+  const hasBackedUpSeed = settingsContext.settings.seedBackedUp === 'ON';
 
   // Initialize modal position based on whether coming from onboarding
   useEffect(() => {

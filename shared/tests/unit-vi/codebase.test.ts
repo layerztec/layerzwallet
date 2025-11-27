@@ -39,11 +39,11 @@ describe('codebase', function () {
   it('all SETTINGS_CONFIG default values are among possible options', function () {
     Object.entries(SETTINGS_CONFIG).forEach(([key, config]) => {
       const defaultValue = config.default;
-      // Skip configs that don't have options (like seedBackedUp)
-      if (!('options' in config)) return;
-      const options = config.options as readonly any[];
-
-      assert(options.includes(defaultValue), `Setting "${key}" has default value "${defaultValue}" which is not among the possible options: [${options.join(', ')}]`);
+      // Only check settings that have options
+      if ('options' in config) {
+        const options = config.options as readonly any[];
+        assert(options.includes(defaultValue), `Setting "${key}" has default value "${defaultValue}" which is not among the possible options: [${options.join(', ')}]`);
+      }
     });
   });
 });

@@ -246,7 +246,7 @@ export default function SeedBackupScreen() {
 
   const handleContinueFromSuccess = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await settingsContext.updateSetting('seedBackedUp', true);
+    await settingsContext.updateSetting('seedBackedUp', 'ON');
     router.back();
   };
 
