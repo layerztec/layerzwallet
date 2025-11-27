@@ -9,13 +9,15 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
 import { getTokenIconColor } from '@shared/models/token-list';
-import { formatBalance } from '@shared/modules/string-utils';
+import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CachedTokenInfo } from '@shared/types/token-info';
+import { useTokenExchangeRate } from '@shared/hooks/useTokenExchangeRate';
 
 const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenInfo) => void; selected: boolean; setShow: (show: boolean) => void }> = ({ token, onPress, selected, setShow }) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundExecutor);
+  const { tokenExchangeRate } = useTokenExchangeRate(network, token.id, 'USD');
 
   useEffect(() => {
     if ((!balance || balance === '0') && (!token.balance || token.balance === '0')) return;
@@ -60,7 +62,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenI
         <ThemedText style={styles.tokenAmount} testID={`token-amount-${token.id}`}>
           {formattedBalance} {token?.symbol}
         </ThemedText>
-        <ThemedText style={styles.tokenPrice}>$TODO</ThemedText>
+        <ThemedText style={styles.tokenPrice}>{balance && tokenExchangeRate && tokenExchangeRate > 0 ? '$' + formatFiatBalance(balance, token.decimals, tokenExchangeRate) : null}</ThemedText>
       </View>
     </TouchableOpacity>
   );
