@@ -42,7 +42,6 @@ export default function SettingsScreen() {
   const biometricInfo = useBiometrics();
   const { enableBiometricAuth, disableBiometricAuth } = useAuthState();
   const hasBackedUpSeed = settings.seedBackedUp === 'ON';
-  const [badgeTapCount, setBadgeTapCount] = useState(0);
   const [isPasswordSet, setIsPasswordSet] = useState(false);
 
   // initial load: check if seed is encrypted
@@ -56,18 +55,6 @@ export default function SettingsScreen() {
 
   const handleRecoveryPhrasePress = () => {
     router.push('/SeedBackup');
-  };
-
-  const handleBadgeTap = async () => {
-    const newCount = badgeTapCount + 1;
-    setBadgeTapCount(newCount);
-
-    if (newCount >= 10) {
-      // Toggle the seedBackedUp setting
-      await updateSetting('seedBackedUp', hasBackedUpSeed ? 'OFF' : 'ON');
-      setBadgeTapCount(0);
-      Alert.alert('Debug', `Seed backup status toggled to ${hasBackedUpSeed ? 'not backed up' : 'backed up'}`);
-    }
   };
 
   const handleBiometricsPress = async () => {
@@ -133,7 +120,7 @@ export default function SettingsScreen() {
           title: 'Recovery Phrase',
           onPress: handleRecoveryPhrasePress,
           renderAccessory: () => (
-            <Pressable onPress={handleBadgeTap} style={styles.statusBadgeContainer}>
+            <View style={styles.statusBadgeContainer}>
               {hasBackedUpSeed ? (
                 <View style={[styles.badge, styles.badgeSuccess]}>
                   <Ionicons name="checkmark" size={12} color="black" />
@@ -145,7 +132,7 @@ export default function SettingsScreen() {
                   <ThemedText style={styles.badgeText}>backup</ThemedText>
                 </View>
               )}
-            </Pressable>
+            </View>
           ),
         },
       ],

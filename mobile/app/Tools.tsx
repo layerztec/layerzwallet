@@ -135,7 +135,7 @@ export default function TabThreeScreen() {
     }
   };
 
-  const handleSettingChange = async (key: TSettingsKey, value: any) => {
+  const handleSettingChange = async (key: TSettingsKey, value: (typeof SETTINGS_CONFIG)[TSettingsKey]['options'][number]) => {
     try {
       await updateSetting(key, value);
     } catch (error) {
@@ -337,7 +337,7 @@ export default function TabThreeScreen() {
                       </ThemedText>
                       <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
                         {'options' in config &&
-                          config.options.map((option: any) => (
+                          config.options.map((option) => (
                             <TouchableOpacity
                               key={option}
                               style={[styles.settingOption, currentValue === option && styles.settingOptionActive]}

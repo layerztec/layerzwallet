@@ -849,8 +849,12 @@ const styles = StyleSheet.create({
   },
   backupWarning: {
     backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    minHeight: 98,
     borderRadius: 20,
-    padding: 16,
+    paddingTop: 12,
+    paddingRight: 16,
+    paddingBottom: 12,
+    paddingLeft: 16,
     marginBottom: 20,
     overflow: 'hidden',
   },
