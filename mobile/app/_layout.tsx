@@ -59,6 +59,7 @@ export default function RootLayout() {
   return (
     <SWRConfig
       value={{
+        dedupingInterval: 5000,
         provider: () => new SwrCacheProvider(),
         isVisible: () => {
           return true;
