@@ -74,7 +74,14 @@ const Balance = forwardRef<{ refresh: () => void }>((props, ref) => {
 
 Balance.displayName = 'Balance';
 
-const BalanceLightning = forwardRef<{ refresh: () => void }>((props, ref) => {
+type BalanceLightningProps = {
+  onSelectNetwork?: (network: Networks) => void;
+  selectedNetwork?: Networks;
+  showTotalBalance?: boolean;
+};
+
+export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLightningProps>((props, ref) => {
+  const { onSelectNetwork = () => {}, selectedNetwork = undefined, showTotalBalance = true } = props;
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
 
@@ -176,7 +183,7 @@ const BalanceLightning = forwardRef<{ refresh: () => void }>((props, ref) => {
       const ticker = getTickerByNetwork(network);
 
       return (
-        <View style={styles.listBalanceRow} key={network}>
+        <TouchableOpacity style={[styles.listBalanceRow, selectedNetwork === network && styles.selectedListBalanceRow]} key={network} onPress={() => onSelectNetwork(network)}>
           <View style={styles.listBalanceRowLabel}>
             <View style={styles.networkIcon}>{networkIconContent}</View>
             <ThemedText style={styles.listBalanceLabel}>{capitalizeFirstLetter(network)}</ThemedText>
@@ -188,23 +195,25 @@ const BalanceLightning = forwardRef<{ refresh: () => void }>((props, ref) => {
             </ThemedText>
             <ThemedText style={styles.listBalanceFiat}>{formattedFiatBalance}</ThemedText>
           </View>
-        </View>
+        </TouchableOpacity>
       );
     });
-  }, [network, sparkBalance, liquidBalance, sparkExchangeRate, liquidExchangeRate, arkBalance, arkExchangeRate]);
+  }, [network, sparkBalance, liquidBalance, sparkExchangeRate, liquidExchangeRate, arkBalance, arkExchangeRate, selectedNetwork, onSelectNetwork]);
 
   return (
     <>
-      <View style={styles.balanceSection} testID="LayerBalance">
-        <View style={styles.balanceContainer}>
-          <ThemedText type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
-            {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
-          </ThemedText>
-          <ThemedText style={styles.balanceUsd}>${displaySubBalance}</ThemedText>
-        </View>
+      {showTotalBalance && (
+        <View style={styles.balanceSection} testID="LayerBalance">
+          <View style={styles.balanceContainer}>
+            <ThemedText type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
+              {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
+            </ThemedText>
+            <ThemedText style={styles.balanceUsd}>{displaySubBalance} USD</ThemedText>
+          </View>
 
-        <View style={styles.balanceNetworkIcons}>{icons}</View>
-      </View>
+          <View style={styles.balanceNetworkIcons}>{icons}</View>
+        </View>
+      )}
 
       <View style={styles.listBalanceContainer}>{rows}</View>
     </>
@@ -420,13 +429,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
     borderRadius: 16,
     marginBottom: 32,
-    padding: 16,
-    gap: 12,
+    paddingVertical: 8,
+    gap: 6,
   },
   listBalanceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
   listBalanceRowLabel: {
     flexDirection: 'row',
@@ -450,5 +461,8 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
     fontSize: 13,
     textAlign: 'right',
+  },
+  selectedListBalanceRow: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
 });
