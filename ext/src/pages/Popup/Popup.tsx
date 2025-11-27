@@ -139,7 +139,7 @@ const AppContent: React.FC = () => {
 const Popup: React.FC = () => {
   return (
     <Router>
-      <SWRConfig value={{ provider: () => new SwrCacheProvider() }}>
+      <SWRConfig value={{ dedupingInterval: 5000, provider: () => new SwrCacheProvider() }}>
         <AskPasswordContextProvider>
           <AskMnemonicContextProvider>
             <ScanQrContextProvider>

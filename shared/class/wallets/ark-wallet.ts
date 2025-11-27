@@ -24,6 +24,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   private _arkServerPublicKey: string = '03fa73c6e4876ffb2dfc961d763cca9abc73d4b88efcb8f5e7ff92dc55e9aa553d';
   private _boltzApiUrl: string = '';
   protected _accountNumber: number = 0;
+  private _manager: VtxoManager | undefined = undefined;
 
   setAccountNumber(value: number) {
     this._accountNumber = value;
@@ -93,19 +94,9 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     });
     this._wallet = wallet;
 
-    // initialize VTXO manager in set timeout so it doesnt block the wallet initialization
-    setTimeout(async () => {
-      const manager = new VtxoManager(wallet, {
-        enabled: true, // Enable expiration monitoring
-        thresholdPercentage: 10, // Alert when 10% of lifetime remains (default)
-      });
-      try {
-        const txid = await manager.renewVtxos();
-        console.log('ARK VTXO Renewed:', txid);
-      } catch (error) {
-        console.log('ARK Error renewing VTXOs:', error);
-      }
-    }, 10);
+    this._manager = new VtxoManager(wallet, {
+      enabled: true, // Enable expiration monitoring
+    });
   }
 
   async initLightningSwaps() {
@@ -126,10 +117,23 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   }
 
   async getOffchainBalance() {
-    if (!this._wallet) throw new Error('Ark wallet not initialized');
+    assert(this._wallet, 'Ark wallet not initialized');
+    assert(this._manager, 'this._manager is undefined');
 
     if (this._arkadeLightning) {
       await this._attemptToClaimPendingVHTLCs();
+    }
+
+    // renew VTXO:
+    try {
+      const expiringVtxos = await this._manager.getExpiringVtxos();
+      if (expiringVtxos.length > 0) {
+        console.log(`Renewing ${expiringVtxos.length} expiring VTXOs...`);
+        const renewTxid = await this._manager.renewVtxos();
+        console.log('Renewal transaction:', renewTxid);
+      }
+    } catch (error) {
+      console.log('ARK Error renewing VTXOs:', error);
     }
 
     const balance = await this._wallet.getBalance();
@@ -140,18 +144,21 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     assert(this._wallet, 'Ark wallet not initialized');
     assert(this._arkadeLightning, 'Ark Lightning not initialized');
 
-    const pendingReverseSwaps = await this._arkadeLightning.getPendingReverseSwaps();
+    const arkadeLightning = this._arkadeLightning;
+    const pendingReverseSwaps = await arkadeLightning.getPendingReverseSwaps();
     if ((pendingReverseSwaps ?? []).length > 0) console.log('got', pendingReverseSwaps?.length ?? [], 'pending swaps');
 
-    for (const swap of pendingReverseSwaps ?? []) {
-      console.log(`claiming ${swap.id}...`);
-      try {
-        await this._arkadeLightning.claimVHTLC(swap);
-        console.log('claimed!');
-      } catch (error: any) {
-        console.log('could not claim:', error.message);
-      }
-    }
+    await Promise.allSettled(
+      (pendingReverseSwaps ?? []).map(async (swap) => {
+        console.log(`claiming ${swap.id}...`);
+        try {
+          await arkadeLightning.claimVHTLC(swap);
+          console.log(`${swap.id} claimed!`);
+        } catch (error: any) {
+          console.log(`could not claim ${swap.id}:`, error?.message ?? error);
+        }
+      })
+    );
   }
 
   async pay(address: string, amount: number): Promise<string> {

@@ -115,6 +115,7 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
 
   switch (network) {
     case NETWORK_SPARK:
+    case NETWORK_ARK:
     case NETWORK_ARK_MUTINYNET:
       refreshInterval = 5_000; // transfers are just server interactions, should be fast
       break;
