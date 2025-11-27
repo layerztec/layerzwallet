@@ -1,12 +1,12 @@
 import * as bip21 from 'bip21';
-import * as bolt11 from 'bolt11';
 import * as bitcoin from 'bitcoinjs-lib';
+import * as bolt11 from 'bolt11';
 import type { Router } from 'expo-router';
-import { NETWORK_SPARK } from '@shared/types/networks';
-import { SendLightningProps } from '@/app/SendLightning';
+
 import { PosMerchantParams } from '@/app/PosMerchant';
-import { convertMerchantQRToLightningAddress } from '@shared/modules/merchants';
 import { SendParams } from '@/app/send';
+import { convertMerchantQRToLightningAddress } from '@shared/modules/merchants';
+import { NETWORK_LIGHTNING } from '@shared/types/networks';
 
 type LightningIntent = {
   type: 'lightning';
@@ -165,8 +165,8 @@ export function handleQrIntent(rawInput: string, router: Pick<Router, 'push'>): 
 
   switch (intent.type) {
     case 'lightning': {
-      const params: SendLightningProps = { network: NETWORK_SPARK, invoice: intent.invoice };
-      router.push({ pathname: '/SendLightning', params });
+      const params: SendParams = { address: intent.invoice, network: NETWORK_LIGHTNING };
+      router.push({ pathname: '/send', params });
       return true;
     }
 

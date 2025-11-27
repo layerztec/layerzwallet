@@ -8,7 +8,6 @@ import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, w
 import { scheduleOnRN } from 'react-native-worklets';
 import Rive, { RiveRef } from 'rive-react-native';
 
-import { DappBrowserProps } from '@/app/DAppBrowser';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import Balance from '@/components/Balance';
 import Button from '@/components/Button';
@@ -28,7 +27,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useSettings } from '@shared/hooks/useSettings';
 import { useTransactions } from '@shared/hooks/useTransactions';
-import { getExplorerUrlByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
+import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { USDT_TOKENS } from '@shared/models/token-list';
 import { sleep } from '@shared/modules/sleep';
@@ -38,9 +37,9 @@ import { NETWORK_ARK, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQU
 import { SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapPlatform } from '@shared/types/swap';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { ReceiveTokenProps } from './Receive';
-import { SendLightningProps } from './SendLightning';
 import { SendTokenEvmProps } from './SendTokenEvm';
 import { SwapParams } from './Swap';
+import { SendParams } from './send';
 
 const Action = ({ network, text }: { network?: Networks; text: string }) => {
   const networkImage = network ? getNetworkImageAsset(network) : null;
@@ -105,7 +104,6 @@ export default function Home() {
     }
   }, [params.showSwapInterface, router]);
 
-  const isEVM = getIsEVM(network);
   const networkImage = getNetworkImageAsset(network);
   const networkIconContent = networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null;
   const latestTransactions = transactions?.slice(0, 3) || [];
@@ -144,7 +142,7 @@ export default function Home() {
     switch (network) {
       case NETWORK_LIGHTNING:
       case NETWORK_LIGHTNING_TESTNET:
-        router.push('/SendLightning');
+        router.push('/send/send-address-lightning');
         break;
       default:
         router.push('/send');
@@ -240,30 +238,6 @@ export default function Home() {
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
-  const handleSendViaSpark = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      Alert.alert('Spark does not have a testnet');
-    } else {
-      const params: SendLightningProps = { network: NETWORK_SPARK };
-      router.push({ pathname: '/SendLightning', params });
-    }
-  };
-
-  const handleSendViaArk = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      Alert.alert('Ark lightning does not have a testnet');
-    } else {
-      const params: SendLightningProps = { network: NETWORK_ARK };
-      router.push({ pathname: '/SendLightning', params });
-    }
-  };
-
-  const handleSendViaLiquid = () => {
-    const n = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
-    const params: SendLightningProps = { network: n };
-    router.push({ pathname: '/SendLightning', params });
-  };
-
   const handleTransactionDetails = (transaction: CommonTransaction) => {
     router.push({ pathname: '/TransactionDetails', params: { transaction: JSON.stringify(transaction) } });
   };
@@ -285,20 +259,14 @@ export default function Home() {
     }
   }, [mutateTransactions]);
 
-  const lightningSendActions = [
-    { children: <Action network={NETWORK_SPARK} text="Send via Spark" />, onClick: handleSendViaSpark },
-    { children: <Action network={NETWORK_LIQUID} text="Send via Liquid" />, onClick: handleSendViaLiquid },
-    { children: <Action network={NETWORK_ARK} text="Send via Ark" />, onClick: handleSendViaArk },
-    { children: <Action text="Cancel" />, onClick: () => {} },
-  ];
-
   const handleSendUSDTViaRootstock = (contractAddress: string) => () => {
     const params: SendTokenEvmProps = { contractAddress, network: NETWORK_ROOTSTOCK };
     router.push({ pathname: '/SendTokenEvm', params });
   };
 
   const handleSendUSDTViaLiquid = () => {
-    router.push({ pathname: '/send', params: { token: USDT_TOKENS[NETWORK_LIQUID][0], network: NETWORK_LIQUID } });
+    const params: SendParams = { token: USDT_TOKENS[NETWORK_LIQUID][0], network: NETWORK_LIQUID };
+    router.push({ pathname: '/send', params });
   };
 
   // USDT send and receive actions
@@ -512,14 +480,7 @@ export default function Home() {
             <View style={styles.navContainer}>
               <PlatformBlurView intensity={20} tint="dark" style={styles.navBlur} />
 
-              {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
-                <ActionPopupButton actions={lightningSendActions} title="Layer to send">
-                  <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" activeOpacity={0.8}>
-                    <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
-                    <ThemedText style={styles.navButtonText}>Send</ThemedText>
-                  </TouchableOpacity>
-                </ActionPopupButton>
-              ) : network === NETWORK_USDT ? (
+              {network === NETWORK_USDT ? (
                 <ActionPopupButton actions={usdtSendActions} title="Layer to send">
                   <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" activeOpacity={0.8}>
                     <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />

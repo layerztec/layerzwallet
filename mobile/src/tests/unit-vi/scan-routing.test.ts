@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest';
 import { parseQrIntent, handleQrIntent } from '../../modules/scan-routing';
-import { NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_LIGHTNING } from '@shared/types/networks';
 
 describe('scan-routing parser', () => {
   test('parses lightning lnurl payloads', () => {
@@ -119,7 +119,7 @@ describe('scan-routing handler', () => {
     const handled = handleQrIntent(invoice, router);
 
     expect(handled).toBe(true);
-    expect(push).toHaveBeenCalledWith({ pathname: '/SendLightning', params: { network: NETWORK_SPARK, invoice: 'lnurl1dp68gurn8ghj7mrww4exctnrda3k7mrww4excu0' } });
+    expect(push).toHaveBeenCalledWith({ pathname: '/send', params: { network: NETWORK_LIGHTNING, address: 'lnurl1dp68gurn8ghj7mrww4exctnrda3k7mrww4excu0' } });
   });
 
   test('routes merchant QR code payloads to SendLightning', () => {

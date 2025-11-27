@@ -98,6 +98,9 @@ export const getNetworkGradient = (network: string) => {
       return ['#270A7B', '#391998']; // Dark purple gradient
     case NETWORK_ARK:
       return ['#270A7B', '#391998']; // Dark purple gradient
+    case NETWORK_LIGHTNING:
+    case NETWORK_LIGHTNING_TESTNET:
+      return ['#581C87', '#7C3AED']; // Purple gradient
     default:
       return ['#6B7280', '#9CA3AF']; // Light gray gradient for unknown networks
   }
