@@ -443,7 +443,7 @@ export default function Home() {
             <Balance ref={balanceRef} />
 
             {/* Explorer Button */}
-            <Button title="🔍 Explore" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />
+            <Button title="Explore" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />
 
             {/* Swap List Section */}
             <SwapList ref={swapListRef} />

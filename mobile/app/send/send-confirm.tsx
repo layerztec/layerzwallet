@@ -277,7 +277,9 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                       <ThemedText style={styles.sectionHeaderText}>Total</ThemedText>
                     </View>
                     <View style={[styles.totalCard, { backgroundColor: networkBackgroundColor }]}>
-                      <ThemedText style={styles.totalAmount}>{totalDisplay}</ThemedText>
+                      <ThemedText type="sfProRounded" style={styles.totalAmount}>
+                        {totalDisplay}
+                      </ThemedText>
                       {totalUsd && <ThemedText style={styles.totalUsd}>{totalUsd}</ThemedText>}
                     </View>
                   </Animated.View>
@@ -403,7 +405,6 @@ const styles = StyleSheet.create({
   },
   totalAmount: {
     fontSize: 24,
-    fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
   },
