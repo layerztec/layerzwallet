@@ -324,7 +324,7 @@ export default function TabThreeScreen() {
         return (
           <View style={styles.settingsGroup}>
             {(Object.keys(SETTINGS_CONFIG) as TSettingsKey[])
-              .filter((key) => key !== 'biometricAuth')
+              .filter((key) => key !== 'biometricAuth' && key !== 'seedBackedUp')
               .map((key, index, array) => {
                 const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
                 const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
