@@ -336,19 +336,18 @@ export default function TabThreeScreen() {
                         {formatSettingName(key)}
                       </ThemedText>
                       <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
-                        {'options' in config &&
-                          config.options.map((option) => (
-                            <TouchableOpacity
-                              key={option}
-                              style={[styles.settingOption, currentValue === option && styles.settingOptionActive]}
-                              onPress={() => handleSettingChange(key, option)}
-                              testID={`SettingOption-${key}-${option}`}
-                            >
-                              <ThemedText style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive]} testID={`SettingOptionText-${key}-${option}`}>
-                                {formatOptionName(option)}
-                              </ThemedText>
-                            </TouchableOpacity>
-                          ))}
+                        {config.options.map((option) => (
+                          <TouchableOpacity
+                            key={option}
+                            style={[styles.settingOption, currentValue === option && styles.settingOptionActive]}
+                            onPress={() => handleSettingChange(key, option)}
+                            testID={`SettingOption-${key}-${option}`}
+                          >
+                            <ThemedText style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive]} testID={`SettingOptionText-${key}-${option}`}>
+                              {formatOptionName(option)}
+                            </ThemedText>
+                          </TouchableOpacity>
+                        ))}
                       </View>
                     </View>
                     {index < array.length - 1 && <View style={styles.divider} />}
