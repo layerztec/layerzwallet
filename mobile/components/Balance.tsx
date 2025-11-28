@@ -57,7 +57,7 @@ const Balance = forwardRef<{ refresh: () => void }>((props, ref) => {
   return (
     <View style={styles.balanceSection} testID="LayerBalance">
       <View style={styles.balanceContainer}>
-        <ThemedText style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
+        <ThemedText type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
           {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
         </ThemedText>
         <ThemedText style={styles.balanceUsd}>{displaySubBalance} USD</ThemedText>
@@ -197,7 +197,7 @@ const BalanceLightning = forwardRef<{ refresh: () => void }>((props, ref) => {
     <>
       <View style={styles.balanceSection} testID="LayerBalance">
         <View style={styles.balanceContainer}>
-          <ThemedText style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
+          <ThemedText type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
             {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
           </ThemedText>
           <ThemedText style={styles.balanceUsd}>{displaySubBalance} USD</ThemedText>
@@ -312,7 +312,7 @@ const BalanceUsdt = forwardRef<{ refresh: () => void }>((props, ref) => {
     <>
       <View style={styles.balanceSection} testID="LayerBalance">
         <View style={styles.balanceContainer}>
-          <ThemedText style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
+          <ThemedText type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
             {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
           </ThemedText>
         </View>
@@ -354,9 +354,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   balanceAmount: {
-    fontSize: 36,
-    lineHeight: 40, // Add proper line height for better text rendering
-    fontWeight: '600',
     color: 'white',
     marginRight: 4,
   },
