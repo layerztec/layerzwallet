@@ -142,7 +142,7 @@ export default function ImportWalletScreen() {
       } else {
         await BackgroundExecutor.setMasterSeed(sanitizedMnemonic);
 
-        // Mark seed as backed up since user imported it (they already have it)
+        // Mark seed as backed up since user imported it
         await updateSetting('seedBackedUp', 'ON');
 
         setStep(EStep.TOS);
@@ -188,12 +188,10 @@ export default function ImportWalletScreen() {
             style: 'destructive',
             onPress: async () => {
               try {
-                // Clear all storage
                 await BackgroundExecutor.clear();
                 await AsyncStorage.clear();
                 await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, '');
 
-                // Proceed with import
                 await proceedWithImport(sanitizedMnemonic);
               } catch (err) {
                 setError('Failed to clear storage');
@@ -264,7 +262,7 @@ export default function ImportWalletScreen() {
                           clearTextOnFocus
                           onChangeText={(text) => {
                             setMnemonic(text);
-                            // Dismiss keyboard after paste (when text length changes significantly)
+                            // Dismiss keyboard after paste
                             if (text.length > mnemonic.length + 10) {
                               setTimeout(() => Keyboard.dismiss(), 100);
                             }
@@ -442,7 +440,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(66, 133, 244, 0.7)',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
   loadingTitle: {
     fontSize: 32,

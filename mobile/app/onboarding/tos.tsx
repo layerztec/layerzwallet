@@ -36,10 +36,9 @@ export default function TermsOfServiceScreen() {
       // Accept the terms of service
       await BackgroundExecutor.acceptTermsOfService();
 
-      // Update the initialization step to READY
+      // Navigate to the main home screen with onboarding parameter
       setStep(EStep.READY);
 
-      // Clear all onboarding screens from the stack and navigate to Home
       router.dismissAll();
       router.replace('/Home?fromOnboarding=true');
     } catch (error) {
