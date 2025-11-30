@@ -231,6 +231,7 @@ const styles = StyleSheet.create({
   },
   buttonSection: {
     gap: 12,
+    paddingVertical: 24,
   },
   buttonPrimary: {
     backgroundColor: Colors.dark.buttonPrimary,

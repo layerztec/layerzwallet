@@ -78,8 +78,7 @@ export function ProtectedRouteStack() {
           options={{
             headerShown: false,
             animation: 'slide_from_right',
-            animationDuration: 350,
-            gestureEnabled: true,
+            gestureEnabled: false,
           }}
         />
         <Stack.Screen

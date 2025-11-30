@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { StyleSheet, TouchableOpacity, Alert, View, Animated, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -10,9 +10,11 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Colors } from '@shared/constants/Colors';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { Image } from 'expo-image';
+import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 
 export default function TermsOfServiceScreen() {
   const router = useRouter();
+  const { setStep } = useContext(InitializationContext);
   const [isLoading, setIsLoading] = useState(false);
   const [backupChecked, setBackupChecked] = useState(false);
   const [termsChecked, setTermsChecked] = useState(false);
@@ -34,7 +36,11 @@ export default function TermsOfServiceScreen() {
       // Accept the terms of service
       await BackgroundExecutor.acceptTermsOfService();
 
-      // Navigate to the main home screen with onboarding parameter
+      // Update the initialization step to READY
+      setStep(EStep.READY);
+
+      // Clear all onboarding screens from the stack and navigate to Home
+      router.dismissAll();
       router.replace('/Home?fromOnboarding=true');
     } catch (error) {
       console.error('Error accepting terms:', error);

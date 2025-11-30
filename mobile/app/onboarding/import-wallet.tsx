@@ -1,4 +1,4 @@
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useContext, useState, useEffect, useRef, useCallback } from 'react';
 import {
   ActivityIndicator,
@@ -14,9 +14,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   useWindowDimensions,
+  Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { ThemedText } from '@/components/ThemedText';
@@ -25,9 +26,15 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { sanitizeAndValidateMnemonic } from '@shared/modules/wallet-utils';
 import { Colors } from '@shared/constants/Colors';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
+import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
+import { SecureStorage } from '@/src/class/secure-storage';
+import { STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { useSettings } from '@shared/hooks/useSettings';
 
 export default function ImportWalletScreen() {
   const { scanQr } = useContext(ScanQrContext);
+  const { setStep } = useContext(InitializationContext);
+  const { updateSetting } = useSettings();
   const router = useRouter();
   const navigation = useNavigation();
   const [mnemonic, setMnemonic] = useState('');
@@ -120,27 +127,13 @@ export default function ImportWalletScreen() {
     }, [isLoading, navigation])
   );
 
-  const handleImportWallet = async () => {
-    if (!mnemonic.trim()) {
-      setError('Please enter your seed phrase');
-      return;
-    }
-
+  const proceedWithImport = async (sanitizedMnemonic: string) => {
     setIsLoading(true);
     setError('');
-
-    let sanitizedMnemonic: string = mnemonic;
 
     try {
       // Small delay to allow UI to update
       await new Promise((resolve) => setTimeout(resolve, 100));
-
-      try {
-        sanitizedMnemonic = sanitizeAndValidateMnemonic(mnemonic);
-      } catch {
-        setError('Invalid mnemonic seed');
-        return;
-      }
 
       const response = await BackgroundExecutor.saveMnemonic(sanitizedMnemonic);
 
@@ -148,7 +141,11 @@ export default function ImportWalletScreen() {
         setError('Invalid mnemonic seed');
       } else {
         await BackgroundExecutor.setMasterSeed(sanitizedMnemonic);
-        router.dismissAll();
+
+        // Mark seed as backed up since user imported it (they already have it)
+        await updateSetting('seedBackedUp', 'ON');
+
+        setStep(EStep.TOS);
         router.replace('/onboarding/tos');
       }
     } catch (err) {
@@ -159,6 +156,59 @@ export default function ImportWalletScreen() {
     }
   };
 
+  const handleImportWallet = async () => {
+    if (!mnemonic.trim()) {
+      setError('Please enter your seed phrase');
+      return;
+    }
+
+    let sanitizedMnemonic: string = mnemonic;
+
+    try {
+      sanitizedMnemonic = sanitizeAndValidateMnemonic(mnemonic);
+    } catch {
+      setError('Invalid mnemonic seed');
+      return;
+    }
+
+    // Check if wallet already exists in storage
+    const hasExistingWallet = await BackgroundExecutor.hasMnemonic();
+
+    if (hasExistingWallet) {
+      Alert.alert(
+        'Wallet Already Exists',
+        'There is already a wallet in storage. Would you like to clear all existing data before importing this wallet? This action cannot be undone.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Clear & Import',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                // Clear all storage
+                await BackgroundExecutor.clear();
+                await AsyncStorage.clear();
+                await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, '');
+
+                // Proceed with import
+                await proceedWithImport(sanitizedMnemonic);
+              } catch (err) {
+                setError('Failed to clear storage');
+                console.error(err);
+              }
+            },
+          },
+        ],
+        { cancelable: true }
+      );
+    } else {
+      await proceedWithImport(sanitizedMnemonic);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={[styles.container, { backgroundColor: Colors.GlobalDarkBackground }]}>
@@ -166,29 +216,20 @@ export default function ImportWalletScreen() {
           {isLoading ? (
             <Animated.View style={[styles.loadingContainer, { opacity: fadeAnimation.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
               <View style={styles.loadingContent}>
-                <Animated.View
-                  style={[
-                    styles.loadingIconContainer,
-                    {
-                      shadowColor: '#fff',
-                      shadowOffset: { width: 0, height: 0 },
-                      shadowOpacity: glowAnimation.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.2, 0.8],
-                      }),
-                      shadowRadius: glowAnimation.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [5, 20],
-                      }),
-                      elevation: glowAnimation.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [5, 15],
-                      }),
-                    },
-                  ]}
-                >
+                <View style={styles.loadingIconWrapper}>
+                  <Animated.View
+                    style={[
+                      styles.glowEffect,
+                      {
+                        opacity: glowAnimation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.3, 0.9],
+                        }),
+                      },
+                    ]}
+                  />
                   <Image source={require('@/assets/images/ui/importing.png')} style={styles.loadingImage} />
-                </Animated.View>
+                </View>
                 <ThemedText style={styles.loadingTitle} darkColor="rgba(255, 255, 255, 0.9)">
                   Importing wallet...
                 </ThemedText>
@@ -221,7 +262,13 @@ export default function ImportWalletScreen() {
                           numberOfLines={4}
                           value={mnemonic}
                           clearTextOnFocus
-                          onChangeText={setMnemonic}
+                          onChangeText={(text) => {
+                            setMnemonic(text);
+                            // Dismiss keyboard after paste (when text length changes significantly)
+                            if (text.length > mnemonic.length + 10) {
+                              setTimeout(() => Keyboard.dismiss(), 100);
+                            }
+                          }}
                           multiline
                           autoCapitalize="none"
                           autoCorrect={false}
@@ -382,14 +429,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     maxWidth: 300,
   },
-  loadingIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  loadingIconWrapper: {
+    width: 120,
+    height: 120,
+    marginBottom: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 32,
+    position: 'relative',
+  },
+  glowEffect: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(66, 133, 244, 0.7)',
   },
   loadingTitle: {
     fontSize: 32,
@@ -405,7 +458,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   loadingImage: {
-    width: 80,
-    height: 80,
+    width: 120,
+    height: 120,
   },
 });
