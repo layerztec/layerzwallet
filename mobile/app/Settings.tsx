@@ -146,7 +146,7 @@ export default function SettingsScreen() {
           id: 'biometrics',
           title: 'Biometrics',
           onPress: handleBiometricsPress,
-          hideChevron: isBiometricsEnabled,
+          hideChevron: true,
           renderAccessory: () =>
             isBiometricsEnabled ? (
               <View style={styles.statusCheckContainer}>
