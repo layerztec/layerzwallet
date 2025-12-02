@@ -2,13 +2,12 @@ import * as Application from 'expo-application';
 import { useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import React, { useContext, useEffect, useState } from 'react';
-import { Alert, SectionList, SectionListData, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, SectionList, SectionListData, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import SettingsRow from '@/components/SettingsRow';
-import { LayerzStorage } from '@/src/class/layerz-storage';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -38,21 +37,16 @@ interface SettingsSection extends SectionListData<SettingsItem> {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { settings } = useSettings();
+  const { settings, updateSetting } = useSettings();
   const { network } = useContext(NetworkContext);
   const biometricInfo = useBiometrics();
   const { enableBiometricAuth, disableBiometricAuth } = useAuthState();
-  const [seedBackedUp, setSeedBackedUp] = useState(false);
+  const hasBackedUpSeed = settings.seedBackedUp === 'ON';
   const [isPasswordSet, setIsPasswordSet] = useState(false);
 
-  // initial load: check if seed is backed up & if seed is encrypted
+  // initial load: check if seed is encrypted
   useEffect(() => {
     (async () => {
-      // Check if user has already backed up their seed
-      // This is a placeholder - implement actual backup tracking logic
-      const hasBackedUp = await LayerzStorage.getItem('SEED_BACKED_UP');
-      setSeedBackedUp(hasBackedUp === 'true');
-
       // we ignore what setting is stored in the settings, we check actual state of seed (whether it is encrypted or not)
       const encryptedMnemonic = await SecureStorage.getItem(STORAGE_KEY_MNEMONIC);
       setIsPasswordSet(encryptedMnemonic.startsWith(ENCRYPTED_PREFIX));
@@ -127,7 +121,7 @@ export default function SettingsScreen() {
           onPress: handleRecoveryPhrasePress,
           renderAccessory: () => (
             <View style={styles.statusBadgeContainer}>
-              {seedBackedUp ? (
+              {hasBackedUpSeed ? (
                 <View style={[styles.badge, styles.badgeSuccess]}>
                   <Ionicons name="checkmark" size={12} color="black" />
                   <ThemedText style={styles.badgeText}>backup</ThemedText>
@@ -152,7 +146,7 @@ export default function SettingsScreen() {
           id: 'biometrics',
           title: 'Biometrics',
           onPress: handleBiometricsPress,
-          hideChevron: isBiometricsEnabled,
+          hideChevron: true,
           renderAccessory: () =>
             isBiometricsEnabled ? (
               <View style={styles.statusCheckContainer}>

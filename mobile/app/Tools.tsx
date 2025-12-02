@@ -40,7 +40,7 @@ export default function TabThreeScreen() {
   const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
   const { scanQr } = useContext(ScanQrContext);
   const { settings, updateSetting } = useSettings();
-  const { lockApp } = useAuthState();
+  const { lockApp, disableBiometricAuth } = useAuthState();
   const { network } = useContext(NetworkContext);
   const [testState, setTestState] = useState<'not_started' | 'running' | 'ok' | 'error'>('not_started');
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -206,6 +206,8 @@ export default function TabThreeScreen() {
         onPress: async () => {
           setIsClearing(true);
           try {
+            await updateSetting('biometricAuth', 'OFF');
+            await updateSetting('seedBackedUp', 'OFF');
             await BackgroundExecutor.clear();
             await AsyncStorage.clear();
             await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, '');
@@ -324,7 +326,7 @@ export default function TabThreeScreen() {
         return (
           <View style={styles.settingsGroup}>
             {(Object.keys(SETTINGS_CONFIG) as TSettingsKey[])
-              .filter((key) => key !== 'biometricAuth')
+              .filter((key) => key !== 'biometricAuth' && key !== 'seedBackedUp')
               .map((key, index, array) => {
                 const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
                 const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
@@ -360,7 +362,7 @@ export default function TabThreeScreen() {
       case 'developerOptions':
         return (
           <View style={styles.settingsGroup}>
-            <SettingsRow title="Scan QR Code" onPress={handleScanQr} />
+            <SettingsRow title="Scan QR Code" onPress={handleScanQr} hideChevron />
             {deviceId && (
               <>
                 <View style={styles.divider} />
@@ -379,9 +381,9 @@ export default function TabThreeScreen() {
         return (
           <>
             <View style={styles.settingsGroup}>
-              <SettingsRow title="Lock App" onPress={handleLockApp} testID="LockAppButton" />
+              <SettingsRow title="Lock App" onPress={handleLockApp} testID="LockAppButton" hideChevron />
               <View style={styles.divider} />
-              <SettingsRow title="Clear All Data" onPress={handleClearStorage} disabled={isClearing} testID="ClearStorageButton" />
+              <SettingsRow title="Clear All Data" onPress={handleClearStorage} disabled={isClearing} testID="ClearStorageButton" hideChevron />
             </View>
             <ThemedText style={styles.warningText}>⚠️ Clear All Data will erase everything including your wallet. Make sure you have backed up your seed phrase!</ThemedText>
           </>

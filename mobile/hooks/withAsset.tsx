@@ -11,6 +11,7 @@ import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { StringNumber } from '@shared/types/string-number';
 import { TokenInfo } from '@shared/types/token-info';
+import { useTokenExchangeRate } from '@shared/hooks/useTokenExchangeRate';
 
 export interface SendAssetProps {
   balance: StringNumber | undefined;
@@ -29,22 +30,14 @@ export const withAsset = <P extends object>(Component: React.ComponentType<P & S
     const { accountNumber } = useContext(AccountNumberContext);
     const { balance: tokenBalance } = useTokenBalance(network, accountNumber, token!, BackgroundExecutor);
     const { tokenList } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
+    const { tokenExchangeRate } = useTokenExchangeRate(network, token ?? '', 'USD');
     const tokenInfo = tokenList.find((t) => t.id === token);
 
     if (!tokenInfo) {
       return null;
     }
 
-    return (
-      <Component
-        {...props}
-        balance={tokenBalance}
-        exchangeRate={undefined} // TODO: get exchange rate for token
-        ticker={tokenInfo.symbol}
-        token={tokenInfo}
-        decimals={tokenInfo.decimals}
-      />
-    );
+    return <Component {...props} balance={tokenBalance} exchangeRate={tokenExchangeRate} ticker={tokenInfo.symbol} token={tokenInfo} decimals={tokenInfo.decimals} />;
   };
 
   const WithoutTokenWrapper = (props: P) => {

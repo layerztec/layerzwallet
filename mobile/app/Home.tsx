@@ -26,6 +26,7 @@ import { getNetworkGradient } from '@shared/constants/Colors';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
+import { useSettings } from '@shared/hooks/useSettings';
 import { useTransactions } from '@shared/hooks/useTransactions';
 import { getExplorerUrlByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
@@ -81,6 +82,8 @@ export default function Home() {
   const swapListRef = useRef<{ refresh: () => void }>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshOptions, setRefreshOptions] = useState<Partial<RefreshControlProps>>({});
+  const settingsContext = useSettings();
+  const hasBackedUpSeed = settingsContext.settings.seedBackedUp === 'ON';
 
   // Initialize modal position based on whether coming from onboarding
   useEffect(() => {
@@ -265,6 +268,10 @@ export default function Home() {
     router.push({ pathname: '/TransactionDetails', params: { transaction: JSON.stringify(transaction) } });
   };
 
+  const handleBackupSeed = () => {
+    router.push('/SeedBackup');
+  };
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -443,6 +450,21 @@ export default function Home() {
 
             {/* Tokens Section */}
             <TokensView ref={tokensViewRef} onTokenPress={handleTokenPress} />
+
+            {/* Seed Backup Warning */}
+            {hasBackedUpSeed === false && (
+              <TouchableOpacity style={styles.backupWarning} onPress={handleBackupSeed} activeOpacity={0.8}>
+                <View style={styles.backupWarningHeader}>
+                  <View style={styles.backupWarningIcon}>
+                    <Ionicons name="alert-circle-outline" size={24} color="rgba(255, 255, 255, 0.9)" />
+                  </View>
+                  <ThemedText style={styles.backupWarningTitle}>Recovery phrase</ThemedText>
+                </View>
+                <View style={styles.backupWarningTextRow}>
+                  <ThemedText style={styles.backupWarningText}>Your Recovery phrase is necessary to recover your wallet. Please verify you have backed it up.</ThemedText>
+                </View>
+              </TouchableOpacity>
+            )}
 
             {/* Transactions Section */}
             <View style={styles.transactionsContainer}>
@@ -824,5 +846,47 @@ const styles = StyleSheet.create({
     width: 368,
     height: 100,
     marginBottom: 16,
+  },
+  backupWarning: {
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    minHeight: 98,
+    borderRadius: 20,
+    paddingTop: 12,
+    paddingRight: 16,
+    paddingBottom: 12,
+    paddingLeft: 16,
+    marginBottom: 20,
+    overflow: 'hidden',
+  },
+  backupWarningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  backupWarningIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backupWarningTitle: {
+    fontSize: 15,
+    color: 'white',
+    fontWeight: '600',
+    flex: 1,
+  },
+  backupWarningTextRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingLeft: 10,
+  },
+  backupWarningText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '400',
+    flex: 1,
   },
 });

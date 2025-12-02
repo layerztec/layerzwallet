@@ -1,5 +1,5 @@
 import React, { useContext, useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { Alert, StyleSheet, TouchableOpacity, View, Animated, ActivityIndicator, Image, FlatList, LayoutAnimation, Platform } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity, View, Animated, ActivityIndicator, Image, FlatList, LayoutAnimation, Platform, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -11,7 +11,6 @@ import Button from '@/components/Button';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { usePreventScreenCapture } from 'expo-screen-capture';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { LayerzStorage } from '@/src/class/layerz-storage';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useAskPassword } from '@/src/hooks/AskPasswordContext';
 import { useSettings } from '@shared/hooks/useSettings';
@@ -96,6 +95,7 @@ export default function SeedBackupScreen() {
   const [selectedWords, setSelectedWords] = useState<WordItem[]>([]);
   const [showError, setShowError] = useState<boolean>(false);
   const [verificationComplete, setVerificationComplete] = useState<boolean>(false);
+  const [badgeTapCount, setBadgeTapCount] = useState(0);
   const buttonOpacity = useRef(new Animated.Value(ENABLED_OPACITY)).current;
   const blurOpacity = useRef(new Animated.Value(1)).current;
   usePreventScreenCapture();
@@ -243,9 +243,23 @@ export default function SeedBackupScreen() {
     setVerificationComplete(false);
   };
 
+  const settingsContext = useSettings();
+  const hasBackedUpSeed = settings.seedBackedUp === 'ON';
+
+  const handleBadgeTap = async () => {
+    const newCount = badgeTapCount + 1;
+    setBadgeTapCount(newCount);
+
+    if (newCount >= 10) {
+      await settingsContext.updateSetting('seedBackedUp', hasBackedUpSeed ? 'OFF' : 'ON');
+      setBadgeTapCount(0);
+      Alert.alert('Debug', `Seed backup status toggled to ${hasBackedUpSeed ? 'not backed up' : 'backed up'}`);
+    }
+  };
+
   const handleContinueFromSuccess = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await LayerzStorage.setItem('SEED_BACKED_UP', 'true');
+    await settingsContext.updateSetting('seedBackedUp', 'ON');
     router.back();
   };
 
@@ -315,10 +329,10 @@ export default function SeedBackupScreen() {
       <ScreenHeader title="Recovery Phrase" />
       <View style={styles.container}>
         <View style={styles.warningSection}>
-          <View style={styles.warningHeader}>
+          <Pressable style={styles.warningHeader} onPress={handleBadgeTap}>
             <Ionicons name="alert-circle-outline" size={28} color="rgba(255, 255, 255, 0.9)" />
             <ThemedText style={styles.warningTitle}>Warning</ThemedText>
-          </View>
+          </Pressable>
           <ThemedText style={styles.warningText}>
             Your recovery phrase is the only way to restore your wallet if you lose access to it. <ThemedText style={styles.warningBold}>Keep it safe and never share it with anyone.</ThemedText>
           </ThemedText>

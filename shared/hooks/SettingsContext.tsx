@@ -22,6 +22,10 @@ export const SETTINGS_CONFIG = {
     options: ['ON', 'OFF'] as const,
     default: 'OFF' as const,
   },
+  seedBackedUp: {
+    options: ['ON', 'OFF'] as const,
+    default: 'OFF' as const,
+  },
 } as const;
 
 // Derive the AppSettings interface from the config

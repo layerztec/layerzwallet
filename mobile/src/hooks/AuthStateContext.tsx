@@ -27,6 +27,7 @@ interface IAuthState {
   enableBiometricAuth: () => Promise<boolean>;
   disableBiometricAuth: () => Promise<boolean>;
   lockApp: () => void;
+  setAuthenticated: (authenticated: boolean) => void;
 }
 
 export const AuthStateContext = createContext<IAuthState>({
@@ -38,6 +39,7 @@ export const AuthStateContext = createContext<IAuthState>({
   enableBiometricAuth: (): Promise<boolean> => Promise.reject('enableBiometricAuth: this should never happen'),
   disableBiometricAuth: (): Promise<boolean> => Promise.reject('disableBiometricAuth: this should never happen'),
   lockApp: (): void => {},
+  setAuthenticated: (): void => {},
 });
 
 export const useAuthState = () => {
@@ -213,6 +215,10 @@ export const AuthStateContextProvider: React.FC<{ children: ReactNode }> = (prop
     setIsAuthenticated(false);
   }, []);
 
+  const setAuthenticated = useCallback((authenticated: boolean) => {
+    setIsAuthenticated(authenticated);
+  }, []);
+
   const finalIsAuthenticated = isInitialized && isAuthenticated;
 
   return (
@@ -226,6 +232,7 @@ export const AuthStateContextProvider: React.FC<{ children: ReactNode }> = (prop
         enableBiometricAuth,
         disableBiometricAuth,
         lockApp,
+        setAuthenticated,
       }}
     >
       {props.children}

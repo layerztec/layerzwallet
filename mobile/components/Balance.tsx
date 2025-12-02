@@ -60,7 +60,7 @@ const Balance = forwardRef<{ refresh: () => void }>((props, ref) => {
         <ThemedText type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
           {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
         </ThemedText>
-        <ThemedText style={styles.balanceUsd}>{displaySubBalance} USD</ThemedText>
+        <ThemedText style={styles.balanceUsd}>${displaySubBalance}</ThemedText>
       </View>
 
       {canBuyWithFiat && (
@@ -186,7 +186,7 @@ const BalanceLightning = forwardRef<{ refresh: () => void }>((props, ref) => {
             <ThemedText style={styles.listBalanceAmount}>
               {formattedBalance} {ticker}
             </ThemedText>
-            <ThemedText style={styles.listBalanceFiat}>{formattedFiatBalance} USD</ThemedText>
+            <ThemedText style={styles.listBalanceFiat}>{formattedFiatBalance}</ThemedText>
           </View>
         </View>
       );
@@ -200,7 +200,7 @@ const BalanceLightning = forwardRef<{ refresh: () => void }>((props, ref) => {
           <ThemedText type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
             {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
           </ThemedText>
-          <ThemedText style={styles.balanceUsd}>{displaySubBalance} USD</ThemedText>
+          <ThemedText style={styles.balanceUsd}>${displaySubBalance}</ThemedText>
         </View>
 
         <View style={styles.balanceNetworkIcons}>{icons}</View>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Platform, AppState, AppStateStatus } from 'react-native';
 

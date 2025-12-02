@@ -32,11 +32,16 @@ interface InitializationProviderProps {
 
 export const InitializationContextProvider: React.FC<InitializationProviderProps> = (props) => {
   const [step, setStep] = useState<EStep>(EStep.LOADING);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const backgroundCaller = props.backgroundCaller;
   const platform = props.platform;
 
   // initial load:
   useEffect(() => {
+    if (hasInitialized) {
+      return;
+    }
+
     (async () => {
       let s: EStep = EStep.LOADING;
       const hasAcceptedTermsOfService = await backgroundCaller.hasAcceptedTermsOfService();
@@ -71,8 +76,9 @@ export const InitializationContextProvider: React.FC<InitializationProviderProps
       }
 
       setStep(s);
+      setHasInitialized(true);
     })();
-  }, [backgroundCaller, platform]);
+  }, [backgroundCaller, platform, hasInitialized]);
 
   return <InitializationContext.Provider value={{ step, setStep }}>{step === EStep.LOADING ? null : props.children}</InitializationContext.Provider>;
 };
