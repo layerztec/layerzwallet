@@ -1,19 +1,22 @@
-import React, { useContext, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { Linking, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, withRepeat, withSequence } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
+import Timeline from 'react-native-timeline-flatlist';
 
 import GradientFormSheet from '@/components/GradientFormSheet';
 import { ThemedText } from '@/components/ThemedText';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
-import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { getDecimalsByNetwork, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { getTokenInfo, getTokenIconColor } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 
 export default function TransactionDetails() {
   const { network: selectedNetwork } = useContext(NetworkContext);
@@ -26,6 +29,76 @@ export default function TransactionDetails() {
   const networkImage = getNetworkImageAsset(network);
   const networkIconContent = networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null;
   const [imageLoadErrors, setImageLoadErrors] = useState<{ [key: string]: boolean }>({});
+  const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
+  const navigation = useNavigation();
+
+  // Animation values
+  const descriptionOpacity = useSharedValue(0);
+  const timestampOpacity = useSharedValue(0);
+  const descriptionMaxHeight = useSharedValue(0);
+  const pendingFlashOpacity = useSharedValue(1);
+
+  // Animated styles
+  const descriptionAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: descriptionOpacity.value,
+    maxHeight: descriptionMaxHeight.value,
+    overflow: 'hidden',
+  }));
+
+  const timestampAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: timestampOpacity.value,
+  }));
+
+  const pendingFlashAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: pendingFlashOpacity.value,
+  }));
+
+  // Check if transaction is currently pending (for flashing animation)
+  const hasConfirmations = (transaction.confirmations ?? 0) > 0;
+  const isCurrentlyPending = transaction.status === 'pending' && !hasConfirmations;
+
+  // Flashing animation for pending state
+  useEffect(() => {
+    if (isCurrentlyPending) {
+      // Start flashing animation
+      pendingFlashOpacity.value = withRepeat(
+        withSequence(withTiming(0.4, { duration: 800 }), withTiming(1, { duration: 800 })),
+        -1, // Infinite repeat
+        false
+      );
+    } else {
+      // Stop flashing, set to full opacity
+      pendingFlashOpacity.value = withTiming(1, { duration: 300 });
+    }
+  }, [isCurrentlyPending, pendingFlashOpacity]);
+
+  // Sync animations with state
+  useEffect(() => {
+    if (isTimelineExpanded) {
+      // Expand
+      descriptionOpacity.value = withTiming(1, { duration: 300 });
+      timestampOpacity.value = withTiming(1, { duration: 300 });
+      descriptionMaxHeight.value = withTiming(100, { duration: 300 });
+    } else {
+      // Collapse
+      descriptionOpacity.value = withTiming(0, { duration: 300 });
+      timestampOpacity.value = withTiming(0, { duration: 300 });
+      descriptionMaxHeight.value = withTiming(0, { duration: 300 });
+    }
+  }, [isTimelineExpanded, descriptionOpacity, timestampOpacity, descriptionMaxHeight]);
+
+  // Toggle timeline expansion
+  const toggleTimeline = () => {
+    setIsTimelineExpanded(!isTimelineExpanded);
+  };
+
+  // Set initial detents on mount - allow both 70% and 100%
+  useEffect(() => {
+    navigation.setOptions({
+      sheetAllowedDetents: [0.7, 1.0],
+      sheetInitialDetentIndex: 0, // Start at 70% (index 0)
+    });
+  }, [navigation]);
 
   // Check if this is a zero-amount transaction with tokens
   const isZeroAmountWithTokens = useMemo(() => {
@@ -120,6 +193,133 @@ export default function TransactionDetails() {
     return 'Transaction';
   }, [isZeroAmountWithTokens, singleTokenInfo, transaction.direction]);
 
+  // Calculate block time from block height
+  const calculateBlockTime = useMemo(() => {
+    if (!transaction.blockHeight) return null;
+
+    const blockHeight = transaction.blockHeight;
+    const isEVM = getIsEVM(transaction.network);
+
+    // For EVM chains, average block time is ~12-15 seconds
+    // For Bitcoin-based chains, average block time is ~10 minutes (600 seconds)
+    const avgBlockTimeSeconds = isEVM ? 12 : 600;
+
+    // Estimate: current time - (blocks since confirmation * avg block time)
+    // This is a rough estimate, but better than nothing
+    const currentTime = Math.floor(Date.now() / 1000);
+    const confirmations = transaction.confirmations ?? 0;
+    const estimatedBlockTime = currentTime - confirmations * avgBlockTimeSeconds;
+
+    return estimatedBlockTime;
+  }, [transaction.blockHeight, transaction.confirmations, transaction.network]);
+
+  // Generate timeline data
+  const timelineData = useMemo(() => {
+    const isLightning = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET || network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK;
+
+    const hasConfirmations = (transaction.confirmations ?? 0) > 0;
+    const isPending = transaction.status === 'pending' && !hasConfirmations;
+    const isConfirmed = transaction.status === 'confirmed' || hasConfirmations;
+    const isFailed = transaction.status === 'failed';
+    const isCancelled = transaction.status === 'cancelled';
+
+    const formatTime = (ts: number) => {
+      const d = new Date(ts * 1000);
+      return d.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+    };
+
+    const getDirectionTitle = () => {
+      switch (transaction.direction) {
+        case 'send':
+          return 'Sent';
+        case 'receive':
+          return 'Received';
+        case 'swap':
+          return 'Swap';
+        default:
+          return 'Transaction';
+      }
+    };
+
+    const timeline: Array<{
+      time: string;
+      title: string;
+      description: string;
+      lineColor: string;
+      circleColor: string;
+      completed: boolean;
+      icon?: React.ReactElement;
+    }> = [];
+
+    // STATE 1: SENT/RECEIVED/SWAP (always completed, always white)
+    const sentLineColor = '#FFFFFF';
+    timeline.push({
+      time: formatTime(transaction.timestamp),
+      title: getDirectionTitle(),
+      description: isLightning ? 'Payment initiated' : 'Transaction broadcasted',
+      completed: true,
+      lineColor: sentLineColor,
+      circleColor: '#FFFFFF',
+      icon: <MaterialIcons name="check" size={12} color="#000000" />,
+    });
+
+    // STATE 2: PENDING (for all networks, including Lightning)
+    const isCurrentlyPending = isPending;
+    const pendingTimestamp = isCurrentlyPending ? Math.floor(Date.now() / 1000) : transaction.timestamp;
+
+    // If confirmed, pending is also completed (already achieved)
+    // If currently pending, it's active (completed)
+    // Otherwise, it's not yet reached (gray)
+    const pendingCompleted = isConfirmed || isCurrentlyPending;
+
+    // Line color from Pending to Confirmed: white only if Confirmed is reached, gray otherwise
+    // The lineColor property controls the line AFTER this item
+    const pendingLineColor = isConfirmed ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
+
+    timeline.push({
+      time: pendingCompleted ? formatTime(pendingTimestamp) : '',
+      title: 'Pending',
+      description: isLightning ? 'Payment processing' : 'Waiting for confirmations',
+      completed: pendingCompleted, // true = white (completed/active), false = gray (not yet reached)
+      lineColor: pendingLineColor, // Controls line from Pending to Confirmed
+      circleColor: pendingCompleted ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)',
+      icon: <MaterialIcons name="check" size={12} color={pendingCompleted ? '#000000' : 'rgba(255, 255, 255, 0.3)'} />,
+    });
+
+    // STATE 3: CONFIRMED
+    const confirmedTimestamp = calculateBlockTime || transaction.timestamp;
+    const confirmedLineColor = isConfirmed ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
+    timeline.push({
+      time: isConfirmed ? formatTime(confirmedTimestamp) : '',
+      title: 'Confirmed',
+      description: isLightning ? 'Transaction is confirmed' : 'Transaction is confirmed',
+      completed: isConfirmed,
+      lineColor: confirmedLineColor,
+      circleColor: isConfirmed ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)',
+      icon: <MaterialIcons name="check" size={12} color={isConfirmed ? '#000000' : 'rgba(255, 255, 255, 0.3)'} />,
+    });
+
+    // Handle failed/cancelled states (replace confirmed if failed/cancelled)
+    if (isFailed || isCancelled) {
+      timeline.pop(); // Remove confirmed state
+      timeline.push({
+        time: formatTime(transaction.timestamp),
+        title: isFailed ? 'Transaction Failed' : 'Transaction Cancelled',
+        description: isFailed ? 'The transaction could not be completed' : 'The transaction was cancelled',
+        completed: true,
+        lineColor: '#FFFFFF',
+        circleColor: '#FFFFFF',
+        icon: <MaterialIcons name="check" size={12} color="#000000" />,
+      });
+    }
+
+    return timeline;
+  }, [transaction, network, calculateBlockTime]);
+
   const handleCopy = async (text?: string) => {
     if (!text) return;
     await Clipboard.setStringAsync(text);
@@ -188,7 +388,7 @@ export default function TransactionDetails() {
   }, [isZeroAmountWithTokens, transaction.tokenTransfers, transaction.direction, imageLoadErrors]);
 
   return (
-    <GradientFormSheet variant={selectedNetwork}>
+    <GradientFormSheet variant={selectedNetwork} scroll={true}>
       <View style={styles.container}>
         {/* Top header: icon, type, date */}
         <View style={styles.topHeader}>
@@ -201,7 +401,7 @@ export default function TransactionDetails() {
 
         {/* Amounts */}
         <View style={styles.amountsBlock}>
-          <ThemedText type="sfProRounded" style={styles.amountPrimary}>
+          <ThemedText type={'sfProRounded' as any} style={styles.amountPrimary} textAlign="center">
             {amountPrimary}
             <ThemedText style={styles.amountTicker}> {amountTicker}</ThemedText>
           </ThemedText>
@@ -211,12 +411,98 @@ export default function TransactionDetails() {
         {/* Token transfers list for multiple tokens */}
         {tokenTransfersList}
 
-        {/* Status chip */}
-        {statusText && (
-          <View style={styles.statusChip}>
-            <ThemedText style={styles.statusText}>{statusText}</ThemedText>
-            <View style={styles.statusBorder} aria-hidden />
-          </View>
+        {/* Transaction Timeline */}
+        {timelineData && timelineData.length > 0 && (
+          <TouchableOpacity style={styles.timelineContainer} onPress={toggleTimeline} activeOpacity={0.9}>
+            <View style={styles.timelineInnerContainer}>
+              <Timeline
+                data={timelineData}
+                circleSize={20}
+                circleColor="#FFFFFF"
+                lineColor="#FFFFFF"
+                columnFormat="single-column-left"
+                innerCircle="icon"
+                lineWidth={4}
+                timeContainerStyle={{ width: 0, minWidth: 0 }}
+                timeStyle={styles.timelineTime}
+                titleStyle={styles.timelineTitle}
+                descriptionStyle={styles.timelineDescription}
+                listViewStyle={styles.timelineListView}
+                isUsingFlatlist={true}
+                eventContainerStyle={styles.timelineEventContainer}
+                rowContainerStyle={styles.timelineRowContainer}
+                iconStyle={styles.timelineIconStyle}
+                renderTime={() => {
+                  // Hide the default time container - we'll render it in renderDetail instead
+                  return null;
+                }}
+                renderDetail={(rowData: any, rowDataIndex?: number) => {
+                  const isCompleted = rowData?.completed !== false;
+                  const isPendingTitle = rowData?.title === 'Pending';
+                  const shouldFlash = isPendingTitle && isCurrentlyPending;
+                  // Check if this is the last item by comparing with the last item in timelineData
+                  const isLastItem = timelineData.length > 0 && (rowDataIndex === timelineData.length - 1 || rowData === timelineData[timelineData.length - 1]);
+
+                  return (
+                    <View style={[styles.timelineDetailContainer, isLastItem && styles.timelineDetailContainerLast]}>
+                      <View style={styles.timelineTitleRow}>
+                        {shouldFlash ? (
+                          <Animated.Text
+                            style={[
+                              styles.timelineTitle,
+                              pendingFlashAnimatedStyle,
+                              {
+                                color: 'rgba(255, 255, 255, 1.0)',
+                              },
+                            ]}
+                          >
+                            {rowData?.title}
+                          </Animated.Text>
+                        ) : (
+                          <ThemedText
+                            style={[
+                              styles.timelineTitle,
+                              {
+                                color: isCompleted ? 'rgba(255, 255, 255, 1.0)' : 'rgba(255, 255, 255, 0.3)',
+                              },
+                            ]}
+                          >
+                            {rowData?.title}
+                          </ThemedText>
+                        )}
+                        {rowData?.time && (
+                          <Animated.View style={timestampAnimatedStyle}>
+                            <ThemedText
+                              style={[
+                                styles.timelineTime,
+                                {
+                                  color: isCompleted ? 'rgba(255, 255, 255, 1.0)' : 'rgba(255, 255, 255, 0.3)',
+                                },
+                              ]}
+                            >
+                              {rowData.time}
+                            </ThemedText>
+                          </Animated.View>
+                        )}
+                      </View>
+                      <Animated.View style={descriptionAnimatedStyle}>
+                        <ThemedText
+                          style={[
+                            styles.timelineDescription,
+                            {
+                              color: isCompleted ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.3)',
+                            },
+                          ]}
+                        >
+                          {rowData?.description}
+                        </ThemedText>
+                      </Animated.View>
+                    </View>
+                  );
+                }}
+              />
+            </View>
+          </TouchableOpacity>
         )}
 
         {/* Details list */}
@@ -260,9 +546,9 @@ export default function TransactionDetails() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     marginHorizontal: 16,
-    justifyContent: 'space-between',
+    paddingBottom: 16,
   },
   topHeader: {
     marginTop: 16,
@@ -431,5 +717,89 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.6)',
     fontWeight: '400',
+  },
+  timelineContainer: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  timelineInnerContainer: {
+    minHeight: 104,
+  },
+  timelineTime: {
+    textAlign: 'right',
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+    marginLeft: 'auto',
+  },
+  timelineTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255)',
+    flex: 1,
+    margin: 0,
+    padding: 0,
+  },
+  timelineTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    margin: 0,
+    padding: 0,
+    width: '100%',
+  },
+  timelineDescription: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    margin: 0,
+    padding: 0,
+  },
+  timelineCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 0,
+  },
+  timelineRowContainer: {
+    alignItems: 'flex-start',
+    margin: 0,
+    padding: 0,
+  },
+  timelineEventContainer: {
+    flex: 1,
+    height: 'auto',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    margin: 0,
+    padding: 0,
+  },
+  timelineDetailContainer: {
+    flex: 1,
+    marginHorizontal: 0,
+    marginTop: -12,
+    marginBottom: 6,
+    paddingTop: 0,
+    paddingBottom: 6,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+  },
+  timelineDetailContainerLast: {
+    marginBottom: 0,
+    paddingBottom: 0,
+  },
+  timelineIconStyle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timelineListView: {
+    margin: 0,
+    padding: 0,
+    flexGrow: 1,
   },
 });
