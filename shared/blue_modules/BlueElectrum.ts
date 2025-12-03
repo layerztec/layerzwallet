@@ -830,6 +830,20 @@ export type TFeeEstimate = {
   slow: number;
 };
 
+export const getMempoolFeeHistogram = async function (): Promise<number[][] | null> {
+  if (!mainClient) throw new Error('Electrum client is not connected');
+  let histogram;
+  let timeoutId;
+  try {
+    histogram = await Promise.race([mainClient.mempool_getFeeHistogram(), new Promise((resolve) => (timeoutId = setTimeout(resolve, 15000)))]);
+    return histogram;
+  } catch (error) {
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 export const estimateFees = async function (): Promise<TFeeEstimate> {
   let histogram;
   let timeoutId;

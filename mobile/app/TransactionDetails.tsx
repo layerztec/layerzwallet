@@ -16,7 +16,8 @@ import { getDecimalsByNetwork, getIsEVM, getTickerByNetwork } from '@shared/mode
 import { getTokenInfo, getTokenIconColor } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 
 export default function TransactionDetails() {
   const { network: selectedNetwork } = useContext(NetworkContext);
@@ -30,6 +31,7 @@ export default function TransactionDetails() {
   const networkIconContent = networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null;
   const [imageLoadErrors, setImageLoadErrors] = useState<{ [key: string]: boolean }>({});
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
+  const [confirmationEta, setConfirmationEta] = useState<string>('');
   const navigation = useNavigation();
 
   // Animation values
@@ -99,6 +101,179 @@ export default function TransactionDetails() {
       sheetInitialDetentIndex: 0, // Start at 70% (index 0)
     });
   }, [navigation]);
+
+  // Calculate ETA for Bitcoin pending transactions
+  useEffect(() => {
+    let isMounted = true; // Track if component is still mounted
+
+    const calculateConfirmationEta = async () => {
+      // Only calculate for Bitcoin networks and pending transactions
+      const isBitcoin = network === NETWORK_BITCOIN;
+      const hasConfirmations = (transaction.confirmations ?? 0) > 0;
+      const isPending = transaction.status === 'pending' && !hasConfirmations;
+
+      if (!isBitcoin || !isPending || !transaction.txid) {
+        // Don't reset ETA if we already have one for this transaction
+        // Only reset if we're sure this transaction shouldn't have an ETA
+        if (isMounted && !isPending) {
+          setConfirmationEta('');
+        }
+        return;
+      }
+
+      try {
+        // Check if Electrum is connected
+        if (!BlueElectrum.mainConnected) {
+          await BlueElectrum.waitTillConnected();
+        }
+
+        // Get transaction details from Electrum to get vsize and calculate fee
+        const transactions = await BlueElectrum.multiGetTransactionByTxid([transaction.txid], true, 10);
+        const txFromElectrum = transactions[transaction.txid];
+
+        if (!txFromElectrum || !txFromElectrum.vsize) {
+          if (isMounted) {
+            setConfirmationEta('');
+          }
+          return;
+        }
+
+        // Calculate fee from transaction inputs and outputs
+        // Fee = Sum of inputs - Sum of outputs
+        // First, we need to fetch previous transactions to get input values
+        let totalInputValue = 0;
+        let totalOutputValue = 0;
+
+        // Sum all input values - need to fetch previous transactions if values are missing
+        if (txFromElectrum.vin && Array.isArray(txFromElectrum.vin)) {
+          // Collect unique previous transaction IDs
+          const prevTxids = new Set<string>();
+          for (const input of txFromElectrum.vin) {
+            if (input.txid) {
+              prevTxids.add(input.txid);
+            }
+          }
+
+          // Fetch previous transactions if input values are missing
+          if (prevTxids.size > 0 && !txFromElectrum.vin[0]?.value) {
+            try {
+              const prevTransactions = await BlueElectrum.multiGetTransactionByTxid(Array.from(prevTxids), true, 10);
+
+              // Populate input values from previous transactions
+              for (const input of txFromElectrum.vin) {
+                if (input.txid && input.vout !== undefined) {
+                  const prevTx = prevTransactions[input.txid];
+                  if (prevTx && prevTx.vout && prevTx.vout[input.vout]) {
+                    const prevOutput = prevTx.vout[input.vout];
+                    if (prevOutput.value !== undefined && prevOutput.value !== null) {
+                      input.value = prevOutput.value;
+                      totalInputValue += prevOutput.value;
+                    }
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('Error fetching previous transactions for ETA:', error);
+            }
+          } else {
+            // Input values already populated
+            for (const input of txFromElectrum.vin) {
+              if (input.value !== undefined && input.value !== null) {
+                totalInputValue += input.value;
+              }
+            }
+          }
+        }
+
+        // Sum all output values
+        if (txFromElectrum.vout && Array.isArray(txFromElectrum.vout)) {
+          for (const output of txFromElectrum.vout) {
+            if (output.value !== undefined && output.value !== null) {
+              totalOutputValue += output.value;
+            }
+          }
+        }
+
+        // Calculate fee in BTC
+        const feeBtc = totalInputValue - totalOutputValue;
+
+        if (feeBtc <= 0 || totalInputValue === 0) {
+          if (isMounted) {
+            setConfirmationEta('');
+          }
+          return;
+        }
+
+        // Calculate fee rate (sat/vbyte)
+        const feeSat = Math.round(feeBtc * 100000000); // Convert to satoshis
+        const feeRate = feeSat / txFromElectrum.vsize;
+
+        // Get mempool fee histogram
+        const histogram = await (BlueElectrum as any).getMempoolFeeHistogram();
+
+        if (!histogram || histogram.length === 0) {
+          if (isMounted) {
+            setConfirmationEta('');
+          }
+          return;
+        }
+
+        // Calculate how many blocks of transactions are ahead with higher fees
+        // Histogram is sorted by fee rate (descending), so higher fees come first
+        let totalVsizeAhead = 0;
+        const blockSize = 1000000; // 1MB block size (vbytes)
+
+        for (const entry of histogram) {
+          const [fee, vsize] = entry;
+          // Histogram entries have higher fees first, so we count until we reach our fee rate
+          if (fee > feeRate) {
+            totalVsizeAhead += vsize;
+          } else {
+            // Reached transactions with fee rate <= ours, stop counting
+            break;
+          }
+        }
+
+        // Calculate blocks ahead (rounded up)
+        const blocksAhead = Math.ceil(totalVsizeAhead / blockSize);
+
+        // Estimate time: blocks ahead * 10 minutes per block
+        const avgBlockTimeMinutes = 10;
+        const estimatedMinutes = blocksAhead * avgBlockTimeMinutes;
+
+        // Format ETA
+        let etaText = '';
+        if (estimatedMinutes < 1) {
+          etaText = '< 1 min';
+        } else if (estimatedMinutes < 60) {
+          etaText = `~${Math.round(estimatedMinutes)} min`;
+        } else {
+          const hours = Math.floor(estimatedMinutes / 60);
+          const minutes = Math.round(estimatedMinutes % 60);
+          if (minutes === 0) {
+            etaText = `~${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+          } else {
+            etaText = `~${hours}h ${minutes}m`;
+          }
+        }
+
+        if (isMounted) {
+          setConfirmationEta(etaText);
+        }
+      } catch (error) {
+        console.error('Error calculating confirmation ETA:', error);
+        if (isMounted) {
+          setConfirmationEta('');
+        }
+      }
+    };
+
+    calculateConfirmationEta();
+
+    return () => {
+      isMounted = false; // Cleanup on unmount
+    };
+  }, [transaction.txid, transaction.status, transaction.confirmations, network]);
 
   // Check if this is a zero-amount transaction with tokens
   const isZeroAmountWithTokens = useMemo(() => {
@@ -256,9 +431,10 @@ export default function TransactionDetails() {
     }> = [];
 
     // STATE 1: SENT/RECEIVED/SWAP (always completed, always white)
+    // Show timestamp only if transaction is pending (not confirmed)
     const sentLineColor = '#FFFFFF';
     timeline.push({
-      time: formatTime(transaction.timestamp),
+      time: isPending ? formatTime(transaction.timestamp) : '',
       title: getDirectionTitle(),
       description: isLightning ? 'Payment initiated' : 'Transaction broadcasted',
       completed: true,
@@ -280,8 +456,9 @@ export default function TransactionDetails() {
     // The lineColor property controls the line AFTER this item
     const pendingLineColor = isConfirmed ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
 
+    // Show timestamp only if transaction is pending (not confirmed)
     timeline.push({
-      time: pendingCompleted ? formatTime(pendingTimestamp) : '',
+      time: isPending ? formatTime(pendingTimestamp) : '',
       title: 'Pending',
       description: isLightning ? 'Payment processing' : 'Waiting for confirmations',
       completed: pendingCompleted, // true = white (completed/active), false = gray (not yet reached)
@@ -291,10 +468,14 @@ export default function TransactionDetails() {
     });
 
     // STATE 3: CONFIRMED
+    // Show timestamp if confirmed, or ETA if pending (Bitcoin only)
     const confirmedTimestamp = calculateBlockTime || transaction.timestamp;
     const confirmedLineColor = isConfirmed ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
+    // For confirmed: show timestamp, for pending: show ETA (will be displayed separately, not in time field)
+    const confirmedTime = isConfirmed ? formatTime(confirmedTimestamp) : '';
+
     timeline.push({
-      time: isConfirmed ? formatTime(confirmedTimestamp) : '',
+      time: confirmedTime,
       title: 'Confirmed',
       description: isLightning ? 'Transaction is confirmed' : 'Transaction is confirmed',
       completed: isConfirmed,
@@ -318,7 +499,7 @@ export default function TransactionDetails() {
     }
 
     return timeline;
-  }, [transaction, network, calculateBlockTime]);
+  }, [transaction, network, calculateBlockTime, confirmationEta]);
 
   const handleCopy = async (text?: string) => {
     if (!text) return;
@@ -416,6 +597,7 @@ export default function TransactionDetails() {
           <TouchableOpacity style={styles.timelineContainer} onPress={toggleTimeline} activeOpacity={0.9}>
             <View style={styles.timelineInnerContainer}>
               <Timeline
+                key={`timeline-${confirmationEta}`}
                 data={timelineData}
                 circleSize={20}
                 circleColor="#FFFFFF"
@@ -442,6 +624,9 @@ export default function TransactionDetails() {
                   const shouldFlash = isPendingTitle && isCurrentlyPending;
                   // Check if this is the last item by comparing with the last item in timelineData
                   const isLastItem = timelineData.length > 0 && (rowDataIndex === timelineData.length - 1 || rowData === timelineData[timelineData.length - 1]);
+                  // Check if transaction is pending (for ETA display)
+                  const hasConfirmations = (transaction.confirmations ?? 0) > 0;
+                  const isPending = transaction.status === 'pending' && !hasConfirmations;
 
                   return (
                     <View style={[styles.timelineDetailContainer, isLastItem && styles.timelineDetailContainerLast]}>
@@ -470,20 +655,40 @@ export default function TransactionDetails() {
                             {rowData?.title}
                           </ThemedText>
                         )}
-                        {rowData?.time && (
-                          <Animated.View style={timestampAnimatedStyle}>
-                            <ThemedText
-                              style={[
-                                styles.timelineTime,
-                                {
-                                  color: isCompleted ? 'rgba(255, 255, 255, 1.0)' : 'rgba(255, 255, 255, 0.3)',
-                                },
-                              ]}
-                            >
-                              {rowData.time}
-                            </ThemedText>
-                          </Animated.View>
-                        )}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'flex-end' }}>
+                          {/* Show ETA for Confirmed state when pending - always visible (not animated) */}
+                          {(() => {
+                            const shouldShowEta = rowData?.title === 'Confirmed' && isPending && confirmationEta;
+                            return shouldShowEta ? (
+                              <ThemedText
+                                style={[
+                                  styles.timelineTime,
+                                  {
+                                    color: 'rgba(255, 255, 255, 0.6)',
+                                    opacity: 1, // Always visible, not affected by animation
+                                  },
+                                ]}
+                              >
+                                {confirmationEta}
+                              </ThemedText>
+                            ) : (
+                              rowData?.time && (
+                                <Animated.View style={timestampAnimatedStyle}>
+                                  <ThemedText
+                                    style={[
+                                      styles.timelineTime,
+                                      {
+                                        color: isCompleted ? 'rgba(255, 255, 255, 1.0)' : 'rgba(255, 255, 255, 0.3)',
+                                      },
+                                    ]}
+                                  >
+                                    {rowData.time}
+                                  </ThemedText>
+                                </Animated.View>
+                              )
+                            );
+                          })()}
+                        </View>
                       </View>
                       <Animated.View style={descriptionAnimatedStyle}>
                         <ThemedText
