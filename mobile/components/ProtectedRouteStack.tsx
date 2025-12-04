@@ -251,7 +251,8 @@ export function ProtectedRouteStack() {
           name="TransactionDetails"
           options={{
             presentation: 'formSheet',
-            sheetAllowedDetents: [0.7, 1.0],
+            sheetAllowedDetents: [0.8, 1.0],
+            sheetInitialDetentIndex: 0,
             sheetGrabberVisible: true,
             headerTransparent: false,
             gestureEnabled: true,

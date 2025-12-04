@@ -94,17 +94,17 @@ export default function TransactionDetails() {
     setIsTimelineExpanded(!isTimelineExpanded);
   };
 
-  // Set initial detents on mount - allow both 70% and 100%
+  // Set initial detents on mount - allow both 80% and 100%
   useEffect(() => {
     navigation.setOptions({
-      sheetAllowedDetents: [0.7, 1.0],
-      sheetInitialDetentIndex: 0, // Start at 70% (index 0)
+      sheetAllowedDetents: [0.8, 1.0],
+      sheetInitialDetentIndex: 0,
     });
   }, [navigation]);
 
   // Calculate ETA for Bitcoin pending transactions
   useEffect(() => {
-    let isMounted = true; // Track if component is still mounted
+    let isMounted = true;
 
     const calculateConfirmationEta = async () => {
       // Only calculate for Bitcoin networks and pending transactions
@@ -113,11 +113,7 @@ export default function TransactionDetails() {
       const isPending = transaction.status === 'pending' && !hasConfirmations;
 
       if (!isBitcoin || !isPending || !transaction.txid) {
-        // Don't reset ETA if we already have one for this transaction
-        // Only reset if we're sure this transaction shouldn't have an ETA
-        if (isMounted && !isPending) {
-          setConfirmationEta('');
-        }
+        setConfirmationEta('');
         return;
       }
 
@@ -138,8 +134,6 @@ export default function TransactionDetails() {
           return;
         }
 
-        // Calculate fee from transaction inputs and outputs
-        // Fee = Sum of inputs - Sum of outputs
         // First, we need to fetch previous transactions to get input values
         let totalInputValue = 0;
         let totalOutputValue = 0;
@@ -219,17 +213,14 @@ export default function TransactionDetails() {
         }
 
         // Calculate how many blocks of transactions are ahead with higher fees
-        // Histogram is sorted by fee rate (descending), so higher fees come first
         let totalVsizeAhead = 0;
-        const blockSize = 1000000; // 1MB block size (vbytes)
+        const blockSize = 1000000;
 
         for (const entry of histogram) {
           const [fee, vsize] = entry;
-          // Histogram entries have higher fees first, so we count until we reach our fee rate
           if (fee > feeRate) {
             totalVsizeAhead += vsize;
           } else {
-            // Reached transactions with fee rate <= ours, stop counting
             break;
           }
         }
@@ -271,7 +262,7 @@ export default function TransactionDetails() {
     calculateConfirmationEta();
 
     return () => {
-      isMounted = false; // Cleanup on unmount
+      isMounted = false;
     };
   }, [transaction.txid, transaction.status, transaction.confirmations, network]);
 
@@ -369,14 +360,15 @@ export default function TransactionDetails() {
   }, [isZeroAmountWithTokens, singleTokenInfo, transaction.direction]);
 
   // Calculate block time from block height
+  // Used for displaying confirmed timestamps in the timeline for all networks
   const calculateBlockTime = useMemo(() => {
     if (!transaction.blockHeight) return null;
 
     const blockHeight = transaction.blockHeight;
     const isEVM = getIsEVM(transaction.network);
 
-    // For EVM chains, average block time is ~12-15 seconds
-    // For Bitcoin-based chains, average block time is ~10 minutes (600 seconds)
+    // EVM chains (Ethereum, etc.) have ~12 second block times
+    // Bitcoin-based chains have ~10 minute (600 seconds) block times
     const avgBlockTimeSeconds = isEVM ? 12 : 600;
 
     // Estimate: current time - (blocks since confirmation * avg block time)
@@ -785,7 +777,7 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
   amountsBlock: {
-    marginTop: 24,
+    marginVertical: 48,
     alignItems: 'center',
   },
   amountPrimary: {
@@ -800,31 +792,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.6)',
-  },
-  statusChip: {
-    marginTop: 18,
-    alignSelf: 'center',
-    height: 38,
-    width: 183,
-    borderRadius: 40,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  statusText: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  statusBorder: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    borderWidth: 1,
-    borderColor: 'white',
-    borderRadius: 40,
   },
   closeButton: {
     position: 'absolute',
@@ -869,6 +836,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginVertical: 24,
   },
   explorerText: {
     fontSize: 16,
@@ -924,7 +892,6 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   timelineContainer: {
-    marginTop: 24,
     paddingHorizontal: 16,
     paddingVertical: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
