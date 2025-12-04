@@ -28,6 +28,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useSettings } from '@shared/hooks/useSettings';
 import { useTransactions } from '@shared/hooks/useTransactions';
+import { useTransactionDetails } from '@/contexts/TransactionDetailsContext';
 import { getExplorerUrlByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { USDT_TOKENS } from '@shared/models/token-list';
@@ -264,8 +265,10 @@ export default function Home() {
     router.push({ pathname: '/SendLightning', params });
   };
 
+  const { openTransactionDetails } = useTransactionDetails();
+
   const handleTransactionDetails = (transaction: CommonTransaction) => {
-    router.push({ pathname: '/TransactionDetails', params: { transaction: JSON.stringify(transaction) } });
+    openTransactionDetails(transaction);
   };
 
   const handleBackupSeed = () => {

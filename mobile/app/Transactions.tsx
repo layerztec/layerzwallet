@@ -7,13 +7,13 @@ import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import GradientScreen from '@/components/GradientScreen';
 import { ThemedText } from '@/components/ThemedText';
 import Transaction from '@/components/Transaction';
-import { useRouter } from 'expo-router';
+import { useTransactionDetails } from '@/contexts/TransactionDetailsContext';
 
 export default function Transactions() {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { transactions = [], isLoading } = useTransactions(network, accountNumber, BackgroundExecutor);
-  const router = useRouter();
+  const { openTransactionDetails } = useTransactionDetails();
 
   return (
     <GradientScreen variant={network} scroll={true}>
@@ -32,7 +32,7 @@ export default function Transactions() {
         {/* Transactions List */}
         <View style={styles.transactionsList}>
           {transactions.map((transaction) => (
-            <Transaction key={transaction.txid} transaction={transaction} onPress={() => router.push({ pathname: '/TransactionDetails', params: { transaction: JSON.stringify(transaction) } })} />
+            <Transaction key={transaction.txid} transaction={transaction} onPress={() => openTransactionDetails(transaction)} />
           ))}
         </View>
       </View>

@@ -248,21 +248,6 @@ export function ProtectedRouteStack() {
           }}
         />
         <Stack.Screen
-          name="TransactionDetails"
-          options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.8, 1.0],
-            sheetInitialDetentIndex: 0,
-            sheetGrabberVisible: true,
-            headerTransparent: false,
-            gestureEnabled: true,
-            headerShown: false,
-            contentStyle: {
-              height: '100%',
-            },
-          }}
-        />
-        <Stack.Screen
           name="ActionPopupModal"
           options={{
             presentation: 'transparentModal',

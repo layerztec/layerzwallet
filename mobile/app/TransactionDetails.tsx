@@ -1,13 +1,14 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { Linking, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useContext, useEffect, useMemo, useState, forwardRef, useImperativeHandle, useRef } from 'react';
+import { BackHandler, Dimensions, Linking, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, withRepeat, withSequence } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useNavigation } from 'expo-router';
 import Timeline from 'react-native-timeline-flatlist';
+import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop, BottomSheetBackdropProps, TouchableOpacity as BottomSheetTouchableOpacity, BottomSheetBackgroundProps } from '@gorhom/bottom-sheet';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import GradientFormSheet from '@/components/GradientFormSheet';
 import { ThemedText } from '@/components/ThemedText';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -16,13 +17,17 @@ import { getDecimalsByNetwork, getIsEVM, getTickerByNetwork } from '@shared/mode
 import { getTokenInfo, getTokenIconColor } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
+import { gradients } from '@shared/constants/Colors';
 
-export default function TransactionDetails() {
+interface TransactionDetailsProps {
+  transaction: CommonTransaction;
+  onDismiss: () => void;
+}
+
+const TransactionDetails = forwardRef<BottomSheetModal, TransactionDetailsProps>(({ transaction, onDismiss }, ref) => {
   const { network: selectedNetwork } = useContext(NetworkContext);
-  const { transaction: jsonTransaction } = useLocalSearchParams();
-  const transaction: CommonTransaction = JSON.parse(jsonTransaction as string);
   const network = transaction.network;
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);
@@ -32,7 +37,66 @@ export default function TransactionDetails() {
   const [imageLoadErrors, setImageLoadErrors] = useState<{ [key: string]: boolean }>({});
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const [confirmationEta, setConfirmationEta] = useState<string>('');
-  const navigation = useNavigation();
+
+  // Get gradient colors for the network
+  const getGradientColors = () => {
+    let id: keyof typeof gradients = 'base';
+    for (const key of Object.keys(gradients)) {
+      if (key.startsWith(selectedNetwork)) {
+        id = key as keyof typeof gradients;
+        break;
+      }
+    }
+    return gradients[id];
+  };
+
+  const gradientColors = getGradientColors();
+  const insets = useSafeAreaInsets();
+
+  // Custom background component with gradient
+  const renderBackground = useMemo(() => {
+    const CustomBackground: React.FC<BottomSheetBackgroundProps> = ({ style }) => {
+      return (
+        <View style={[style, { overflow: 'hidden' as const }]} pointerEvents="none">
+          <LinearGradient colors={gradientColors} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} pointerEvents="none" />
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+            }}
+            pointerEvents="none"
+          />
+        </View>
+      );
+    };
+    return CustomBackground;
+  }, [gradientColors]);
+
+  // Get screen height for maxDynamicContentSize
+  const screenHeight = useMemo(() => Dimensions.get('window').height, []);
+
+  // Create internal ref for BottomSheetModal
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
+
+  // Expose ref methods to parent
+  useImperativeHandle(ref, () => bottomSheetRef.current as BottomSheetModal);
+
+  // Handle back button on Android
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (bottomSheetRef.current) {
+        bottomSheetRef.current.dismiss();
+        return true;
+      }
+      return false;
+    });
+
+    return () => backHandler.remove();
+  }, []);
 
   // Animation values
   const descriptionOpacity = useSharedValue(0);
@@ -93,14 +157,6 @@ export default function TransactionDetails() {
   const toggleTimeline = () => {
     setIsTimelineExpanded(!isTimelineExpanded);
   };
-
-  // Set initial detents on mount - allow both 80% and 100%
-  useEffect(() => {
-    navigation.setOptions({
-      sheetAllowedDetents: [0.8, 1.0],
-      sheetInitialDetentIndex: 0,
-    });
-  }, [navigation]);
 
   // Calculate ETA for Bitcoin pending transactions
   useEffect(() => {
@@ -412,7 +468,7 @@ export default function TransactionDetails() {
       }
     };
 
-    const timeline: Array<{
+    const timeline: {
       time: string;
       title: string;
       description: string;
@@ -420,7 +476,7 @@ export default function TransactionDetails() {
       circleColor: string;
       completed: boolean;
       icon?: React.ReactElement;
-    }> = [];
+    }[] = [];
 
     // STATE 1: SENT/RECEIVED/SWAP (always completed, always white)
     // Show timestamp only if transaction is pending (not confirmed)
@@ -491,7 +547,7 @@ export default function TransactionDetails() {
     }
 
     return timeline;
-  }, [transaction, network, calculateBlockTime, confirmationEta]);
+  }, [transaction, network, calculateBlockTime]);
 
   const handleCopy = async (text?: string) => {
     if (!text) return;
@@ -560,195 +616,223 @@ export default function TransactionDetails() {
     );
   }, [isZeroAmountWithTokens, transaction.tokenTransfers, transaction.direction, imageLoadErrors]);
 
+  // Render backdrop
+  const renderBackdrop = (props: BottomSheetBackdropProps) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.5} />;
+
   return (
-    <GradientFormSheet variant={selectedNetwork} scroll={true}>
-      <View style={styles.container}>
-        {/* Top header: icon, type, date */}
-        <View style={styles.topHeader}>
-          <View style={styles.networkIcon}>{networkIconContent}</View>
-          <View style={styles.typeTextWrap}>
-            <ThemedText style={styles.typeText}>{directionText}</ThemedText>
-            {formattedDateWithTime && <ThemedText style={styles.subText}>{formattedDateWithTime}</ThemedText>}
-          </View>
-        </View>
+    <BottomSheetModal
+      ref={bottomSheetRef}
+      index={0}
+      onDismiss={onDismiss}
+      enablePanDownToClose={true}
+      enableDynamicSizing={true}
+      detached={true}
+      bottomInset={insets.bottom + 8}
+      maxDynamicContentSize={screenHeight * 0.95}
+      backdropComponent={renderBackdrop}
+      backgroundComponent={renderBackground}
+      handleIndicatorStyle={styles.handleIndicator}
+      style={styles.sheetContainer}
+      android_keyboardInputMode="adjustResize"
+    >
+      <BottomSheetView key={`content-${isTimelineExpanded}`}>
+        <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
+          <View style={styles.container}>
+            {/* Top header: icon, type, date */}
+            <View style={styles.topHeader}>
+              <View style={styles.networkIcon}>{networkIconContent}</View>
+              <View style={styles.typeTextWrap}>
+                <ThemedText style={styles.typeText}>{directionText}</ThemedText>
+                {formattedDateWithTime && <ThemedText style={styles.subText}>{formattedDateWithTime}</ThemedText>}
+              </View>
+            </View>
 
-        {/* Amounts */}
-        <View style={styles.amountsBlock}>
-          <ThemedText type={'sfProRounded' as any} style={styles.amountPrimary} textAlign="center">
-            {amountPrimary}
-            <ThemedText style={styles.amountTicker}> {amountTicker}</ThemedText>
-          </ThemedText>
-          {amountUsd && <ThemedText style={styles.amountUsd}>{amountUsd}</ThemedText>}
-        </View>
+            {/* Amounts */}
+            <View style={styles.amountsBlock}>
+              <ThemedText type={'sfProRounded' as any} style={styles.amountPrimary} textAlign="center">
+                {amountPrimary}
+                <ThemedText style={styles.amountTicker}> {amountTicker}</ThemedText>
+              </ThemedText>
+              {amountUsd && <ThemedText style={styles.amountUsd}>{amountUsd}</ThemedText>}
+            </View>
 
-        {/* Token transfers list for multiple tokens */}
-        {tokenTransfersList}
+            {/* Token transfers list for multiple tokens */}
+            {tokenTransfersList}
 
-        {/* Transaction Timeline */}
-        {timelineData && timelineData.length > 0 && (
-          <TouchableOpacity style={styles.timelineContainer} onPress={toggleTimeline} activeOpacity={0.9}>
-            <View style={styles.timelineInnerContainer}>
-              <Timeline
-                key={`timeline-${confirmationEta}`}
-                data={timelineData}
-                circleSize={20}
-                circleColor="#FFFFFF"
-                lineColor="#FFFFFF"
-                columnFormat="single-column-left"
-                innerCircle="icon"
-                lineWidth={4}
-                timeContainerStyle={{ width: 0, minWidth: 0 }}
-                timeStyle={styles.timelineTime}
-                titleStyle={styles.timelineTitle}
-                descriptionStyle={styles.timelineDescription}
-                listViewStyle={styles.timelineListView}
-                isUsingFlatlist={true}
-                eventContainerStyle={styles.timelineEventContainer}
-                rowContainerStyle={styles.timelineRowContainer}
-                iconStyle={styles.timelineIconStyle}
-                renderTime={() => {
-                  // Hide the default time container - we'll render it in renderDetail instead
-                  return null;
-                }}
-                renderDetail={(rowData: any, rowDataIndex?: number) => {
-                  const isCompleted = rowData?.completed !== false;
-                  const isPendingTitle = rowData?.title === 'Pending';
-                  const shouldFlash = isPendingTitle && isCurrentlyPending;
-                  // Check if this is the last item by comparing with the last item in timelineData
-                  const isLastItem = timelineData.length > 0 && (rowDataIndex === timelineData.length - 1 || rowData === timelineData[timelineData.length - 1]);
-                  // Check if transaction is pending (for ETA display)
-                  const hasConfirmations = (transaction.confirmations ?? 0) > 0;
-                  const isPending = transaction.status === 'pending' && !hasConfirmations;
+            {/* Transaction Timeline */}
+            {timelineData && timelineData.length > 0 && (
+              <BottomSheetTouchableOpacity style={styles.timelineContainer} onPress={toggleTimeline} activeOpacity={0.9}>
+                <View style={styles.timelineInnerContainer}>
+                  <Timeline
+                    key={`timeline-${confirmationEta}`}
+                    data={timelineData}
+                    circleSize={20}
+                    circleColor="#FFFFFF"
+                    lineColor="#FFFFFF"
+                    columnFormat="single-column-left"
+                    innerCircle="icon"
+                    lineWidth={4}
+                    timeContainerStyle={{ width: 0, minWidth: 0 }}
+                    timeStyle={styles.timelineTime}
+                    titleStyle={styles.timelineTitle}
+                    descriptionStyle={styles.timelineDescription}
+                    listViewStyle={styles.timelineListView}
+                    isUsingFlatlist={true}
+                    eventContainerStyle={styles.timelineEventContainer}
+                    rowContainerStyle={styles.timelineRowContainer}
+                    iconStyle={styles.timelineIconStyle}
+                    renderTime={() => {
+                      // Hide the default time container - we'll render it in renderDetail instead
+                      return null;
+                    }}
+                    renderDetail={(rowData: any, rowDataIndex?: number) => {
+                      const isCompleted = rowData?.completed !== false;
+                      const isPendingTitle = rowData?.title === 'Pending';
+                      const shouldFlash = isPendingTitle && isCurrentlyPending;
+                      // Check if this is the last item by comparing with the last item in timelineData
+                      const isLastItem = timelineData.length > 0 && (rowDataIndex === timelineData.length - 1 || rowData === timelineData[timelineData.length - 1]);
+                      // Check if transaction is pending (for ETA display)
+                      const hasConfirmations = (transaction.confirmations ?? 0) > 0;
+                      const isPending = transaction.status === 'pending' && !hasConfirmations;
 
-                  return (
-                    <View style={[styles.timelineDetailContainer, isLastItem && styles.timelineDetailContainerLast]}>
-                      <View style={styles.timelineTitleRow}>
-                        {shouldFlash ? (
-                          <Animated.Text
-                            style={[
-                              styles.timelineTitle,
-                              pendingFlashAnimatedStyle,
-                              {
-                                color: 'rgba(255, 255, 255, 1.0)',
-                              },
-                            ]}
-                          >
-                            {rowData?.title}
-                          </Animated.Text>
-                        ) : (
-                          <ThemedText
-                            style={[
-                              styles.timelineTitle,
-                              {
-                                color: isCompleted ? 'rgba(255, 255, 255, 1.0)' : 'rgba(255, 255, 255, 0.3)',
-                              },
-                            ]}
-                          >
-                            {rowData?.title}
-                          </ThemedText>
-                        )}
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'flex-end' }}>
-                          {/* Show ETA for Confirmed state when pending - always visible (not animated) */}
-                          {(() => {
-                            const shouldShowEta = rowData?.title === 'Confirmed' && isPending && confirmationEta;
-                            return shouldShowEta ? (
-                              <ThemedText
+                      return (
+                        <View style={[styles.timelineDetailContainer, isLastItem && styles.timelineDetailContainerLast]}>
+                          <View style={styles.timelineTitleRow}>
+                            {shouldFlash ? (
+                              <Animated.Text
                                 style={[
-                                  styles.timelineTime,
+                                  styles.timelineTitle,
+                                  pendingFlashAnimatedStyle,
                                   {
-                                    color: 'rgba(255, 255, 255, 0.6)',
-                                    opacity: 1, // Always visible, not affected by animation
+                                    color: 'rgba(255, 255, 255, 1.0)',
                                   },
                                 ]}
                               >
-                                {confirmationEta}
-                              </ThemedText>
+                                {rowData?.title}
+                              </Animated.Text>
                             ) : (
-                              rowData?.time && (
-                                <Animated.View style={timestampAnimatedStyle}>
+                              <ThemedText
+                                style={[
+                                  styles.timelineTitle,
+                                  {
+                                    color: isCompleted ? 'rgba(255, 255, 255, 1.0)' : 'rgba(255, 255, 255, 0.3)',
+                                  },
+                                ]}
+                              >
+                                {rowData?.title}
+                              </ThemedText>
+                            )}
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'flex-end' }}>
+                              {/* Show ETA for Confirmed state when pending - always visible (not animated) */}
+                              {(() => {
+                                const shouldShowEta = rowData?.title === 'Confirmed' && isPending && confirmationEta;
+                                return shouldShowEta ? (
                                   <ThemedText
                                     style={[
                                       styles.timelineTime,
                                       {
-                                        color: isCompleted ? 'rgba(255, 255, 255, 1.0)' : 'rgba(255, 255, 255, 0.3)',
+                                        color: 'rgba(255, 255, 255, 0.6)',
+                                        opacity: 1, // Always visible, not affected by animation
                                       },
                                     ]}
                                   >
-                                    {rowData.time}
+                                    {confirmationEta}
                                   </ThemedText>
-                                </Animated.View>
-                              )
-                            );
-                          })()}
+                                ) : (
+                                  rowData?.time && (
+                                    <Animated.View style={timestampAnimatedStyle}>
+                                      <ThemedText
+                                        style={[
+                                          styles.timelineTime,
+                                          {
+                                            color: isCompleted ? 'rgba(255, 255, 255, 1.0)' : 'rgba(255, 255, 255, 0.3)',
+                                          },
+                                        ]}
+                                      >
+                                        {rowData.time}
+                                      </ThemedText>
+                                    </Animated.View>
+                                  )
+                                );
+                              })()}
+                            </View>
+                          </View>
+                          <Animated.View style={descriptionAnimatedStyle}>
+                            <ThemedText
+                              style={[
+                                styles.timelineDescription,
+                                {
+                                  color: isCompleted ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.3)',
+                                },
+                              ]}
+                            >
+                              {rowData?.description}
+                            </ThemedText>
+                          </Animated.View>
                         </View>
-                      </View>
-                      <Animated.View style={descriptionAnimatedStyle}>
-                        <ThemedText
-                          style={[
-                            styles.timelineDescription,
-                            {
-                              color: isCompleted ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.3)',
-                            },
-                          ]}
-                        >
-                          {rowData?.description}
-                        </ThemedText>
-                      </Animated.View>
-                    </View>
-                  );
-                }}
-              />
+                      );
+                    }}
+                  />
+                </View>
+              </BottomSheetTouchableOpacity>
+            )}
+
+            {/* Details list */}
+            <View style={styles.detailsList}>
+              <View style={styles.detailRow}>
+                <ThemedText style={styles.detailLabel}>{transaction.direction === 'send' ? 'To' : 'From'}</ThemedText>
+                <View style={styles.detailValueWrap}>
+                  <BottomSheetTouchableOpacity onPress={() => handleCopy(transaction.counterparty ?? '')}>
+                    <MaterialIcons name="content-copy" size={16} color="rgba(255, 255, 255, 0.8)" />
+                  </BottomSheetTouchableOpacity>
+                  <ThemedText style={[styles.detailValue]} numberOfLines={1} ellipsizeMode="middle">
+                    {transaction.counterparty ?? '—'}
+                  </ThemedText>
+                </View>
+              </View>
+
+              <View style={styles.detailRow}>
+                <ThemedText style={styles.detailLabel}>Network Fee</ThemedText>
+                <ThemedText style={styles.detailValue}>{typeof transaction.fee === 'number' ? `${formatBalance(transaction.fee.toString(), decimals)} ${ticker}` : '—'}</ThemedText>
+              </View>
+
+              <View style={styles.detailRow}>
+                <ThemedText style={styles.detailLabel}>Layer</ThemedText>
+                <ThemedText style={styles.detailValue}>{capitalizeFirstLetter(network)}</ThemedText>
+              </View>
             </View>
-          </TouchableOpacity>
-        )}
 
-        {/* Details list */}
-        <View style={styles.detailsList}>
-          <View style={styles.detailRow}>
-            <ThemedText style={styles.detailLabel}>{transaction.direction === 'send' ? 'To' : 'From'}</ThemedText>
-            <View style={styles.detailValueWrap}>
-              <TouchableOpacity onPress={() => handleCopy(transaction.counterparty ?? '')}>
-                <MaterialIcons name="content-copy" size={16} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
-              <ThemedText style={[styles.detailValue]} numberOfLines={1} ellipsizeMode="middle">
-                {transaction.counterparty ?? '—'}
-              </ThemedText>
-            </View>
+            {/* Open in explorer */}
+            <BottomSheetTouchableOpacity disabled={!transaction.explorerUrl} style={[styles.explorerButton, !transaction.explorerUrl && { opacity: 0.6 }]} onPress={handleOpenInExplorer}>
+              <ThemedText style={styles.explorerText}>Open in explorer</ThemedText>
+            </BottomSheetTouchableOpacity>
           </View>
-
-          <View style={styles.detailRow}>
-            <ThemedText style={styles.detailLabel}>Date</ThemedText>
-            <ThemedText style={styles.detailValue}>{formattedDate}</ThemedText>
-          </View>
-
-          <View style={styles.detailRow}>
-            <ThemedText style={styles.detailLabel}>Network Fee</ThemedText>
-            <ThemedText style={styles.detailValue}>{typeof transaction.fee === 'number' ? `${formatBalance(transaction.fee.toString(), decimals)} ${ticker}` : '—'}</ThemedText>
-          </View>
-
-          <View style={styles.detailRow}>
-            <ThemedText style={styles.detailLabel}>Layer</ThemedText>
-            <ThemedText style={styles.detailValue}>{capitalizeFirstLetter(network)}</ThemedText>
-          </View>
-        </View>
-
-        {/* Open in explorer */}
-        <TouchableOpacity disabled={!transaction.explorerUrl} style={[styles.explorerButton, !transaction.explorerUrl && { opacity: 0.6 }]} onPress={handleOpenInExplorer}>
-          <ThemedText style={styles.explorerText}>Open in explorer</ThemedText>
-        </TouchableOpacity>
-      </View>
-    </GradientFormSheet>
+        </SafeAreaView>
+      </BottomSheetView>
+    </BottomSheetModal>
   );
-}
+});
+
+TransactionDetails.displayName = 'TransactionDetails';
+
+export default TransactionDetails;
 
 const styles = StyleSheet.create({
+  sheetContainer: {
+    marginHorizontal: 12,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  safeArea: {
+    backgroundColor: 'transparent',
+  },
+  handleIndicator: {
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
   container: {
-    flexGrow: 1,
     marginHorizontal: 16,
-    paddingBottom: 16,
   },
   topHeader: {
-    marginTop: 16,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -777,7 +861,7 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
   amountsBlock: {
-    marginVertical: 48,
+    marginVertical: 32,
     alignItems: 'center',
   },
   amountPrimary: {
@@ -836,7 +920,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 24,
+    marginTop: 24,
   },
   explorerText: {
     fontSize: 16,

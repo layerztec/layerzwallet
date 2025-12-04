@@ -25,6 +25,9 @@ import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
 import { ProtectedRouteStack } from '@/components/ProtectedRouteStack';
 import { ActionPopupProvider } from '@/contexts/ActionPopupContext';
+import { TransactionDetailsProvider } from '@/contexts/TransactionDetailsContext';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -97,10 +100,16 @@ export default function RootLayout() {
                 <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                   <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                     <ActionPopupProvider>
-                      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                        <ProtectedRouteStack />
-                        <StatusBar style="light" />
-                      </ThemeProvider>
+                      <GestureHandlerRootView style={{ flex: 1 }}>
+                        <BottomSheetModalProvider>
+                          <TransactionDetailsProvider>
+                            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                              <ProtectedRouteStack />
+                              <StatusBar style="light" />
+                            </ThemeProvider>
+                          </TransactionDetailsProvider>
+                        </BottomSheetModalProvider>
+                      </GestureHandlerRootView>
                     </ActionPopupProvider>
                   </NetworkContextProvider>
                 </AccountNumberContextProvider>
