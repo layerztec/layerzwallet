@@ -1,9 +1,9 @@
 import * as Application from 'expo-application';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import React, { useContext } from 'react';
 import { SectionList, SectionListData, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import ScreenHeader from '@/components/navigation/ScreenHeader';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import SettingsRow from '@/components/SettingsRow';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -29,6 +29,7 @@ interface SettingsSection extends SectionListData<SettingsItem> {
 export default function AboutScreen() {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
+  const insets = useSafeAreaInsets();
 
   const handleBlogPress = async () => {
     await Linking.openURL('https://layerzwallet.com/blog');
@@ -108,7 +109,7 @@ export default function AboutScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
-        <ScreenHeader title="About" />
+        <Stack.Screen options={buildScreenHeaderOptions({ title: 'About' })} />
 
         <View style={styles.sectionListContainer}>
           <SectionList<SettingsItem, SettingsSection>
@@ -117,7 +118,7 @@ export default function AboutScreen() {
             renderItem={() => null}
             renderSectionHeader={renderSectionHeader}
             renderSectionFooter={renderSectionFooter}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: 16 + insets.bottom }]}
             stickySectionHeadersEnabled={false}
             style={styles.scrollContainer}
           />

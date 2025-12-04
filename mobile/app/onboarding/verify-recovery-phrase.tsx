@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, StyleSheet, Animated, FlatList, TouchableOpacity, LayoutAnimation, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { ThemedText } from '@/components/ThemedText';
@@ -81,6 +81,7 @@ SelectableWordDisplay.displayName = 'SelectableWordDisplay';
 
 export default function VerifyRecoveryPhrase() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [recoveryPhrase, setRecoveryPhrase] = useState<string>('');
   const [scrambledWords, setScrambledWords] = useState<WordItem[]>([]);
   const [selectedWords, setSelectedWords] = useState<WordItem[]>([]);
@@ -269,7 +270,7 @@ export default function VerifyRecoveryPhrase() {
                     renderItem={renderWordItem}
                     numColumns={2}
                     keyExtractor={(item) => item.id.toString()}
-                    contentContainerStyle={styles.wordsContentContainer}
+                    contentContainerStyle={[styles.wordsContentContainer, { paddingBottom: 20 + insets.bottom }]}
                     showsVerticalScrollIndicator={false}
                     columnWrapperStyle={styles.flatListRow}
                   />

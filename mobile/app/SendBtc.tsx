@@ -7,7 +7,7 @@ import { ActivityIndicator, AppState, AppStateStatus, ScrollView, StyleSheet, Te
 import { Ionicons } from '@expo/vector-icons';
 
 import GradientScreen from '@/components/GradientScreen';
-import ScreenHeader from '@/components/navigation/ScreenHeader';
+import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
@@ -210,8 +210,7 @@ const SendBtc: React.FC = () => {
   if (isSuccess) {
     return (
       <GradientScreen variant={network}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <ScreenHeader title="Send" />
+        <Stack.Screen options={buildScreenHeaderOptions({ title: 'Send' })} />
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.contentContainer}>
             <View style={styles.successContainer}>
@@ -238,8 +237,7 @@ const SendBtc: React.FC = () => {
 
   return (
     <GradientScreen variant={network}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <ScreenHeader title="Send" />
+      <Stack.Screen options={buildScreenHeaderOptions({ title: 'Send' })} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.contentContainer}>
           <View style={styles.inputSection}>

@@ -4,7 +4,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View, TextInput, Keyboard, TouchableWithoutFeedback } from 'react-native';
 
 import GradientScreen from '@/components/GradientScreen';
-import ScreenHeader from '@/components/navigation/ScreenHeader';
+import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import Slider from '@react-native-community/slider';
@@ -168,8 +168,7 @@ const SendTokenEvm: React.FC = () => {
 
   return (
     <GradientScreen variant={network}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <ScreenHeader title={`Send ${token?.name}`} />
+      <Stack.Screen options={buildScreenHeaderOptions({ title: `Send ${token?.name}` })} />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

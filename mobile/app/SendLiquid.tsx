@@ -5,7 +5,7 @@ import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 import GradientScreen from '@/components/GradientScreen';
-import ScreenHeader from '@/components/navigation/ScreenHeader';
+import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
@@ -189,8 +189,7 @@ const SendLiquid = () => {
   if (isSuccess) {
     return (
       <GradientScreen variant={network}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <ScreenHeader title="Send Liquid" />
+        <Stack.Screen options={buildScreenHeaderOptions({ title: 'Send Liquid' })} />
         <View style={styles.successContainer}>
           <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
           <ThemedText style={styles.successText}>Transaction Sent!</ThemedText>
@@ -205,8 +204,7 @@ const SendLiquid = () => {
   if (isLoading) {
     return (
       <GradientScreen variant={network}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <ScreenHeader title="Send Liquid" />
+        <Stack.Screen options={buildScreenHeaderOptions({ title: 'Send Liquid' })} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
           <ThemedText style={styles.loadingText}>Loading asset...</ThemedText>
@@ -223,8 +221,7 @@ const SendLiquid = () => {
 
     return (
       <GradientScreen variant={network}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <ScreenHeader title="Confirm Transaction" />
+        <Stack.Screen options={buildScreenHeaderOptions({ title: 'Confirm Transaction' })} />
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.contentContainer}>
             <ThemedText style={styles.subtitle}>Transaction Details</ThemedText>
@@ -269,8 +266,7 @@ const SendLiquid = () => {
 
   return (
     <GradientScreen variant={network}>
-      <Stack.Screen options={{ headerShown: false }} />
-      {selectedAsset ? <ScreenHeader title={`Send ${getAssetName(selectedAsset)}`} /> : null}
+      <Stack.Screen options={buildScreenHeaderOptions({ title: selectedAsset ? `Send ${getAssetName(selectedAsset)}` : 'Send Liquid' })} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.contentContainer}>
           <View style={[styles.networkBar, { backgroundColor: '#3498db' }]}>
