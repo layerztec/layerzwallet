@@ -1,13 +1,13 @@
 import * as Application from 'expo-application';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext } from 'react';
-import { SectionList, SectionListData, StyleSheet, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SectionListData, StyleSheet, View } from 'react-native';
 import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import SettingsRow from '@/components/SettingsRow';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getGradientColors } from '@/utils/gradientUtils';
+import { SectionList } from '@/components/SectionList';
 import * as Linking from 'expo-linking';
 
 interface SettingsItem {
@@ -29,7 +29,6 @@ interface SettingsSection extends SectionListData<SettingsItem> {
 export default function AboutScreen() {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
-  const insets = useSafeAreaInsets();
 
   const handleBlogPress = async () => {
     await Linking.openURL('https://layerzwallet.com/blog');
@@ -108,29 +107,27 @@ export default function AboutScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
-        <Stack.Screen options={buildScreenHeaderOptions({ title: 'About' })} />
+      <Stack.Screen options={buildScreenHeaderOptions({ title: 'About' })} />
 
-        <View style={styles.sectionListContainer}>
-          <SectionList<SettingsItem, SettingsSection>
-            sections={sections}
-            keyExtractor={(item) => item.id}
-            renderItem={() => null}
-            renderSectionHeader={renderSectionHeader}
-            renderSectionFooter={renderSectionFooter}
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: 16 + insets.bottom }]}
-            stickySectionHeadersEnabled={false}
-            style={styles.scrollContainer}
-          />
+      <View style={styles.sectionListContainer}>
+        <SectionList<SettingsItem, SettingsSection>
+          sections={sections}
+          keyExtractor={(item) => item.id}
+          renderItem={() => null}
+          renderSectionHeader={renderSectionHeader}
+          renderSectionFooter={renderSectionFooter}
+          contentContainerStyle={styles.scrollContent}
+          stickySectionHeadersEnabled={false}
+          style={styles.scrollContainer}
+        />
 
-          <View style={styles.versionContainer}>
-            <ThemedText style={styles.versionText}>
-              {Application.applicationName} v{Application.nativeApplicationVersion}
-            </ThemedText>
-            <ThemedText style={styles.buildText}>(build {Application.nativeBuildVersion})</ThemedText>
-          </View>
+        <View style={styles.versionContainer}>
+          <ThemedText style={styles.versionText}>
+            {Application.applicationName} v{Application.nativeApplicationVersion}
+          </ThemedText>
+          <ThemedText style={styles.buildText}>(build {Application.nativeBuildVersion})</ThemedText>
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }

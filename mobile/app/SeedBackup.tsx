@@ -1,10 +1,9 @@
 import React, { useContext, useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { Alert, StyleSheet, TouchableOpacity, View, Animated, ActivityIndicator, Image, FlatList, LayoutAnimation, Platform, Pressable } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity, View, Animated, ActivityIndicator, Image, LayoutAnimation, Platform, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { usePreventRemove } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import GradientScreen from '@/components/GradientScreen';
 import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
@@ -16,7 +15,7 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useAskPassword } from '@/src/hooks/AskPasswordContext';
 import { useSettings } from '@shared/hooks/useSettings';
-import * as LocalAuthentication from 'expo-local-authentication';
+import { FlatList } from '@/components/FlatList';
 
 const TOTAL_WORDS = 12;
 const ERROR_TIMEOUT_MS = 2000;
@@ -86,7 +85,6 @@ SelectableWordDisplay.displayName = 'SelectableWordDisplay';
 export default function SeedBackupScreen() {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
-  const insets = useSafeAreaInsets();
   const { settings } = useSettings();
   const { authenticateWithBiometrics } = useAuthState();
   const { askPassword } = useAskPassword();
@@ -316,7 +314,7 @@ export default function SeedBackupScreen() {
           keyExtractor={(item) => item.id.toString()}
           numColumns={2}
           columnWrapperStyle={styles.verificationWordRow}
-          contentContainerStyle={[styles.verificationWordList, { paddingBottom: 20 + insets.bottom }]}
+          contentContainerStyle={[styles.verificationWordList, { paddingBottom: 20 }]}
           scrollEnabled={true}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={

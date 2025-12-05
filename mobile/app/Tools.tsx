@@ -1,8 +1,8 @@
-import { Alert, StyleSheet, TouchableOpacity, View, SectionList, Pressable } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity, View, Pressable } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Bugsnag from '@bugsnag/expo';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
@@ -31,12 +31,12 @@ import { EStep, InitializationContext } from '@shared/hooks/InitializationContex
 import { Stack, useRouter } from 'expo-router';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getGradientColors } from '@/utils/gradientUtils';
+import { SectionList } from '@/components/SectionList';
 
 type TSettingsKey = keyof typeof SETTINGS_CONFIG;
 
 export default function TabThreeScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { setStep } = useContext(InitializationContext);
   const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
   const { scanQr } = useContext(ScanQrContext);
@@ -406,7 +406,7 @@ export default function TabThreeScreen() {
           contentInsetAdjustmentBehavior="automatic"
           automaticallyAdjustContentInsets
           renderSectionHeader={renderSectionHeader}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 }]}
           style={styles.scrollContainer}
         />
       </SafeAreaView>
