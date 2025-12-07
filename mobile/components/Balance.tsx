@@ -27,7 +27,7 @@ const Balance = forwardRef<{ refresh: () => void }>((props, ref) => {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { balance, mutate, isLoading } = useBalance(network, accountNumber, BackgroundExecutor);
+  const { balance, mutate } = useBalance(network, accountNumber, BackgroundExecutor);
   const { exchangeRate } = useExchangeRate(network, 'USD');
   const ticker = getTickerByNetwork(network);
   const canBuyWithFiat = fiatOnRamp?.[network]?.canBuyWithFiat;
@@ -40,12 +40,12 @@ const Balance = forwardRef<{ refresh: () => void }>((props, ref) => {
 
   const [displayBalance, displaySubBalance] = useMemo(() => {
     const decimals = getDecimalsByNetwork(network);
-    if (!balance) return [`— ${ticker}`, '—'];
+    if (!balance) return [`—`, '—'];
     const formattedBalance = formatBalance(balance, decimals);
-    if (!exchangeRate) return [formattedBalance + ' ' + ticker, '—'];
+    if (!exchangeRate) return [formattedBalance, '—'];
     const usdValue = formatFiatBalance(balance, decimals, exchangeRate);
     return [formattedBalance, usdValue];
-  }, [ticker, network, balance, exchangeRate]);
+  }, [network, balance, exchangeRate]);
 
   const handleBuyClick = () => {
     BackgroundExecutor.getAddress(network, accountNumber).then((address) => {
@@ -208,7 +208,7 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
             <ThemedText type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
               {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
             </ThemedText>
-            <ThemedText style={styles.balanceUsd}>{displaySubBalance} USD</ThemedText>
+            <ThemedText style={styles.balanceUsd}>${displaySubBalance}</ThemedText>
           </View>
 
           <View style={styles.balanceNetworkIcons}>{icons}</View>
