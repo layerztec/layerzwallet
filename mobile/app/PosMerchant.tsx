@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import GradientScreen from '@/components/GradientScreen';
 import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
-import { queryForMetadata, PosMetadata, initiateScan, ScanRequest } from '@shared/modules/merchants';
+import { initiateScan, PosMetadata, queryForMetadata, ScanRequest } from '@shared/modules/merchants';
 import { getDeviceID } from '@shared/modules/device-id';
 import { SecureStorage } from '@/src/class/secure-storage';
 import { Csprng } from '@/src/class/rng';
@@ -18,9 +18,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useCachedBalance } from '@shared/hooks/useCachedBalance';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import assert from 'assert';
-import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { ArkWallet } from '@shared/class/wallets/ark-wallet';
-import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { walletSupportsLightning } from '@shared/class/wallets/interface-lightning-wallet';
 
 const maxFeePercent = 5; // hardcoded at the moment. might give user option to adjust later
 
@@ -365,7 +363,7 @@ const PosMerchant: React.FC = () => {
           // checked that we have enought balance, lets try to pay:
           console.log(`Trying to pay with ${n}...`);
           const wallet = await BackgroundExecutor.lazyInitWallet(n, accountNumber);
-          assert(wallet instanceof SparkWallet || wallet instanceof ArkWallet || wallet instanceof BreezWallet, 'Not a Lightning wallet');
+          assert(walletSupportsLightning(wallet));
           triedAtLeastOnce = true;
           let result: boolean = false;
           try {
