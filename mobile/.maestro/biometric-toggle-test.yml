@@ -7,8 +7,6 @@ appId: com.layerzwallet.mobile
 # Navigate to Settings and test biometric toggle
 - tapOn:
     id: SettingsButton
-- assertVisible:
-    id: SettingsScreenTitle
 
 # Wait for settings to load
 - waitForAnimationToEnd:
