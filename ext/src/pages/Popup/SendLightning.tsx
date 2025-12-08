@@ -15,11 +15,9 @@ import BigNumber from 'bignumber.js';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { TLightningWallet } from '@shared/types/TWallet';
 import assert from 'assert';
-import { BreezWallet } from '@shared/class/wallets/breez-wallet';
-import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import Lnurl, { LnurlPayServicePayload } from '@shared/class/lnurl';
 import { convertMerchantQRToLightningAddress } from '@shared/modules/merchants';
+import { walletSupportsLightning } from '@shared/class/wallets/interface-lightning-wallet';
 
 export interface SendLightningProps {
   network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK;
@@ -118,7 +116,7 @@ const SendLightning: React.FC = () => {
     const initializeWallet = async () => {
       try {
         const w = await BackgroundCaller.lazyInitWallet(network, accountNumber);
-        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkWallet);
+        assert(walletSupportsLightning(w));
         walletRef.current = w;
       } catch (err) {
         console.error('Failed to initialize wallet:', err);

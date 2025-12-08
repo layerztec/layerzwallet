@@ -15,9 +15,7 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_ARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import assert from 'assert';
-import { BreezWallet } from '@shared/class/wallets/breez-wallet';
-import { SparkWallet } from '@shared/class/wallets/spark-wallet';
-import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { walletSupportsLightning } from '@shared/class/wallets/interface-lightning-wallet';
 
 export type ReceiveLightningProps = {
   network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK;
@@ -93,7 +91,7 @@ export default function ReceiveLightningScreen() {
     const initializeWallet = async () => {
       try {
         const w = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkWallet);
+        assert(walletSupportsLightning(w));
         walletRef.current = w;
         setIsWalletInitialized(true);
 
