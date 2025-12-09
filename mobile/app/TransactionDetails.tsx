@@ -1,29 +1,28 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Linking, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, withRepeat, withSequence } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import Timeline from 'react-native-timeline-flatlist';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DetachedSheet from '@/components/DetachedSheet';
 import { ThemedText } from '@/components/ThemedText';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { getDecimalsByNetwork, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { getTokenInfo, getTokenIconColor } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 
 export default function TransactionDetails() {
-  const { network: selectedNetwork } = useContext(NetworkContext);
-  const { transaction: jsonTransaction } = useLocalSearchParams();
+  const { transaction: jsonTransaction, layerNetwork } = useLocalSearchParams();
   const transaction: CommonTransaction = JSON.parse(jsonTransaction as string);
   const network = transaction.network;
+  const currentLayerNetwork = layerNetwork as string | undefined;
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);
   const { exchangeRate } = useExchangeRate(network, 'USD');
@@ -32,7 +31,6 @@ export default function TransactionDetails() {
   const [imageLoadErrors, setImageLoadErrors] = useState<{ [key: string]: boolean }>({});
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const [confirmationEta, setConfirmationEta] = useState<string>('');
-  const navigation = useNavigation();
   const router = useRouter();
 
   // Animation values
@@ -276,7 +274,7 @@ export default function TransactionDetails() {
     return null;
   }, [isZeroAmountWithTokens, transaction.tokenTransfers]);
 
-  const [formattedDate, formattedDateWithTime] = useMemo(() => {
+  const formattedDateWithTime = useMemo(() => {
     const d = new Date(transaction.timestamp * 1000);
     const dateStr = d.toLocaleDateString('en-US', {
       month: 'long',
@@ -288,7 +286,7 @@ export default function TransactionDetails() {
       minute: '2-digit',
       hour12: true,
     });
-    return [dateStr, `${dateStr} - ${timeStr.toLowerCase()}`];
+    return `${dateStr} - ${timeStr.toLowerCase()}`;
   }, [transaction.timestamp]);
 
   const amountPrimary = useMemo(() => {
@@ -321,21 +319,6 @@ export default function TransactionDetails() {
     if (transaction.amount === undefined || !exchangeRate) return '— USD';
     return `${formatFiatBalance(Math.abs(transaction.amount).toString(), decimals, exchangeRate)} USD`;
   }, [isZeroAmountWithTokens, transaction.amount, decimals, exchangeRate]);
-
-  const statusText = useMemo(() => {
-    switch (transaction.status) {
-      case 'pending':
-        return 'Pending...';
-      case 'confirmed':
-        return 'Confirmed';
-      case 'failed':
-        return 'Failed';
-      case 'cancelled':
-        return 'Cancelled';
-      default:
-        return undefined;
-    }
-  }, [transaction.status]);
 
   const directionText = useMemo(() => {
     if (isZeroAmountWithTokens && singleTokenInfo) {
@@ -410,7 +393,7 @@ export default function TransactionDetails() {
       }
     };
 
-    const timeline: Array<{
+    const timeline: {
       time: string;
       title: string;
       description: string;
@@ -418,7 +401,7 @@ export default function TransactionDetails() {
       circleColor: string;
       completed: boolean;
       icon?: React.ReactElement;
-    }> = [];
+    }[] = [];
 
     // STATE 1: SENT/RECEIVED/SWAP (always completed, always white)
     // Show timestamp only if transaction is pending (not confirmed)
@@ -489,7 +472,7 @@ export default function TransactionDetails() {
     }
 
     return timeline;
-  }, [transaction, network, calculateBlockTime, confirmationEta]);
+  }, [transaction, network, calculateBlockTime]);
 
   const handleCopy = async (text?: string) => {
     if (!text) return;
@@ -559,7 +542,7 @@ export default function TransactionDetails() {
   }, [isZeroAmountWithTokens, transaction.tokenTransfers, transaction.direction, imageLoadErrors]);
 
   return (
-    <DetachedSheet variant={network} onClose={handleSheetClose}>
+    <DetachedSheet variant={network} layerNetwork={currentLayerNetwork} onClose={handleSheetClose}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
         <View style={styles.container}>
           {/* Top header: icon, type, date */}
@@ -790,17 +773,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.6)',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 16,
-    right: 0,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   detailsList: {
     marginTop: 28,

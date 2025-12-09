@@ -265,7 +265,14 @@ export default function Home() {
   };
 
   const handleTransactionDetails = (transaction: CommonTransaction) => {
-    router.push({ pathname: '/TransactionDetails', params: { transaction: JSON.stringify(transaction) } });
+    // Pass the current layer network so transaction details can use the correct background color
+    router.push({
+      pathname: '/TransactionDetails',
+      params: {
+        transaction: JSON.stringify(transaction),
+        layerNetwork: network, // Pass the current layer being viewed
+      },
+    });
   };
 
   const handleBackupSeed = () => {
