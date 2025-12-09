@@ -6,7 +6,7 @@ import bolt11lib from 'bolt11';
 import { Ionicons } from '@expo/vector-icons';
 
 import GradientScreen from '@/components/GradientScreen';
-import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { initiateScan, PosMetadata, queryForMetadata, ScanRequest } from '@shared/modules/merchants';
 import { getDeviceID } from '@shared/modules/device-id';
@@ -315,7 +315,8 @@ const PosMerchant: React.FC = () => {
   if (loading) {
     return (
       <GradientScreen variant={NETWORK_LIGHTNING}>
-        <Stack.Screen options={buildScreenHeaderOptions({ title: 'POS Payment' })} />
+        <Stack.Screen options={{ headerShown: false }} />
+        <ScreenHeader title="POS Payment" />
         <View style={styles.centered}>
           <ActivityIndicator />
           <ThemedText style={styles.centeredText}>Loading merchant details…</ThemedText>
@@ -327,7 +328,8 @@ const PosMerchant: React.FC = () => {
   if (error) {
     return (
       <GradientScreen variant={NETWORK_LIGHTNING}>
-        <Stack.Screen options={buildScreenHeaderOptions({ title: 'POS Payment' })} />
+        <Stack.Screen options={{ headerShown: false }} />
+        <ScreenHeader title="POS Payment" />
         <View style={styles.centered}>
           <ThemedText style={styles.errorText}>{error}</ThemedText>
           <ThemedText style={styles.errorText}>{errorLogs}</ThemedText>
@@ -414,7 +416,8 @@ const PosMerchant: React.FC = () => {
 
   return (
     <GradientScreen variant={NETWORK_LIGHTNING}>
-      <Stack.Screen options={buildScreenHeaderOptions({ title: 'POS Payment' })} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title="POS Payment" />
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">

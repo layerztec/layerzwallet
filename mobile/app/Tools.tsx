@@ -1,11 +1,11 @@
-import { Alert, StyleSheet, TouchableOpacity, View, Pressable } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity, View, SectionList, Pressable } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Bugsnag from '@bugsnag/expo';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
-import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 import { decrypt, encrypt } from '../src/modules/encryption';
@@ -28,10 +28,9 @@ import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { SecureStorage } from '@/src/class/secure-storage';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getGradientColors } from '@/utils/gradientUtils';
-import { SectionList } from '@/components/SectionList';
 
 type TSettingsKey = keyof typeof SETTINGS_CONFIG;
 
@@ -398,7 +397,7 @@ export default function TabThreeScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
-        <Stack.Screen options={buildScreenHeaderOptions({ title: 'Tools' })} />
+        <ScreenHeader title="Tools" />
         <SectionList
           sections={sections}
           keyExtractor={(item, index) => item + index}
@@ -406,7 +405,7 @@ export default function TabThreeScreen() {
           contentInsetAdjustmentBehavior="automatic"
           automaticallyAdjustContentInsets
           renderSectionHeader={renderSectionHeader}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 }]}
+          contentContainerStyle={styles.scrollContent}
           style={styles.scrollContainer}
         />
       </SafeAreaView>

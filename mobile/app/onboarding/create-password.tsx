@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { ThemedText } from '@/components/ThemedText';
-import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Colors } from '@shared/constants/Colors';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
@@ -209,7 +209,7 @@ export default function CreatePasswordScreen() {
     <View style={styles.container}>
       <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <SafeAreaView style={styles.safeAreaView}>
-          <Stack.Screen options={buildScreenHeaderOptions()} />
+          <ScreenHeader />
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardContainer}>
             <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
               <View style={styles.content}>

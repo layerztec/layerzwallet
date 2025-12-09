@@ -10,6 +10,7 @@ import {
   Image,
   Keyboard,
   TouchableWithoutFeedback,
+  BackHandler,
   KeyboardAvoidingView,
   Platform,
   useWindowDimensions,
@@ -18,7 +19,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, usePreventRemove } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -112,15 +113,19 @@ export default function ImportWalletScreen() {
         gestureEnabled: !isLoading,
         headerShown: !isLoading,
       });
-      return undefined;
+
+      const onBackPress = () => {
+        if (isLoading) {
+          return true;
+        }
+        return false;
+      };
+
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => backHandler.remove();
     }, [isLoading, navigation])
   );
-
-  usePreventRemove(isLoading, () => {
-    if (isLoading) {
-      Alert.alert('Import in progress', 'Please wait until the wallet import finishes.');
-    }
-  });
 
   const proceedWithImport = async (sanitizedMnemonic: string) => {
     setIsLoading(true);
