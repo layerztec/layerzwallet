@@ -4,10 +4,10 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming, withRepeat, wit
 import { Image } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import Timeline from 'react-native-timeline-flatlist';
-
-import GradientFormSheet from '@/components/GradientFormSheet';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import DetachedSheet from '@/components/DetachedSheet';
 import { ThemedText } from '@/components/ThemedText';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -33,6 +33,7 @@ export default function TransactionDetails() {
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const [confirmationEta, setConfirmationEta] = useState<string>('');
   const navigation = useNavigation();
+  const router = useRouter();
 
   // Animation values
   const descriptionOpacity = useSharedValue(0);
@@ -94,13 +95,10 @@ export default function TransactionDetails() {
     setIsTimelineExpanded(!isTimelineExpanded);
   };
 
-  // Set initial detents on mount - allow both 80% and 100%
-  useEffect(() => {
-    navigation.setOptions({
-      sheetAllowedDetents: [0.8, 1.0],
-      sheetInitialDetentIndex: 0,
-    });
-  }, [navigation]);
+  // Handle bottom sheet close - navigate back
+  const handleSheetClose = () => {
+    router.back();
+  };
 
   // Calculate ETA for Bitcoin pending transactions
   useEffect(() => {
@@ -561,194 +559,194 @@ export default function TransactionDetails() {
   }, [isZeroAmountWithTokens, transaction.tokenTransfers, transaction.direction, imageLoadErrors]);
 
   return (
-    <GradientFormSheet variant={selectedNetwork} scroll={true}>
-      <View style={styles.container}>
-        {/* Top header: icon, type, date */}
-        <View style={styles.topHeader}>
-          <View style={styles.networkIcon}>{networkIconContent}</View>
-          <View style={styles.typeTextWrap}>
-            <ThemedText style={styles.typeText}>{directionText}</ThemedText>
-            {formattedDateWithTime && <ThemedText style={styles.subText}>{formattedDateWithTime}</ThemedText>}
+    <DetachedSheet variant={network} onClose={handleSheetClose}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+        <View style={styles.container}>
+          {/* Top header: icon, type, date */}
+          <View style={styles.topHeader}>
+            <View style={styles.networkIcon}>{networkIconContent}</View>
+            <View style={styles.typeTextWrap}>
+              <ThemedText style={styles.typeText}>{directionText}</ThemedText>
+              {formattedDateWithTime && <ThemedText style={styles.subText}>{formattedDateWithTime}</ThemedText>}
+            </View>
           </View>
-        </View>
 
-        {/* Amounts */}
-        <View style={styles.amountsBlock}>
-          <ThemedText type={'sfProRounded' as any} style={styles.amountPrimary} textAlign="center">
-            {amountPrimary}
-            <ThemedText style={styles.amountTicker}> {amountTicker}</ThemedText>
-          </ThemedText>
-          {amountUsd && <ThemedText style={styles.amountUsd}>{amountUsd}</ThemedText>}
-        </View>
+          {/* Amounts */}
+          <View style={styles.amountsBlock}>
+            <ThemedText type={'sfProRounded' as any} style={styles.amountPrimary} textAlign="center">
+              {amountPrimary}
+              <ThemedText style={styles.amountTicker}> {amountTicker}</ThemedText>
+            </ThemedText>
+            {amountUsd && <ThemedText style={styles.amountUsd}>{amountUsd}</ThemedText>}
+          </View>
 
-        {/* Token transfers list for multiple tokens */}
-        {tokenTransfersList}
+          {/* Token transfers list for multiple tokens */}
+          {tokenTransfersList}
 
-        {/* Transaction Timeline */}
-        {timelineData && timelineData.length > 0 && (
-          <TouchableOpacity style={styles.timelineContainer} onPress={toggleTimeline} activeOpacity={0.9}>
-            <View style={styles.timelineInnerContainer}>
-              <Timeline
-                key={`timeline-${confirmationEta}`}
-                data={timelineData}
-                circleSize={20}
-                circleColor="#FFFFFF"
-                lineColor="#FFFFFF"
-                columnFormat="single-column-left"
-                innerCircle="icon"
-                lineWidth={4}
-                timeContainerStyle={{ width: 0, minWidth: 0 }}
-                timeStyle={styles.timelineTime}
-                titleStyle={styles.timelineTitle}
-                descriptionStyle={styles.timelineDescription}
-                listViewStyle={styles.timelineListView}
-                isUsingFlatlist={true}
-                eventContainerStyle={styles.timelineEventContainer}
-                rowContainerStyle={styles.timelineRowContainer}
-                iconStyle={styles.timelineIconStyle}
-                renderTime={() => {
-                  // Hide the default time container - we'll render it in renderDetail instead
-                  return null;
-                }}
-                renderDetail={(rowData: any, rowDataIndex?: number) => {
-                  const isCompleted = rowData?.completed !== false;
-                  const isPendingTitle = rowData?.title === 'Pending';
-                  const shouldFlash = isPendingTitle && isCurrentlyPending;
-                  // Check if this is the last item by comparing with the last item in timelineData
-                  const isLastItem = timelineData.length > 0 && (rowDataIndex === timelineData.length - 1 || rowData === timelineData[timelineData.length - 1]);
-                  // Check if transaction is pending (for ETA display)
-                  const hasConfirmations = (transaction.confirmations ?? 0) > 0;
-                  const isPending = transaction.status === 'pending' && !hasConfirmations;
+          {/* Transaction Timeline */}
+          {timelineData && timelineData.length > 0 && (
+            <TouchableOpacity style={styles.timelineContainer} onPress={toggleTimeline} activeOpacity={0.9}>
+              <View style={styles.timelineInnerContainer}>
+                <Timeline
+                  key={`timeline-${confirmationEta}`}
+                  data={timelineData}
+                  circleSize={20}
+                  circleColor="#FFFFFF"
+                  lineColor="#FFFFFF"
+                  columnFormat="single-column-left"
+                  innerCircle="icon"
+                  lineWidth={4}
+                  timeContainerStyle={{ width: 0, minWidth: 0 }}
+                  timeStyle={styles.timelineTime}
+                  titleStyle={styles.timelineTitle}
+                  descriptionStyle={styles.timelineDescription}
+                  listViewStyle={styles.timelineListView}
+                  isUsingFlatlist={true}
+                  eventContainerStyle={styles.timelineEventContainer}
+                  rowContainerStyle={styles.timelineRowContainer}
+                  iconStyle={styles.timelineIconStyle}
+                  renderTime={() => {
+                    // Hide the default time container - we'll render it in renderDetail instead
+                    return null;
+                  }}
+                  renderDetail={(rowData: any, rowDataIndex?: number) => {
+                    const isCompleted = rowData?.completed !== false;
+                    const isPendingTitle = rowData?.title === 'Pending';
+                    const shouldFlash = isPendingTitle && isCurrentlyPending;
+                    // Check if this is the last item by comparing with the last item in timelineData
+                    const isLastItem = timelineData.length > 0 && (rowDataIndex === timelineData.length - 1 || rowData === timelineData[timelineData.length - 1]);
+                    // Check if transaction is pending (for ETA display)
+                    const hasConfirmations = (transaction.confirmations ?? 0) > 0;
+                    const isPending = transaction.status === 'pending' && !hasConfirmations;
 
-                  return (
-                    <View style={[styles.timelineDetailContainer, isLastItem && styles.timelineDetailContainerLast]}>
-                      <View style={styles.timelineTitleRow}>
-                        {shouldFlash ? (
-                          <Animated.Text
-                            style={[
-                              styles.timelineTitle,
-                              pendingFlashAnimatedStyle,
-                              {
-                                color: 'rgba(255, 255, 255, 1.0)',
-                              },
-                            ]}
-                          >
-                            {rowData?.title}
-                          </Animated.Text>
-                        ) : (
+                    return (
+                      <View style={[styles.timelineDetailContainer, isLastItem && styles.timelineDetailContainerLast]}>
+                        <View style={styles.timelineTitleRow}>
+                          {shouldFlash ? (
+                            <Animated.Text
+                              style={[
+                                styles.timelineTitle,
+                                pendingFlashAnimatedStyle,
+                                {
+                                  color: 'rgba(255, 255, 255, 1.0)',
+                                },
+                              ]}
+                            >
+                              {rowData?.title}
+                            </Animated.Text>
+                          ) : (
+                            <ThemedText
+                              style={[
+                                styles.timelineTitle,
+                                {
+                                  color: isCompleted ? 'rgba(255, 255, 255, 1.0)' : 'rgba(255, 255, 255, 0.3)',
+                                },
+                              ]}
+                            >
+                              {rowData?.title}
+                            </ThemedText>
+                          )}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'flex-end' }}>
+                            {/* Show ETA for Confirmed state when pending - always visible (not animated) */}
+                            {(() => {
+                              const shouldShowEta = rowData?.title === 'Confirmed' && isPending && confirmationEta;
+                              return shouldShowEta ? (
+                                <ThemedText
+                                  style={[
+                                    styles.timelineTime,
+                                    {
+                                      color: 'rgba(255, 255, 255, 0.6)',
+                                      opacity: 1, // Always visible, not affected by animation
+                                    },
+                                  ]}
+                                >
+                                  {confirmationEta}
+                                </ThemedText>
+                              ) : (
+                                rowData?.time && (
+                                  <Animated.View style={timestampAnimatedStyle}>
+                                    <ThemedText
+                                      style={[
+                                        styles.timelineTime,
+                                        {
+                                          color: isCompleted ? 'rgba(255, 255, 255, 1.0)' : 'rgba(255, 255, 255, 0.3)',
+                                        },
+                                      ]}
+                                    >
+                                      {rowData.time}
+                                    </ThemedText>
+                                  </Animated.View>
+                                )
+                              );
+                            })()}
+                          </View>
+                        </View>
+                        <Animated.View style={descriptionAnimatedStyle}>
                           <ThemedText
                             style={[
-                              styles.timelineTitle,
+                              styles.timelineDescription,
                               {
-                                color: isCompleted ? 'rgba(255, 255, 255, 1.0)' : 'rgba(255, 255, 255, 0.3)',
+                                color: isCompleted ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.3)',
                               },
                             ]}
                           >
-                            {rowData?.title}
+                            {rowData?.description}
                           </ThemedText>
-                        )}
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'flex-end' }}>
-                          {/* Show ETA for Confirmed state when pending - always visible (not animated) */}
-                          {(() => {
-                            const shouldShowEta = rowData?.title === 'Confirmed' && isPending && confirmationEta;
-                            return shouldShowEta ? (
-                              <ThemedText
-                                style={[
-                                  styles.timelineTime,
-                                  {
-                                    color: 'rgba(255, 255, 255, 0.6)',
-                                    opacity: 1, // Always visible, not affected by animation
-                                  },
-                                ]}
-                              >
-                                {confirmationEta}
-                              </ThemedText>
-                            ) : (
-                              rowData?.time && (
-                                <Animated.View style={timestampAnimatedStyle}>
-                                  <ThemedText
-                                    style={[
-                                      styles.timelineTime,
-                                      {
-                                        color: isCompleted ? 'rgba(255, 255, 255, 1.0)' : 'rgba(255, 255, 255, 0.3)',
-                                      },
-                                    ]}
-                                  >
-                                    {rowData.time}
-                                  </ThemedText>
-                                </Animated.View>
-                              )
-                            );
-                          })()}
-                        </View>
+                        </Animated.View>
                       </View>
-                      <Animated.View style={descriptionAnimatedStyle}>
-                        <ThemedText
-                          style={[
-                            styles.timelineDescription,
-                            {
-                              color: isCompleted ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.3)',
-                            },
-                          ]}
-                        >
-                          {rowData?.description}
-                        </ThemedText>
-                      </Animated.View>
-                    </View>
-                  );
-                }}
-              />
+                    );
+                  }}
+                />
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Details list */}
+          <View style={styles.detailsList}>
+            <View style={styles.detailRow}>
+              <ThemedText style={styles.detailLabel}>{transaction.direction === 'send' ? 'To' : 'From'}</ThemedText>
+              <View style={styles.detailValueWrap}>
+                <TouchableOpacity onPress={() => handleCopy(transaction.counterparty ?? '')}>
+                  <MaterialIcons name="content-copy" size={16} color="rgba(255, 255, 255, 0.8)" />
+                </TouchableOpacity>
+                <ThemedText style={[styles.detailValue]} numberOfLines={1} ellipsizeMode="middle">
+                  {transaction.counterparty ?? '—'}
+                </ThemedText>
+              </View>
             </View>
+
+            <View style={styles.detailRow}>
+              <ThemedText style={styles.detailLabel}>Network Fee</ThemedText>
+              <ThemedText style={styles.detailValue}>{typeof transaction.fee === 'number' ? `${formatBalance(transaction.fee.toString(), decimals)} ${ticker}` : '—'}</ThemedText>
+            </View>
+
+            <View style={styles.detailRow}>
+              <ThemedText style={styles.detailLabel}>Layer</ThemedText>
+              <ThemedText style={styles.detailValue}>{capitalizeFirstLetter(network)}</ThemedText>
+            </View>
+          </View>
+
+          {/* Open in explorer */}
+          <TouchableOpacity disabled={!transaction.explorerUrl} style={[styles.explorerButton, !transaction.explorerUrl && { opacity: 0.6 }]} onPress={handleOpenInExplorer}>
+            <ThemedText style={styles.explorerText}>Open in explorer</ThemedText>
           </TouchableOpacity>
-        )}
-
-        {/* Details list */}
-        <View style={styles.detailsList}>
-          <View style={styles.detailRow}>
-            <ThemedText style={styles.detailLabel}>{transaction.direction === 'send' ? 'To' : 'From'}</ThemedText>
-            <View style={styles.detailValueWrap}>
-              <TouchableOpacity onPress={() => handleCopy(transaction.counterparty ?? '')}>
-                <MaterialIcons name="content-copy" size={16} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
-              <ThemedText style={[styles.detailValue]} numberOfLines={1} ellipsizeMode="middle">
-                {transaction.counterparty ?? '—'}
-              </ThemedText>
-            </View>
-          </View>
-
-          <View style={styles.detailRow}>
-            <ThemedText style={styles.detailLabel}>Date</ThemedText>
-            <ThemedText style={styles.detailValue}>{formattedDate}</ThemedText>
-          </View>
-
-          <View style={styles.detailRow}>
-            <ThemedText style={styles.detailLabel}>Network Fee</ThemedText>
-            <ThemedText style={styles.detailValue}>{typeof transaction.fee === 'number' ? `${formatBalance(transaction.fee.toString(), decimals)} ${ticker}` : '—'}</ThemedText>
-          </View>
-
-          <View style={styles.detailRow}>
-            <ThemedText style={styles.detailLabel}>Layer</ThemedText>
-            <ThemedText style={styles.detailValue}>{capitalizeFirstLetter(network)}</ThemedText>
-          </View>
         </View>
-
-        {/* Open in explorer */}
-        <TouchableOpacity disabled={!transaction.explorerUrl} style={[styles.explorerButton, !transaction.explorerUrl && { opacity: 0.6 }]} onPress={handleOpenInExplorer}>
-          <ThemedText style={styles.explorerText}>Open in explorer</ThemedText>
-        </TouchableOpacity>
-      </View>
-    </GradientFormSheet>
+      </SafeAreaView>
+    </DetachedSheet>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
   container: {
     flexGrow: 1,
     marginHorizontal: 16,
     paddingBottom: 16,
   },
   topHeader: {
-    marginTop: 16,
     flexDirection: 'row',
     alignItems: 'center',
   },
