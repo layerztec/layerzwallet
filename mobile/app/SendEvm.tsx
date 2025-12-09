@@ -7,7 +7,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Keyboard, StyleSheet, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
 
 import GradientScreen from '@/components/GradientScreen';
-import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
@@ -225,7 +225,7 @@ export default function SendScreen() {
   if (screenState === 'broadcasting') {
     return (
       <GradientScreen variant={network}>
-        <Stack.Screen options={buildScreenHeaderOptions({ title: `Send ${getTickerByNetwork(network)}` })} />
+        <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
         <View style={styles.broadcastingContainer}>
           <ThemedText style={styles.broadcastingText}>Broadcasting transaction...</ThemedText>
         </View>
@@ -235,7 +235,8 @@ export default function SendScreen() {
 
   return (
     <GradientScreen variant={network}>
-      <Stack.Screen options={buildScreenHeaderOptions({ title: `Send ${getTickerByNetwork(network)}` })} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.contentContainer}>

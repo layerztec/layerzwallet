@@ -6,7 +6,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity,
 import * as bolt11 from 'bolt11';
 
 import GradientScreen from '@/components/GradientScreen';
-import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -249,7 +249,7 @@ const SendLightning: React.FC = () => {
   if (sendState === 'success') {
     return (
       <GradientScreen variant={network}>
-        <Stack.Screen options={buildScreenHeaderOptions({ title: 'Send Lightning' })} />
+        <ScreenHeader title="Send Lightning" />
         <View style={styles.successContainer}>
           <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
           <ThemedText style={styles.successMessage}>Payment Sent!</ThemedText>
@@ -264,7 +264,8 @@ const SendLightning: React.FC = () => {
 
   return (
     <GradientScreen variant={network}>
-      <Stack.Screen options={buildScreenHeaderOptions({ title: 'Send Lightning' })} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title="Send Lightning" />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.contentContainer}>

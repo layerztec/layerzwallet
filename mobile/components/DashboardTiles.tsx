@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect, useContext } from 'react';
-import { View, StyleSheet, Dimensions, Text, Image, TouchableOpacity, Animated } from 'react-native';
+import { View, StyleSheet, Dimensions, Text, Image, TouchableOpacity, FlatList, Animated } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,7 +13,6 @@ import { useCachedBalance } from '@shared/hooks/useCachedBalance';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { ThemedText } from '@/components/ThemedText';
-import { FlatList } from '@/components/FlatList';
 
 const logo = require('@/assets/images/ui/logo-main-screen.svg');
 
@@ -33,11 +32,6 @@ export interface LayerCard {
   originalIndex?: number;
   networkId: Networks;
 }
-
-type LogoItem = { type: 'logo' };
-type DashboardListItem = LayerCard | LogoItem;
-
-const isLogoItem = (item: DashboardListItem): item is LogoItem => 'type' in item && item.type === 'logo';
 
 interface DashboardTileProps {
   card: LayerCard;
@@ -242,7 +236,7 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
   const networkCards = useNetworkCards(accountNumber);
   const cards = providedCards || networkCards;
   const [currentNetworkId, setCurrentNetworkId] = useState<Networks>(NETWORK_BITCOIN);
-  const listData = useMemo<DashboardListItem[]>(() => (showLogo ? [{ type: 'logo' as const }, ...cards] : cards), [showLogo, cards]);
+  const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -277,15 +271,16 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
           <Text style={styles.hiddenText}>{currentNetworkId}</Text>
         </View>
 
-        <FlatList<DashboardListItem>
+        <FlatList
+          ref={flatListRef}
           key={`account-${accountNumber}`}
-          data={listData}
-          keyExtractor={(item, index) => (isLogoItem(item) ? 'logo' : `card-${item.name}-${index}-${accountNumber}`)}
+          data={showLogo ? [{ type: 'logo' }, ...cards] : cards}
+          keyExtractor={(item, index) => (item.type === 'logo' ? 'logo' : `card-${item.name}-${index}-${accountNumber}`)}
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           renderItem={({ item, index }) => {
-            if (isLogoItem(item)) {
+            if (item.type === 'logo') {
               return (
                 <View style={styles.logoContainer}>
                   <ExpoImage source={logo} style={styles.logo} contentFit="contain" />

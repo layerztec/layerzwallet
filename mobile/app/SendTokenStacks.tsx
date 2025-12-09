@@ -6,7 +6,7 @@ import assert from 'assert';
 import BigNumber from 'bignumber.js';
 
 import GradientScreen from '@/components/GradientScreen';
-import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useBalance } from '@shared/hooks/useBalance';
@@ -175,7 +175,8 @@ export default function SendTokenStacksScreen() {
 
   return (
     <GradientScreen variant={network}>
-      <Stack.Screen options={buildScreenHeaderOptions({ title: `Send ${token?.name || params.tokenName}` })} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title={`Send ${token?.name || params.tokenName}`} />
       <View style={styles.networkBadge}>
         <ThemedText style={styles.networkText}>on {capitalizeFirstLetter(network)}</ThemedText>
       </View>
