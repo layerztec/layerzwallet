@@ -233,7 +233,7 @@ const TokenRow = ({ network, token, setTokenBalances }: { network: Networks; tok
   const networkImage = getNetworkImageAsset(network);
   const networkIconContent = networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null;
 
-  const formattedBalance = formatBalance(balance ?? token.balance ?? '0', token.decimals);
+  const formattedBalance = formatBalance(balance ?? token.balance ?? '0', token.decimals, 2 /* only need 2 for USD */);
 
   useEffect(() => {
     if (balance === undefined) return;

@@ -31,7 +31,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenI
     decimalPlaces = 2;
   }
 
-  const formattedBalance = formatBalance(balance ?? token.balance ?? '0', token.decimals, decimalPlaces);
+  const formattedBalance = formatBalance(balance ?? token.balance ?? '0', token.decimals, Math.min(decimalPlaces, 8));
 
   // displaying token only if its balance is above the threshold. Threshold is arbitrary atm, probably
   // should be configurable per token
