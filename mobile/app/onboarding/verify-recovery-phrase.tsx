@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, StyleSheet, Animated, FlatList, TouchableOpacity, LayoutAnimation, Platform } from 'react-native';
+import { View, StyleSheet, Animated, TouchableOpacity, LayoutAnimation, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -11,6 +11,7 @@ import { Typography } from '@/constants/Typography';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { usePreventScreenCapture } from 'expo-screen-capture';
+import { FlatList } from '@/components/FlatList';
 
 // Constants
 const TOTAL_WORDS = 12;
@@ -269,7 +270,7 @@ export default function VerifyRecoveryPhrase() {
                     renderItem={renderWordItem}
                     numColumns={2}
                     keyExtractor={(item) => item.id.toString()}
-                    contentContainerStyle={styles.wordsContentContainer}
+                    contentContainerStyle={[styles.wordsContentContainer, { paddingBottom: 20 }]}
                     showsVerticalScrollIndicator={false}
                     columnWrapperStyle={styles.flatListRow}
                   />

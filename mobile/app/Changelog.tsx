@@ -1,10 +1,12 @@
 import GradientScreen from '@/components/GradientScreen';
-import ScreenHeader from '@/components/navigation/ScreenHeader';
+import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import * as Linking from 'expo-linking';
 import React, { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Stack } from 'expo-router';
+import { FlatList } from '@/components/FlatList';
 
 const gitCommitHash = require('../git_commit_hash.json');
 
@@ -93,13 +95,20 @@ export default function ChangelogScreen() {
     }
 
     return (
-      <FlatList data={commits} renderItem={renderCommitItem} keyExtractor={(item) => item.sha} style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} />
+      <FlatList
+        data={commits}
+        renderItem={renderCommitItem}
+        keyExtractor={(item) => item.sha}
+        style={styles.list}
+        contentContainerStyle={[styles.listContent, { paddingBottom: 20 }]}
+        showsVerticalScrollIndicator={false}
+      />
     );
   };
 
   return (
     <GradientScreen variant={network}>
-      <ScreenHeader title="Changelog" />
+      <Stack.Screen options={buildScreenHeaderOptions({ title: 'Changelog' })} />
 
       <View style={styles.container}>{renderContent()}</View>
     </GradientScreen>

@@ -1,11 +1,12 @@
 import React, { useContext, useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { Alert, StyleSheet, TouchableOpacity, View, Animated, ActivityIndicator, Image, FlatList, LayoutAnimation, Platform, Pressable } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity, View, Animated, ActivityIndicator, Image, LayoutAnimation, Platform, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { usePreventRemove } from '@react-navigation/native';
 
 import GradientScreen from '@/components/GradientScreen';
-import ScreenHeader from '@/components/navigation/ScreenHeader';
+import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import Button from '@/components/Button';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -14,7 +15,7 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useAskPassword } from '@/src/hooks/AskPasswordContext';
 import { useSettings } from '@shared/hooks/useSettings';
-import * as LocalAuthentication from 'expo-local-authentication';
+import { FlatList } from '@/components/FlatList';
 
 const TOTAL_WORDS = 12;
 const ERROR_TIMEOUT_MS = 2000;
@@ -235,13 +236,17 @@ export default function SeedBackupScreen() {
     [verificationComplete, showError, selectedWords, mnemonic, scrambledWords]
   );
 
-  const handleBackFromVerification = () => {
+  const handleBackFromVerification = useCallback(() => {
     setIsVerifying(false);
     setScrambledWords([]);
     setSelectedWords([]);
     setShowError(false);
     setVerificationComplete(false);
-  };
+  }, []);
+
+  usePreventRemove(isVerifying, () => {
+    handleBackFromVerification();
+  });
 
   const settingsContext = useSettings();
   const hasBackedUpSeed = settings.seedBackedUp === 'ON';
@@ -279,7 +284,7 @@ export default function SeedBackupScreen() {
   if (verificationComplete) {
     return (
       <GradientScreen variant={network} scroll>
-        <ScreenHeader title="Recovery Phrase" onBackPress={handleBackFromVerification} />
+        <Stack.Screen options={buildScreenHeaderOptions({ title: 'Recovery Phrase' })} />
         <View style={styles.verificationCompleteContainer}>
           <View style={styles.successIconContainer}>
             <Image source={require('@/assets/images/ui/success.png')} style={styles.successIcon} />
@@ -297,7 +302,7 @@ export default function SeedBackupScreen() {
   if (isVerifying) {
     return (
       <GradientScreen variant={network}>
-        <ScreenHeader title="Verify Recovery Phrase" onBackPress={handleBackFromVerification} />
+        <Stack.Screen options={buildScreenHeaderOptions({ title: 'Verify Recovery Phrase' })} />
         <View style={styles.verificationHeader}>
           <ThemedText style={styles.verificationTitle}>Tap the words in the correct order</ThemedText>
           <ThemedText style={styles.verificationSubtitle}>Select each word in the same order as your recovery phrase</ThemedText>
@@ -309,7 +314,7 @@ export default function SeedBackupScreen() {
           keyExtractor={(item) => item.id.toString()}
           numColumns={2}
           columnWrapperStyle={styles.verificationWordRow}
-          contentContainerStyle={styles.verificationWordList}
+          contentContainerStyle={[styles.verificationWordList, { paddingBottom: 20 }]}
           scrollEnabled={true}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
@@ -326,7 +331,7 @@ export default function SeedBackupScreen() {
 
   return (
     <GradientScreen variant={network} scroll>
-      <ScreenHeader title="Recovery Phrase" />
+      <Stack.Screen options={buildScreenHeaderOptions({ title: 'Recovery Phrase' })} />
       <View style={styles.container}>
         <View style={styles.warningSection}>
           <Pressable style={styles.warningHeader} onPress={handleBadgeTap}>

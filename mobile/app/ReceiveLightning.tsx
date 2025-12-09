@@ -6,7 +6,7 @@ import { Alert, ScrollView, Share, StyleSheet, TextInput, TouchableOpacity, View
 import QRCode from 'react-native-qrcode-svg';
 
 import GradientScreen from '@/components/GradientScreen';
-import ScreenHeader from '@/components/navigation/ScreenHeader';
+import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { TLightningWallet } from '@shared/types/TWallet';
@@ -24,6 +24,8 @@ export type ReceiveLightningProps = {
 export default function ReceiveLightningScreen() {
   const params = useLocalSearchParams<ReceiveLightningProps>();
   const network = params.network;
+  const receiveTitle = `Receive Lightning on ${capitalizeFirstLetter(network)}`;
+  const receivedTitle = `Received on ${capitalizeFirstLetter(network)}`;
   const { accountNumber } = useContext(AccountNumberContext);
   const [amount, setAmount] = useState<string>('');
   const [invoice, setInvoice] = useState<string>('');
@@ -214,8 +216,7 @@ export default function ReceiveLightningScreen() {
   if (isInvoicePaid) {
     return (
       <GradientScreen variant={network}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <ScreenHeader title={'Received on ' + capitalizeFirstLetter(network)} />
+        <Stack.Screen options={buildScreenHeaderOptions({ title: receivedTitle })} />
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.contentContainer}>
             <View style={styles.successContainer}>
@@ -232,8 +233,7 @@ export default function ReceiveLightningScreen() {
 
   return (
     <GradientScreen variant={network}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <ScreenHeader title={'Receive Lightning on ' + capitalizeFirstLetter(network)} />
+      <Stack.Screen options={buildScreenHeaderOptions({ title: receiveTitle })} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.contentContainer}>

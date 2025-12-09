@@ -1,7 +1,6 @@
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, Animated, FlatList, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePreventScreenCapture } from 'expo-screen-capture';
 import { ThemedText } from '@/components/ThemedText';
@@ -9,6 +8,7 @@ import { Typography } from '@/constants/Typography';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { Colors } from '@shared/constants/Colors';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { FlatList } from '@/components/FlatList';
 
 type CreateWalletScreenParams = {
   mnemonic: string;
@@ -101,7 +101,7 @@ export default function CreateWalletScreen() {
                 renderItem={renderWordItem}
                 numColumns={2}
                 keyExtractor={(item) => item.id.toString()}
-                contentContainerStyle={styles.wordsContentContainer}
+                contentContainerStyle={[styles.wordsContentContainer, { paddingBottom: 20 }]}
                 showsVerticalScrollIndicator={false}
                 columnWrapperStyle={styles.flatListRow}
               />

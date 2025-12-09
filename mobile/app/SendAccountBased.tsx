@@ -6,7 +6,7 @@ import React, { useContext, useRef, useState } from 'react';
 import { View, ScrollView, ActivityIndicator, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 
 import GradientScreen from '@/components/GradientScreen';
-import ScreenHeader from '@/components/navigation/ScreenHeader';
+import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
@@ -101,8 +101,7 @@ const SendAccountBased = () => {
   if (isSuccess) {
     return (
       <GradientScreen variant={network}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
+        <Stack.Screen options={buildScreenHeaderOptions({ title: `Send ${getTickerByNetwork(network)}` })} />
         <View style={styles.successContainer}>
           <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
           <ThemedText style={styles.successTitle}>Transaction Sent!</ThemedText>
@@ -116,8 +115,7 @@ const SendAccountBased = () => {
 
   return (
     <GradientScreen variant={network}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
+      <Stack.Screen options={buildScreenHeaderOptions({ title: `Send ${getTickerByNetwork(network)}` })} />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.contentContainer}>

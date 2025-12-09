@@ -1,11 +1,11 @@
 import * as Application from 'expo-application';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import React, { useContext, useEffect, useState } from 'react';
 import { Alert, Pressable, SectionList, SectionListData, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import ScreenHeader from '@/components/navigation/ScreenHeader';
+import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import SettingsRow from '@/components/SettingsRow';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
@@ -37,10 +37,11 @@ interface SettingsSection extends SectionListData<SettingsItem> {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { settings, updateSetting } = useSettings();
+  const { settings } = useSettings();
   const { network } = useContext(NetworkContext);
   const biometricInfo = useBiometrics();
   const { enableBiometricAuth, disableBiometricAuth } = useAuthState();
+  const insets = useSafeAreaInsets();
   const hasBackedUpSeed = settings.seedBackedUp === 'ON';
   const [isPasswordSet, setIsPasswordSet] = useState(false);
 
@@ -62,8 +63,7 @@ export default function SettingsScreen() {
       Alert.alert('Not Available', 'Biometric authentication is not available on this device.');
       return;
     }
-
-    const currentValue = settings.biometricAuth;
+    const currentValue = settings.biometricAuth ?? 'OFF';
     if (currentValue === 'ON') {
       Alert.alert('Disable Biometrics', 'Are you sure you want to disable biometric authentication?', [
         { text: 'Cancel', style: 'cancel' },
@@ -206,26 +206,25 @@ export default function SettingsScreen() {
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
-        <ScreenHeader title="Settings" testID="SettingsScreenTitle" />
+        <Stack.Screen options={buildScreenHeaderOptions({ title: 'Settings' })} />
+        <SectionList<SettingsItem, SettingsSection>
+          sections={sections}
+          keyExtractor={(item) => item.id}
+          renderItem={() => null}
+          renderSectionHeader={renderSectionHeader}
+          renderSectionFooter={renderSectionFooter}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 16 + insets.bottom }]}
+          stickySectionHeadersEnabled={false}
+          automaticallyAdjustContentInsets
+          contentInsetAdjustmentBehavior="automatic"
+          style={styles.scrollContainer}
+        />
 
-        <View style={styles.sectionListContainer}>
-          <SectionList<SettingsItem, SettingsSection>
-            sections={sections}
-            keyExtractor={(item) => item.id}
-            renderItem={() => null}
-            renderSectionHeader={renderSectionHeader}
-            renderSectionFooter={renderSectionFooter}
-            contentContainerStyle={styles.scrollContent}
-            stickySectionHeadersEnabled={false}
-            style={styles.scrollContainer}
-          />
-
-          <View style={styles.versionContainer}>
-            <ThemedText style={styles.versionText}>
-              {Application.applicationName} v{Application.nativeApplicationVersion}
-            </ThemedText>
-            <ThemedText style={styles.buildText}>(build {Application.nativeBuildVersion})</ThemedText>
-          </View>
+        <View style={styles.versionContainer}>
+          <ThemedText style={styles.versionText}>
+            {Application.applicationName} v{Application.nativeApplicationVersion}
+          </ThemedText>
+          <ThemedText style={styles.buildText}>(build {Application.nativeBuildVersion})</ThemedText>
         </View>
       </SafeAreaView>
     </View>
@@ -241,6 +240,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
+    top: 40,
   },
   scrollContent: {
     paddingHorizontal: 16,
