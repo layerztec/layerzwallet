@@ -40,6 +40,14 @@
     "logoURI": ""
   },
   {
+    "symbol": "stBTC",
+    "name": "Staked Bitcoin",
+    "address": "0xF4586028FFdA7Eca636864F80f8a3f2589E33795",
+    "decimals": 18,
+    "chainId": 3637,
+    "logoURI": ""
+  },
+  {
     "symbol": "USDC",
     "name": "USD Coin",
     "address": "0xb669dc8cc6d044307ba45366c0c836ec3c7e31aa",
