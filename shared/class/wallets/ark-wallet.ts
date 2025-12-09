@@ -189,7 +189,9 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     for (const transaction of transactions) {
       if (!transaction.key.arkTxid) continue; // here we only show ark transactions
 
-      const createdAt = transaction.createdAt || new Date().getTime(); // createdAt is 0 if tx is unconfirmed
+      const rawCreatedAt = transaction.createdAt ?? 0; // 0 when tx is still pending
+      const isPending = rawCreatedAt === 0;
+      const createdAt = isPending ? new Date().getTime() : rawCreatedAt;
       const timestamp = Math.floor(createdAt / 1000);
       commonTransactions.push({
         network: this._arkServerUrl.includes('mutiny') ? NETWORK_ARK_MUTINYNET : NETWORK_ARK, // hacky
@@ -197,6 +199,8 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
         timestamp,
         direction: transaction.type === TxType.TxSent ? 'send' : 'receive',
         amount: transaction.amount,
+        status: isPending ? 'pending' : 'confirmed',
+        confirmations: isPending ? 0 : 1,
       });
     }
 

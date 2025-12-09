@@ -62,6 +62,8 @@ test('ark mainnet can getCommonTransactions', async (context) => {
       network: NETWORK_ARK,
       timestamp: 1756199879,
       txid: 'c08e5661587fa741aea8d4eb0be3b400aae75cee18b0e0afa70b9ba41d9ca3be',
+      status: 'confirmed',
+      confirmations: 1,
     },
     {
       amount: 2100,
@@ -69,6 +71,8 @@ test('ark mainnet can getCommonTransactions', async (context) => {
       network: NETWORK_ARK,
       timestamp: 1755786091,
       txid: '5a41fdc280352cab91fef62a1f407a0c8559ecffb2f85bea1970b72eaf4d6058',
+      status: 'confirmed',
+      confirmations: 1,
     },
   ]);
 });
