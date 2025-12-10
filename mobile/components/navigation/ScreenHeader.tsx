@@ -1,64 +1,31 @@
-import React from 'react';
-import { StyleSheet, View, ViewStyle } from 'react-native';
-import { ThemedText } from '../ThemedText';
-import BackButton from './BackButton';
-
-interface ScreenHeaderProps {
-  title?: string;
-  showBackButton?: boolean;
-  onBackPress?: () => void;
-  rightComponent?: React.ReactNode;
-  style?: ViewStyle;
-  testID?: string;
-}
-
-const ScreenHeader: React.FC<ScreenHeaderProps> = ({ title, showBackButton = true, onBackPress, rightComponent, style, testID }) => {
-  return (
-    <View style={[styles.header, style]}>
-      <View style={styles.headerContent}>
-        <View style={styles.leftContainer}>{showBackButton && <BackButton onPress={onBackPress} />}</View>
-
-        <View style={styles.centerContainer}>
-          {title && (
-            <ThemedText style={styles.title} testID={testID}>
-              {title}
-            </ThemedText>
-          )}
-        </View>
-
-        <View style={styles.rightContainer}>{rightComponent}</View>
-      </View>
-    </View>
-  );
-};
+import { StyleSheet, StyleProp, TextStyle } from 'react-native';
+import { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  leftContainer: {
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  centerContainer: {
-    flex: 2,
-    alignItems: 'center',
-  },
-  rightContainer: {
-    flex: 1,
-    alignItems: 'flex-end',
+    backgroundColor: 'transparent',
   },
   title: {
     textAlign: 'center',
     color: 'white',
-    opacity: 0.8,
   },
 });
 
-export default ScreenHeader;
+export const buildScreenHeaderOptions = (config: NativeStackNavigationOptions = {}): NativeStackNavigationOptions => {
+  const { headerTitle, headerStyle, headerBackVisible, headerRight } = config as NativeStackNavigationOptions & { testID?: string };
+
+  return {
+    ...config,
+    headerTransparent: config.headerTransparent ?? true,
+    headerBackVisible: headerBackVisible ?? true,
+    headerBackButtonDisplayMode: config.headerBackButtonDisplayMode ?? 'minimal',
+    headerTitleAlign: config.headerTitleAlign ?? 'center',
+    headerTintColor: config.headerTintColor ?? '#fff',
+    headerStyle: StyleSheet.compose(styles.header, headerStyle as StyleProp<{ backgroundColor?: string }>),
+    headerTitle,
+    headerTitleStyle: StyleSheet.compose(styles.title, config.headerTitleStyle),
+    headerRight,
+  };
+};
+
+export default buildScreenHeaderOptions;

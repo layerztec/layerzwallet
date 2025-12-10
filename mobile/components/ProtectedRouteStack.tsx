@@ -10,10 +10,10 @@ const DefaultNavigatorOptions: NativeStackNavigationOptions = {
   headerTintColor: '#fff',
   headerBackButtonDisplayMode: 'minimal',
   headerTransparent: true,
+  headerTitleStyle: {
+    color: '#fff',
+  },
   headerBackImageSource: require('@/assets/images/ui/headerBackImage.png'),
-  gestureEnabled: true,
-  gestureDirection: 'horizontal',
-  animationDuration: 350,
 };
 
 export function ProtectedRouteStack() {
@@ -167,7 +167,6 @@ export function ProtectedRouteStack() {
             headerShown: false,
             contentStyle: {
               height: '100%',
-              backgroundColor: 'rgba(0, 0, 0, 0.9)',
               borderWidth: 1,
               borderColor: 'rgba(255, 255, 255, 0.2)',
             },

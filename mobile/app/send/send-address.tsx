@@ -5,7 +5,7 @@ import React, { useContext, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 import GradientScreen from '@/components/GradientScreen';
-import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
+import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
@@ -83,8 +83,7 @@ const SendAddress: React.FC = () => {
 
   return (
     <GradientScreen variant={network} scroll={true}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <ScreenSendHeader network={network} title={`Send ${getTickerByNetwork(network)}`} />
+      <Stack.Screen options={buildScreenHeaderOptions({ title: `Send ${getTickerByNetwork(network)}`, headerShown: true })} />
 
       <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
         <View style={styles.container}>
