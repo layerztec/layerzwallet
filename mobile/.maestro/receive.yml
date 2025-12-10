@@ -78,8 +78,7 @@ appId: com.layerzwallet.mobile
       - waitForAnimationToEnd
       - runFlow: subflows/sleep.yml # button is not tappable immediately
       - tapOn:
-          text: Receive on Spark
-          index: 1
+          id: 'ReceiveOnSparkButton'
       - extendedWaitUntil:
           visible:
             id: 'ReceiveLightningAmountInput'
