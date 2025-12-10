@@ -45,17 +45,12 @@ export default function ActionPopupModal() {
     };
   }, [clearActions]);
 
+  // accessibility is disabled on some wrappers for maestro to be able to see the buttons
+
   return (
-    <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={handleClose}>
-      <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-        <View
-          style={[
-            styles.popupContainer,
-            {
-              backgroundColor,
-            },
-          ]}
-        >
+    <TouchableOpacity accessible={false} style={styles.modalOverlay} activeOpacity={1} onPress={handleClose}>
+      <TouchableOpacity accessible={false} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+        <View accessible={false} style={[styles.popupContainer, { backgroundColor }]}>
           <View style={styles.actionsContainer}>
             {title && (
               <View style={styles.titleContainer}>
@@ -63,7 +58,7 @@ export default function ActionPopupModal() {
               </View>
             )}
             {actions.map((action, index) => (
-              <TouchableOpacity key={index} onPress={() => handleActionPress(action.onClick, index)} style={styles.actionItem} activeOpacity={0.8}>
+              <TouchableOpacity accessible={true} key={index} onPress={() => handleActionPress(action.onClick, index)} style={styles.actionItem} activeOpacity={0.8}>
                 <View style={styles.actionContent}>{action.children}</View>
               </TouchableOpacity>
             ))}

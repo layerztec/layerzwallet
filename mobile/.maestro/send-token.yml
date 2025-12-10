@@ -20,7 +20,7 @@ jsEngine: graaljs
 - assertVisible:
     id: 'LayerBalance'
 - extendedWaitUntil:
-    notVisible: '—'
+    notVisible: '— BTC'
     timeout: 60000
 
 - copyTextFrom:

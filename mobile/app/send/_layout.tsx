@@ -1,15 +1,17 @@
 import type { PrepareSendResponse } from '@breeztech/breez-sdk-liquid';
 import { Stack } from 'expo-router';
 import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
+import * as bolt11 from 'bolt11';
 
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import Lnurl, { LnurlPayServicePayload } from '@shared/class/lnurl';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { TFeeEstimate } from '@shared/blue_modules/BlueElectrum';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_BITCOIN, Networks } from '@shared/types/networks';
 import { GetBtcSendDataResponse } from '@shared/types/IBackgroundCaller';
+import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 
 // Bitcoin-specific data types
 export type BtcSendData = GetBtcSendDataResponse;
@@ -27,6 +29,23 @@ export interface BitcoinNetworkData {
   isLoadingSendData: boolean;
   isLoadingFees: boolean;
   feeLoadingError: string | undefined;
+}
+
+export type LightningLayer = typeof NETWORK_ARK | typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET;
+
+export type DecodedInvoice = ReturnType<typeof bolt11.decode>;
+
+export interface LightningNetworkData {
+  layer?: LightningLayer;
+  setLayer: React.Dispatch<React.SetStateAction<LightningLayer | undefined>>;
+  invoice: string;
+  setInvoice: (invoice: string) => void;
+  decodedInvoice: DecodedInvoice | undefined;
+  setDecodedInvoice: React.Dispatch<React.SetStateAction<DecodedInvoice | undefined>>;
+  lnurlInstance: Lnurl | undefined;
+  setLnurlInstance: React.Dispatch<React.SetStateAction<Lnurl | undefined>>;
+  lnurlPayServicePayload: LnurlPayServicePayload | undefined;
+  setLnurlPayServicePayload: React.Dispatch<React.SetStateAction<LnurlPayServicePayload | undefined>>;
 }
 
 // Denomination type
@@ -47,6 +66,9 @@ export interface SendFlowContextData {
 
   // Liquid-specific data
   liquidPrepareResult: PrepareSendResponse | undefined;
+
+  // Lightning-specific data
+  lightning: LightningNetworkData | undefined;
 
   // Generic created transaction
   createdTransaction: CreatedTransaction | undefined;
@@ -93,6 +115,13 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
   const [btcFeeLoadingError, setBtcFeeLoadingError] = useState<string | undefined>(undefined);
   const [isBtcLoadingSendData, setIsBtcLoadingSendData] = useState(false);
   const [isBtcLoadingFees, setIsBtcLoadingFees] = useState(false);
+
+  // Lightning-specific state
+  const [lightningLayer, setLayer] = useState<LightningLayer | undefined>(undefined);
+  const [invoice, setInvoice] = useState<string>('');
+  const [decodedInvoice, setDecodedInvoice] = useState<DecodedInvoice | undefined>(undefined);
+  const [lnurlInstance, setLnurlInstance] = useState<Lnurl | undefined>(undefined);
+  const [lnurlPayServicePayload, setLnurlPayServicePayload] = useState<LnurlPayServicePayload | undefined>(undefined);
 
   // Liquid-specific state
   const [liquidPrepareResult, setLiquidPrepareResult] = useState<PrepareSendResponse | undefined>(undefined);
@@ -168,6 +197,22 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
         }
       : undefined;
 
+  const lightningData: LightningNetworkData | undefined =
+    network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET
+      ? {
+          layer: lightningLayer,
+          setLayer,
+          invoice,
+          setInvoice,
+          decodedInvoice,
+          setDecodedInvoice,
+          lnurlInstance,
+          setLnurlInstance,
+          lnurlPayServicePayload,
+          setLnurlPayServicePayload,
+        }
+      : undefined;
+
   return (
     <SendFlowContext.Provider
       value={{
@@ -178,6 +223,7 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
         denomination,
         memo,
         bitcoin: bitcoinData,
+        lightning: lightningData,
         liquidPrepareResult,
         createdTransaction,
         setNetwork,
