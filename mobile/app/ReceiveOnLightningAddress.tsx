@@ -21,11 +21,11 @@ import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-uti
 import { NETWORK_ARK, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
 
-const Action = ({ network, text }: { network?: Networks; text: string }) => {
+const Action = ({ network, text, testID }: { network?: Networks; text: string; testID?: string }) => {
   const networkImage = network ? getNetworkImageAsset(network) : null;
   const networkIconContent = networkImage ? <Image source={networkImage} style={styles.actionIconImage} contentFit="contain" /> : null;
   return (
-    <View style={styles.action}>
+    <View style={styles.action} testID={testID}>
       {networkIconContent && <View style={styles.actionIcon}>{networkIconContent}</View>}
       <ThemedText style={styles.actionText}>{text}</ThemedText>
     </View>
@@ -120,7 +120,7 @@ export default function ReceiveOnLightningAddressScreen() {
   };
 
   const lightningReceiveActions = [
-    { children: <Action network={NETWORK_SPARK} text="Receive on Spark" />, onClick: handleReceiveOnSpark },
+    { children: <Action testID="ReceiveOnSparkButton" network={NETWORK_SPARK} text="Receive on Spark" />, onClick: handleReceiveOnSpark },
     { children: <Action network={NETWORK_LIQUID} text="Receive on Liquid" />, onClick: handleReceiveOnLiquid },
     { children: <Action network={NETWORK_ARK} text="Receive on Ark" />, onClick: handleReceiveOnArk },
     { children: <Action text="Cancel" />, onClick: () => {} },
