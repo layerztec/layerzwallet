@@ -207,9 +207,9 @@ export default function ReceiveOnLightningAddressScreen() {
                   />
                 </View>
 
-                <Pressable onPress={handleAddressPress} onPressIn={handlePressIn} onPressOut={handlePressOut} testID="AddressButton" disabled={!lightningAddress || isSharing}>
+                <Pressable onPress={handleAddressPress} onPressIn={handlePressIn} onPressOut={handlePressOut} testID="LightningAddressButton" disabled={!lightningAddress || isSharing}>
                   <Animated.View style={[styles.addressContainer, { transform: [{ scale: pressScaleAnim }] }]}>
-                    <ThemedText style={styles.addressDisplay} testID="LightningAddressText">
+                    <ThemedText style={styles.addressDisplay}>
                       {lightningAddressParts?.local}
                       {lightningAddressParts?.domain && <ThemedText style={styles.domainDisplay}>@{lightningAddressParts.domain}</ThemedText>}
                     </ThemedText>

@@ -64,9 +64,7 @@ appId: com.layerzwallet.mobile
             id: 'LightningAddressQrContainer' # This will fail if the address was not obtained
           timeout: 60000
       - assertVisible:
-          id: 'LightningAddressText' # Lightning address display
-      - assertVisible:
-          id: 'AddressButton' # Tappable address
+          id: 'LightningAddressButton' # Tappable address
       - scroll
       - assertVisible:
           id: 'ShareButton'
