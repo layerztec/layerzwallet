@@ -36,7 +36,7 @@ appId: com.layerzwallet.mobile
           id: 'ShareButton'
       - runFlow: subflows/back.yml
 
-# for Lightning network we need to enter the amount to generate the invoice
+# for Lightning network we now go directly to ReceiveOnLightningAddress screen, then tap "Receive with amount" to get invoice flow
 - evalScript: ${output.networks = ['lightning']} # ,'lightningtest'
 - repeat:
     while:
@@ -55,9 +55,31 @@ appId: com.layerzwallet.mobile
           id: 'SendButton'
       - tapOn:
           id: 'ReceiveButton'
+      - extendedWaitUntil:
+          notVisible: 'Loading address...'
+          timeout: 60000
+      # Verify all basic UI components rendered successfully with Lightning address.
+      - extendedWaitUntil:
+          visible:
+            id: 'LightningAddressQrContainer' # This will fail if the address was not obtained
+          timeout: 60000
+      - assertVisible:
+          id: 'LightningAddressText' # Lightning address display
+      - assertVisible:
+          id: 'AddressButton' # Tappable address
+      - scroll
+      - assertVisible:
+          id: 'ShareButton'
+      - assertVisible:
+          id: 'ReceiveOnLightningAddressWithAmountButton' # Button to receive with amount
+      # Tap on "Receive with amount" to get the invoice generation flow
+      - tapOn:
+          id: 'ReceiveOnLightningAddressWithAmountButton'
       - waitForAnimationToEnd
       - runFlow: subflows/sleep.yml # button is not tappable immediately
-      - tapOn: 'Receive on Spark'
+      - tapOn:
+          text: Receive on Spark
+          index: 1
       - extendedWaitUntil:
           visible:
             id: 'ReceiveLightningAmountInput'
@@ -88,12 +110,13 @@ appId: com.layerzwallet.mobile
                 notVisible: 'Generating...'
                 timeout: 60000
 
-      # Verify all basic UI components rendered successfully with an actual address.
+      # Verify all basic UI components rendered successfully with an actual invoice.
       - assertVisible:
-          id: 'LNQrContainer' # This will fail if the address was not obtained
+          id: 'LNQrContainer' # This will fail if the invoice was not obtained
       - scroll
       - assertVisible:
           id: 'CopyInvoiceButton' # expand later with ui feedback
       - assertVisible:
           id: 'LNShareButton'
+      - runFlow: subflows/back.yml
       - runFlow: subflows/back.yml
