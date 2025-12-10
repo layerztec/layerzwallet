@@ -495,12 +495,10 @@ export default function Home() {
               )}
 
               {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
-                <ActionPopupButton actions={lightningReceiveActions} title="Layer to receive">
-                  <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
-                    <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
-                    <ThemedText style={styles.navButtonText}>Receive</ThemedText>
-                  </TouchableOpacity>
-                </ActionPopupButton>
+                <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" onPress={() => router.push('/ReceiveOnLightningAddress')} activeOpacity={0.8}>
+                  <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
+                  <ThemedText style={styles.navButtonText}>Receive</ThemedText>
+                </TouchableOpacity>
               ) : network === NETWORK_USDT ? (
                 <ActionPopupButton actions={usdtReceiveActions} title="Layer to receive">
                   <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>

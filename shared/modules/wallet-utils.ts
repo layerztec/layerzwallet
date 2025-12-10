@@ -126,7 +126,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     // wallet initing is in progress, so we just wait till its inited to return it
     let c = 0;
     while (!cachedWallets[network]?.[accountNumber]) {
-      if (c++ > 30) {
+      if (c++ > 90 /* 45 seconds */) {
         locks[lockKey] = false;
         throw new Error(`Timeout while waiting for ${network}[${accountNumber}] lock`);
       }
