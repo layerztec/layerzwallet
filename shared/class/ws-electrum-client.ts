@@ -28,7 +28,7 @@ export class WsElectrumClient {
   public path: string;
   public isConnected: boolean = false;
   public timeLastCall: number = 0;
-  public timeout: number = 9_000;
+  public timeout: number = 15_000;
 
   private socket: WebSocket;
   private requestId: number = 0;
