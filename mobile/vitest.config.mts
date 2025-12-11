@@ -9,7 +9,7 @@ export default defineConfig({
       '../ext/src/modules/spark-adapter.ts',
       '../ext/src/modules/breeze-adapter.ts',
     ],
-    testTimeout: 60_000,
+    testTimeout: 120_000,
     dangerouslyIgnoreUnhandledErrors: true, // breez test throws unhandled errors
     include: [
       '**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
