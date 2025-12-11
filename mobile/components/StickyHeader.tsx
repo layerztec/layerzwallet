@@ -1,11 +1,8 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { StyleSheet, View, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
 import { ThemedText } from './ThemedText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountItem, AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
-import { ScanQrContext } from '@/src/hooks/ScanQrContext';
-import { handleQrIntent } from '@/src/modules/scan-routing';
 import { Ionicons, Foundation } from '@expo/vector-icons';
 import PlatformBlurView from './PlatformBlurView';
 import Animated, { useAnimatedStyle, interpolate, SharedValue } from 'react-native-reanimated';
@@ -13,14 +10,16 @@ import Animated, { useAnimatedStyle, interpolate, SharedValue } from 'react-nati
 interface StickyHeaderProps {
   scrollY: SharedValue<number>;
   onSettingsPress: () => void;
+  onPocketPress?: () => void;
+  onCameraPress?: () => void;
+  useAbsolutePosition?: boolean;
+  applySafeAreaPadding?: boolean;
 }
 
-const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress }) => {
-  const router = useRouter();
+const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress, onPocketPress, onCameraPress, useAbsolutePosition = true, applySafeAreaPadding = true }) => {
   const insets = useSafeAreaInsets();
   const { accountNumber } = React.useContext(AccountNumberContext);
   const accountItem: AccountItem = accountItems[accountNumber];
-  const { scanQr } = useContext(ScanQrContext);
 
   // Animated border opacity based on scroll position
   const borderAnimatedStyle = useAnimatedStyle(() => {
@@ -34,27 +33,12 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
     return { opacity };
   });
 
-  const handlePocketPress = () => {
-    router.push('/PocketSwitch');
-  };
-
-  const handleCameraPress = async () => {
-    try {
-      const result = await scanQr();
-      if (!result) {
-        return;
-      }
-
-      handleQrIntent(result, router);
-    } catch (error) {
-      console.error('StickyHeader: QR scan failed', error);
-    }
-  };
-
   const IconComponent = accountItem.iconCollection === 'ion' ? Ionicons : Foundation;
 
+  const topPadding = applySafeAreaPadding ? insets.top : 0;
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, useAbsolutePosition ? styles.absoluteContainer : null, { paddingTop: topPadding }]}>
       {/* Platform-aware Blur Background */}
       <Animated.View style={[styles.blurBackground, blurAnimatedStyle]}>
         <PlatformBlurView intensity={50} tint="dark" style={styles.blurView} />
@@ -66,7 +50,7 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
       {/* Header Content */}
       <View style={styles.header}>
         {/* Left Side: Pocket */}
-        <TouchableOpacity style={styles.pocket} onPress={handlePocketPress}>
+        <TouchableOpacity style={styles.pocket} onPress={onPocketPress}>
           <View style={styles.pocketIconContainer}>
             <IconComponent name={accountItem.icon as any} size={22} color="white" />
           </View>
@@ -78,7 +62,7 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
 
         {/* Right Side: Camera and Settings Icons */}
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton} onPress={handleCameraPress} testID="CameraButton">
+          <TouchableOpacity style={styles.iconButton} onPress={onCameraPress} testID="CameraButton">
             <Ionicons name="scan-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={onSettingsPress} testID="SettingsButton">
@@ -92,6 +76,9 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
+  },
+  absoluteContainer: {
     position: 'absolute',
     top: 0,
     left: 0,

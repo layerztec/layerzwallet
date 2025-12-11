@@ -123,9 +123,9 @@ export function ProtectedRouteStack() {
             animation: 'none',
           }}
         />
-        <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'fade' }} />
+        <Stack.Screen name="Home" options={{ animation: 'fade' }} />
         <Stack.Screen name="Receive" />
-        <Stack.Screen name="Settings" options={{ headerShown: false }} />
+        <Stack.Screen name="Settings" />
         <Stack.Screen
           name="onboarding/create-password"
           options={{
@@ -138,7 +138,7 @@ export function ProtectedRouteStack() {
         <Stack.Screen name="BackdoorNetworkSwitcher" options={{ headerShown: false }} />
         <Stack.Screen name="About" options={{ headerShown: false }} />
         <Stack.Screen name="Changelog" options={{ headerShown: false }} />
-        <Stack.Screen name="SeedBackup" options={{ headerShown: false }} />
+        <Stack.Screen name="SeedBackup" />
         <Stack.Screen
           name="SeedBackupQR"
           options={{

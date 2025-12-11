@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as bip21 from 'bip21';
-import { Stack, useRouter } from 'expo-router';
-import React, { useContext, useRef, useState } from 'react';
+import { useNavigation, useRouter } from 'expo-router';
+import React, { useContext, useLayoutEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 import GradientScreen from '@/components/GradientScreen';
@@ -16,6 +16,7 @@ import { CachedTokenInfo } from '@shared/types/token-info';
 import { useSendFlow } from './_layout';
 
 const SendAddress: React.FC = () => {
+  const navigation = useNavigation();
   const { scanQr } = useContext(ScanQrContext);
   const router = useRouter();
   const { network, address: contextAddress, setAddress: setContextAddress, token, setToken, setAmount, setDenomination, setMemo } = useSendFlow();
@@ -81,10 +82,12 @@ const SendAddress: React.FC = () => {
     setMemo('');
   };
 
+  useLayoutEffect(() => {
+    navigation.setOptions(buildScreenHeaderOptions({ title: `Send ${getTickerByNetwork(network)}`, headerShown: true }));
+  }, [navigation, network]);
+
   return (
     <GradientScreen variant={network} scroll={true}>
-      <Stack.Screen options={buildScreenHeaderOptions({ title: `Send ${getTickerByNetwork(network)}`, headerShown: true })} />
-
       <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
         <View style={styles.container}>
           <View style={styles.inputSection}>

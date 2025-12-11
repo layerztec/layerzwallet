@@ -20,6 +20,8 @@ import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
 import Transaction from '@/components/Transaction';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { ScanQrContext } from '@/src/hooks/ScanQrContext';
+import { handleQrIntent } from '@/src/modules/scan-routing';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { getNetworkGradient } from '@shared/constants/Colors';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -67,6 +69,7 @@ export type HomeProps = {
 export default function Home() {
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
+  const { scanQr } = useContext(ScanQrContext);
   const router = useRouter();
   const params = useLocalSearchParams<HomeProps>();
   const { transactions, error: transactionsError, mutate: mutateTransactions } = useTransactions(network, accountNumber, BackgroundExecutor);
@@ -192,6 +195,23 @@ export default function Home() {
 
   const goToSettings = () => {
     router.push('/Settings');
+  };
+
+  const handlePocketPress = () => {
+    router.push('/PocketSwitch');
+  };
+
+  const handleCameraPress = async () => {
+    try {
+      const result = await scanQr();
+      if (!result) {
+        return;
+      }
+
+      handleQrIntent(result, router);
+    } catch (error) {
+      console.error('Home: QR scan failed', error);
+    }
   };
 
   const handleTransactionHistory = () => {
@@ -376,14 +396,12 @@ export default function Home() {
 
       {/* Modal Container */}
       <Animated.View style={[styles.modalContainer, { height: MODAL_MAX_HEIGHT }, modalAnimatedStyle]}>
+        <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} onPocketPress={handlePocketPress} onCameraPress={handleCameraPress} />
         <GestureDetector gesture={panGesture}>
           <Animated.View style={styles.draggableHeader}>
-            <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} />
+            <View style={styles.dragHandle} />
           </Animated.View>
         </GestureDetector>
-
-        {/* Invisible Settings Button for Maestro Testing */}
-        <TouchableOpacity style={styles.maestroSettingsButton} onPress={goToSettings} testID="SettingsButton" accessibilityLabel="Settings" />
 
         <GradientScreen variant={network} scroll={true} onScroll={handleScroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} {...refreshOptions} />}>
           <View style={[styles.root, styles.contentWithHeader]}>
@@ -495,12 +513,10 @@ export default function Home() {
               )}
 
               {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
-                <ActionPopupButton actions={lightningReceiveActions} title="Layer to receive">
-                  <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
-                    <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
-                    <ThemedText style={styles.navButtonText}>Receive</ThemedText>
-                  </TouchableOpacity>
-                </ActionPopupButton>
+                <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" onPress={() => router.push('/ReceiveOnLightningAddress')} activeOpacity={0.8}>
+                  <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
+                  <ThemedText style={styles.navButtonText}>Receive</ThemedText>
+                </TouchableOpacity>
               ) : network === NETWORK_USDT ? (
                 <ActionPopupButton actions={usdtReceiveActions} title="Layer to receive">
                   <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
@@ -779,14 +795,13 @@ const styles = StyleSheet.create({
     height: 24,
     color: 'white',
   },
-  maestroSettingsButton: {
-    position: 'absolute',
-    top: 60, // Position below the header
-    right: 16,
-    width: 40,
-    height: 40,
-    opacity: 0.01, // Nearly invisible but still detectable
-    zIndex: 9999,
+  dragHandle: {
+    alignSelf: 'center',
+    width: 60,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    marginVertical: 12,
   },
   gestureHandlerRoot: {
     flex: 1,
