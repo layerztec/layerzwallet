@@ -274,8 +274,9 @@ export function ProtectedRouteStack() {
         <Stack.Screen
           name="ClaimUsernameModal"
           options={{
-            presentation: 'transparentModal',
-            animation: 'fade',
+            presentation: 'formSheet',
+            sheetAllowedDetents: [1],
+            sheetGrabberVisible: true,
             headerShown: false,
             gestureEnabled: true,
             contentStyle: {

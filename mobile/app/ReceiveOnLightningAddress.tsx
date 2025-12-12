@@ -23,6 +23,7 @@ import { StringNumber } from '@shared/types/string-number';
 import { getApiUsersBySparkAddressBySparkAddress } from '@shared/openapi/generated/layerzme';
 
 import { createClient } from '@shared/openapi/generated/layerzme/client';
+import { ClaimUsernameModalParams } from './ClaimUsernameModal';
 
 const layerzClient = createClient({
   baseUrl: 'https://layerz.me',
@@ -108,15 +109,12 @@ export default function ReceiveOnLightningAddressScreen() {
 
       if (data?.username) {
         setResolvedUsername(data.username);
+        setLightningAddress(`${data.username}@layerz.me`);
       }
     } catch (error) {
       console.error('Error fetching username for spark address', error);
     }
   }, [sparkAddress]);
-
-  useEffect(() => {
-    refreshResolvedUsername();
-  }, [refreshResolvedUsername]);
 
   // When this screen becomes active again (e.g. after dismissing ClaimUsernameModal),
   // refresh the username.
@@ -170,7 +168,8 @@ export default function ReceiveOnLightningAddressScreen() {
 
   const handleAddressPress = () => {
     if (!lightningAddress || resolvedUsername || !sparkAddress) return;
-    router.push({ pathname: '/ClaimUsernameModal', params: { sparkAddress } });
+    const params: ClaimUsernameModalParams = { sparkAddress };
+    router.push({ pathname: '/ClaimUsernameModal', params });
   };
 
   const handlePressIn = () => {
@@ -233,6 +232,7 @@ export default function ReceiveOnLightningAddressScreen() {
                     logoSize={70}
                     logoMargin={6}
                     logoBackgroundColor={'#000000'}
+                    ecl="H"
                     logoBorderRadius={12}
                   />
                 </View>

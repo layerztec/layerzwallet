@@ -8,13 +8,17 @@ import { getApiUsersByUsername, postApiUsers } from '@shared/openapi/generated/l
 import { getGradientColors } from '@/utils/gradientUtils';
 import { ThemedText } from '@/components/ThemedText';
 
+export type ClaimUsernameModalParams = {
+  sparkAddress: string;
+};
+
 const layerzClient = createClient({
   baseUrl: 'https://layerz.me',
 });
 
 export default function ClaimUsernameModalScreen() {
   const router = useRouter();
-  const { sparkAddress } = useLocalSearchParams<{ sparkAddress: string }>();
+  const { sparkAddress } = useLocalSearchParams<ClaimUsernameModalParams>();
   const { network } = useContext(NetworkContext);
   const backgroundColor = getGradientColors(network)[1];
 
@@ -23,7 +27,7 @@ export default function ClaimUsernameModalScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  const sparkAddressString = useMemo(() => (sparkAddress ? String(sparkAddress) : ''), [sparkAddress]);
+  const sparkAddressString = sparkAddress;
 
   const handleClose = useCallback(() => {
     router.back();
