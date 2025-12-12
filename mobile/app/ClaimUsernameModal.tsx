@@ -1,84 +1,130 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, Modal, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { createClient } from '@shared/openapi/generated/layerzme/client';
+import { getApiUsersByUsername, postApiUsers } from '@shared/openapi/generated/layerzme';
 import { getGradientColors } from '@/utils/gradientUtils';
 import { ThemedText } from '@/components/ThemedText';
 
-interface ClaimUsernameModalProps {
-  visible: boolean;
-  onClose: () => void;
-  onClaim?: (username: string) => void;
-  errorMessage?: string;
-}
+const layerzClient = createClient({
+  baseUrl: 'https://layerz.me',
+});
 
-export function ClaimUsernameModal({ visible, onClose, onClaim, errorMessage }: ClaimUsernameModalProps) {
+export default function ClaimUsernameModalScreen() {
+  const router = useRouter();
+  const { sparkAddress } = useLocalSearchParams<{ sparkAddress: string }>();
   const { network } = useContext(NetworkContext);
   const backgroundColor = getGradientColors(network)[1];
+
   const [username, setUsername] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  const handleClaim = () => {
-    if (onClaim) {
-      onClaim(username);
-    }
-  };
+  const sparkAddressString = useMemo(() => (sparkAddress ? String(sparkAddress) : ''), [sparkAddress]);
 
-  const handleClose = () => {
-    setUsername('');
-    onClose();
-  };
+  const handleClose = useCallback(() => {
+    router.back();
+  }, [router]);
 
   useEffect(() => {
-    if (!visible) return;
-
-    const keyboardWillShowListener = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', (e) => {
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', (e) => {
       setKeyboardHeight(e.endCoordinates.height);
     });
-    const keyboardWillHideListener = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => {
+    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => {
       setKeyboardHeight(0);
     });
 
     return () => {
-      keyboardWillShowListener.remove();
-      keyboardWillHideListener.remove();
+      show.remove();
+      hide.remove();
     };
-  }, [visible]);
+  }, []);
+
+  const handleClaim = useCallback(async () => {
+    const u = username.trim();
+    setErrorMessage('');
+
+    if (!u) {
+      setErrorMessage('Please enter a username');
+      return;
+    }
+
+    if (!sparkAddressString) {
+      setErrorMessage('Missing spark address');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { data: existing } = await getApiUsersByUsername({
+        client: layerzClient,
+        path: { username: u },
+        responseStyle: 'fields',
+        throwOnError: false,
+      });
+
+      if (existing?.username) {
+        setErrorMessage('Username is unavailable');
+        return;
+      }
+
+      const { data: claim } = await postApiUsers({
+        client: layerzClient,
+        body: { username: u, sparkAddress: sparkAddressString },
+        responseStyle: 'fields',
+        throwOnError: true,
+      });
+
+      if (claim?.username) {
+        router.back();
+        return;
+      }
+
+      setErrorMessage('Unable to claim username');
+    } catch (e) {
+      setErrorMessage('Unable to claim username');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [router, sparkAddressString, username]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
-      <TouchableOpacity accessible={false} style={styles.modalOverlay} activeOpacity={1} onPress={handleClose}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardAvoidingView} keyboardVerticalOffset={0}>
-          <TouchableOpacity accessible={false} style={[styles.modalContent, { marginBottom: keyboardHeight > 0 ? keyboardHeight : 50 }]} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-            <View accessible={false} style={[styles.popupContainer, { backgroundColor }]}>
-              <View style={styles.contentContainer}>
-                <ThemedText style={styles.title}>Claim username</ThemedText>
+    <TouchableOpacity accessible={false} style={styles.modalOverlay} activeOpacity={1} onPress={handleClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardAvoidingView} keyboardVerticalOffset={0}>
+        <TouchableOpacity accessible={false} style={[styles.modalContent, { marginBottom: keyboardHeight > 0 ? keyboardHeight : 50 }]} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+          <View accessible={false} style={[styles.popupContainer, { backgroundColor }]}>
+            <View style={styles.contentContainer}>
+              <ThemedText style={styles.title}>Claim username</ThemedText>
 
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Your username"
-                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                    value={username}
-                    onChangeText={setUsername}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                  <View style={styles.suffixContainer}>
-                    <ThemedText style={styles.suffixText}>@layerz.me</ThemedText>
-                  </View>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Your username"
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  value={username}
+                  onChangeText={setUsername}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!isSubmitting}
+                />
+                <View style={styles.suffixContainer}>
+                  <ThemedText style={styles.suffixText}>@layerz.me</ThemedText>
                 </View>
-
-                {Boolean(errorMessage) && <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>}
-
-                <TouchableOpacity style={styles.claimButton} onPress={handleClaim} activeOpacity={0.8}>
-                  <ThemedText style={styles.claimButtonText}>Claim</ThemedText>
-                </TouchableOpacity>
               </View>
+
+              {Boolean(errorMessage) && <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>}
+
+              <TouchableOpacity style={styles.claimButton} onPress={handleClaim} activeOpacity={0.8} disabled={isSubmitting}>
+                {isSubmitting ? <ActivityIndicator color="#f7f5ff" /> : <ThemedText style={styles.claimButtonText}>Claim</ThemedText>}
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </TouchableOpacity>
-    </Modal>
+          </View>
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
+    </TouchableOpacity>
   );
 }
 

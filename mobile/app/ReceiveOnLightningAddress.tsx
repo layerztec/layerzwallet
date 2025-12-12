@@ -5,6 +5,7 @@ import { Stack, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Pressable, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import GradientScreen from '@/components/GradientScreen';
@@ -19,11 +20,9 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_ARK, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
-import { getApiUsersBySparkAddressBySparkAddress, getApiUsersByUsername, postApiUsers } from '@shared/openapi/generated/layerzme';
+import { getApiUsersBySparkAddressBySparkAddress } from '@shared/openapi/generated/layerzme';
 
 import { createClient } from '@shared/openapi/generated/layerzme/client';
-import type { GetApiUsersByUsernameResponses, GetApiUsersBySparkAddressBySparkAddressResponses } from '@shared/openapi/generated/layerzme/types.gen';
-import { ClaimUsernameModal } from './ClaimUsernameModal';
 
 const layerzClient = createClient({
   baseUrl: 'https://layerz.me',
@@ -53,8 +52,6 @@ export default function ReceiveOnLightningAddressScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [oldBalance, setOldBalance] = useState<StringNumber>('');
   const [isSharing, setIsSharing] = useState(false);
-  const [claimError, setClaimError] = useState('');
-  const [showClaimModal, setShowClaimModal] = useState(false);
   const pressScaleAnim = useRef(new Animated.Value(1)).current;
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
 
@@ -99,27 +96,36 @@ export default function ReceiveOnLightningAddressScreen() {
     fetchAddress();
   }, [accountNumber, fetchAddress]);
 
-  useEffect(() => {
+  const refreshResolvedUsername = useCallback(async () => {
     if (!sparkAddress) return;
-    const fetchUsername = async () => {
-      try {
-        const { data } = await getApiUsersBySparkAddressBySparkAddress({
-          client: layerzClient,
-          path: { sparkAddress },
-          // use default "fields" style so we get { data, error, response }
-          responseStyle: 'fields',
-          throwOnError: false,
-        });
+    try {
+      const { data } = await getApiUsersBySparkAddressBySparkAddress({
+        client: layerzClient,
+        path: { sparkAddress },
+        responseStyle: 'fields',
+        throwOnError: false,
+      });
 
-        if (data?.username) {
-          setResolvedUsername(data.username);
-        }
-      } catch (error) {
-        console.error('Error fetching username for spark address', error);
+      if (data?.username) {
+        setResolvedUsername(data.username);
       }
-    };
-    fetchUsername();
+    } catch (error) {
+      console.error('Error fetching username for spark address', error);
+    }
   }, [sparkAddress]);
+
+  useEffect(() => {
+    refreshResolvedUsername();
+  }, [refreshResolvedUsername]);
+
+  // When this screen becomes active again (e.g. after dismissing ClaimUsernameModal),
+  // refresh the username.
+  useFocusEffect(
+    useCallback(() => {
+      if (resolvedUsername) return;
+      refreshResolvedUsername();
+    }, [refreshResolvedUsername, resolvedUsername])
+  );
 
   const handleShare = async () => {
     if (!lightningAddress) return;
@@ -163,55 +169,8 @@ export default function ReceiveOnLightningAddressScreen() {
   ];
 
   const handleAddressPress = () => {
-    if (lightningAddress && !resolvedUsername) {
-      setShowClaimModal(true);
-    }
-  };
-
-  const handleClaimUsername = async (usernameToCheck: string) => {
-    const username = usernameToCheck.trim();
-    setClaimError('');
-    if (!username) {
-      setClaimError('Please enter a username');
-      return;
-    }
-
-    try {
-      const { data } = await getApiUsersByUsername({
-        client: layerzClient,
-        path: { username },
-        // use default "fields" shape so we can read data/error cleanly
-        responseStyle: 'fields',
-        throwOnError: false,
-      });
-
-      if (data?.username) {
-        setClaimError('Username is unavailable');
-        return;
-      }
-
-      const { data: claimResponse } = await postApiUsers({
-        client: layerzClient,
-        body: { username, sparkAddress },
-        responseStyle: 'fields',
-        throwOnError: true,
-      });
-
-      if (claimResponse?.username) {
-        setResolvedUsername(claimResponse.username);
-        setShowClaimModal(false);
-        setClaimError('');
-      } else {
-        setClaimError('Unable to claim username');
-      }
-    } catch (error) {
-      const status = (error as any)?.status ?? (error as any)?.response?.status;
-      if (status === 404) {
-        setClaimError('');
-      } else {
-        setClaimError('Unable to check username');
-      }
-    }
+    if (!lightningAddress || resolvedUsername || !sparkAddress) return;
+    router.push({ pathname: '/ClaimUsernameModal', params: { sparkAddress } });
   };
 
   const handlePressIn = () => {
@@ -317,15 +276,6 @@ export default function ReceiveOnLightningAddressScreen() {
           </View>
         </View>
       </ScrollView>
-      <ClaimUsernameModal
-        visible={showClaimModal}
-        onClose={() => {
-          setShowClaimModal(false);
-          setClaimError('');
-        }}
-        onClaim={handleClaimUsername}
-        errorMessage={claimError}
-      />
     </GradientScreen>
   );
 }
