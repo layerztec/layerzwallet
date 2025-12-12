@@ -275,13 +275,9 @@ export function ProtectedRouteStack() {
           name="ClaimUsernameModal"
           options={{
             presentation: 'formSheet',
-            sheetAllowedDetents: [1],
+            sheetAllowedDetents: 'fitToContents',
             sheetGrabberVisible: true,
             headerShown: false,
-            gestureEnabled: true,
-            contentStyle: {
-              backgroundColor: 'transparent',
-            },
           }}
         />
       </Stack.Protected>
