@@ -1,7 +1,6 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
-
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { createClient } from '@shared/openapi/generated/layerzme/client';
 import { getApiUsersByUsername, postApiUsers } from '@shared/openapi/generated/layerzme';
@@ -28,10 +27,6 @@ export default function ClaimUsernameModalScreen() {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const sparkAddressString = sparkAddress;
-
-  const handleClose = useCallback(() => {
-    router.back();
-  }, [router]);
 
   useEffect(() => {
     const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', (e) => {
@@ -96,71 +91,51 @@ export default function ClaimUsernameModalScreen() {
   }, [router, sparkAddressString, username]);
 
   return (
-    <TouchableOpacity accessible={false} style={styles.modalOverlay} activeOpacity={1} onPress={handleClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardAvoidingView} keyboardVerticalOffset={0}>
-        <TouchableOpacity accessible={false} style={[styles.modalContent, { marginBottom: keyboardHeight > 0 ? keyboardHeight : 50 }]} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-          <View accessible={false} style={[styles.popupContainer, { backgroundColor }]}>
-            <View style={styles.contentContainer}>
-              <ThemedText style={styles.title}>Claim username</ThemedText>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardAvoidingView} keyboardVerticalOffset={0}>
+      <TouchableOpacity accessible={false} style={[styles.modalContent, { marginBottom: keyboardHeight > 0 ? keyboardHeight : 50 }]} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+        <View accessible={false} style={[styles.popupContainer, { backgroundColor }]}>
+          <View style={styles.contentContainer}>
+            <ThemedText style={styles.title}>Claim username</ThemedText>
 
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Your username"
-                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                  value={username}
-                  onChangeText={setUsername}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!isSubmitting}
-                />
-                <View style={styles.suffixContainer}>
-                  <ThemedText style={styles.suffixText}>@layerz.me</ThemedText>
-                </View>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Your username"
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isSubmitting}
+              />
+              <View style={styles.suffixContainer}>
+                <ThemedText style={styles.suffixText}>@layerz.me</ThemedText>
               </View>
-
-              {Boolean(errorMessage) && <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>}
-
-              <TouchableOpacity style={styles.claimButton} onPress={handleClaim} activeOpacity={0.8} disabled={isSubmitting}>
-                {isSubmitting ? <ActivityIndicator color="#f7f5ff" /> : <ThemedText style={styles.claimButtonText}>Claim</ThemedText>}
-              </TouchableOpacity>
             </View>
+
+            {Boolean(errorMessage) && <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>}
+
+            <TouchableOpacity style={styles.claimButton} onPress={handleClaim} activeOpacity={0.8} disabled={isSubmitting}>
+              {isSubmitting ? <ActivityIndicator color="#f7f5ff" /> : <ThemedText style={styles.claimButtonText}>Claim</ThemedText>}
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
-    </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'flex-end',
-  },
   keyboardAvoidingView: {
     width: '100%',
     alignItems: 'center',
-    paddingHorizontal: 16,
     justifyContent: 'flex-end',
   },
   modalContent: {
     width: '100%',
-    maxWidth: 360,
   },
   popupContainer: {
     backgroundColor: 'rgba(54, 35, 85, 0.98)',
-    borderRadius: 22,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-    overflow: 'hidden',
-    width: '100%',
   },
   contentContainer: {
     padding: 20,
