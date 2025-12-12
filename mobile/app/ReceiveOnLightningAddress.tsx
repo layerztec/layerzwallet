@@ -5,12 +5,12 @@ import { Stack, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Pressable, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
-import { useActionPopup } from '@/contexts/ActionPopupContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -20,6 +20,15 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_ARK, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
+import { getApiUsersBySparkAddressBySparkAddress } from '@shared/openapi/generated/layerzme';
+
+import { createClient } from '@shared/openapi/generated/layerzme/client';
+import { ClaimUsernameModalParams } from './ClaimUsernameModal';
+
+const layerzClient = createClient({
+  baseUrl: 'https://layerz.me',
+  responseStyle: 'data',
+});
 
 const Action = ({ network, text, testID }: { network?: Networks; text: string; testID?: string }) => {
   const networkImage = network ? getNetworkImageAsset(network) : null;
@@ -36,9 +45,10 @@ export default function ReceiveOnLightningAddressScreen() {
   const { accountNumber } = useContext(AccountNumberContext);
   const { network: networkFromContext } = useContext(NetworkContext);
   const router = useRouter();
-  const { setActions } = useActionPopup();
   const network = NETWORK_SPARK;
   const [lightningAddress, setLightningAddress] = useState('');
+  const [sparkAddress, setSparkAddress] = useState('');
+  const [resolvedUsername, setResolvedUsername] = useState('');
   const [lightningAddressParts, setLightningAddressParts] = useState<{ local: string; domain: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [oldBalance, setOldBalance] = useState<StringNumber>('');
@@ -69,6 +79,8 @@ export default function ReceiveOnLightningAddressScreen() {
     setIsLoading(true);
     try {
       const addressResponse = await BackgroundExecutor.getAddress(network, accountNumber);
+      setSparkAddress(addressResponse);
+      setResolvedUsername('');
       // Format as Lightning address: address@layerz.me
       const lightningAddr = `${addressResponse}@layerz.me`;
       setLightningAddress(lightningAddr);
@@ -84,6 +96,34 @@ export default function ReceiveOnLightningAddressScreen() {
   useEffect(() => {
     fetchAddress();
   }, [accountNumber, fetchAddress]);
+
+  const refreshResolvedUsername = useCallback(async () => {
+    if (!sparkAddress) return;
+    try {
+      const { data } = await getApiUsersBySparkAddressBySparkAddress({
+        client: layerzClient,
+        path: { sparkAddress },
+        responseStyle: 'fields',
+        throwOnError: false,
+      });
+
+      if (data?.username) {
+        setResolvedUsername(data.username);
+        setLightningAddress(`${data.username}@layerz.me`);
+      }
+    } catch (error) {
+      console.error('Error fetching username for spark address', error);
+    }
+  }, [sparkAddress]);
+
+  // When this screen becomes active again (e.g. after dismissing ClaimUsernameModal),
+  // refresh the username.
+  useFocusEffect(
+    useCallback(() => {
+      if (resolvedUsername) return;
+      refreshResolvedUsername();
+    }, [refreshResolvedUsername, resolvedUsername])
+  );
 
   const handleShare = async () => {
     if (!lightningAddress) return;
@@ -126,21 +166,10 @@ export default function ReceiveOnLightningAddressScreen() {
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
-  const handleClaimUsername = () => {
-    // TODO: Implement claim username functionality
-    Alert.alert('Not implemented yet');
-  };
-
-  const addressActions = [
-    { children: <Action text="Claim username!" />, onClick: handleClaimUsername },
-    { children: <Action text="Cancel" />, onClick: () => {} },
-  ];
-
   const handleAddressPress = () => {
-    if (lightningAddress) {
-      setActions(addressActions);
-      router.push('/ActionPopupModal');
-    }
+    if (!lightningAddress || resolvedUsername || !sparkAddress) return;
+    const params: ClaimUsernameModalParams = { sparkAddress };
+    router.push({ pathname: '/ClaimUsernameModal', params });
   };
 
   const handlePressIn = () => {
@@ -203,6 +232,7 @@ export default function ReceiveOnLightningAddressScreen() {
                     logoSize={70}
                     logoMargin={6}
                     logoBackgroundColor={'#000000'}
+                    ecl="H"
                     logoBorderRadius={12}
                   />
                 </View>
@@ -210,8 +240,8 @@ export default function ReceiveOnLightningAddressScreen() {
                 <Pressable onPress={handleAddressPress} onPressIn={handlePressIn} onPressOut={handlePressOut} testID="LightningAddressButton" disabled={!lightningAddress || isSharing}>
                   <Animated.View style={[styles.addressContainer, { transform: [{ scale: pressScaleAnim }] }]}>
                     <ThemedText style={styles.addressDisplay}>
-                      {lightningAddressParts?.local}
-                      {lightningAddressParts?.domain && <ThemedText style={styles.domainDisplay}>@{lightningAddressParts.domain}</ThemedText>}
+                      {(resolvedUsername || lightningAddressParts?.local) ?? ''}
+                      {(resolvedUsername || lightningAddressParts?.domain) && <ThemedText style={styles.domainDisplay}>@{resolvedUsername ? 'layerz.me' : lightningAddressParts?.domain}</ThemedText>}
                     </ThemedText>
                   </Animated.View>
                 </Pressable>

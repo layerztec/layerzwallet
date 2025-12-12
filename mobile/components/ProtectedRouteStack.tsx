@@ -271,6 +271,19 @@ export function ProtectedRouteStack() {
             },
           }}
         />
+        <Stack.Screen
+          name="ClaimUsernameModal"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [1],
+            sheetGrabberVisible: true,
+            headerShown: false,
+            gestureEnabled: true,
+            contentStyle: {
+              backgroundColor: 'transparent',
+            },
+          }}
+        />
       </Stack.Protected>
 
       <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />

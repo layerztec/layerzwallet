@@ -1,0 +1,267 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "SparkHub", "description": "SPA for self-custodial Lightning Address", "version": "1.2.0" },
+  "paths": {
+    "/ping": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "string" }, "message": { "type": "string" } }, "required": ["status", "message"] } },
+              "multipart/form-data": { "schema": { "type": "object", "properties": { "status": { "type": "string" }, "message": { "type": "string" } }, "required": ["status", "message"] } },
+              "text/plain": { "schema": { "type": "object", "properties": { "status": { "type": "string" }, "message": { "type": "string" } }, "required": ["status", "message"] } }
+            }
+          }
+        },
+        "operationId": "getPing",
+        "summary": "Health check",
+        "description": "Returns the status of the service"
+      }
+    },
+    "/": { "get": { "operationId": "getIndex", "responses": { "200": {} } } },
+    "/api/lightning-address/{username}/callback": {
+      "get": {
+        "parameters": [
+          { "schema": { "type": "string" }, "in": "path", "name": "username", "required": true },
+          { "schema": { "type": "string" }, "in": "query", "name": "amount", "required": true },
+          { "schema": { "type": "string" }, "in": "query", "name": "nonce", "required": false },
+          { "schema": { "type": "string" }, "in": "query", "name": "fromnodes", "required": false },
+          { "schema": { "type": "string", "maxLength": 140 }, "in": "query", "name": "comment", "required": false },
+          { "schema": { "type": "string" }, "in": "query", "name": "proofofpayer", "required": false }
+        ],
+        "responses": {
+          "200": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "status": { "const": "OK", "type": "string" },
+                  "pr": { "type": "string" },
+                  "routes": { "type": "array", "items": {} },
+                  "disposable": { "type": "boolean" },
+                  "successAction": { "type": "object", "properties": { "tag": { "type": "string" }, "message": { "type": "string" } }, "required": ["tag", "message"] }
+                },
+                "required": ["status", "pr", "routes", "disposable", "successAction"]
+              },
+              { "type": "object", "properties": { "status": { "const": "ERROR", "type": "string" }, "reason": { "type": "string" } }, "required": ["status", "reason"] }
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": { "const": "OK", "type": "string" },
+                        "pr": { "type": "string" },
+                        "routes": { "type": "array", "items": {} },
+                        "disposable": { "type": "boolean" },
+                        "successAction": { "type": "object", "properties": { "tag": { "type": "string" }, "message": { "type": "string" } }, "required": ["tag", "message"] }
+                      },
+                      "required": ["status", "pr", "routes", "disposable", "successAction"]
+                    },
+                    { "type": "object", "properties": { "status": { "const": "ERROR", "type": "string" }, "reason": { "type": "string" } }, "required": ["status", "reason"] }
+                  ]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": { "const": "OK", "type": "string" },
+                        "pr": { "type": "string" },
+                        "routes": { "type": "array", "items": {} },
+                        "disposable": { "type": "boolean" },
+                        "successAction": { "type": "object", "properties": { "tag": { "type": "string" }, "message": { "type": "string" } }, "required": ["tag", "message"] }
+                      },
+                      "required": ["status", "pr", "routes", "disposable", "successAction"]
+                    },
+                    { "type": "object", "properties": { "status": { "const": "ERROR", "type": "string" }, "reason": { "type": "string" } }, "required": ["status", "reason"] }
+                  ]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": { "const": "OK", "type": "string" },
+                        "pr": { "type": "string" },
+                        "routes": { "type": "array", "items": {} },
+                        "disposable": { "type": "boolean" },
+                        "successAction": { "type": "object", "properties": { "tag": { "type": "string" }, "message": { "type": "string" } }, "required": ["tag", "message"] }
+                      },
+                      "required": ["status", "pr", "routes", "disposable", "successAction"]
+                    },
+                    { "type": "object", "properties": { "status": { "const": "ERROR", "type": "string" }, "reason": { "type": "string" } }, "required": ["status", "reason"] }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiLightning-addressByUsernameCallback",
+        "tags": ["Lightning Address"],
+        "summary": "Payment callback",
+        "description": "Handles payment callbacks for LNURL-pay requests"
+      }
+    },
+    "/api/users": {
+      "post": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "message": { "type": "string" },
+                    "username": { "type": "string" },
+                    "sparkAddress": { "type": "string" },
+                    "existingUsername": { "type": "string" }
+                  },
+                  "required": ["status", "message"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "message": { "type": "string" },
+                    "username": { "type": "string" },
+                    "sparkAddress": { "type": "string" },
+                    "existingUsername": { "type": "string" }
+                  },
+                  "required": ["status", "message"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "message": { "type": "string" },
+                    "username": { "type": "string" },
+                    "sparkAddress": { "type": "string" },
+                    "existingUsername": { "type": "string" }
+                  },
+                  "required": ["status", "message"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiUsers",
+        "tags": ["Users"],
+        "summary": "Associate username with spark address",
+        "description": "Creates a new association between a username and spark address",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "username": { "minLength": 1, "maxLength": 50, "type": "string" }, "sparkAddress": { "minLength": 1, "type": "string" } },
+                "required": ["username", "sparkAddress"]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": { "username": { "minLength": 1, "maxLength": 50, "type": "string" }, "sparkAddress": { "minLength": 1, "type": "string" } },
+                "required": ["username", "sparkAddress"]
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "properties": { "username": { "minLength": 1, "maxLength": 50, "type": "string" }, "sparkAddress": { "minLength": 1, "type": "string" } },
+                "required": ["username", "sparkAddress"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{username}": {
+      "get": {
+        "parameters": [{ "schema": { "type": "string", "minLength": 1, "maxLength": 50 }, "in": "path", "name": "username", "required": true }],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "status": { "type": "string" }, "username": { "type": "string" }, "sparkAddress": { "type": "string" }, "message": { "type": "string" } },
+                  "required": ["status"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "status": { "type": "string" }, "username": { "type": "string" }, "sparkAddress": { "type": "string" }, "message": { "type": "string" } },
+                  "required": ["status"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "status": { "type": "string" }, "username": { "type": "string" }, "sparkAddress": { "type": "string" }, "message": { "type": "string" } },
+                  "required": ["status"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiUsersByUsername",
+        "tags": ["Users"],
+        "summary": "Get spark address by username",
+        "description": "Retrieves the spark address associated with a given username"
+      }
+    },
+    "/api/users/by-spark-address/{sparkAddress}": {
+      "get": {
+        "parameters": [{ "schema": { "type": "string", "minLength": 1 }, "in": "path", "name": "sparkAddress", "required": true }],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "status": { "type": "string" }, "username": { "type": "string" }, "sparkAddress": { "type": "string" }, "message": { "type": "string" } },
+                  "required": ["status"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "status": { "type": "string" }, "username": { "type": "string" }, "sparkAddress": { "type": "string" }, "message": { "type": "string" } },
+                  "required": ["status"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "status": { "type": "string" }, "username": { "type": "string" }, "sparkAddress": { "type": "string" }, "message": { "type": "string" } },
+                  "required": ["status"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiUsersBy-spark-addressBySparkAddress",
+        "tags": ["Users"],
+        "summary": "Get username by spark address",
+        "description": "Retrieves the username associated with a given spark address"
+      }
+    },
+    "/{username}": { "get": { "operationId": "getByUsername", "parameters": [{ "schema": { "type": "string" }, "in": "path", "name": "username", "required": true }], "responses": { "200": {} } } }
+  },
+  "components": { "schemas": {} }
+}
