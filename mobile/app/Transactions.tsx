@@ -32,7 +32,19 @@ export default function Transactions() {
         {/* Transactions List */}
         <View style={styles.transactionsList}>
           {transactions.map((transaction) => (
-            <Transaction key={transaction.txid} transaction={transaction} onPress={() => router.push({ pathname: '/TransactionDetails', params: { transaction: JSON.stringify(transaction) } })} />
+            <Transaction
+              key={transaction.txid}
+              transaction={transaction}
+              onPress={() =>
+                router.push({
+                  pathname: '/TransactionDetails',
+                  params: {
+                    transaction: JSON.stringify(transaction),
+                    layerNetwork: network, // Pass the current layer being viewed
+                  },
+                })
+              }
+            />
           ))}
         </View>
       </View>
