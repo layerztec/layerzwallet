@@ -76,6 +76,21 @@ test('stacks wallet can get tokens', async (context) => {
   ]);
 });
 
+test('stacks wallet can get nfts', async (context) => {
+  if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
+    context.skip();
+    return;
+  }
+
+  const w = new StacksWallet();
+  w.setSecret(process.env.TEST_MNEMONIC);
+  await w.init(storageMock);
+
+  const nfts = await w.fetchNfts();
+  assert.ok(nfts.length > 0);
+});
+
 test('stacks wallet can get common txs', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
     console.warn('TEST_MNEMONIC not set, skipping');

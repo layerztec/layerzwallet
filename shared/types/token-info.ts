@@ -23,3 +23,15 @@ export interface EVMTokenInfo extends Omit<TokenInfo, 'id'> {
 export interface LiquidTokenInfo extends Omit<TokenInfo, 'id'> {
   readonly assetId: string;
 }
+
+export interface NftInfo {
+  readonly contractAddress: string;
+
+  /* actual token number inside contract */
+  readonly tokenId: string;
+
+  readonly collectionName: string;
+  readonly name: string;
+  readonly description: string;
+  readonly image: string;
+}

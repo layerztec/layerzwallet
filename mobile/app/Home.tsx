@@ -35,11 +35,12 @@ import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { NETWORK_ARK, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
 import { SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapPlatform } from '@shared/types/swap';
-import { CachedTokenInfo } from '@shared/types/token-info';
+import { CachedTokenInfo, NftInfo } from '@shared/types/token-info';
 import { ReceiveTokenProps } from './Receive';
 import { SendTokenEvmProps } from './SendTokenEvm';
 import { SwapParams } from './Swap';
 import { SendParams } from './send';
+import NftsView from '@/components/NftsView';
 
 const Action = ({ network, text }: { network?: Networks; text: string }) => {
   const networkImage = network ? getNetworkImageAsset(network) : null;
@@ -78,6 +79,7 @@ export default function Home() {
   const riveRef = useRef<RiveRef>(null); // Ref for Rive animation
   const balanceRef = useRef<{ refresh: () => void }>(null);
   const tokensViewRef = useRef<{ refresh: () => void }>(null);
+  const nftsViewRef = useRef<{ refresh: () => void }>(null);
   const swapListRef = useRef<{ refresh: () => void }>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshOptions, setRefreshOptions] = useState<Partial<RefreshControlProps>>({});
@@ -259,6 +261,7 @@ export default function Home() {
       balanceRef.current?.refresh();
       tokensViewRef.current?.refresh();
       swapListRef.current?.refresh();
+      nftsViewRef.current?.refresh();
       mutateTransactions();
       await sleep(3000); // wait for 3 seconds to simulate a refresh
     } finally {
@@ -425,6 +428,9 @@ export default function Home() {
 
             {/* Tokens Section */}
             <TokensView ref={tokensViewRef} onTokenPress={handleTokenPress} />
+
+            {/* NFTs Section */}
+            <NftsView ref={nftsViewRef} />
 
             {/* Seed Backup Warning */}
             {hasBackedUpSeed === false && (
