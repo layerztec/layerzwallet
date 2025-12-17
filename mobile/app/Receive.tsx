@@ -6,9 +6,8 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Pressable, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-
 import GradientScreen from '@/components/GradientScreen';
-import ScreenHeader from '@/components/navigation/ScreenHeader';
+import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -18,7 +17,6 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 import { StringNumber } from '@shared/types/string-number';
 import { NETWORK_SPARK, NETWORK_STACKS, Networks } from '@shared/types/networks';
-import { getGradientPrimaryColor } from '@/utils/gradientUtils';
 import { walletCanHaveTokens } from '@shared/class/wallets/interface-can-have-tokens';
 
 export type ReceiveTokenProps = {
@@ -242,9 +240,7 @@ export default function ReceiveScreen() {
   if ((network === NETWORK_STACKS || network === NETWORK_SPARK) && stacksTokenReceiveInfo) {
     return (
       <GradientScreen variant={network}>
-        <Stack.Screen options={{ headerShown: false }} />
-
-        <ScreenHeader title={`Receive on ${capitalizeFirstLetter(network)}`} />
+        <Stack.Screen options={buildScreenHeaderOptions({ headerTitle: `Receive on ${capitalizeFirstLetter(network)}` })} />
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.contentContainer}>
@@ -264,9 +260,7 @@ export default function ReceiveScreen() {
   if (isNewBalanceGT()) {
     return (
       <GradientScreen variant={network}>
-        <Stack.Screen options={{ headerShown: false }} />
-
-        <ScreenHeader title={`Receive on ${capitalizeFirstLetter(network)}`} />
+        <Stack.Screen options={buildScreenHeaderOptions({ headerTitle: `Receive on ${capitalizeFirstLetter(network)}` })} />
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.contentContainer}>
@@ -281,9 +275,7 @@ export default function ReceiveScreen() {
 
   return (
     <GradientScreen variant={network}>
-      <Stack.Screen options={{ headerShown: false }} />
-
-      <ScreenHeader title={`Receive on ${capitalizeFirstLetter(network)}`} />
+      <Stack.Screen options={buildScreenHeaderOptions({ headerTitle: `Receive on ${capitalizeFirstLetter(network)}` })} />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.contentContainer}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useSegments } from 'expo-router';
 import { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useBiometricModal } from '@/src/hooks/useBiometricModal';
@@ -136,8 +136,8 @@ export function ProtectedRouteStack() {
           }}
         />
         <Stack.Screen name="BackdoorNetworkSwitcher" options={{ headerShown: false }} />
-        <Stack.Screen name="About" options={{ headerShown: false }} />
-        <Stack.Screen name="Changelog" options={{ headerShown: false }} />
+        <Stack.Screen name="About" />
+        <Stack.Screen name="Changelog" />
         <Stack.Screen name="SeedBackup" />
         <Stack.Screen
           name="SeedBackupQR"
@@ -152,8 +152,8 @@ export function ProtectedRouteStack() {
             },
           }}
         />
-        <Stack.Screen name="Tools" options={{ headerShown: false }} />
-        <Stack.Screen name="SendAccountBased" options={{ headerShown: false }} />
+        <Stack.Screen name="Tools" />
+        <Stack.Screen name="SendAccountBased" />
         <Stack.Screen name="SendBtc" options={{ title: 'Send BTC' }} />
         <Stack.Screen name="SendEvm" options={{ title: 'Send' }} />
         <Stack.Screen
@@ -172,8 +172,8 @@ export function ProtectedRouteStack() {
             },
           }}
         />
-        <Stack.Screen name="send" options={{ headerShown: false }} />
-        <Stack.Screen name="Swap" options={{ headerShown: false }} />
+        <Stack.Screen name="send" />
+        <Stack.Screen name="Swap" />
         <Stack.Screen
           name="SwapTarget"
           options={{
@@ -203,9 +203,9 @@ export function ProtectedRouteStack() {
             },
           }}
         />
-        <Stack.Screen name="Onramp" options={{ headerShown: true }} />
+        <Stack.Screen name="Onramp" />
         <Stack.Screen name="AskPassword" options={{ presentation: 'modal', headerShown: false }} />
-        <Stack.Screen name="DAppBrowser" options={{ headerShown: true, title: 'Browser' }} />
+        <Stack.Screen name="DAppBrowser" options={{ title: 'Browser' }} />
         <Stack.Screen
           name="Action"
           options={{
