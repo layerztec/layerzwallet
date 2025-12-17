@@ -1,14 +1,13 @@
 .App {
-  padding: 20px;
-  background-image: linear-gradient(to bottom, #fd5d2b, #9df9ec);
-  color: #011474;
+  padding: 0px;
+  background-image: linear-gradient(to bottom, #0c1f6c, #1c3a88);
+  color: #fbfff9;
   position: absolute;
   top: 0px;
   bottom: 0px;
   left: 0px;
   right: 0px;
   text-align: center;
-  background-color: #fff;
 }
 
 .App-logo {
@@ -29,7 +28,7 @@
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-  color: #282c34;
+  color: #fbfff9;
 }
 
 .App-link {
