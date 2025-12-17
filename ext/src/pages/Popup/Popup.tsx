@@ -44,6 +44,8 @@ import TestPage from './TestPage';
 import TransactionSuccessEvm from './TransactionSuccessEvm';
 import UnlockPassword from './UnlockPassword';
 import SendTokenStacks from './SendTokenStacks';
+import NftGallery from './NftGallery';
+import Nft from './Nft';
 
 const AppContent: React.FC = () => {
   const navigate = useNavigate();
@@ -110,6 +112,8 @@ const AppContent: React.FC = () => {
             {/* we are using camel case because screen name matches one in the mobile app */}
             <Route path="/SwapXArkDeposit" element={<SwapXArkDeposit />} />
             <Route path="/swap-xark-claim" element={<SwapXArkClaim />} />
+            <Route path="/NftGallery" element={<NftGallery />} />
+            <Route path="/Nft" element={<Nft />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/transaction-success" element={<TransactionSuccessEvm />} />
             <Route path="/action" element={<Action />} />

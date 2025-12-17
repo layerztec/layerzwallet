@@ -5,7 +5,7 @@ import { StacksWallet } from '../class/wallets/stacks-wallet';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { IStorage } from '../types/IStorage';
 import { NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
-import { CachedTokenInfo, NftInfo } from '../types/token-info';
+import { NftInfo } from '../types/token-info';
 
 const STORAGE_KEY_CACHED_NFT = 'STORAGE_KEY_CACHED_NFT';
 
