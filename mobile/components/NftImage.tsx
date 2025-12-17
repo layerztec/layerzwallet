@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from 'react';
-import { Image, type ImageProps, type ImageSourcePropType } from 'react-native';
+import { Image, type ImageProps } from 'expo-image';
 
 const DEFAULT_IPFS_PROXY_BASE_URL = 'https://gamma.mypinata.cloud/ipfs/';
 
@@ -31,35 +31,69 @@ function resolveIpfsImageUri(uri: string) {
   return trimmed;
 }
 
-export type NftImageProps = ImageProps;
+type ResizeMode = 'cover' | 'contain' | 'stretch' | 'center' | 'repeat';
 
-const NftImage = memo(({ source, ...props }: NftImageProps) => {
-  const resolvedSource = useMemo<ImageSourcePropType | undefined>(() => {
+function mapResizeModeToContentFit(resizeMode?: ResizeMode): ImageProps['contentFit'] | undefined {
+  switch (resizeMode) {
+    case 'contain':
+      return 'contain';
+    case 'stretch':
+      return 'fill';
+    case 'center':
+    case 'repeat':
+      return 'none';
+    case 'cover':
+    default:
+      return resizeMode ? 'cover' : undefined;
+  }
+}
+
+export type NftImageProps = Omit<ImageProps, 'source' | 'contentFit'> & {
+  source?: ImageProps['source'];
+  contentFit?: ImageProps['contentFit'];
+  /**
+   * Back-compat with React Native's Image `resizeMode`.
+   * Prefer using `contentFit` directly.
+   */
+  resizeMode?: ResizeMode;
+};
+
+const NftImage = memo(({ source, resizeMode, contentFit, ...props }: NftImageProps) => {
+  const resolvedSource = useMemo<ImageProps['source']>(() => {
     if (!source) return source;
 
     // local require(...)
     if (typeof source === 'number') return source;
 
+    // string uri
+    if (typeof source === 'string') return resolveIpfsImageUri(source);
+
     // ImageSourcePropType can be an array (e.g. multiple densities)
     if (Array.isArray(source)) {
       return source.map((s) => {
-        if (s && typeof s === 'object' && 'uri' in s && typeof s.uri === 'string') {
-          const rewritten = resolveIpfsImageUri(s.uri);
-          return rewritten === s.uri ? s : { ...s, uri: rewritten };
+        if (typeof s === 'string') return resolveIpfsImageUri(s);
+        if (typeof s === 'number') return s;
+        if (s && typeof s === 'object' && 'uri' in s && typeof (s as { uri?: unknown }).uri === 'string') {
+          const uri = (s as { uri: string }).uri;
+          const rewritten = resolveIpfsImageUri(uri);
+          return rewritten === uri ? s : { ...(s as Record<string, unknown>), uri: rewritten };
         }
-        return s;
-      });
+        return s as any;
+      }) as any;
     }
 
-    if (typeof source === 'object' && 'uri' in source && typeof source.uri === 'string') {
-      const rewritten = resolveIpfsImageUri(source.uri);
-      return rewritten === source.uri ? source : { ...source, uri: rewritten };
+    if (typeof source === 'object' && 'uri' in source && typeof (source as { uri?: unknown }).uri === 'string') {
+      const uri = (source as { uri: string }).uri;
+      const rewritten = resolveIpfsImageUri(uri);
+      return rewritten === uri ? source : { ...(source as Record<string, unknown>), uri: rewritten };
     }
 
     return source;
   }, [source]);
 
-  return <Image {...props} source={resolvedSource} />;
+  const resolvedContentFit = contentFit ?? mapResizeModeToContentFit(resizeMode);
+
+  return <Image {...props} source={resolvedSource} contentFit={resolvedContentFit} cachePolicy="memory-disk" />;
 });
 
 NftImage.displayName = 'NftImage';
