@@ -10,6 +10,13 @@ const partnersList: PartnerInfo[] = [
     description: 'Buy & sell bitcoin non-custodially, p2p',
   },
   {
+    name: 'BTC Map',
+    network: NETWORK_BITCOIN,
+    url: 'https://btcmap.org/map',
+    imgUrl: '',
+    description: 'Find places to spend sats wherever you are',
+  },
+  {
     name: 'Bitrefill',
     network: NETWORK_BITCOIN,
     url: 'https://bitrefill.com',
