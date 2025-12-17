@@ -6,7 +6,6 @@ import { SWRConfig } from 'swr';
 import '../../modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import '../../modules/spark-adapter'; // needed to be imported before we can use SparkWallet
 
-import { Hello } from '@shared/class/hello';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
 import { EStep, InitializationContext, InitializationContextProvider } from '@shared/hooks/InitializationContext';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
@@ -44,6 +43,8 @@ import TestPage from './TestPage';
 import TransactionSuccessEvm from './TransactionSuccessEvm';
 import UnlockPassword from './UnlockPassword';
 import SendTokenStacks from './SendTokenStacks';
+import NftGallery from './NftGallery';
+import Nft from './Nft';
 
 const AppContent: React.FC = () => {
   const navigate = useNavigate();
@@ -110,6 +111,8 @@ const AppContent: React.FC = () => {
             {/* we are using camel case because screen name matches one in the mobile app */}
             <Route path="/SwapXArkDeposit" element={<SwapXArkDeposit />} />
             <Route path="/swap-xark-claim" element={<SwapXArkClaim />} />
+            <Route path="/NftGallery" element={<NftGallery />} />
+            <Route path="/Nft" element={<Nft />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/transaction-success" element={<TransactionSuccessEvm />} />
             <Route path="/action" element={<Action />} />
@@ -122,10 +125,7 @@ const AppContent: React.FC = () => {
   return (
     <div className="App">
       <header className="App-header">
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 onClick={() => navigate('/')} style={{ margin: 0, cursor: 'pointer' }}>
-            {Hello.world()}
-          </h1>
+        <div style={{ position: 'absolute', top: 0, right: 20 }}>
           <SettingsIcon onClick={() => navigate('/settings')} data-testid="settings-button" />
         </div>
         <Card>

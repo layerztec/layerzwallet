@@ -81,6 +81,7 @@ const BalanceDefault = forwardRef<{ refresh: () => void }, BalanceProps>(({ netw
 
       <h1>
         <span id="home-balance">{displayBalance}</span> {ticker}
+        &nbsp;<span style={{ fontSize: 14 }}>{displaySubBalance !== '—' ? `$${displaySubBalance}` : ''}</span>
         {canBuyWithFiat ? (
           <span style={{ paddingLeft: '15px' }}>
             <Button onClick={handleBuyClick}>
@@ -88,14 +89,11 @@ const BalanceDefault = forwardRef<{ refresh: () => void }, BalanceProps>(({ netw
             </Button>
           </span>
         ) : null}
-        <div style={{ width: '100%', marginBottom: '15px' }}>
-          <span style={{ fontSize: 14 }}>{displaySubBalance !== '—' ? `$${displaySubBalance}` : ''}</span>
-        </div>
       </h1>
 
-      <h3>
-        <span id="pocket-balance">Pocket balance: {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : ''}</span> {getTickerByNetwork(NETWORK_BITCOIN)}
-      </h3>
+      <span id="pocket-balance" style={{ position: 'absolute', top: 0, left: 20, fontSize: 14 }}>
+        Pocket balance: {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : ''} {getTickerByNetwork(NETWORK_BITCOIN)}
+      </span>
     </>
   );
 });
@@ -222,9 +220,9 @@ const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceProps>(({ ne
         ) : null}
       </div>
 
-      <h3>
-        <span id="pocket-balance">Pocket balance: {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : ''}</span> {getTickerByNetwork(NETWORK_BITCOIN)}
-      </h3>
+      <span id="pocket-balance" style={{ position: 'absolute', top: 0, left: 20, fontSize: 14 }}>
+        Pocket balance: {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : ''} {getTickerByNetwork(NETWORK_BITCOIN)}
+      </span>
     </>
   );
 });
@@ -325,9 +323,9 @@ const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceProps>(({ network
         </table>
       </div>
 
-      <h3>
-        <span id="pocket-balance">Pocket balance: {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : ''}</span> {getTickerByNetwork(NETWORK_BITCOIN)}
-      </h3>
+      <span id="pocket-balance" style={{ position: 'absolute', top: 0, left: 20, fontSize: 14 }}>
+        Pocket balance: {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : ''} {getTickerByNetwork(NETWORK_BITCOIN)}
+      </span>
     </>
   );
 });

@@ -249,15 +249,12 @@ export function ProtectedRouteStack() {
         <Stack.Screen
           name="TransactionDetails"
           options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.8, 1.0],
-            sheetInitialDetentIndex: 0,
-            sheetGrabberVisible: true,
-            headerTransparent: false,
-            gestureEnabled: true,
+            presentation: 'transparentModal',
+            animation: 'fade',
             headerShown: false,
+            gestureEnabled: true,
             contentStyle: {
-              height: '100%',
+              backgroundColor: 'transparent',
             },
           }}
         />
@@ -271,6 +268,15 @@ export function ProtectedRouteStack() {
             contentStyle: {
               backgroundColor: 'transparent',
             },
+          }}
+        />
+        <Stack.Screen
+          name="ClaimUsernameModal"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: 'fitToContents',
+            sheetGrabberVisible: true,
+            headerShown: false,
           }}
         />
       </Stack.Protected>

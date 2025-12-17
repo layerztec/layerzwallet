@@ -3,7 +3,7 @@ import { generateNewAccount, generateWallet, getStxAddress, Wallet as SdkWallet 
 import { createClient } from '@stacks/blockchain-api-client';
 import { broadcastTransaction, makeContractCall, makeSTXTokenTransfer, noneCV, SignedTokenTransferOptions, standardPrincipalCV, uintCV, validateStacksAddress } from '@stacks/transactions';
 
-import { CachedTokenInfo } from '../../types/token-info';
+import { CachedTokenInfo, NftInfo } from '../../types/token-info';
 import { CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_STACKS } from '../../types/networks';
 import { IStorage } from '../../types/IStorage';
@@ -14,6 +14,7 @@ const sbtcId = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token::sbtc-token
 const baseUrl = 'https://api.mainnet.hiro.so';
 
 const STORAGE_KEY = 'STACKS_TOKEN_METADATA';
+const STORAGE_KEY_NFT = 'STACKS_NFT_METADATA_V2';
 
 export class StacksWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveTokens {
   private _accountNumber: number = 0;
@@ -128,6 +129,56 @@ export class StacksWallet implements InterfaceAccountBasedWallet, InterfaceCanHa
     });
 
     this._tokenBalances = tokens;
+  }
+
+  public async fetchNfts(): Promise<NftInfo[]> {
+    const address = await this.getOffchainReceiveAddress();
+    assert(address, 'Stacks address is missing');
+
+    const client = createClient({ baseUrl });
+
+    const { data: nftBalances } = await client.GET('/extended/v1/tokens/nft/holdings', {
+      params: {
+        query: { limit: 100, offset: 0, principal: address, tx_metadata: false },
+      },
+    });
+
+    const nfts: NftInfo[] = [];
+    for (const token of nftBalances?.results || []) {
+      const contractAddress = token.asset_identifier.split('::')[0];
+      const tokenId = token.value.repr.replace('u', '');
+
+      let tokenMetadata: any = undefined;
+
+      try {
+        const cacheKey = `${STORAGE_KEY_NFT}-${contractAddress}-${tokenId}`;
+        const cachedTokenMetadata = await this._storage?.getItem(cacheKey);
+        if (cachedTokenMetadata) {
+          tokenMetadata = JSON.parse(cachedTokenMetadata) as unknown;
+        } else {
+          const response = await fetch(`https://stacks.gamma.io/api/v1/collections/${contractAddress}/${tokenId}`);
+          tokenMetadata = await response.json();
+          await this._storage?.setItem(cacheKey, JSON.stringify(tokenMetadata));
+        }
+      } catch (error) {
+        console.error('Failed to fetch NFT metadata from Gamma:', error);
+      }
+
+      const name = tokenMetadata?.data?.token_metadata?.name ?? '';
+      const image = tokenMetadata?.data?.token_metadata?.image_url ?? '';
+      const description = tokenMetadata?.data?.token_metadata?.description ?? '';
+
+      nfts.push({
+        contractAddress,
+        tokenId,
+        collectionName: '',
+        name,
+        image,
+        description,
+      });
+    }
+
+    return nfts;
   }
 
   public getTokenBalances() {

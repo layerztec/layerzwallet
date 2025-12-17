@@ -63,9 +63,9 @@ const PartnersView: React.FC = () => {
             style={{
               display: 'block',
               padding: '1rem',
-              backgroundColor: 'white',
-              borderRadius: '0.5rem',
-              border: '1px solid #e5e7eb',
+              backgroundColor: '#13286c',
+              borderRadius: '9px',
+              border: '0px solid #e5e7eb',
               textDecoration: 'none',
               color: 'inherit',
               transition: 'background-color 0.2s',
@@ -74,7 +74,7 @@ const PartnersView: React.FC = () => {
               e.currentTarget.style.backgroundColor = '#f3f4f6';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'white';
+              e.currentTarget.style.backgroundColor = '#13286c';
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>

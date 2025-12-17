@@ -123,7 +123,7 @@ const SwapListView = forwardRef<{ refresh: () => void }>((props, ref) => {
         marginBottom: '20px',
         border: '1px solid #ddd',
         borderRadius: '8px',
-        backgroundColor: '#f9f9f9',
+        backgroundColor: '#0c1f6c',
       }}
     >
       <div
@@ -132,7 +132,7 @@ const SwapListView = forwardRef<{ refresh: () => void }>((props, ref) => {
           alignItems: 'center',
           padding: '12px 16px',
           borderBottom: '1px solid #eee',
-          backgroundColor: '#f0f0f0',
+          backgroundColor: '#0c1f6c',
           borderRadius: '8px 8px 0 0',
         }}
       >

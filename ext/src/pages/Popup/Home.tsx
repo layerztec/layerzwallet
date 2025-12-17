@@ -29,6 +29,7 @@ import { SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapPair, SwapPlatform } from '@shar
 
 import { BackgroundCaller } from '../../modules/background-caller';
 import Balance from './components/Balance';
+import NftsView from './components/NftsView';
 import PartnersView from './components/PartnersView';
 import SwapInterfaceView from './components/SwapInterfaceView';
 import SwapListView from './components/SwapListView';
@@ -49,6 +50,7 @@ const Home: React.FC = () => {
   const { mutate: mutateTransactions } = useTransactions(network, accountNumber, BackgroundCaller);
   const balanceRef = useRef<{ refresh: () => void }>(null);
   const tokensViewRef = useRef<{ refresh: () => void }>(null);
+  const nftsViewRef = useRef<{ refresh: () => void }>(null);
   const swapListRef = useRef<{ refresh: () => void }>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -185,6 +187,7 @@ const Home: React.FC = () => {
     try {
       balanceRef.current?.refresh();
       tokensViewRef.current?.refresh();
+      nftsViewRef.current?.refresh();
       swapListRef.current?.refresh();
       mutateTransactions();
       await sleep(3000); // wait for 3 seconds to simulate a refresh
@@ -247,6 +250,7 @@ const Home: React.FC = () => {
         <div>
           <PartnersView />
           <TokensView ref={tokensViewRef} />
+          <NftsView ref={nftsViewRef} />
         </div>
       )}
 

@@ -125,13 +125,14 @@ const SwapDetails: React.FC = () => {
             marginRight: '12px',
             display: 'flex',
             alignItems: 'center',
+            color: '#fbfff9',
           }}
         >
           <ArrowLeftIcon size={20} />
         </button>
         <div>
           <h2 style={{ margin: 0, fontSize: '18px' }}>{directionText}</h2>
-          <div style={{ fontSize: '14px', color: '#666', marginTop: '2px' }}>{formattedDateWithTime}</div>
+          <div style={{ fontSize: '14px', color: '#fbfff9', marginTop: '2px' }}>{formattedDateWithTime}</div>
         </div>
       </div>
 
@@ -141,7 +142,7 @@ const SwapDetails: React.FC = () => {
           textAlign: 'center',
           marginBottom: '32px',
           padding: '24px',
-          backgroundColor: '#f8f9fa',
+          backgroundColor: '#0c1f6c',
           borderRadius: '12px',
         }}
       >
@@ -150,12 +151,12 @@ const SwapDetails: React.FC = () => {
             fontSize: '32px',
             fontWeight: 'bold',
             marginBottom: '8px',
-            color: '#333',
+            color: '#fbfff9',
           }}
         >
-          {amountPrimary} <span style={{ fontSize: '18px', color: '#666' }}>{ticker}</span>
+          {amountPrimary} <span style={{ fontSize: '18px', color: '#fbfff9' }}>{ticker}</span>
         </div>
-        {amountUsd && <div style={{ fontSize: '16px', color: '#666' }}>{amountUsd}</div>}
+        {amountUsd && <div style={{ fontSize: '16px', color: '#fbfff9' }}>{amountUsd}</div>}
       </div>
 
       {/* Status Chip */}
@@ -185,7 +186,7 @@ const SwapDetails: React.FC = () => {
       {/* Details List */}
       <div
         style={{
-          backgroundColor: '#f8f9fa',
+          backgroundColor: '#0c1f6c',
           borderRadius: '12px',
           padding: '20px',
           marginBottom: '24px',
@@ -204,7 +205,7 @@ const SwapDetails: React.FC = () => {
               borderBottom: '1px solid #e0e0e0',
             }}
           >
-            <span style={{ color: '#666', fontSize: '14px' }}>Swap ID</span>
+            <span style={{ color: '#fbfff9', fontSize: '14px' }}>Swap ID</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 onClick={() => handleCopy(swap.id)}
@@ -213,7 +214,7 @@ const SwapDetails: React.FC = () => {
                   border: 'none',
                   cursor: 'pointer',
                   padding: '2px',
-                  color: '#666',
+                  color: '#fbfff9',
                 }}
                 title="Copy ID"
               >
@@ -243,7 +244,7 @@ const SwapDetails: React.FC = () => {
               borderBottom: '1px solid #e0e0e0',
             }}
           >
-            <span style={{ color: '#666', fontSize: '14px' }}>Date</span>
+            <span style={{ color: '#fbfff9', fontSize: '14px' }}>Date</span>
             <span style={{ fontSize: '14px' }}>{formattedDate}</span>
           </div>
 
@@ -256,7 +257,7 @@ const SwapDetails: React.FC = () => {
               borderBottom: '1px solid #e0e0e0',
             }}
           >
-            <span style={{ color: '#666', fontSize: '14px' }}>Type</span>
+            <span style={{ color: '#fbfff9', fontSize: '14px' }}>Type</span>
             <span style={{ fontSize: '14px' }}>{directionText}</span>
           </div>
 
@@ -269,7 +270,7 @@ const SwapDetails: React.FC = () => {
               borderBottom: '1px solid #e0e0e0',
             }}
           >
-            <span style={{ color: '#666', fontSize: '14px' }}>Network</span>
+            <span style={{ color: '#fbfff9', fontSize: '14px' }}>Network</span>
             <span style={{ fontSize: '14px' }}>{capitalizeFirstLetter(swap.network)}</span>
           </div>
 
@@ -281,14 +282,14 @@ const SwapDetails: React.FC = () => {
               ...(showConfirmations ? { paddingBottom: '8px', borderBottom: '1px solid #e0e0e0' } : {}),
             }}
           >
-            <span style={{ color: '#666', fontSize: '14px' }}>Status</span>
+            <span style={{ color: '#fbfff9', fontSize: '14px' }}>Status</span>
             <span style={{ fontSize: '14px' }}>{capitalizeFirstLetter(swap.status)}</span>
           </div>
 
           {/* Confirmations */}
           {showConfirmations && (
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#666', fontSize: '14px' }}>Confirmations</span>
+              <span style={{ color: '#fbfff9', fontSize: '14px' }}>Confirmations</span>
               <span style={{ fontSize: '14px' }}>
                 {swap.confirmations} / {swap.targetConfirmations}
               </span>
@@ -304,8 +305,8 @@ const SwapDetails: React.FC = () => {
           <Button
             onClick={handleClaim}
             style={{
-              backgroundColor: '#4CAF50',
-              color: 'white',
+              backgroundColor: '#0c1f6c',
+              color: '#fbfff9',
               padding: '12px 24px',
               fontSize: '16px',
               fontWeight: '600',
@@ -320,8 +321,8 @@ const SwapDetails: React.FC = () => {
           <Button
             onClick={handleOpenInExplorer}
             style={{
-              backgroundColor: '#f0f0f0',
-              color: '#333',
+              backgroundColor: '#0c1f6c',
+              color: '#fbfff9',
               border: '1px solid #ddd',
               padding: '12px 24px',
               display: 'flex',

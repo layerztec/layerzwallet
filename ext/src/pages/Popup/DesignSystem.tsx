@@ -79,11 +79,11 @@ export const ActionPopupButton: React.FC<{
         ref={buttonRef}
         onClick={handleClick}
         style={{
-          backgroundColor: '#282c34',
-          color: 'white',
-          border: '1px solid white',
+          backgroundColor: '#0c1f6c',
+          color: '#fbfff9',
+          border: '0px solid white',
           padding: '10px 20px',
-          borderRadius: '5px',
+          borderRadius: '9px',
           cursor: 'pointer',
           fontSize: '20px',
           transition: 'background-color 0.3s',
@@ -151,7 +151,7 @@ export const Switch = <T extends string>({ items, activeItem, onItemClick }: { i
       style={{
         display: 'flex',
         flexWrap: 'wrap',
-        backgroundColor: '#f0f0f0',
+        backgroundColor: '#1c3a88',
         borderRadius: '8px',
         padding: '4px',
         width: '100%',
@@ -165,8 +165,8 @@ export const Switch = <T extends string>({ items, activeItem, onItemClick }: { i
             padding: '8px 16px',
             border: 'none',
             borderRadius: '6px',
-            backgroundColor: item === activeItem ? '#282c34' : 'transparent',
-            color: item === activeItem ? 'white' : '#666',
+            backgroundColor: item === activeItem ? '#fbfff9' : 'transparent',
+            color: item === activeItem ? 'black' : '#666',
             fontWeight: item === activeItem ? 'bold' : 'normal',
             cursor: 'pointer',
             transition: 'all 0.3s ease',
@@ -186,11 +186,11 @@ export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { 
     {...props}
     disabled={disabled}
     style={{
-      backgroundColor: '#282c34',
-      color: 'white',
-      border: '1px solid white',
+      backgroundColor: '#0b1f5b',
+      color: '#fbfff9',
+      border: '0px solid white',
       padding: '10px 20px',
-      borderRadius: '5px',
+      borderRadius: '9px',
       cursor: disabled ? 'not-allowed' : 'pointer',
       fontSize: '20px',
       transition: 'background-color 0.3s',
@@ -214,11 +214,11 @@ export const WideButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> 
     {...props}
     disabled={disabled}
     style={{
-      backgroundColor: '#282c34',
-      color: 'white',
-      border: '1px solid white',
+      backgroundColor: '#0c1f6c',
+      color: '#fbfff9',
+      border: '0px solid white',
       padding: '10px 20px',
-      borderRadius: '5px',
+      borderRadius: '9px',
       cursor: disabled ? 'not-allowed' : 'pointer',
       fontSize: '20px',
       transition: 'background-color 0.3s',
@@ -281,11 +281,11 @@ export const HodlButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> 
       onTouchStart={startProgress}
       onTouchEnd={stopProgress}
       style={{
-        backgroundColor: '#282c34',
-        color: 'white',
-        border: '1px solid white',
+        backgroundColor: '#0c1f6c',
+        color: '#fbfff9',
+        border: '0px solid white',
         padding: '10px 20px',
-        borderRadius: '5px',
+        borderRadius: '9px',
         cursor: disabled ? 'not-allowed' : 'pointer',
         fontSize: '20px',
         transition: 'background-color 0.3s',
@@ -360,7 +360,7 @@ export const TextArea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement
 export const Bubble: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div
     style={{
-      backgroundColor: '#ebebeb',
+      backgroundColor: '#0b1f5b',
       borderRadius: '20px',
       padding: '10px 20px',
       marginBottom: '5px',
@@ -475,11 +475,10 @@ export const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     style={{
       width: '95%',
       height: '100%',
-      backgroundColor: 'white',
-      border: '1px solid #ebebeb',
-      borderRadius: '10px',
+      backgroundImage: 'linear-gradient(to bottom, #0c1f6c, #1c3a88)',
+      border: '0px solid #ebebeb',
+      borderRadius: '0px',
       padding: '20px',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
     }}
   >
     {children}

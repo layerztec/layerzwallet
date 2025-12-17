@@ -67,13 +67,28 @@ test('stacks wallet can get tokens', async (context) => {
     {
       id: 'STX',
       logoURI: 'https://static.tildacdn.net/tild6638-6331-4134-b936-386137393566/favicon_6.ico',
-      balance: '99998716',
+      balance: '97074379',
       name: 'STX',
       chainId: 0,
       symbol: 'STX',
       decimals: 6,
     },
   ]);
+});
+
+test('stacks wallet can get nfts', async (context) => {
+  if (!process.env.TEST_MNEMONIC) {
+    console.warn('TEST_MNEMONIC not set, skipping');
+    context.skip();
+    return;
+  }
+
+  const w = new StacksWallet();
+  w.setSecret(process.env.TEST_MNEMONIC);
+  await w.init(storageMock);
+
+  const nfts = await w.fetchNfts();
+  assert.ok(nfts.length > 0);
 });
 
 test('stacks wallet can get common txs', async (context) => {
