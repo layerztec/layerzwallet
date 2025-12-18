@@ -71,15 +71,6 @@ const NftsView = forwardRef<{ refresh: () => void }, { selectedNft?: string; onV
     },
   }));
 
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <ThemedText style={styles.title}>NFT</ThemedText>
-        <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText>
-      </View>
-    );
-  }
-
   if (nftList.length === 0) {
     return null;
   }
@@ -101,6 +92,8 @@ const NftsView = forwardRef<{ refresh: () => void }, { selectedNft?: string; onV
           />
         ))}
       </View>
+
+      {error ? <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText> : null}
 
       {hasMoreThanPreview && (
         <TouchableOpacity
@@ -142,6 +135,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'rgba(255, 100, 100, 0.8)',
     textAlign: 'center',
+    paddingTop: 8,
   },
   previewRow: {
     flexDirection: 'row',

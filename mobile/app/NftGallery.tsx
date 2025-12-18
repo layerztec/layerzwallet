@@ -52,29 +52,39 @@ export default function NftGallery() {
       <View style={styles.root}>
         <ScreenHeader title="NFTs" />
 
-        {error ? (
-          <View style={styles.center}>
-            <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText>
-          </View>
-        ) : isLoading && data.length === 0 ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
-          </View>
-        ) : data.length === 0 ? (
-          <View style={styles.center}>
-            <ThemedText style={styles.emptyText}>No NFTs</ThemedText>
-          </View>
-        ) : (
-          <FlatList
-            data={data}
-            numColumns={2}
-            keyExtractor={keyForNft}
-            renderItem={({ item }) => <NftTile nft={item} onPress={handleOpenNft} />}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
-            columnWrapperStyle={styles.columnWrapper}
-          />
-        )}
+        {(() => {
+          if (isLoading && data.length === 0) {
+            return (
+              <View style={styles.center}>
+                <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
+              </View>
+            );
+          }
+
+          if (data.length === 0) {
+            return (
+              <View style={styles.center}>
+                <ThemedText style={styles.emptyText}>No NFTs</ThemedText>
+              </View>
+            );
+          }
+
+          return (
+            <View style={styles.listWrapper}>
+              {error ? <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText> : null}
+              <FlatList
+                data={data}
+                numColumns={2}
+                keyExtractor={keyForNft}
+                renderItem={({ item }) => <NftTile nft={item} onPress={handleOpenNft} />}
+                showsVerticalScrollIndicator={false}
+                style={styles.list}
+                contentContainerStyle={styles.listContent}
+                columnWrapperStyle={styles.columnWrapper}
+              />
+            </View>
+          );
+        })()}
       </View>
     </GradientScreen>
   );
@@ -82,6 +92,12 @@ export default function NftGallery() {
 
 const styles = StyleSheet.create({
   root: {
+    flex: 1,
+  },
+  listWrapper: {
+    flex: 1,
+  },
+  list: {
     flex: 1,
   },
   center: {

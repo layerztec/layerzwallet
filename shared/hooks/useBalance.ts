@@ -121,7 +121,7 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
       break;
 
     case NETWORK_STACKS:
-      refreshInterval = 5_000; // stacks block time
+      refreshInterval = 10_000; // stacks block time
       break;
 
     case NETWORK_LIGHTNING:
