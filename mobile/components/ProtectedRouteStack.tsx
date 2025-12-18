@@ -129,7 +129,6 @@ export function ProtectedRouteStack() {
         <Stack.Screen
           name="onboarding/create-password"
           options={{
-            headerShown: false,
             animation: 'slide_from_right',
             animationDuration: 350,
             gestureEnabled: true,
@@ -154,8 +153,9 @@ export function ProtectedRouteStack() {
         />
         <Stack.Screen name="Tools" />
         <Stack.Screen name="SendAccountBased" />
-        <Stack.Screen name="SendBtc" options={{ title: 'Send BTC' }} />
+        <Stack.Screen name="SendBtc" />
         <Stack.Screen name="SendEvm" options={{ title: 'Send' }} />
+        <Stack.Screen name="send/send-address" options={{ headerShown: false }} />
         <Stack.Screen
           name="FeeSelector"
           options={{

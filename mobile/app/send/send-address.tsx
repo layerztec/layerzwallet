@@ -3,6 +3,7 @@ import * as bip21 from 'bip21';
 import { useNavigation, useRouter } from 'expo-router';
 import React, { useContext, useLayoutEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import GradientScreen from '@/components/GradientScreen';
 import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
@@ -20,6 +21,7 @@ const SendAddress: React.FC = () => {
   const { scanQr } = useContext(ScanQrContext);
   const router = useRouter();
   const { network, address: contextAddress, setAddress: setContextAddress, token, setToken, setAmount, setDenomination, setMemo } = useSendFlow();
+  const insets = useSafeAreaInsets();
 
   const [localAddress, setLocalAddress] = useState(contextAddress);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -83,13 +85,13 @@ const SendAddress: React.FC = () => {
   };
 
   useLayoutEffect(() => {
-    navigation.setOptions(buildScreenHeaderOptions({ title: `Send ${getTickerByNetwork(network)}`, headerShown: true }));
+    navigation.setOptions(buildScreenHeaderOptions({ headerTitle: `Send ${getTickerByNetwork(network)}`, headerShown: true }));
   }, [navigation, network]);
 
   return (
     <GradientScreen variant={network} scroll={true}>
       <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
-        <View style={styles.container}>
+        <View style={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 16 }]}>
           <View style={styles.inputSection}>
             <View style={styles.inputContainer}>
               <TouchableOpacity style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1} testID="send-address-input">

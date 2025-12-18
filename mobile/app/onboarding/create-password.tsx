@@ -209,7 +209,6 @@ export default function CreatePasswordScreen() {
     <View style={styles.container}>
       <View style={[styles.container, { backgroundColor: '#000000' }]}>
         <SafeAreaView style={styles.safeAreaView}>
-          <ScreenHeader />
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardContainer}>
             <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
               <View style={styles.content}>

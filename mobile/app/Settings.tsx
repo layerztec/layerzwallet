@@ -15,7 +15,7 @@ import { useSettings } from '@shared/hooks/useSettings';
 import { getGradientColors } from '@/utils/gradientUtils';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { SecureStorage } from '@/src/class/secure-storage';
-import { SectionList } from '@/components/SectionList';
+import { SectionList } from '@/components/SafeAreaLists';
 
 // Types for settings items and sections
 interface SettingsItem {
@@ -202,10 +202,6 @@ export default function SettingsScreen() {
     );
   };
 
-  useLayoutEffect(() => {
-    navigation.setOptions(buildScreenHeaderOptions({ title: 'Settings', headerShown: true }));
-  }, [navigation]);
-
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
@@ -245,8 +241,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 24,
-    paddingBottom: 16,
   },
   sectionHeader: {
     fontSize: 13,

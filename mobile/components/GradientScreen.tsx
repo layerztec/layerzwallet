@@ -1,8 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { NativeScrollEvent, NativeSyntheticEvent, RefreshControl, StyleSheet, ViewStyle } from 'react-native';
+import { NativeScrollEvent, NativeSyntheticEvent, RefreshControl, StyleSheet, View, ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getGradientColors } from '@/utils/gradientUtils';
 
@@ -17,26 +17,27 @@ interface GradientScreenProps {
 
 const GradientScreen: React.FC<GradientScreenProps> = ({ children, style, variant = 'base', scroll = false, onScroll, refreshControl }) => {
   const gradientColors = getGradientColors(variant);
+  const insets = useSafeAreaInsets();
+  const safeAreaStyle = {
+    paddingTop: insets.top + 16,
+    paddingBottom: insets.bottom + 16,
+  } as const;
   return (
     <LinearGradient colors={gradientColors} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.gradient}>
       {scroll ? (
         <Animated.ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, safeAreaStyle, style]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           onScroll={onScroll}
           scrollEventThrottle={16}
           refreshControl={refreshControl}
         >
-          <SafeAreaView style={[styles.safeArea, style]} edges={['top', 'left', 'right', 'bottom']}>
-            {children}
-          </SafeAreaView>
+          {children}
         </Animated.ScrollView>
       ) : (
-        <SafeAreaView style={[styles.safeArea, style]} edges={['top', 'left', 'right', 'bottom']}>
-          {children}
-        </SafeAreaView>
+        <View style={[styles.safeArea, safeAreaStyle, style]}>{children}</View>
       )}
     </LinearGradient>
   );

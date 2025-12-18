@@ -11,19 +11,28 @@ const useSafeAreaPadding = () => {
   } as const;
 };
 
-export const FlatList = forwardRef<RNFlatList<any>, FlatListProps<any>>((props, ref) => {
+const FlatListInner = <ItemT,>(props: FlatListProps<ItemT>, ref: React.ForwardedRef<RNFlatList<ItemT>>) => {
   const { contentContainerStyle, ...rest } = props;
   const padding = useSafeAreaPadding();
 
   return <RNFlatList ref={ref} {...rest} contentContainerStyle={[padding, contentContainerStyle]} />;
-});
+};
 
-export const SectionList = forwardRef<RNSectionList<any>, SectionListProps<any>>((props, ref) => {
+const SectionListInner = <ItemT, SectionT>(props: SectionListProps<ItemT, SectionT>, ref: React.ForwardedRef<RNSectionList<ItemT>>) => {
   const { contentContainerStyle, ...rest } = props;
   const padding = useSafeAreaPadding();
 
   return <RNSectionList ref={ref} {...rest} contentContainerStyle={[padding, contentContainerStyle]} />;
-});
+};
 
-FlatList.displayName = 'SafeAreaFlatList';
-SectionList.displayName = 'SafeAreaSectionList';
+const FlatListWithRef = forwardRef(FlatListInner);
+FlatListWithRef.displayName = 'SafeAreaFlatList';
+
+const SectionListWithRef = forwardRef(SectionListInner);
+SectionListWithRef.displayName = 'SafeAreaSectionList';
+
+export const FlatList = FlatListWithRef as <ItemT = any>(props: FlatListProps<ItemT> & { ref?: React.Ref<RNFlatList<ItemT>> }) => ReturnType<typeof FlatListInner>;
+
+export const SectionList = SectionListWithRef as <ItemT = any, SectionT = any>(
+  props: SectionListProps<ItemT, SectionT> & { ref?: React.Ref<RNSectionList<ItemT>> }
+) => ReturnType<typeof SectionListInner>;
