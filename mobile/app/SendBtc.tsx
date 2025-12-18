@@ -5,9 +5,10 @@ import * as bip21 from 'bip21';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import GradientScreen from '@/components/GradientScreen';
-import ScreenHeader from '@/components/navigation/ScreenHeader';
+import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
@@ -52,6 +53,7 @@ const SendBtc: React.FC = () => {
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const wallet = useRef(new HDSegwitBech32Wallet());
+  const insets = useSafeAreaInsets();
 
   const feeRate = useMemo(() => {
     if (customFeeRate !== undefined) return customFeeRate;
@@ -210,9 +212,8 @@ const SendBtc: React.FC = () => {
   if (isSuccess) {
     return (
       <GradientScreen variant={network}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <ScreenHeader title="Send" />
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Stack.Screen options={buildScreenHeaderOptions({ headerTitle: 'Send' })} />
+        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16 }]}>
           <View style={styles.contentContainer}>
             <View style={styles.successContainer}>
               <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
@@ -238,9 +239,8 @@ const SendBtc: React.FC = () => {
 
   return (
     <GradientScreen variant={network}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <ScreenHeader title="Send" />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <Stack.Screen options={buildScreenHeaderOptions({ headerTitle: 'Send' })} />
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16 }]}>
         <View style={styles.contentContainer}>
           <View style={styles.inputSection}>
             <ThemedText style={styles.inputLabel}>Recipient Address</ThemedText>

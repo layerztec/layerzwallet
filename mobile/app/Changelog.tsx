@@ -4,7 +4,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import * as Linking from 'expo-linking';
 import React, { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList } from '@/components/SafeAreaLists';
 
 const gitCommitHash = require('../git_commit_hash.json');
 

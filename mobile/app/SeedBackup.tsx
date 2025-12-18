@@ -1,5 +1,6 @@
 import React, { useContext, useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { Alert, StyleSheet, TouchableOpacity, View, Animated, ActivityIndicator, Image, FlatList, LayoutAnimation, Platform, Pressable } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity, View, Animated, ActivityIndicator, Image, LayoutAnimation, Platform, Pressable } from 'react-native';
+import { FlatList } from '@/components/SafeAreaLists';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';

@@ -1,4 +1,5 @@
-import { Alert, StyleSheet, TouchableOpacity, View, SectionList, Pressable } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity, View, Pressable } from 'react-native';
+import { SectionList } from '@/components/SafeAreaLists';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Bugsnag from '@bugsnag/expo';

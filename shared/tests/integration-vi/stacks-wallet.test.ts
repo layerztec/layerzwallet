@@ -67,7 +67,7 @@ test('stacks wallet can get tokens', async (context) => {
     {
       id: 'STX',
       logoURI: 'https://static.tildacdn.net/tild6638-6331-4134-b936-386137393566/favicon_6.ico',
-      balance: '97074379',
+      balance: '94616451',
       name: 'STX',
       chainId: 0,
       symbol: 'STX',

@@ -1,7 +1,8 @@
 import * as Application from 'expo-application';
 import { useRouter } from 'expo-router';
 import React, { useContext } from 'react';
-import { SectionList, SectionListData, StyleSheet, View } from 'react-native';
+import { SectionListData, StyleSheet, View } from 'react-native';
+import { SectionList } from '@/components/SafeAreaLists';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';

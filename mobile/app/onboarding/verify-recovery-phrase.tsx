@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, StyleSheet, Animated, FlatList, TouchableOpacity, LayoutAnimation, Platform } from 'react-native';
+import { View, StyleSheet, Animated, TouchableOpacity, LayoutAnimation, Platform } from 'react-native';
+import { FlatList } from '@/components/SafeAreaLists';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
