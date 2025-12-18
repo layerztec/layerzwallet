@@ -36,9 +36,9 @@ async function restoreCachedTokens(cacheKey: string, storage: IStorage): Promise
 export const tokenDiscoveryFetcher = async (arg: tokenDiscoveryFetcherArg): Promise<CachedTokenInfo[]> => {
   const { network, accountNumber, backgroundCaller, storage } = arg;
 
-  if (network === NETWORK_SPARK) {
-    const cacheKey = STORAGE_KEY_CACHED_TOKEN_LIST + network + accountNumber;
+  const cacheKey = STORAGE_KEY_CACHED_TOKEN_LIST + network + accountNumber;
 
+  if (network === NETWORK_SPARK) {
     if (!backgroundCaller.lazyInitWalletReady(network, accountNumber)) {
       // wallet not ready, definitely can use cached tokens (if any)
       const cachedTokens = await restoreCachedTokens(cacheKey, storage);
@@ -62,6 +62,12 @@ export const tokenDiscoveryFetcher = async (arg: tokenDiscoveryFetcherArg): Prom
     }
     return tokenInfos;
   } else if (network === NETWORK_STACKS) {
+    if (!backgroundCaller.lazyInitWalletReady(network, accountNumber)) {
+      // wallet not ready, definitely can use cached tokens (if any)
+      const cachedTokens = await restoreCachedTokens(cacheKey, storage);
+      if (cachedTokens) return cachedTokens;
+    }
+
     const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
     assert(wallet instanceof StacksWallet, 'Not a Stacks wallet');
 
@@ -69,6 +75,10 @@ export const tokenDiscoveryFetcher = async (arg: tokenDiscoveryFetcherArg): Prom
     const tokenInfos: CachedTokenInfo[] = [];
     for (const token of wallet.getTokenBalances()) {
       tokenInfos.push(token);
+    }
+
+    if (tokenInfos.length > 0) {
+      await storage.setItem(cacheKey, JSON.stringify(tokenInfos)); // saving to cache
     }
 
     return tokenInfos;
