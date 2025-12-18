@@ -58,11 +58,12 @@ export default function SendNft() {
           setLocalAddress(decoded.address);
           return;
         }
-      } catch {
-        // ignore
+      } catch (e: any) {
+        console.error('Failed to decode BIP21 code', e.message);
       }
       setLocalAddress(scanned);
-    } catch (e) {
+    } catch (e: any) {
+      console.error('Failed to scan QR code', e.message);
       Alert.alert('Error', 'Failed to scan QR code');
     }
   }, [scanQr]);
@@ -100,6 +101,7 @@ export default function SendNft() {
       const id = await wallet.transferNFT(nft, localAddress);
       setTxid(id);
     } catch (e: any) {
+      console.error('Failed to send NFT', e.message);
       setErrorMessage(e?.message || 'Failed to send NFT');
     } finally {
       setSending(false);
