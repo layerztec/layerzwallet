@@ -1,6 +1,6 @@
 import React, { useContext, useMemo } from 'react';
 import { Linking, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -37,6 +37,7 @@ function buildExplorerUrl(nft: NftInfo): string {
 export default function Nft() {
   const params = useLocalSearchParams<NftScreenParams>();
   const { network } = useContext(NetworkContext);
+  const router = useRouter();
 
   const nft = useMemo(() => parseNftParam(params.nft), [params.nft]);
 
@@ -60,6 +61,12 @@ export default function Nft() {
     if (!nft) return;
     const url = buildExplorerUrl(nft);
     Linking.openURL(url);
+  };
+
+  const handleSend = () => {
+    if (!nft) return;
+    const sendParams: NftScreenParams = { nft: JSON.stringify(nft) };
+    router.push({ pathname: '/SendNft', params: sendParams });
   };
 
   if (!nft) {
@@ -123,9 +130,20 @@ export default function Nft() {
         </ScrollView>
 
         <View style={styles.bottomButtonWrap}>
-          <TouchableOpacity style={styles.explorerButton} onPress={handleOpenInExplorer} activeOpacity={0.85}>
-            <ThemedText style={styles.explorerButtonText}>View on explorer</ThemedText>
-          </TouchableOpacity>
+          <View style={styles.bottomButtonsRow}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleSend} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="Send NFT">
+              <MaterialIcons name="call-made" size={20} color="rgba(255, 255, 255, 0.95)" />
+              <ThemedText style={styles.actionButtonText} numberOfLines={1}>
+                Send
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionButton} onPress={handleOpenInExplorer} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="View NFT on explorer">
+              <ThemedText style={styles.actionButtonText} numberOfLines={1}>
+                View on explorer
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </GradientScreen>
@@ -223,14 +241,22 @@ const styles = StyleSheet.create({
     right: 18,
     bottom: 22,
   },
-  explorerButton: {
+  bottomButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  actionButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.35)',
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 12,
   },
-  explorerButtonText: {
+  actionButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.95)',

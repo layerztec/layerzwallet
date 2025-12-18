@@ -55,9 +55,13 @@ export const nftDiscoveryFetcher = async (arg: nftDiscoveryFetcherArg): Promise<
   return [];
 };
 
-export function useNftDiscovery(network: Networks, accountNumber: number, backgroundCaller: IBackgroundCaller, storage: IStorage, refreshInterval = 5_000) {
-  // Only enable refresh interval for NETWORK_SPARK & NETWORK_STACKS
-  const shouldRefresh = network === NETWORK_SPARK || network === NETWORK_STACKS;
+export function useNftDiscovery(network: Networks, accountNumber: number, backgroundCaller: IBackgroundCaller, storage: IStorage, refreshInterval = 10_000) {
+  let shouldRefresh = false;
+  switch (network) {
+    case NETWORK_STACKS:
+      shouldRefresh = true;
+      break;
+  }
 
   const arg: nftDiscoveryFetcherArg = {
     cacheKey: 'nftDiscoveryFetcher',

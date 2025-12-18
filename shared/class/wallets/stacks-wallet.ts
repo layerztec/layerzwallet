@@ -143,8 +143,12 @@ export class StacksWallet implements InterfaceAccountBasedWallet, InterfaceCanHa
       },
     });
 
+    if (!Array.isArray(nftBalances?.results)) {
+      throw new Error('Failed to fetch NFTs for Stacks');
+    }
+
     const nfts: NftInfo[] = [];
-    for (const token of nftBalances?.results || []) {
+    for (const token of nftBalances.results || []) {
       const contractAddress = token.asset_identifier.split('::')[0];
       const tokenId = token.value.repr.replace('u', '');
 
@@ -406,6 +410,45 @@ export class StacksWallet implements InterfaceAccountBasedWallet, InterfaceCanHa
     }
 
     throw new Error(`Failed to broadcast sBTC transfer: ${JSON.stringify(broadcastResponse)}`);
+  }
+
+  async transferNFT(nft: NftInfo, address: string): Promise<string> {
+    assert(this._sdkWallet, 'Stacks wallet is not initialized');
+    assert(this._sdkWallet.accounts[this._accountNumber], 'Stacks account not found');
+    assert(address, 'Recipient address is required');
+    assert(validateStacksAddress(address), 'Recipient address is invalid');
+
+    const [contractAddress, contractName] = nft.contractAddress.split('.');
+    assert(contractAddress && contractName, `Incorrect Stacks contract identifier for NFT: ${nft.contractAddress}`);
+
+    const senderKey = this._sdkWallet.accounts[this._accountNumber].stxPrivateKey;
+    const senderAddress = await this.getOffchainReceiveAddress();
+
+    // token ids come as strings in our types; ensure we can build a uint CV
+    const tokenId = BigInt(nft.tokenId.replace(/^u/, ''));
+
+    // SIP-009 NFTs commonly expose: (transfer (token-id uint) (sender principal) (recipient principal))
+    const transaction = await makeContractCall({
+      contractAddress,
+      contractName,
+      functionName: 'transfer',
+      functionArgs: [uintCV(tokenId), standardPrincipalCV(senderAddress), standardPrincipalCV(address)],
+      senderKey,
+      network: 'mainnet',
+      postConditionMode: 'allow',
+    });
+
+    const broadcastResponse: any = await broadcastTransaction({ transaction });
+
+    if (broadcastResponse && typeof broadcastResponse.txid === 'string') {
+      return broadcastResponse.txid;
+    }
+
+    if (typeof broadcastResponse === 'string') {
+      return broadcastResponse;
+    }
+
+    throw new Error(`Failed to broadcast NFT transfer: ${JSON.stringify(broadcastResponse)}`);
   }
 
   /**
