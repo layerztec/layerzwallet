@@ -2,11 +2,13 @@ import React, { useContext, useState, useRef, useCallback, useMemo, useEffect } 
 import { Alert, StyleSheet, TouchableOpacity, View, Animated, ActivityIndicator, Image, LayoutAnimation, Platform, Pressable } from 'react-native';
 import { FlatList } from '@/components/SafeAreaLists';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { HeaderBackButton } from '@react-navigation/elements';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import GradientScreen from '@/components/GradientScreen';
-import ScreenHeader from '@/components/navigation/ScreenHeader';
+import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import Button from '@/components/Button';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -15,7 +17,6 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useAskPassword } from '@/src/hooks/AskPasswordContext';
 import { useSettings } from '@shared/hooks/useSettings';
-import * as LocalAuthentication from 'expo-local-authentication';
 
 const TOTAL_WORDS = 12;
 const ERROR_TIMEOUT_MS = 2000;
@@ -88,6 +89,7 @@ export default function SeedBackupScreen() {
   const { settings } = useSettings();
   const { authenticateWithBiometrics } = useAuthState();
   const { askPassword } = useAskPassword();
+  const insets = useSafeAreaInsets();
   const [mnemonic, setMnemonic] = useState<string>('');
   const [isRevealed, setIsRevealed] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -280,7 +282,13 @@ export default function SeedBackupScreen() {
   if (verificationComplete) {
     return (
       <GradientScreen variant={network} scroll>
-        <ScreenHeader title="Recovery Phrase" onBackPress={handleBackFromVerification} />
+        <Stack.Screen
+          options={buildScreenHeaderOptions({
+            headerTitle: 'Recovery Phrase',
+            headerBackVisible: false,
+            headerLeft: () => <HeaderBackButton onPress={handleBackFromVerification} tintColor="#fff" />, // reset verification state before leaving
+          })}
+        />
         <View style={styles.verificationCompleteContainer}>
           <View style={styles.successIconContainer}>
             <Image source={require('@/assets/images/ui/success.png')} style={styles.successIcon} />
@@ -298,7 +306,13 @@ export default function SeedBackupScreen() {
   if (isVerifying) {
     return (
       <GradientScreen variant={network}>
-        <ScreenHeader title="Verify Recovery Phrase" onBackPress={handleBackFromVerification} />
+        <Stack.Screen
+          options={buildScreenHeaderOptions({
+            headerTitle: 'Verify Recovery Phrase',
+            headerBackVisible: false,
+            headerLeft: () => <HeaderBackButton onPress={handleBackFromVerification} tintColor="#fff" />, // reset verification state before leaving
+          })}
+        />
         <View style={styles.verificationHeader}>
           <ThemedText style={styles.verificationTitle}>Tap the words in the correct order</ThemedText>
           <ThemedText style={styles.verificationSubtitle}>Select each word in the same order as your recovery phrase</ThemedText>
@@ -327,8 +341,15 @@ export default function SeedBackupScreen() {
 
   return (
     <GradientScreen variant={network} scroll>
-      <ScreenHeader title="Recovery Phrase" />
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          {
+            paddingTop: (insets.top || 0) + 20,
+            paddingBottom: (insets.bottom || 0) + 20,
+          },
+        ]}
+      >
         <View style={styles.warningSection}>
           <Pressable style={styles.warningHeader} onPress={handleBadgeTap}>
             <Ionicons name="alert-circle-outline" size={28} color="rgba(255, 255, 255, 0.9)" />

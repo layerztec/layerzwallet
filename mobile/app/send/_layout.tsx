@@ -13,6 +13,14 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { GetBtcSendDataResponse } from '@shared/types/IBackgroundCaller';
 import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 
+const sendStackHeaderOptions = {
+  headerShown: false,
+  headerTransparent: true,
+  headerTintColor: '#fff',
+  headerBackButtonDisplayMode: 'minimal',
+  headerBackImageSource: require('@/assets/images/ui/headerBackImage.png'),
+};
+
 // Bitcoin-specific data types
 export type BtcSendData = GetBtcSendDataResponse;
 
@@ -249,7 +257,7 @@ export default function SendLayout() {
     <SendFlowProvider initialNetwork={contextNetwork}>
       <Stack
         screenOptions={{
-          headerShown: false,
+          ...sendStackHeaderOptions,
           animation: 'slide_from_right',
           animationDuration: 350,
           gestureEnabled: true,

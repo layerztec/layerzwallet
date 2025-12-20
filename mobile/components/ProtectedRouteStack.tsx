@@ -4,6 +4,7 @@ import { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useBiometricModal } from '@/src/hooks/useBiometricModal';
 import { isInMainApp } from '@/src/utils/navigationUtils';
+import { buildScreenHeaderOptions } from './navigation/ScreenHeader';
 
 const DefaultNavigatorOptions: NativeStackNavigationOptions = {
   headerTitle: '',
@@ -137,7 +138,7 @@ export function ProtectedRouteStack() {
         <Stack.Screen name="BackdoorNetworkSwitcher" options={{ headerShown: false }} />
         <Stack.Screen name="About" />
         <Stack.Screen name="Changelog" />
-        <Stack.Screen name="SeedBackup" />
+        <Stack.Screen name="SeedBackup" options={buildScreenHeaderOptions({ title: 'Recovery Phrase' })} />
         <Stack.Screen
           name="SeedBackupQR"
           options={{
@@ -155,7 +156,6 @@ export function ProtectedRouteStack() {
         <Stack.Screen name="SendAccountBased" />
         <Stack.Screen name="SendBtc" />
         <Stack.Screen name="SendEvm" options={{ title: 'Send' }} />
-        <Stack.Screen name="send/send-address" options={{ headerShown: false }} />
         <Stack.Screen
           name="FeeSelector"
           options={{
@@ -172,7 +172,7 @@ export function ProtectedRouteStack() {
             },
           }}
         />
-        <Stack.Screen name="send" />
+        <Stack.Screen name="send" options={{ headerShown: false }} />
         <Stack.Screen name="Swap" />
         <Stack.Screen
           name="SwapTarget"
