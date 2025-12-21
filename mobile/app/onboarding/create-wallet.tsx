@@ -1,8 +1,6 @@
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, Animated, TouchableOpacity } from 'react-native';
-import { FlatList } from '@/components/SafeAreaLists';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, StyleSheet, Animated, TouchableOpacity, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePreventScreenCapture } from 'expo-screen-capture';
 import { ThemedText } from '@/components/ThemedText';

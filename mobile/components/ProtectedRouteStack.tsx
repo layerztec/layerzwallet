@@ -139,6 +139,7 @@ export function ProtectedRouteStack() {
         <Stack.Screen name="About" />
         <Stack.Screen name="Changelog" />
         <Stack.Screen name="SeedBackup" options={buildScreenHeaderOptions({ title: 'Recovery Phrase' })} />
+        <Stack.Screen name="SeedBackupVerify" options={buildScreenHeaderOptions({ title: 'Verify Phrase' })} />
         <Stack.Screen
           name="SeedBackupQR"
           options={{

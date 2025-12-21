@@ -173,7 +173,7 @@ export default function SettingsScreen() {
       hasBackground: false,
       data: [
         { id: 'tools', title: 'Tools', onPress: handleToolsPress, testID: 'ToolsButton' },
-        { id: 'support', title: 'Support', onPress: handleSupportPress },
+        { id: 'support', title: 'Support', onPress: handleSupportPress, hideChevron: true },
         { id: 'about', title: 'About', onPress: handleAboutPress },
       ],
     },
@@ -212,9 +212,6 @@ export default function SettingsScreen() {
           renderSectionHeader={renderSectionHeader}
           renderSectionFooter={renderSectionFooter}
           contentContainerStyle={styles.scrollContent}
-          stickySectionHeadersEnabled={false}
-          automaticallyAdjustContentInsets
-          contentInsetAdjustmentBehavior="automatic"
           style={styles.scrollContainer}
         />
 

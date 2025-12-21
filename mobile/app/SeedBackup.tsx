@@ -1,87 +1,18 @@
-import React, { useContext, useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { Alert, StyleSheet, TouchableOpacity, View, Animated, ActivityIndicator, Image, LayoutAnimation, Platform, Pressable } from 'react-native';
-import { FlatList } from '@/components/SafeAreaLists';
+import React, { useContext, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import { HeaderBackButton } from '@react-navigation/elements';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import GradientScreen from '@/components/GradientScreen';
-import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
-import { ThemedText } from '@/components/ThemedText';
-import Button from '@/components/Button';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { usePreventScreenCapture } from 'expo-screen-capture';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { useAuthState } from '@/src/hooks/AuthStateContext';
+
+import Button from '@/components/Button';
+import GradientScreen from '@/components/GradientScreen';
+import { ThemedText } from '@/components/ThemedText';
 import { useAskPassword } from '@/src/hooks/AskPasswordContext';
+import { useAuthState } from '@/src/hooks/AuthStateContext';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useSettings } from '@shared/hooks/useSettings';
-
-const TOTAL_WORDS = 12;
-const ERROR_TIMEOUT_MS = 2000;
-const OPACITY_ANIMATION_DURATION_MS = 200;
-const DISABLED_OPACITY = 0.5;
-const ENABLED_OPACITY = 1;
-
-interface WordItem {
-  id: number;
-  word: string;
-  isSelected: boolean;
-  selectedOrder?: number;
-}
-
-const SelectableWordDisplay: React.FC<{
-  wordItem: WordItem;
-  onPress: (wordItem: WordItem) => void;
-  isCorrect?: boolean;
-  showError?: boolean;
-  buttonOpacity: Animated.Value;
-}> = React.memo(({ wordItem, onPress, isCorrect, showError, buttonOpacity }) => {
-  const wordStyle = useMemo(() => {
-    if (!wordItem.isSelected) return styles.verifyWordContainer;
-
-    if (isCorrect) return [styles.verifyWordContainer, styles.correctWordContainer];
-    if (showError) return [styles.verifyWordContainer, styles.errorWordContainer];
-    return [styles.verifyWordContainer, styles.selectedWordContainer];
-  }, [wordItem.isSelected, isCorrect, showError]);
-
-  const numberStyle = useMemo(() => {
-    if (!wordItem.isSelected) return styles.verifyWordNumber;
-
-    if (isCorrect) return [styles.verifyWordNumber, styles.correctWordNumber];
-    if (showError) return [styles.verifyWordNumber, styles.errorWordNumber];
-    return [styles.verifyWordNumber, styles.selectedWordNumber];
-  }, [wordItem.isSelected, isCorrect, showError]);
-
-  const animatedViewStyle = useMemo(
-    () =>
-      ({
-        opacity: !wordItem.isSelected ? buttonOpacity : ENABLED_OPACITY,
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-      }) as const,
-    [wordItem.isSelected, buttonOpacity]
-  );
-
-  const handlePress = useCallback(() => onPress(wordItem), [onPress, wordItem]);
-
-  return (
-    <TouchableOpacity style={wordStyle} onPress={handlePress} disabled={wordItem.isSelected || showError}>
-      <Animated.View style={animatedViewStyle}>
-        <View style={numberStyle}>
-          <ThemedText style={styles.verifyWordNumberText}>{wordItem.isSelected && wordItem.selectedOrder !== undefined ? wordItem.selectedOrder + 1 : ''}</ThemedText>
-        </View>
-        <View style={styles.verifyWordTextContainer}>
-          <ThemedText style={styles.verifyWordText}>{wordItem.word}</ThemedText>
-        </View>
-      </Animated.View>
-    </TouchableOpacity>
-  );
-});
-
-SelectableWordDisplay.displayName = 'SelectableWordDisplay';
 
 export default function SeedBackupScreen() {
   const router = useRouter();
@@ -89,55 +20,16 @@ export default function SeedBackupScreen() {
   const { settings } = useSettings();
   const { authenticateWithBiometrics } = useAuthState();
   const { askPassword } = useAskPassword();
+  const settingsContext = useSettings();
+  const hasBackedUpSeed = settings.seedBackedUp === 'ON';
   const insets = useSafeAreaInsets();
-  const [mnemonic, setMnemonic] = useState<string>('');
-  const [isRevealed, setIsRevealed] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isVerifying, setIsVerifying] = useState<boolean>(false);
-  const [scrambledWords, setScrambledWords] = useState<WordItem[]>([]);
-  const [selectedWords, setSelectedWords] = useState<WordItem[]>([]);
-  const [showError, setShowError] = useState<boolean>(false);
-  const [verificationComplete, setVerificationComplete] = useState<boolean>(false);
+
+  const [mnemonic, setMnemonic] = useState('');
+  const [isRevealed, setIsRevealed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [badgeTapCount, setBadgeTapCount] = useState(0);
-  const buttonOpacity = useRef(new Animated.Value(ENABLED_OPACITY)).current;
-  const blurOpacity = useRef(new Animated.Value(1)).current;
+
   usePreventScreenCapture();
-
-  const shuffleArray = useCallback(<T,>(array: T[]): T[] => {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  }, []);
-
-  useEffect(() => {
-    if (isVerifying && mnemonic) {
-      const words = mnemonic.split(' ');
-      const wordsWithData: WordItem[] = words.map((word, index) => ({
-        id: index,
-        word,
-        isSelected: false,
-      }));
-      const shuffled = shuffleArray(wordsWithData);
-      setScrambledWords(shuffled);
-    }
-  }, [isVerifying, mnemonic, shuffleArray]);
-
-  useEffect(() => {
-    if (Platform.OS === 'ios') {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    }
-  }, [showError, verificationComplete, selectedWords.length, isVerifying]);
-
-  useEffect(() => {
-    Animated.timing(buttonOpacity, {
-      toValue: showError ? DISABLED_OPACITY : ENABLED_OPACITY,
-      duration: OPACITY_ANIMATION_DURATION_MS,
-      useNativeDriver: true,
-    }).start();
-  }, [showError, buttonOpacity]);
 
   const handleRevealSeedPhrase = async () => {
     if (isLoading || isRevealed) return;
@@ -179,12 +71,6 @@ export default function SeedBackupScreen() {
         const seedPhrase = await BackgroundExecutor.getMasterSeed();
         setMnemonic(seedPhrase);
         setIsRevealed(true);
-
-        Animated.timing(blurOpacity, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }).start();
       }
     } catch (error) {
       console.error('Failed to get mnemonic:', error);
@@ -202,52 +88,9 @@ export default function SeedBackupScreen() {
 
   const handleVerifyBackup = () => {
     if (mnemonic) {
-      setIsVerifying(true);
+      router.push({ pathname: '/SeedBackupVerify', params: { mnemonic } });
     }
   };
-
-  const handleWordPress = useCallback(
-    (wordItem: WordItem) => {
-      if (wordItem.isSelected || verificationComplete || showError) return;
-
-      const expectedWordIndex = selectedWords.length;
-      const correctWord = mnemonic.split(' ')[expectedWordIndex];
-
-      if (wordItem.word === correctWord) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-        const updatedScrambledWords = scrambledWords.map((item) => (item.id === wordItem.id ? { ...item, isSelected: true, selectedOrder: expectedWordIndex } : item));
-
-        setScrambledWords(updatedScrambledWords);
-        setSelectedWords([...selectedWords, { ...wordItem, selectedOrder: expectedWordIndex }]);
-        setShowError(false);
-
-        if (expectedWordIndex === TOTAL_WORDS - 1) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          setVerificationComplete(true);
-        }
-      } else {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        setShowError(true);
-
-        setTimeout(() => {
-          setShowError(false);
-        }, ERROR_TIMEOUT_MS);
-      }
-    },
-    [verificationComplete, showError, selectedWords, mnemonic, scrambledWords]
-  );
-
-  const handleBackFromVerification = () => {
-    setIsVerifying(false);
-    setScrambledWords([]);
-    setSelectedWords([]);
-    setShowError(false);
-    setVerificationComplete(false);
-  };
-
-  const settingsContext = useSettings();
-  const hasBackedUpSeed = settings.seedBackedUp === 'ON';
 
   const handleBadgeTap = async () => {
     const newCount = badgeTapCount + 1;
@@ -260,84 +103,10 @@ export default function SeedBackupScreen() {
     }
   };
 
-  const handleContinueFromSuccess = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await settingsContext.updateSetting('seedBackedUp', 'ON');
-    router.back();
-  };
-
-  const renderWordItem = useCallback(
-    ({ item }: { item: WordItem }) => {
-      const isCorrect = item.isSelected && item.word === mnemonic.split(' ')[item.selectedOrder || 0];
-      return <SelectableWordDisplay wordItem={item} onPress={handleWordPress} isCorrect={isCorrect} showError={showError && !item.isSelected} buttonOpacity={buttonOpacity} />;
-    },
-    [handleWordPress, showError, buttonOpacity, mnemonic]
-  );
-
   const mnemonicWordsData = useMemo(() => {
     if (!mnemonic) return [];
     return mnemonic.split(' ').map((word, index) => ({ word, index, id: index.toString() }));
   }, [mnemonic]);
-
-  if (verificationComplete) {
-    return (
-      <GradientScreen variant={network} scroll>
-        <Stack.Screen
-          options={buildScreenHeaderOptions({
-            headerTitle: 'Recovery Phrase',
-            headerBackVisible: false,
-            headerLeft: () => <HeaderBackButton onPress={handleBackFromVerification} tintColor="#fff" />, // reset verification state before leaving
-          })}
-        />
-        <View style={styles.verificationCompleteContainer}>
-          <View style={styles.successIconContainer}>
-            <Image source={require('@/assets/images/ui/success.png')} style={styles.successIcon} />
-          </View>
-          <ThemedText style={styles.successTitle}>Your backup is complete</ThemedText>
-          <ThemedText style={styles.successSubtitle}>You should now have your recovery phrase written down for future reference.</ThemedText>
-          <View style={styles.successButtonContainer}>
-            <Button title="Done" variant="normal" onPress={handleContinueFromSuccess} style={styles.actionButton} />
-          </View>
-        </View>
-      </GradientScreen>
-    );
-  }
-
-  if (isVerifying) {
-    return (
-      <GradientScreen variant={network}>
-        <Stack.Screen
-          options={buildScreenHeaderOptions({
-            headerTitle: 'Verify Recovery Phrase',
-            headerBackVisible: false,
-            headerLeft: () => <HeaderBackButton onPress={handleBackFromVerification} tintColor="#fff" />, // reset verification state before leaving
-          })}
-        />
-        <View style={styles.verificationHeader}>
-          <ThemedText style={styles.verificationTitle}>Tap the words in the correct order</ThemedText>
-          <ThemedText style={styles.verificationSubtitle}>Select each word in the same order as your recovery phrase</ThemedText>
-        </View>
-
-        <FlatList
-          data={scrambledWords}
-          renderItem={renderWordItem}
-          keyExtractor={(item) => item.id.toString()}
-          numColumns={2}
-          columnWrapperStyle={styles.verificationWordRow}
-          contentContainerStyle={styles.verificationWordList}
-          scrollEnabled={true}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            showError ? (
-              <View style={styles.errorContainer}>
-                <ThemedText style={styles.errorText}>Incorrect word. Please try again.</ThemedText>
-              </View>
-            ) : null
-          }
-        />
-      </GradientScreen>
-    );
-  }
 
   return (
     <GradientScreen variant={network} scroll>
@@ -386,7 +155,6 @@ export default function SeedBackupScreen() {
 
         <View style={styles.actionsContainer}>
           <Button title="View QR code" variant="secondary" onPress={handleViewQRCode} disabled={!mnemonic} style={styles.actionButton} />
-
           <Button title="Verify Backup" variant="light" onPress={handleVerifyBackup} disabled={!mnemonic} style={styles.actionButton} />
         </View>
       </View>
@@ -465,13 +233,6 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: 'space-between',
   },
-  mnemonicContentContainer: {
-    paddingBottom: 10,
-  },
-  mnemonicColumnWrapper: {
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
   wordItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -506,133 +267,5 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     marginBottom: 0,
-  },
-  verificationHeader: {
-    marginBottom: 24,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  verificationTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.95)',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  verificationSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-  },
-  verificationWordList: {
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-  },
-  verificationWordRow: {
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  verifyWordContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 16,
-    padding: 12,
-    marginHorizontal: 6,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  selectedWordContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  correctWordContainer: {
-    backgroundColor: 'rgba(76, 175, 80, 0.3)',
-    borderWidth: 2,
-    borderColor: '#4CAF50',
-  },
-  errorWordContainer: {
-    backgroundColor: 'rgba(244, 67, 54, 0.3)',
-    borderWidth: 2,
-    borderColor: '#F44336',
-  },
-  verifyWordNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  selectedWordNumber: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  correctWordNumber: {
-    backgroundColor: '#4CAF50',
-  },
-  errorWordNumber: {
-    backgroundColor: '#F44336',
-  },
-  verifyWordTextContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  verifyWordNumberText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  verifyWordText: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  errorContainer: {
-    backgroundColor: 'rgba(244, 67, 54, 0.2)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    marginHorizontal: 20,
-    borderWidth: 1,
-    borderColor: '#F44336',
-  },
-  errorText: {
-    fontSize: 15,
-    color: '#FF6B6B',
-    textAlign: 'center',
-  },
-  verificationCompleteContainer: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  successIconContainer: {
-    marginBottom: 30,
-  },
-  successIcon: {
-    width: 120,
-    height: 120,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 60,
-  },
-  successTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.95)',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  successSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    marginBottom: 40,
-    paddingHorizontal: 20,
-  },
-  successButtonContainer: {
-    width: '100%',
-    marginTop: 20,
   },
 });

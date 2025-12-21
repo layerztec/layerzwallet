@@ -88,6 +88,7 @@ export default function Home() {
   const [refreshOptions, setRefreshOptions] = useState<Partial<RefreshControlProps>>({});
   const settingsContext = useSettings();
   const hasBackedUpSeed = settingsContext.settings.seedBackedUp === 'ON';
+  const [isNetworkSwitcherOpen, setIsNetworkSwitcherOpen] = useState(false);
 
   // Initialize modal position based on whether coming from onboarding
   useEffect(() => {
@@ -95,6 +96,7 @@ export default function Home() {
       const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
       modalTranslateY.value = maxTranslate;
       currentModalPosition.value = maxTranslate;
+      setIsNetworkSwitcherOpen(true);
     }
   }, [params.fromOnboarding, modalTranslateY, currentModalPosition]);
 
@@ -143,6 +145,9 @@ export default function Home() {
     return swapPairs.length > 0;
   }, [network]);
 
+  // Use network gradient color for draggable header background while keeping handle default style
+  const draggableHeaderColor = useMemo(() => getNetworkGradient(network)[0], [network]);
+
   const handleSend = () => {
     switch (network) {
       case NETWORK_LIGHTNING:
@@ -184,6 +189,7 @@ export default function Home() {
           modalTranslateY.value = withTiming(0, { duration: 400 });
         });
         scheduleOnRN(setNetwork, selectedNetwork);
+        scheduleOnRN(setIsNetworkSwitcherOpen, false);
       });
     }
   };
@@ -193,6 +199,7 @@ export default function Home() {
     const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
     currentModalPosition.value = maxTranslate;
     modalTranslateY.value = withTiming(maxTranslate, { duration: 300 });
+    setIsNetworkSwitcherOpen(true);
   };
 
   const goToSettings = () => {
@@ -386,10 +393,12 @@ export default function Home() {
         // Snap to minimized state (translate down so only header is visible)
         currentModalPosition.value = maxTranslate;
         modalTranslateY.value = withTiming(maxTranslate, { duration: 300 });
+        scheduleOnRN(setIsNetworkSwitcherOpen, true);
       } else {
         // Snap to expanded state (translate back to original position)
         currentModalPosition.value = 0;
         modalTranslateY.value = withTiming(0, { duration: 300 });
+        scheduleOnRN(setIsNetworkSwitcherOpen, false);
       }
     })
     .activeOffsetY([-10, 10])
@@ -408,9 +417,7 @@ export default function Home() {
       <Animated.View style={[styles.modalContainer, { height: MODAL_MAX_HEIGHT }, modalAnimatedStyle]}>
         <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} onPocketPress={handlePocketPress} onCameraPress={handleCameraPress} />
         <GestureDetector gesture={panGesture}>
-          <Animated.View style={styles.draggableHeader}>
-            <View style={styles.dragHandle} />
-          </Animated.View>
+          <Animated.View style={[styles.draggableHeader, { backgroundColor: draggableHeaderColor }]}>{isNetworkSwitcherOpen && <View style={styles.dragHandle} />}</Animated.View>
         </GestureDetector>
 
         <GradientScreen variant={network} scroll={true} onScroll={handleScroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} {...refreshOptions} />}>

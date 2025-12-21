@@ -3,10 +3,10 @@ import { SectionList } from '@/components/SafeAreaLists';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Bugsnag from '@bugsnag/expo';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
-import ScreenHeader from '@/components/navigation/ScreenHeader';
+import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 import { decrypt, encrypt } from '../src/modules/encryption';
@@ -29,7 +29,7 @@ import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { SecureStorage } from '@/src/class/secure-storage';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getGradientColors } from '@/utils/gradientUtils';
 
@@ -37,6 +37,7 @@ type TSettingsKey = keyof typeof SETTINGS_CONFIG;
 
 export default function TabThreeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { setStep } = useContext(InitializationContext);
   const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
   const { scanQr } = useContext(ScanQrContext);
@@ -397,19 +398,20 @@ export default function TabThreeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
-        <ScreenHeader title="Tools" />
-        <SectionList
-          sections={sections}
-          keyExtractor={(item, index) => item + index}
-          renderItem={renderItem}
-          contentInsetAdjustmentBehavior="automatic"
-          automaticallyAdjustContentInsets
-          renderSectionHeader={renderSectionHeader}
-          contentContainerStyle={styles.scrollContent}
-          style={styles.scrollContainer}
-        />
-      </SafeAreaView>
+      <Stack.Screen
+        options={buildScreenHeaderOptions({
+          headerTitle: 'Tools',
+          headerTransparent: false,
+        })}
+      />
+      <SectionList
+        sections={sections}
+        keyExtractor={(item, index) => item + index}
+        renderItem={renderItem}
+        renderSectionHeader={renderSectionHeader}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: (insets.bottom || 0) + 24 }]}
+        style={styles.scrollContainer}
+      />
     </View>
   );
 }
@@ -433,7 +435,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.6)',
     marginTop: 24,
     marginBottom: 8,
-    marginLeft: 16,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
