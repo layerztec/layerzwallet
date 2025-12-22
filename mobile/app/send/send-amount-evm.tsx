@@ -112,7 +112,7 @@ const SendAmountEvm: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker
         feeRate: undefined, // EVM doesn't use feeRate like Bitcoin
       });
 
-      router.push('/send/send-confirm');
+      router.push({ pathname: '/send/send-confirm', params: { ticker } });
     } catch (e: any) {
       setErrorMessage(e.message || 'Failed to prepare transaction');
     } finally {

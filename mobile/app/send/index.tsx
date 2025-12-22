@@ -17,6 +17,17 @@ const SendIndex: React.FC = () => {
   const { setAddress, setAmount, setToken } = useSendFlow();
   const { network, setNetwork } = useContext(NetworkContext);
 
+  const buildHref = (pathname: string) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value != null && value !== '') {
+        query.append(key, String(value));
+      }
+    });
+    const qs = query.toString();
+    return qs ? `${pathname}?${qs}` : pathname;
+  };
+
   // Set params in context if provided
   useLayoutEffect(() => {
     if (params.address) {
@@ -35,10 +46,10 @@ const SendIndex: React.FC = () => {
 
   // Route to lightning address screen for lightning networks
   if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET) {
-    return <Redirect href="/send/send-address-lightning" />;
+    return <Redirect href={buildHref('/send/send-address-lightning')} />;
   }
 
-  return <Redirect href="/send/send-address" />;
+  return <Redirect href={buildHref('/send/send-address')} />;
 };
 
 export default SendIndex;

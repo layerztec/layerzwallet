@@ -7,14 +7,19 @@ import { isInMainApp } from '@/src/utils/navigationUtils';
 import { buildScreenHeaderOptions } from './navigation/ScreenHeader';
 
 const DefaultNavigatorOptions: NativeStackNavigationOptions = {
-  headerTitle: '',
   headerTintColor: '#fff',
   headerBackButtonDisplayMode: 'minimal',
   headerTransparent: true,
+  headerStyle: {
+    backgroundColor: 'transparent',
+  },
   headerTitleStyle: {
     color: '#fff',
   },
-  headerBackImageSource: require('@/assets/images/ui/headerBackImage.png'),
+  headerLargeTitleStyle: {
+    color: '#fff',
+  },
+  headerShadowVisible: false,
 };
 
 export function ProtectedRouteStack() {
@@ -124,9 +129,9 @@ export function ProtectedRouteStack() {
             animation: 'none',
           }}
         />
-        <Stack.Screen name="Home" options={{ animation: 'fade' }} />
-        <Stack.Screen name="Receive" />
-        <Stack.Screen name="Settings" />
+        <Stack.Screen name="Home" options={{ animation: 'fade', headerShown: false }} />
+        <Stack.Screen name="Receive" options={buildScreenHeaderOptions({ title: 'Receive' })} />
+        <Stack.Screen name="Settings" options={buildScreenHeaderOptions({ title: 'Settings' })} />
         <Stack.Screen
           name="onboarding/create-password"
           options={{
@@ -136,8 +141,8 @@ export function ProtectedRouteStack() {
           }}
         />
         <Stack.Screen name="BackdoorNetworkSwitcher" options={{ headerShown: false }} />
-        <Stack.Screen name="About" />
-        <Stack.Screen name="Changelog" />
+        <Stack.Screen name="About" options={buildScreenHeaderOptions({ title: 'About' })} />
+        <Stack.Screen name="Changelog" options={buildScreenHeaderOptions({ title: 'Changelog' })} />
         <Stack.Screen name="SeedBackup" options={buildScreenHeaderOptions({ title: 'Recovery Phrase' })} />
         <Stack.Screen name="SeedBackupVerify" options={buildScreenHeaderOptions({ title: 'Verify Phrase' })} />
         <Stack.Screen
@@ -153,10 +158,10 @@ export function ProtectedRouteStack() {
             },
           }}
         />
-        <Stack.Screen name="Tools" />
-        <Stack.Screen name="SendAccountBased" />
-        <Stack.Screen name="SendBtc" />
-        <Stack.Screen name="SendEvm" options={{ title: 'Send' }} />
+        <Stack.Screen name="Tools" options={buildScreenHeaderOptions({ title: 'Tools' })} />
+        <Stack.Screen name="SendAccountBased" options={buildScreenHeaderOptions({ title: 'Send' })} />
+        <Stack.Screen name="SendBtc" options={buildScreenHeaderOptions({ title: 'Send' })} />
+        <Stack.Screen name="SendEvm" options={buildScreenHeaderOptions({ title: 'Send' })} />
         <Stack.Screen
           name="FeeSelector"
           options={{
@@ -173,8 +178,16 @@ export function ProtectedRouteStack() {
             },
           }}
         />
-        <Stack.Screen name="send" options={{ headerShown: false }} />
-        <Stack.Screen name="Swap" />
+        <Stack.Screen
+          name="send"
+          options={({ route }) => {
+            const ticker = (route.params as any)?.ticker as string | undefined;
+            return buildScreenHeaderOptions({
+              title: ticker ? `Send ${ticker}` : 'Send',
+            });
+          }}
+        />
+        <Stack.Screen name="Swap" options={buildScreenHeaderOptions({ title: 'Swap' })} />
         <Stack.Screen
           name="SwapTarget"
           options={{
@@ -204,9 +217,9 @@ export function ProtectedRouteStack() {
             },
           }}
         />
-        <Stack.Screen name="Onramp" />
+        <Stack.Screen name="Onramp" options={buildScreenHeaderOptions({ title: 'Onramp' })} />
         <Stack.Screen name="AskPassword" options={{ presentation: 'modal', headerShown: false }} />
-        <Stack.Screen name="DAppBrowser" options={{ title: 'Browser' }} />
+        <Stack.Screen name="DAppBrowser" options={buildScreenHeaderOptions({ title: 'Browser' })} />
         <Stack.Screen
           name="Action"
           options={{

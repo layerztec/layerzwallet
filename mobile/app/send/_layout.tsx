@@ -12,6 +12,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { GetBtcSendDataResponse } from '@shared/types/IBackgroundCaller';
 import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 
 const sendStackHeaderOptions = {
   headerShown: false,
@@ -253,6 +254,14 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
 export default function SendLayout() {
   const { network: contextNetwork } = useContext(NetworkContext);
 
+  const sendHeaderOptions: Parameters<typeof Stack.Screen>[0]['options'] = ({ route }) => {
+    const ticker = (route.params as any)?.ticker as string | undefined;
+    return buildScreenHeaderOptions({
+      title: ticker ? `Send ${ticker}` : 'Send',
+      headerShown: true,
+    });
+  };
+
   return (
     <SendFlowProvider initialNetwork={contextNetwork}>
       <Stack
@@ -264,12 +273,12 @@ export default function SendLayout() {
         }}
       >
         <Stack.Screen name="index" />
-        <Stack.Screen name="send-address" />
-        <Stack.Screen name="send-amount-btc" />
-        <Stack.Screen name="send-amount-evm" />
-        <Stack.Screen name="send-amount-acc" />
-        <Stack.Screen name="send-amount-liquid" />
-        <Stack.Screen name="send-confirm" />
+        <Stack.Screen name="send-address" options={sendHeaderOptions} />
+        <Stack.Screen name="send-amount-btc" options={sendHeaderOptions} />
+        <Stack.Screen name="send-amount-evm" options={sendHeaderOptions} />
+        <Stack.Screen name="send-amount-acc" options={sendHeaderOptions} />
+        <Stack.Screen name="send-amount-liquid" options={sendHeaderOptions} />
+        <Stack.Screen name="send-confirm" options={sendHeaderOptions} />
       </Stack>
     </SendFlowProvider>
   );

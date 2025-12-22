@@ -260,7 +260,7 @@ const SendAmountBtc: React.FC = () => {
         });
 
         setContextAmount(localAmount);
-        router.push('/send/send-confirm');
+        router.push({ pathname: '/send/send-confirm', params: { ticker: getTickerByNetwork(network) } });
       } catch (error: any) {
         console.error('Failed to create transaction:', error);
         setTransactionError(error.message || 'Failed to create transaction');

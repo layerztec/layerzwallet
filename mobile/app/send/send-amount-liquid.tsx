@@ -115,7 +115,7 @@ const SendAmountLiquid: React.FC<SendAssetProps> = ({ balance, exchangeRate, tic
       const prepareResponse = await wallet.prepareSendPayment(prepareRequest);
       setLiquidPrepareResult(prepareResponse);
       setContextAmount(localAmount);
-      router.push('/send/send-confirm');
+      router.push({ pathname: '/send/send-confirm', params: { ticker } });
     } catch (err: any) {
       console.error('Failed to prepare transaction:', err);
       setError('Failed to prepare transaction: ' + err.message);

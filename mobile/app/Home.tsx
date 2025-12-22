@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Dimensions, RefreshControl, RefreshControlProps, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -72,6 +73,7 @@ export default function Home() {
   const { accountNumber } = useContext(AccountNumberContext);
   const { scanQr } = useContext(ScanQrContext);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<HomeProps>();
   const { transactions, error: transactionsError, mutate: mutateTransactions } = useTransactions(network, accountNumber, BackgroundExecutor);
   const scrollY = useSharedValue(0); // Scroll animation for sticky header
@@ -406,7 +408,9 @@ export default function Home() {
 
   return (
     <GestureHandlerRootView style={styles.gestureHandlerRoot}>
-      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.stickyHeaderContainer} pointerEvents="box-none">
+        <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} onPocketPress={handlePocketPress} onCameraPress={handleCameraPress} useAbsolutePosition={false} applySafeAreaPadding />
+      </View>
 
       {/* Black Background with Network Tiles */}
       <View style={styles.blackBackground}>
@@ -415,13 +419,12 @@ export default function Home() {
 
       {/* Modal Container */}
       <Animated.View style={[styles.modalContainer, { height: MODAL_MAX_HEIGHT }, modalAnimatedStyle]}>
-        <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} onPocketPress={handlePocketPress} onCameraPress={handleCameraPress} />
         <GestureDetector gesture={panGesture}>
           <Animated.View style={[styles.draggableHeader, { backgroundColor: draggableHeaderColor }]}>{isNetworkSwitcherOpen && <View style={styles.dragHandle} />}</Animated.View>
         </GestureDetector>
 
         <GradientScreen variant={network} scroll={true} onScroll={handleScroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} {...refreshOptions} />}>
-          <View style={[styles.root, styles.contentWithHeader]}>
+          <View style={[styles.root, { paddingTop: (insets.top || 0) + 16, paddingBottom: (insets.bottom || 0) + 100 }]}>
             {/* Network Selector */}
             <View style={styles.networkSelectorContainer}>
               <TouchableOpacity testID="NetworkSwitcherTrigger" style={styles.networkSelector} onPress={handleNetworkSelect} activeOpacity={0.8}>
@@ -513,7 +516,7 @@ export default function Home() {
         <Animated.View style={[styles.whiteFlashOverlayAnimated, whiteFlashAnimatedStyle]} />
 
         {/* Bottom Navigation - Fixed to modal bottom */}
-        <View style={styles.bottomNavigationContainer}>
+        <View style={[styles.bottomNavigationContainer, { bottom: (insets.bottom || 0) + 10 }]}>
           <View style={styles.bottomNavigation}>
             <View style={styles.navContainer}>
               <PlatformBlurView intensity={20} tint="dark" style={styles.navBlur} />
@@ -609,9 +612,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 18,
     paddingBottom: 100,
-  },
-  contentWithHeader: {
-    paddingTop: 80,
+    paddingTop: 16,
   },
   networkSelectorContainer: {
     alignSelf: 'flex-start',
@@ -842,6 +843,13 @@ const styles = StyleSheet.create({
     width: 368,
     height: 100,
     marginBottom: 16,
+  },
+  stickyHeaderContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
   },
   backupWarning: {
     backgroundColor: 'rgba(0, 0, 0, 0.15)',

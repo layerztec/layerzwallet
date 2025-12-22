@@ -78,7 +78,7 @@ const SendAmountAcc: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker
     setErrorMessage(null);
     setContextAmount(localAmount);
     setContextMemo(localMemo || '');
-    router.push('/send/send-confirm');
+    router.push({ pathname: '/send/send-confirm', params: { ticker } });
   };
 
   const buttonDisabled = !localAmount || !!errorMessage;

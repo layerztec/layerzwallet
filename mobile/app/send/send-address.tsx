@@ -1,12 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as bip21 from 'bip21';
-import { useNavigation, useRouter } from 'expo-router';
-import React, { useContext, useLayoutEffect, useRef, useState } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useContext, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import GradientScreen from '@/components/GradientScreen';
-import { buildScreenHeaderOptions } from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
@@ -17,7 +16,6 @@ import { CachedTokenInfo } from '@shared/types/token-info';
 import { useSendFlow } from './_layout';
 
 const SendAddress: React.FC = () => {
-  const navigation = useNavigation();
   const { scanQr } = useContext(ScanQrContext);
   const router = useRouter();
   const { network, address: contextAddress, setAddress: setContextAddress, token, setToken, setAmount, setDenomination, setMemo } = useSendFlow();
@@ -57,14 +55,15 @@ const SendAddress: React.FC = () => {
         throw new Error('Invalid address');
       }
       setContextAddress(localAddress);
+      const ticker = getTickerByNetwork(network);
       if (getIsEVM(network)) {
-        router.push('/send/send-amount-evm');
+        router.push({ pathname: '/send/send-amount-evm', params: { ticker } });
       } else if (getIsAccountBased(network)) {
-        router.push('/send/send-amount-acc');
+        router.push({ pathname: '/send/send-amount-acc', params: { ticker } });
       } else if (network === NETWORK_BITCOIN) {
-        router.push('/send/send-amount-btc');
+        router.push({ pathname: '/send/send-amount-btc', params: { ticker } });
       } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
-        router.push('/send/send-amount-liquid');
+        router.push({ pathname: '/send/send-amount-liquid', params: { ticker } });
       } else {
         throw new Error('Invalid network');
       }
@@ -83,10 +82,6 @@ const SendAddress: React.FC = () => {
     setDenomination('Native');
     setMemo('');
   };
-
-  useLayoutEffect(() => {
-    navigation.setOptions(buildScreenHeaderOptions({ headerTitle: `Send ${getTickerByNetwork(network)}`, headerShown: true }));
-  }, [navigation, network]);
 
   return (
     <GradientScreen variant={network} scroll={true}>
