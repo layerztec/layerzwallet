@@ -50,7 +50,8 @@ export interface Config<T extends ClientOptions = ClientOptions> extends Omit<Re
 }
 
 export interface RequestOptions<TData = unknown, TResponseStyle extends ResponseStyle = 'fields', ThrowOnError extends boolean = boolean, Url extends string = string>
-  extends Config<{
+  extends
+    Config<{
       responseStyle: TResponseStyle;
       throwOnError: ThrowOnError;
     }>,
@@ -70,8 +71,12 @@ export interface RequestOptions<TData = unknown, TResponseStyle extends Response
   url: Url;
 }
 
-export interface ResolvedRequestOptions<TResponseStyle extends ResponseStyle = 'fields', ThrowOnError extends boolean = boolean, Url extends string = string>
-  extends RequestOptions<unknown, TResponseStyle, ThrowOnError, Url> {
+export interface ResolvedRequestOptions<TResponseStyle extends ResponseStyle = 'fields', ThrowOnError extends boolean = boolean, Url extends string = string> extends RequestOptions<
+  unknown,
+  TResponseStyle,
+  ThrowOnError,
+  Url
+> {
   serializedBody?: string;
 }
 
