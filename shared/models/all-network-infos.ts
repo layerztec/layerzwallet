@@ -146,7 +146,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     chainId: 13,
     ticker: 'BTC',
     rpcUrl: '',
-    explorerUrl: '',
+    explorerUrl: 'https://sparkscan.io',
     decimals: 8,
     knowMoreUrl: 'https://www.bitcoinlayers.org/layers/spark',
     isTestnet: false,

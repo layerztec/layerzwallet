@@ -200,6 +200,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
         timestamp,
         status,
         direction: transfer.transferDirection === 'OUTGOING' ? 'send' : 'receive',
+        explorerUrl: `${AllNetworkInfos[NETWORK_SPARK].explorerUrl}/tx/${transfer.id}`,
       });
     }
 
