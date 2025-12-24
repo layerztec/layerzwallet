@@ -77,9 +77,10 @@ const NftsView = forwardRef<{ refresh: () => void }, { selectedNft?: string; onV
 
   const previewNfts = nftList.slice(0, MAX_PREVIEW_ITEMS);
   const hasMoreThanPreview = nftList.length > MAX_PREVIEW_ITEMS;
+  const hide = !show && !error;
 
   return (
-    <View style={[styles.container, !show && styles.hiddenContainer]}>
+    <View style={[styles.container, hide && styles.hiddenContainer]}>
       <ThemedText style={styles.title}>NFTs</ThemedText>
       <View style={styles.previewRow}>
         {previewNfts.map((nft, idx) => (
