@@ -84,8 +84,10 @@ const TokensView = forwardRef<{ refresh: () => void }, { onTokenPress: (token: C
     return null;
   }
 
+  const hide = !show && !error;
+
   return (
-    <View style={[styles.container, !show && styles.hiddenContainer]}>
+    <View style={[styles.container, hide && styles.hiddenContainer]}>
       <ThemedText style={styles.title}>Tokens</ThemedText>
       <View style={styles.tokensList}>
         {tokenList.map((token) => (
