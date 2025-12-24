@@ -40,7 +40,7 @@
     "@breeztech/breez-sdk-liquid": "0.11.11",
     "@breeztech/react-native-breez-sdk-liquid": "0.11.11",
     "@bugsnag/expo": "^54.0.0",
-    "@buildonspark/spark-sdk": "0.4.5",
+    "@buildonspark/spark-sdk": "0.5.4",
     "@expo/vector-icons": "^15.0.2",
     "@gorhom/bottom-sheet": "^5.2.8",
     "@metamask/eth-sig-util": "8.2.0",
