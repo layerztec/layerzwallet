@@ -2,7 +2,6 @@ import React, { useContext, useEffect, useImperativeHandle, useState, forwardRef
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
-import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -71,7 +70,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenI
 const TokensView = forwardRef<{ refresh: () => void }, { onTokenPress: (token: CachedTokenInfo) => void; selectedToken?: string }>(({ onTokenPress, selectedToken }, ref) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { tokenList, error, mutate } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
+  const { tokenList, error, mutate } = useTokenDiscovery(network, accountNumber, BackgroundExecutor);
   const [show, setShow] = useState(false);
 
   useImperativeHandle(ref, () => ({

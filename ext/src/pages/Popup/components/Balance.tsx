@@ -27,7 +27,6 @@ import {
   Networks,
 } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
-import { LayerzStorage } from '../../../class/layerz-storage';
 import { Button } from '../DesignSystem';
 
 interface BalanceProps {
@@ -261,8 +260,8 @@ const USDTTokenRow: React.FC<{
 const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceProps>(({ network, accountNumber, BackgroundCaller }, ref) => {
   const availableNetworks = useAvailableNetworks();
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
-  const { tokenList: rsTokenListOrig, mutate: mutateRsTokens } = useTokenDiscovery(NETWORK_ROOTSTOCK, accountNumber, BackgroundCaller, LayerzStorage);
-  const { tokenList: liquidTokenListOrig, mutate: mutateLiquidTokens } = useTokenDiscovery(NETWORK_LIQUID, accountNumber, BackgroundCaller, LayerzStorage);
+  const { tokenList: rsTokenListOrig, mutate: mutateRsTokens } = useTokenDiscovery(NETWORK_ROOTSTOCK, accountNumber, BackgroundCaller);
+  const { tokenList: liquidTokenListOrig, mutate: mutateLiquidTokens } = useTokenDiscovery(NETWORK_LIQUID, accountNumber, BackgroundCaller);
   const [tokenBalances, setTokenBalances] = useState<TTokenBalances>({});
   const ticker = getTickerByNetwork(network);
 

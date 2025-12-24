@@ -12,7 +12,6 @@ import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-uti
 
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { SendTokenEvmProps } from '../SendTokenEvm';
-import { LayerzStorage } from '../../../class/layerz-storage';
 import { SendTokenStacksProps } from '@/pages/Popup/SendTokenStacks';
 
 const TokenRow: React.FC<{ token: CachedTokenInfo; setShow: (show: boolean) => void }> = ({ token, setShow }) => {
@@ -113,7 +112,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; setShow: (show: boolean) => v
 const TokensView = forwardRef<{ refresh: () => void }>((props, ref) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { tokenList, error, mutate } = useTokenDiscovery(network, accountNumber, BackgroundCaller, LayerzStorage);
+  const { tokenList, error, mutate } = useTokenDiscovery(network, accountNumber, BackgroundCaller);
   const [show, setShow] = useState(false);
 
   useImperativeHandle(ref, () => ({

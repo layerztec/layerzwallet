@@ -1,7 +1,6 @@
 import React, { useContext } from 'react';
 
 import { useSendFlow } from '@/app/send/_layout';
-import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useBalance } from '@shared/hooks/useBalance';
@@ -29,7 +28,7 @@ export const withAsset = <P extends object>(Component: React.ComponentType<P & S
     const { network, token } = useSendFlow();
     const { accountNumber } = useContext(AccountNumberContext);
     const { balance: tokenBalance } = useTokenBalance(network, accountNumber, token!, BackgroundExecutor);
-    const { tokenList } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
+    const { tokenList } = useTokenDiscovery(network, accountNumber, BackgroundExecutor);
     const { tokenExchangeRate } = useTokenExchangeRate(network, token ?? '', 'USD');
     const tokenInfo = tokenList.find((t) => t.id === token);
 

@@ -7,7 +7,6 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { OnrampProps } from '@/app/Onramp';
 import { ThemedText } from '@/components/ThemedText';
-import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -260,8 +259,8 @@ const TokenRow = ({ network, token, setTokenBalances }: { network: Networks; tok
 const BalanceUsdt = forwardRef<{ refresh: () => void }>((props, ref) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { tokenList: rsTokenListOrig, mutate: mutateRsTokens } = useTokenDiscovery(NETWORK_ROOTSTOCK, accountNumber, BackgroundExecutor, LayerzStorage);
-  const { tokenList: liquidTokenListOrig, mutate: mutateLiquidTokens } = useTokenDiscovery(NETWORK_LIQUID, accountNumber, BackgroundExecutor, LayerzStorage);
+  const { tokenList: rsTokenListOrig, mutate: mutateRsTokens } = useTokenDiscovery(NETWORK_ROOTSTOCK, accountNumber, BackgroundExecutor);
+  const { tokenList: liquidTokenListOrig, mutate: mutateLiquidTokens } = useTokenDiscovery(NETWORK_LIQUID, accountNumber, BackgroundExecutor);
   const [tokenBalances, setTokenBalances] = useState<TTokenBalances>({});
   const ticker = getTickerByNetwork(network);
 
