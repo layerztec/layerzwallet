@@ -101,6 +101,8 @@ export const getNetworkGradient = (network: string) => {
     case NETWORK_LIGHTNING:
     case NETWORK_LIGHTNING_TESTNET:
       return ['#581C87', '#7C3AED']; // Purple gradient
+    case NETWORK_USDT:
+      return ['#058787', '#22AAAA']; // Teal gradient
     default:
       return ['#6B7280', '#9CA3AF']; // Light gray gradient for unknown networks
   }

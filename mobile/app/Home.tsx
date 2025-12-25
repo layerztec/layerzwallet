@@ -494,12 +494,10 @@ export default function Home() {
               <PlatformBlurView intensity={20} tint="dark" style={styles.navBlur} />
 
               {network === NETWORK_USDT ? (
-                <ActionPopupButton actions={usdtSendActions} title="Layer to send">
-                  <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" activeOpacity={0.8}>
-                    <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
-                    <ThemedText style={styles.navButtonText}>Send</ThemedText>
-                  </TouchableOpacity>
-                </ActionPopupButton>
+                <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" onPress={() => router.push('/send/send-address-usdt')} activeOpacity={0.8}>
+                  <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
+                  <ThemedText style={styles.navButtonText}>Send</ThemedText>
+                </TouchableOpacity>
               ) : (
                 <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" onPress={handleSend} activeOpacity={0.8}>
                   <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
