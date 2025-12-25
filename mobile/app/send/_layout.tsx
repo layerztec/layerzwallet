@@ -262,6 +262,8 @@ export default function SendLayout() {
         <Stack.Screen name="send-amount-acc" />
         <Stack.Screen name="send-amount-liquid" />
         <Stack.Screen name="send-confirm" />
+        <Stack.Screen name="send-address-usdt" />
+        <Stack.Screen name="send-amount-usdt" />
       </Stack>
     </SendFlowProvider>
   );

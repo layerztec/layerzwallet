@@ -227,7 +227,19 @@ type TTokenMap = Record<string, CachedTokenInfo>;
 
 // we need a separate component for each row to call useTokenBalance hook for each token
 // balanes then aggregated in parent component
-const TokenRow = ({ network, token, setTokenBalances }: { network: Networks; token: CachedTokenInfo; setTokenBalances: React.Dispatch<React.SetStateAction<TTokenBalances>> }) => {
+const TokenRow = ({
+  network,
+  token,
+  setTokenBalances,
+  onSelect,
+  isSelected,
+}: {
+  network: Networks;
+  token: CachedTokenInfo;
+  setTokenBalances: React.Dispatch<React.SetStateAction<TTokenBalances>>;
+  onSelect?: (tokenId: string, network: Networks) => void;
+  isSelected?: boolean;
+}) => {
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundExecutor);
   const networkImage = getNetworkImageAsset(network);
@@ -240,8 +252,11 @@ const TokenRow = ({ network, token, setTokenBalances }: { network: Networks; tok
     setTokenBalances((prev) => ({ ...prev, [token.id]: balance }));
   }, [balance, token.id, setTokenBalances]);
 
+  const Container = onSelect ? TouchableOpacity : View;
+  const containerProps = onSelect ? { onPress: () => onSelect(token.id, network), activeOpacity: 0.7 } : {};
+
   return (
-    <View style={styles.listBalanceRow}>
+    <Container style={[styles.listBalanceRow, isSelected && styles.selectedListBalanceRow]} {...containerProps}>
       <View style={styles.listBalanceRowLabel}>
         <View style={styles.networkIcon}>{networkIconContent}</View>
         <ThemedText style={styles.listBalanceLabel}>{token.name}</ThemedText>
@@ -252,12 +267,18 @@ const TokenRow = ({ network, token, setTokenBalances }: { network: Networks; tok
           {formattedBalance}
         </ThemedText>
       </View>
-    </View>
+    </Container>
   );
 };
 
+type BalanceUsdtProps = {
+  onSelectToken?: (tokenId: string, network: Networks) => void;
+  selectedToken?: string;
+  showTotalBalance?: boolean;
+};
+
 // Balance component for USDT network (aggregates tokens from Rootstock and Liquid)
-const BalanceUsdt = forwardRef<{ refresh: () => void }>((props, ref) => {
+export const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceUsdtProps>(({ onSelectToken = undefined, selectedToken = undefined, showTotalBalance = true }, ref) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { tokenList: rsTokenListOrig, mutate: mutateRsTokens } = useTokenDiscovery(NETWORK_ROOTSTOCK, accountNumber, BackgroundExecutor, LayerzStorage);
@@ -298,11 +319,11 @@ const BalanceUsdt = forwardRef<{ refresh: () => void }>((props, ref) => {
       const tokens = USDT_TOKENS[network];
       for (const token of tokens) {
         if (!rsTokenMap[token]) continue;
-        result.push(<TokenRow key={token} network={network as Networks} token={rsTokenMap[token]} setTokenBalances={setTokenBalances} />);
+        result.push(<TokenRow key={token} network={network as Networks} token={rsTokenMap[token]} setTokenBalances={setTokenBalances} onSelect={onSelectToken} isSelected={selectedToken === token} />);
       }
     }
     return result;
-  }, [rsTokenMap]);
+  }, [rsTokenMap, onSelectToken, selectedToken]);
 
   const icons = useMemo(() => {
     const networks = [NETWORK_ROOTSTOCK, NETWORK_LIQUID];
@@ -319,15 +340,17 @@ const BalanceUsdt = forwardRef<{ refresh: () => void }>((props, ref) => {
 
   return (
     <>
-      <View style={styles.balanceSection} testID="LayerBalance">
-        <View style={styles.balanceContainer}>
-          <ThemedText type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
-            {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
-          </ThemedText>
-        </View>
+      {showTotalBalance && (
+        <View style={styles.balanceSection} testID="LayerBalance">
+          <View style={styles.balanceContainer}>
+            <ThemedText type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
+              {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
+            </ThemedText>
+          </View>
 
-        <View style={styles.balanceNetworkIcons}>{icons}</View>
-      </View>
+          <View style={styles.balanceNetworkIcons}>{icons}</View>
+        </View>
+      )}
 
       <View style={styles.listBalanceContainer}>{rows}</View>
     </>

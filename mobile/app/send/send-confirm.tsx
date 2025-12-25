@@ -21,17 +21,21 @@ import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { getNetworkGradient } from '@shared/constants/Colors';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { getDecimalsByNetwork, getIsAccountBased, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT } from '@shared/types/networks';
 import { useSendFlow } from './_layout';
 
 const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const router = useRouter();
+  const { network: contextNetwork } = useContext(NetworkContext);
   const { network, address, amount, createdTransaction, memo, liquidPrepareResult } = useSendFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const { exchangeRate } = useCachedExchangeRate(network, 'USD');
+
+  const displayNetwork = contextNetwork === NETWORK_USDT ? contextNetwork : network;
 
   const [error, setError] = useState<string>('');
   const [isSuccess, setIsSuccess] = useState(false);
@@ -44,12 +48,12 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const sendToOpacity = useSharedValue(1);
   const totalTop = useSharedValue(32); // Initial top position for total section
   const riveRef = useRef<RiveRef>(null);
-  const networkBackgroundColor = getNetworkGradient(network)[0];
 
   // Animated styles
   const detailsAnimatedStyle = useAnimatedStyle(() => ({ opacity: detailsOpacity.value }));
   const sendToAnimatedStyle = useAnimatedStyle(() => ({ opacity: sendToOpacity.value }));
   const totalAnimatedStyle = useAnimatedStyle(() => ({ top: totalTop.value }));
+  const networkBackgroundColor = getNetworkGradient(displayNetwork)[0];
 
   // Animate sections when success - sequential animations
   useEffect(() => {
@@ -238,9 +242,9 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   };
 
   return (
-    <GradientScreen variant={network} scroll={false}>
+    <GradientScreen variant={displayNetwork} scroll={false}>
       <Stack.Screen options={{ headerShown: false }} />
-      {!hideHeader && <ScreenSendHeader network={network} title={`Send ${ticker}`} />}
+      {!hideHeader && <ScreenSendHeader network={displayNetwork} title={`Send ${getTickerByNetwork(displayNetwork)}`} />}
 
       <View style={styles.fixedContainer}>
         <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
