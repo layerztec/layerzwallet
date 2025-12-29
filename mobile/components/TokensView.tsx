@@ -80,27 +80,21 @@ const TokensView = forwardRef<{ refresh: () => void }, { onTokenPress: (token: C
     },
   }));
 
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <ThemedText style={styles.title}>Tokens</ThemedText>
-        <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText>
-      </View>
-    );
-  }
-
   if (tokenList.length === 0) {
     return null;
   }
 
+  const hide = !show && !error;
+
   return (
-    <View style={[styles.container, !show && styles.hiddenContainer]}>
+    <View style={[styles.container, hide && styles.hiddenContainer]}>
       <ThemedText style={styles.title}>Tokens</ThemedText>
       <View style={styles.tokensList}>
         {tokenList.map((token) => (
           <TokenRow key={token.id} token={token} onPress={onTokenPress} selected={selectedToken === token.id} setShow={setShow} />
         ))}
       </View>
+      {error ? <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText> : null}
     </View>
   );
 });
