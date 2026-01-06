@@ -60,6 +60,9 @@ export default function AmountInput({
       }
       const native = new BigNumber(nativeValue);
       const result = native.multipliedBy(exchangeRateNumber).toFixed(2);
+      if (isNaN(Number(result))) {
+        return '—';
+      }
       conversionCache.current.set(nativeValue, result);
       return result;
     },
@@ -78,6 +81,9 @@ export default function AmountInput({
       }
       const fiat = new BigNumber(fiatValue);
       const result = fiat.dividedBy(exchangeRateNumber).toFixed(decimals);
+      if (isNaN(Number(result))) {
+        return '—';
+      }
       conversionCache.current.set(result, fiatValue);
       return result;
     },
@@ -115,6 +121,10 @@ export default function AmountInput({
   };
 
   const handleDenominationSwitch = () => {
+    const normalized = value.trim();
+    if (!normalized || isNaN(Number(normalized))) {
+      return;
+    }
     isFocused.current = false;
     onDenominationSwitch?.();
   };
