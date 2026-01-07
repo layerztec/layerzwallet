@@ -117,6 +117,7 @@ const SendAmountUsdt: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticke
 
       router.push('/send/send-confirm');
     } catch (e: any) {
+      console.error('Failed to prepare transaction:', e);
       setErrorMessage(e.message || 'Failed to prepare transaction');
     } finally {
       setIsPreparing(false);
