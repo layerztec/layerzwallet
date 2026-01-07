@@ -114,6 +114,7 @@ const SendAmountEvm: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker
 
       router.push('/send/send-confirm');
     } catch (e: any) {
+      console.error('Failed to prepare transaction:', e);
       setErrorMessage(e.message || 'Failed to prepare transaction');
     } finally {
       setIsPreparing(false);
