@@ -2,7 +2,7 @@
  * PORTED FROM  https://github.com/BlueWallet/BlueWallet/
  * LICENSE: MIT
  */
-import bitcoin from 'bitcoinjs-lib';
+import * as bitcoin from 'bitcoinjs-lib';
 import { CoinSelectOutput, CoinSelectReturnInput, CoinSelectUtxo } from 'coinselect';
 
 export type Utxo = {

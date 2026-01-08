@@ -10,6 +10,8 @@ import { SegwitBech32Wallet } from '../class/wallets/segwit-bech32-wallet';
 import { SegwitP2SHWallet } from '../class/wallets/segwit-p2sh-wallet';
 import { TaprootWallet } from '../class/wallets/taproot-wallet';
 import { WsElectrumClient } from '../class/ws-electrum-client';
+import { uint8ArrayToHex, stringToUint8Array, hexToUint8Array } from '../modules/uint8array-extras';
+import { sha256 as _sha256 } from '@noble/hashes/sha256';
 
 type Utxo = {
   height: number;
@@ -82,6 +84,10 @@ let currentPeerIndex = Math.floor(Math.random() * hardcodedPeers.length);
 let latestBlock: { height: number; time: number } | { height: undefined; time: undefined } = { height: undefined, time: undefined };
 const txhashHeightCache: Record<string, number> = {};
 // let _realm: Realm | undefined;
+
+function bitcoinjs_crypto_sha256(buffer: Uint8Array): Uint8Array {
+  return _sha256(buffer);
+}
 
 // async function _getRealm() {
 //   if (_realm) return _realm;
@@ -240,9 +246,9 @@ export async function connectMain(): Promise<void> {
 export const getBalanceByAddress = async function (address: string): Promise<{ confirmed: number; unconfirmed: number; addr: string }> {
   if (!mainClient) throw new Error('Electrum client is not connected');
   const script = bitcoin.address.toOutputScript(address);
-  const hash = bitcoin.crypto.sha256(script);
-  const reversedHash = Buffer.from(hash).reverse();
-  const balance = await mainClient.blockchainScripthash_getBalance(reversedHash.toString('hex'));
+  const hash = bitcoinjs_crypto_sha256(script);
+  const reversedHash = new Uint8Array(hash).reverse();
+  const balance = await mainClient.blockchainScripthash_getBalance(uint8ArrayToHex(reversedHash));
   balance.addr = address;
   return balance;
 };
@@ -264,9 +270,9 @@ export const getSecondsSinceLastRequest = function () {
 export const getTransactionsByAddress = async function (address: string): Promise<ElectrumHistory[]> {
   if (!mainClient) throw new Error('Electrum client is not connected');
   const script = bitcoin.address.toOutputScript(address);
-  const hash = bitcoin.crypto.sha256(script);
-  const reversedHash = Buffer.from(hash).reverse();
-  const history = await mainClient.blockchainScripthash_getHistory(reversedHash.toString('hex'));
+  const hash = bitcoinjs_crypto_sha256(script);
+  const reversedHash = new Uint8Array(hash).reverse();
+  const history = await mainClient.blockchainScripthash_getHistory(uint8ArrayToHex(reversedHash));
   for (const h of history || []) {
     if (h.tx_hash) txhashHeightCache[h.tx_hash] = h.height; // cache tx height
   }
@@ -277,9 +283,9 @@ export const getTransactionsByAddress = async function (address: string): Promis
 export const getMempoolTransactionsByAddress = async function (address: string): Promise<MempoolTransaction[]> {
   if (!mainClient) throw new Error('Electrum client is not connected');
   const script = bitcoin.address.toOutputScript(address);
-  const hash = bitcoin.crypto.sha256(script);
-  const reversedHash = Buffer.from(hash).reverse();
-  return mainClient.blockchainScripthash_getMempool(reversedHash.toString('hex'));
+  const hash = bitcoinjs_crypto_sha256(script);
+  const reversedHash = new Uint8Array(hash).reverse();
+  return mainClient.blockchainScripthash_getMempool(uint8ArrayToHex(reversedHash));
 };
 
 export const ping = async function () {
@@ -326,13 +332,13 @@ export function txhexToElectrumTransaction(txhex: string): ElectrumTransactionWi
 
   for (const inn of tx.ins) {
     const txinwitness = [];
-    if (inn.witness[0]) txinwitness.push(inn.witness[0].toString('hex'));
-    if (inn.witness[1]) txinwitness.push(inn.witness[1].toString('hex'));
+    if (inn.witness[0]) txinwitness.push(uint8ArrayToHex(inn.witness[0]));
+    if (inn.witness[1]) txinwitness.push(uint8ArrayToHex(inn.witness[1]));
 
     ret.vin.push({
-      txid: Buffer.from(inn.hash).reverse().toString('hex'),
+      txid: uint8ArrayToHex(new Uint8Array(inn.hash).reverse()),
       vout: inn.index,
-      scriptSig: { hex: inn.script.toString('hex'), asm: '' },
+      scriptSig: { hex: uint8ArrayToHex(inn.script), asm: '' },
       txinwitness,
       sequence: inn.sequence,
     });
@@ -344,17 +350,17 @@ export function txhexToElectrumTransaction(txhex: string): ElectrumTransactionWi
     let address: false | string = false;
     let type: false | string = false;
 
-    if (SegwitBech32Wallet.scriptPubKeyToAddress(out.script.toString('hex'))) {
-      address = SegwitBech32Wallet.scriptPubKeyToAddress(out.script.toString('hex'));
+    if (SegwitBech32Wallet.scriptPubKeyToAddress(uint8ArrayToHex(out.script))) {
+      address = SegwitBech32Wallet.scriptPubKeyToAddress(uint8ArrayToHex(out.script));
       type = 'witness_v0_keyhash';
-    } else if (SegwitP2SHWallet.scriptPubKeyToAddress(out.script.toString('hex'))) {
-      address = SegwitP2SHWallet.scriptPubKeyToAddress(out.script.toString('hex'));
+    } else if (SegwitP2SHWallet.scriptPubKeyToAddress(uint8ArrayToHex(out.script))) {
+      address = SegwitP2SHWallet.scriptPubKeyToAddress(uint8ArrayToHex(out.script));
       type = '???'; // TODO
-    } else if (LegacyWallet.scriptPubKeyToAddress(out.script.toString('hex'))) {
-      address = LegacyWallet.scriptPubKeyToAddress(out.script.toString('hex'));
+    } else if (LegacyWallet.scriptPubKeyToAddress(uint8ArrayToHex(out.script))) {
+      address = LegacyWallet.scriptPubKeyToAddress(uint8ArrayToHex(out.script));
       type = '???'; // TODO
     } else {
-      address = TaprootWallet.scriptPubKeyToAddress(out.script.toString('hex'));
+      address = TaprootWallet.scriptPubKeyToAddress(uint8ArrayToHex(out.script));
       type = 'witness_v1_taproot';
     }
 
@@ -367,7 +373,7 @@ export function txhexToElectrumTransaction(txhex: string): ElectrumTransactionWi
       n,
       scriptPubKey: {
         asm: '',
-        hex: out.script.toString('hex'),
+        hex: uint8ArrayToHex(out.script),
         reqSigs: 1, // todo
         type,
         addresses: [address],
@@ -463,8 +469,8 @@ export const multiGetBalanceByAddress = async (addresses: string[], batchsize: n
     const scripthash2addr: Record<string, string> = {};
     for (const addr of chunk) {
       const script = bitcoin.address.toOutputScript(addr);
-      const hash = bitcoin.crypto.sha256(script);
-      const reversedHash = Buffer.from(hash).reverse().toString('hex');
+      const hash = bitcoinjs_crypto_sha256(script);
+      const reversedHash = uint8ArrayToHex(new Uint8Array(hash).reverse());
       scripthashes.push(reversedHash);
       scripthash2addr[reversedHash] = addr;
     }
@@ -507,8 +513,8 @@ export const multiGetUtxoByAddress = async function (addresses: string[], batchs
     const scripthash2addr: Record<string, string> = {};
     for (const addr of chunk) {
       const script = bitcoin.address.toOutputScript(addr);
-      const hash = bitcoin.crypto.sha256(script);
-      const reversedHash = Buffer.from(hash).reverse().toString('hex');
+      const hash = bitcoinjs_crypto_sha256(script);
+      const reversedHash = uint8ArrayToHex(new Uint8Array(hash).reverse());
       scripthashes.push(reversedHash);
       scripthash2addr[reversedHash] = addr;
     }
@@ -554,8 +560,8 @@ export const multiGetHistoryByAddress = async function (addresses: string[], bat
     const scripthash2addr: Record<string, string> = {};
     for (const addr of chunk) {
       const script = bitcoin.address.toOutputScript(addr);
-      const hash = bitcoin.crypto.sha256(script);
-      const reversedHash = Buffer.from(hash).reverse().toString('hex');
+      const hash = bitcoinjs_crypto_sha256(script);
+      const reversedHash = uint8ArrayToHex(new Uint8Array(hash).reverse());
       scripthashes.push(reversedHash);
       scripthash2addr[reversedHash] = addr;
     }

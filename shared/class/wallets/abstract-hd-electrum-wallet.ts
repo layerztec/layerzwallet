@@ -3,6 +3,7 @@
  * LICENSE: MIT
  */
 /* eslint react/prop-types: "off", @typescript-eslint/ban-ts-comment: "off", camelcase: "off"   */
+import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import BIP32Factory, { BIP32Interface } from 'bip32';
 import * as bip39 from 'bip39';
@@ -10,8 +11,7 @@ import * as bitcoin from 'bitcoinjs-lib';
 import { Psbt, Transaction as BTransaction } from 'bitcoinjs-lib';
 import b58 from 'bs58check';
 import { CoinSelectReturnInput } from 'coinselect';
-import { ECPairFactory } from 'ecpair';
-import { ECPairInterface } from 'ecpair/src/ecpair';
+import { ECPairFactory, ECPairInterface } from 'ecpair';
 
 import * as BlueElectrum from '../../blue_modules/BlueElectrum';
 import { ElectrumHistory } from '../../blue_modules/BlueElectrum';
@@ -23,6 +23,7 @@ import { ICsprng } from '../../types/ICsprng';
 import { CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_BITCOIN } from '../../types/networks';
 import { AllNetworkInfos } from '../../models/all-network-infos';
+import { hexToUint8Array, concatUint8Arrays, uint8ArrayToHex } from '../../modules/uint8array-extras';
 
 const ECPair = ECPairFactory(ecc);
 const bip32 = BIP32Factory(ecc);
@@ -160,11 +161,11 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
     throw new Error('Not implemented');
   }
 
-  async generateFromEntropy(user: Buffer) {
+  async generateFromEntropy(user: Uint8Array) {
     if (user.length !== 32 && user.length !== 16) {
       throw new Error('Entropy has to be 16 or 32 bytes long');
     }
-    this.secret = bip39.entropyToMnemonic(user.toString('hex'));
+    this.secret = bip39.entropyToMnemonic(uint8ArrayToHex(user));
   }
 
   _getExternalWIFByIndex(index: number): string | false {
@@ -254,8 +255,8 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
     // bitcoinjs does not support zpub yet, so we just convert it from xpub
     let data = b58.decode(xpub);
     data = data.slice(4);
-    data = Buffer.concat([Buffer.from('04b24746', 'hex'), data]);
-    this._xpub = b58.encode(data);
+    const concatenated = concatUint8Arrays([hexToUint8Array('04b24746'), data]);
+    this._xpub = b58.encode(concatenated);
 
     return this._xpub;
   }
@@ -855,9 +856,9 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
   /**
    *
    * @param address {string} Address that belongs to this wallet
-   * @returns {Buffer|false} Either buffer with pubkey or false
+   * @returns {Uint8Array|false} Either buffer with pubkey or false
    */
-  _getPubkeyByAddress(address: string): Buffer | false {
+  _getPubkeyByAddress(address: string): Uint8Array | false {
     for (let c = 0; c < this.next_free_address_index + this.gap_limit; c++) {
       if (this._getExternalAddressByIndex(c) === address) return this._getNodePubkeyByIndex(0, c);
     }
@@ -971,10 +972,10 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
       if (masterFingerprint) {
         let masterFingerprintHex = Number(masterFingerprint).toString(16);
         if (masterFingerprintHex.length < 8) masterFingerprintHex = '0' + masterFingerprintHex; // conversion without explicit zero might result in lost byte
-        const hexBuffer = Buffer.from(masterFingerprintHex, 'hex');
-        masterFingerprintBuffer = Buffer.from(hexBuffer).reverse();
+        const hexBuffer = hexToUint8Array(masterFingerprintHex);
+        masterFingerprintBuffer = hexBuffer.reverse();
       } else {
-        masterFingerprintBuffer = Buffer.from([0x00, 0x00, 0x00, 0x00]);
+        masterFingerprintBuffer = new Uint8Array([0x00, 0x00, 0x00, 0x00]);
       }
       // this is not correct fingerprint, as we dont know real fingerprint - we got zpub with 84/0, but fingerpting
       // should be from root. basically, fingerprint should be provided from outside  by user when importing zpub
@@ -998,22 +999,29 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
       if (masterFingerprint) {
         let masterFingerprintHex = Number(masterFingerprint).toString(16);
         if (masterFingerprintHex.length < 8) masterFingerprintHex = '0' + masterFingerprintHex; // conversion without explicit zero might result in lost byte
-        const hexBuffer = Buffer.from(masterFingerprintHex, 'hex');
-        masterFingerprintBuffer = Buffer.from(hexBuffer).reverse();
+        const hexBuffer = hexToUint8Array(masterFingerprintHex);
+        masterFingerprintBuffer = hexBuffer.reverse();
       } else {
-        masterFingerprintBuffer = Buffer.from([0x00, 0x00, 0x00, 0x00]);
+        masterFingerprintBuffer = new Uint8Array([0x00, 0x00, 0x00, 0x00]);
       }
 
       // this is not correct fingerprint, as we dont know realfingerprint - we got zpub with 84/0, but fingerpting
       // should be from root. basically, fingerprint should be provided from outside  by user when importing zpub
 
+      if (output.address?.startsWith('PM')) {
+        // ok its BIP47 payment code, so we need to unwrap a joint address for the receiver and use it instead:
+        // @ts-expect-error - method may not exist in all wallet implementations
+        output.address = this._getNextFreePaymentCodeAddressSend(output.address);
+        // ^^^ trusting that notification transaction is in place
+      }
+
       psbt.addOutput({
         address: output.address,
         // @ts-ignore types from bitcoinjs are not exported so we cant define outputData separately and add fields conditionally (either address or script should be present)
-        script: output.script?.hex ? Buffer.from(output.script.hex, 'hex') : undefined,
-        value: output.value,
+        script: output.script?.hex ? hexToUint8Array(output.script.hex) : undefined,
+        value: BigInt(output.value),
         bip32Derivation:
-          change && path && pubkey
+          change && path && pubkey && (this.segwitType as string) !== 'p2tr'
             ? [
                 {
                   masterFingerprint: masterFingerprintBuffer,
@@ -1022,13 +1030,30 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
                 },
               ]
             : [],
+        tapBip32Derivation:
+          (this.segwitType as string) === 'p2tr' && pubkey && path && change
+            ? [
+                {
+                  pubkey: new Uint8Array(pubkey),
+                  masterFingerprint: new Uint8Array(masterFingerprintBuffer),
+                  path,
+                  leafHashes: [],
+                },
+              ]
+            : [],
+        ...((this.segwitType as string) === 'p2tr' && pubkey ? { tapInternalKey: new Uint8Array(pubkey) } : {}),
       });
     });
 
     if (!skipSigning) {
       // skiping signing related stuff
       for (let cc = 0; cc < c; cc++) {
-        psbt.signInput(cc, keypairs[cc]);
+        if ((this.segwitType as string) === 'p2tr') {
+          assert(psbt.data.inputs[cc].tapInternalKey, 'TapInternalKey is required for taproot inputs');
+          psbt.signTaprootInput(cc, keypairs[cc].tweak(bitcoin.crypto.taggedHash('TapTweak', psbt.data.inputs[cc].tapInternalKey as Uint8Array)));
+        } else {
+          psbt.signInput(cc, keypairs[cc]);
+        }
       }
     }
 
@@ -1039,7 +1064,7 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
     return { tx, inputs, outputs, fee, psbt };
   }
 
-  _addPsbtInput(psbt: Psbt, input: CoinSelectReturnInput, sequence: number, masterFingerprintBuffer: Buffer) {
+  _addPsbtInput(psbt: Psbt, input: CoinSelectReturnInput, sequence: number, masterFingerprintBuffer: Uint8Array) {
     if (!input.address) {
       throw new Error('Internal error: no address on Utxo during _addPsbtInput()');
     }
@@ -1066,7 +1091,7 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
       ],
       witnessUtxo: {
         script: p2wpkh.output,
-        value: input.value,
+        value: BigInt(input.value),
       },
     });
 
@@ -1246,12 +1271,13 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
   }
 
   /**
-   * @param seed {Buffer} Buffer object with seed
+   * @param seed {Buffer|Uint8Array} Buffer or Uint8Array object with seed (Buffer extends Uint8Array)
    * @returns {string} Hex string of fingerprint derived from mnemonics. Always has length of 8 chars and correct leading zeroes. All caps
    */
-  static seedToFingerprint(seed: Buffer) {
-    const root = bip32.fromSeed(seed);
-    let hex = root.fingerprint.toString('hex');
+  static seedToFingerprint(seed: Buffer | Uint8Array) {
+    // bip32.fromSeed expects Buffer, but Buffer extends Uint8Array so this works
+    const root = bip32.fromSeed(seed as Buffer);
+    let hex = uint8ArrayToHex(root.fingerprint);
     while (hex.length < 8) hex = '0' + hex; // leading zeroes
     return hex.toUpperCase();
   }
@@ -1262,6 +1288,7 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
    */
   static mnemonicToFingerprint(mnemonic: string, passphrase?: string) {
     const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase);
+    // seedToFingerprint accepts Uint8Array, Buffer extends Uint8Array so this works
     return AbstractHDElectrumWallet.seedToFingerprint(seed);
   }
 

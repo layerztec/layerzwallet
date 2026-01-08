@@ -3,8 +3,9 @@ import { ECPairFactory } from 'ecpair';
 import { beforeEach, describe, it, vi as jest } from 'vitest';
 
 import ecc from '@bitcoinerlab/secp256k1';
+import { hexToUint8Array, uint8ArrayToHex } from '../../modules/uint8array-extras';
 
-const h = (hex: string) => Buffer.from(hex, 'hex');
+const h = (hex: string) => hexToUint8Array(hex);
 
 beforeEach(() => {
   jest.resetModules();
@@ -25,9 +26,9 @@ describe('ecc', () => {
   });
 
   it('works (basic)', () => {
-    assert.ok(ecc.isPoint(Buffer.from('0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798', 'hex')));
-    assert.ok(!ecc.isPoint(Buffer.from('0100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001', 'hex')));
-    assert.ok(!ecc.isPoint(Buffer.from('00', 'hex')));
+    assert.ok(ecc.isPoint(hexToUint8Array('0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798')));
+    assert.ok(!ecc.isPoint(hexToUint8Array('0100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001')));
+    assert.ok(!ecc.isPoint(hexToUint8Array('00')));
 
     /*
 
@@ -49,8 +50,8 @@ describe('ecc', () => {
 
 
         assert.strictEqual(
-          Buffer.from(rez).toString('hex'),
-          h('0000000000000000000000000000000000000000000000000000000000000001').toString('hex'),
+          uint8ArrayToHex(rez),
+          uint8ArrayToHex(h('0000000000000000000000000000000000000000000000000000000000000001')),
         );
     */
 

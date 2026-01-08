@@ -7,12 +7,24 @@ import createHash from 'create-hash';
 
 import { BitcoinUnit, Chain, TBitcoinUnit, TChain } from '../../models/bitcoinUnits';
 import { CreateTransactionResult, CreateTransactionUtxo, Transaction, Utxo } from './types';
+import { hexToUint8Array, concatUint8Arrays, uint8ArrayToHex } from '../../modules/uint8array-extras';
 
 type WalletWithPassphrase = AbstractWallet & { getPassphrase: () => string };
 type UtxoMetadata = {
   frozen?: boolean;
   memo?: string;
 };
+
+/**
+ * Reverse a Uint8Array in place (creates a new array)
+ */
+function reverseUint8Array(arr: Uint8Array): Uint8Array {
+  const reversed = new Uint8Array(arr.length);
+  for (let i = 0; i < arr.length; i++) {
+    reversed[i] = arr[arr.length - 1 - i];
+  }
+  return reversed;
+}
 
 export class AbstractWallet {
   static readonly type = 'abstract';
@@ -438,9 +450,9 @@ export class AbstractWallet {
   _zpubToXpub(zpub: string): string {
     let data = b58.decode(zpub);
     data = data.slice(4);
-    data = Buffer.concat([Buffer.from('0488b21e', 'hex'), data]);
+    const concatenated = concatUint8Arrays([hexToUint8Array('0488b21e'), data]);
 
-    return b58.encode(data);
+    return b58.encode(concatenated);
   }
 
   /**
@@ -452,25 +464,25 @@ export class AbstractWallet {
     let data = b58.decode(ypub);
     if (data.readUInt32BE() !== 0x049d7cb2) throw new Error('Not a valid ypub extended key!');
     data = data.slice(4);
-    data = Buffer.concat([Buffer.from('0488b21e', 'hex'), data]);
+    const concatenated = concatUint8Arrays([hexToUint8Array('0488b21e'), data]);
 
-    return b58.encode(data);
+    return b58.encode(concatenated);
   }
 
   _xpubToZpub(xpub: string): string {
     let data = b58.decode(xpub);
     data = data.slice(4);
-    data = Buffer.concat([Buffer.from('04b24746', 'hex'), data]);
+    const concatenated = concatUint8Arrays([hexToUint8Array('04b24746'), data]);
 
-    return b58.encode(data);
+    return b58.encode(concatenated);
   }
 
   _xpubToYpub(xpub: string): string {
     let data = b58.decode(xpub);
     data = data.slice(4);
-    data = Buffer.concat([Buffer.from('049d7cb2', 'hex'), data]);
+    const concatenated = concatUint8Arrays([hexToUint8Array('049d7cb2'), data]);
 
-    return b58.encode(data);
+    return b58.encode(concatenated);
   }
 
   prepareForSerialization(): void {}

@@ -6,6 +6,7 @@ import { bech32 } from 'bech32';
 import bolt11 from 'bolt11';
 import { sha256 } from '@noble/hashes/sha256';
 import { fetch } from '../util/fetch';
+import { uint8ArrayToHex } from '../modules/uint8array-extras';
 
 const ONION_REGEX = /^(http:\/\/[^/:@]+\.onion(?::\d{1,5})?)(\/.*)?$/; // regex for onion URL
 
@@ -92,7 +93,8 @@ export default class Lnurl {
     }
 
     const decoded = bech32.decode(found, 10000);
-    return Buffer.from(bech32.fromWords(decoded.words)).toString();
+    const words = bech32.fromWords(decoded.words);
+    return new TextDecoder().decode(new Uint8Array(words));
   }
 
   static isLnurl(url: string): boolean {
@@ -180,7 +182,8 @@ export default class Lnurl {
 
     // check pr description_hash, amount etc:
     const decoded = this.decodeInvoice(this._lnurlPayServiceBolt11Payload.pr);
-    const metadataHash = Buffer.from(sha256(this._lnurlPayServicePayload.metadata)).toString('hex');
+    const metadataHashBytes = sha256(this._lnurlPayServicePayload.metadata);
+    const metadataHash = uint8ArrayToHex(metadataHashBytes);
     if (metadataHash !== decoded.description_hash) {
       console.log(`Invoice description_hash doesn't match metadata.`);
     }
@@ -262,9 +265,9 @@ export default class Lnurl {
     return true;
   }
 
-  async storeSuccess(paymentHash: string, preimage: string | { data: Buffer }): Promise<void> {
+  async storeSuccess(paymentHash: string, preimage: string | { data: Uint8Array }): Promise<void> {
     if (typeof preimage === 'object') {
-      preimage = Buffer.from(preimage.data).toString('hex');
+      preimage = uint8ArrayToHex(preimage.data);
     }
     this._preimage = preimage;
 

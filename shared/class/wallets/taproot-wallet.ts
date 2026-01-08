@@ -5,6 +5,7 @@
 import * as bitcoin from 'bitcoinjs-lib';
 
 import { SegwitBech32Wallet } from './segwit-bech32-wallet';
+import { hexToUint8Array } from '../../modules/uint8array-extras';
 
 export class TaprootWallet extends SegwitBech32Wallet {
   static readonly type = 'taproot';
@@ -23,7 +24,7 @@ export class TaprootWallet extends SegwitBech32Wallet {
    */
   static scriptPubKeyToAddress(scriptPubKey: string): string | false {
     try {
-      const publicKey = Buffer.from(scriptPubKey, 'hex');
+      const publicKey = hexToUint8Array(scriptPubKey);
       return bitcoin.address.fromOutputScript(publicKey, bitcoin.networks.bitcoin);
     } catch (_) {
       return false;

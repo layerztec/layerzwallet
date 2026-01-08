@@ -11,6 +11,7 @@ import { ECPairAPI, ECPairFactory, Signer } from 'ecpair';
 
 import * as BlueElectrum from '../../blue_modules/BlueElectrum';
 import ecc from '@bitcoinerlab/secp256k1';
+import { hexToUint8Array, concatUint8Arrays } from '../../modules/uint8array-extras';
 import { AbstractWallet } from './abstract-wallet';
 import { CreateTransactionResult, CreateTransactionTarget, CreateTransactionUtxo, Transaction, Utxo } from './types';
 import { ICsprng } from '../../types/ICsprng';
@@ -64,7 +65,7 @@ export class LegacyWallet extends AbstractWallet {
     throw new Error('Not implemented');
   }
 
-  async generateFromEntropy(user: Buffer): Promise<void> {
+  async generateFromEntropy(user: Uint8Array): Promise<void> {
     if (user.length !== 32) {
       throw new Error('Entropy should be 32 bytes');
     }
@@ -425,7 +426,7 @@ export class LegacyWallet extends AbstractWallet {
         index: input.vout,
         sequence,
         // non-segwit inputs now require passing the whole previous tx as Buffer
-        nonWitnessUtxo: Buffer.from(input.txhex, 'hex'),
+        nonWitnessUtxo: hexToUint8Array(input.txhex),
       });
     });
 
@@ -438,7 +439,7 @@ export class LegacyWallet extends AbstractWallet {
     sanitizedOutputs.forEach((output) => {
       const outputData = {
         address: output.address,
-        value: output.value,
+        value: BigInt(output.value),
       };
 
       psbt.addOutput(outputData);
@@ -582,7 +583,7 @@ export class LegacyWallet extends AbstractWallet {
     const privateKey = keyPair.privateKey;
     if (!privateKey) throw new Error('Invalid private key');
     const options = this.segwitType && useSegwit ? { segwitType: this.segwitType } : undefined;
-    const signature = bitcoinMessage.sign(message, privateKey, keyPair.compressed, options);
+    const signature = bitcoinMessage.sign(message, Buffer.from(privateKey), keyPair.compressed, options);
     return signature.toString('base64');
   }
 

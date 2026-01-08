@@ -117,12 +117,14 @@ export class AbstractHDWallet extends LegacyWallet {
   }
 
   /**
-   * @return {Buffer} wallet seed
+   * @return {Buffer} wallet seed (Buffer extends Uint8Array, compatible with both Buffer and Uint8Array APIs)
    */
   _getSeed(): Buffer {
     const mnemonic = this.secret;
     const passphrase = this.passphrase;
-    return bip39.mnemonicToSeedSync(mnemonic, passphrase);
+    const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase);
+    // bip32.fromSeed expects Buffer, and Buffer extends Uint8Array so it's compatible with Uint8Array APIs
+    return seed;
   }
 
   setSecret(newSecret: string): this {
@@ -358,7 +360,7 @@ export class AbstractHDWallet extends LegacyWallet {
     throw new Error('Not implemented');
   }
 
-  _getNodePubkeyByIndex(node: number, index: number): Buffer | undefined {
+  _getNodePubkeyByIndex(node: number, index: number): Uint8Array | undefined {
     throw new Error('Not implemented');
   }
 
