@@ -143,8 +143,8 @@
     "jest-expo": "~54.0.16",
     "prettier": "^3.7.4",
     "react-test-renderer": "19.1.0",
-    "ts-loader": "^9.5.2",
-    "typescript": "~5.9.2",
+    "ts-loader": "^9.5.4",
+    "typescript": "~5.9.3",
     "vitest": "^3.0.9",
     "webpack": "^5.99.9",
     "webpack-cli": "^6.0.1"
