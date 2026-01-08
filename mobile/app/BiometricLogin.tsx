@@ -288,7 +288,7 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
     <View style={[styles.container, { backgroundColor: Colors.GlobalDarkBackground }]}>
       <View style={styles.content}>
         <View style={styles.splashContainer}>
-          <ExpoImage source={require('@/assets/images/splash-icon.jpg')} style={styles.splashIcon} contentFit="contain" />
+          <ExpoImage source={require('@/assets/images/splash-icon.png')} style={styles.splashIcon} contentFit="contain" />
         </View>
 
         {!biometricInfo.isLoading && !biometricInfo.isAvailable && hasDevicePasscode === false && (
