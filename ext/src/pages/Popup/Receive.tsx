@@ -56,7 +56,7 @@ const Receive: React.FC = () => {
     const gifBytes = writeQR(text, 'gif', {
       scale: text.length > 43 ? 4 : 7,
     });
-    const blob = new Blob([gifBytes], { type: 'image/gif' });
+    const blob = new Blob([new Uint8Array(gifBytes)], { type: 'image/gif' });
     return URL.createObjectURL(blob);
   };
 

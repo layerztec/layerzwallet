@@ -132,7 +132,6 @@
     "@types/create-hash": "^1.2.6",
     "@types/jest": "^29.5.12",
     "@types/node": "^22.15.30",
-    "@types/pbkdf2": "^3.1.2",
     "@types/react": "~19.1.10",
     "@types/react-test-renderer": "^19.1.0",
     "eslint": "^9.28.0",

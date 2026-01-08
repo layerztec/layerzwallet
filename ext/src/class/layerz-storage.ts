@@ -13,7 +13,7 @@ export const LayerzStorage: IStorage = {
   async getItem(key: string): Promise<string> {
     return new Promise((resolve) => {
       chrome.storage.local.get(key, (result) => {
-        resolve(result[key]);
+        resolve(result[key] as string);
       });
     });
   },
