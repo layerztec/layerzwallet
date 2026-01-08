@@ -47,7 +47,6 @@ const Home: React.FC = () => {
   const [showSwapInterface, setShowSwapInterface] = useState<boolean>(false);
   const [swapFromNetwork, setSwapFromNetwork] = useState<typeof SO_LIQUID_USDT | typeof SO_ROOTSTOCK_USDT | Networks>(network);
   const availableNetworks = useAvailableNetworks();
-  const { mutate: mutateTransactions } = useTransactions(network, accountNumber, BackgroundCaller);
   const balanceRef = useRef<{ refresh: () => void }>(null);
   const tokensViewRef = useRef<{ refresh: () => void }>(null);
   const nftsViewRef = useRef<{ refresh: () => void }>(null);
@@ -189,12 +188,11 @@ const Home: React.FC = () => {
       tokensViewRef.current?.refresh();
       nftsViewRef.current?.refresh();
       swapListRef.current?.refresh();
-      mutateTransactions();
       await sleep(3000); // wait for 3 seconds to simulate a refresh
     } finally {
       setRefreshing(false);
     }
-  }, [mutateTransactions]);
+  }, []);
 
   return (
     <div>
