@@ -4,7 +4,7 @@ import * as bip21 from 'bip21';
 import * as bolt11 from 'bolt11';
 import { Stack, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 
 import { BalanceLightning } from '@/components/Balance';
 import GradientScreen from '@/components/GradientScreen';
@@ -17,6 +17,7 @@ import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters
 import { convertMerchantQRToLightningAddress } from '@shared/modules/merchants';
 import { Networks } from '@shared/types/networks';
 import { DecodedInvoice, LightningLayer, useSendFlow } from './_layout';
+import Pressable from '@/components/Pressable';
 
 const SendAddressLightning: React.FC = () => {
   const { scanQr } = useContext(ScanQrContext);
@@ -200,7 +201,7 @@ const SendAddressLightning: React.FC = () => {
         <View style={styles.container}>
           <View style={styles.inputSection}>
             <View style={styles.inputContainer}>
-              <TouchableOpacity style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1} testID="send-lightning-invoice-input">
+              <Pressable style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1} testID="send-lightning-invoice-input">
                 <ThemedText style={styles.inputLabel}>To</ThemedText>
                 <TextInput
                   ref={inputRef}
@@ -212,10 +213,10 @@ const SendAddressLightning: React.FC = () => {
                   onChangeText={setLocalInvoice}
                   value={localInvoice}
                 />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.scanButton} onPress={handleScanQR}>
+              </Pressable>
+              <Pressable style={styles.scanButton} onPress={handleScanQR}>
                 <Ionicons name="scan-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
             {showError && errorMessages[invoice] && (
@@ -242,9 +243,9 @@ const SendAddressLightning: React.FC = () => {
             </View>
           )}
 
-          <TouchableOpacity style={[styles.continueButton, !canContinue && styles.disabledButton]} onPress={handleContinue} disabled={!canContinue} testID="send-lightning-address-next-button">
+          <Pressable style={[styles.continueButton, !canContinue && styles.disabledButton]} onPress={handleContinue} disabled={!canContinue} testID="send-lightning-address-next-button">
             <ThemedText style={styles.continueButtonText}>Next</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </GradientScreen>

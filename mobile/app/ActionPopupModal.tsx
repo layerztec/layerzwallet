@@ -1,9 +1,10 @@
 import React, { useContext, useEffect } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getGradientColors } from '@/utils/gradientUtils';
 import { useActionPopup } from '@/contexts/ActionPopupContext';
+import Pressable from '@/components/Pressable';
 
 const ACTION_ITEM_HEIGHT = 68;
 const ACTION_ITEM_GAP = 22;
@@ -48,8 +49,8 @@ export default function ActionPopupModal() {
   // accessibility is disabled on some wrappers for maestro to be able to see the buttons
 
   return (
-    <TouchableOpacity accessible={false} style={styles.modalOverlay} activeOpacity={1} onPress={handleClose}>
-      <TouchableOpacity accessible={false} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+    <Pressable accessible={false} style={styles.modalOverlay} activeOpacity={1} onPress={handleClose}>
+      <Pressable accessible={false} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
         <View accessible={false} style={[styles.popupContainer, { backgroundColor }]}>
           <View style={styles.actionsContainer}>
             {title && (
@@ -58,14 +59,14 @@ export default function ActionPopupModal() {
               </View>
             )}
             {actions.map((action, index) => (
-              <TouchableOpacity accessible={true} key={index} onPress={() => handleActionPress(action.onClick, index)} style={styles.actionItem} activeOpacity={0.8}>
+              <Pressable accessible={true} key={index} onPress={() => handleActionPress(action.onClick, index)} style={styles.actionItem} activeOpacity={0.8}>
                 <View style={styles.actionContent}>{action.children}</View>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
         </View>
-      </TouchableOpacity>
-    </TouchableOpacity>
+      </Pressable>
+    </Pressable>
   );
 }
 

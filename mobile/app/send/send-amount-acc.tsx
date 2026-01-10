@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import BigNumber from 'bignumber.js';
 import { Stack, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 
 import AmountInput from '@/components/AmountInput';
 import GradientScreen from '@/components/GradientScreen';
@@ -12,6 +12,7 @@ import { SendAssetProps, withAsset } from '@/hooks/withAsset';
 import { formatBalance } from '@shared/modules/string-utils';
 import { validateAddress } from '@shared/modules/wallet-utils';
 import { useSendFlow } from './_layout';
+import Pressable from '@/components/Pressable';
 
 const SendAmountAcc: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker, token, decimals }) => {
   const router = useRouter();
@@ -130,9 +131,9 @@ const SendAmountAcc: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker
             )}
           </View>
 
-          <TouchableOpacity style={[styles.continueButton, buttonDisabled && styles.disabledButton]} onPress={handleNext} disabled={buttonDisabled} testID="send-amount-acc-next-button">
+          <Pressable style={[styles.continueButton, buttonDisabled && styles.disabledButton]} onPress={handleNext} disabled={buttonDisabled} testID="send-amount-acc-next-button">
             <ThemedText style={styles.continueButtonText}>Next</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </GradientScreen>

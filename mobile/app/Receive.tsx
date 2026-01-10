@@ -4,7 +4,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Pressable, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, ScrollView, Share, StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import GradientScreen from '@/components/GradientScreen';
@@ -20,6 +20,7 @@ import { StringNumber } from '@shared/types/string-number';
 import { NETWORK_SPARK, NETWORK_STACKS, Networks } from '@shared/types/networks';
 import { getGradientPrimaryColor } from '@/utils/gradientUtils';
 import { walletCanHaveTokens } from '@shared/class/wallets/interface-can-have-tokens';
+import Pressable from '@/components/Pressable';
 
 export type ReceiveTokenProps = {
   network: Networks;
@@ -354,9 +355,9 @@ export default function ReceiveScreen() {
           </View>
 
           <View style={styles.actionButtons}>
-            <TouchableOpacity testID="ShareButton" onPress={handleShare} style={styles.shareButton} disabled={!address}>
+            <Pressable testID="ShareButton" onPress={handleShare} style={styles.shareButton} disabled={!address}>
               <ThemedText style={styles.shareButtonText}>Share...</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </ScrollView>

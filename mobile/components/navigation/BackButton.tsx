@@ -1,7 +1,8 @@
 import React from 'react';
-import { TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import Pressable from '@/components/Pressable';
 
 interface BackButtonProps {
   onPress?: () => void;
@@ -11,9 +12,9 @@ interface BackButtonProps {
 const BackButton: React.FC<BackButtonProps> = ({ onPress, style }) => {
   const router = useRouter();
   return (
-    <TouchableOpacity style={[styles.backButton, style]} onPress={onPress ? onPress : () => router.back()} accessibilityLabel="Go back">
+    <Pressable style={[styles.backButton, style]} onPress={onPress ? onPress : () => router.back()} accessibilityLabel="Go back">
       <Ionicons name="chevron-back" size={24} color="#fff" />
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 

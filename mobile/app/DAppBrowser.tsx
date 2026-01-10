@@ -2,7 +2,7 @@ import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system';
 import { File as ExpoFsFile, Directory } from 'expo-file-system';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
-import { StyleSheet, TouchableOpacity, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions } from 'react-native';
+import { StyleSheet, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import { Stack, useLocalSearchParams, useRouter, Link, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,7 @@ import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { DAppBrowserTabs } from './DAppBrowserTabs';
 import { useWebViewPreviewManager } from './hooks/useWebViewPreviewManager';
+import Pressable from '@/components/Pressable';
 
 export const BROWSER_CONSTANTS = {
   ANIMATION: {
@@ -1072,10 +1073,10 @@ const DAppBrowser: React.FC = () => {
           <GestureDetector gesture={panGesture}>
             <Animated.View style={addressBarAnimatedStyle} pointerEvents={showTabsOverview ? 'none' : 'auto'}>
               <View style={[styles.addressContainer, isNetworkSelectorVisible && styles.addressContainerWithSelector]}>
-                {isNetworkSelectorVisible && <TouchableOpacity style={styles.absoluteFill} activeOpacity={1} onPress={hideNetworkSwitcherModal} />}
-                <TouchableOpacity style={styles.networkButton} onPress={showNetworkSwitcherModal} disabled={isNetworkSelectorVisible}>
+                {isNetworkSelectorVisible && <Pressable style={styles.absoluteFill} activeOpacity={1} onPress={hideNetworkSwitcherModal} />}
+                <Pressable style={styles.networkButton} onPress={showNetworkSwitcherModal} disabled={isNetworkSelectorVisible}>
                   <ExpoImage source={getNetworkImageAsset(network)} style={styles.networkIcon} contentFit="contain" />
-                </TouchableOpacity>
+                </Pressable>
                 <View style={styles.addressBarWrapper} pointerEvents={isNetworkSelectorVisible ? 'none' : 'auto'}>
                   <View style={styles.addressBar}>
                     <TextInput
@@ -1123,30 +1124,30 @@ const DAppBrowser: React.FC = () => {
                       testID="DappBrowserAddressBar"
                     />
                     {isAddressInputFocused ? (
-                      <TouchableOpacity style={styles.stopButton} onPress={() => setAddressInput('')}>
+                      <Pressable style={styles.stopButton} onPress={() => setAddressInput('')}>
                         <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
-                      </TouchableOpacity>
+                      </Pressable>
                     ) : isLoading ? (
-                      <TouchableOpacity style={styles.stopButton} onPress={stopLoading} testID="BrowserStopButton">
+                      <Pressable style={styles.stopButton} onPress={stopLoading} testID="BrowserStopButton">
                         <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
-                      </TouchableOpacity>
+                      </Pressable>
                     ) : (
-                      <TouchableOpacity style={styles.stopButton} onPress={onRefresh} testID="BrowserRefreshButton">
+                      <Pressable style={styles.stopButton} onPress={onRefresh} testID="BrowserRefreshButton">
                         <Ionicons name="reload" size={18} color="rgba(255, 255, 255, 0.8)" />
-                      </TouchableOpacity>
+                      </Pressable>
                     )}
                   </View>
                   <Animated.View style={[styles.progressBar, progressBarAnimatedStyle]} />
                 </View>
-                <TouchableOpacity style={styles.closeButton} onPress={() => router.back()} disabled={isNetworkSelectorVisible} testID="BrowserCloseButton">
+                <Pressable style={styles.closeButton} onPress={() => router.back()} disabled={isNetworkSelectorVisible} testID="BrowserCloseButton">
                   <Ionicons name="close" size={20} color={isAddressInputFocused || isNetworkSelectorVisible ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.9)'} />
-                </TouchableOpacity>
+                </Pressable>
               </View>
             </Animated.View>
           </GestureDetector>
 
           <View style={styles.contentContainer}>
-            {isNetworkSelectorVisible && <TouchableOpacity style={styles.networkSelectorDismissOverlay} activeOpacity={1} onPress={hideNetworkSwitcherModal} />}
+            {isNetworkSelectorVisible && <Pressable style={styles.networkSelectorDismissOverlay} activeOpacity={1} onPress={hideNetworkSwitcherModal} />}
 
             <Animated.View style={[styles.webviewContainer, webviewContainerAnimatedStyle, styles.flex1]} {...panResponder.panHandlers}>
               <Animated.View style={[styles.absoluteFill, swipeOverlayAnimatedStyle, styles.swipeOverlayStyle]} />
@@ -1235,7 +1236,7 @@ const DAppBrowser: React.FC = () => {
                   <View style={styles.navButtonContainer}>
                     {activeTab?.canGoBack && getBackHistory().length > 0 ? (
                       <Link href="/DAppBrowser" asChild>
-                        <TouchableOpacity style={styles.navButton} onPress={goBack}>
+                        <Pressable style={styles.navButton} onPress={goBack}>
                           <Link.Trigger>
                             <View>
                               <Ionicons name="arrow-back" size={24} color="white" />
@@ -1247,19 +1248,19 @@ const DAppBrowser: React.FC = () => {
                               return <Link.MenuAction key={`back-${historyIndex}`} title={item.title} icon="arrow.left" onPress={() => goToHistoryItem(historyIndex)} />;
                             })}
                           </Link.Menu>
-                        </TouchableOpacity>
+                        </Pressable>
                       </Link>
                     ) : (
-                      <TouchableOpacity style={styles.navButton} onPress={goBack} disabled={!activeTab?.canGoBack} testID="BrowserBackButton">
+                      <Pressable style={styles.navButton} onPress={goBack} disabled={!activeTab?.canGoBack} testID="BrowserBackButton">
                         <Ionicons name="arrow-back" size={24} color={activeTab?.canGoBack ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
-                      </TouchableOpacity>
+                      </Pressable>
                     )}
                   </View>
 
                   <View style={styles.navButtonContainer}>
                     {activeTab?.canGoForward && getForwardHistory().length > 0 ? (
                       <Link href="/DAppBrowser" asChild>
-                        <TouchableOpacity style={styles.navButton} onPress={goForward}>
+                        <Pressable style={styles.navButton} onPress={goForward}>
                           <Link.Trigger>
                             <View>
                               <Ionicons name="arrow-forward" size={24} color="white" />
@@ -1271,12 +1272,12 @@ const DAppBrowser: React.FC = () => {
                               return <Link.MenuAction key={`forward-${historyIndex}`} title={item.title} icon="arrow.right" onPress={() => goToHistoryItem(historyIndex)} />;
                             })}
                           </Link.Menu>
-                        </TouchableOpacity>
+                        </Pressable>
                       </Link>
                     ) : (
-                      <TouchableOpacity style={styles.navButton} onPress={goForward} disabled={!activeTab?.canGoForward} testID="BrowserForwardButton">
+                      <Pressable style={styles.navButton} onPress={goForward} disabled={!activeTab?.canGoForward} testID="BrowserForwardButton">
                         <Ionicons name="arrow-forward" size={24} color={activeTab?.canGoForward ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
-                      </TouchableOpacity>
+                      </Pressable>
                     )}
                   </View>
                 </>
@@ -1284,9 +1285,9 @@ const DAppBrowser: React.FC = () => {
             </View>
 
             <View style={styles.navigationCenter}>
-              <TouchableOpacity style={styles.addTabButton} onPress={createNewTab} testID="BrowserAddTabButton">
+              <Pressable style={styles.addTabButton} onPress={createNewTab} testID="BrowserAddTabButton">
                 <Ionicons name="add" size={24} color="white" />
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
             <View style={styles.navigationRight}>
@@ -1294,11 +1295,11 @@ const DAppBrowser: React.FC = () => {
                 <View style={styles.navButton} />
               </View>
               <View style={styles.navButtonContainer}>
-                <TouchableOpacity style={styles.navButton} onPress={toggleTabsOverview} onLongPress={handleCloseAllTabs} testID="BrowserTabsOverviewButton">
+                <Pressable style={styles.navButton} onPress={toggleTabsOverview} onLongPress={handleCloseAllTabs} testID="BrowserTabsOverviewButton">
                   <View style={styles.tabsOverviewIcon}>
                     <ThemedText style={styles.tabsCount}>{tabs.length}</ThemedText>
                   </View>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             </View>
           </View>

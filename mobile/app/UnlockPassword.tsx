@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated } from 'react-native';
+import { StyleSheet, TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
@@ -13,6 +13,7 @@ import { decrypt } from '@/src/modules/encryption';
 import { getDeviceID } from '@shared/modules/device-id';
 import { Csprng } from '@/src/class/rng';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
+import Pressable from '@/components/Pressable';
 
 /**
  * If user has a seed encrypted, we need to ask for a password to decrypt the seed. This screen is
@@ -130,7 +131,7 @@ export default function UnlockPassword() {
               </View>
 
               <Animated.View style={[styles.buttonSection, buttonTransition]}>
-                <TouchableOpacity
+                <Pressable
                   style={[styles.button, isLoading || !password ? styles.buttonDisabled : null]}
                   onPress={handleUnlockPassword}
                   disabled={isLoading || !password}
@@ -139,7 +140,7 @@ export default function UnlockPassword() {
                   <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                     {isLoading ? 'Unlocking...' : 'Unlock'}
                   </ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               </Animated.View>
             </ScrollView>
           </KeyboardAvoidingView>

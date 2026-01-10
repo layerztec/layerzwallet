@@ -1,6 +1,6 @@
 import { BarcodeScanningResult, CameraType, CameraView } from 'expo-camera';
 import React, { useContext, useEffect, useRef, useCallback, useState, memo } from 'react';
-import { ActivityIndicator, AppState, AppStateStatus, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, AppState, AppStateStatus, StyleSheet, View } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import PlatformBlurView from '@/components/PlatformBlurView';
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import Pressable from '@/components/Pressable';
 
 const styles = StyleSheet.create({
   container: {
@@ -66,11 +67,11 @@ const StableCameraView = memo<{
       <View style={styles.container}>
         <CameraView style={styles.camera} facing={facing} onBarcodeScanned={onBarcodeScanned} barcodeScannerSettings={{ barcodeTypes: ['qr'] }} autofocus={'on'} />
         {/* Close button in top right corner - positioned absolutely outside CameraView */}
-        <TouchableOpacity style={[styles.closeButton, { top: topInset }]} onPress={onCancel} testID="CloseCameraButton">
+        <Pressable style={[styles.closeButton, { top: topInset }]} onPress={onCancel} testID="CloseCameraButton">
           <PlatformBlurView intensity={80} tint="dark" style={styles.closeButtonBlur}>
             <Ionicons name="close" size={24} color="white" />
           </PlatformBlurView>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </GestureDetector>
   );

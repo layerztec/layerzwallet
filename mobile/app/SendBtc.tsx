@@ -3,7 +3,7 @@ import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, AppStateStatus, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, AppState, AppStateStatus, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import GradientScreen from '@/components/GradientScreen';
@@ -21,6 +21,7 @@ import { NETWORK_BITCOIN, NETWORK_SPARK, Networks } from '@shared/types/networks
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
+import Pressable from '@/components/Pressable';
 
 type TFeeRateOptions = { [rate: number]: number };
 
@@ -226,9 +227,9 @@ const SendBtc: React.FC = () => {
               ) : (
                 <ThemedText style={styles.successSubMessage}>Your {getTickerByNetwork(network)} are on their way</ThemedText>
               )}
-              <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <Pressable style={styles.backButton} onPress={handleBack}>
                 <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         </ScrollView>
@@ -255,9 +256,9 @@ const SendBtc: React.FC = () => {
                 value={toAddress}
                 editable={!xArkSwap}
               />
-              <TouchableOpacity style={[styles.scanButton, xArkSwap && styles.inputDisabled]} disabled={xArkSwap} onPress={handleScanQR}>
+              <Pressable style={[styles.scanButton, xArkSwap && styles.inputDisabled]} disabled={xArkSwap} onPress={handleScanQR}>
                 <Ionicons name="scan-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
 
@@ -283,7 +284,7 @@ const SendBtc: React.FC = () => {
           ) : null}
 
           {!isPreparing && !isPrepared && (
-            <TouchableOpacity
+            <Pressable
               style={styles.feeContainer}
               onPress={() => {
                 router.push({
@@ -307,14 +308,14 @@ const SendBtc: React.FC = () => {
                   <Ionicons name="chevron-forward" size={16} color="rgba(255, 255, 255, 0.6)" />
                 </View>
               </View>
-            </TouchableOpacity>
+            </Pressable>
           )}
 
           {!isPreparing && !isPrepared && (
-            <TouchableOpacity style={[styles.sendButton, !sendData && styles.disabledButton]} onPress={prepareTransaction} disabled={!sendData}>
+            <Pressable style={[styles.sendButton, !sendData && styles.disabledButton]} onPress={prepareTransaction} disabled={!sendData}>
               <Ionicons name="send" size={20} color="rgba(255, 255, 255, 0.8)" />
               <ThemedText style={styles.sendButtonText}>Send</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           )}
 
           {isPrepared && (
@@ -344,7 +345,7 @@ const SendBtc: React.FC = () => {
                 backgroundColor="#000000"
               />
 
-              <TouchableOpacity
+              <Pressable
                 onPress={() => {
                   setIsPreparing(false);
                   setIsPrepared(false);
@@ -352,7 +353,7 @@ const SendBtc: React.FC = () => {
                 style={styles.cancelButton}
               >
                 <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           )}
         </View>

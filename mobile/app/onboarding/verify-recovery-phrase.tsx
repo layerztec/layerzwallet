@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, StyleSheet, Animated, FlatList, TouchableOpacity, LayoutAnimation, Platform } from 'react-native';
+import { View, StyleSheet, Animated, FlatList, LayoutAnimation, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -11,6 +11,7 @@ import { Typography } from '@/constants/Typography';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { usePreventScreenCapture } from 'expo-screen-capture';
+import Pressable from '@/components/Pressable';
 
 // Constants
 const TOTAL_WORDS = 12;
@@ -64,7 +65,7 @@ const SelectableWordDisplay: React.FC<{
   const handlePress = useCallback(() => onPress(wordItem), [onPress, wordItem]);
 
   return (
-    <TouchableOpacity style={wordStyle} onPress={handlePress} disabled={wordItem.isSelected || showError}>
+    <Pressable style={wordStyle} onPress={handlePress} disabled={wordItem.isSelected || showError}>
       <Animated.View style={animatedViewStyle}>
         <View style={numberStyle}>
           <ThemedText style={styles.wordNumberText}>{wordItem.isSelected && wordItem.selectedOrder !== undefined ? wordItem.selectedOrder + 1 : ''}</ThemedText>
@@ -73,7 +74,7 @@ const SelectableWordDisplay: React.FC<{
           <ThemedText style={styles.wordText}>{wordItem.word}</ThemedText>
         </View>
       </Animated.View>
-    </TouchableOpacity>
+    </Pressable>
   );
 });
 
@@ -234,11 +235,11 @@ export default function VerifyRecoveryPhrase() {
             </View>
 
             <Animated.View style={[styles.buttonSection, verifyButtonAnimation]}>
-              <TouchableOpacity style={styles.successButton} onPress={handleContinue} testID="ContinueButton">
+              <Pressable style={styles.successButton} onPress={handleContinue} testID="ContinueButton">
                 <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                   Continue
                 </ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             </Animated.View>
           </SafeAreaView>
         </View>
@@ -285,9 +286,9 @@ export default function VerifyRecoveryPhrase() {
 
           <Animated.View style={[styles.buttonSection, verifyButtonAnimation]}>
             <Animated.View style={{ opacity: buttonOpacity }}>
-              <TouchableOpacity style={styles.skipButton} onPress={handleSkip} disabled={showError} testID="SkipButton">
+              <Pressable style={styles.skipButton} onPress={handleSkip} disabled={showError} testID="SkipButton">
                 <ThemedText style={[styles.buttonText, showError && styles.disabledButtonText]}>Skip Verify</ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             </Animated.View>
           </Animated.View>
         </SafeAreaView>

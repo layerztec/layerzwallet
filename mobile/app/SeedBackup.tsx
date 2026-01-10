@@ -1,5 +1,5 @@
 import React, { useContext, useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { Alert, StyleSheet, TouchableOpacity, View, Animated, ActivityIndicator, Image, FlatList, LayoutAnimation, Platform, Pressable } from 'react-native';
+import { Alert, StyleSheet, View, Animated, ActivityIndicator, Image, FlatList, LayoutAnimation, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -15,6 +15,7 @@ import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useAskPassword } from '@/src/hooks/AskPasswordContext';
 import { useSettings } from '@shared/hooks/useSettings';
 import * as LocalAuthentication from 'expo-local-authentication';
+import Pressable from '@/components/Pressable';
 
 const TOTAL_WORDS = 12;
 const ERROR_TIMEOUT_MS = 2000;
@@ -66,7 +67,7 @@ const SelectableWordDisplay: React.FC<{
   const handlePress = useCallback(() => onPress(wordItem), [onPress, wordItem]);
 
   return (
-    <TouchableOpacity style={wordStyle} onPress={handlePress} disabled={wordItem.isSelected || showError}>
+    <Pressable style={wordStyle} onPress={handlePress} disabled={wordItem.isSelected || showError}>
       <Animated.View style={animatedViewStyle}>
         <View style={numberStyle}>
           <ThemedText style={styles.verifyWordNumberText}>{wordItem.isSelected && wordItem.selectedOrder !== undefined ? wordItem.selectedOrder + 1 : ''}</ThemedText>
@@ -75,7 +76,7 @@ const SelectableWordDisplay: React.FC<{
           <ThemedText style={styles.verifyWordText}>{wordItem.word}</ThemedText>
         </View>
       </Animated.View>
-    </TouchableOpacity>
+    </Pressable>
   );
 });
 
@@ -344,10 +345,10 @@ export default function SeedBackupScreen() {
               <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.9)" />
             </View>
           ) : !isRevealed ? (
-            <TouchableOpacity style={styles.revealContent} onPress={handleRevealSeedPhrase} activeOpacity={0.8}>
+            <Pressable style={styles.revealContent} onPress={handleRevealSeedPhrase} activeOpacity={0.8}>
               <Ionicons name="eye-outline" size={80} color="rgba(255, 255, 255, 0.9)" />
               <ThemedText style={styles.revealText}>tap to reveal</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           ) : (
             <View style={styles.mnemonicDisplay}>
               {mnemonicWordsData.map((item) => (

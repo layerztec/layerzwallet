@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { StyleSheet, TouchableOpacity, Alert, View, Animated, Linking } from 'react-native';
+import { StyleSheet, Alert, View, Animated, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +11,7 @@ import { Colors } from '@shared/constants/Colors';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { Image } from 'expo-image';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
+import Pressable from '@/components/Pressable';
 
 export default function TermsOfServiceScreen() {
   const router = useRouter();
@@ -94,16 +95,16 @@ export default function TermsOfServiceScreen() {
           </View>
           <View style={styles.checkboxSection}>
             <Animated.View style={[checkboxTransition]}>
-              <TouchableOpacity style={styles.checkboxContainer} onPress={() => handleCheckboxPress('backup')} activeOpacity={0.7} testID="BackupRecoveryPhraseCheckbox">
+              <Pressable style={styles.checkboxContainer} onPress={() => handleCheckboxPress('backup')} activeOpacity={0.7} testID="BackupRecoveryPhraseCheckbox">
                 <View style={[styles.checkbox, backupChecked && styles.checkboxChecked]}>{backupChecked && <Ionicons name="checkmark" size={16} />}</View>
                 <ThemedText style={styles.checkboxText} darkColor="rgba(255, 255, 255, 0.9)">
                   I have backed up my recovery phrase and I understand I cannot recover my wallet without it.
                 </ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             </Animated.View>
 
             <Animated.View style={[checkboxTransition]}>
-              <TouchableOpacity style={styles.checkboxContainer} onPress={() => handleCheckboxPress('terms')} activeOpacity={0.7} testID="TermsOfServiceCheckbox">
+              <Pressable style={styles.checkboxContainer} onPress={() => handleCheckboxPress('terms')} activeOpacity={0.7} testID="TermsOfServiceCheckbox">
                 <View style={[styles.checkbox, termsChecked && styles.checkboxChecked]}>{termsChecked && <Ionicons name="checkmark" size={16} />}</View>
                 <ThemedText style={styles.checkboxText} darkColor="rgba(255, 255, 255, 0.9)">
                   I have read and accept the{' '}
@@ -112,15 +113,15 @@ export default function TermsOfServiceScreen() {
                   </ThemedText>{' '}
                   of Layerz Tec Ltd.
                 </ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             </Animated.View>
           </View>
           <Animated.View style={[styles.buttonSection, buttonTransition]}>
-            <TouchableOpacity style={[styles.button, !isButtonEnabled && styles.buttonDisabled]} onPress={handleAgree} disabled={!isButtonEnabled} testID="LetsGoButton">
+            <Pressable style={[styles.button, !isButtonEnabled && styles.buttonDisabled]} onPress={handleAgree} disabled={!isButtonEnabled} testID="LetsGoButton">
               <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                 {isLoading ? 'Processing...' : "Let's go"}
               </ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           </Animated.View>
         </SafeAreaView>
       </View>

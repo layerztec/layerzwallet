@@ -4,7 +4,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import * as Linking from 'expo-linking';
 import React, { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import Pressable from '@/components/Pressable';
 
 const gitCommitHash = require('../git_commit_hash.json');
 
@@ -61,9 +62,9 @@ export default function ChangelogScreen() {
   };
 
   const renderCommitItem = ({ item, index }: { item: CommitData; index: number }) => (
-    <TouchableOpacity style={styles.commitItem} onPress={() => openCommitInBrowser(item.sha)}>
+    <Pressable style={styles.commitItem} onPress={() => openCommitInBrowser(item.sha)}>
       <ThemedText style={styles.commitMessage}>{item.commit.message}</ThemedText>
-    </TouchableOpacity>
+    </Pressable>
   );
 
   const renderContent = () => {

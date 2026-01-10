@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect, useContext } from 'react';
-import { View, StyleSheet, Dimensions, Text, Image, TouchableOpacity, FlatList, Animated } from 'react-native';
+import { View, StyleSheet, Dimensions, Text, Image, FlatList, Animated } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ import { useCachedBalance } from '@shared/hooks/useCachedBalance';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { ThemedText } from '@/components/ThemedText';
+import Pressable from '@/components/Pressable';
 
 const logo = require('@/assets/images/ui/logo-main-screen.svg');
 
@@ -142,7 +143,7 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
     <View style={styles.itemContainer}>
       <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
         <LinearGradient colors={gradientColors as [string, string]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.gradientBackground} />
-        <TouchableOpacity
+        <Pressable
           onPress={handlePress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
@@ -191,7 +192,7 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
               <Text style={styles.cardUsdValue}>{displayCard.usdValue || ''}</Text>
             </View>
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </Animated.View>
     </View>
   );

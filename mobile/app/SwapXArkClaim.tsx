@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import GradientScreen from '@/components/GradientScreen';
@@ -15,6 +15,7 @@ import { formatBalance } from '@shared/modules/string-utils';
 import { getDecimalsByNetwork } from '@shared/models/network-getters';
 import { CommonSwap } from '@shared/types/common-swap';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import Pressable from '@/components/Pressable';
 
 const decimals = getDecimalsByNetwork(NETWORK_SPARK);
 
@@ -118,9 +119,9 @@ const SwapXArkClaim = () => {
               <Ionicons name="checkmark-circle" size={80} color="white" />
               <ThemedText style={styles.successMessage}>Swap Claimed Successfully!</ThemedText>
               {quote && <ThemedText style={styles.successSubMessage}>{formatBalance(quote.creditAmountSats.toString(), decimals)} BTC has been added to your Spark balance</ThemedText>}
-              <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <Pressable style={styles.backButton} onPress={handleBack}>
                 <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         </ScrollView>
@@ -138,9 +139,9 @@ const SwapXArkClaim = () => {
               <Ionicons name="checkmark-circle" size={80} color="white" />
               <ThemedText style={styles.successMessage}>Swap Refunded Successfully!</ThemedText>
               <ThemedText style={styles.successSubMessage}>Your Bitcoin has been sent back to your wallet</ThemedText>
-              <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <Pressable style={styles.backButton} onPress={handleBack}>
                 <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         </ScrollView>
@@ -201,15 +202,15 @@ const SwapXArkClaim = () => {
               </View>
 
               <View style={styles.buttonContainer}>
-                <TouchableOpacity style={[styles.primaryButton, disabled && styles.disabledButton]} onPress={swap.network === NETWORK_SPARK ? handleClaimSpark : handleClaimArk} disabled={disabled}>
+                <Pressable style={[styles.primaryButton, disabled && styles.disabledButton]} onPress={swap.network === NETWORK_SPARK ? handleClaimSpark : handleClaimArk} disabled={disabled}>
                   {isClaiming && <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.9)" />}
                   <ThemedText style={styles.primaryButtonText}>{isClaiming ? 'Claiming...' : 'Claim Swap'}</ThemedText>
-                </TouchableOpacity>
+                </Pressable>
 
-                <TouchableOpacity style={[styles.secondaryButton, disabled && styles.disabledButton]} onPress={handleRefund} disabled={disabled}>
+                <Pressable style={[styles.secondaryButton, disabled && styles.disabledButton]} onPress={handleRefund} disabled={disabled}>
                   {isRefunding && <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.7)" />}
                   <ThemedText style={styles.secondaryButtonText}>{isRefunding ? 'Refunding...' : 'Refund Swap'}</ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             </>
           )}

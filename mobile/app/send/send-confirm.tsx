@@ -3,7 +3,7 @@ import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { Redirect, Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Rive, { RiveRef } from 'rive-react-native';
 
@@ -27,6 +27,7 @@ import { getDecimalsByNetwork, getIsAccountBased, getIsEVM, getTickerByNetwork }
 import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT } from '@shared/types/networks';
 import { useSendFlow } from './_layout';
+import Pressable from '@/components/Pressable';
 
 const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const router = useRouter();
@@ -269,9 +270,9 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                   <Ionicons name="alert-circle" size={40} color="#FF3B30" />
                   <ThemedText style={styles.errorTitle}>Error</ThemedText>
                   <ThemedText style={styles.errorText}>{error}</ThemedText>
-                  <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                  <Pressable style={styles.backButton} onPress={() => router.back()}>
                     <ThemedText style={styles.backButtonText}>Go Back</ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               ) : (
                 <>
@@ -331,11 +332,11 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
           </ScrollView>
         </KeyboardAvoidingView>
         {!error && (
-          <TouchableOpacity style={[styles.sendButton, isBroadcasting && styles.disabledButton]} onPress={isSuccess ? handleHome : broadcast} disabled={isBroadcasting} testID="send-confirm-button">
+          <Pressable style={[styles.sendButton, isBroadcasting && styles.disabledButton]} onPress={isSuccess ? handleHome : broadcast} disabled={isBroadcasting} testID="send-confirm-button">
             <ThemedText style={styles.sendButtonText} testID={isSuccess ? 'send-success-text' : undefined}>
               {isSuccess ? 'Back to Wallet' : isBroadcasting ? 'Sending...' : 'Confirm Send'}
             </ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
     </GradientScreen>

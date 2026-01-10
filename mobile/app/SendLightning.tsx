@@ -2,7 +2,7 @@ import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import * as bolt11 from 'bolt11';
 
 import GradientScreen from '@/components/GradientScreen';
@@ -21,6 +21,7 @@ import assert from 'assert';
 import Lnurl, { LnurlPayServicePayload } from '@shared/class/lnurl';
 import { convertMerchantQRToLightningAddress } from '@shared/modules/merchants';
 import { walletSupportsLightning } from '@shared/class/wallets/interface-lightning-wallet';
+import Pressable from '@/components/Pressable';
 
 export type SendLightningProps = {
   network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK;
@@ -254,9 +255,9 @@ const SendLightning: React.FC = () => {
           <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
           <ThemedText style={styles.successMessage}>Payment Sent!</ThemedText>
           <ThemedText style={styles.successSubMessage}>{amountToSend ? formatBalance(amountToSend, 8, 8) : ''} sats</ThemedText>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/Home')}>
+          <Pressable style={styles.backButton} onPress={() => router.replace('/Home')}>
             <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </GradientScreen>
     );
@@ -296,9 +297,9 @@ const SendLightning: React.FC = () => {
                   multiline
                   textAlignVertical="top"
                 />
-                <TouchableOpacity style={styles.scanButton} onPress={handleQRScan}>
+                <Pressable style={styles.scanButton} onPress={handleQRScan}>
                   <Ionicons name="scan-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
-                </TouchableOpacity>
+                </Pressable>
               </View>
             </View>
           )}
@@ -353,10 +354,10 @@ const SendLightning: React.FC = () => {
 
               {/* Verify Button */}
               {sendState === 'idle' && (
-                <TouchableOpacity style={[styles.verifyButton]} onPress={prepareLightningAddressPayment}>
+                <Pressable style={[styles.verifyButton]} onPress={prepareLightningAddressPayment}>
                   <Ionicons name="flash" size={20} color="rgba(255, 255, 255, 0.8)" />
                   <ThemedText style={styles.verifyButtonText}>Send Payment</ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               )}
 
               {/* Confirm Payment */}
@@ -370,9 +371,9 @@ const SendLightning: React.FC = () => {
                     progressColor="rgba(255, 255, 255, 0.3)"
                     backgroundColor="#000000"
                   />
-                  <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
+                  <Pressable onPress={handleCancel} style={styles.cancelButton}>
                     <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               )}
             </>
@@ -416,10 +417,10 @@ const SendLightning: React.FC = () => {
 
           {/* Verify Button */}
           {!isPayingToLightningAddress && sendState === 'idle' && invoice && amountToSend && (
-            <TouchableOpacity style={[styles.verifyButton]} onPress={prepareTransaction}>
+            <Pressable style={[styles.verifyButton]} onPress={prepareTransaction}>
               <Ionicons name="flash" size={20} color="rgba(255, 255, 255, 0.8)" />
               <ThemedText style={styles.verifyButtonText}>Send Payment</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           )}
 
           {/* Confirm Payment */}
@@ -434,9 +435,9 @@ const SendLightning: React.FC = () => {
                 backgroundColor="#000000"
               />
 
-              <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
+              <Pressable onPress={handleCancel} style={styles.cancelButton}>
                 <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           )}
         </View>

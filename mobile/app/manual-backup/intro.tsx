@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Animated } from 'react-native';
+import { View, StyleSheet, Image, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors, gradients } from '@shared/constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHorizontalSpringTransition, useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
+import Pressable from '@/components/Pressable';
 
 export default function ManualBackupIntroScreen() {
   const router = useRouter();
@@ -48,13 +49,13 @@ export default function ManualBackupIntroScreen() {
 
           <View style={styles.buttonSection}>
             <Animated.View style={[styles.buttonContainer, buttonTransition]}>
-              <TouchableOpacity style={styles.button} onPress={handleContinue} testID="ManualBackupContinueButton">
+              <Pressable style={styles.button} onPress={handleContinue} testID="ManualBackupContinueButton">
                 <View style={styles.view}>
                   <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                     Continue
                   </ThemedText>
                 </View>
-              </TouchableOpacity>
+              </Pressable>
             </Animated.View>
           </View>
         </SafeAreaView>

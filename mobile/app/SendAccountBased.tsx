@@ -3,7 +3,7 @@ import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useContext, useRef, useState } from 'react';
-import { View, ScrollView, ActivityIndicator, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, ScrollView, ActivityIndicator, StyleSheet, TextInput } from 'react-native';
 
 import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
@@ -21,6 +21,7 @@ import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK, NETWORK_STACKS } fro
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { InterfaceAccountBasedWallet } from '@shared/class/wallets/interface-account-based-wallet';
+import Pressable from '@/components/Pressable';
 
 export type SendAccountBasedParams = {
   toAddress?: string;
@@ -106,9 +107,9 @@ const SendAccountBased = () => {
         <View style={styles.successContainer}>
           <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
           <ThemedText style={styles.successTitle}>Transaction Sent!</ThemedText>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/Home')}>
+          <Pressable style={styles.backButton} onPress={() => router.replace('/Home')}>
             <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </GradientScreen>
     );
@@ -143,7 +144,7 @@ const SendAccountBased = () => {
                 onChangeText={(text) => router.setParams({ toAddress: text })}
                 value={toAddress}
               />
-              <TouchableOpacity
+              <Pressable
                 style={styles.scanButton}
                 onPress={async () => {
                   const scanned = await scanQr();
@@ -153,7 +154,7 @@ const SendAccountBased = () => {
                 }}
               >
                 <Ionicons name="scan-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
 
@@ -184,10 +185,10 @@ const SendAccountBased = () => {
           ) : null}
 
           {!isPreparing && !isPrepared ? (
-            <TouchableOpacity style={styles.sendButton} testID="send-screen-send-button" onPress={prepareTransaction}>
+            <Pressable style={styles.sendButton} testID="send-screen-send-button" onPress={prepareTransaction}>
               <Ionicons name="send" size={20} color="rgba(255, 255, 255, 0.8)" style={styles.sendIcon} />
               <ThemedText style={styles.sendButtonText}>Send</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           ) : null}
 
           {isPrepared ? (
@@ -207,7 +208,7 @@ const SendAccountBased = () => {
                   backgroundColor="#007AFF"
                 />
 
-                <TouchableOpacity
+                <Pressable
                   onPress={() => {
                     setIsPreparing(false);
                     setIsPrepared(false);
@@ -215,7 +216,7 @@ const SendAccountBased = () => {
                   style={styles.cancelButton}
                 >
                   <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             )
           ) : null}

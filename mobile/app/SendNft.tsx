@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as bip21 from 'bip21';
 import React, { useCallback, useContext, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, TextInput, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 
 import GradientScreen from '@/components/GradientScreen';
@@ -15,6 +15,7 @@ import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { NftInfo } from '@shared/types/token-info';
 import { NETWORK_STACKS } from '@shared/types/networks';
 import { TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
+import Pressable from '@/components/Pressable';
 
 export type SendNftParams = {
   nft: string;
@@ -132,7 +133,7 @@ export default function SendNft() {
           {/* Replicate input + scan button from /send/send-address.tsx */}
           <View style={styles.inputSection}>
             <View style={styles.inputContainer}>
-              <TouchableOpacity style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1} testID="send-nft-address-input">
+              <Pressable style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1} testID="send-nft-address-input">
                 <ThemedText style={styles.inputLabel}>To</ThemedText>
                 <TextInput
                   ref={inputRef}
@@ -146,10 +147,10 @@ export default function SendNft() {
                   editable={!sending && !txid}
                   testID="send-nft-recipient-input"
                 />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.scanButton} onPress={handleScanQR} disabled={sending || Boolean(txid)} testID="send-nft-scan-button">
+              </Pressable>
+              <Pressable style={styles.scanButton} onPress={handleScanQR} disabled={sending || Boolean(txid)} testID="send-nft-scan-button">
                 <Ionicons name="scan-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
             {errorMessage && (
@@ -166,14 +167,14 @@ export default function SendNft() {
               <ThemedText style={styles.successSub} numberOfLines={1} ellipsizeMode="middle">
                 Tx: {txid}
               </ThemedText>
-              <TouchableOpacity style={styles.secondaryButton} onPress={() => router.replace('/Home')} activeOpacity={0.85} testID="send-nft-back-button">
+              <Pressable style={styles.secondaryButton} onPress={() => router.replace('/Home')} activeOpacity={0.85} testID="send-nft-back-button">
                 <ThemedText style={styles.secondaryButtonText}>Back to Wallet</ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           ) : (
-            <TouchableOpacity style={styles.primaryButton} onPress={handleSend} activeOpacity={0.85} disabled={sending} testID="send-nft-send-button">
+            <Pressable style={styles.primaryButton} onPress={handleSend} activeOpacity={0.85} disabled={sending} testID="send-nft-send-button">
               {sending ? <ActivityIndicator color="rgba(255,255,255,0.95)" /> : <ThemedText style={styles.primaryButtonText}>Send</ThemedText>}
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
       </View>

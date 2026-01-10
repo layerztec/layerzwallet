@@ -1,6 +1,6 @@
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, Animated, FlatList, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Animated, FlatList } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePreventScreenCapture } from 'expo-screen-capture';
@@ -9,6 +9,7 @@ import { Typography } from '@/constants/Typography';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { Colors } from '@shared/constants/Colors';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import Pressable from '@/components/Pressable';
 
 type CreateWalletScreenParams = {
   mnemonic: string;
@@ -110,17 +111,17 @@ export default function CreateWalletScreen() {
             <View style={styles.bottomButtonContainer}>
               {!error && recoveryPhrase && (
                 <Animated.View style={verifyButtonAnimation}>
-                  <TouchableOpacity style={styles.skipButton} onPress={handleContinue} testID="SkipButton">
+                  <Pressable style={styles.skipButton} onPress={handleContinue} testID="SkipButton">
                     <ThemedText style={styles.buttonText}>Skip</ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 </Animated.View>
               )}
 
               {!error && recoveryPhrase && (
                 <Animated.View style={verifyButtonAnimation}>
-                  <TouchableOpacity style={styles.verifyButton} onPress={handleVerify} testID="VerifyButton">
+                  <Pressable style={styles.verifyButton} onPress={handleVerify} testID="VerifyButton">
                     <ThemedText style={styles.buttonText}>Verify</ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 </Animated.View>
               )}
             </View>

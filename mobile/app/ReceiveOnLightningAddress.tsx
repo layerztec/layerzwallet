@@ -3,7 +3,7 @@ import BigNumber from 'bignumber.js';
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Pressable, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, ScrollView, Share, StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -24,6 +24,7 @@ import { getApiUsersBySparkAddressBySparkAddress } from '@shared/openapi/generat
 
 import { createClient } from '@shared/openapi/generated/layerzme/client';
 import { ClaimUsernameModalParams } from './ClaimUsernameModal';
+import Pressable from '@/components/Pressable';
 
 const layerzClient = createClient({
   baseUrl: 'https://layerz.me',
@@ -265,13 +266,13 @@ export default function ReceiveOnLightningAddressScreen() {
           </View>
 
           <View style={styles.actionButtons}>
-            <TouchableOpacity testID="ShareButton" onPress={handleShare} style={styles.shareButton} disabled={!lightningAddress}>
+            <Pressable testID="ShareButton" onPress={handleShare} style={styles.shareButton} disabled={!lightningAddress}>
               <ThemedText style={styles.shareButtonText}>Share...</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
             <ActionPopupButton actions={lightningReceiveActions} title="Layer to receive on">
-              <TouchableOpacity style={styles.receiveWithAmountButton} testID="ReceiveOnLightningAddressWithAmountButton" activeOpacity={0.8}>
+              <Pressable style={styles.receiveWithAmountButton} testID="ReceiveOnLightningAddressWithAmountButton" activeOpacity={0.8}>
                 <ThemedText style={styles.receiveWithAmountButtonText}>Receive with amount</ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             </ActionPopupButton>
           </View>
         </View>

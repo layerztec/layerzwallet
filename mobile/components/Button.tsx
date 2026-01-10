@@ -1,9 +1,10 @@
 import React from 'react';
-import { TouchableOpacity, TouchableOpacityProps, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
 import PlatformBlurView from './PlatformBlurView';
 import { ThemedText } from './ThemedText';
+import Pressable, { PressableProps } from '@/components/Pressable';
 
-export interface ButtonProps extends TouchableOpacityProps {
+export interface ButtonProps extends PressableProps {
   title: string;
   variant?: 'high' | 'normal' | 'light' | 'lighter' | 'secondary' | 'dark' | 'darker';
   loading?: boolean;
@@ -70,9 +71,9 @@ export default function Button({ title, onPress, variant = 'normal', disabled = 
 
   if (variant === 'secondary') {
     return (
-      <TouchableOpacity style={[styles.button, styles.secondaryButton, style]} onPress={onPress} disabled={disabled || loading} activeOpacity={activeOpacity} {...restProps}>
+      <Pressable style={[styles.button, styles.secondaryButton, style]} onPress={onPress} disabled={disabled || loading} activeOpacity={activeOpacity} {...restProps}>
         {renderContent()}
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 
@@ -82,11 +83,11 @@ export default function Button({ title, onPress, variant = 'normal', disabled = 
   };
 
   return (
-    <TouchableOpacity style={getButtonStyle()} onPress={onPress} disabled={disabled || loading} activeOpacity={activeOpacity} {...restProps}>
+    <Pressable style={getButtonStyle()} onPress={onPress} disabled={disabled || loading} activeOpacity={activeOpacity} {...restProps}>
       <PlatformBlurView intensity={25} tint="dark" style={blurStyle}>
         {renderContent()}
       </PlatformBlurView>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

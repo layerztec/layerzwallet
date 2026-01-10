@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated, Keyboard } from 'react-native';
+import { StyleSheet, TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,6 +9,7 @@ import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Colors } from '@shared/constants/Colors';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
+import Pressable from '@/components/Pressable';
 
 export default function CreatePasswordScreen() {
   const [password, setPassword] = useState('');
@@ -293,7 +294,7 @@ export default function CreatePasswordScreen() {
               </View>
 
               <Animated.View style={[styles.buttonSection, buttonTransition]}>
-                <TouchableOpacity
+                <Pressable
                   style={[styles.button, isLoading || !password || !repeatPassword ? styles.buttonDisabled : null]}
                   onPress={handleCreatePassword}
                   disabled={isLoading || !password || !repeatPassword}
@@ -304,7 +305,7 @@ export default function CreatePasswordScreen() {
                   <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                     {isLoading ? 'Creating...' : 'Create Password'}
                   </ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               </Animated.View>
             </ScrollView>
           </KeyboardAvoidingView>

@@ -5,7 +5,7 @@ import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import AmountInput from '@/components/AmountInput';
 import GradientScreen from '@/components/GradientScreen';
@@ -22,6 +22,7 @@ import { getTokenInfo } from '@shared/models/token-list';
 import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK } from '@shared/types/networks';
 import { useSendFlow } from './_layout';
+import Pressable from '@/components/Pressable';
 
 const SendAmountUsdt: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker, token: tokenInfo, decimals }) => {
   const router = useRouter();
@@ -229,7 +230,7 @@ const SendAmountUsdt: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticke
               </View>
             )}
 
-            <TouchableOpacity style={[styles.continueButton, buttonDisabled && styles.disabledButton]} onPress={handleContinue} disabled={buttonDisabled || isPreparing}>
+            <Pressable style={[styles.continueButton, buttonDisabled && styles.disabledButton]} onPress={handleContinue} disabled={buttonDisabled || isPreparing}>
               {isPreparing ? (
                 <>
                   <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" />
@@ -238,7 +239,7 @@ const SendAmountUsdt: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticke
               ) : (
                 <ThemedText style={styles.continueButtonText}>Next</ThemedText>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

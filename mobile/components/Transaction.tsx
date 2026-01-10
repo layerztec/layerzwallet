@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useMemo, useState, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -9,6 +9,7 @@ import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { getTokenIconColor, getTokenInfo } from '@shared/models/token-list';
+import Pressable from '@/components/Pressable';
 
 interface TransactionProps {
   transaction: CommonTransaction;
@@ -170,7 +171,7 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
   }, [transaction.tokenTransfers, transaction.direction]);
 
   return (
-    <TouchableOpacity style={styles.transactionItem} onPress={onPress}>
+    <Pressable style={styles.transactionItem} onPress={onPress}>
       <View style={styles.transactionIcon}>{transactionIcon}</View>
 
       <View style={styles.transactionDetails}>
@@ -183,7 +184,7 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
         <ThemedText style={styles.transactionAmount}>{formattedTransactionAmount}</ThemedText>
         {formattedTransactionUsdAmount && <ThemedText style={styles.transactionUsd}>{formattedTransactionUsdAmount}</ThemedText>}
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

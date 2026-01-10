@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import BigNumber from 'bignumber.js';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import AmountInput from '@/components/AmountInput';
@@ -19,6 +19,7 @@ import { sleep } from '@shared/modules/sleep';
 import { formatBalance } from '@shared/modules/string-utils';
 import { validateAddress } from '@shared/modules/wallet-utils';
 import { useSendFlow } from './_layout';
+import Pressable from '@/components/Pressable';
 
 const SendAmountBtc: React.FC = () => {
   const router = useRouter();
@@ -357,7 +358,7 @@ const SendAmountBtc: React.FC = () => {
 
           {!isLoading && !feeLoadingError && (
             <View style={styles.feeSelectorContainer}>
-              <TouchableOpacity style={isFeeSelectorExpanded ? styles.feeSelectorExpandedHeader : styles.feeSelectorHeader} onPress={toggleFeeSelector}>
+              <Pressable style={isFeeSelectorExpanded ? styles.feeSelectorExpandedHeader : styles.feeSelectorHeader} onPress={toggleFeeSelector}>
                 {isFeeSelectorExpanded ? (
                   <>
                     <ThemedText style={styles.feeSelectorTitle}>Network Fee</ThemedText>
@@ -379,39 +380,39 @@ const SendAmountBtc: React.FC = () => {
                     </Animated.View>
                   </>
                 )}
-              </TouchableOpacity>
+              </Pressable>
 
               {estimateFees && (
                 <Animated.View style={[styles.feeOptionsContainer, animatedFeeOptionsStyle]}>
-                  <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.fast && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.fast)}>
+                  <Pressable style={[styles.feeOption, feeRate === estimateFees.fast && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.fast)}>
                     <View style={styles.feeOptionContent}>
                       <ThemedText style={styles.feeOptionName}>Fast</ThemedText>
                       <ThemedText style={styles.feeOptionRate}>{estimateFees.fast} sats v/b</ThemedText>
                     </View>
                     <ThemedText style={styles.feeOptionAmount}>{feeRateOptions[estimateFees.fast] ? formatFee(feeRateOptions[estimateFees.fast]) : ''}</ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
 
-                  <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.medium && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.medium)}>
+                  <Pressable style={[styles.feeOption, feeRate === estimateFees.medium && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.medium)}>
                     <View style={styles.feeOptionContent}>
                       <ThemedText style={styles.feeOptionName}>Medium</ThemedText>
                       <ThemedText style={styles.feeOptionRate}>{estimateFees.medium} sats v/b</ThemedText>
                     </View>
                     <ThemedText style={styles.feeOptionAmount}>{feeRateOptions[estimateFees.medium] ? formatFee(feeRateOptions[estimateFees.medium]) : ''}</ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
 
-                  <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.slow && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.slow)}>
+                  <Pressable style={[styles.feeOption, feeRate === estimateFees.slow && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.slow)}>
                     <View style={styles.feeOptionContent}>
                       <ThemedText style={styles.feeOptionName}>Slow</ThemedText>
                       <ThemedText style={styles.feeOptionRate}>{estimateFees.slow} sats v/b</ThemedText>
                     </View>
                     <ThemedText style={styles.feeOptionAmount}>{feeRateOptions[estimateFees.slow] ? formatFee(feeRateOptions[estimateFees.slow]) : ''}</ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 </Animated.View>
               )}
             </View>
           )}
 
-          <TouchableOpacity style={[styles.continueButton, buttonDisabled && styles.disabledButton]} onPress={handleContinue} disabled={buttonDisabled}>
+          <Pressable style={[styles.continueButton, buttonDisabled && styles.disabledButton]} onPress={handleContinue} disabled={buttonDisabled}>
             {isCreatingTransaction ? (
               <>
                 <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" />
@@ -420,7 +421,7 @@ const SendAmountBtc: React.FC = () => {
             ) : (
               <ThemedText style={styles.continueButtonText}>Next</ThemedText>
             )}
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </GradientScreen>

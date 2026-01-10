@@ -4,7 +4,7 @@ import BigNumber from 'bignumber.js';
 import * as bolt11 from 'bolt11';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 
 import AmountInput from '@/components/AmountInput';
 import GradientScreen from '@/components/GradientScreen';
@@ -19,6 +19,7 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { useSendFlow } from './_layout';
+import Pressable from '@/components/Pressable';
 
 const SendAmountLightning: React.FC = () => {
   const router = useRouter();
@@ -199,7 +200,7 @@ const SendAmountLightning: React.FC = () => {
             )}
           </View>
 
-          <TouchableOpacity style={[styles.continueButton, buttonDisabled && styles.disabledButton]} onPress={handleContinue} disabled={buttonDisabled}>
+          <Pressable style={[styles.continueButton, buttonDisabled && styles.disabledButton]} onPress={handleContinue} disabled={buttonDisabled}>
             {isPreparing ? (
               <>
                 <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" />
@@ -208,7 +209,7 @@ const SendAmountLightning: React.FC = () => {
             ) : (
               <ThemedText style={styles.continueButtonText}>Next</ThemedText>
             )}
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </GradientScreen>

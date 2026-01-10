@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { getNetworkGradient } from '@shared/constants/Colors';
@@ -8,6 +8,7 @@ import { getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { NETWORK_ARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
+import Pressable from '@/components/Pressable';
 
 export type LightningLayer = typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK;
 
@@ -31,7 +32,7 @@ const ChooseLayer: React.FC<ChooseLayerProps> = ({ selectedLayer, onSelectLayer,
           const ticker = getTickerByNetwork(layer);
 
           return (
-            <TouchableOpacity key={layer} style={[styles.layerCard, isSelected && styles.selectedLayerCard]} onPress={() => onSelectLayer(layer)} activeOpacity={0.8}>
+            <Pressable key={layer} style={[styles.layerCard, isSelected && styles.selectedLayerCard]} onPress={() => onSelectLayer(layer)} activeOpacity={0.8}>
               <View style={[styles.layerIconContainer, { backgroundColor: gradientColors[0] }]}>
                 {networkImage ? <Image source={networkImage} style={styles.layerIcon} contentFit="contain" /> : null}
               </View>
@@ -42,7 +43,7 @@ const ChooseLayer: React.FC<ChooseLayerProps> = ({ selectedLayer, onSelectLayer,
                   <ThemedText style={styles.checkmark}>✓</ThemedText>
                 </View>
               )}
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </View>

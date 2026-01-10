@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -8,6 +8,7 @@ import { usePreventScreenCapture } from 'expo-screen-capture';
 import { ThemedText } from '@/components/ThemedText';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import GradientScreen from '@/components/GradientScreen';
+import Pressable from '@/components/Pressable';
 
 export default function SeedBackupQRScreen() {
   const router = useRouter();
@@ -19,9 +20,9 @@ export default function SeedBackupQRScreen() {
     <GradientScreen variant={network}>
       <View style={styles.header}>
         <ThemedText style={styles.title}>Recovery Phrase</ThemedText>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+        <Pressable onPress={() => router.back()} style={styles.closeButton}>
           <Ionicons name="close" size={28} color="white" />
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <View style={styles.qrCodeSection}>

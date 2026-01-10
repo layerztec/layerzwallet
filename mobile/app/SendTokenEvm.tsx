@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View, TextInput, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, TextInput, Keyboard } from 'react-native';
 
 import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
@@ -22,6 +22,7 @@ import { Networks } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
+import Pressable from '@/components/Pressable';
 
 export type SendTokenEvmProps = {
   contractAddress: string;
@@ -172,7 +173,7 @@ const SendTokenEvm: React.FC = () => {
       <ScreenHeader title={`Send ${token?.name}`} />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <Pressable onPress={Keyboard.dismiss} noFeedback>
           <ScrollView contentContainerStyle={styles.scrollContainer}>
             <View style={styles.networkBadge}>
               <ThemedText style={styles.networkText}>on {getTickerByNetwork(network)}</ThemedText>
@@ -188,9 +189,9 @@ const SendTokenEvm: React.FC = () => {
                   onChangeText={(text) => router.setParams({ toAddress: text })}
                   placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 />
-                <TouchableOpacity style={styles.scanButton} onPress={handleScanQr}>
+                <Pressable style={styles.scanButton} onPress={handleScanQr}>
                   <Ionicons name="scan-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
-                </TouchableOpacity>
+                </Pressable>
               </View>
             </View>
 
@@ -237,17 +238,17 @@ const SendTokenEvm: React.FC = () => {
             )}
 
             {screenState === 'init' && (
-              <TouchableOpacity style={styles.sendButton} onPress={prepareTransaction}>
+              <Pressable style={styles.sendButton} onPress={prepareTransaction}>
                 <Ionicons name="send" size={20} color="white" style={styles.sendIcon} />
                 <ThemedText style={styles.sendButtonText}>Send</ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             )}
 
             {screenState === 'prepared' && (
               <View style={styles.confirmContainer}>
                 <LongPressButton onLongPressComplete={broadcastTransaction} style={styles.confirmButton} title="Hold to confirm send" />
 
-                <TouchableOpacity
+                <Pressable
                   style={styles.cancelButton}
                   onPress={() => {
                     setBytes('');
@@ -257,11 +258,11 @@ const SendTokenEvm: React.FC = () => {
                   }}
                 >
                   <ThemedText style={styles.cancelText}>Cancel</ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             )}
           </ScrollView>
-        </TouchableWithoutFeedback>
+        </Pressable>
       </KeyboardAvoidingView>
     </GradientScreen>
   );

@@ -4,7 +4,7 @@ import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { Keyboard, StyleSheet, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
+import { Keyboard, StyleSheet, TextInput, View, ScrollView } from 'react-native';
 
 import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
@@ -21,6 +21,7 @@ import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
 import { TransactionSuccessProps } from './TransactionSuccessEvm';
+import Pressable from '@/components/Pressable';
 
 export type SendEvmParams = {
   toAddress?: string;
@@ -259,9 +260,9 @@ export default function SendScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              <TouchableOpacity style={styles.qrButton} onPress={handleScanQr}>
+              <Pressable style={styles.qrButton} onPress={handleScanQr}>
                 <Ionicons name="scan-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
 
@@ -304,10 +305,10 @@ export default function SendScreen() {
           ) : null}
 
           {screenState === 'init' ? (
-            <TouchableOpacity style={[styles.sendButton, (!recipientAddress || !amount) && styles.disabledButton]} onPress={handleSend} disabled={!recipientAddress || !amount}>
+            <Pressable style={[styles.sendButton, (!recipientAddress || !amount) && styles.disabledButton]} onPress={handleSend} disabled={!recipientAddress || !amount}>
               <Ionicons name="send" size={20} color="rgba(255, 255, 255, 0.8)" />
               <ThemedText style={styles.sendButtonText}>Send</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           ) : null}
 
           {screenState === 'prepared' && fees && maxFees ? (

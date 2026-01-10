@@ -1,7 +1,7 @@
 import { Foundation, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useContext } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import GradientFormSheet from '@/components/GradientFormSheet';
 import { ThemedText } from '@/components/ThemedText';
@@ -12,6 +12,7 @@ import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
+import Pressable from '@/components/Pressable';
 
 const ListItem = ({ item, onPress, accountNumber }: { item: AccountItem; onPress: () => void; accountNumber: number }) => {
   const availableNetworks = useAvailableNetworks();
@@ -23,7 +24,7 @@ const ListItem = ({ item, onPress, accountNumber }: { item: AccountItem; onPress
   const last = accountNumber === accountItems.length - 1;
 
   return (
-    <TouchableOpacity style={[styles.item, active && styles.activeItem, first && styles.firstItem, last && styles.lastItem]} onPress={onPress} activeOpacity={0.7}>
+    <Pressable style={[styles.item, active && styles.activeItem, first && styles.firstItem, last && styles.lastItem]} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.icon}>
         <IconComponent name={item.icon as any} size={24} color="white" />
       </View>
@@ -33,7 +34,7 @@ const ListItem = ({ item, onPress, accountNumber }: { item: AccountItem; onPress
           {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : '0'} {getTickerByNetwork(NETWORK_BITCOIN)}
         </ThemedText>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
@@ -58,9 +59,9 @@ export default function PocketSwitch() {
         <View style={styles.header}>
           <ThemedText style={styles.title}>Your pockets</ThemedText>
         </View>
-        <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+        <Pressable style={styles.closeButton} onPress={handleClose}>
           <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.8)" />
-        </TouchableOpacity>
+        </Pressable>
 
         {/* Target Networks List */}
         <View style={styles.listContainer}>

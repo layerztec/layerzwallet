@@ -1,10 +1,11 @@
 import React from 'react';
-import { StyleSheet, View, ViewStyle, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '../ThemedText';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
+import Pressable from '@/components/Pressable';
 
 interface ScreenSendHeaderProps {
   title: string;
@@ -32,9 +33,9 @@ const ScreenSendHeader: React.FC<ScreenSendHeaderProps> = ({ title, network, sho
       <View style={styles.headerContent}>
         {/* Back Button */}
         {showBackButton && (
-          <TouchableOpacity style={styles.backButton} onPress={handleBackPress} accessibilityLabel="Go back">
+          <Pressable style={styles.backButton} onPress={handleBackPress} accessibilityLabel="Go back">
             <Ionicons name="chevron-back" size={20} color="#fff" />
-          </TouchableOpacity>
+          </Pressable>
         )}
 
         {/* Network Icon + Title */}

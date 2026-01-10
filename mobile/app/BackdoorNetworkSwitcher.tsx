@@ -1,10 +1,11 @@
 import React, { useContext } from 'react';
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
+import Pressable from '@/components/Pressable';
 
 const BackdoorNetworkSwitcher: React.FC = () => {
   const router = useRouter();
@@ -19,7 +20,7 @@ const BackdoorNetworkSwitcher: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       {networks.map((network) => (
-        <TouchableOpacity
+        <Pressable
           key={network}
           testID={`backdoor-network-${network}`}
           style={[styles.networkItem, currentNetwork === network && styles.selectedNetworkItem]}
@@ -29,7 +30,7 @@ const BackdoorNetworkSwitcher: React.FC = () => {
           <View style={styles.networkItemContent}>
             <Text>{network}</Text>
           </View>
-        </TouchableOpacity>
+        </Pressable>
       ))}
     </SafeAreaView>
   );

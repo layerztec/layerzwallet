@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Linking, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, withRepeat, withSequence } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
@@ -17,6 +17,7 @@ import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
+import Pressable from '@/components/Pressable';
 
 export default function TransactionDetails() {
   const { transaction: jsonTransaction, layerNetwork } = useLocalSearchParams();
@@ -568,7 +569,7 @@ export default function TransactionDetails() {
 
           {/* Transaction Timeline */}
           {timelineData && timelineData.length > 0 && (
-            <TouchableOpacity style={styles.timelineContainer} onPress={toggleTimeline} activeOpacity={0.9}>
+            <Pressable style={styles.timelineContainer} onPress={toggleTimeline} activeOpacity={0.9}>
               <View style={styles.timelineInnerContainer}>
                 <Timeline
                   key={`timeline-${confirmationEta}`}
@@ -681,7 +682,7 @@ export default function TransactionDetails() {
                   }}
                 />
               </View>
-            </TouchableOpacity>
+            </Pressable>
           )}
 
           {/* Details list */}
@@ -689,9 +690,9 @@ export default function TransactionDetails() {
             <View style={styles.detailRow}>
               <ThemedText style={styles.detailLabel}>{transaction.direction === 'send' ? 'To' : 'From'}</ThemedText>
               <View style={styles.detailValueWrap}>
-                <TouchableOpacity onPress={() => handleCopy(transaction.counterparty ?? '')}>
+                <Pressable onPress={() => handleCopy(transaction.counterparty ?? '')}>
                   <MaterialIcons name="content-copy" size={16} color="rgba(255, 255, 255, 0.8)" />
-                </TouchableOpacity>
+                </Pressable>
                 <ThemedText style={[styles.detailValue]} numberOfLines={1} ellipsizeMode="middle">
                   {transaction.counterparty ?? '—'}
                 </ThemedText>
@@ -710,9 +711,9 @@ export default function TransactionDetails() {
           </View>
 
           {/* Open in explorer */}
-          <TouchableOpacity disabled={!transaction.explorerUrl} style={[styles.explorerButton, !transaction.explorerUrl && { opacity: 0.6 }]} onPress={handleOpenInExplorer}>
+          <Pressable disabled={!transaction.explorerUrl} style={[styles.explorerButton, !transaction.explorerUrl && { opacity: 0.6 }]} onPress={handleOpenInExplorer}>
             <ThemedText style={styles.explorerText}>Open in explorer</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </SafeAreaView>
     </DetachedSheet>

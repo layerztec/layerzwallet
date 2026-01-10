@@ -3,7 +3,7 @@ import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Rive, { RiveRef } from 'rive-react-native';
 
@@ -23,6 +23,7 @@ import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { useSendFlow } from './_layout';
 import { sleep } from '@shared/modules/sleep';
+import Pressable from '@/components/Pressable';
 
 const maxFeePercent = 5; // hardcoded at the moment
 
@@ -195,9 +196,9 @@ const SendConfirmLightning: React.FC = () => {
                   <Ionicons name="alert-circle" size={40} color="#FF3B30" />
                   <ThemedText style={styles.errorTitle}>Error</ThemedText>
                   <ThemedText style={styles.errorText}>{error}</ThemedText>
-                  <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                  <Pressable style={styles.backButton} onPress={() => router.back()}>
                     <ThemedText style={styles.backButtonText}>Go Back</ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               ) : (
                 <>
@@ -269,11 +270,11 @@ const SendConfirmLightning: React.FC = () => {
           </ScrollView>
         </KeyboardAvoidingView>
         {!error && (
-          <TouchableOpacity style={[styles.sendButton, isSending && styles.disabledButton]} onPress={isSuccess ? handleHome : sendPayment} disabled={isSending} testID="send-lightning-confirm-button">
+          <Pressable style={[styles.sendButton, isSending && styles.disabledButton]} onPress={isSuccess ? handleHome : sendPayment} disabled={isSending} testID="send-lightning-confirm-button">
             <ThemedText style={styles.sendButtonText} testID={isSuccess ? 'send-lightning-success-text' : undefined}>
               {isSuccess ? 'Back to Wallet' : isSending ? 'Sending...' : 'Confirm Send'}
             </ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
     </GradientScreen>

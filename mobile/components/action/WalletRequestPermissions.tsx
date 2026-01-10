@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { DappPermissions, PermissionRequest } from '@shared/class/dapp-permissions';
+import Pressable from '@/components/Pressable';
 
 interface WalletRequestPermissionsArgs {
   params: any[];
@@ -77,12 +78,12 @@ export function WalletRequestPermissions(args: WalletRequestPermissionsArgs) {
       </View>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={[styles.button, styles.secondaryButton, isLoading && styles.disabledButton]} onPress={onDenyClick} disabled={isLoading} activeOpacity={0.8}>
+        <Pressable style={[styles.button, styles.secondaryButton, isLoading && styles.disabledButton]} onPress={onDenyClick} disabled={isLoading} activeOpacity={0.8}>
           <ThemedText style={[styles.buttonText, styles.secondaryButtonText, isLoading && styles.disabledButtonText]}>{isLoading ? 'Processing...' : 'Deny'}</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, styles.primaryButton, isLoading && styles.disabledButton]} onPress={onAllowClick} disabled={isLoading} activeOpacity={0.8}>
+        </Pressable>
+        <Pressable style={[styles.button, styles.primaryButton, isLoading && styles.disabledButton]} onPress={onAllowClick} disabled={isLoading} activeOpacity={0.8}>
           <ThemedText style={[styles.buttonText, styles.primaryButtonText, isLoading && styles.disabledButtonText]}>{isLoading ? 'Processing...' : 'Allow'}</ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </View>
   );

@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Crypto from 'expo-crypto';
 import bolt11lib from 'bolt11';
@@ -19,6 +19,7 @@ import { useCachedBalance } from '@shared/hooks/useCachedBalance';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import assert from 'assert';
 import { walletSupportsLightning } from '@shared/class/wallets/interface-lightning-wallet';
+import Pressable from '@/components/Pressable';
 
 const maxFeePercent = 5; // hardcoded at the moment. might give user option to adjust later
 
@@ -333,9 +334,9 @@ const PosMerchant: React.FC = () => {
         <View style={styles.centered}>
           <ThemedText style={styles.errorText}>{error}</ThemedText>
           <ThemedText style={styles.errorText}>{errorLogs}</ThemedText>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()}>
+          <Pressable style={styles.secondaryButton} onPress={() => router.back()}>
             <ThemedText style={[styles.secondaryButtonText, { paddingLeft: 10, paddingRight: 10 }]}>Back</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </GradientScreen>
     );
@@ -448,12 +449,12 @@ const PosMerchant: React.FC = () => {
             <View style={styles.section}>
               <ThemedText style={styles.sectionTitle}>Choose Amount</ThemedText>
               <View style={styles.toggleRow}>
-                <TouchableOpacity style={[styles.toggleButton, mode === 'range' && styles.toggleButtonActive]} onPress={() => setMode('range')}>
+                <Pressable style={[styles.toggleButton, mode === 'range' && styles.toggleButtonActive]} onPress={() => setMode('range')}>
                   <ThemedText style={styles.toggleText}>Enter total</ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.toggleButton, mode === 'tip' && styles.toggleButtonActive]} onPress={() => setMode('tip')}>
+                </Pressable>
+                <Pressable style={[styles.toggleButton, mode === 'tip' && styles.toggleButtonActive]} onPress={() => setMode('tip')}>
                   <ThemedText style={styles.toggleText}>Add tip</ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               </View>
 
               {mode === 'range' ? (
@@ -502,9 +503,9 @@ const PosMerchant: React.FC = () => {
           </View>
 
           {!isSubmitted ? (
-            <TouchableOpacity style={[styles.primaryButton, (!isReadyToSubmit || isSubmitting) && styles.primaryButtonDisabled]} disabled={!isReadyToSubmit || isSubmitting} onPress={handleConfirm}>
+            <Pressable style={[styles.primaryButton, (!isReadyToSubmit || isSubmitting) && styles.primaryButtonDisabled]} disabled={!isReadyToSubmit || isSubmitting} onPress={handleConfirm}>
               {isSubmitting ? <ActivityIndicator color="#FFFFFF" /> : <ThemedText style={styles.primaryButtonText}>Confirm</ThemedText>}
-            </TouchableOpacity>
+            </Pressable>
           ) : null}
 
           {bolt11 && !isSending && !success ? (
@@ -524,9 +525,9 @@ const PosMerchant: React.FC = () => {
             <View style={styles.centered}>
               <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
               <ThemedText style={styles.centeredText}>Payment sent!</ThemedText>
-              <TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()}>
+              <Pressable style={styles.secondaryButton} onPress={() => router.back()}>
                 <ThemedText style={[styles.secondaryButtonText, { paddingLeft: 10, paddingRight: 10 }]}>Done</ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           ) : null}
         </ScrollView>

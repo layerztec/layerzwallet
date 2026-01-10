@@ -2,7 +2,7 @@ import type { AssetBalance, PrepareSendRequest, PrepareSendResponse } from '@bre
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
@@ -16,6 +16,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, Networks } from '@shared/types/networks';
 import assert from 'assert';
+import Pressable from '@/components/Pressable';
 
 export type SendLiquidParams = {
   assetId?: string; // Optional asset ID - if not provided, use L-BTC
@@ -194,9 +195,9 @@ const SendLiquid = () => {
         <View style={styles.successContainer}>
           <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
           <ThemedText style={styles.successText}>Transaction Sent!</ThemedText>
-          <TouchableOpacity style={styles.button} onPress={() => router.replace('/Home')}>
+          <Pressable style={styles.button} onPress={() => router.replace('/Home')}>
             <ThemedText style={styles.buttonText}>Back to Wallet</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </GradientScreen>
     );
@@ -258,9 +259,9 @@ const SendLiquid = () => {
               disabled={isSending}
             />
 
-            <TouchableOpacity style={[styles.button, styles.cancelButton, isSending && styles.disabledButton]} onPress={() => setShowConfirm(false)} disabled={isSending}>
+            <Pressable style={[styles.button, styles.cancelButton, isSending && styles.disabledButton]} onPress={() => setShowConfirm(false)} disabled={isSending}>
               <ThemedText style={styles.buttonText}>Cancel</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </ScrollView>
       </GradientScreen>
@@ -288,9 +289,9 @@ const SendLiquid = () => {
               autoCapitalize="none"
               autoCorrect={false}
             />
-            <TouchableOpacity style={styles.scanButton} onPress={handleScanQR}>
+            <Pressable style={styles.scanButton} onPress={handleScanQR}>
               <Ionicons name="qr-code-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           <ThemedText style={styles.inputLabel}>Amount</ThemedText>
@@ -310,9 +311,9 @@ const SendLiquid = () => {
 
           {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
 
-          <TouchableOpacity style={[styles.button, isSending && styles.disabledButton]} onPress={handleSend} disabled={isSending}>
+          <Pressable style={[styles.button, isSending && styles.disabledButton]} onPress={handleSend} disabled={isSending}>
             <ThemedText style={styles.buttonText}>{isSending ? 'Preparing...' : 'Prepare'}</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </ScrollView>
     </GradientScreen>

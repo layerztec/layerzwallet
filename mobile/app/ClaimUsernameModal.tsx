@@ -1,11 +1,12 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View, ActivityIndicator } from 'react-native';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { createClient } from '@shared/openapi/generated/layerzme/client';
 import { getApiUsersByUsername, postApiUsers } from '@shared/openapi/generated/layerzme';
 import { getGradientColors } from '@/utils/gradientUtils';
 import { ThemedText } from '@/components/ThemedText';
+import Pressable from '@/components/Pressable';
 
 export type ClaimUsernameModalParams = {
   sparkAddress: string;
@@ -101,7 +102,7 @@ export default function ClaimUsernameModalScreen() {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.keyboardAvoidingView, { backgroundColor }]} keyboardVerticalOffset={0}>
-      <TouchableOpacity accessible={false} style={[styles.modalContent, { marginBottom: keyboardHeight, backgroundColor }]} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+      <Pressable accessible={false} style={[styles.modalContent, { marginBottom: keyboardHeight, backgroundColor }]} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
         <View accessible={false} style={[styles.popupContainer, { backgroundColor }]}>
           <View style={styles.contentContainer}>
             <View style={styles.formBody}>
@@ -126,12 +127,12 @@ export default function ClaimUsernameModalScreen() {
               {Boolean(errorMessage) && <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>}
             </View>
 
-            <TouchableOpacity style={styles.claimButton} onPress={handleClaim} activeOpacity={0.8} disabled={isSubmitting}>
+            <Pressable style={styles.claimButton} onPress={handleClaim} activeOpacity={0.8} disabled={isSubmitting}>
               {isSubmitting ? <ActivityIndicator color="#f7f5ff" /> : <ThemedText style={styles.claimButtonText}>Claim</ThemedText>}
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
-      </TouchableOpacity>
+      </Pressable>
     </KeyboardAvoidingView>
   );
 }

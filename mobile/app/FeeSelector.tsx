@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, TextInput, ScrollView, StyleSheet, LayoutAnimation, Platform, UIManager, ActivityIndicator } from 'react-native';
+import { View, TextInput, ScrollView, StyleSheet, LayoutAnimation, Platform, UIManager, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import GradientScreen from '@/components/GradientScreen';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { TFeeEstimate } from '@shared/blue_modules/BlueElectrum';
+import Pressable from '@/components/Pressable';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -96,26 +97,26 @@ const FeeSelector = () => {
 
       {!isCustomInputFocused && estimateFees && (
         <View style={styles.estimatesContainer}>
-          <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.slow && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.slow)}>
+          <Pressable style={[styles.feeOption, feeRate === estimateFees.slow && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.slow)}>
             <ThemedText style={styles.feeOptionText}>
               Economy ({estimateFees.slow} sat/vbyte)
               {feeRateOptions[estimateFees.slow] ? ` ≈ ${feeRateOptions[estimateFees.slow]} sats` : ''}
             </ThemedText>
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.medium && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.medium)}>
+          <Pressable style={[styles.feeOption, feeRate === estimateFees.medium && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.medium)}>
             <ThemedText style={styles.feeOptionText}>
               Standard ({estimateFees.medium} sat/vbyte)
               {feeRateOptions[estimateFees.medium] ? ` ≈ ${feeRateOptions[estimateFees.medium]} sats` : ''}
             </ThemedText>
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity style={[styles.feeOption, feeRate === estimateFees.fast && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.fast)}>
+          <Pressable style={[styles.feeOption, feeRate === estimateFees.fast && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.fast)}>
             <ThemedText style={styles.feeOptionText}>
               Priority ({estimateFees.fast} sat/vbyte)
               {feeRateOptions[estimateFees.fast] ? ` ≈ ${feeRateOptions[estimateFees.fast]} sats` : ''}
             </ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       )}
 
@@ -126,9 +127,9 @@ const FeeSelector = () => {
 
       <View style={styles.spacer} />
 
-      <TouchableOpacity style={[styles.doneButton, !customFeeRate && styles.disabledButton]} onPress={handleDone} disabled={!customFeeRate}>
+      <Pressable style={[styles.doneButton, !customFeeRate && styles.disabledButton]} onPress={handleDone} disabled={!customFeeRate}>
         <ThemedText style={styles.doneButtonText}>Done</ThemedText>
-      </TouchableOpacity>
+      </Pressable>
     </SafeAreaView>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from './ThemedText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import { handleQrIntent } from '@/src/modules/scan-routing';
 import { Ionicons, Foundation } from '@expo/vector-icons';
 import PlatformBlurView from './PlatformBlurView';
 import Animated, { useAnimatedStyle, interpolate, SharedValue } from 'react-native-reanimated';
+import Pressable from '@/components/Pressable';
 
 interface StickyHeaderProps {
   scrollY: SharedValue<number>;
@@ -66,7 +67,7 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
       {/* Header Content */}
       <View style={styles.header}>
         {/* Left Side: Pocket */}
-        <TouchableOpacity style={styles.pocket} onPress={handlePocketPress}>
+        <Pressable style={styles.pocket} onPress={handlePocketPress}>
           <View style={styles.pocketIconContainer}>
             <IconComponent name={accountItem.icon as any} size={22} color="white" />
           </View>
@@ -74,16 +75,16 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
             {accountItem.name.length > 10 ? accountItem.name.substring(0, 10) + '...' : accountItem.name}
           </ThemedText>
           <Ionicons name="chevron-down" size={16} color="rgba(255, 255, 255, 0.8)" />
-        </TouchableOpacity>
+        </Pressable>
 
         {/* Right Side: Camera and Settings Icons */}
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton} onPress={handleCameraPress} testID="CameraButton">
+          <Pressable style={styles.iconButton} onPress={handleCameraPress} testID="CameraButton">
             <Ionicons name="scan-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={onSettingsPress} testID="SettingsButton">
+          </Pressable>
+          <Pressable style={styles.iconButton} onPress={onSettingsPress} testID="SettingsButton">
             <Ionicons name="settings-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
     </View>
