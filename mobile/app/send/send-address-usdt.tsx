@@ -84,7 +84,7 @@ const SendAddressUsdt: React.FC = () => {
       }
 
       setContextAddress(address);
-      router.push('/send/send-amount-usdt');
+      router.push('/send/send-amount-usdt' as never);
     } catch (error: any) {
       setErrorMessage(error.message || 'Failed to validate address');
       setShowError(true);

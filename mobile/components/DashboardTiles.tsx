@@ -149,8 +149,6 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
           onPressOut={handlePressOut}
           style={styles.touchableCard}
           activeOpacity={1}
-          delayPressIn={50}
-          delayPressOut={50}
           testID={displayCard.networkId ? `network-${displayCard.networkId}` : `card-${displayCard.name.toLowerCase()}`}
         >
           <View style={styles.topRow}>

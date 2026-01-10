@@ -1,6 +1,6 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter, Href } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Dimensions, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -495,7 +495,7 @@ export default function Home() {
               <PlatformBlurView intensity={20} tint="dark" style={styles.navBlur} />
 
               {network === NETWORK_USDT ? (
-                <Pressable style={styles.navButtonLarge} testID="SendButton" onPress={() => router.push('/send/send-address-usdt')} activeOpacity={0.8}>
+                <Pressable style={styles.navButtonLarge} testID="SendButton" onPress={() => router.push('/send/send-address-usdt' as never)} activeOpacity={0.8}>
                   <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
                   <ThemedText style={styles.navButtonText}>Send</ThemedText>
                 </Pressable>
