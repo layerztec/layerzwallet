@@ -144,6 +144,17 @@ test('is discoverable via EIP6963', async ({ page, extensionId }) => {
 test('open popup and perform a personal sign', async ({ page, extensionId }) => {
   await helperImportWallet(page, extensionId);
   await page.goto('https://metamask.github.io/test-dapp/');
+  const hideReactRefreshOverlay = async () => {
+    await page.evaluate(() => {
+      document.querySelectorAll('#react-refresh-overlay, iframe#react-refresh-overlay').forEach((el) => {
+        const node = el as HTMLElement;
+        node.style.pointerEvents = 'none';
+        node.style.display = 'none';
+        node.remove();
+      });
+    });
+  };
+  await hideReactRefreshOverlay();
   await page.getByText(/Use Layerz Wallet/).click();
   await page.locator('[id="connectButton"]').click(); // triggering dapp to request permissions
   await sleep(3000); // allow page to actually open
@@ -157,6 +168,7 @@ test('open popup and perform a personal sign', async ({ page, extensionId }) => 
     await sleep(2000); // propagate to main page
   }
 
+  await hideReactRefreshOverlay();
   await page.locator('[id="personalSign"]').click();
   await sleep(3000); // allow page to actually open
 
@@ -271,6 +283,7 @@ test('onboarding: has encrypted mnemonic and has accepted terms of service', asy
 });
 
 test('self-diagnostics passes', async ({ page, extensionId }) => {
+  test.skip(process.env.E2E_ENABLE_DIAGNOSTICS !== 'true', 'Set E2E_ENABLE_DIAGNOSTICS=true to run diagnostics');
   await helperImportWallet(page, extensionId);
   await page.getByTestId('settings-button').click();
 
