@@ -1,7 +1,8 @@
-import { describe, it, vi, assert } from 'vitest';
-import { BreezWallet } from '../../class/wallets/breez-wallet';
-import { NETWORK_LIQUID } from '../../types/networks';
 import { Payment } from '@breeztech/breez-sdk-liquid';
+import { assert, describe, it, vi } from 'vitest';
+import { BreezWallet } from '../../class/wallets/breez-wallet';
+import { DeepPartial } from '../../class/wallets/types';
+import { NETWORK_LIQUID } from '../../types/networks';
 
 // @ts-ignore: no need to use real breez adapter
 globalThis.breezAdapter = null;
@@ -10,7 +11,7 @@ describe('Breez Wallet - getCommonTransactions', () => {
   it('should return transactions in correct order', async () => {
     const wallet = new BreezWallet('test mnemonic', 'testnet');
 
-    const fakePayments = [
+    const fakePayments: DeepPartial<Payment>[] = [
       // BTC
       {
         txId: '095cf834f56cc032708bb2465463ae348164b4d498b181f52fd98d0097c08629',
@@ -95,7 +96,6 @@ describe('Breez Wallet - getCommonTransactions', () => {
         paymentType: 'receive',
         timestamp: 2,
         details: {
-          payerNote: null,
           description: 'Liquid transfer',
           destination: 'lq1qqfy8jhv9px5q0v5v0e2m5jltjhj2wjnq5sdf08r0fgldheas52arv56pptlw85vfmgn4vceuatwce0d4tp2xzqhhdjc89acf6',
           type: 'liquid',
@@ -103,15 +103,11 @@ describe('Breez Wallet - getCommonTransactions', () => {
           assetInfo: {
             ticker: 'USDt',
             amount: 1,
-            fees: null,
             name: 'Tether USD',
           },
-          lnurlInfo: null,
-          bip353Address: null,
         },
         txId: '0031ab92399f87c15cdfe75a8be905263412b9fcce8060669dc41b1e31e87cf3',
         status: 'complete',
-        swapperFeesSat: null,
         amountSat: 0,
         unblindingData:
           '100000000,ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2,c23f8896d2f9b8668b72a3429840801d284e0c95901fa16c560b63bc99d85828,ff065f5101d6ada4772867a1c2b3ae6286fc09713110b23662848bd03605b6c1',
@@ -127,19 +123,13 @@ describe('Breez Wallet - getCommonTransactions', () => {
           swapId: '4Hz5YXxQUvYc',
           preimage: '381adc96015fc3894a79ffa4efead2cc7990f117ecf74a9886f6e7f013a5cd36',
           type: 'lightning',
-          bolt12Offer: null,
           liquidExpirationBlockheight: 3369124,
           paymentHash: '6c7a29a170d322261c49314d551c3a9c8a63138e8a52ea66878a9aaf21e9a8a5',
           description: 'Payment to BZ wallet',
           destinationPubkey: '02d96eadea3d780104449aca5c93461ce67c1564e2e1d73225fa67dd3b997a6018',
-          lnurlInfo: null,
           invoice:
             'lnbc12340n1p5puzfasp55h6susfzhhy5acxh0jhasywghuh2ndd54jqdlrywugj4jrf7g4cspp5d3azngts6v3zv8zfx9x428p6nj9xxyuw3ffw5e5832d27g0f4zjsdpq2pshjmt9de6zqar0ypp95grhv9kxcet5xqyp2xqcqz95rzjq2h65qettudjx9wacaec92scgjjz07q5fkut3tejqvla85u052vw5zzxeyqq28qqqqqqqqqqqqqqq9gq2y9qyysgq8zhda3tyt4j5ga7n37q5j9az24k5vactakcstxzzlwr5zl7fehxpy4ukgrdaxyphafnzh6gm3x6wkvwgqew854s50e5v86g49u7wpkgq2d2vzm',
           claimTxId: '7968249135073947e2f396b5cf0ad02ca9c22435063dff895bc80faf0ec6e5f4',
-          refundTxId: null,
-          payerNote: null,
-          refundTxAmountSat: null,
-          bip353Address: null,
         },
         unblindingData:
           '1183,6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d,65d900602d1c8178dae9a1f25c9105b38beb185208c3a6ad94c2c91fd14265b8,53973c669aea02cdcd1ed87e0266bc80b167d4e2b86bcb109f4ac979a036c126',
@@ -149,9 +139,9 @@ describe('Breez Wallet - getCommonTransactions', () => {
         destination:
           'lnbc12340n1p5puzfasp55h6susfzhhy5acxh0jhasywghuh2ndd54jqdlrywugj4jrf7g4cspp5d3azngts6v3zv8zfx9x428p6nj9xxyuw3ffw5e5832d27g0f4zjsdpq2pshjmt9de6zqar0ypp95grhv9kxcet5xqyp2xqcqz95rzjq2h65qettudjx9wacaec92scgjjz07q5fkut3tejqvla85u052vw5zzxeyqq28qqqqqqqqqqqqqqq9gq2y9qyysgq8zhda3tyt4j5ga7n37q5j9az24k5vactakcstxzzlwr5zl7fehxpy4ukgrdaxyphafnzh6gm3x6wkvwgqew854s50e5v86g49u7wpkgq2d2vzm',
       },
-    ] as Payment[];
+    ];
 
-    vi.spyOn(wallet, 'listPayments').mockResolvedValue(fakePayments);
+    vi.spyOn(wallet, 'listPayments').mockResolvedValue(fakePayments as Payment[]);
 
     const result1 = await wallet.getCommonTransactions();
 

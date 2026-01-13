@@ -41,7 +41,7 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
     if (isZeroAmountWithSingleToken) {
       const transfer = transaction.tokenTransfers?.[0];
       if (singleTokenInfo && transfer) {
-        const isNegative = transaction.direction === 'send';
+        const isNegative = !transfer.amount && transaction.direction === 'send';
         const sign = isNegative ? '-' : '';
         const formattedAmount = transfer.amount ? formatBalance(transfer.amount.toString(), singleTokenInfo.decimals) : '0';
         return `${sign} ${singleTokenInfo.symbol}${formattedAmount}`;
@@ -49,8 +49,9 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
     }
 
     if (transaction.amount !== undefined) {
-      const isNegative = transaction.direction === 'send';
-      const sign = isNegative && transaction.amount ? '-' : '';
+      const isZero = transaction.amount === 0;
+      const isNegative = !isZero && transaction.direction === 'send';
+      const sign = isNegative ? '-' : '';
       const formattedAmount = formatBalance(Math.abs(transaction.amount).toString(), decimals);
       return `${sign}${formattedAmount} ${ticker}`;
     }
@@ -149,7 +150,7 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
           if (transfer.amount) {
             formattedAmount = formatBalance(transfer.amount.toString(), tokenInfo.decimals);
           }
-          const isNegative = transaction.direction === 'send';
+          const isNegative = !transfer.amount && transaction.direction === 'send';
           const sign = isNegative ? '-' : '';
 
           return (

@@ -1,10 +1,11 @@
 import { describe, it, vi, assert } from 'vitest';
 import { SparkWallet } from '../../class/wallets/spark-wallet';
+import { DeepPartial } from '../../class/wallets/types';
 
 type WalletTransferOrig = Awaited<ReturnType<NonNullable<SparkWallet['_sdkWallet']>['getTransfers']>>['transfers'][number];
-type WalletTransfer = Omit<WalletTransferOrig, 'leaves' | 'userRequest'>;
+type WalletTransfer = DeepPartial<WalletTransferOrig>;
 
-// a couple of Lightning and regular transfers, leaves and userRequest are not relevant for the test
+// a couple of Lightning and regular transfers
 const transfers: WalletTransfer[] = [
   {
     id: '0198cc01-ee9a-7af1-b54c-b1fb836ad9a6',
@@ -91,6 +92,7 @@ describe('Spark Wallet', () => {
         status: 'confirmed',
         timestamp: 1755769349,
         txid: '0198cc01-ee9a-7af1-b54c-b1fb836ad9a6',
+        counterparty: 'spark1pgssxdpp5eaxpnruk5w7gs30cd0xmvzlyr7c70e8dx3w0ecxr5va5xg7gchkxp',
       },
       {
         amount: 20,
@@ -100,6 +102,7 @@ describe('Spark Wallet', () => {
         status: 'confirmed',
         timestamp: 1755769285,
         txid: '0198cc00-ff50-767a-8c21-bb258b4a903e',
+        counterparty: 'spark1pgssxdpp5eaxpnruk5w7gs30cd0xmvzlyr7c70e8dx3w0ecxr5va5xg7gchkxp',
       },
       {
         amount: 10,
@@ -109,6 +112,7 @@ describe('Spark Wallet', () => {
         status: 'confirmed',
         timestamp: 1755769137,
         txid: '0198cbfe-d2b4-7a29-869b-cbd58c78a7cb',
+        counterparty: 'spark1pgssx6c5frqmwll2nx2rcdkya0kjmcfp4kvrf8eyn9y6r3pczllzdshz90tad0',
       },
       {
         amount: 51,
@@ -118,6 +122,7 @@ describe('Spark Wallet', () => {
         status: 'confirmed',
         timestamp: 1755768982,
         txid: '0198cbfc-66c1-76ed-8196-2e21576fcb00',
+        counterparty: 'spark1pgssy03nu2fqxfhkf633qkx5gam5gtvh6l2uhl84fccxp0qkjhjjv8ynvflju3',
       },
       {
         amount: 100,
@@ -127,6 +132,7 @@ describe('Spark Wallet', () => {
         status: 'confirmed',
         timestamp: 1755768866,
         txid: '0198cbfa-9b0b-774c-8426-a6951af9177d',
+        counterparty: 'spark1pgssy03nu2fqxfhkf633qkx5gam5gtvh6l2uhl84fccxp0qkjhjjv8ynvflju3',
       },
     ]);
 
