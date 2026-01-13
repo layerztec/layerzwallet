@@ -133,9 +133,11 @@ export default function SwapDetails() {
               <TouchableOpacity onPress={() => handleCopy(swap.id)}>
                 <MaterialIcons name="content-copy" size={16} color="rgba(255, 255, 255, 0.8)" />
               </TouchableOpacity>
-              <ThemedText style={[styles.detailValue]} numberOfLines={1} ellipsizeMode="middle">
-                {swap.id}
-              </ThemedText>
+              <View style={styles.detailValueContainer}>
+                <ThemedText style={[styles.detailValue]} numberOfLines={1} ellipsizeMode="middle">
+                  {swap.id}
+                </ThemedText>
+              </View>
             </View>
           </View>
 
@@ -275,16 +277,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    width: '100%',
   },
   detailLabel: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
+    flexShrink: 0,
+    marginRight: 16,
   },
   detailValueWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    maxWidth: '50%',
+    flex: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    justifyContent: 'flex-end',
+  },
+  detailValueContainer: {
+    flexShrink: 1,
+    minWidth: 0,
+    maxWidth: '100%',
+    alignItems: 'flex-end',
   },
   detailValue: {
     fontSize: 16,

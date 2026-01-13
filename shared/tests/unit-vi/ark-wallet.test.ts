@@ -5,6 +5,7 @@ import { ArkTransaction, TxType } from '@arkade-os/sdk';
 import { ArkWallet } from '../../class/wallets/ark-wallet';
 import { IStorage } from '../../types/IStorage';
 import { NETWORK_ARK } from '../../types/networks';
+import { DeepPartial } from '../../class/wallets/types';
 
 const _cache: Record<string, string> = {};
 const storageMock: IStorage = {
@@ -31,7 +32,7 @@ test('ark mainnet can getCommonTransactions', async (context) => {
   w.setBoltzApiUrl('https://api.ark.boltz.exchange');
   await w.init(storageMock);
 
-  const transfers: ArkTransaction[] = [
+  const transfers: DeepPartial<ArkTransaction>[] = [
     {
       amount: 100,
       createdAt: 1756199879000,
@@ -50,7 +51,7 @@ test('ark mainnet can getCommonTransactions', async (context) => {
 
   (w as any)._wallet = {
     getTransactionHistory: vi.fn().mockImplementation(() => {
-      return transfers;
+      return transfers as ArkTransaction[];
     }),
   };
 

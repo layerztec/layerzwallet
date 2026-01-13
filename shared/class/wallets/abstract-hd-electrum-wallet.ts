@@ -1344,11 +1344,42 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
     }
     filtered = filtered.slice(0, limit);
 
+    // Build hashmap of change addresses for efficient lookup
+    const changeAddressesHashmap: Record<string, boolean> = {};
+    for (let c = 0; c < this.next_free_change_address_index + 1; c++) {
+      changeAddressesHashmap[this._getInternalAddressByIndex(c)] = true;
+    }
+
     // convert to common transaction
     const commonTransactions: CommonTransaction[] = [];
     for (const tx of filtered) {
       const direction = tx?.value ? (tx.value > 0 ? 'receive' : 'send') : 'other';
       const baseExplorer = AllNetworkInfos[NETWORK_BITCOIN].explorerUrl;
+
+      // Try to identify counterparty address
+      let counterparty: string | undefined;
+      if (direction === 'send' && tx.outputs) {
+        // For send transactions, take first unknown address from outputs
+        for (const output of tx.outputs) {
+          const outputAddress = output.scriptPubKey?.addresses?.[0];
+          if (!outputAddress) continue;
+          if (!changeAddressesHashmap[outputAddress] && !this.weOwnAddress(outputAddress)) {
+            counterparty = outputAddress;
+            break;
+          }
+        }
+      } else if (direction === 'receive' && tx.inputs) {
+        // For receive transactions, take first unknown address from inputs
+        for (const input of tx.inputs) {
+          const inputAddress = input.address || input.addresses?.[0];
+          if (!inputAddress) continue;
+          if (!changeAddressesHashmap[inputAddress] && !this.weOwnAddress(inputAddress)) {
+            counterparty = inputAddress;
+            break;
+          }
+        }
+      }
+
       commonTransactions.push({
         txid: tx.txid,
         network: NETWORK_BITCOIN,
@@ -1358,6 +1389,7 @@ export class AbstractHDElectrumWallet extends AbstractHDWallet {
         tokenTransfers: [],
         status: tx.confirmations >= 1 ? 'confirmed' : 'pending',
         explorerUrl: `${baseExplorer}/tx/${tx.txid}`,
+        counterparty,
       });
     }
 

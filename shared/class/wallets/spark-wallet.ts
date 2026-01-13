@@ -1,18 +1,18 @@
+import { encodeSparkAddress, isValidSparkAddress, SparkWallet as SDK, TokenBalanceMap } from '@buildonspark/spark-sdk';
 import assert from 'assert';
-import bolt11 from 'bolt11';
-import { SparkWallet as SDK, TokenBalanceMap, isValidSparkAddress } from '@buildonspark/spark-sdk';
 import BigNumber from 'bignumber.js';
+import bolt11 from 'bolt11';
 
-import { ArkWallet } from './ark-wallet';
-import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
+import * as BlueElectrum from '../../blue_modules/BlueElectrum';
+import { AllNetworkInfos } from '../../models/all-network-infos';
+import { CommonSwap } from '../../types/common-swap';
 import { CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_BITCOIN, NETWORK_SPARK } from '../../types/networks';
-import * as BlueElectrum from '../../blue_modules/BlueElectrum';
-import { CommonSwap } from '../../types/common-swap';
-import { AllNetworkInfos } from '../../models/all-network-infos';
+import { CachedTokenInfo } from '../../types/token-info';
+import { ArkWallet } from './ark-wallet';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
-import { CachedTokenInfo } from '../../types/token-info';
+import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
 
 // copypasted from `node_modules/@buildonspark/spark-sdk/dist/...` since its not exported
 type Bech32mTokenIdentifier = `btkn1${string}` | `btknrt1${string}` | `btknt1${string}` | `btkns1${string}` | `btknl1${string}`;
@@ -192,6 +192,24 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     for (const transfer of transfers) {
       const timestamp = Math.floor((transfer.updatedTime ?? transfer.createdTime)!.getTime() / 1000);
       const status = transfer.status === 'TRANSFER_STATUS_COMPLETED' ? 'confirmed' : 'pending';
+      const direction = transfer.transferDirection === 'OUTGOING' ? 'send' : 'receive';
+
+      // Determine counterparty address, use identity public key to get the address
+      let counterparty: string | undefined;
+      if (transfer.senderIdentityPublicKey && transfer.receiverIdentityPublicKey) {
+        const counterpartyIdentityPublicKey = direction === 'send' ? transfer.receiverIdentityPublicKey : transfer.senderIdentityPublicKey;
+
+        try {
+          counterparty = encodeSparkAddress({
+            identityPublicKey: counterpartyIdentityPublicKey,
+            network: 'MAINNET',
+          });
+        } catch (error) {
+          console.error('Failed to encode Spark counterparty address:', error);
+          // Fallback: use identity public key as identifier if encoding fails
+          counterparty = counterpartyIdentityPublicKey;
+        }
+      }
 
       commonTransactions.push({
         network: NETWORK_SPARK,
@@ -199,7 +217,8 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
         amount: transfer.totalValue,
         timestamp,
         status,
-        direction: transfer.transferDirection === 'OUTGOING' ? 'send' : 'receive',
+        direction,
+        counterparty,
         explorerUrl: `${AllNetworkInfos[NETWORK_SPARK].explorerUrl}/tx/${transfer.id}`,
       });
     }

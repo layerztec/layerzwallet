@@ -293,9 +293,9 @@ export default function TransactionDetails() {
     if (isZeroAmountWithTokens && singleTokenInfo) {
       const transfer = transaction.tokenTransfers?.[0];
       if (transfer) {
-        const isNegative = transaction.direction === 'send';
-        const sign = isNegative ? '-' : '';
         const formattedAmount = transfer.amount ? formatBalance(transfer.amount.toString(), singleTokenInfo.decimals) : '0';
+        const isNegative = !transfer.amount && transaction.direction === 'send';
+        const sign = isNegative ? '-' : '';
         return `${sign}${formattedAmount}`;
       }
     }
@@ -495,7 +495,7 @@ export default function TransactionDetails() {
           const tokenInfo = getTokenInfo(transfer.tokenId);
           const iconColor = getTokenIconColor(tokenInfo.name);
           const formattedAmount = transfer.amount ? formatBalance(transfer.amount.toString(), tokenInfo.decimals) : '0';
-          const isNegative = transaction.direction === 'send';
+          const isNegative = !transfer.amount && transaction.direction === 'send';
           const sign = isNegative ? '-' : '';
           const imageErrorKey = `${transfer.tokenId}-${index}`;
           const hasImageError = imageLoadErrors[imageErrorKey];
@@ -692,9 +692,11 @@ export default function TransactionDetails() {
                 <TouchableOpacity onPress={() => handleCopy(transaction.counterparty ?? '')}>
                   <MaterialIcons name="content-copy" size={16} color="rgba(255, 255, 255, 0.8)" />
                 </TouchableOpacity>
-                <ThemedText style={[styles.detailValue]} numberOfLines={1} ellipsizeMode="middle">
-                  {transaction.counterparty ?? '—'}
-                </ThemedText>
+                <View style={styles.detailValueContainer}>
+                  <ThemedText style={[styles.detailValue]} numberOfLines={1} ellipsizeMode="middle">
+                    {transaction.counterparty ?? '—'}
+                  </ThemedText>
+                </View>
               </View>
             </View>
 
@@ -781,17 +783,30 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    width: '100%',
     justifyContent: 'space-between',
   },
   detailLabel: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
+    flexShrink: 0,
+    marginRight: 16,
   },
   detailValueWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    maxWidth: '50%',
+    flex: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    justifyContent: 'flex-end',
+  },
+  detailValueContainer: {
+    flexShrink: 1,
+    minWidth: 0,
+    maxWidth: '100%',
+    alignItems: 'flex-end',
   },
   detailValue: {
     fontSize: 16,
