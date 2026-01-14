@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import Pressable from '../../components/Pressable';
 import Slider from '@react-native-community/slider';
 import BigNumber from 'bignumber.js';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 
 import AmountInput from '@/components/AmountInput';
 import GradientScreen from '@/components/GradientScreen';
@@ -173,7 +174,7 @@ const SendAmountEvm: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker
             </View>
           </View>
 
-          <TouchableOpacity style={[styles.continueButton, buttonDisabled && styles.disabledButton]} onPress={prepareTransaction} disabled={buttonDisabled || isPreparing}>
+          <Pressable style={[styles.continueButton, buttonDisabled && styles.disabledButton]} onPress={prepareTransaction} disabled={buttonDisabled || isPreparing}>
             {isPreparing ? (
               <>
                 <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" />
@@ -182,7 +183,7 @@ const SendAmountEvm: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker
             ) : (
               <ThemedText style={styles.continueButtonText}>Next</ThemedText>
             )}
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </GradientScreen>

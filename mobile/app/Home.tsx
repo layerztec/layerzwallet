@@ -2,11 +2,12 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Dimensions, RefreshControl, RefreshControlProps, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import Rive, { RiveRef } from 'rive-react-native';
+import Pressable from '../components/Pressable';
 
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import Balance from '@/components/Balance';
@@ -393,21 +394,21 @@ export default function Home() {
         </GestureDetector>
 
         {/* Invisible Settings Button for Maestro Testing */}
-        <TouchableOpacity style={styles.maestroSettingsButton} onPress={goToSettings} testID="SettingsButton" accessibilityLabel="Settings" />
+        <Pressable style={styles.maestroSettingsButton} onPress={goToSettings} testID="SettingsButton" accessibilityLabel="Settings" />
 
         <GradientScreen variant={network} scroll={true} onScroll={handleScroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} {...refreshOptions} />}>
           <View style={[styles.root, styles.contentWithHeader]}>
             {/* Network Selector */}
             <View style={styles.networkSelectorContainer}>
-              <TouchableOpacity testID="NetworkSwitcherTrigger" style={styles.networkSelector} onPress={handleNetworkSelect} activeOpacity={0.8}>
+              <Pressable testID="NetworkSwitcherTrigger" style={styles.networkSelector} onPress={handleNetworkSelect} activeOpacity={0.8}>
                 <View testID={`selectedNetwork-${network}`} style={styles.networkIcon}>
                   {networkIconContent}
                 </View>
                 <ThemedText style={styles.networkName}>{capitalizeFirstLetter(network)}</ThemedText>
-                <TouchableOpacity onPress={handleNetworkSelect} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
+                <Pressable onPress={handleNetworkSelect} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
                   <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.8)" />
-                </TouchableOpacity>
-              </TouchableOpacity>
+                </Pressable>
+              </Pressable>
             </View>
 
             {/* Testnet Warning */}
@@ -434,7 +435,7 @@ export default function Home() {
 
             {/* Seed Backup Warning */}
             {hasBackedUpSeed === false && (
-              <TouchableOpacity style={styles.backupWarning} onPress={handleBackupSeed} activeOpacity={0.8}>
+              <Pressable style={styles.backupWarning} onPress={handleBackupSeed} activeOpacity={0.8}>
                 <View style={styles.backupWarningHeader}>
                   <View style={styles.backupWarningIcon}>
                     <Ionicons name="alert-circle-outline" size={24} color="rgba(255, 255, 255, 0.9)" />
@@ -444,7 +445,7 @@ export default function Home() {
                 <View style={styles.backupWarningTextRow}>
                   <ThemedText style={styles.backupWarningText}>Your Recovery phrase is necessary to recover your wallet. Please verify you have backed it up.</ThemedText>
                 </View>
-              </TouchableOpacity>
+              </Pressable>
             )}
 
             {/* Transactions Section */}
@@ -494,34 +495,34 @@ export default function Home() {
               <PlatformBlurView intensity={20} tint="dark" style={styles.navBlur} />
 
               {network === NETWORK_USDT ? (
-                <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" onPress={() => router.push('/send/send-address-usdt')} activeOpacity={0.8}>
+                <Pressable style={styles.navButtonLarge} testID="SendButton" onPress={() => router.push({ pathname: '/send/send-address-usdt' } as any)} activeOpacity={0.8}>
                   <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
                   <ThemedText style={styles.navButtonText}>Send</ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               ) : (
-                <TouchableOpacity style={styles.navButtonLarge} testID="SendButton" onPress={handleSend} activeOpacity={0.8}>
+                <Pressable style={styles.navButtonLarge} testID="SendButton" onPress={handleSend} activeOpacity={0.8}>
                   <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
                   <ThemedText style={styles.navButtonText}>Send</ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               )}
 
               {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
-                <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" onPress={() => router.push('/ReceiveOnLightningAddress')} activeOpacity={0.8}>
+                <Pressable style={styles.navButtonLarge} testID="ReceiveButton" onPress={() => router.push('/ReceiveOnLightningAddress')} activeOpacity={0.8}>
                   <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
                   <ThemedText style={styles.navButtonText}>Receive</ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               ) : network === NETWORK_USDT ? (
                 <ActionPopupButton actions={usdtReceiveActions} title="Layer to receive">
-                  <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
+                  <Pressable style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
                     <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
                     <ThemedText style={styles.navButtonText}>Receive</ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 </ActionPopupButton>
               ) : (
-                <TouchableOpacity style={styles.navButtonLarge} testID="ReceiveButton" onPress={handleReceive} activeOpacity={0.8}>
+                <Pressable style={styles.navButtonLarge} testID="ReceiveButton" onPress={handleReceive} activeOpacity={0.8}>
                   <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
                   <ThemedText style={styles.navButtonText}>Receive</ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               )}
             </View>
 
@@ -530,16 +531,16 @@ export default function Home() {
                 <PlatformBlurView intensity={40} tint="light" style={styles.navBlur} />
                 {network === NETWORK_USDT ? (
                   <ActionPopupButton actions={usdtSwapActions} title="Choose network to swap">
-                    <TouchableOpacity style={styles.swapButtonInner} activeOpacity={0.8} testID="SwapButton">
+                    <Pressable style={styles.swapButtonInner} activeOpacity={0.8} testID="SwapButton">
                       <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
                       <ThemedText style={styles.navButtonText}>Transfer</ThemedText>
-                    </TouchableOpacity>
+                    </Pressable>
                   </ActionPopupButton>
                 ) : (
-                  <TouchableOpacity style={styles.swapButtonInner} onPress={handleSwap} activeOpacity={0.8} testID="SwapButton">
+                  <Pressable style={styles.swapButtonInner} onPress={handleSwap} activeOpacity={0.8} testID="SwapButton">
                     <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
                     <ThemedText style={styles.navButtonText}>Transfer</ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 )}
               </View>
             )}

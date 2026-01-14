@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { TouchableOpacity, View, Image, Text, StyleSheet } from 'react-native';
+import { View, Image, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
 import { BROWSER_CONSTANTS } from './DAppBrowser';
+import Pressable from '../components/Pressable';
 
 interface BrowserTab {
   id: string;
@@ -53,7 +54,7 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, ind
   }, [tab.screenshot, tab.id]);
 
   return (
-    <TouchableOpacity style={styles.tabCard} onPress={onPress}>
+    <Pressable style={styles.tabCard} onPress={onPress}>
       <View style={styles.tabCardHeader}>
         <View style={styles.tabCardTitleContainer}>
           <ThemedText style={styles.tabCardNumber}>#{index + 1}</ThemedText>
@@ -61,9 +62,9 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, ind
             {tab.title}
           </ThemedText>
         </View>
-        <TouchableOpacity style={styles.tabCardCloseButton} onPress={onClose}>
+        <Pressable style={styles.tabCardCloseButton} onPress={onClose}>
           <Ionicons name="close" size={16} color="rgba(255, 255, 255, 0.8)" />
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <View style={styles.tabCardPreview}>
@@ -90,7 +91,7 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, ind
           </ThemedText>
         </View>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 

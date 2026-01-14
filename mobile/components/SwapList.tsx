@@ -1,7 +1,8 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useContext, useImperativeHandle, forwardRef } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import Pressable from './Pressable';
 
 import { ThemedText } from '@/components/ThemedText';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
@@ -46,7 +47,7 @@ const SwapItem = ({ swap }: { swap: CommonSwap }) => {
   };
 
   return (
-    <TouchableOpacity style={styles.swapItem} onPress={handleSwapPress}>
+    <Pressable style={styles.swapItem} onPress={handleSwapPress}>
       <View style={styles.swapIcon}>
         <MaterialIcons name={getSwapIcon()} size={24} color="rgba(255, 255, 255, 0.8)" />
       </View>
@@ -64,15 +65,15 @@ const SwapItem = ({ swap }: { swap: CommonSwap }) => {
       <View style={styles.swapAmounts}>
         {swap.network === NETWORK_SPARK && swap.status === 'claimable' ? (
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleClaim}>
+            <Pressable style={styles.actionButton} onPress={handleClaim}>
               <ThemedText style={styles.actionButtonText}>Claim</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         ) : (
           <ThemedText style={styles.statusText}>{capitalizeFirstLetter(swap.status)}</ThemedText>
         )}
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 

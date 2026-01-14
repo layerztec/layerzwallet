@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated } from 'react-native';
+import Pressable from '../components/Pressable';
+import { StyleSheet, TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
@@ -130,7 +131,7 @@ export default function UnlockPassword() {
               </View>
 
               <Animated.View style={[styles.buttonSection, buttonTransition]}>
-                <TouchableOpacity
+                <Pressable
                   style={[styles.button, isLoading || !password ? styles.buttonDisabled : null]}
                   onPress={handleUnlockPassword}
                   disabled={isLoading || !password}
@@ -139,7 +140,7 @@ export default function UnlockPassword() {
                   <ThemedText type="button" darkColor={Colors.dark.buttonText}>
                     {isLoading ? 'Unlocking...' : 'Unlock'}
                   </ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               </Animated.View>
             </ScrollView>
           </KeyboardAvoidingView>

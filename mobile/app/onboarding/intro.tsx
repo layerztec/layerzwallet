@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, StyleSheet, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@shared/constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Rive, { RiveRef } from 'rive-react-native';
+import Pressable from '../../components/Pressable';
 
 const SLIDES = [
   {
@@ -155,17 +156,17 @@ export default function IntroScreen() {
 
           {/* Buttons */}
           <View style={styles.buttonSection}>
-            <TouchableOpacity style={styles.buttonPrimary} onPress={handleCreateWallet}>
+            <Pressable style={styles.buttonPrimary} onPress={handleCreateWallet}>
               <ThemedText type="defaultSemiBold" darkColor={Colors.dark.buttonText}>
                 Create Wallet
               </ThemedText>
-            </TouchableOpacity>
+            </Pressable>
 
-            <TouchableOpacity style={styles.buttonSecondary} onPress={handleImportWallet}>
+            <Pressable style={styles.buttonSecondary} onPress={handleImportWallet}>
               <ThemedText type="defaultSemiBold" darkColor={Colors.dark.buttonText}>
                 Import Wallet
               </ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </SafeAreaView>

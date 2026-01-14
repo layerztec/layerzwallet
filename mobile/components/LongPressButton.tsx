@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, TouchableOpacity, View, Animated, Text, Easing, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet, View, Animated, Text, Easing, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import Pressable from './Pressable';
 
 interface LongPressButtonProps {
   onLongPressComplete: () => void;
@@ -76,7 +77,7 @@ const LongPressButton: React.FC<LongPressButtonProps> = ({
   });
 
   return (
-    <TouchableOpacity
+    <Pressable
       activeOpacity={0.8}
       style={[styles.button, { backgroundColor }, disabled ? styles.disabled : null, style]}
       onPressIn={disabled || isLoading ? undefined : startProgress}
@@ -86,7 +87,7 @@ const LongPressButton: React.FC<LongPressButtonProps> = ({
       <View style={styles.contentContainer}>{isLoading ? <ActivityIndicator color="white" /> : <Text style={[styles.buttonText, textStyle]}>{title}</Text>}</View>
 
       {pressing && <Animated.View style={[styles.progressBar, { width: progressWidth, backgroundColor: progressColor }]} />}
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 

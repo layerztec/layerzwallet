@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useImperativeHandle, useState, forwardRef } from 'react';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+import Pressable from './Pressable';
 
 import { ThemedText } from '@/components/ThemedText';
 import { LayerzStorage } from '@/src/class/layerz-storage';
@@ -44,7 +45,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenI
   };
 
   return (
-    <TouchableOpacity style={[styles.tokenRow, selected && styles.selectedTokenRow]} onPress={handleTokenPress} activeOpacity={0.7} testID={`token-row-${token.id}`}>
+    <Pressable style={[styles.tokenRow, selected && styles.selectedTokenRow]} onPress={handleTokenPress} activeOpacity={0.7} testID={`token-row-${token.id}`}>
       {/* Token Icon */}
       <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
         {token.logoURI ? (
@@ -64,7 +65,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenI
         </ThemedText>
         <ThemedText style={styles.tokenPrice}>{balance && tokenExchangeRate && tokenExchangeRate > 0 ? '$' + formatFiatBalance(balance, token.decimals, tokenExchangeRate) : null}</ThemedText>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 

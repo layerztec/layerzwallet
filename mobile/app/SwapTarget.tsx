@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import Pressable from '../components/Pressable';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import GradientFormSheet from '@/components/GradientFormSheet';
 import { ThemedText } from '@/components/ThemedText';
@@ -25,10 +26,10 @@ const ListItem = ({ item, onPress, active, first, last }: { item: TargetNetworkI
   const networkImage = getNetworkImageAsset(item.target);
 
   return (
-    <TouchableOpacity style={[styles.item, active && styles.activeItem, first && styles.firstItem, last && styles.lastItem]} onPress={onPress} activeOpacity={0.7} testID={`SwapTarget-${item.target}`}>
+    <Pressable style={[styles.item, active && styles.activeItem, first && styles.firstItem, last && styles.lastItem]} onPress={onPress} activeOpacity={0.7} testID={`SwapTarget-${item.target}`}>
       <View style={styles.networkIcon}>{networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null}</View>
       <ThemedText style={styles.networkName}>{item.name}</ThemedText>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
@@ -68,9 +69,9 @@ export default function SwapTarget() {
         <View style={styles.header}>
           <ThemedText style={styles.title}>Swap to</ThemedText>
         </View>
-        <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+        <Pressable style={styles.closeButton} onPress={handleClose}>
           <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.8)" />
-        </TouchableOpacity>
+        </Pressable>
 
         {/* Target Networks List */}
         <View style={styles.listContainer}>

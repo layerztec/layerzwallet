@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
   View,
   Animated,
   Image,
@@ -16,6 +15,7 @@ import {
   useWindowDimensions,
   Alert,
 } from 'react-native';
+import Pressable from '../../components/Pressable';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -291,7 +291,7 @@ export default function ImportWalletScreen() {
               </KeyboardAvoidingView>
               <Animated.View style={[styles.buttonSection, buttonTransition]}>
                 <Animated.View style={scanButtonTransition}>
-                  <TouchableOpacity
+                  <Pressable
                     style={[styles.scanButton, isLoading && styles.disabledButton]}
                     onPress={async () => {
                       const scanned = await scanQr();
@@ -302,10 +302,10 @@ export default function ImportWalletScreen() {
                     disabled={isLoading}
                   >
                     <Ionicons name="qr-code-outline" size={24} color="rgba(255, 255, 255, 0.9)" />
-                  </TouchableOpacity>
+                  </Pressable>
                 </Animated.View>
 
-                <TouchableOpacity
+                <Pressable
                   style={[styles.button, isLoading || !mnemonic.trim() ? styles.buttonDisabled : null]}
                   onPress={handleImportWallet}
                   disabled={isLoading || !mnemonic.trim()}
@@ -318,7 +318,7 @@ export default function ImportWalletScreen() {
                       Import
                     </ThemedText>
                   )}
-                </TouchableOpacity>
+                </Pressable>
               </Animated.View>
             </Animated.View>
           )}

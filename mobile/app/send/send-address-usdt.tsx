@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import Pressable from '../../components/Pressable';
 import * as bip21 from 'bip21';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 
 import { BalanceUsdt } from '@/components/Balance';
 import GradientScreen from '@/components/GradientScreen';
@@ -83,7 +84,7 @@ const SendAddressUsdt: React.FC = () => {
       }
 
       setContextAddress(address);
-      router.push('/send/send-amount-usdt');
+      router.push({ pathname: '/send/send-amount-usdt' } as any);
     } catch (error: any) {
       setErrorMessage(error.message || 'Failed to validate address');
       setShowError(true);
@@ -105,7 +106,7 @@ const SendAddressUsdt: React.FC = () => {
         <View style={styles.container}>
           <View style={styles.inputSection}>
             <View style={styles.inputContainer}>
-              <TouchableOpacity style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1} testID="send-address-usdt-input">
+              <Pressable style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1} testID="send-address-usdt-input">
                 <ThemedText style={styles.inputLabel}>To</ThemedText>
                 <TextInput
                   ref={inputRef}
@@ -120,10 +121,10 @@ const SendAddressUsdt: React.FC = () => {
                   }}
                   value={localAddress}
                 />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.scanButton} onPress={handleScanQR} testID="send-address-usdt-scan-qr">
+              </Pressable>
+              <Pressable style={styles.scanButton} onPress={handleScanQR} testID="send-address-usdt-scan-qr">
                 <Ionicons name="scan-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
             {showError && errorMessage && (
@@ -136,9 +137,9 @@ const SendAddressUsdt: React.FC = () => {
 
           <BalanceUsdt onSelectToken={handleTokenSelect} selectedToken={token} showTotalBalance={false} />
 
-          <TouchableOpacity style={[styles.continueButton, !canContinue && styles.disabledButton]} onPress={handleContinue} disabled={!canContinue} testID="send-address-usdt-continue">
+          <Pressable style={[styles.continueButton, !canContinue && styles.disabledButton]} onPress={handleContinue} disabled={!canContinue} testID="send-address-usdt-continue">
             <ThemedText style={styles.continueButtonText}>Next</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </GradientScreen>

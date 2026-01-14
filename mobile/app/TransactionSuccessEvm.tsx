@@ -12,7 +12,8 @@ import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import Pressable from '../components/Pressable';
 
 export type TransactionSuccessProps = {
   amount: string; // in sats
@@ -153,16 +154,16 @@ const TransactionSuccessEvm: React.FC = () => {
           <ThemedText style={styles.summaryLabel}>Transaction ID</ThemedText>
           <View style={styles.txIdContainer}>
             <ThemedText style={styles.txIdText}>{transactionId.replace('0x', '').substring(0, 16)}...</ThemedText>
-            <TouchableOpacity onPress={() => copyToClipboard(transactionId)}>
+            <Pressable onPress={() => copyToClipboard(transactionId)}>
               <Ionicons name="copy-outline" size={16} color="#007AFF" />
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </ThemedView>
 
-      <TouchableOpacity style={styles.explorerButton} onPress={openInExplorer}>
+      <Pressable style={styles.explorerButton} onPress={openInExplorer}>
         <ThemedText style={styles.explorerButtonText}>View in Explorer</ThemedText>
-      </TouchableOpacity>
+      </Pressable>
     </ScrollView>
   );
 };

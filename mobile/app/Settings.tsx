@@ -1,8 +1,9 @@
 import * as Application from 'expo-application';
+import Pressable from '../components/Pressable';
 import { useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import React, { useContext, useEffect, useState } from 'react';
-import { Alert, Pressable, SectionList, SectionListData, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, SectionList, SectionListData, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/navigation/ScreenHeader';

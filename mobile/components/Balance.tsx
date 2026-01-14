@@ -3,7 +3,8 @@ import PlatformBlurView from '@/components/PlatformBlurView';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useImperativeHandle, useMemo, useState, forwardRef } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Pressable from './Pressable';
 
 import { OnrampProps } from '@/app/Onramp';
 import { ThemedText } from '@/components/ThemedText';
@@ -64,9 +65,9 @@ const Balance = forwardRef<{ refresh: () => void }>((props, ref) => {
       </View>
 
       {canBuyWithFiat && (
-        <TouchableOpacity style={styles.buyButton} onPress={handleBuyClick} activeOpacity={0.8}>
+        <Pressable style={styles.buyButton} onPress={handleBuyClick} activeOpacity={0.8}>
           <ThemedText style={styles.buyButtonText}>Fund</ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       )}
     </View>
   );
@@ -183,7 +184,7 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
       const ticker = getTickerByNetwork(network);
 
       return (
-        <TouchableOpacity style={[styles.listBalanceRow, selectedNetwork === network && styles.selectedListBalanceRow]} key={network} onPress={() => onSelectNetwork(network)}>
+        <Pressable style={[styles.listBalanceRow, selectedNetwork === network && styles.selectedListBalanceRow]} key={network} onPress={() => onSelectNetwork(network)}>
           <View style={styles.listBalanceRowLabel}>
             <View style={styles.networkIcon}>{networkIconContent}</View>
             <ThemedText style={styles.listBalanceLabel}>{capitalizeFirstLetter(network)}</ThemedText>
@@ -195,7 +196,7 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
             </ThemedText>
             <ThemedText style={styles.listBalanceFiat}>{formattedFiatBalance}</ThemedText>
           </View>
-        </TouchableOpacity>
+        </Pressable>
       );
     });
   }, [network, sparkBalance, liquidBalance, sparkExchangeRate, liquidExchangeRate, arkBalance, arkExchangeRate, selectedNetwork, onSelectNetwork]);
@@ -252,7 +253,7 @@ const TokenRow = ({
     setTokenBalances((prev) => ({ ...prev, [token.id]: balance }));
   }, [balance, token.id, setTokenBalances]);
 
-  const Container = onSelect ? TouchableOpacity : View;
+  const Container = onSelect ? Pressable : View;
   const containerProps = onSelect ? { onPress: () => onSelect(token.id, network), activeOpacity: 0.7 } : {};
 
   return (

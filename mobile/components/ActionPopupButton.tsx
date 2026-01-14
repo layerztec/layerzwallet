@@ -1,5 +1,5 @@
 import React, { cloneElement, ReactElement } from 'react';
-import { TouchableOpacityProps } from 'react-native';
+import type { PressableProps } from './Pressable';
 import { useRouter } from 'expo-router';
 import { useActionPopup } from '@/contexts/ActionPopupContext';
 
@@ -9,7 +9,7 @@ interface Action {
 }
 
 interface ActionPopupButtonProps {
-  children: ReactElement<TouchableOpacityProps>;
+  children: ReactElement<PressableProps>;
   actions: Action[];
   title?: string;
 }
