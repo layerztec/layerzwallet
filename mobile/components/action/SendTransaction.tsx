@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import Slider from '@react-native-community/slider';
+import Pressable from '../Pressable';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
@@ -203,7 +204,7 @@ export function SendTransaction(args: SendTransactionArgs) {
     if (bytes) {
       return (
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
+          <Pressable
             style={[styles.button, styles.secondaryButton]}
             onPress={() => {
               setBytes('');
@@ -213,22 +214,22 @@ export function SendTransaction(args: SendTransactionArgs) {
             activeOpacity={0.8}
           >
             <ThemedText style={[styles.buttonText, styles.secondaryButtonText]}>Cancel</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={broadcastTransaction} activeOpacity={0.8}>
+          </Pressable>
+          <Pressable style={[styles.button, styles.primaryButton]} onPress={broadcastTransaction} activeOpacity={0.8}>
             <ThemedText style={[styles.buttonText, styles.primaryButtonText]}>Confirm & Send</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       );
     }
 
     return (
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={[styles.button, styles.secondaryButton, isLoading && styles.disabledButton]} onPress={onDenyClick} disabled={isLoading} activeOpacity={0.8}>
+        <Pressable style={[styles.button, styles.secondaryButton, isLoading && styles.disabledButton]} onPress={onDenyClick} disabled={isLoading} activeOpacity={0.8}>
           <ThemedText style={[styles.buttonText, styles.secondaryButtonText, isLoading && styles.disabledButtonText]}>{isLoading ? 'Processing...' : 'Deny'}</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, styles.primaryButton, isLoading && styles.disabledButton]} onPress={onAllowClick} disabled={isLoading} activeOpacity={0.8}>
+        </Pressable>
+        <Pressable style={[styles.button, styles.primaryButton, isLoading && styles.disabledButton]} onPress={onAllowClick} disabled={isLoading} activeOpacity={0.8}>
           <ThemedText style={[styles.buttonText, styles.primaryButtonText, isLoading && styles.disabledButtonText]}>{isLoading ? 'Processing...' : 'Allow'}</ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   };

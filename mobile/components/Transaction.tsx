@@ -1,7 +1,8 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useMemo, useState, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
+import Pressable from './Pressable';
 
 import { ThemedText } from '@/components/ThemedText';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
@@ -171,7 +172,7 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
   }, [transaction.tokenTransfers, transaction.direction]);
 
   return (
-    <TouchableOpacity style={styles.transactionItem} onPress={onPress}>
+    <Pressable style={styles.transactionItem} onPress={onPress}>
       <View style={styles.transactionIcon}>{transactionIcon}</View>
 
       <View style={styles.transactionDetails}>
@@ -184,7 +185,7 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
         <ThemedText style={styles.transactionAmount}>{formattedTransactionAmount}</ThemedText>
         {formattedTransactionUsdAmount && <ThemedText style={styles.transactionUsd}>{formattedTransactionUsdAmount}</ThemedText>}
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

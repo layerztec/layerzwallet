@@ -4,7 +4,8 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Pressable, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, ScrollView, Share, StyleSheet, View } from 'react-native';
+import Pressable from '../components/Pressable';
 import QRCode from 'react-native-qrcode-svg';
 
 import GradientScreen from '@/components/GradientScreen';
@@ -354,9 +355,9 @@ export default function ReceiveScreen() {
           </View>
 
           <View style={styles.actionButtons}>
-            <TouchableOpacity testID="ShareButton" onPress={handleShare} style={styles.shareButton} disabled={!address}>
+            <Pressable testID="ShareButton" onPress={handleShare} style={styles.shareButton} disabled={!address}>
               <ThemedText style={styles.shareButtonText}>Share...</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </ScrollView>

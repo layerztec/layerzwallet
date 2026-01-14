@@ -1,8 +1,9 @@
-import { Alert, StyleSheet, TouchableOpacity, View, SectionList, Pressable } from 'react-native';
+import { Alert, PressableStateCallbackType, SectionList, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Bugsnag from '@bugsnag/expo';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Pressable from '../components/Pressable';
 
 import { ThemedText } from '@/components/ThemedText';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
@@ -275,9 +276,9 @@ export default function TabThreeScreen() {
       case 'selfTest':
         return (
           <View style={styles.settingsGroup}>
-            <TouchableOpacity style={[styles.testButton, testState === 'running' && styles.testButtonDisabled]} onPress={handleSelfTest} disabled={testState === 'running'} testID="RunSelfTestButton">
+            <Pressable style={[styles.testButton, testState === 'running' && styles.testButtonDisabled]} onPress={handleSelfTest} disabled={testState === 'running'} testID="RunSelfTestButton">
               <ThemedText style={styles.testButtonText}>{testState === 'running' ? 'Running...' : 'Run Self Test'}</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
             {testState === 'ok' && (
               <View style={styles.testResult}>
                 <ThemedText style={styles.testResultSuccess} testID="SelfTestSuccess">
@@ -301,9 +302,9 @@ export default function TabThreeScreen() {
               <ThemedText style={styles.accountText}>Current Pocket: {accountNumber}</ThemedText>
               <View style={styles.accountButtonContainer}>
                 {[0, 1, 2, 3, 4].map((num) => (
-                  <TouchableOpacity key={num} style={[styles.accountButton, accountNumber === num && styles.accountButtonActive]} onPress={() => handleAccountChange(num)}>
+                  <Pressable key={num} style={[styles.accountButton, accountNumber === num && styles.accountButtonActive]} onPress={() => handleAccountChange(num)}>
                     <ThemedText style={[styles.accountButtonText, accountNumber === num && styles.accountButtonTextActive]}>{num}</ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
             </View>
@@ -313,11 +314,11 @@ export default function TabThreeScreen() {
       case 'bitcoinXpub':
         return (
           <View style={styles.settingsGroup}>
-            <TouchableOpacity style={styles.xpubContainer} onPress={handleCopyXpub} disabled={!btcXpub} testID="XpubCopyButton">
+            <Pressable style={styles.xpubContainer} onPress={handleCopyXpub} disabled={!btcXpub} testID="XpubCopyButton">
               <ThemedText style={styles.xpubText} selectable testID="XpubText" numberOfLines={2}>
                 {btcXpub || 'Not available'}
               </ThemedText>
-            </TouchableOpacity>
+            </Pressable>
             {!!btcXpub && <ThemedText style={styles.xpubHint}>Tap to copy</ThemedText>}
           </View>
         );
@@ -339,7 +340,7 @@ export default function TabThreeScreen() {
                       </ThemedText>
                       <View style={styles.settingOptionsContainer} testID={`SettingOptionsContainer-${key}`}>
                         {config.options.map((option) => (
-                          <TouchableOpacity
+                          <Pressable
                             key={option}
                             style={[styles.settingOption, currentValue === option && styles.settingOptionActive]}
                             onPress={() => handleSettingChange(key, option)}
@@ -348,7 +349,7 @@ export default function TabThreeScreen() {
                             <ThemedText style={[styles.settingOptionText, currentValue === option && styles.settingOptionTextActive]} testID={`SettingOptionText-${key}-${option}`}>
                               {formatOptionName(option)}
                             </ThemedText>
-                          </TouchableOpacity>
+                          </Pressable>
                         ))}
                       </View>
                     </View>
@@ -366,7 +367,7 @@ export default function TabThreeScreen() {
             {deviceId && (
               <>
                 <View style={styles.divider} />
-                <Pressable style={({ pressed }) => [styles.deviceIdRow, pressed && styles.deviceIdRowPressed]} onPress={handleDeviceIdPress} testID="DeviceIdButton">
+                <Pressable style={({ pressed }: PressableStateCallbackType) => [styles.deviceIdRow, pressed && styles.deviceIdRowPressed]} onPress={handleDeviceIdPress} testID="DeviceIdButton">
                   <ThemedText style={styles.deviceIdText} numberOfLines={2}>
                     Device ID: {deviceId}
                   </ThemedText>

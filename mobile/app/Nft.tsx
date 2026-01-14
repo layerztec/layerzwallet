@@ -1,5 +1,6 @@
 import React, { useContext, useMemo } from 'react';
-import { Linking, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Pressable from '../components/Pressable';
+import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -105,9 +106,9 @@ export default function Nft() {
             <View style={styles.detailRow}>
               <ThemedText style={styles.detailLabel}>Contract</ThemedText>
               <View style={styles.detailValueWrap}>
-                <TouchableOpacity onPress={() => handleCopy(nft.contractAddress)} accessibilityLabel="Copy contract address">
+                <Pressable onPress={() => handleCopy(nft.contractAddress)} accessibilityLabel="Copy contract address">
                   <MaterialIcons name="content-copy" size={16} color="rgba(255, 255, 255, 0.8)" />
-                </TouchableOpacity>
+                </Pressable>
                 <ThemedText style={styles.detailValue} numberOfLines={1} ellipsizeMode="middle">
                   {truncateMiddle(nft.contractAddress.split('.')[0], 5, 4)}
                 </ThemedText>
@@ -117,9 +118,9 @@ export default function Nft() {
             <View style={styles.detailRow}>
               <ThemedText style={styles.detailLabel}>Token ID</ThemedText>
               <View style={styles.detailValueWrap}>
-                <TouchableOpacity onPress={() => handleCopy(nft.tokenId)} accessibilityLabel="Copy token id">
+                <Pressable onPress={() => handleCopy(nft.tokenId)} accessibilityLabel="Copy token id">
                   <MaterialIcons name="content-copy" size={16} color="rgba(255, 255, 255, 0.8)" />
-                </TouchableOpacity>
+                </Pressable>
                 <ThemedText style={styles.detailValue}>{nft.tokenId}</ThemedText>
               </View>
             </View>
@@ -131,18 +132,18 @@ export default function Nft() {
 
         <View style={styles.bottomButtonWrap}>
           <View style={styles.bottomButtonsRow}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleSend} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="Send NFT">
+            <Pressable style={styles.actionButton} onPress={handleSend} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="Send NFT">
               <MaterialIcons name="call-made" size={20} color="rgba(255, 255, 255, 0.95)" />
               <ThemedText style={styles.actionButtonText} numberOfLines={1}>
                 Send
               </ThemedText>
-            </TouchableOpacity>
+            </Pressable>
 
-            <TouchableOpacity style={styles.actionButton} onPress={handleOpenInExplorer} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="View NFT on explorer">
+            <Pressable style={styles.actionButton} onPress={handleOpenInExplorer} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="View NFT on explorer">
               <ThemedText style={styles.actionButtonText} numberOfLines={1}>
                 View on explorer
               </ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </View>

@@ -1,5 +1,6 @@
 import React, { useCallback, useContext, useMemo } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Pressable from '../components/Pressable';
+import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 
 import GradientScreen from '@/components/GradientScreen';
@@ -25,9 +26,9 @@ const NftTile = ({ nft, onPress }: { nft: NftInfo; onPress: (nft: NftInfo) => vo
   const iconColor = getTokenIconColor(nft?.name);
 
   return (
-    <TouchableOpacity style={styles.tileOuter} onPress={() => onPress(nft)} activeOpacity={0.85} accessibilityLabel="Open NFT">
+    <Pressable style={styles.tileOuter} onPress={() => onPress(nft)} activeOpacity={0.85} accessibilityLabel="Open NFT">
       <View style={[styles.tileInner, { backgroundColor: iconColor }]}>{nft.image ? <NftImage source={{ uri: nft.image }} style={styles.image} resizeMode="cover" /> : null}</View>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 

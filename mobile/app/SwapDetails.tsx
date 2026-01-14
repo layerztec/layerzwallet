@@ -1,5 +1,6 @@
 import React, { useContext, useMemo } from 'react';
-import { Linking, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Pressable from '../components/Pressable';
+import { Linking, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -130,9 +131,9 @@ export default function SwapDetails() {
           <View style={styles.detailRow}>
             <ThemedText style={styles.detailLabel}>Swap ID</ThemedText>
             <View style={styles.detailValueWrap}>
-              <TouchableOpacity onPress={() => handleCopy(swap.id)}>
+              <Pressable onPress={() => handleCopy(swap.id)}>
                 <MaterialIcons name="content-copy" size={16} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
+              </Pressable>
               <View style={styles.detailValueContainer}>
                 <ThemedText style={[styles.detailValue]} numberOfLines={1} ellipsizeMode="middle">
                   {swap.id}
@@ -175,15 +176,15 @@ export default function SwapDetails() {
         <View style={styles.actionButtonsContainer}>
           {/* Claim button for claimable Spark swaps */}
           {showClaimButton && (
-            <TouchableOpacity style={styles.primaryButton} onPress={handleClaim}>
+            <Pressable style={styles.primaryButton} onPress={handleClaim}>
               <ThemedText style={styles.primaryButtonText}>Claim Swap</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           )}
 
           {/* Open in explorer */}
-          <TouchableOpacity disabled={!swap.explorerUrl} style={[styles.explorerButton, !swap.explorerUrl && { opacity: 0.6 }]} onPress={handleOpenInExplorer}>
+          <Pressable disabled={!swap.explorerUrl} style={[styles.explorerButton, !swap.explorerUrl && { opacity: 0.6 }]} onPress={handleOpenInExplorer}>
             <ThemedText style={styles.explorerText}>Open in explorer</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
     </GradientFormSheet>

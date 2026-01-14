@@ -2,7 +2,8 @@ import { Denomination } from '@/app/send/_layout';
 import { Ionicons } from '@expo/vector-icons';
 import BigNumber from 'bignumber.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
+import Pressable from './Pressable';
 
 import { ThemedText } from './ThemedText';
 
@@ -151,13 +152,13 @@ export default function AmountInput({
   }, [balance, denomination, exchangeRateNumber, ticker]);
 
   return (
-    <TouchableOpacity style={styles.container} onPress={handleContainerPress} activeOpacity={1} testID={testID}>
+    <Pressable style={styles.container} onPress={handleContainerPress} activeOpacity={1} testID={testID}>
       {/* Max Button */}
       {onMaxPress && (
         <View style={styles.maxButtonContainer}>
-          <TouchableOpacity style={styles.maxButton} onPress={onMaxPress}>
+          <Pressable style={styles.maxButton} onPress={onMaxPress}>
             <ThemedText style={styles.maxButtonText}>max</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       )}
 
@@ -180,25 +181,20 @@ export default function AmountInput({
 
       {/* Bottom Row: Secondary Value and Balance */}
       <View style={styles.bottomRow}>
-        <TouchableOpacity
-          style={styles.usdContainer}
-          onPress={canSwitchDenomination ? handleDenominationSwitch : undefined}
-          disabled={!canSwitchDenomination}
-          activeOpacity={canSwitchDenomination ? 0.7 : 1}
-        >
+        <Pressable style={styles.usdContainer} onPress={canSwitchDenomination ? handleDenominationSwitch : undefined} disabled={!canSwitchDenomination} activeOpacity={canSwitchDenomination ? 0.7 : 1}>
           <ThemedText style={[styles.usdText, !canSwitchDenomination && styles.disabledText]}>{secondaryValue}</ThemedText>
           {canSwitchDenomination && <Ionicons name="swap-vertical" size={16} color="rgba(255, 255, 255, 0.5)" style={styles.swapIcon} />}
-        </TouchableOpacity>
+        </Pressable>
 
         {onBalancePress ? (
-          <TouchableOpacity onPress={onBalancePress} activeOpacity={0.7}>
+          <Pressable onPress={onBalancePress} activeOpacity={0.7}>
             <ThemedText style={styles.balanceText}>Balance {formattedBalance}</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         ) : (
           <ThemedText style={styles.balanceText}>Balance {formattedBalance}</ThemedText>
         )}
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

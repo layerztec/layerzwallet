@@ -1,10 +1,11 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect, useContext } from 'react';
-import { View, StyleSheet, Dimensions, Text, Image, TouchableOpacity, FlatList, Animated } from 'react-native';
+import { View, StyleSheet, Dimensions, Text, Image, FlatList, Animated } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import Pressable from './Pressable';
 import { getAvailableNetworks, NETWORK_BITCOIN, NETWORK_USDT, Networks } from '@shared/types/networks';
 import { getNetworkGradient, gradients as sharedGradients } from '@shared/constants/Colors';
 import { getIsTestnet, getTickerByNetwork, getDecimalsByNetwork } from '@shared/models/network-getters';
@@ -142,14 +143,12 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
     <View style={styles.itemContainer}>
       <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
         <LinearGradient colors={gradientColors as [string, string]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.gradientBackground} />
-        <TouchableOpacity
+        <Pressable
           onPress={handlePress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           style={styles.touchableCard}
           activeOpacity={1}
-          delayPressIn={50}
-          delayPressOut={50}
           testID={displayCard.networkId ? `network-${displayCard.networkId}` : `card-${displayCard.name.toLowerCase()}`}
         >
           <View style={styles.topRow}>
@@ -191,7 +190,7 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
               <Text style={styles.cardUsdValue}>{displayCard.usdValue || ''}</Text>
             </View>
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </Animated.View>
     </View>
   );

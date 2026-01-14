@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import Pressable from '../../components/Pressable';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import * as bolt11 from 'bolt11';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 
 import AmountInput from '@/components/AmountInput';
 import GradientScreen from '@/components/GradientScreen';
@@ -199,7 +200,7 @@ const SendAmountLightning: React.FC = () => {
             )}
           </View>
 
-          <TouchableOpacity style={[styles.continueButton, buttonDisabled && styles.disabledButton]} onPress={handleContinue} disabled={buttonDisabled}>
+          <Pressable style={[styles.continueButton, buttonDisabled && styles.disabledButton]} onPress={handleContinue} disabled={buttonDisabled}>
             {isPreparing ? (
               <>
                 <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" />
@@ -208,7 +209,7 @@ const SendAmountLightning: React.FC = () => {
             ) : (
               <ThemedText style={styles.continueButtonText}>Next</ThemedText>
             )}
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </GradientScreen>

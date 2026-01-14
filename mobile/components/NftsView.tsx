@@ -1,6 +1,7 @@
 import React, { useCallback, useContext, useEffect, useImperativeHandle, useMemo, useState, forwardRef } from 'react';
-import { StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
+import Pressable from './Pressable';
 
 import { ThemedText } from '@/components/ThemedText';
 import NftImage from '@/components/NftImage';
@@ -24,7 +25,7 @@ const NftPreviewItem: React.FC<{
   const iconColor = getTokenIconColor(nft?.name);
 
   return (
-    <TouchableOpacity
+    <Pressable
       style={[styles.nftPreviewItem, style, selected && styles.selectedNftPreviewItem]}
       onPress={() => onPress(nft)}
       activeOpacity={0.8}
@@ -38,7 +39,7 @@ const NftPreviewItem: React.FC<{
           <ThemedText style={styles.nftPreviewFallbackText}>{nft?.name?.charAt(0) || '?'}</ThemedText>
         )}
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
@@ -97,16 +98,9 @@ const NftsView = forwardRef<{ refresh: () => void }, { selectedNft?: string; onV
       {error ? <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText> : null}
 
       {hasMoreThanPreview && (
-        <TouchableOpacity
-          style={styles.viewGalleryButton}
-          onPress={handleViewGalleryPress}
-          activeOpacity={0.85}
-          testID="view-gallery-button"
-          accessibilityRole="button"
-          accessibilityLabel="View NFT Gallery"
-        >
+        <Pressable style={styles.viewGalleryButton} onPress={handleViewGalleryPress} activeOpacity={0.85} testID="view-gallery-button" accessibilityRole="button" accessibilityLabel="View NFT Gallery">
           <ThemedText style={styles.viewGalleryButtonText}>View Gallery</ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       )}
     </View>
   );

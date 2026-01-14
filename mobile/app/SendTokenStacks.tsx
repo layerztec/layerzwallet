@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import Pressable from '../components/Pressable';
+import { View, Text, TextInput, StyleSheet, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import assert from 'assert';
@@ -209,9 +210,9 @@ export default function SendTokenStacksScreen() {
                       autoCorrect={false}
                       editable={step === SendTokenStacksStep.Init}
                     />
-                    <TouchableOpacity style={styles.scanButton} onPress={handleScanQR} activeOpacity={0.7}>
+                    <Pressable style={styles.scanButton} onPress={handleScanQR} activeOpacity={0.7}>
                       <Ionicons name="scan-outline" size={20} color="rgba(255, 255, 255, 0.8)" />
-                    </TouchableOpacity>
+                    </Pressable>
                   </View>
                 </View>
 
@@ -219,9 +220,9 @@ export default function SendTokenStacksScreen() {
                 <View style={styles.section}>
                   <View style={styles.amountHeader}>
                     <Text style={[styles.label, { color: textColor }]}>Amount</Text>
-                    <TouchableOpacity onPress={handleMaxAmount} activeOpacity={0.7}>
+                    <Pressable onPress={handleMaxAmount} activeOpacity={0.7}>
                       <Text style={[styles.maxButton, { color: primaryColor }]}>MAX</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   </View>
                   <TextInput
                     style={[
@@ -297,10 +298,10 @@ export default function SendTokenStacksScreen() {
             {/* Action Buttons */}
             <View style={styles.buttonContainer}>
               {step === SendTokenStacksStep.Init && (
-                <TouchableOpacity style={styles.sendButton} onPress={prepareTransaction} activeOpacity={0.7} testID="send-screen-send-button">
+                <Pressable style={styles.sendButton} onPress={prepareTransaction} activeOpacity={0.7} testID="send-screen-send-button">
                   <Ionicons name="send" size={20} color="#FFFFFF" style={styles.sendIcon} />
                   <Text style={styles.sendButtonText}>Send</Text>
-                </TouchableOpacity>
+                </Pressable>
               )}
 
               {step === SendTokenStacksStep.Prepared && (
@@ -312,9 +313,9 @@ export default function SendTokenStacksScreen() {
                     title="Hold to confirm send"
                     progressColor="rgba(255, 255, 255, 0.3)"
                   />
-                  <TouchableOpacity style={styles.cancelButton} onPress={resetToInit} activeOpacity={0.7}>
+                  <Pressable style={styles.cancelButton} onPress={resetToInit} activeOpacity={0.7}>
                     <Text style={[styles.cancelButtonText, { color: textColor }]}>Cancel</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               )}
             </View>
@@ -327,9 +328,9 @@ export default function SendTokenStacksScreen() {
                 </View>
                 <Text style={[styles.successTitle, { color: textColor }]}>Transaction Sent!</Text>
                 <Text style={[styles.successMessage, { color: textColor, opacity: 0.8 }]}>Your token transfer was successful.</Text>
-                <TouchableOpacity style={[styles.sendAnotherButton, { backgroundColor: successColor }]} onPress={resetToInit} activeOpacity={0.7}>
+                <Pressable style={[styles.sendAnotherButton, { backgroundColor: successColor }]} onPress={resetToInit} activeOpacity={0.7}>
                   <Text style={styles.sendAnotherButtonText}>Back to Wallet</Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             )}
           </>

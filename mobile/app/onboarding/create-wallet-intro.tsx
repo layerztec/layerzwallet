@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Animated, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Image, Animated, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import { ThemedText } from '@/components/ThemedText';
@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHorizontalSpringTransition, useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { sleep } from '@shared/modules/sleep';
+import Pressable from '../../components/Pressable';
 
 export default function CreateWalletIntroScreen() {
   const router = useRouter();
@@ -77,7 +78,7 @@ export default function CreateWalletIntroScreen() {
 
           <View style={styles.buttonSection}>
             <Animated.View style={[styles.buttonContainer, buttonTransition]}>
-              <TouchableOpacity style={[styles.button, isLoading && styles.buttonDisabled]} onPress={handleCreateWallet} disabled={isLoading}>
+              <Pressable style={[styles.button, isLoading && styles.buttonDisabled]} onPress={handleCreateWallet} disabled={isLoading}>
                 <View style={styles.view}>
                   {isLoading ? (
                     <>
@@ -92,7 +93,7 @@ export default function CreateWalletIntroScreen() {
                     </ThemedText>
                   )}
                 </View>
-              </TouchableOpacity>
+              </Pressable>
             </Animated.View>
           </View>
         </SafeAreaView>

@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as bip21 from 'bip21';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
+import Pressable from '../../components/Pressable';
 
 import GradientScreen from '@/components/GradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
@@ -90,7 +91,7 @@ const SendAddress: React.FC = () => {
         <View style={styles.container}>
           <View style={styles.inputSection}>
             <View style={styles.inputContainer}>
-              <TouchableOpacity style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1} testID="send-address-input">
+              <Pressable style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1} testID="send-address-input">
                 <ThemedText style={styles.inputLabel}>To</ThemedText>
                 <TextInput
                   ref={inputRef}
@@ -102,10 +103,10 @@ const SendAddress: React.FC = () => {
                   onChangeText={setLocalAddress}
                   value={localAddress}
                 />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.scanButton} onPress={handleScanQR}>
+              </Pressable>
+              <Pressable style={styles.scanButton} onPress={handleScanQR}>
                 <Ionicons name="scan-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
             {errorMessage && (
@@ -118,9 +119,9 @@ const SendAddress: React.FC = () => {
 
           <TokensView onTokenPress={handleTokenPress} selectedToken={token} />
 
-          <TouchableOpacity style={[styles.continueButton, !localAddress.trim() && styles.disabledButton]} onPress={handleContinue} disabled={!localAddress.trim()} testID="send-address-next-button">
+          <Pressable style={[styles.continueButton, !localAddress.trim() && styles.disabledButton]} onPress={handleContinue} disabled={!localAddress.trim()} testID="send-address-next-button">
             <ThemedText style={styles.continueButtonText}>Next</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </GradientScreen>

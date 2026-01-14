@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import Pressable from '../components/Pressable';
 import * as Clipboard from 'expo-clipboard';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { Alert, ScrollView, Share, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, Share, StyleSheet, TextInput, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import GradientScreen from '@/components/GradientScreen';
@@ -260,14 +261,14 @@ export default function ReceiveLightningScreen() {
 
                 {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : <ThemedText style={styles.hintText}>Enter the amount you want to receive</ThemedText>}
 
-                <TouchableOpacity
+                <Pressable
                   style={[styles.generateButton, (isGenerating || !isWalletInitialized) && styles.disabledButton]}
                   onPress={generateInvoice}
                   disabled={isGenerating || !isWalletInitialized}
                   testID="GenerateButton"
                 >
                   <ThemedText style={styles.generateButtonText}>{isGenerating ? 'Generating...' : !isWalletInitialized ? 'Initializing...' : 'Generate Invoice'}</ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               </>
             ) : (
               <>
@@ -283,24 +284,24 @@ export default function ReceiveLightningScreen() {
                 </View>
 
                 <View style={styles.addressContainer}>
-                  <TouchableOpacity testID="CopyInvoiceButton" onPress={handleCopyInvoice} style={styles.addressTextContainer}>
+                  <Pressable testID="CopyInvoiceButton" onPress={handleCopyInvoice} style={styles.addressTextContainer}>
                     <ThemedText testID="InvoiceText" style={styles.addressText} numberOfLines={2} ellipsizeMode="middle">
                       {invoice}
                     </ThemedText>
                     <Ionicons testID="CopyIcon" name="copy-outline" size={20} color="rgba(255, 255, 255, 0.8)" style={styles.copyIcon} />
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
 
                 <View style={styles.actionButtons}>
-                  <TouchableOpacity style={styles.shareButton} onPress={handleShare} testID="LNShareButton">
+                  <Pressable style={styles.shareButton} onPress={handleShare} testID="LNShareButton">
                     <Ionicons name="share-outline" size={28} color="rgba(255, 255, 255, 0.8)" />
                     <ThemedText style={styles.shareButtonText}>Share invoice</ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
 
-                  <TouchableOpacity style={styles.copyButton} onPress={handleNewInvoice} testID="NewInvoiceButton">
+                  <Pressable style={styles.copyButton} onPress={handleNewInvoice} testID="NewInvoiceButton">
                     <Ionicons name="refresh" size={22} color="rgba(255, 255, 255, 0.8)" />
                     <ThemedText style={styles.copyButtonText}>New invoice</ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               </>
             )}

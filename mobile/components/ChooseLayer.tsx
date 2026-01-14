@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Pressable from './Pressable';
 
 import { ThemedText } from '@/components/ThemedText';
 import { getNetworkGradient } from '@shared/constants/Colors';
@@ -31,7 +32,7 @@ const ChooseLayer: React.FC<ChooseLayerProps> = ({ selectedLayer, onSelectLayer,
           const ticker = getTickerByNetwork(layer);
 
           return (
-            <TouchableOpacity key={layer} style={[styles.layerCard, isSelected && styles.selectedLayerCard]} onPress={() => onSelectLayer(layer)} activeOpacity={0.8}>
+            <Pressable key={layer} style={[styles.layerCard, isSelected && styles.selectedLayerCard]} onPress={() => onSelectLayer(layer)} activeOpacity={0.8}>
               <View style={[styles.layerIconContainer, { backgroundColor: gradientColors[0] }]}>
                 {networkImage ? <Image source={networkImage} style={styles.layerIcon} contentFit="contain" /> : null}
               </View>
@@ -42,7 +43,7 @@ const ChooseLayer: React.FC<ChooseLayerProps> = ({ selectedLayer, onSelectLayer,
                   <ThemedText style={styles.checkmark}>✓</ThemedText>
                 </View>
               )}
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </View>

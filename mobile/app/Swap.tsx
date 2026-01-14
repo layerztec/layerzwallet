@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import Pressable from '../components/Pressable';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 
 import AmountInput from '@/components/AmountInput';
 import Button from '@/components/Button';
@@ -164,9 +165,9 @@ export default function Swap() {
         {/* Header */}
         <View style={styles.header}>
           <ThemedText style={styles.title}>Transfer</ThemedText>
-          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+          <Pressable style={styles.closeButton} onPress={handleClose}>
             <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.8)" />
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         {/* From Token Input */}
@@ -191,10 +192,10 @@ export default function Swap() {
           <ThemedText style={styles.toLabel} testID="ToLabel">
             To
           </ThemedText>
-          <TouchableOpacity style={styles.targetButton} onPress={handleToTokenSelect} testID="ToNetworkButton">
+          <Pressable style={styles.targetButton} onPress={handleToTokenSelect} testID="ToNetworkButton">
             <ThemedText style={styles.targetButtonText}>{option ? targetName : 'Select target network'}</ThemedText>
             <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.6)" />
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         {/* Error Display */}
