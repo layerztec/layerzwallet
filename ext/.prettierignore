@@ -1,3 +1,14 @@
 # Ignore artifacts:
 build
 coverage
+
+# file from BW, so it would be easier to sync in future changes
+../shared/class/wallets/abstract-hd-electrum-wallet.ts
+../shared/class/wallets/abstract-hd-wallet.ts
+../shared/class/wallets/abstract-wallet.ts
+../shared/class/wallets/legacy-wallet.ts
+../shared/class/wallets/segwit-bech32-wallet.ts
+../shared/class/wallets/segwit-p2sh-wallet.ts
+../shared/class/wallets/taproot-wallet.ts
+../shared/class/wallets/types.ts
+../shared/class/wallets/watch-only-wallet.ts

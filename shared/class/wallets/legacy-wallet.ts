@@ -9,12 +9,12 @@ import coinSelect, { CoinSelectOutput, CoinSelectReturnInput, CoinSelectTarget }
 import coinSelectSplit from 'coinselect/split';
 import { ECPairAPI, ECPairFactory, Signer } from 'ecpair';
 
-import * as BlueElectrum from '../../blue_modules/BlueElectrum';
 import ecc from '@bitcoinerlab/secp256k1';
-import { hexToUint8Array, concatUint8Arrays } from '../../modules/uint8array-extras';
+import * as BlueElectrum from '../../blue_modules/BlueElectrum';
+import { concatUint8Arrays, hexToUint8Array } from '../../modules/uint8array-extras';
 import { AbstractWallet } from './abstract-wallet';
 import { CreateTransactionResult, CreateTransactionTarget, CreateTransactionUtxo, Transaction, Utxo } from './types';
-import { ICsprng } from '../../types/ICsprng';
+
 const ECPair: ECPairAPI = ECPairFactory(ecc);
 bitcoin.initEccLib(ecc);
 
@@ -30,8 +30,24 @@ export class LegacyWallet extends AbstractWallet {
   // @ts-ignore: override
   public readonly typeReadable = LegacyWallet.typeReadable;
 
-  _txs_by_external_index: Transaction[] = [];
-  _txs_by_internal_index: Transaction[] = [];
+  _txs_by_external_index: Record<number, Transaction[]> = {};
+  _txs_by_internal_index: Record<number, Transaction[]> = {};
+
+  static isAddressValid(address: string): boolean {
+    try {
+      bitcoin.address.toOutputScript(address);
+
+      if (!address.toLowerCase().startsWith('bc1')) return true;
+      const decoded = bitcoin.address.fromBech32(address);
+      if (decoded.version === 0) return true;
+      if (decoded.version === 1 && decoded.data.length !== 32) return false;
+      if (decoded.version === 1 && !ecc.isPoint(Buffer.concat([Buffer.from([2]), decoded.data]))) return false;
+      if (decoded.version > 1) return false;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 
   /**
    * Simple function which says that we havent tried to fetch balance
@@ -61,7 +77,7 @@ export class LegacyWallet extends AbstractWallet {
     return false;
   }
 
-  async generate(csprng: ICsprng) {
+  async generate(): Promise<void> {
     throw new Error('Not implemented');
   }
 
@@ -217,9 +233,10 @@ export class LegacyWallet extends AbstractWallet {
 
     // got all utxos we ever had. lets filter out the ones that are spent:
     const ret = [];
+    const txs = this.getTransactions();
     for (const utxo of utxos) {
       let spent = false;
-      for (const tx of this.getTransactions()) {
+      for (const tx of txs) {
         for (const input of tx.inputs) {
           if (input.txid === utxo.txid && input.vout === utxo.vout) spent = true;
           // utxo we got previously was actually spent right here ^^
@@ -316,6 +333,7 @@ export class LegacyWallet extends AbstractWallet {
             ...txRest,
             inputs: [...vin2],
             outputs: [...vout],
+            timestamp: tx.blocktime || tx.time || Math.floor(+new Date() / 1000) - 30 /* unconfirmed */,
           };
 
           _txsByExternalIndex.push(clonedTx);
@@ -329,6 +347,7 @@ export class LegacyWallet extends AbstractWallet {
             ...txRest,
             inputs: [...vin],
             outputs: [...vout2],
+            timestamp: tx.blocktime || tx.time || Math.floor(+new Date() / 1000) - 30 /* unconfirmed */,
           };
 
           _txsByExternalIndex.push(clonedTx);
@@ -336,7 +355,7 @@ export class LegacyWallet extends AbstractWallet {
       }
     }
 
-    this._txs_by_external_index = _txsByExternalIndex;
+    this._txs_by_external_index = { 0: _txsByExternalIndex };
     this._lastTxFetch = +new Date();
   }
 
@@ -372,7 +391,43 @@ export class LegacyWallet extends AbstractWallet {
       algo = coinSelectSplit;
     }
 
-    const { inputs, outputs, fee } = algo(utxos, targets as CoinSelectTarget[], feeRate);
+    const _utxos = JSON.parse(JSON.stringify(utxos)) as CreateTransactionUtxo[];
+    const _targets = JSON.parse(JSON.stringify(targets)) as CreateTransactionTarget[];
+
+    // compensating for coinselect inability to deal with segwit inputs, and overriding script length for proper vbytes calculation
+    for (const u of _utxos) {
+      if (u.script?.length) {
+        continue;
+      }
+
+      // counting the number of vbytes for each script type:
+      if (this.segwitType === 'p2wpkh') {
+        // 72 (high R low S signature) + 1 + 33 (comp pubkey) + 1 = 107 / 4 = 26.75 rounded up.
+        u.script = { length: 27 };
+      } else if (this.segwitType === 'p2sh(p2wpkh)') {
+        // ((72 (high R low S signature) + 1 + 33 (comp pubkey) + 1) / 4) + 22 (P2WPKH output on scriptSig stack) + 1 = 49.75 rounded up
+        u.script = { length: 50 };
+      } else if (this.segwitType === 'p2tr') {
+        // taproot key path spend is just a 64 or 65 byte signature on the witness stack.
+        // So it would be 65 bytes (assuming max size) + the pushbyte for 65 bytes on the stack, which makes 66.
+        // 66 / 4 = 16.5 round up to 17
+        u.script = { length: 17 };
+      }
+    }
+
+    for (const t of _targets) {
+      if (t.address?.startsWith('bc1')) {
+        // in case address is non-typical and takes more bytes than coinselect library anticipates by default
+        t.script = { length: bitcoin.address.toOutputScript(t.address).length + 3 };
+      }
+
+      if (t.script?.hex) {
+        // setting length for coinselect lib manually as it is not aware of our field `hex`
+        t.script.length = t.script.hex.length / 2 - 4;
+      }
+    }
+
+    const { inputs, outputs, fee } = algo(_utxos, _targets as CoinSelectTarget[], feeRate);
 
     // .inputs and .outputs will be undefined if no solution was found
     if (!inputs || !outputs) {
@@ -465,7 +520,7 @@ export class LegacyWallet extends AbstractWallet {
     }
     let max = 0;
     for (const tx of this.getTransactions()) {
-      max = Math.max(new Date(tx.received ?? 0).getTime(), max);
+      max = Math.max(tx.timestamp ? tx.timestamp * 1000 : 0, max);
     }
     return new Date(max).toString();
   }
@@ -481,7 +536,7 @@ export class LegacyWallet extends AbstractWallet {
    * @param address
    * @returns {boolean}
    */
-  static isAddressValid(address: string): boolean {
+  isAddressValid(address: string): boolean {
     try {
       bitcoin.address.toOutputScript(address); // throws, no?
 
@@ -489,20 +544,13 @@ export class LegacyWallet extends AbstractWallet {
       const decoded = bitcoin.address.fromBech32(address);
       if (decoded.version === 0) return true;
       if (decoded.version === 1 && decoded.data.length !== 32) return false;
-      if (decoded.version === 1 && !ecc.isPoint(Buffer.concat([Buffer.from([2]), decoded.data]))) return false;
+      if (decoded.version === 1 && !ecc.isPoint(concatUint8Arrays([new Uint8Array([2]), decoded.data]))) return false;
       if (decoded.version > 1) return false;
       // ^^^ some day, when versions above 1 will be actually utilized, we would need to unhardcode this
       return true;
     } catch (e) {
       return false;
     }
-  }
-
-  /**
-   * Another way to call {@link LegacyWallet.isAddressValid}
-   */
-  isAddressValid(address: string): boolean {
-    return LegacyWallet.isAddressValid(address);
   }
 
   /**
@@ -513,7 +561,7 @@ export class LegacyWallet extends AbstractWallet {
    */
   static scriptPubKeyToAddress(scriptPubKey: string): string | false {
     try {
-      const scriptPubKey2 = Buffer.from(scriptPubKey, 'hex');
+      const scriptPubKey2 = hexToUint8Array(scriptPubKey);
       return (
         bitcoin.payments.p2pkh({
           output: scriptPubKey2,
@@ -582,7 +630,16 @@ export class LegacyWallet extends AbstractWallet {
     const keyPair = ECPair.fromWIF(wif);
     const privateKey = keyPair.privateKey;
     if (!privateKey) throw new Error('Invalid private key');
-    const options = this.segwitType && useSegwit ? { segwitType: this.segwitType } : undefined;
+    let segwitType: 'p2wpkh' | 'p2sh(p2wpkh)';
+    switch (this.segwitType) {
+      case 'p2sh(p2wpkh)':
+        segwitType = 'p2sh(p2wpkh)';
+        break;
+      default:
+        segwitType = 'p2wpkh';
+        break;
+    }
+    const options = this.segwitType && useSegwit ? { segwitType } : undefined;
     const signature = bitcoinMessage.sign(message, Buffer.from(privateKey), keyPair.compressed, options);
     return signature.toString('base64');
   }

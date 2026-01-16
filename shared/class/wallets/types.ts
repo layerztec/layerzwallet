@@ -5,6 +5,14 @@
 import * as bitcoin from 'bitcoinjs-lib';
 import { CoinSelectOutput, CoinSelectReturnInput, CoinSelectUtxo } from 'coinselect';
 
+import { TBitcoinUnit } from '../../models/bitcoinUnits';
+import { HDSegwitBech32Wallet } from './hd-segwit-bech32-wallet';
+import { LegacyWallet } from './legacy-wallet';
+import { SegwitBech32Wallet } from './segwit-bech32-wallet';
+import { SegwitP2SHWallet } from './segwit-p2sh-wallet';
+import { TaprootWallet } from './taproot-wallet';
+import { WatchOnlyWallet } from './watch-only-wallet';
+
 export type Utxo = {
   // Returned by BlueElectrum
   height: number;
@@ -22,7 +30,7 @@ export type Utxo = {
 /**
  * same as coinselect.d.ts/CoinSelectUtxo
  */
-export interface CreateTransactionUtxo extends CoinSelectUtxo {} // eslint-disable-line
+export interface CreateTransactionUtxo extends CoinSelectUtxo {}
 
 /**
  * if address is missing and `script.hex` is set - this is a custom script (like OP_RETURN)
@@ -67,15 +75,35 @@ export type TransactionOutput = {
   };
 };
 
+export interface DecodedInvoice {
+  destination: string;
+  payment_hash: string;
+  num_satoshis: number;
+  timestamp: number;
+  expiry: number;
+  description: string;
+  description_hash: string;
+  fallback_addr: string;
+  cltv_expiry: string;
+  route_hints: any[];
+  [key: string]: any;
+}
+
 export type LightningTransaction = {
   memo?: string;
   type?: 'user_invoice' | 'payment_request' | 'bitcoind_tx' | 'paid_invoice';
   payment_hash?: string | { data: string };
   category?: 'receive';
-  timestamp?: number;
+  timestamp: number; // seconds, not milliseconds
   expire_time?: number;
   ispaid?: boolean;
   walletID?: string;
+  value?: number;
+  amt?: number;
+  fee?: number;
+  payment_preimage?: string;
+  payment_request?: string;
+  description?: string;
 };
 
 export type Transaction = {
@@ -92,7 +120,7 @@ export type Transaction = {
   confirmations: number;
   time: number;
   blocktime: number;
-  received?: number;
+  timestamp: number; // seconds, not milliseconds
   value?: number;
 
   /**
@@ -110,3 +138,14 @@ export type DeepPartial<T> = T extends object
       [P in keyof T]?: DeepPartial<T[P]>;
     }
   : T;
+
+/**
+ * in some cases we add additional data to each tx object so the code that works with that transaction can find the
+ * wallet that owns it etc
+ */
+export type ExtendedTransaction = Transaction & {
+  walletID: string;
+  walletPreferredBalanceUnit: TBitcoinUnit;
+};
+
+export type TWallet = HDSegwitBech32Wallet | LegacyWallet | SegwitBech32Wallet | SegwitP2SHWallet | TaprootWallet | WatchOnlyWallet;

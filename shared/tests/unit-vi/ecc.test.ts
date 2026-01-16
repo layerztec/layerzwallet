@@ -1,9 +1,9 @@
+import ecc from '@bitcoinerlab/secp256k1';
 import assert from 'assert';
 import { ECPairFactory } from 'ecpair';
 import { beforeEach, describe, it, vi as jest } from 'vitest';
 
-import ecc from '@bitcoinerlab/secp256k1';
-import { hexToUint8Array, uint8ArrayToHex } from '../../modules/uint8array-extras';
+import { hexToUint8Array } from '../../modules/uint8array-extras';
 
 const h = (hex: string) => hexToUint8Array(hex);
 

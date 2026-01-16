@@ -34,7 +34,7 @@ describe('Bitcoin Wallet - getCommonTransactions', () => {
       // incoming with unknown address in inputs, confirmed
       {
         txid: 'tx1',
-        received: 1234567890000,
+        timestamp: 1234567890,
         value: 100000000,
         confirmations: 5,
         inputs: [
@@ -51,7 +51,7 @@ describe('Bitcoin Wallet - getCommonTransactions', () => {
       // outgoing with unknown address, confirmed
       {
         txid: 'tx2',
-        received: 1234567891000,
+        timestamp: 1234567891,
         value: -50000000,
         confirmations: 5,
         outputs: [
@@ -65,7 +65,7 @@ describe('Bitcoin Wallet - getCommonTransactions', () => {
       // outgoing with unknown and change address, confirmed
       {
         txid: 'tx3',
-        received: 1234567892000,
+        timestamp: 1234567892,
         value: -30000000,
         confirmations: 5,
         outputs: [
@@ -84,7 +84,7 @@ describe('Bitcoin Wallet - getCommonTransactions', () => {
       // incoming with multiple inputs (one unknown, one owned), unconfirmed
       {
         txid: 'tx4',
-        received: 1234567893000,
+        timestamp: 1234567893,
         value: 100000000,
         confirmations: 0,
         inputs: [
