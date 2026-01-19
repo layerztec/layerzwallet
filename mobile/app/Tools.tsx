@@ -1,5 +1,7 @@
-import { Alert, PressableStateCallbackType, SectionList, StyleSheet, View } from 'react-native';
+import { Alert, PressableStateCallbackType, ScrollView, SectionList, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import { File } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Bugsnag from '@bugsnag/expo';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -32,6 +34,7 @@ import { EStep, InitializationContext } from '@shared/hooks/InitializationContex
 import { useRouter } from 'expo-router';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getGradientColors } from '@/utils/gradientUtils';
+import { applogFilePath, disableLoggingToFile, enableLoggingToFile, isLoggingToFileEnabled } from '@/src/modules/error-handler';
 
 type TSettingsKey = keyof typeof SETTINGS_CONFIG;
 
@@ -48,6 +51,9 @@ export default function TabThreeScreen() {
   const [isClearing, setIsClearing] = useState(false);
   const [btcXpub, setBtcXpub] = useState('');
   const [deviceId, setDeviceId] = useState('');
+  const [isLogFileEnabled, setIsLogFileEnabled] = useState(isLoggingToFileEnabled());
+  const [isLogPreviewVisible, setIsLogPreviewVisible] = useState(false);
+  const [logPreview, setLogPreview] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -233,6 +239,88 @@ export default function TabThreeScreen() {
     ]);
   };
 
+  const handleLogSettingChange = async (option: 'enabled' | 'disabled') => {
+    try {
+      if (option === 'enabled') {
+        await enableLoggingToFile();
+        setIsLogFileEnabled(true);
+      } else {
+        await disableLoggingToFile();
+        setIsLogFileEnabled(false);
+      }
+    } catch (error) {
+      console.error('Error updating log file setting:', error);
+      Alert.alert('Error', 'Failed to update log file setting.');
+    }
+  };
+
+  const handleShareLogFile = async () => {
+    try {
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(applogFilePath, {
+          mimeType: 'text/plain',
+          dialogTitle: 'Share Layerz Wallet Logs',
+        });
+        return;
+      }
+      Alert.alert('Error', 'Sharing is not available on this device.');
+    } catch (error: any) {
+      console.error('Error sharing log file:', error);
+      Alert.alert('Error', 'Failed to share log file:' + error.message);
+    }
+  };
+
+  const handleToggleLogPreview = async () => {
+    if (isLogPreviewVisible) {
+      setLogPreview('');
+      setIsLogPreviewVisible(false);
+      return;
+    }
+
+    try {
+      const logFile = new File(applogFilePath);
+      if (!logFile.exists) {
+        Alert.alert('Log File Missing', 'The log file was not found. Try enabling logging again.');
+        return;
+      }
+
+      const handle = logFile.open();
+      try {
+        const decoder = new TextDecoder();
+        const maxLines = 100;
+        const chunkSize = 64 * 1024;
+        let offset = handle.size ?? 0;
+        let buffer = '';
+
+        while (offset > 0) {
+          const readSize = Math.min(chunkSize, offset);
+          offset -= readSize;
+          handle.offset = offset;
+          const chunk = decoder.decode(handle.readBytes(readSize));
+          buffer = chunk + buffer;
+
+          const lineCount = buffer.split('\n').length - 1;
+          if (lineCount >= maxLines || offset === 0) {
+            const lines = buffer.replace(/\n$/, '').split('\n');
+            const lastLines = lines
+              .slice(-maxLines)
+              .map((line) => line.split(' ').slice(7).join(' '))
+              .join('\n');
+            setLogPreview(lastLines || '(log file is empty)');
+            break;
+          }
+        }
+      } finally {
+        handle.close();
+      }
+      setIsLogPreviewVisible(true);
+    } catch (error: any) {
+      console.error('Error loading log preview:', error);
+      Alert.alert('Error', 'Failed to load log preview: ' + error.message);
+    }
+  };
+
   const gradientColors = getGradientColors(network);
   const backgroundColor = gradientColors[0];
 
@@ -373,6 +461,40 @@ export default function TabThreeScreen() {
                   </ThemedText>
                   <ThemedText style={styles.deviceIdHint}>Tap to send test error & copy</ThemedText>
                 </Pressable>
+              </>
+            )}
+            <View style={styles.divider} />
+            <View style={styles.settingContainer}>
+              <ThemedText style={styles.settingLabel}>App Log</ThemedText>
+              <View style={styles.settingOptionsContainer}>
+                {['enabled', 'disabled'].map((option) => (
+                  <Pressable
+                    key={option}
+                    style={[styles.settingOption, (option === 'enabled' && isLogFileEnabled) || (option === 'disabled' && !isLogFileEnabled) ? styles.settingOptionActive : null]}
+                    onPress={() => handleLogSettingChange(option as 'enabled' | 'disabled')}
+                  >
+                    <ThemedText style={[styles.settingOptionText, styles.settingOptionTextActive]}>{formatOptionName(option)}</ThemedText>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+            {isLogFileEnabled && (
+              <>
+                <View style={styles.divider} />
+                <SettingsRow title="Share log file" onPress={handleShareLogFile} hideChevron />
+                <View style={styles.divider} />
+                <SettingsRow title={isLogPreviewVisible ? 'Hide log tail' : 'Show log tail'} onPress={handleToggleLogPreview} hideChevron />
+                {isLogPreviewVisible && (
+                  <View style={styles.logPreviewContainer}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.logPreviewHorizontal}>
+                      <ScrollView style={styles.logPreviewScroll} showsVerticalScrollIndicator nestedScrollEnabled>
+                        <ThemedText style={styles.logPreviewText} selectable testID="LogPreviewText">
+                          {logPreview}
+                        </ThemedText>
+                      </ScrollView>
+                    </ScrollView>
+                  </View>
+                )}
               </>
             )}
           </View>
@@ -602,6 +724,27 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     marginLeft: 16,
+  },
+  logPreviewContainer: {
+    paddingHorizontal: 8,
+    paddingBottom: 16,
+  },
+  logPreviewHorizontal: {
+    flexGrow: 1,
+  },
+  logPreviewScroll: {
+    minHeight: 110,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  logPreviewText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontFamily: 'monospace',
+    fontSize: 10,
+    lineHeight: 14,
   },
   warningText: {
     fontSize: 12,

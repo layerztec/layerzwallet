@@ -11,6 +11,7 @@ import { SWRConfig } from 'swr';
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
 
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { SwrCacheProvider } from '@/src/class/swr-cache-provider';
@@ -25,10 +26,23 @@ import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
 import { ProtectedRouteStack } from '@/components/ProtectedRouteStack';
 import { ActionPopupProvider } from '@/contexts/ActionPopupContext';
+import { appendLog, applogFilePath, handleError } from '@/src/modules/error-handler';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
-LogBox.ignoreLogs(['Open debugger to view warnings.']);
+LogBox.ignoreLogs(['Require cycle:', 'Open debugger to view warnings.']);
+
+const onJSError = (error: unknown) => handleError(error, 'JAVASCRIPT_ERROR');
+
+console.log('applogFilePath:', applogFilePath);
+const consoleLogOrig = console.log;
+if (!__DEV__) {
+  const _log = (...args: unknown[]) => {
+    appendLog(args, 'log');
+    consoleLogOrig(...args);
+  };
+  console.log = console.warn = console.error = _log;
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -89,26 +103,28 @@ export default function RootLayout() {
         // initReconnect(callback) {}
       }}
     >
-      <ScanQrContextProvider>
-        <AskPasswordContextProvider>
-          <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} platform={'MOBILE'}>
-            <SettingsContextProvider storage={LayerzStorage}>
-              <AuthStateContextProvider>
-                <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
-                  <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
-                    <ActionPopupProvider>
-                      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                        <ProtectedRouteStack />
-                        <StatusBar style="light" />
-                      </ThemeProvider>
-                    </ActionPopupProvider>
-                  </NetworkContextProvider>
-                </AccountNumberContextProvider>
-              </AuthStateContextProvider>
-            </SettingsContextProvider>
-          </InitializationContextProvider>
-        </AskPasswordContextProvider>
-      </ScanQrContextProvider>
+      <ErrorBoundary onError={onJSError}>
+        <ScanQrContextProvider>
+          <AskPasswordContextProvider>
+            <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} platform={'MOBILE'}>
+              <SettingsContextProvider storage={LayerzStorage}>
+                <AuthStateContextProvider>
+                  <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
+                    <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
+                      <ActionPopupProvider>
+                        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                          <ProtectedRouteStack />
+                          <StatusBar style="light" />
+                        </ThemeProvider>
+                      </ActionPopupProvider>
+                    </NetworkContextProvider>
+                  </AccountNumberContextProvider>
+                </AuthStateContextProvider>
+              </SettingsContextProvider>
+            </InitializationContextProvider>
+          </AskPasswordContextProvider>
+        </ScanQrContextProvider>
+      </ErrorBoundary>
     </SWRConfig>
   );
 }
