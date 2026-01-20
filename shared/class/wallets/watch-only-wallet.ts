@@ -4,8 +4,9 @@
  */
 import BIP32Factory from 'bip32';
 import * as bitcoin from 'bitcoinjs-lib';
-
 import ecc from '@bitcoinerlab/secp256k1';
+
+import { CommonTransaction } from '../../types/common-transaction';
 import { AbstractWallet } from './abstract-wallet';
 import { HDSegwitBech32Wallet } from './hd-segwit-bech32-wallet';
 import { LegacyWallet } from './legacy-wallet';
@@ -69,7 +70,7 @@ export class WatchOnlyWallet extends LegacyWallet {
   }
 
   /**
-   * this method creates appropriate HD wallet class, depending on whether we have xpub, ypub or zpub
+   * this method creates appropriate HD wallet class, depending on whether we have zpub
    * as a property of `this`, and in case such property exists - it recreates it and copies data from old one.
    * this is needed after serialization/save/load/deserialization procedure.
    */
@@ -106,6 +107,7 @@ export class WatchOnlyWallet extends LegacyWallet {
     if (this._hdWalletInstance) {
       delete this._hdWalletInstance._node0;
       delete this._hdWalletInstance._node1;
+      delete this._hdWalletInstance._bip47_instance;
     }
   }
 
@@ -244,7 +246,7 @@ export class WatchOnlyWallet extends LegacyWallet {
   }
 
   allowMasterFingerprint() {
-    return this.getSecret().startsWith('zpub');
+    return this.getSecret().startsWith('zpub') || this.getSecret().startsWith('ypub') || this.getSecret().startsWith('xpub');
   }
 
   useWithHardwareWalletEnabled() {
@@ -313,8 +315,15 @@ export class WatchOnlyWallet extends LegacyWallet {
     return super.isSegwit();
   }
 
-  getCommonTransactions(...args: Parameters<HDSegwitBech32Wallet['getCommonTransactions']>) {
-    if (this._hdWalletInstance) return this._hdWalletInstance.getCommonTransactions(...args);
-    throw new Error("Not a HD watch-only wallet, can't use getCommonTransactions");
+  wasEverUsed(): Promise<boolean> {
+    if (this._hdWalletInstance) return this._hdWalletInstance.wasEverUsed();
+    return super.wasEverUsed();
+  }
+
+  async getCommonTransactions(afterTxid?: string, limit?: number): Promise<CommonTransaction[]> {
+    if (this._hdWalletInstance) {
+      return this._hdWalletInstance.getCommonTransactions(afterTxid, limit);
+    }
+    return [];
   }
 }

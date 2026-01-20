@@ -7,20 +7,20 @@ import { CoinSelectTarget } from 'coinselect';
 import { ECPairFactory } from 'ecpair';
 
 import ecc from '@bitcoinerlab/secp256k1';
+import { hexToUint8Array } from '../../modules/uint8array-extras';
 import { LegacyWallet } from './legacy-wallet';
 import { CreateTransactionResult, CreateTransactionUtxo } from './types';
-import { hexToUint8Array } from '../../modules/uint8array-extras';
 
 const ECPair = ECPairFactory(ecc);
 
 export class SegwitBech32Wallet extends LegacyWallet {
   static readonly type = 'segwitBech32';
-  static readonly typeReadable = 'P2 WPKH';
+  static readonly typeReadable = 'SegWit (P2WPKH)';
   // @ts-ignore: override
   public readonly type = SegwitBech32Wallet.type;
   // @ts-ignore: override
   public readonly typeReadable = SegwitBech32Wallet.typeReadable;
-  public readonly segwitType = 'p2wpkh';
+  public readonly segwitType: 'p2wpkh' | 'p2sh(p2wpkh)' | 'p2tr' = 'p2wpkh';
 
   getAddress(): string | false {
     if (this._address) return this._address;
@@ -86,10 +86,6 @@ export class SegwitBech32Wallet extends LegacyWallet {
     masterFingerprint: number
   ): CreateTransactionResult {
     if (targets.length === 0) throw new Error('No destination provided');
-    // compensating for coinselect inability to deal with segwit inputs, and overriding script length for proper vbytes calculation
-    for (const u of utxos) {
-      u.script = { length: 27 };
-    }
     const { inputs, outputs, fee } = this.coinselect(utxos, targets, feeRate);
     sequence = sequence || 0xffffffff; // disable RBF by default
     const psbt = new bitcoin.Psbt();

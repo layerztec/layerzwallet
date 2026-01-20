@@ -5,13 +5,10 @@
 import { BIP32Interface } from 'bip32';
 import * as bip39 from 'bip39';
 
-import { validateMnemonic } from '../../blue_modules/bip39';
+import * as bip39custom from '../../blue_modules/bip39';
 import * as BlueElectrum from '../../blue_modules/BlueElectrum';
 import { LegacyWallet } from './legacy-wallet';
-import { CreateTransactionTarget, CreateTransactionUtxo, Transaction } from './types';
-import { CoinSelectOutput, CoinSelectReturnInput } from 'coinselect';
-import * as bitcoin from 'bitcoinjs-lib';
-import { ICsprng } from '../../types/ICsprng';
+import { Transaction } from './types';
 
 type AbstractHDWalletStatics = {
   derivationPath?: string;
@@ -54,42 +51,6 @@ export class AbstractHDWallet extends LegacyWallet {
     this._derivationPath = Constructor.derivationPath;
   }
 
-  coinselect(
-    _utxos: CreateTransactionUtxo[],
-    _targets: CreateTransactionTarget[],
-    feeRate: number
-  ): {
-    inputs: CoinSelectReturnInput[];
-    outputs: CoinSelectOutput[];
-    fee: number;
-  } {
-    const utxos = JSON.parse(JSON.stringify(_utxos));
-    const targets = JSON.parse(JSON.stringify(_targets));
-
-    // compensating for coinselect inability to deal with segwit inputs, and overriding script length for proper vbytes calculation
-    for (const u of utxos) {
-      if (this.segwitType === 'p2wpkh') {
-        u.script = { length: 27 };
-      } else if (this.segwitType === 'p2sh(p2wpkh)') {
-        u.script = { length: 50 };
-      }
-    }
-
-    for (const t of targets) {
-      if (t.address && t.address.startsWith('bc1')) {
-        // in case address is non-typical and takes more bytes than coinselect library anticipates by default
-        t.script = { length: bitcoin.address.toOutputScript(t.address).length + 3 };
-      }
-
-      if (t.script?.hex) {
-        // setting length for coinselect lib manually as it is not aware of our field `hex`
-        t.script.length = t.script.hex.length / 2 - 4;
-      }
-    }
-
-    return super.coinselect(utxos, targets, feeRate);
-  }
-
   getNextFreeAddressIndex(): number {
     return this.next_free_address_index;
   }
@@ -104,7 +65,7 @@ export class AbstractHDWallet extends LegacyWallet {
     delete this._node1;
   }
 
-  async generate(csprng: ICsprng) {
+  generate(): Promise<void> {
     throw new Error('Not implemented');
   }
 
@@ -117,14 +78,12 @@ export class AbstractHDWallet extends LegacyWallet {
   }
 
   /**
-   * @return {Buffer} wallet seed (Buffer extends Uint8Array, compatible with both Buffer and Uint8Array APIs)
+   * @return {Buffer} wallet seed
    */
   _getSeed(): Buffer {
     const mnemonic = this.secret;
     const passphrase = this.passphrase;
-    const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase);
-    // bip32.fromSeed expects Buffer, and Buffer extends Uint8Array so it's compatible with Uint8Array APIs
-    return seed;
+    return bip39.mnemonicToSeedSync(mnemonic, passphrase);
   }
 
   setSecret(newSecret: string): this {
@@ -181,7 +140,7 @@ export class AbstractHDWallet extends LegacyWallet {
    * @return {Boolean} is mnemonic in `this.secret` valid
    */
   validateMnemonic(): boolean {
-    return validateMnemonic(this.secret);
+    return bip39custom.validateMnemonic(this.secret);
   }
 
   /**
@@ -360,7 +319,7 @@ export class AbstractHDWallet extends LegacyWallet {
     throw new Error('Not implemented');
   }
 
-  _getNodePubkeyByIndex(node: number, index: number): Uint8Array | undefined {
+  _getNodePubkeyByIndex(node: 0 | 1, index: number): Uint8Array | undefined {
     throw new Error('Not implemented');
   }
 

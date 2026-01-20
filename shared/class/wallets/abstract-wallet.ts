@@ -3,7 +3,8 @@
  * LICENSE: MIT
  */
 import b58 from 'bs58check';
-import createHash from 'create-hash';
+import { sha256 } from '@noble/hashes/sha256';
+import wif from 'wif';
 
 import { BitcoinUnit, Chain, TBitcoinUnit, TChain } from '../../models/bitcoinUnits';
 import { CreateTransactionResult, CreateTransactionUtxo, Transaction, Utxo } from './types';
@@ -14,17 +15,6 @@ type UtxoMetadata = {
   frozen?: boolean;
   memo?: string;
 };
-
-/**
- * Reverse a Uint8Array in place (creates a new array)
- */
-function reverseUint8Array(arr: Uint8Array): Uint8Array {
-  const reversed = new Uint8Array(arr.length);
-  for (let i = 0; i < arr.length; i++) {
-    reversed[i] = arr[arr.length - 1 - i];
-  }
-  return reversed;
-}
 
 export class AbstractWallet {
   static readonly type = 'abstract';
@@ -45,7 +35,7 @@ export class AbstractWallet {
     return temp;
   }
 
-  segwitType?: 'p2wpkh' | 'p2sh(p2wpkh)';
+  segwitType?: 'p2wpkh' | 'p2sh(p2wpkh)' | 'p2tr';
   _derivationPath?: string;
   label: string;
   secret: string;
@@ -95,7 +85,7 @@ export class AbstractWallet {
     const passphrase = thisWithPassphrase.getPassphrase ? thisWithPassphrase.getPassphrase() : '';
     const path = this._derivationPath ?? '';
     const string2hash = this.type + this.getSecret() + passphrase + path;
-    return createHash('sha256').update(string2hash).digest().toString('hex');
+    return uint8ArrayToHex(sha256(string2hash));
   }
 
   getTransactions(): Transaction[] {
@@ -227,9 +217,52 @@ export class AbstractWallet {
 
   setSecret(newSecret: string): this {
     const origSecret = newSecret;
+
+    // is it minikey https://en.bitcoin.it/wiki/Mini_private_key_format
+    // Starts with S, is 22 length or larger, is base58
+    if (newSecret.startsWith('S') && newSecret.length >= 22 && /^[1-9A-HJ-NP-Za-km-z]+$/.test(newSecret)) {
+      // minikey + ? hashed with SHA256 starts with 0x00 byte
+      if (uint8ArrayToHex(sha256(`${newSecret}?`)).startsWith('00')) {
+        // it is a valid minikey
+        newSecret = wif.encode(0x80, Buffer.from(sha256(newSecret)), false);
+      }
+    }
+
     this.secret = newSecret.trim().replace('bitcoin:', '').replace('BITCOIN:', '');
 
     if (this.secret.startsWith('BC1')) this.secret = this.secret.toLowerCase();
+
+    // is it output descriptor?
+    if (this.secret.startsWith('wpkh(') || this.secret.startsWith('pkh(') || this.secret.startsWith('sh(') || this.secret.startsWith('tr(')) {
+      const xpubIndex = Math.max(this.secret.indexOf('xpub'), this.secret.indexOf('ypub'), this.secret.indexOf('zpub'));
+      let fpAndPath;
+      if (this.secret.includes('[')) {
+        fpAndPath = this.secret.substring(this.secret.indexOf('['), xpubIndex).replace(/[[\]]/g, '');
+      } else {
+        // old (or broken) format..? no square brackets, only "()"
+        fpAndPath = this.secret.substring(this.secret.indexOf('('), xpubIndex).replace(/[()]/g, '');
+      }
+      const xpub = this.secret.substring(xpubIndex).replace(/\(|\)/, '').split('/')[0];
+
+      const pathIndex = fpAndPath.indexOf('/');
+      const path = 'm' + fpAndPath.substring(pathIndex).replace(/h/g, "'");
+      const fp = fpAndPath.substring(0, pathIndex);
+
+      this._derivationPath = path;
+      const mfp = uint8ArrayToHex(hexToUint8Array(fp).reverse());
+      this.masterFingerprint = parseInt(mfp, 16);
+
+      if (this.secret.startsWith('wpkh(')) {
+        this.secret = this._xpubToZpub(xpub);
+      } else if (this.secret.startsWith('sh(wpkh(')) {
+        this.secret = this._xpubToYpub(xpub);
+      } else {
+        // nop
+        this.secret = xpub;
+      }
+
+      return this;
+    }
 
     // [fingerprint/derivation]zpub
     const re = /\[([^\]]+)\](.*)/;
@@ -238,7 +271,7 @@ export class AbstractWallet {
       let [hexFingerprint, ...derivationPathArray] = m[1].split('/');
       const derivationPath = `m/${derivationPathArray.join('/').replace(/h/g, "'")}`;
       if (hexFingerprint.length === 8) {
-        hexFingerprint = Buffer.from(hexFingerprint, 'hex').reverse().toString('hex');
+        hexFingerprint = uint8ArrayToHex(hexToUint8Array(hexFingerprint).reverse());
         this.masterFingerprint = parseInt(hexFingerprint, 16);
         this._derivationPath = derivationPath;
       }
@@ -281,6 +314,7 @@ export class AbstractWallet {
         }
         if (parsedSecret.keystore.derivation) {
           this._derivationPath = parsedSecret.keystore.derivation;
+          this._derivationPath = this._derivationPath?.replace(/h/g, "'");
         }
         this.secret = parsedSecret.keystore.xpub;
         this.masterFingerprint = masterFingerprint;
@@ -290,7 +324,7 @@ export class AbstractWallet {
       // It is a Cobo Vault Hardware Wallet
       if (parsedSecret && parsedSecret.ExtPubKey && parsedSecret.MasterFingerprint && parsedSecret.AccountKeyPath) {
         this.secret = parsedSecret.ExtPubKey;
-        const mfp = Buffer.from(parsedSecret.MasterFingerprint, 'hex').reverse().toString('hex');
+        const mfp = uint8ArrayToHex(hexToUint8Array(parsedSecret.MasterFingerprint).reverse());
         this.masterFingerprint = parseInt(mfp, 16);
         this._derivationPath = parsedSecret.AccountKeyPath.startsWith('m/') ? parsedSecret.AccountKeyPath : `m/${parsedSecret.AccountKeyPath}`;
         if (parsedSecret.CoboVaultFirmwareVersion) this.use_with_hardware_wallet = true;
@@ -308,48 +342,14 @@ export class AbstractWallet {
       }
     }
 
-    // is it output descriptor?
-    if (this.secret.startsWith('wpkh(') || this.secret.startsWith('pkh(') || this.secret.startsWith('sh(')) {
-      const xpubIndex = Math.max(this.secret.indexOf('xpub'), this.secret.indexOf('ypub'), this.secret.indexOf('zpub'));
-      const fpAndPath = this.secret.substring(this.secret.indexOf('(') + 1, xpubIndex);
-      const xpub = this.secret.substring(xpubIndex).replace(/\(|\)/, '');
-      const pathIndex = fpAndPath.indexOf('/');
-      const path = 'm' + fpAndPath.substring(pathIndex);
-      const fp = fpAndPath.substring(0, pathIndex);
-
-      this._derivationPath = path;
-      const mfp = Buffer.from(fp, 'hex').reverse().toString('hex');
-      this.masterFingerprint = parseInt(mfp, 16);
-
-      if (this.secret.startsWith('wpkh(')) {
-        this.secret = this._xpubToZpub(xpub);
-      } else {
-        // nop
-        this.secret = xpub;
-      }
-    }
-
     // is it new-wasabi.json exported from coldcard?
     try {
       const json = JSON.parse(origSecret);
       if (json.MasterFingerprint && json.ExtPubKey) {
         // technically we should allow choosing which format user wants, BIP44 / BIP49 / BIP84, but meh...
         this.secret = this._xpubToZpub(json.ExtPubKey);
-        const mfp = Buffer.from(json.MasterFingerprint, 'hex').reverse().toString('hex');
+        const mfp = uint8ArrayToHex(hexToUint8Array(json.MasterFingerprint).reverse());
         this.masterFingerprint = parseInt(mfp, 16);
-        return this;
-      }
-    } catch (_) {}
-
-    // is it sparrow-export ?
-    try {
-      const json = JSON.parse(origSecret);
-      if (json.chain && json.chain === 'BTC' && json.xfp && json.bip84) {
-        // technically we should allow choosing which format user wants, BIP44 / BIP49 / BIP84, but meh...
-        this.secret = json.bip84._pub;
-        const mfp = Buffer.from(json.xfp, 'hex').reverse().toString('hex');
-        this.masterFingerprint = parseInt(mfp, 16);
-        this._derivationPath = json.bip84.deriv;
         return this;
       }
     } catch (_) {}
@@ -359,17 +359,6 @@ export class AbstractWallet {
 
   getLatestTransactionTime(): string | 0 {
     return 0;
-  }
-
-  getLatestTransactionTimeEpoch(): number {
-    if (this.getTransactions().length === 0) {
-      return 0;
-    }
-    let max = 0;
-    for (const tx of this.getTransactions()) {
-      max = Math.max(new Date(tx.received ?? 0).getTime(), max);
-    }
-    return max;
   }
 
   /**
@@ -517,7 +506,7 @@ export class AbstractWallet {
 
   getMasterFingerprintFromHex(hexValue: string): number {
     if (hexValue.length < 8) hexValue = '0' + hexValue;
-    const b = Buffer.from(hexValue, 'hex');
+    const b = hexToUint8Array(hexValue);
     if (b.length !== 4) throw new Error('invalid fingerprint hex');
 
     hexValue = hexValue[6] + hexValue[7] + hexValue[4] + hexValue[5] + hexValue[2] + hexValue[3] + hexValue[0] + hexValue[1];

@@ -4,14 +4,14 @@
  */
 import BigNumber from 'bignumber.js';
 import * as bitcoin from 'bitcoinjs-lib';
+import { sha256 as _sha256 } from '@noble/hashes/sha256';
 
 import { LegacyWallet } from '../class/wallets/legacy-wallet';
 import { SegwitBech32Wallet } from '../class/wallets/segwit-bech32-wallet';
 import { SegwitP2SHWallet } from '../class/wallets/segwit-p2sh-wallet';
 import { TaprootWallet } from '../class/wallets/taproot-wallet';
 import { WsElectrumClient } from '../class/ws-electrum-client';
-import { uint8ArrayToHex, stringToUint8Array, hexToUint8Array } from '../modules/uint8array-extras';
-import { sha256 as _sha256 } from '@noble/hashes/sha256';
+import { uint8ArrayToHex } from '../modules/uint8array-extras';
 
 type Utxo = {
   height: number;
