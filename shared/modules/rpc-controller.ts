@@ -1,4 +1,5 @@
 import BigNumber from 'bignumber.js';
+import { type MethodResult, type MethodParams } from '@stacks/connect';
 
 import { DappPermissions } from '../class/dapp-permissions';
 import { DEFAULT_NETWORK } from '../config';
@@ -7,8 +8,11 @@ import { STORAGE_SELECTED_NETWORK } from '../hooks/NetworkContext';
 import { getChainIdByNetwork, getNetworkByChainId, getRpcProvider } from '../models/network-getters';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { IStorage } from '../types/IStorage';
-import { NETWORK_ROOTSTOCK, Networks } from '../types/networks';
+import { NETWORK_BITCOIN, NETWORK_ROOTSTOCK, NETWORK_STACKS, Networks } from '../types/networks';
 import { IMessenger } from './messenger';
+import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
+import assert from 'assert';
+import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 
 export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBackgroundCaller, method: string, params: any, id: number, from: string, Messenger: IMessenger) {
   const network: Networks = ((await LayerzStorage.getItem(STORAGE_SELECTED_NETWORK)) || DEFAULT_NETWORK) as Networks;
@@ -19,6 +23,68 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
   BackgroundCaller.log('processRPC: ' + method + '(' + JSON.stringify({ from, id, method, params, network }) + ')');
 
   switch (method) {
+    // stacks connect methods:
+    case 'getAddresses':
+      const sp = await BackgroundCaller.lazyInitWallet(NETWORK_STACKS, accountNumber);
+      assert(sp instanceof StacksWallet);
+      const stxAddress = String(await sp.getOffchainReceiveAddress());
+      const pubKey = await sp.getPublicKey();
+
+      const btcwallet = await BackgroundCaller.lazyInitWallet(NETWORK_BITCOIN, accountNumber);
+      assert(btcwallet instanceof WatchOnlyWallet);
+      const address = await btcwallet.getAddressAsync();
+
+      // let stacksParams: MethodParams<"getAddresses"> = params;
+      let result: MethodResult<'getAddresses'> = {
+        addresses: [
+          {
+            symbol: 'BTC',
+            // @ts-ignore
+            type: 'p2wpkh',
+            address: address,
+            publicKey: pubKey,
+          },
+          {
+            symbol: 'BTC',
+            // @ts-ignore
+            type: 'p2tr',
+            address: address,
+            publicKey: pubKey,
+          },
+          {
+            symbol: 'STX',
+            address: stxAddress,
+            publicKey: pubKey,
+          },
+        ],
+      };
+      await sendResponse({ for: 'webpage', id, response: result });
+      return { success: true };
+
+    // case 'sendTransfer':
+    //   break;
+    // case 'signPsbt':
+    //   break;
+    // case 'stx_getAddresses':
+    //   break;
+    // case 'stx_transferStx':
+    //   break;
+
+    case 'stx_callContract':
+      let callContractParams: MethodParams<'stx_callContract'> = params;
+      const sp2 = await BackgroundCaller.lazyInitWallet(NETWORK_STACKS, accountNumber);
+      assert(sp2 instanceof StacksWallet);
+
+      const sp2result = await sp2.callContract(callContractParams);
+      await sendResponse({ for: 'webpage', id, response: sp2result });
+      return { success: true };
+
+    // case 'stx_signMessage':
+    //   break;
+    // case 'stx_signStructuredMessage':
+    //   break;
+
+    // EVM methods:
     case 'wallet_getPermissions':
       const dp = new DappPermissions(from, LayerzStorage);
       const permissions = await dp.getPermissions();
