@@ -13,14 +13,9 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-g
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, withSpring, interpolate, runOnJS } from 'react-native-reanimated';
 import { ThemedText } from '@/components/ThemedText';
 import GradientScreen from '@/components/GradientScreen';
-import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
-import { getNetworkGradient } from '@shared/constants/Colors';
-import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
-import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { DAppBrowserTabs } from './DAppBrowserTabs';
 import { useWebViewPreviewManager } from './hooks/useWebViewPreviewManager';
 
@@ -135,7 +130,7 @@ const getScreenshotDir = (): string | null => {
 };
 
 const DAppBrowser: React.FC = () => {
-  const { network, setNetwork } = useContext(NetworkContext);
+  const { network } = useContext(NetworkContext);
   const router = useRouter();
   const navigation = useNavigation();
   const webviewRef = useRef<WebView>(null);
@@ -168,7 +163,6 @@ const DAppBrowser: React.FC = () => {
   const currentModalPosition = useSharedValue(0);
   const gestureStartPosition = useSharedValue(0);
   const lastHandledUrl = useRef<string | undefined>(undefined);
-  const [isNetworkSelectorVisible, setIsNetworkSelectorVisible] = useState<boolean>(false);
   const isManualNavigation = useRef<boolean>(false);
   const lastManualNavigationUrl = useRef<string | undefined>(undefined);
   const loadingScreenshotsRef = useRef<Set<string>>(new Set());
@@ -643,63 +637,19 @@ const DAppBrowser: React.FC = () => {
     }
   }, [params.url, isRestoringTabs, tabs, setAddressBarValue]);
 
-  const availableNetworks = useAvailableNetworks();
+  const redirectActiveTabToHome = () => {
+    const homeUrl = getHomeUrl(network);
+    const homeTitle = 'layerztec.github.io';
 
-  const networkCards: LayerCard[] = useMemo(() => {
-    return availableNetworks.map((networkItem) => {
-      const isTestnet = getIsTestnet(networkItem);
-      const gradientColors = getNetworkGradient(networkItem);
-      const networkIcon = getNetworkImageAsset(networkItem);
-
-      return {
-        networkId: networkItem,
-        name: capitalizeFirstLetter(networkItem),
-        ticker: getTickerByNetwork(networkItem),
-        balance: network === networkItem ? 'Selected' : 'Available',
-        usdValue: isTestnet ? 'Testnet' : 'Mainnet',
-        color: gradientColors[0],
-        icon: networkIcon,
-        tags: isTestnet ? ['Testnet'] : [],
-        tokenCount: 0,
-      };
+    updateActiveTab({
+      url: homeUrl,
+      title: homeTitle,
+      history: [{ url: homeUrl, title: homeTitle }],
+      historyIndex: 0,
+      canGoBack: false,
+      canGoForward: false,
     });
-  }, [availableNetworks, network]);
-
-  const showNetworkSwitcherModal = () => {
-    const maxTranslate = BROWSER_CONSTANTS.MODAL.MAX_HEIGHT - BROWSER_CONSTANTS.MODAL.MIN_HEIGHT;
-    currentModalPosition.value = maxTranslate;
-    setIsNetworkSelectorVisible(true);
-    modalTranslateY.value = withTiming(maxTranslate, { duration: BROWSER_CONSTANTS.ANIMATION.STANDARD });
-  };
-
-  const hideNetworkSwitcherModal = () => {
-    currentModalPosition.value = 0;
-    setIsNetworkSelectorVisible(false);
-    modalTranslateY.value = withTiming(0, { duration: BROWSER_CONSTANTS.ANIMATION.STANDARD });
-  };
-
-  const handleNetworkSwitch = (index: number) => {
-    if (index >= 0 && index < availableNetworks.length) {
-      const selectedNetwork = availableNetworks[index];
-
-      // Close modal with crossfade
-      currentModalPosition.value = 0;
-      modalTranslateY.value = withTiming(0, { duration: BROWSER_CONSTANTS.ANIMATION.STANDARD });
-
-      setIsNetworkSelectorVisible(false);
-      setNetwork(selectedNetwork);
-
-      const homeUrl = getHomeUrl(selectedNetwork);
-      const homeTitle = 'layerztec.github.io';
-
-      updateActiveTab({
-        url: homeUrl,
-        title: homeTitle,
-        history: [{ url: homeUrl, title: homeTitle }],
-        historyIndex: 0,
-      });
-      setAddressBarValue(homeUrl, { ensureStartVisible: true });
-    }
+    setAddressBarValue(homeUrl, { ensureStartVisible: true });
   };
 
   const createNewTab = async () => {
@@ -1064,20 +1014,15 @@ const DAppBrowser: React.FC = () => {
     <GestureHandlerRootView style={styles.gestureRootView}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={styles.blackBackground}>
-        <DashboardTiles cards={networkCards} onCardPress={handleNetworkSwitch} showLogo={true} />
-      </View>
-
       <Animated.View style={[styles.modalContainer, styles.modalMaxHeight, modalAnimatedStyle]}>
         <GradientScreen variant={network}>
           <GestureDetector gesture={panGesture}>
             <Animated.View style={addressBarAnimatedStyle} pointerEvents={showTabsOverview ? 'none' : 'auto'}>
-              <View style={[styles.addressContainer, isNetworkSelectorVisible && styles.addressContainerWithSelector]}>
-                {isNetworkSelectorVisible && <Pressable style={styles.absoluteFill} activeOpacity={1} onPress={hideNetworkSwitcherModal} />}
-                <Pressable style={styles.networkButton} onPress={showNetworkSwitcherModal} disabled={isNetworkSelectorVisible}>
+              <View style={styles.addressContainer}>
+                <Pressable style={styles.networkButton} onPress={redirectActiveTabToHome}>
                   <ExpoImage source={getNetworkImageAsset(network)} style={styles.networkIcon} contentFit="contain" />
                 </Pressable>
-                <View style={styles.addressBarWrapper} pointerEvents={isNetworkSelectorVisible ? 'none' : 'auto'}>
+                <View style={styles.addressBarWrapper}>
                   <View style={styles.addressBar}>
                     <TextInput
                       ref={addressInputRef}
@@ -1087,9 +1032,6 @@ const DAppBrowser: React.FC = () => {
                       onChangeText={setAddressInput}
                       onFocus={() => {
                         setIsAddressInputFocused(true);
-                        if (isNetworkSelectorVisible) {
-                          setIsNetworkSelectorVisible(false);
-                        }
                       }}
                       onBlur={() => {
                         setIsAddressInputFocused(false);
@@ -1120,7 +1062,6 @@ const DAppBrowser: React.FC = () => {
                       placeholder="Enter URL"
                       placeholderTextColor="rgba(255, 255, 255, 0.5)"
                       selectTextOnFocus={true}
-                      editable={!isNetworkSelectorVisible}
                       testID="DappBrowserAddressBar"
                     />
                     {isAddressInputFocused ? (
@@ -1139,16 +1080,14 @@ const DAppBrowser: React.FC = () => {
                   </View>
                   <Animated.View style={[styles.progressBar, progressBarAnimatedStyle]} />
                 </View>
-                <Pressable style={styles.closeButton} onPress={() => router.back()} disabled={isNetworkSelectorVisible} testID="BrowserCloseButton">
-                  <Ionicons name="close" size={20} color={isAddressInputFocused || isNetworkSelectorVisible ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.9)'} />
+                <Pressable style={styles.closeButton} onPress={() => router.back()} testID="BrowserCloseButton">
+                  <Ionicons name="close" size={20} color={isAddressInputFocused ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.9)'} />
                 </Pressable>
               </View>
             </Animated.View>
           </GestureDetector>
 
           <View style={styles.contentContainer}>
-            {isNetworkSelectorVisible && <Pressable style={styles.networkSelectorDismissOverlay} activeOpacity={1} onPress={hideNetworkSwitcherModal} />}
-
             <Animated.View style={[styles.webviewContainer, webviewContainerAnimatedStyle, styles.flex1]} {...panResponder.panHandlers}>
               <Animated.View style={[styles.absoluteFill, swipeOverlayAnimatedStyle, styles.swipeOverlayStyle]} />
               <Animated.View style={[styles.swipeIndicator, swipeIndicatorAnimatedStyle]}>
@@ -1321,12 +1260,6 @@ const styles = StyleSheet.create({
   absoluteFill: {
     ...StyleSheet.absoluteFillObject,
   },
-  blackBackground: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'black',
-    flex: 1,
-    paddingHorizontal: 16,
-  },
   modalContainer: {
     position: 'absolute',
     bottom: 0,
@@ -1346,11 +1279,6 @@ const styles = StyleSheet.create({
   },
   modalMaxHeight: {
     height: BROWSER_CONSTANTS.MODAL.MAX_HEIGHT,
-  },
-  networkSelectorDismissOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 100,
-    backgroundColor: 'transparent',
   },
   errorContainer: {
     flex: 1,
@@ -1380,11 +1308,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
-  },
-  addressContainerWithSelector: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 12,
-    marginHorizontal: 8,
   },
   addressBarWrapper: {
     flex: 1,
