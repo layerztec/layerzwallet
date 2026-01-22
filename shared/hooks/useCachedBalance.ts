@@ -91,6 +91,17 @@ export function useCachedBalance(network: Networks, accountNumber: number): { ba
           checked.add(token);
         }
       }
+
+      for (const token of USDT_TOKENS[NETWORK_SPARK] ?? []) {
+        if (key.includes(`tokenBalanceFetcher`) && key.includes(`tokenContractAddress:"${token}"`) && key.includes(`accountNumber:${accountNumber}`) && key.includes(`network:"${NETWORK_SPARK}"`)) {
+          if (checked.has(token)) continue;
+          const { decimals } = getTokenInfo(token);
+          const balance = cache.get(key);
+          cacheHit = true;
+          checked.add(token);
+          sum += parseInt(balance?.data ?? 0) / 10 ** decimals;
+        }
+      }
     }
   }
 

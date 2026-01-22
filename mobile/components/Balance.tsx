@@ -249,9 +249,11 @@ const TokenRow = ({
   const formattedBalance = formatBalance(balance ?? token.balance ?? '0', token.decimals, 2 /* only need 2 for USD */);
 
   useEffect(() => {
-    if (balance === undefined) return;
-    setTokenBalances((prev) => ({ ...prev, [token.id]: balance }));
-  }, [balance, token.id, setTokenBalances]);
+    // Use balance from hook if available, otherwise fallback to token.balance from discovery
+    const effectiveBalance = balance ?? token.balance;
+    if (effectiveBalance === undefined) return;
+    setTokenBalances((prev) => ({ ...prev, [token.id]: effectiveBalance }));
+  }, [balance, token.balance, token.id, setTokenBalances]);
 
   const Container = onSelect ? Pressable : View;
   const containerProps = onSelect ? { onPress: () => onSelect(token.id, network), activeOpacity: 0.7 } : {};
@@ -278,12 +280,13 @@ type BalanceUsdtProps = {
   showTotalBalance?: boolean;
 };
 
-// Balance component for USDT network (aggregates tokens from Rootstock and Liquid)
+// Balance component for USDT network (aggregates tokens from Rootstock, Liquid, and Spark)
 export const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceUsdtProps>(({ onSelectToken = undefined, selectedToken = undefined, showTotalBalance = true }, ref) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { tokenList: rsTokenListOrig, mutate: mutateRsTokens } = useTokenDiscovery(NETWORK_ROOTSTOCK, accountNumber, BackgroundExecutor, LayerzStorage);
   const { tokenList: liquidTokenListOrig, mutate: mutateLiquidTokens } = useTokenDiscovery(NETWORK_LIQUID, accountNumber, BackgroundExecutor, LayerzStorage);
+  const { tokenList: sparkTokenListOrig, mutate: mutateSparkTokens } = useTokenDiscovery(NETWORK_SPARK, accountNumber, BackgroundExecutor, LayerzStorage);
   const [tokenBalances, setTokenBalances] = useState<TTokenBalances>({});
   const ticker = getTickerByNetwork(network);
 
@@ -291,6 +294,7 @@ export const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceUsdtProps>
     refresh: () => {
       mutateRsTokens();
       mutateLiquidTokens();
+      mutateSparkTokens();
     },
   }));
 
@@ -302,8 +306,16 @@ export const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceUsdtProps>
     for (const token of liquidTokenListOrig) {
       map[token.id] = token;
     }
+    for (const token of sparkTokenListOrig) {
+      map[token.id] = {
+        ...token,
+        // hacks to make USDB look better on USDT network screen:
+        name: token.symbol,
+        symbol: '$',
+      };
+    }
     return map;
-  }, [rsTokenListOrig, liquidTokenListOrig]);
+  }, [rsTokenListOrig, liquidTokenListOrig, sparkTokenListOrig]);
 
   const displayBalance = useMemo(() => {
     let b = BN(0);
@@ -316,7 +328,7 @@ export const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceUsdtProps>
 
   const rows = useMemo(() => {
     const result = [];
-    for (const network of [NETWORK_LIQUID, NETWORK_ROOTSTOCK]) {
+    for (const network of [NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK]) {
       const tokens = USDT_TOKENS[network];
       for (const token of tokens) {
         if (!rsTokenMap[token]) continue;
@@ -327,7 +339,7 @@ export const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceUsdtProps>
   }, [rsTokenMap, onSelectToken, selectedToken]);
 
   const icons = useMemo(() => {
-    const networks = [NETWORK_ROOTSTOCK, NETWORK_LIQUID];
+    const networks = [NETWORK_ROOTSTOCK, NETWORK_LIQUID, NETWORK_SPARK];
     return networks.map((network) => {
       const networkImage = getNetworkImageAsset(network);
       const networkIconContent = networkImage ? <Image source={networkImage} style={styles.balanceNetworkImage} contentFit="contain" /> : null;

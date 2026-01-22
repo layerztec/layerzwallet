@@ -8,6 +8,8 @@ import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { getIsEVM, getRpcProvider } from '../models/network-getters';
 import { BreezWallet } from '../class/wallets/breez-wallet';
 import { walletCanHaveTokens } from '../class/wallets/interface-can-have-tokens';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { AbstractWallet } from '@shared/class/wallets/abstract-wallet';
 
 interface tokenBalanceFetcherArg {
   cacheKey: string;
@@ -15,6 +17,24 @@ interface tokenBalanceFetcherArg {
   network: Networks;
   tokenContractAddress: string;
   backgroundCaller: IBackgroundCaller;
+}
+
+/**
+ * extra key `backgroundCaller` can mutate unpredictably, causing more cache saves, and messing up logic
+ * of useAccountBalance hook. this middleware removes it from the key
+ */
+function keyCleanupMiddleware(useSWRNext: any) {
+  return (key: any, fetcher: any, config: any) => {
+    let newKey = key;
+    if (typeof key === 'object' && key.backgroundCaller) {
+      newKey = Object.assign({}, key);
+      delete newKey.backgroundCaller;
+    }
+
+    console.log(`tokenBalance(${JSON.stringify(newKey)})`); // logging
+
+    return useSWRNext(newKey, () => fetcher(key), config);
+  };
 }
 
 export const tokenBalanceFetcher = async (arg: tokenBalanceFetcherArg): Promise<StringNumber | undefined> => {
@@ -33,6 +53,13 @@ export const tokenBalanceFetcher = async (arg: tokenBalanceFetcherArg): Promise<
     if (network === NETWORK_SPARK || network === NETWORK_STACKS) {
       const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
       assert(walletCanHaveTokens(wallet), 'Not a wallet that can have tokens');
+      assert(wallet instanceof AbstractWallet, 'Not an Abstract wallet');
+      if (!wallet._lastBalanceFetch) {
+        // doing network request only if balance never fetched yet
+        // (one request should fill all tokens hashmap)
+        await wallet.getOffchainBalance();
+      }
+
       // Find the token balance where tokenMetadata.tokenPublicKey matches tokenContractAddress
       const tokenBalances = wallet.getTokenBalances();
       for (const value of tokenBalances) {
@@ -101,6 +128,7 @@ export function useTokenBalance(network: Networks, accountNumber: number, tokenC
 
   const arg: tokenBalanceFetcherArg = { cacheKey: 'tokenBalanceFetcher', accountNumber, network, tokenContractAddress, backgroundCaller };
   const { data, error, isLoading } = useSWR(arg, tokenBalanceFetcher, {
+    use: [keyCleanupMiddleware],
     refreshInterval,
     refreshWhenHidden: false,
     keepPreviousData: true,

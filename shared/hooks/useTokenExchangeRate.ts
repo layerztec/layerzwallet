@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import useSWR from 'swr';
 import { getIsTestnet } from '../models/network-getters';
 import { USDT_TOKENS } from '../models/token-list';
-import { NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_STACKS, NETWORK_USDT, Networks } from '../types/networks';
+import { NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT, Networks } from '../types/networks';
 
 export type TFiat = 'USD';
 
@@ -39,6 +39,11 @@ export const tokenExchangeRateFetcher = async (arg: tokenExchangeRateFetcherArg)
 
   // USDT0 and rUSDT on Rootstock network
   if (network === NETWORK_ROOTSTOCK && USDT_TOKENS[NETWORK_ROOTSTOCK].includes(tokenId as any)) {
+    return 1;
+  }
+
+  // USDB on Spark network
+  if (network === NETWORK_SPARK && USDT_TOKENS[NETWORK_SPARK]?.includes(tokenId as any)) {
     return 1;
   }
 
