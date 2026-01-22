@@ -14,8 +14,9 @@ import { EvmWallet } from '@shared/class/evm-wallet';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getTickerByNetwork } from '@shared/models/network-getters';
 import { validateAddress } from '@shared/modules/wallet-utils';
-import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, Networks } from '@shared/types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { useSendFlow } from './_layout';
+import { USDT_TOKENS } from '@shared/models/token-list';
 
 const SendAddressUsdt: React.FC = () => {
   const { scanQr } = useContext(ScanQrContext);
@@ -67,7 +68,15 @@ const SendAddressUsdt: React.FC = () => {
 
       // Validate address based on selected token's network
       let isValid = false;
-      const tokenNetwork = token === 'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2' ? NETWORK_LIQUID : NETWORK_ROOTSTOCK;
+      let tokenNetwork: Networks = token === 'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2' ? NETWORK_LIQUID : NETWORK_ROOTSTOCK;
+
+      for (const tokNet of Object.keys(USDT_TOKENS) as Networks[]) {
+        // @ts-ignore ts stfu
+        if (USDT_TOKENS[tokNet]?.includes(token)) {
+          tokenNetwork = tokNet;
+          break;
+        }
+      }
 
       if (tokenNetwork === NETWORK_ROOTSTOCK) {
         // EVM address validation
@@ -81,6 +90,14 @@ const SendAddressUsdt: React.FC = () => {
         if (!isValid) {
           throw new Error('Invalid Liquid address');
         }
+      } else if (tokenNetwork === NETWORK_SPARK) {
+        // Spark address validation
+        isValid = validateAddress(tokenNetwork, address);
+        if (!isValid) {
+          throw new Error('Invalid Spark address');
+        }
+      } else {
+        throw new Error('Internal error: not USDT token');
       }
 
       setContextAddress(address);
