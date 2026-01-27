@@ -82,6 +82,7 @@ const Action: React.FC = () => {
       case 'eth_sendTransaction':
         return <SendTransaction {...componentProps} />;
       case 'eth_requestAccounts':
+      case 'eth_accounts':
         return <EthRequestAccounts {...componentProps} />;
       default:
         return (

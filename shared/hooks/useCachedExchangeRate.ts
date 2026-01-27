@@ -1,5 +1,17 @@
 import { useSWRConfig } from 'swr';
-import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_BOTANIX, NETWORK_LIGHTNING, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT, Networks } from '../types/networks';
+import {
+  NETWORK_ARK,
+  NETWORK_BITCOIN,
+  NETWORK_BOTANIX,
+  NETWORK_CITREA,
+  NETWORK_LIGHTNING,
+  NETWORK_LIQUID,
+  NETWORK_ROOTSTOCK,
+  NETWORK_SPARK,
+  NETWORK_STACKS,
+  NETWORK_USDT,
+  Networks,
+} from '../types/networks';
 import { TFiat } from './useExchangeRate';
 import { StringNumber } from '../types/string-number';
 
@@ -33,6 +45,7 @@ export function useCachedExchangeRate(network: Networks, fiat: TFiat): { exchang
     case NETWORK_ARK:
     case NETWORK_LIQUID:
     case NETWORK_BOTANIX:
+    case NETWORK_CITREA:
     case NETWORK_ROOTSTOCK:
     case NETWORK_STACKS:
       network2use = NETWORK_BITCOIN;

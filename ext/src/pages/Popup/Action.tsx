@@ -79,6 +79,7 @@ const Action: React.FC = () => {
         return <WalletRequestPermissions {...componentProps} />;
       case 'eth_sendTransaction':
         return <SendTransaction {...componentProps} />;
+      case 'eth_accounts':
       case 'eth_requestAccounts':
         return <EthRequestAccounts {...componentProps} />;
       default:
