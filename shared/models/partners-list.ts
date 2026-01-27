@@ -1,4 +1,4 @@
-import { Networks, NETWORK_BITCOIN, NETWORK_CITREA_TESTNET, NETWORK_BOTANIX, NETWORK_ROOTSTOCK } from '../types/networks';
+import { Networks, NETWORK_BITCOIN, NETWORK_CITREA_TESTNET, NETWORK_BOTANIX, NETWORK_ROOTSTOCK, NETWORK_CITREA } from '../types/networks';
 import { PartnerInfo } from '../types/partner-info';
 
 const partnersList: PartnerInfo[] = [
@@ -71,6 +71,20 @@ const partnersList: PartnerInfo[] = [
     url: 'https://oku.trade/?inputChain=rootstock',
     imgUrl: '',
     description: '',
+  },
+  {
+    name: 'Bridge',
+    network: NETWORK_CITREA,
+    url: 'https://citrea.xyz/bridge',
+    imgUrl: '',
+    description: '',
+  },
+  {
+    name: 'Citrea Dashboard',
+    network: NETWORK_CITREA,
+    url: 'https://app.citrea.xyz',
+    imgUrl: '',
+    description: 'Your Citrea mainnet usage tiers, reflected in the progress bars.',
   },
 ];
 
