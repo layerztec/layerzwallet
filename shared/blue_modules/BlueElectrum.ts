@@ -225,6 +225,7 @@ export async function connectMain(): Promise<void> {
       }
     }
   } catch (e) {
+    globalThis.handleError?.(e, 'BlueElectrum.ts');
     mainConnected = false;
     console.log('bad connection:', JSON.stringify(usingPeer), e);
   }
@@ -621,6 +622,7 @@ export async function multiGetTransactionByTxid<T extends boolean>(txids: string
       try {
         ret[txid] = JSON.parse(jsonString.cache_value as string);
       } catch (error) {
+        globalThis.handleError?.(error, 'BlueElectrum.ts');
         console.log(error, 'cache failed to parse', jsonString.cache_value);
       }
     }
@@ -671,6 +673,7 @@ export async function multiGetTransactionByTxid<T extends boolean>(txids: string
               tx = txhexToElectrumTransaction(tx);
               results.push({ result: tx, param: txid });
             } catch (err) {
+              globalThis.handleError?.(err, 'BlueElectrum.ts');
               console.log(err);
             }
           }
@@ -687,6 +690,7 @@ export async function multiGetTransactionByTxid<T extends boolean>(txids: string
               }
               results.push({ result: tx, param: txid });
             } catch (err) {
+              globalThis.handleError?.(err, 'BlueElectrum.ts');
               console.log(err);
             }
           }
@@ -905,6 +909,7 @@ export const broadcast = async function (hex: string) {
     const res = await mainClient.blockchainTransaction_broadcast(hex);
     return res;
   } catch (error) {
+    globalThis.handleError?.(error, 'BlueElectrum.ts');
     return error;
   }
 };

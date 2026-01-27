@@ -8,7 +8,6 @@ import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { getIsEVM, getRpcProvider } from '../models/network-getters';
 import { BreezWallet } from '../class/wallets/breez-wallet';
 import { walletCanHaveTokens } from '../class/wallets/interface-can-have-tokens';
-import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { AbstractWallet } from '@shared/class/wallets/abstract-wallet';
 
 interface tokenBalanceFetcherArg {
@@ -31,7 +30,7 @@ function keyCleanupMiddleware(useSWRNext: any) {
       delete newKey.backgroundCaller;
     }
 
-    console.log(`tokenBalance(${JSON.stringify(newKey)})`); // logging
+    // console.log(`tokenBalance(${JSON.stringify(newKey)})`); // logging
 
     return useSWRNext(newKey, () => fetcher(key), config);
   };
@@ -108,6 +107,7 @@ export const tokenBalanceFetcher = async (arg: tokenBalanceFetcherArg): Promise<
 
     return String(balance);
   } catch (error: any) {
+    globalThis.handleError?.(error, 'useTokenBalance.ts');
     console.log('tokenBalanceFetcher error = ', error.message);
     return undefined;
   }

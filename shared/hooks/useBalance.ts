@@ -41,7 +41,7 @@ function keyCleanupMiddleware(useSWRNext: any) {
       delete newKey.backgroundCaller;
     }
 
-    console.log(`useBalance(${JSON.stringify(newKey)})`); // logging
+    // console.log(`useBalance(${JSON.stringify(newKey)})`); // logging
 
     return useSWRNext(newKey, () => fetcher(key), config);
   };

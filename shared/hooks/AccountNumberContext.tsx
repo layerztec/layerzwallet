@@ -100,6 +100,7 @@ export const AccountNumberContextProvider: React.FC<AccountNumberContextProvider
             arg: [addressResponse],
           });
         } catch (error: any) {
+          globalThis.handleError?.(error, 'AccountNumberContext.tsx');
           console.error(error.message);
         }
       })();

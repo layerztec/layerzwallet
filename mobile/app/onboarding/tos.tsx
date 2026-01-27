@@ -12,6 +12,7 @@ import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { Image } from 'expo-image';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 import Pressable from '../../components/Pressable';
+import { getErrorMessage } from '@/src/modules/error-handler';
 
 export default function TermsOfServiceScreen() {
   const router = useRouter();
@@ -44,7 +45,7 @@ export default function TermsOfServiceScreen() {
       router.replace('/Home?fromOnboarding=true');
     } catch (error) {
       console.error('Error accepting terms:', error);
-      Alert.alert('Error', 'Failed to accept terms. Please try again.');
+      Alert.alert('Error', (await getErrorMessage(error)) || 'Failed to accept terms. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +64,7 @@ export default function TermsOfServiceScreen() {
       await Linking.openURL('https://layerzwallet.com/tos');
     } catch (error) {
       console.error('Failed to open Terms of Service URL:', error);
-      Alert.alert('Error', 'Failed to open Terms of Service. Please try again.');
+      Alert.alert('Error', (await getErrorMessage(error)) || 'Failed to open Terms of Service. Please try again.');
     }
   };
 

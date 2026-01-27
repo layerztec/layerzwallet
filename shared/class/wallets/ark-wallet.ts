@@ -133,6 +133,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
         console.log('Renewal transaction:', renewTxid);
       }
     } catch (error) {
+      globalThis.handleError?.(error, 'ark-wallet.ts');
       console.log('ARK Error renewing VTXOs:', error);
     }
 
@@ -155,6 +156,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
           await arkadeLightning.claimVHTLC(swap);
           console.log(`${swap.id} claimed!`);
         } catch (error: any) {
+          globalThis.handleError?.(error, 'ark-wallet.ts');
           console.log(`could not claim ${swap.id}:`, error?.message ?? error);
         }
       })
