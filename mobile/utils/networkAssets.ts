@@ -14,6 +14,7 @@ import {
   NETWORK_USDT,
   NETWORK_ARK,
   NETWORK_STACKS,
+  NETWORK_CITREA,
 } from '@shared/types/networks';
 import { SO_LIQUID_USDT, SO_STACKS_STX } from '@shared/types/swap';
 
@@ -47,6 +48,7 @@ export const getNetworkImageAsset = (network: string): string | null => {
     case NETWORK_ARK_MUTINYNET:
     case NETWORK_ARK:
       return require('../assets/images/ui/network/ark.png');
+    case NETWORK_CITREA:
     case NETWORK_CITREA_TESTNET:
       return require('../assets/images/ui/network/citrea.png');
     case NETWORK_USDT:
