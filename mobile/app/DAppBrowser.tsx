@@ -18,6 +18,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { DAppBrowserTabs } from './DAppBrowserTabs';
 import { useWebViewPreviewManager } from './hooks/useWebViewPreviewManager';
+import { handleError } from '@/src/modules/error-handler';
 
 export const BROWSER_CONSTANTS = {
   ANIMATION: {
@@ -654,7 +655,7 @@ const DAppBrowser: React.FC = () => {
 
   const createNewTab = async () => {
     if (activeTabId) {
-      await captureTabScreenshot(activeTabId, 50).catch(() => {});
+      await captureTabScreenshot(activeTabId, 50).catch((error) => handleError(error, 'captureTabScreenshot'));
     }
 
     const newTab = createHomeTab(network);
@@ -707,7 +708,7 @@ const DAppBrowser: React.FC = () => {
 
     // Capture screenshot of current active tab before switching
     if (activeTabId) {
-      await captureTabScreenshot(activeTabId, 50).catch(() => {});
+      await captureTabScreenshot(activeTabId, 50).catch((error) => handleError(error, 'captureTabScreenshot'));
     }
 
     setActiveTabId(tabId);
@@ -728,7 +729,7 @@ const DAppBrowser: React.FC = () => {
 
     // Capture current tab screenshot
     if (activeTabId) {
-      captureTabScreenshot(activeTabId).catch(() => {});
+      captureTabScreenshot(activeTabId).catch((error) => handleError(error, 'captureTabScreenshot'));
     }
 
     // Ensure all tabs have screenshots (stagger to avoid overwhelming the system)
@@ -736,7 +737,7 @@ const DAppBrowser: React.FC = () => {
       if (!tab.screenshot) {
         setTimeout(
           () => {
-            ensureTabPreview(tab.id, false).catch(() => {});
+            ensureTabPreview(tab.id, false).catch((error) => handleError(error, 'ensureTabPreview'));
           },
           500 + index * 300
         ); // Start after 500ms, then 300ms delay between each tab

@@ -14,7 +14,7 @@ interface exchangeRateFetcherArg {
 
 function middleware(useSWRNext: any) {
   return (key: any, fetcher: any, config: any) => {
-    console.log(`useExchangeRate(${JSON.stringify(key)})`); // logging
+    // console.log(`useExchangeRate(${JSON.stringify(key)})`); // logging
 
     return useSWRNext(key, () => fetcher(key), config);
   };

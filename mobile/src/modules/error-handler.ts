@@ -4,14 +4,12 @@
  */
 import { File, Paths } from 'expo-file-system';
 // @ts-ignore no types for this
-import { serializeError } from 'serialize-error';
+import * as serializeErrorModule from 'serialize-error';
 // @ts-ignore no types for this
 import type { ErrorObject } from 'serialize-error';
 
 const applogFile = new File(Paths.document, 'app.log');
 export const applogFilePath = applogFile.uri;
-
-export const recentErrors: { timestamp: Date; error: ErrorObject; context: string }[] = [];
 
 const logfileSizeCutoff = 100 * 1024 * 1024;
 
@@ -74,16 +72,26 @@ export function createErrorHandlerWithContext(context: string) {
   return (reason: unknown) => handleError(reason, context);
 }
 
-export const handleError = async function (error: unknown, context: string = 'unknown'): Promise<void> {
-  console.log('exception caught:', context, error);
-  recentErrors.push({
-    error: serializeError(error),
-    context,
-    timestamp: new Date(),
-  });
-
-  appendLog(JSON.stringify(serializeError(error)), context);
+const getSerializeError = () => {
+  const candidate = (serializeErrorModule as any)?.serializeError ?? (serializeErrorModule as any)?.default ?? serializeErrorModule;
+  return typeof candidate === 'function' ? candidate : undefined;
 };
+
+const safeSerializeError = (error: unknown): ErrorObject => {
+  const serializer = getSerializeError();
+  if (serializer) {
+    return serializer(error);
+  }
+  return { message: String(error) };
+};
+
+export const handleError = async function (error: unknown, context: string = 'unknown'): Promise<void> {
+  console.log('exception caught:', context, await getErrorMessage(error));
+
+  appendLog(JSON.stringify(safeSerializeError(error)), context);
+};
+
+globalThis.handleError = handleError;
 
 const cleanHTMLTags = (str: string) => {
   return str

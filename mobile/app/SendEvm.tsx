@@ -22,6 +22,7 @@ import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
 import { TransactionSuccessProps } from './TransactionSuccessEvm';
+import { handleError } from '@/src/modules/error-handler';
 
 export type SendEvmParams = {
   toAddress?: string;
@@ -52,6 +53,7 @@ export default function SendScreen() {
         setAddress(addressResponse);
       })
       .catch((error) => {
+        handleError(error, 'SendEvm');
         setErrorMessage('Error fetching address: ' + error.message);
       });
   }, [accountNumber, network]);

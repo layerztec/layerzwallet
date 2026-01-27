@@ -7,8 +7,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import assert from 'assert';
 import { EvmWallet } from '@shared/class/evm-wallet';
+import { getErrorMessage } from '@/src/modules/error-handler';
 
 interface PersonalSignArgs {
   params: any[];
@@ -36,7 +36,7 @@ export function PersonalSign(args: PersonalSignArgs) {
       BrowserBridge.instance?.sendMessage({ for: 'webpage', id: args.id, response: bytes });
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to sign message');
+      Alert.alert('Error', (await getErrorMessage(error)) || 'Failed to sign message');
     } finally {
       setIsLoading(false);
     }
@@ -51,7 +51,7 @@ export function PersonalSign(args: PersonalSignArgs) {
       });
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to reject request');
+      Alert.alert('Error', (await getErrorMessage(error)) || 'Failed to reject request');
       router.back();
     }
   };

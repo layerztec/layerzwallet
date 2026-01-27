@@ -166,6 +166,7 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
         const response = await rpc.send(method, params);
         await sendResponse({ for: 'webpage', id, response });
       } catch (e: any) {
+        globalThis.handleError?.(e, 'rpc-controller.ts');
         console.warn('rpc error for', method, ':', e);
         await sendResponse({ for: 'webpage', id, error: e.error });
       }

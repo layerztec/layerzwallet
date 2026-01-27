@@ -34,14 +34,14 @@ LogBox.ignoreLogs(['Require cycle:', 'Open debugger to view warnings.']);
 
 const onJSError = (error: unknown) => handleError(error, 'JAVASCRIPT_ERROR');
 
-console.log('applogFilePath:', applogFilePath);
 const consoleLogOrig = console.log;
 if (!__DEV__) {
+  console.log('applogFilePath:', applogFilePath);
   const _log = (...args: unknown[]) => {
     appendLog(args, 'log');
     consoleLogOrig(...args);
   };
-  console.log = console.warn = console.error = _log;
+  console.log = console.warn = console.error = console.debug = _log;
 }
 
 export default function RootLayout() {

@@ -165,6 +165,7 @@ export class StacksWallet implements InterfaceAccountBasedWallet, InterfaceCanHa
           await this._storage?.setItem(cacheKey, JSON.stringify(tokenMetadata));
         }
       } catch (error) {
+        globalThis.handleError?.(error, 'stacks-wallet.ts');
         console.error('Failed to fetch NFT metadata from Gamma:', error);
       }
 

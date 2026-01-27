@@ -15,14 +15,14 @@ interface tokenExchangeRateFetcherArg {
 
 function middleware(useSWRNext: any) {
   return (key: any, fetcher: any, config: any) => {
-    console.log(`useTokenExchangeRate(${JSON.stringify(key)})`); // logging
+    // console.log(`useTokenExchangeRate(${JSON.stringify(key)})`); // logging
 
     return useSWRNext(key, () => fetcher(key), config);
   };
 }
 
 export const tokenExchangeRateFetcher = async (arg: tokenExchangeRateFetcherArg): Promise<number> => {
-  const { network, tokenId, fiat } = arg;
+  const { network, tokenId } = arg;
 
   if (getIsTestnet(network)) {
     return 0;
@@ -67,6 +67,7 @@ export const tokenExchangeRateFetcher = async (arg: tokenExchangeRateFetcherArg)
 
       return 0;
     } catch (error) {
+      globalThis.handleError?.(error, 'useTokenExchangeRate.ts');
       console.error('Error fetching STX exchange rate:', error);
       return 0;
     }

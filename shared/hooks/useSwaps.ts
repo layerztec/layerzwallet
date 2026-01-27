@@ -48,6 +48,7 @@ export const swapFetcher = async (arg: swapFetcherArg): Promise<CommonSwap[]> =>
     // For now, only Spark wallet is supported
     return [];
   } catch (error) {
+    globalThis.handleError?.(error, 'useSwaps.ts');
     console.error('swap fetch error', error);
     throw error;
   }

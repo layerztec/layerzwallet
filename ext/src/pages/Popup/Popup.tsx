@@ -4,6 +4,7 @@ import { Navigate, Route, HashRouter as Router, Routes, useNavigate } from 'reac
 import { SWRConfig } from 'swr';
 
 import '../../modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
+import '../../modules/error-handler';
 import '../../modules/spark-adapter'; // needed to be imported before we can use SparkWallet
 
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';

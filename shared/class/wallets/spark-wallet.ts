@@ -205,6 +205,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
             network: 'MAINNET',
           });
         } catch (error) {
+          globalThis.handleError?.(error, 'spark-wallet.ts');
           console.error('Failed to encode Spark counterparty address:', error);
           // Fallback: use identity public key as identifier if encoding fails
           counterparty = counterpartyIdentityPublicKey;
