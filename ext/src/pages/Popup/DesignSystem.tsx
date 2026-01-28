@@ -469,15 +469,15 @@ export const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (
   />
 );
 
-// Card Component
+// Card Component (legacy - use shadcn Card instead)
 export const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div
     style={{
       width: '95%',
       height: '100%',
-      backgroundImage: 'linear-gradient(to bottom, #0c1f6c, #1c3a88)',
-      border: '0px solid #ebebeb',
-      borderRadius: '0px',
+      backgroundColor: '#171717',
+      border: '1px solid #262626',
+      borderRadius: '8px',
       padding: '20px',
     }}
   >

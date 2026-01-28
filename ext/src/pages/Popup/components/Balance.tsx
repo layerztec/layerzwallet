@@ -28,7 +28,7 @@ import {
 } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { LayerzStorage } from '../../../class/layerz-storage';
-import { Button } from '../DesignSystem';
+import { Button } from '../../../components/ui/button';
 
 interface BalanceProps {
   network: Networks;
@@ -74,26 +74,29 @@ const BalanceDefault = forwardRef<{ refresh: () => void }, BalanceProps>(({ netw
   return (
     <>
       {getIsTestnet(network) ? (
-        <div style={{ color: 'darkred', width: '100%', marginBottom: '15px' }}>
-          <span style={{ fontSize: 14 }}>Testnet. Coins have no value</span>
+        <div className="mb-4 rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2">
+          <span className="text-sm text-destructive">Testnet. Coins have no value</span>
         </div>
       ) : null}
 
-      <h1>
-        <span id="home-balance">{displayBalance}</span> {ticker}
-        &nbsp;<span style={{ fontSize: 14 }}>{displaySubBalance !== '—' ? `$${displaySubBalance}` : ''}</span>
-        {canBuyWithFiat ? (
-          <span style={{ paddingLeft: '15px' }}>
-            <Button onClick={handleBuyClick}>
-              <ShoppingCartIcon /> Buy
+      <div className="text-center space-y-2">
+        <h1 className="text-4xl font-bold tracking-tight">
+          <span id="home-balance">{displayBalance}</span> <span className="text-muted-foreground">{ticker}</span>
+        </h1>
+        {displaySubBalance !== '—' && <p className="text-lg text-muted-foreground">${displaySubBalance} USD</p>}
+        {canBuyWithFiat && (
+          <div className="pt-2">
+            <Button onClick={handleBuyClick} size="sm" variant="outline">
+              <ShoppingCartIcon size={16} className="mr-2" />
+              Buy
             </Button>
-          </span>
-        ) : null}
-      </h1>
+          </div>
+        )}
+      </div>
 
-      <span id="pocket-balance" style={{ position: 'absolute', top: 0, left: 20, fontSize: 14 }}>
-        Pocket balance: {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : ''} {getTickerByNetwork(NETWORK_BITCOIN)}
-      </span>
+      <div id="pocket-balance" className="absolute top-2 left-4 text-xs text-muted-foreground">
+        Pocket: {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : ''} {getTickerByNetwork(NETWORK_BITCOIN)}
+      </div>
     </>
   );
 });
@@ -173,12 +176,12 @@ const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceProps>(({ ne
       const networkName = capitalizeFirstLetter(net);
 
       return (
-        <tr key={net} style={{ borderBottom: index < networks.length - 1 ? '1px solid #eee' : 'none' }}>
-          <td style={{ padding: '8px', fontSize: '14px' }}>{networkName}</td>
-          <td style={{ textAlign: 'right', padding: '8px', fontSize: '14px' }}>
+        <tr key={net} className="hover:bg-muted/50 transition-colors">
+          <td className="px-4 py-3 text-sm">{networkName}</td>
+          <td className="px-4 py-3 text-sm text-right font-medium">
             {formattedBalance} {networkTicker}
           </td>
-          <td style={{ textAlign: 'right', padding: '8px', fontSize: '14px' }}>{formattedFiatBalance} USD</td>
+          <td className="px-4 py-3 text-sm text-right text-muted-foreground">{formattedFiatBalance}</td>
         </tr>
       );
     });
@@ -195,34 +198,37 @@ const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceProps>(({ ne
   return (
     <>
       {getIsTestnet(network) ? (
-        <div style={{ color: 'darkred', width: '100%', marginBottom: '15px' }}>
-          <span style={{ fontSize: 14 }}>Testnet. Coins have no value</span>
+        <div className="mb-4 rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2">
+          <span className="text-sm text-destructive">Testnet. Coins have no value</span>
         </div>
       ) : null}
 
-      <h1>
-        <span id="home-balance">{displayBalance}</span> {ticker}
-        <div style={{ width: '100%', marginBottom: '15px' }}>
-          <span style={{ fontSize: 14 }}>{displaySubBalance !== '—' ? `$${displaySubBalance}` : ''}</span>
-        </div>
-      </h1>
-
-      <div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '15px' }}>
-          <tbody>{rows}</tbody>
-        </table>
-        {fiatOnRamp?.[network]?.canBuyWithFiat ? (
-          <div style={{ marginBottom: '15px' }}>
-            <Button onClick={handleBuyClick}>
-              <ShoppingCartIcon /> Buy
-            </Button>
-          </div>
-        ) : null}
+      <div className="text-center space-y-2">
+        <h1 className="text-4xl font-bold tracking-tight">
+          <span id="home-balance">{displayBalance}</span> <span className="text-muted-foreground">{ticker}</span>
+        </h1>
+        {displaySubBalance !== '—' && <p className="text-lg text-muted-foreground">${displaySubBalance} USD</p>}
       </div>
 
-      <span id="pocket-balance" style={{ position: 'absolute', top: 0, left: 20, fontSize: 14 }}>
-        Pocket balance: {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : ''} {getTickerByNetwork(NETWORK_BITCOIN)}
-      </span>
+      <div className="mt-4">
+        <div className="rounded-md border border-border overflow-hidden">
+          <table className="w-full border-collapse">
+            <tbody className="divide-y divide-border">{rows}</tbody>
+          </table>
+        </div>
+        {fiatOnRamp?.[network]?.canBuyWithFiat && (
+          <div className="mt-4">
+            <Button onClick={handleBuyClick} size="sm" variant="outline" className="w-full">
+              <ShoppingCartIcon size={16} className="mr-2" />
+              Buy
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <div id="pocket-balance" className="absolute top-2 left-4 text-xs text-muted-foreground">
+        Pocket: {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : ''} {getTickerByNetwork(NETWORK_BITCOIN)}
+      </div>
     </>
   );
 });
@@ -247,11 +253,10 @@ const USDTTokenRow: React.FC<{
   }, [balance, token.id, setTokenBalances]);
 
   return (
-    <tr style={{ borderBottom: '1px solid #eee' }}>
-      <td style={{ padding: '8px', fontSize: '14px' }}>{token.name}</td>
-      <td style={{ textAlign: 'right', padding: '8px', fontSize: '14px' }}>
-        {token.symbol}
-        {formattedBalance}
+    <tr className="hover:bg-muted/50 transition-colors">
+      <td className="px-4 py-3 text-sm">{token.name}</td>
+      <td className="px-4 py-3 text-sm text-right font-medium">
+        {formattedBalance} {token.symbol}
       </td>
     </tr>
   );
@@ -308,24 +313,28 @@ const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceProps>(({ network
   return (
     <>
       {getIsTestnet(network) ? (
-        <div style={{ color: 'darkred', width: '100%', marginBottom: '15px' }}>
-          <span style={{ fontSize: 14 }}>Testnet. Coins have no value</span>
+        <div className="mb-4 rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2">
+          <span className="text-sm text-destructive">Testnet. Coins have no value</span>
         </div>
       ) : null}
 
-      <h1>
-        <span id="home-balance">{displayBalance}</span> {ticker}
-      </h1>
-
-      <div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '15px' }}>
-          <tbody>{rows}</tbody>
-        </table>
+      <div className="text-center space-y-2">
+        <h1 className="text-4xl font-bold tracking-tight">
+          <span id="home-balance">{displayBalance}</span> <span className="text-muted-foreground">{ticker}</span>
+        </h1>
       </div>
 
-      <span id="pocket-balance" style={{ position: 'absolute', top: 0, left: 20, fontSize: 14 }}>
-        Pocket balance: {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : ''} {getTickerByNetwork(NETWORK_BITCOIN)}
-      </span>
+      <div className="mt-4">
+        <div className="rounded-md border border-border overflow-hidden">
+          <table className="w-full border-collapse">
+            <tbody className="divide-y divide-border">{rows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="pocket-balance" className="absolute top-2 left-4 text-xs text-muted-foreground">
+        Pocket: {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : ''} {getTickerByNetwork(NETWORK_BITCOIN)}
+      </div>
     </>
   );
 });

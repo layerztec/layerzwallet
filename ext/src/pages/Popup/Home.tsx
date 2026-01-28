@@ -26,6 +26,9 @@ import {
 } from '@shared/types/networks';
 import { SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapPair, SwapPlatform } from '@shared/types/swap';
 
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader } from '../../components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { BackgroundCaller } from '../../modules/background-caller';
 import Balance from './components/Balance';
 import NftsView from './components/NftsView';
@@ -33,7 +36,7 @@ import PartnersView from './components/PartnersView';
 import SwapInterfaceView from './components/SwapInterfaceView';
 import SwapListView from './components/SwapListView';
 import TokensView from './components/TokensView';
-import { ActionPopupButton, Button, Switch } from './DesignSystem';
+import { ActionPopupButton } from './DesignSystem';
 import { ReceiveLightningProps } from './ReceiveLightning';
 import { SendLightningProps } from './SendLightning';
 
@@ -194,197 +197,192 @@ const Home: React.FC = () => {
   }, []);
 
   return (
-    <div>
-      <Switch items={availableNetworks} activeItem={network} onItemClick={setNetwork} />
-      {getKnowMoreUrl(network) ? (
-        <div style={{ textAlign: 'right' }}>
-          <a
-            href={getKnowMoreUrl(network)}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: '#808080',
-              fontSize: '0.5em',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-            }}
-          >
-            <span>Learn about {capitalizeFirstLetter(network)}</span>
-            <span style={{ display: 'inline-block', marginLeft: '4px', position: 'relative', top: '2px' }}>
-              <Info size={15} />
-            </span>
-          </a>
-        </div>
-      ) : null}
-      <div style={{ textAlign: 'right', marginTop: '4px', marginBottom: '10px' }}>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          style={{
-            padding: '4px 8px',
-            fontSize: '12px',
-            border: '1px solid #ddd',
-            borderRadius: '4px',
-            backgroundColor: refreshing ? '#f0f0f0' : 'white',
-            cursor: refreshing ? 'not-allowed' : 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            color: refreshing ? '#999' : '#333',
-          }}
-          title="Refresh"
-        >
-          <RefreshCwIcon size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-        </button>
-      </div>
-
-      <Balance ref={balanceRef} network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />
+    <div className="w-full space-y-4 p-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <Tabs value={network} onValueChange={(value) => setNetwork(value as Networks)} className="w-full">
+              <TabsList className="flex w-full flex-wrap gap-1">
+                {availableNetworks.map((net) => (
+                  <TabsTrigger key={net} value={net} className="text-xs flex-1 min-w-[80px]">
+                    {capitalizeFirstLetter(net)}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+            <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={refreshing} className="h-8 w-8" title="Refresh">
+              <RefreshCwIcon size={16} className={refreshing ? 'animate-spin' : ''} />
+            </Button>
+          </div>
+          {getKnowMoreUrl(network) ? (
+            <div className="mt-2 flex justify-end">
+              <a
+                href={getKnowMoreUrl(network)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
+              >
+                <span>Learn about {capitalizeFirstLetter(network)}</span>
+                <Info size={12} />
+              </a>
+            </div>
+          ) : null}
+        </CardHeader>
+        <CardContent>
+          <Balance ref={balanceRef} network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />
+        </CardContent>
+      </Card>
 
       {showSwapInterface ? (
-        <SwapInterfaceView fromNetwork={swapFromNetwork} />
+        <Card>
+          <CardContent className="pt-6">
+            <SwapInterfaceView fromNetwork={swapFromNetwork} />
+          </CardContent>
+        </Card>
       ) : (
-        <div>
+        <div className="space-y-4">
           <PartnersView />
           <TokensView ref={tokensViewRef} />
           <NftsView ref={nftsViewRef} />
         </div>
       )}
 
-      <br />
       <SwapListView ref={swapListRef} />
-      <br />
 
-      {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
-        <ActionPopupButton
-          actions={[
-            {
-              label: 'Send via Spark',
-              onClick: handleSendLightningOnSpark,
-            },
-            {
-              label: 'Send via Liquid',
-              onClick: handleSendLightningOnLiquid,
-            },
-            {
-              label: 'Send via Ark',
-              onClick: handleSendLightningOnArk,
-            },
-            { label: 'Cancel', onClick: () => {} },
-          ]}
-        >
-          <SendIcon />
-          Send
-        </ActionPopupButton>
-      ) : network === NETWORK_USDT ? (
-        <ActionPopupButton
-          actions={[
-            {
-              label: 'Send USDT via Rootstock',
-              onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][0]),
-            },
-            {
-              label: 'Send USDT0 via Rootstock',
-              onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][1]),
-            },
-            {
-              label: 'Send rUSDT via Rootstock',
-              onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][2]),
-            },
-            {
-              label: 'Send USDT via Liquid',
-              onClick: handleSendUSDTViaLiquid,
-            },
-            { label: 'Cancel', onClick: () => {} },
-          ]}
-        >
-          <SendIcon />
-          Send
-        </ActionPopupButton>
-      ) : (
-        <Button onClick={handleSend}>
-          <SendIcon />
-          Send
-        </Button>
-      )}
-
-      {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
-        <ActionPopupButton
-          actions={[
-            {
-              label: 'Receive on Spark',
-              onClick: handleReceiveLightningOnSpark,
-            },
-            {
-              label: 'Receive on Liquid',
-              onClick: handleReceiveLightningOnLiquid,
-            },
-            {
-              label: 'Receive on Ark',
-              onClick: handleReceiveLightningOnArk,
-            },
-            { label: 'Cancel', onClick: () => {} },
-          ]}
-        >
-          <ArrowDownRightIcon />
-          Receive
-        </ActionPopupButton>
-      ) : network === NETWORK_USDT ? (
-        <ActionPopupButton
-          actions={[
-            {
-              label: 'Receive via Rootstock',
-              onClick: handleReceiveUSDTViaRootstock,
-            },
-            {
-              label: 'Receive via Liquid',
-              onClick: handleReceiveUSDTViaLiquid,
-            },
-            { label: 'Cancel', onClick: () => {} },
-          ]}
-        >
-          <ArrowDownRightIcon />
-          Receive
-        </ActionPopupButton>
-      ) : (
-        <Button onClick={handleReceive}>
-          <ArrowDownRightIcon />
-          Receive
-        </Button>
-      )}
-
-      {network === NETWORK_USDT ? (
-        // For USDT, check if either liquid or rootstock USDT can be swapped
-        getSwapPairs(SO_LIQUID_USDT, SwapPlatform.EXT).length > 0 || getSwapPairs(SO_ROOTSTOCK_USDT, SwapPlatform.EXT).length > 0 ? (
+      <div className="flex flex-col gap-2">
+        {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
           <ActionPopupButton
             actions={[
-              ...(getSwapPairs(SO_LIQUID_USDT, SwapPlatform.EXT).length > 0
-                ? [
-                    {
-                      label: 'Swap USDT on Liquid',
-                      onClick: handleSwapTokenViaLiquid,
-                    },
-                  ]
-                : []),
-              ...(getSwapPairs(SO_ROOTSTOCK_USDT, SwapPlatform.EXT).length > 0
-                ? [
-                    {
-                      label: 'Swap USDT on Rootstock',
-                      onClick: handleSwapTokenViaRootstock,
-                    },
-                  ]
-                : []),
+              {
+                label: 'Send via Spark',
+                onClick: handleSendLightningOnSpark,
+              },
+              {
+                label: 'Send via Liquid',
+                onClick: handleSendLightningOnLiquid,
+              },
+              {
+                label: 'Send via Ark',
+                onClick: handleSendLightningOnArk,
+              },
               { label: 'Cancel', onClick: () => {} },
             ]}
           >
-            <RefreshCwIcon /> Swap
+            <SendIcon size={18} className="mr-2" />
+            Send
           </ActionPopupButton>
-        ) : null
-      ) : swapPairs.length > 0 ? (
-        <Button onClick={handleSwapClick}>
-          <RefreshCwIcon /> Swap
-        </Button>
-      ) : null}
+        ) : network === NETWORK_USDT ? (
+          <ActionPopupButton
+            actions={[
+              {
+                label: 'Send USDT via Rootstock',
+                onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][0]),
+              },
+              {
+                label: 'Send USDT0 via Rootstock',
+                onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][1]),
+              },
+              {
+                label: 'Send rUSDT via Rootstock',
+                onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][2]),
+              },
+              {
+                label: 'Send USDT via Liquid',
+                onClick: handleSendUSDTViaLiquid,
+              },
+              { label: 'Cancel', onClick: () => {} },
+            ]}
+          >
+            <SendIcon size={18} className="mr-2" />
+            Send
+          </ActionPopupButton>
+        ) : (
+          <Button onClick={handleSend} className="w-full">
+            <SendIcon size={18} className="mr-2" />
+            Send
+          </Button>
+        )}
+
+        {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
+          <ActionPopupButton
+            actions={[
+              {
+                label: 'Receive on Spark',
+                onClick: handleReceiveLightningOnSpark,
+              },
+              {
+                label: 'Receive on Liquid',
+                onClick: handleReceiveLightningOnLiquid,
+              },
+              {
+                label: 'Receive on Ark',
+                onClick: handleReceiveLightningOnArk,
+              },
+              { label: 'Cancel', onClick: () => {} },
+            ]}
+          >
+            <ArrowDownRightIcon size={18} className="mr-2" />
+            Receive
+          </ActionPopupButton>
+        ) : network === NETWORK_USDT ? (
+          <ActionPopupButton
+            actions={[
+              {
+                label: 'Receive via Rootstock',
+                onClick: handleReceiveUSDTViaRootstock,
+              },
+              {
+                label: 'Receive via Liquid',
+                onClick: handleReceiveUSDTViaLiquid,
+              },
+              { label: 'Cancel', onClick: () => {} },
+            ]}
+          >
+            <ArrowDownRightIcon size={18} className="mr-2" />
+            Receive
+          </ActionPopupButton>
+        ) : (
+          <Button onClick={handleReceive} variant="outline" className="w-full">
+            <ArrowDownRightIcon size={18} className="mr-2" />
+            Receive
+          </Button>
+        )}
+
+        {network === NETWORK_USDT ? (
+          // For USDT, check if either liquid or rootstock USDT can be swapped
+          getSwapPairs(SO_LIQUID_USDT, SwapPlatform.EXT).length > 0 || getSwapPairs(SO_ROOTSTOCK_USDT, SwapPlatform.EXT).length > 0 ? (
+            <ActionPopupButton
+              actions={[
+                ...(getSwapPairs(SO_LIQUID_USDT, SwapPlatform.EXT).length > 0
+                  ? [
+                      {
+                        label: 'Swap USDT on Liquid',
+                        onClick: handleSwapTokenViaLiquid,
+                      },
+                    ]
+                  : []),
+                ...(getSwapPairs(SO_ROOTSTOCK_USDT, SwapPlatform.EXT).length > 0
+                  ? [
+                      {
+                        label: 'Swap USDT on Rootstock',
+                        onClick: handleSwapTokenViaRootstock,
+                      },
+                    ]
+                  : []),
+                { label: 'Cancel', onClick: () => {} },
+              ]}
+            >
+              <RefreshCwIcon size={18} className="mr-2" />
+              Swap
+            </ActionPopupButton>
+          ) : null
+        ) : swapPairs.length > 0 ? (
+          <Button onClick={handleSwapClick} variant="secondary" className="w-full">
+            <RefreshCwIcon size={18} className="mr-2" />
+            Swap
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 };

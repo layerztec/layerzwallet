@@ -1,7 +1,7 @@
 .App {
   padding: 0px;
-  background-image: linear-gradient(to bottom, #0c1f6c, #1c3a88);
-  color: #fbfff9;
+  background-color: #000000;
+  color: #fafafa;
   position: absolute;
   top: 0px;
   bottom: 0px;
@@ -28,7 +28,7 @@
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-  color: #fbfff9;
+  color: #fafafa;
 }
 
 .App-link {
