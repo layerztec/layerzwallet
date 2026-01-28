@@ -79,7 +79,7 @@ export default function TabThreeScreen() {
       // testing spark:
       const w = new SparkWallet();
       w.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
-      await w.init();
+      await w.init(LayerzStorage);
       assert(
         (await w.getOffchainReceiveAddress()) === 'spark1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym094800574x5numh',
         'unexpected spark wallet getOffchainReceiveAddress(): ' + (await w.getOffchainReceiveAddress())

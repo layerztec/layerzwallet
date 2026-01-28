@@ -1,11 +1,11 @@
 import assert from 'assert';
 import useSWR from 'swr';
 
-import { StacksWallet } from '../class/wallets/stacks-wallet';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { IStorage } from '../types/IStorage';
-import { NETWORK_STACKS, Networks } from '../types/networks';
+import { NETWORK_STACKS, NETWORK_SPARK, Networks } from '../types/networks';
 import { NftInfo } from '../types/token-info';
+import { walletCanHaveNfts } from '@shared/class/wallets/interface-can-have-nfts';
 
 const STORAGE_KEY_CACHED_NFT = 'STORAGE_KEY_CACHED_NFT';
 
@@ -34,7 +34,7 @@ async function restoreCachedNfts(cacheKey: string, storage: IStorage): Promise<N
 export const nftDiscoveryFetcher = async (arg: nftDiscoveryFetcherArg): Promise<NftInfo[]> => {
   const { network, accountNumber, backgroundCaller, storage } = arg;
 
-  if (network === NETWORK_STACKS) {
+  if (network === NETWORK_STACKS || network === NETWORK_SPARK) {
     const cacheKey = STORAGE_KEY_CACHED_NFT + network + accountNumber;
 
     if (!backgroundCaller.lazyInitWalletReady(network, accountNumber)) {
@@ -44,7 +44,13 @@ export const nftDiscoveryFetcher = async (arg: nftDiscoveryFetcherArg): Promise<
     }
 
     const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
-    assert(wallet instanceof StacksWallet, 'Not a Stacks wallet');
+    assert(walletCanHaveNfts(wallet), 'Not an NFT-capable wallet');
+
+    if (!wallet._lastNftsFetch) {
+      // wallet initialized, but NFTs never fetched yet, lets again use cache:
+      const cachedNfts = await restoreCachedNfts(cacheKey, storage);
+      if (cachedNfts) return cachedNfts;
+    }
 
     const nfts = await wallet.fetchNfts();
     await storage.setItem(cacheKey, JSON.stringify(nfts));
@@ -59,6 +65,7 @@ export function useNftDiscovery(network: Networks, accountNumber: number, backgr
   let shouldRefresh = false;
   switch (network) {
     case NETWORK_STACKS:
+    case NETWORK_SPARK:
       shouldRefresh = true;
       break;
   }
