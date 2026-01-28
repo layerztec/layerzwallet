@@ -8,25 +8,34 @@ import { AllNetworkInfos } from '../../models/all-network-infos';
 import { CommonSwap } from '../../types/common-swap';
 import { CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_BITCOIN, NETWORK_SPARK } from '../../types/networks';
-import { CachedTokenInfo } from '../../types/token-info';
+import { CachedTokenInfo, NftInfo } from '../../types/token-info';
+import { IStorage } from '../../types/IStorage';
 import { ArkWallet } from './ark-wallet';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
 import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
+import { uint8ArrayToString } from '../../modules/uint8array-extras';
+import { InterfaceCanHaveNfts } from './interface-can-have-nfts';
 
 // copypasted from `node_modules/@buildonspark/spark-sdk/dist/...` since its not exported
 type Bech32mTokenIdentifier = `btkn1${string}` | `btknrt1${string}` | `btknt1${string}` | `btkns1${string}` | `btknl1${string}`;
+type SparkTokenMetadata = TokenBalanceMap extends Map<string, { tokenMetadata: infer Metadata }> ? Metadata : never;
 
 export interface ISparkAdapter {
   initialize(...options: Parameters<typeof SDK.initialize>): ReturnType<typeof SDK.initialize>;
 }
 
+const STORAGE_KEY_NFT = 'SPARK_NFT_METADATA';
+
 // not exposed in the SDK
 export type StaticDepositQuoteOutput = Awaited<ReturnType<SDK['getClaimStaticDepositQuote']>>;
 
-export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet, InterfaceCanHaveTokens {
+export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet, InterfaceCanHaveTokens, InterfaceCanHaveNfts {
   private _sdkWallet: Awaited<ReturnType<typeof SDK.initialize>>['wallet'] | undefined = undefined;
   protected adapter: ISparkAdapter;
+  private _storage: IStorage | undefined = undefined;
+  _lastNftsFetch: number = 0;
+  _lastTokensFetch: number = 0;
 
   protected _bolt11toReceiveRequestId: Record<string, string> = {};
   private tokenBalances: TokenBalanceMap = new Map();
@@ -36,8 +45,10 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     this.adapter = globalThis.sparkAdapter;
   }
 
-  async init() {
+  async init(storage: IStorage) {
     assert(this.secret, 'Internal error: cant init Spark wallet, secret is not set.');
+
+    this._storage = storage;
 
     const { wallet } = await this.adapter.initialize({
       mnemonicOrSeed: this.secret,
@@ -107,6 +118,8 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
     const balance = await this._sdkWallet.getBalance();
     this._lastBalanceFetch = Date.now();
+    this._lastNftsFetch = Date.now();
+    this._lastTokensFetch = Date.now();
     this.tokenBalances = balance.tokenBalances;
     return Number(balance.balance);
   }
@@ -115,6 +128,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
     const ret: CachedTokenInfo[] = [];
     for (const [tokenIdentifier, { balance, tokenMetadata }] of this.tokenBalances.entries()) {
+      if (this.isNft(tokenMetadata)) continue;
       ret.push({
         name: tokenMetadata.tokenName,
         symbol: tokenMetadata.tokenTicker,
@@ -233,6 +247,12 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     return await this._sdkWallet.transferTokens({ receiverSparkAddress, tokenAmount, tokenIdentifier: tokenIdentifier as Bech32mTokenIdentifier });
   }
 
+  async transferNFT(nft: NftInfo, address: string): Promise<string> {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+
+    return this.transferToken(nft.tokenId, 1n, address);
+  }
+
   allowLightning() {
     return true;
   }
@@ -324,6 +344,100 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
       // so we wont have stale data
       await this.getOffchainBalance();
     }
+  }
+
+  parseBNFTMetadata(extraMetadata: Uint8Array | undefined) {
+    const metadataString = uint8ArrayToString(extraMetadata ?? new Uint8Array());
+    if (typeof metadataString !== 'string' || metadataString.length === 0) {
+      throw new Error('Invalid BNFT collection metadata');
+    }
+
+    const prefix = metadataString.slice(0, 4);
+    const locationCode = metadataString.slice(4, 6);
+    const metadataTypeCode = metadataString.slice(6, 9);
+    const hash = metadataString.slice(9);
+
+    if (prefix !== 'BNFT' || (metadataTypeCode !== '000' && metadataTypeCode !== '001') || locationCode.length !== 2 || hash.length === 0) {
+      throw new Error('Invalid BNFT token/collection metadata');
+    }
+
+    return { locationCode, metadataTypeCode, hash };
+  }
+
+  isNft(tokenMetadata: SparkTokenMetadata): boolean {
+    if (tokenMetadata.decimals !== 0) return false;
+    if (tokenMetadata.maxSupply !== BigInt(1)) return false;
+
+    const extraMetadataString = uint8ArrayToString(tokenMetadata.extraMetadata ?? new Uint8Array());
+    return extraMetadataString.startsWith('BNFT');
+  }
+
+  public async fetchNfts(): Promise<NftInfo[]> {
+    await this.fetchTokenBalances(); // NFTS are just tokens with a special identifier and supply of 1
+
+    const ret: NftInfo[] = [];
+    for (const [tokenIdentifier, { tokenMetadata, balance }] of this.tokenBalances.entries()) {
+      if (!this.isNft(tokenMetadata)) continue;
+
+      if (balance === BigInt(0)) continue; // we dont have it actually, skip it
+
+      let bnftMetadata: ReturnType<typeof this.parseBNFTMetadata>;
+      try {
+        bnftMetadata = this.parseBNFTMetadata(tokenMetadata.extraMetadata);
+      } catch (error) {
+        globalThis.handleError?.(error, 'spark-wallet.ts');
+        // something went wrong, lets skip this NFT
+        continue;
+      }
+
+      if (bnftMetadata.metadataTypeCode !== '001') {
+        // not an NFT, maybe a collection info (if its '000')
+        // lets skip it
+        continue;
+      }
+
+      const cacheKey = `${STORAGE_KEY_NFT}:${bnftMetadata.hash}`;
+
+      // trying cache first:
+      let nftInfo: any = await this._storage?.getItem(cacheKey);
+      if (nftInfo) {
+        try {
+          nftInfo = JSON.parse(nftInfo);
+        } catch (_) {}
+      }
+
+      if (!nftInfo) {
+        // cache miss
+        const response = await fetch(`https://arweave.net/${bnftMetadata.hash}`);
+        nftInfo = await response.json();
+      }
+
+      if (nftInfo.name) {
+        // response ok, lets cache it
+        this._storage?.setItem(cacheKey, JSON.stringify(nftInfo));
+      } else {
+        // something went wrong, lets skip this NFT
+        console.error('Malformed NFT info:', nftInfo);
+        continue;
+      }
+
+      let image = nftInfo?.image ?? '';
+      if (image.startsWith('AR://')) {
+        image = image.replace('AR://', '');
+        image = `https://arweave.net/${image}`;
+      }
+
+      ret.push({
+        name: nftInfo?.name ?? tokenMetadata.tokenName,
+        contractAddress: tokenMetadata.tokenPublicKey, // ??? makes no sense in spark, for transfer we need only the token identifier
+        tokenId: tokenIdentifier,
+        collectionName: nftInfo?.symbol ?? '',
+        description: nftInfo?.description ?? '',
+        image,
+      });
+    }
+
+    return ret;
   }
 
   async refundDeposit(txid: string, destinationAddress: string): Promise<void> {

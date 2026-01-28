@@ -152,7 +152,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       const sw = new SparkWallet();
       sw.setSecret(masterSeed);
       sw.setAccountNumber(accountNumber);
-      await sw.init();
+      await sw.init(storage);
       cachedWallets[network][accountNumber] = sw;
       return sw;
     }

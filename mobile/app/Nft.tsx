@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from 'react';
+import React, { useCallback, useContext, useMemo } from 'react';
 import Pressable from '../components/Pressable';
 import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -12,6 +12,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getTokenIconColor } from '@shared/models/token-list';
 import { NftInfo } from '@shared/types/token-info';
+import { NETWORK_SPARK } from '@shared/types/networks';
 
 export type NftScreenParams = {
   nft: string;
@@ -19,6 +20,7 @@ export type NftScreenParams = {
 
 function truncateMiddle(value: string, head = 6, tail = 4) {
   if (!value) return value;
+  if (value.length <= head + tail + 1) return value;
   if (value.length <= head + tail + 1) return value;
   return `${value.slice(0, head)}…${value.slice(-tail)}`;
 }
@@ -29,10 +31,6 @@ function parseNftParam(nftParam: string): NftInfo | null {
   } catch (_) {
     return null;
   }
-}
-
-function buildExplorerUrl(nft: NftInfo): string {
-  return `https://gamma.io/collections/${nft.contractAddress}/${nft.tokenId}`;
 }
 
 export default function Nft() {
@@ -48,6 +46,14 @@ export default function Nft() {
     const base = nft.collectionName || 'NFT';
     return nft.tokenId ? `${base}-#${nft.tokenId}` : base;
   }, [nft]);
+
+  const buildExplorerUrl = useCallback(
+    (nft: NftInfo) => {
+      if (network === NETWORK_SPARK) return '';
+      return `https://gamma.io/collections/${nft.contractAddress}/${nft.tokenId}`;
+    },
+    [network]
+  );
 
   const description = useMemo(() => (nft as NftInfo | null)?.description ?? '', [nft]);
 
@@ -110,7 +116,7 @@ export default function Nft() {
                   <MaterialIcons name="content-copy" size={16} color="rgba(255, 255, 255, 0.8)" />
                 </Pressable>
                 <ThemedText style={styles.detailValue} numberOfLines={1} ellipsizeMode="middle">
-                  {truncateMiddle(nft.contractAddress.split('.')[0], 5, 4)}
+                  {truncateMiddle(nft.contractAddress.split('.')[0], 7, 5)}
                 </ThemedText>
               </View>
             </View>
@@ -121,7 +127,7 @@ export default function Nft() {
                 <Pressable onPress={() => handleCopy(nft.tokenId)} accessibilityLabel="Copy token id">
                   <MaterialIcons name="content-copy" size={16} color="rgba(255, 255, 255, 0.8)" />
                 </Pressable>
-                <ThemedText style={styles.detailValue}>{nft.tokenId}</ThemedText>
+                <ThemedText style={styles.detailValue}>{truncateMiddle(nft.tokenId, 7, 5)}</ThemedText>
               </View>
             </View>
           </View>
@@ -139,11 +145,13 @@ export default function Nft() {
               </ThemedText>
             </Pressable>
 
-            <Pressable style={styles.actionButton} onPress={handleOpenInExplorer} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="View NFT on explorer">
-              <ThemedText style={styles.actionButtonText} numberOfLines={1}>
-                View on explorer
-              </ThemedText>
-            </Pressable>
+            {buildExplorerUrl(nft) ? (
+              <Pressable style={styles.actionButton} onPress={handleOpenInExplorer} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="View NFT on explorer">
+                <ThemedText style={styles.actionButtonText} numberOfLines={1}>
+                  View on explorer
+                </ThemedText>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       </View>

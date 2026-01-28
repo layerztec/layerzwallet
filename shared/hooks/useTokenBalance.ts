@@ -8,7 +8,6 @@ import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { getIsEVM, getRpcProvider } from '../models/network-getters';
 import { BreezWallet } from '../class/wallets/breez-wallet';
 import { walletCanHaveTokens } from '../class/wallets/interface-can-have-tokens';
-import { AbstractWallet } from '@shared/class/wallets/abstract-wallet';
 
 interface tokenBalanceFetcherArg {
   cacheKey: string;
@@ -52,12 +51,8 @@ export const tokenBalanceFetcher = async (arg: tokenBalanceFetcherArg): Promise<
     if (network === NETWORK_SPARK || network === NETWORK_STACKS) {
       const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
       assert(walletCanHaveTokens(wallet), 'Not a wallet that can have tokens');
-      assert(wallet instanceof AbstractWallet, 'Not an Abstract wallet');
-      if (!wallet._lastBalanceFetch) {
-        // doing network request only if balance never fetched yet
-        // (one request should fill all tokens hashmap)
-        await wallet.getOffchainBalance();
-      }
+      // not doing network request here, as its not a separate request, its a call to getBalance of the wallet, and in case user
+      // has many tokens its just gona be a bunch of concurrent calls for the same thing.
 
       // Find the token balance where tokenMetadata.tokenPublicKey matches tokenContractAddress
       const tokenBalances = wallet.getTokenBalances();
