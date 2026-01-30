@@ -10,7 +10,7 @@ import { EIP6963ProviderDetail, EIP6963ProviderInfo } from '@shared/types/eip696
 window.ethereum = new Provider();
 
 // @ts-ignore stacks connect
-window.LayerzWalletProvider = {
+window.unisat = window.LayerzWalletProvider = {
   async request(method: any, params: any) {
     alert('request() method=' + method + ' params=' + JSON.stringify(params));
 
@@ -28,12 +28,33 @@ window.LayerzWalletProvider = {
       };
     }
   },
+
+  // @ts-ignore
+  requestAccounts: () => window.ethereum.request({ method: 'unisat_requestAccounts', params: [] }),
+  // @ts-ignore
+  getAccounts: () => window.ethereum.request({ method: 'unisat_getAccounts', params: [] }),
+  // @ts-ignore
+  getPublicKey: () => window.ethereum.request({ method: 'unisat_getPublicKey', params: [] }),
+  // @ts-ignore
+  signPsbt: (psbtHex: string, options: any) => window.ethereum.request({ method: 'unisat_signPsbt', params: [psbtHex, options] }),
+  getNetwork: () => Promise.resolve('livenet'),
+  switchNetwork: (network: 'livenet' | 'testnet') => Promise.resolve(),
+  getChain: () => Promise.resolve({ enum: 'BITCOIN_MAINNET', name: 'Bitcoin', network: 'livenet' }),
+  switchChain: (network: string) => Promise.resolve(),
+  on: (event: 'accountsChanged', handler: (accounts: string[]) => void) => {
+    return;
+  },
+  removeListener: (event: 'accountsChanged', handler: (accounts: string[]) => void) => {
+    return;
+  },
 };
 
 // @ts-ignore stacks connect
 window.wbip_providers = window.wbip_providers || [];
 // @ts-ignore stacks connect
 window.btc_providers = window.btc_providers || [];
+// @ts-ignore stacks connect
+window.webbtc_providers = window.webbtc_providers || [];
 
 const ourBtcProvider = {
   id: 'LayerzWalletProvider',
@@ -50,6 +71,8 @@ const ourBtcProvider = {
 window.wbip_providers.push(ourBtcProvider);
 // @ts-ignore stacks connect
 window.btc_providers.push(ourBtcProvider);
+// @ts-ignore stacks connect
+window.webbtc_providers.push(ourBtcProvider);
 
 // strictly speaking, we are not required to use CSPRNG here, we just need a unique uuid to identify our wallet
 const STATIC_UUID = '6c617965-727a-7761-6C6C-657400000000';
@@ -71,7 +94,7 @@ function onPageLoad() {
     const info: EIP6963ProviderInfo = {
       uuid: STATIC_UUID,
       name: 'Layerz Wallet',
-      // eslint-disable-next-line max-len
+
       icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTg2IiBoZWlnaHQ9IjE2NiIgdmlld0JveD0iMCAwIDE4NiAxNjYiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxODYiIGhlaWdodD0iMTY2IiBmaWxsPSIjMDAwMDAwIi8+CjxwYXRoIGQ9Ik05Ni42NTU0IDEwMC42NDJIMjMuNTIyM0MxNy4zODg4IDEwMC42NDIgMTQuMjg5MSA5My4yNTkgMTguNTcyMyA4OC44ODJMNjMuMjA3MyA0My4yNTEyQzY3LjU2NTYgMzguNzk5IDczLjUzMDEgMzYuMjkxIDc5Ljc1NzYgMzYuMjkxSDE1Mi44OTFDMTU5LjAyNCAzNi4yOTEgMTYyLjEyNCA0My42NzM5IDE1Ny44NDEgNDguMDUwOUwxMTMuMjA2IDkzLjY4MTdDMTA4Ljg0NyA5OC4xMzM5IDEwMi44ODMgMTAwLjY0MiA5Ni42NTU0IDEwMC42NDJaIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXJfMl8zMzMyKSIvPgo8cGF0aCBkPSJNODkuNDY5NSA2NS4zNTc3SDE2Mi42MDNDMTY4LjczNiA2NS4zNTc3IDE3MS44MzYgNzIuNzQwNSAxNjcuNTUzIDc3LjExNzZMMTIyLjkxOCAxMjIuNzQ4QzExOC41NTkgMTI3LjIgMTEyLjU5NSAxMjkuNzA4IDEwNi4zNjcgMTI5LjcwOEgzMy4yMzQzQzI3LjEwMDcgMTI5LjcwOCAyNC4wMDEgMTIyLjMyNiAyOC4yODQyIDExNy45NDhMNzIuOTE5MiA3Mi4zMTc4Qzc3LjI3NzUgNjcuODY1NiA4My4yNDIgNjUuMzU3NyA4OS40Njk1IDY1LjM1NzdaIiBmaWxsPSJ1cmwoI3BhaW50MV9saW5lYXJfMl8zMzMyKSIvPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJwYWludDBfbGluZWFyXzJfMzMzMiIgeDE9IjE2LjY2MzgiIHkxPSIxMDAiIHgyPSIxNjAuMjA1IiB5Mj0iNDAuOTYzMiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSJ3aGl0ZSIgc3RvcC1vcGFjaXR5PSIwIi8+CjxzdG9wIG9mZnNldD0iMC44NSIgc3RvcC1jb2xvcj0id2hpdGUiLz4KPC9saW5lYXJHcmFkaWVudD4KPGxpbmVhckdyYWRpZW50IGlkPSJwYWludDFfbGluZWFyXzJfMzMzMiIgeDE9IjE2OS45MDciIHkxPSI2NS44MzEiIHgyPSIyNi4zNjY0IiB5Mj0iMTI0Ljg2OCIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSJ3aGl0ZSIgc3RvcC1vcGFjaXR5PSIwIi8+CjxzdG9wIG9mZnNldD0iMC44NSIgc3RvcC1jb2xvcj0id2hpdGUiLz4KPC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8L3N2Zz4K',
       rdns: 'com.layerzwallet.layerzwallet',
     };

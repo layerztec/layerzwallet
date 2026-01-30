@@ -13,6 +13,7 @@ import { IMessenger } from './messenger';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import assert from 'assert';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
+import { uint8ArrayToHex } from '@shared/modules/uint8array-extras';
 
 export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBackgroundCaller, method: string, params: any, id: number, from: string, Messenger: IMessenger) {
   const network: Networks = ((await LayerzStorage.getItem(STORAGE_SELECTED_NETWORK)) || DEFAULT_NETWORK) as Networks;
@@ -23,6 +24,23 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
   BackgroundCaller.log('processRPC: ' + method + '(' + JSON.stringify({ from, id, method, params, network }) + ')');
 
   switch (method) {
+    // unisat:
+
+    case 'unisat_getPublicKey':
+      const btcwallet3 = await BackgroundCaller.lazyInitWallet(NETWORK_BITCOIN, accountNumber);
+      assert(btcwallet3 instanceof WatchOnlyWallet);
+      const pubkey = uint8ArrayToHex(btcwallet3._getNodePubkeyByIndex(0, 0));
+      await sendResponse({ for: 'webpage', id, response: pubkey });
+      return { success: true };
+
+    case 'unisat_requestAccounts':
+    case 'unisat_getAccounts':
+      const btcwallet2 = await BackgroundCaller.lazyInitWallet(NETWORK_BITCOIN, accountNumber);
+      assert(btcwallet2 instanceof WatchOnlyWallet);
+      const address2 = await btcwallet2._getExternalAddressByIndex(0);
+      await sendResponse({ for: 'webpage', id, response: [address2] });
+      return { success: true };
+
     // stacks connect methods:
     case 'getAddresses':
       const sp = await BackgroundCaller.lazyInitWallet(NETWORK_STACKS, accountNumber);

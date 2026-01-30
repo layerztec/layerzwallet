@@ -154,6 +154,11 @@ export class WatchOnlyWallet extends LegacyWallet {
     throw new Error('Not initialized');
   }
 
+  _getNodePubkeyByIndex(node: 0 | 1, index: number) {
+    if (this._hdWalletInstance) return this._hdWalletInstance._getNodePubkeyByIndex(node, index);
+    throw new Error('Not initialized');
+  }
+
   _getInternalAddressByIndex(index: number) {
     if (this._hdWalletInstance) return this._hdWalletInstance._getInternalAddressByIndex(index);
     throw new Error('Not initialized');
