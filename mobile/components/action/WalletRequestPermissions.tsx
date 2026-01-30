@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { DappPermissions, PermissionRequest } from '@shared/class/dapp-permissions';
+import { getErrorMessage } from '@/src/modules/error-handler';
 
 interface WalletRequestPermissionsArgs {
   params: any[];
@@ -31,7 +32,7 @@ export function WalletRequestPermissions(args: WalletRequestPermissionsArgs) {
       BrowserBridge.instance?.sendMessage({ for: 'webpage', id, response });
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to grant permissions');
+      Alert.alert('Error', (await getErrorMessage(error)) || 'Failed to grant permissions');
     } finally {
       setIsLoading(false);
     }
@@ -46,7 +47,7 @@ export function WalletRequestPermissions(args: WalletRequestPermissionsArgs) {
       });
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to reject request');
+      Alert.alert('Error', (await getErrorMessage(error)) || 'Failed to reject request');
       router.back();
     }
   };

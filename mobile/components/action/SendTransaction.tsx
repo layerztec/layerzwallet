@@ -14,6 +14,7 @@ import { formatBalance, hexToDec } from '@shared/modules/string-utils';
 import { StringNumber } from '@shared/types/string-number';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import assert from 'assert';
+import { getErrorMessage } from '@/src/modules/error-handler';
 
 interface SendTransactionArgs {
   params: any[];
@@ -96,7 +97,7 @@ export function SendTransaction(args: SendTransactionArgs) {
       Alert.alert('Error', 'Cannot get transaction parameters');
       router.back();
     } catch (err: any) {
-      setError(err.message);
+      setError((await getErrorMessage(err)) || 'Failed to get transaction parameters');
     } finally {
       setIsLoading(false);
     }
@@ -111,7 +112,7 @@ export function SendTransaction(args: SendTransactionArgs) {
       });
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to reject request');
+      Alert.alert('Error', (await getErrorMessage(error)) || 'Failed to reject request');
       router.back();
     }
   };

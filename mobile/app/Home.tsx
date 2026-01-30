@@ -280,12 +280,18 @@ export default function Home() {
     router.push({ pathname: '/send', params });
   };
 
+  const handleSendUSDBViaSpark = () => {
+    const params: SendParams = { token: USDT_TOKENS[NETWORK_SPARK][0], network: NETWORK_SPARK };
+    router.push({ pathname: '/send', params });
+  };
+
   // USDT send and receive actions
   const usdtSendActions = [
     { children: <Action network={NETWORK_ROOTSTOCK} text="Send USDT via Rootstock" />, onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][0]) },
     { children: <Action network={NETWORK_ROOTSTOCK} text="Send USDT0 via Rootstock" />, onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][1]) },
     { children: <Action network={NETWORK_ROOTSTOCK} text="Send rUSDT via Rootstock" />, onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][2]) },
     { children: <Action network={NETWORK_LIQUID} text="Send USDT via Liquid" />, onClick: handleSendUSDTViaLiquid },
+    { children: <Action network={NETWORK_SPARK} text="Send USDB via Spark" />, onClick: handleSendUSDBViaSpark },
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
@@ -299,9 +305,15 @@ export default function Home() {
     router.push({ pathname: '/Receive', params });
   };
 
+  const handleReceiveTokenViaSpark = () => {
+    const params: ReceiveTokenProps = { network: NETWORK_SPARK };
+    router.push({ pathname: '/Receive', params });
+  };
+
   const usdtReceiveActions = [
     { children: <Action network={NETWORK_ROOTSTOCK} text="Receive via Rootstock" />, onClick: handleReceiveTokenViaRootstock },
     { children: <Action network={NETWORK_LIQUID} text="Receive via Liquid" />, onClick: handleReceiveTokenViaLiquid },
+    { children: <Action network={NETWORK_SPARK} text="Receive via Spark" />, onClick: handleReceiveTokenViaSpark },
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 

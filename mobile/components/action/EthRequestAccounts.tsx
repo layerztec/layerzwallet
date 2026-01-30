@@ -8,6 +8,7 @@ import { BrowserBridge } from '@/src/class/browser-bridge';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { getErrorMessage } from '@/src/modules/error-handler';
 
 interface EthRequestAccountsArgs {
   params: any[];
@@ -43,7 +44,7 @@ export function EthRequestAccounts(args: EthRequestAccountsArgs) {
       BrowserBridge.instance?.sendMessage({ for: 'webpage', id: args.id, response: [address] });
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to grant access');
+      Alert.alert('Error', (await getErrorMessage(error)) || 'Failed to grant access');
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +59,7 @@ export function EthRequestAccounts(args: EthRequestAccountsArgs) {
       });
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to reject request');
+      Alert.alert('Error', (await getErrorMessage(error)) || 'Failed to reject request');
       router.back();
     }
   };

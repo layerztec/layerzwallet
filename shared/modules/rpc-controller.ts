@@ -104,13 +104,17 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
         // Dapp is already whitelisted, so we can return addresses without showing approval screen
         const addressResponse = await BackgroundCaller.getAddress(NETWORK_ROOTSTOCK, accountNumber); // most likely dapp is interested in EVM address specifically, NOT of currently-selected network
         responseForEthAccounts.push(addressResponse);
+        await sendResponse({
+          for: 'webpage',
+          id,
+          response: responseForEthAccounts,
+        });
+        return { success: true };
       }
-      await sendResponse({
-        for: 'webpage',
-        id,
-        response: responseForEthAccounts,
-      });
-      return { success: true };
+      // theoretically, we should not fall-through to opening popup here (where user can manually approve the request),
+      // but empirically, doing so provides better user experience, as it allows the dapp to proceed with the request immediately, instead of
+      // circling back to `eth_requestAccounts`
+      break;
 
     case 'eth_requestAccounts':
       if (whitelist.includes(from)) {
@@ -232,6 +236,7 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
         const response = await rpc.send(method, params);
         await sendResponse({ for: 'webpage', id, response });
       } catch (e: any) {
+        globalThis.handleError?.(e, 'rpc-controller.ts');
         console.warn('rpc error for', method, ':', e);
         await sendResponse({ for: 'webpage', id, error: e.error });
       }

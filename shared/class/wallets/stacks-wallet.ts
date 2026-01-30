@@ -23,6 +23,8 @@ import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
 import { uint8ArrayToHex } from '@shared/modules/uint8array-extras';
 import { MethodParams, MethodResult } from '@stacks/connect';
+import { InterfaceCanHaveNfts } from './interface-can-have-nfts';
+import { ArkWallet } from './ark-wallet';
 
 const sbtcId = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token::sbtc-token';
 const baseUrl = 'https://api.mainnet.hiro.so';
@@ -30,12 +32,14 @@ const baseUrl = 'https://api.mainnet.hiro.so';
 const STORAGE_KEY = 'STACKS_TOKEN_METADATA';
 const STORAGE_KEY_NFT = 'STACKS_NFT_METADATA_V2';
 
-export class StacksWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveTokens {
-  private _accountNumber: number = 0;
+export class StacksWallet extends ArkWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveTokens, InterfaceCanHaveNfts {
+  protected _accountNumber: number = 0;
   private _sdkWallet: SdkWallet | undefined = undefined;
-  private secret: string = '';
+  public secret: string = '';
   private _tokenBalances: CachedTokenInfo[] = [];
   private _storage: IStorage | undefined = undefined;
+  _lastNftsFetch: number = 0;
+  _lastTokensFetch: number = 0;
 
   async init(storage: IStorage) {
     assert(this.secret, 'Internal error: cant init Stacks wallet, secret is not set.');
@@ -49,10 +53,6 @@ export class StacksWallet implements InterfaceAccountBasedWallet, InterfaceCanHa
     });
 
     this._sdkWallet = wallet;
-  }
-
-  setSecret(seed: string) {
-    this.secret = seed;
   }
 
   setAccountNumber(value: number) {
@@ -194,6 +194,7 @@ export class StacksWallet implements InterfaceAccountBasedWallet, InterfaceCanHa
     });
 
     this._tokenBalances = tokens;
+    this._lastTokensFetch = Date.now();
   }
 
   public async fetchNfts(): Promise<NftInfo[]> {
@@ -230,6 +231,7 @@ export class StacksWallet implements InterfaceAccountBasedWallet, InterfaceCanHa
           await this._storage?.setItem(cacheKey, JSON.stringify(tokenMetadata));
         }
       } catch (error) {
+        globalThis.handleError?.(error, 'stacks-wallet.ts');
         console.error('Failed to fetch NFT metadata from Gamma:', error);
       }
 
@@ -247,6 +249,7 @@ export class StacksWallet implements InterfaceAccountBasedWallet, InterfaceCanHa
       });
     }
 
+    this._lastNftsFetch = Date.now();
     return nfts;
   }
 
@@ -275,10 +278,12 @@ export class StacksWallet implements InterfaceAccountBasedWallet, InterfaceCanHa
     // we treat sBTC token as main balance for this wallet
     for (const token of ftBalances?.results || []) {
       if (token.token === sbtcId) {
+        this._lastBalanceFetch = Date.now();
         return Number(token.balance);
       }
     }
 
+    this._lastBalanceFetch = Date.now();
     return 0;
   }
 

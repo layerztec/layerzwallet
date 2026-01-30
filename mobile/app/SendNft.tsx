@@ -14,8 +14,11 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { NftInfo } from '@shared/types/token-info';
-import { NETWORK_STACKS } from '@shared/types/networks';
+import { NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
+import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { walletCanHaveNfts } from '@shared/class/wallets/interface-can-have-nfts';
+import { getErrorMessage } from '@/src/modules/error-handler';
 
 export type SendNftParams = {
   nft: string;
@@ -77,8 +80,8 @@ export default function SendNft() {
     if (!nft) return;
     setErrorMessage('');
 
-    if (network !== NETWORK_STACKS) {
-      Alert.alert('Unsupported', 'NFT sending is currently supported only on Stacks.');
+    if (network !== NETWORK_STACKS && network !== NETWORK_SPARK) {
+      Alert.alert('Unsupported', 'NFT sending is currently supported only on Stacks and Spark.');
       return;
     }
 
@@ -87,7 +90,7 @@ export default function SendNft() {
       return;
     }
 
-    if (!StacksWallet.isAddressValid(localAddress)) {
+    if (!StacksWallet.isAddressValid(localAddress) && !SparkWallet.isAddressValid(localAddress)) {
       setErrorMessage('Invalid address');
       return;
     }
@@ -95,15 +98,15 @@ export default function SendNft() {
     setSending(true);
     try {
       const wallet: any = await BackgroundExecutor.lazyInitWallet(network as TSupportedLazyInitWalletNetworks, accountNumber);
-      if (typeof wallet?.transferNFT !== 'function') {
+      if (!walletCanHaveNfts(wallet)) {
         throw new Error('NFT transfer is not supported by this wallet');
       }
 
       const id = await wallet.transferNFT(nft, localAddress);
       setTxid(id);
     } catch (e: any) {
-      console.error('Failed to send NFT', e.message);
-      setErrorMessage(e?.message || 'Failed to send NFT');
+      globalThis.handleError?.(e, 'SendNft.ts');
+      setErrorMessage((await getErrorMessage(e)) || 'Failed to send NFT');
     } finally {
       setSending(false);
     }

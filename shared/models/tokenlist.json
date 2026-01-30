@@ -48,6 +48,14 @@
     "logoURI": ""
   },
   {
+    "symbol": "ctUSD",
+    "name": "Citrea USD",
+    "address": "0x8D82c4E3c936C7B5724A382a9c5a4E6Eb7aB6d5D",
+    "decimals": 6,
+    "chainId": 4114,
+    "logoURI": ""
+  },
+  {
     "symbol": "USDC",
     "name": "USD Coin",
     "address": "0xb669dc8cc6d044307ba45366c0c836ec3c7e31aa",

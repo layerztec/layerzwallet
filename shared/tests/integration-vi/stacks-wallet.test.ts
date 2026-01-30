@@ -21,7 +21,9 @@ test('stacks wallet can get balance', async (context) => {
   w.setSecret(process.env.TEST_MNEMONIC);
   await w.init(storageMock);
 
+  assert.strictEqual(w._lastBalanceFetch, 0);
   const balance = await w.getOffchainBalance();
+  assert.ok(w._lastBalanceFetch > 0);
 
   assert(+balance > 0, `unexpected balance: ${balance}`);
 });
@@ -60,7 +62,9 @@ test('stacks wallet can get tokens', async (context) => {
   w.setSecret(process.env.TEST_MNEMONIC);
   await w.init(storageMock);
 
+  assert.strictEqual(w._lastTokensFetch, 0);
   await w.fetchTokenBalances();
+  assert.ok(w._lastTokensFetch > 0);
   const tokens = w.getTokenBalances();
 
   assert.deepStrictEqual(tokens, [
@@ -87,7 +91,9 @@ test('stacks wallet can get nfts', async (context) => {
   w.setSecret(process.env.TEST_MNEMONIC);
   await w.init(storageMock);
 
+  assert.strictEqual(w._lastNftsFetch, 0);
   const nfts = await w.fetchNfts();
+  assert.ok(w._lastNftsFetch > 0);
   assert.ok(nfts.length > 0);
 });
 

@@ -24,6 +24,10 @@ export interface LiquidTokenInfo extends Omit<TokenInfo, 'id'> {
   readonly assetId: string;
 }
 
+export interface SparkTokenInfo extends Omit<TokenInfo, 'id'> {
+  readonly tokenIdentifier: string;
+}
+
 export interface NftInfo {
   readonly contractAddress: string;
 

@@ -6,4 +6,5 @@ declare function alert(message: string): void;
 declare global {
   var breezAdapter: IBreezAdapter;
   var sparkAdapter: ISparkAdapter;
+  var handleError: ((error: unknown, context?: string) => void | Promise<void>) | undefined;
 }

@@ -1,5 +1,5 @@
-import { NETWORK_LIQUID, NETWORK_ROOTSTOCK, Networks } from '../types/networks';
-import { TokenInfo, EVMTokenInfo, LiquidTokenInfo } from '../types/token-info';
+import { NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, Networks } from '../types/networks';
+import { TokenInfo, EVMTokenInfo, LiquidTokenInfo, SparkTokenInfo } from '../types/token-info';
 import { getChainIdByNetwork } from './network-getters';
 import { hexToDec } from '../modules/string-utils';
 
@@ -7,6 +7,7 @@ import { hexToDec } from '../modules/string-utils';
 // json files can be shared, imported etc
 const evmList: EVMTokenInfo[] = require('./tokenlist.json');
 const liquidList: LiquidTokenInfo[] = require('./tokenlist-liquid.json');
+const sparkList: SparkTokenInfo[] = require('./tokenlist-spark.json');
 
 export function evmToCommonTokenInfo(token: EVMTokenInfo): TokenInfo {
   return {
@@ -32,7 +33,18 @@ function liquidToCommonTokenInfo(token: LiquidTokenInfo): TokenInfo {
   };
 }
 
-const list: TokenInfo[] = [...evmList.map(evmToCommonTokenInfo), ...liquidList.map(liquidToCommonTokenInfo)];
+function sparkToCommonTokenInfo(token: SparkTokenInfo): TokenInfo {
+  return {
+    id: token.tokenIdentifier,
+    chainId: token.chainId,
+    name: token.name,
+    decimals: token.decimals,
+    symbol: token.symbol,
+    logoURI: token.logoURI,
+  };
+}
+
+const list: TokenInfo[] = [...evmList.map(evmToCommonTokenInfo), ...liquidList.map(liquidToCommonTokenInfo), ...sparkList.map(sparkToCommonTokenInfo)];
 
 export function getTokenList(network: Networks): TokenInfo[] {
   let ret: TokenInfo[] = [];
@@ -72,6 +84,7 @@ export const getTokenIconColor = (name?: string): string => {
     // Stablecoins
     USDT: '#26A17B', // Tether green
     RUSDT: '#26A17B', // Tether green
+    USDB: '#26A17B', // USDB green (stablecoin)
     USDC: '#2775CA', // USD Coin blue
   };
 
@@ -91,5 +104,8 @@ export const USDT_TOKENS = {
   ],
   [NETWORK_LIQUID]: [
     'ce091c998b83c78bb71a632313ba3760f1763d9cfcffae02258ffa9865a37bd2', // USDT
+  ],
+  [NETWORK_SPARK]: [
+    'btkn1xgrvjwey5ngcagvap2dzzvsy4uk8ua9x69k82dwvt5e7ef9drm9qztux87', // USDB
   ],
 } as const;

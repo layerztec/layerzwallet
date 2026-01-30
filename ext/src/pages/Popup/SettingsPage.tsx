@@ -12,6 +12,7 @@ import { useSettings } from '@shared/hooks/useSettings';
 import { Csprng } from '../../class/rng';
 import { ThemedText } from '../../components/ThemedText';
 import { decrypt, encrypt } from '../../modules/encryption';
+import { LayerzStorage } from '../../class/layerz-storage';
 import { Button, Select } from './DesignSystem';
 
 const pck = require('../../../package.json');
@@ -100,7 +101,7 @@ const SettingsPage: React.FC = () => {
           try {
             const w = new SparkWallet();
             w.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
-            await w.init();
+            await w.init(LayerzStorage);
             assert(
               (await w.getOffchainReceiveAddress()) === 'spark1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym094800574x5numh',
               'unexpected spark wallet getOffchainReceiveAddress(): ' + (await w.getOffchainReceiveAddress())

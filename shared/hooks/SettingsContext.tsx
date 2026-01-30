@@ -92,6 +92,7 @@ export const SettingsContextProvider: React.FC<SettingsContextProviderProps> = (
         }
         setIsSettingsLoaded(true);
       } catch (error) {
+        globalThis.handleError?.(error, 'SettingsContext.tsx');
         console.error('Error loading settings, using defaults:', error);
         setSettings(DEFAULT_SETTINGS);
         setIsSettingsLoaded(true);
@@ -107,6 +108,7 @@ export const SettingsContextProvider: React.FC<SettingsContextProviderProps> = (
     try {
       await props.storage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(newSettings));
     } catch (error) {
+      globalThis.handleError?.(error, 'SettingsContext.tsx');
       console.error('Error saving settings:', error);
     }
   };
@@ -117,6 +119,7 @@ export const SettingsContextProvider: React.FC<SettingsContextProviderProps> = (
     try {
       await props.storage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
     } catch (error) {
+      globalThis.handleError?.(error, 'SettingsContext.tsx');
       console.error('Error saving default settings:', error);
     }
   };

@@ -17,6 +17,7 @@ import {
   NETWORK_BOTANIX,
   NETWORK_USDT,
   NETWORK_STACKS,
+  NETWORK_CITREA,
 } from '../types/networks';
 
 export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
@@ -86,6 +87,19 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     isEVM: true,
     etherScanApiUrl: 'https://api-sepolia.etherscan.io/api',
     sortIndex: 1,
+  },
+
+  [NETWORK_CITREA]: {
+    chainId: 4114,
+    ticker: 'cBTC',
+    rpcUrl: 'https://rpc.mainnet.citrea.xyz',
+    explorerUrl: 'https://explorer.mainnet.citrea.xyz',
+    decimals: 18,
+    knowMoreUrl: 'https://www.bitcoinlayers.org/layers/citrea',
+    isTestnet: false,
+    isEVM: true,
+    etherScanApiUrl: 'https://explorer.mainnet.citrea.xyz/api',
+    sortIndex: 14,
   },
   [NETWORK_CITREA_TESTNET]: {
     chainId: 5115,
@@ -182,7 +196,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     rpcUrl: '',
     knowMoreUrl: 'https://tether.to',
     isEVM: false,
-    sortIndex: 14,
+    sortIndex: 12,
   },
   [NETWORK_STACKS]: {
     chainId: 17,

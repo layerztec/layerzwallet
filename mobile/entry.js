@@ -6,6 +6,7 @@ import 'react-native-get-random-values';
 import Bugsnag from '@bugsnag/expo';
 import { getDeviceIdentifier } from './src/utils/device-id';
 import { isMaestroMode } from './src/hooks/AuthStateContext';
+import { handleError } from './src/modules/error-handler';
 
 let Buffer = require('buffer/').Buffer;
 global.Buffer = Buffer;
@@ -27,6 +28,7 @@ if (BUGSNAG_API_KEY && !isMaestroMode()) {
       console.debug('Bugsnag initialized successfully');
     })
     .catch((error) => {
+      handleError(error, 'entry.js');
       console.error('Failed to get device identifier, Bugsnag not initialized:', error);
     });
 } else {

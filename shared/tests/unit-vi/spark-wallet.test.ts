@@ -5,6 +5,13 @@ import { DeepPartial } from '../../class/wallets/types';
 type WalletTransferOrig = Awaited<ReturnType<NonNullable<SparkWallet['_sdkWallet']>['getTransfers']>>['transfers'][number];
 type WalletTransfer = DeepPartial<WalletTransferOrig>;
 
+const storageMock = {
+  async setItem(key: string, value: string) {},
+  async getItem(key: string) {
+    return '';
+  },
+};
+
 // a couple of Lightning and regular transfers
 const transfers: WalletTransfer[] = [
   {
@@ -146,7 +153,7 @@ describe('Spark Wallet', () => {
   it('can get offchain receive address (no account set)', async () => {
     const wallet = new SparkWallet();
     wallet.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
-    await wallet.init();
+    await wallet.init(storageMock);
     const address = await wallet.getOffchainReceiveAddress();
     assert.strictEqual(address, 'spark1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym094800574x5numh');
   });
@@ -155,7 +162,7 @@ describe('Spark Wallet', () => {
     const wallet = new SparkWallet();
     wallet.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
     wallet.setAccountNumber(0);
-    await wallet.init();
+    await wallet.init(storageMock);
     const address = await wallet.getOffchainReceiveAddress();
     assert.strictEqual(address, 'spark1pgss9qfk8ygtphqqzkj2yhn43k3s7r3g8z822ffvpcm38ym094800574x5numh');
   });
@@ -166,7 +173,7 @@ describe('Spark Wallet', () => {
       const wallet = new SparkWallet();
       wallet.setAccountNumber(i);
       wallet.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
-      await wallet.init();
+      await wallet.init(storageMock);
 
       addressesHashmap[await wallet.getOffchainReceiveAddress()] = i;
     }

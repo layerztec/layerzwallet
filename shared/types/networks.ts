@@ -4,6 +4,7 @@ export const NETWORK_ROOTSTOCK = 'rootstock' as const;
 export const NETWORK_BOTANIX = 'botanix' as const;
 export const NETWORK_BOTANIX_TESTNET = 'botanix_testnet' as const;
 export const NETWORK_ALPEN_TESTNET = 'alpen_testnet' as const;
+export const NETWORK_CITREA = 'citrea' as const;
 export const NETWORK_CITREA_TESTNET = 'citrea_testnet' as const;
 export const NETWORK_ARK_MUTINYNET = 'ark_mutinynet' as const;
 export const NETWORK_ARK = 'arkade' as const;
@@ -22,6 +23,7 @@ const NetworksIterator = {
   BOTANIX: NETWORK_BOTANIX,
   BOTANIX_TESTNET: NETWORK_BOTANIX_TESTNET,
   ALPEN_TESTNET: NETWORK_ALPEN_TESTNET,
+  CITREA: NETWORK_CITREA,
   CITREA_TESTNET: NETWORK_CITREA_TESTNET,
   ARK_MUTINYNET: NETWORK_ARK_MUTINYNET,
   ARK: NETWORK_ARK,

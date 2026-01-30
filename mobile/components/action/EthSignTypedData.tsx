@@ -9,6 +9,7 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import assert from 'assert';
 import { EvmWallet } from '@shared/class/evm-wallet';
+import { getErrorMessage } from '@/src/modules/error-handler';
 
 interface EthSignTypedDataArgs {
   params: any[];
@@ -37,7 +38,7 @@ export function EthSignTypedData(args: EthSignTypedDataArgs) {
       BrowserBridge.instance?.sendMessage({ for: 'webpage', id: args.id, response: bytes });
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to sign typed data');
+      Alert.alert('Error', (await getErrorMessage(error)) || 'Failed to sign typed data');
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +53,7 @@ export function EthSignTypedData(args: EthSignTypedDataArgs) {
       });
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to reject request');
+      Alert.alert('Error', (await getErrorMessage(error)) || 'Failed to reject request');
       router.back();
     }
   };

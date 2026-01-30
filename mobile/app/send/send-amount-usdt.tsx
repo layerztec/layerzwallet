@@ -21,7 +21,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getTickerByNetwork } from '@shared/models/network-getters';
 import { getTokenInfo } from '@shared/models/token-list';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK } from '@shared/types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK } from '@shared/types/networks';
 import { useSendFlow } from './_layout';
 
 const SendAmountUsdt: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker, token: tokenInfo, decimals }) => {
@@ -163,11 +163,26 @@ const SendAmountUsdt: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticke
     }
   };
 
+  const prepareSparkTransaction = async () => {
+    const err = validate();
+    if (err) {
+      setErrorMessage(err);
+      return;
+    }
+
+    setErrorMessage(null);
+
+    setContextAmount(localAmount);
+    router.push('/send/send-confirm');
+  };
+
   const handleContinue = async () => {
     if (network === NETWORK_ROOTSTOCK) {
       await prepareRootstockTransaction();
     } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
       await prepareLiquidTransaction();
+    } else if (network === NETWORK_SPARK) {
+      await prepareSparkTransaction();
     } else {
       setErrorMessage('Unsupported network');
     }

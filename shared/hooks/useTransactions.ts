@@ -124,6 +124,7 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
 
     return [];
   } catch (error) {
+    globalThis.handleError?.(error, 'useTransactions.ts');
     console.error('tx fetch error', error);
     throw error;
   }

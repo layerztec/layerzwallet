@@ -5,6 +5,7 @@ import Pressable from '../Pressable';
 
 import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
+import { getErrorMessage } from '@/src/modules/error-handler';
 
 interface SwitchEthereumChainArgs {
   params: any[];
@@ -23,7 +24,7 @@ export function SwitchEthereumChain(args: SwitchEthereumChainArgs) {
       BrowserBridge.instance?.sendMessage({ for: 'webpage', id: args.id, response: null });
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to switch network');
+      Alert.alert('Error', (await getErrorMessage(error)) || 'Failed to switch network');
     } finally {
       setIsLoading(false);
     }
@@ -38,7 +39,7 @@ export function SwitchEthereumChain(args: SwitchEthereumChainArgs) {
       });
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to reject request');
+      Alert.alert('Error', (await getErrorMessage(error)) || 'Failed to reject request');
       router.back();
     }
   };

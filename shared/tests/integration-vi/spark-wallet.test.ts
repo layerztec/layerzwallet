@@ -2,6 +2,13 @@ import assert from 'assert';
 import { test, describe } from 'vitest';
 import { SparkWallet } from '../../class/wallets/spark-wallet';
 
+const storageMock = {
+  async setItem(key: string, value: string) {},
+  async getItem(key: string) {
+    return '';
+  },
+};
+
 // fyi, spark adapter is set up in vitest.config.mts (uses the one for extension)
 describe('SparkWallet', () => {
   test('can get balance', async (context) => {
@@ -13,10 +20,16 @@ describe('SparkWallet', () => {
 
     const w = new SparkWallet();
     w.setSecret(process.env.TEST_MNEMONIC);
-    await w.init();
+    await w.init(storageMock);
 
     assert.strictEqual(await w.getOffchainReceiveAddress(), 'spark1pgssx2srkm6344nxzngx9n8stj5uxp544dgm3mrdgpeulr8phutzdx89vlg5kf');
+    assert.strictEqual(w._lastBalanceFetch, 0);
+    assert.strictEqual(w._lastTokensFetch, 0);
+    assert.strictEqual(w._lastNftsFetch, 0);
     assert.ok((await w.getOffchainBalance()) >= 1);
+    assert.ok(w._lastBalanceFetch > 0);
+    assert.ok(w._lastTokensFetch > 0);
+    assert.ok(w._lastNftsFetch > 0);
     // console.log('balance=', await w.getOffchainBalance());
   });
 
@@ -29,7 +42,7 @@ describe('SparkWallet', () => {
 
     const w = new SparkWallet();
     w.setSecret(process.env.TEST_MNEMONIC);
-    await w.init();
+    await w.init(storageMock);
 
     const txs = await w.getTransaction();
     assert.ok(txs.length >= 1);
@@ -44,7 +57,7 @@ describe('SparkWallet', () => {
 
     const w = new SparkWallet();
     w.setSecret(process.env.TEST_MNEMONIC);
-    await w.init();
+    await w.init(storageMock);
 
     const result = await w.pay('sp1pgss9rmd7lf5y6y93jtd3fl920lq8mqhnew069chmrvschlt74th2afzyt8qcl', 10);
     console.log(result);
@@ -60,7 +73,7 @@ describe('SparkWallet', () => {
 
     const w = new SparkWallet();
     w.setSecret(process.env.TEST_MNEMONIC);
-    await w.init();
+    await w.init(storageMock);
 
     await w.payLightningInvoice(
       'lnbc4u1p5z7y4cpp5vzjkl2svmtyt2d8q9f5clsch5ppemt8320spdj24kve45gq9uvesdqqcqzysxqyz5vqsp5rfv2fel3smq2sxerf664w0mmtnexl6yweenf0dftpujhftcvfayq9qxpqysgqkzlnzf7nrv3qhduf9dkrcc599d04674afkgfewkxtk060h8d92v8zzlwpg3yc7utfkzezvp2geld00fe4ggrmvp6klltkzvkxfal7qcq79eqvg'
@@ -76,7 +89,7 @@ describe('SparkWallet', () => {
 
     const w = new SparkWallet();
     w.setSecret(process.env.TEST_MNEMONIC);
-    await w.init();
+    await w.init(storageMock);
 
     await w.createLightningInvoice(667, 'test');
   });
@@ -90,7 +103,7 @@ describe('SparkWallet', () => {
 
     const w = new SparkWallet();
     w.setSecret(process.env.TEST_MNEMONIC);
-    await w.init();
+    await w.init(storageMock);
 
     // @ts-ignore messing with internals to test it
     w._bolt11toReceiveRequestId[

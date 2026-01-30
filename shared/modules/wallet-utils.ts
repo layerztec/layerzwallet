@@ -79,6 +79,7 @@ export async function saveWalletState(storage: IStorage, wallet: WatchOnlyWallet
     const storageKey = getSerializedStorageKey(network, accountNumber);
     await storage.setItem(storageKey, serialized);
   } catch (error) {
+    globalThis.handleError?.(error, 'wallet-utils.ts');
     console.error('Error saving wallet state:', error);
   }
 }
@@ -151,7 +152,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       const sw = new SparkWallet();
       sw.setSecret(masterSeed);
       sw.setAccountNumber(accountNumber);
-      await sw.init();
+      await sw.init(storage);
       cachedWallets[network][accountNumber] = sw;
       return sw;
     }
@@ -212,6 +213,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
         return wallet;
       }
     } catch (e) {
+      globalThis.handleError?.(e, 'wallet-utils.ts');
       console.error(`Failed to deserialize wallet for ${network} account ${accountNumber}:`, e);
     }
     // create brand new wallet instance
@@ -232,6 +234,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     await saveWalletState(storage, wallet, network, accountNumber);
     return wallet;
   } catch (e) {
+    globalThis.handleError?.(e, 'wallet-utils.ts');
     console.error(`Failed to initialize wallet for ${network} account ${accountNumber}:`, e);
     throw e;
   } finally {
@@ -303,6 +306,7 @@ export function validateAddress(network: Networks, address: string): boolean {
         return false;
     }
   } catch (error) {
+    globalThis.handleError?.(error, 'wallet-utils.ts');
     // If any error occurs during validation, consider the address invalid
     return false;
   }
