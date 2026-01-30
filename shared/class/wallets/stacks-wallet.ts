@@ -1,7 +1,19 @@
 import assert from 'assert';
 import { generateNewAccount, generateWallet, getStxAddress, Wallet as SdkWallet } from '@stacks/wallet-sdk';
 import { createClient } from '@stacks/blockchain-api-client';
-import { broadcastTransaction, makeContractCall, makeSTXTokenTransfer, noneCV, SignedTokenTransferOptions, standardPrincipalCV, uintCV, validateStacksAddress } from '@stacks/transactions';
+import { hexToBytes } from '@stacks/common';
+import {
+  privateKeyToPublic,
+  broadcastTransaction,
+  deserializeCV,
+  makeContractCall,
+  makeSTXTokenTransfer,
+  noneCV,
+  SignedTokenTransferOptions,
+  standardPrincipalCV,
+  uintCV,
+  validateStacksAddress,
+} from '@stacks/transactions';
 
 import { CachedTokenInfo, NftInfo } from '../../types/token-info';
 import { CommonTransaction } from '../../types/common-transaction';
@@ -9,6 +21,8 @@ import { NETWORK_STACKS } from '../../types/networks';
 import { IStorage } from '../../types/IStorage';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
+import { uint8ArrayToHex } from '@shared/modules/uint8array-extras';
+import { MethodParams, MethodResult } from '@stacks/connect';
 import { InterfaceCanHaveNfts } from './interface-can-have-nfts';
 import { ArkWallet } from './ark-wallet';
 
@@ -58,6 +72,57 @@ export class StacksWallet extends ArkWallet implements InterfaceAccountBasedWall
     const account = this._sdkWallet.accounts[this._accountNumber];
 
     return getStxAddress({ account, network: 'mainnet' });
+  }
+
+  async getPublicKey(): Promise<string> {
+    assert(this._sdkWallet, 'Stacks wallet is not initialized');
+    assert(this._sdkWallet.accounts[this._accountNumber], 'Stacks account not found');
+
+    const account = this._sdkWallet.accounts[this._accountNumber];
+    const privkey = account.stxPrivateKey;
+    const pk = privateKeyToPublic(privkey);
+    if (pk instanceof Uint8Array) {
+      return uint8ArrayToHex(pk);
+    }
+    return pk;
+  }
+
+  async callContract(params: MethodParams<'stx_callContract'>): Promise<MethodResult<'stx_callContract'>> {
+    assert(this._sdkWallet, 'Stacks wallet is not initialized');
+    assert(this._sdkWallet.accounts[this._accountNumber], 'Stacks account not found');
+
+    const [contractAddress, contractName] = params.contract.split('.');
+    const functionArgs = (params.functionArgs ?? []).map((arg) => {
+      if (typeof arg !== 'string') {
+        return arg;
+      }
+
+      const cleanHex = arg.replace(/^0x/i, '');
+      return deserializeCV(hexToBytes(cleanHex));
+    });
+    const postConditions = (params.postConditions ?? []).map((pc) => {
+      if (typeof pc !== 'string') {
+        return pc;
+      }
+      return pc.replace(/^0x/i, '');
+    });
+
+    const transaction = await makeContractCall({
+      contractAddress,
+      contractName: contractName ?? '',
+      functionName: params.functionName,
+
+      functionArgs,
+      postConditionMode: params.postConditionMode,
+      postConditions,
+      senderKey: this._sdkWallet.accounts[this._accountNumber].stxPrivateKey,
+      network: 'mainnet',
+    });
+
+    const txhex = transaction.serialize();
+
+    const broadcastResponse = await broadcastTransaction({ transaction });
+    return { txid: broadcastResponse.txid, transaction: txhex };
   }
 
   public async fetchTokenBalances() {

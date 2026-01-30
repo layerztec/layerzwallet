@@ -23,7 +23,7 @@ export class BrowserBridge {
   }
 
   sendMessage = (message: any) => {
-    console.info('>>> bridge:', message);
+    console.info('>>> bridge:', JSON.stringify(message));
     const messageJson = JSON.stringify(message);
     this.webview.injectJavaScript(`
       document.dispatchEvent(
