@@ -2,7 +2,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Dimensions, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
+import { Alert, Dimensions, Platform, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     paddingHorizontal: 18,
-    paddingBottom: 100,
+    paddingBottom: 180, // Account for bottom nav (68px) + safe area (34px) + Android navbar + extra scroll space
   },
   contentWithHeader: {
     paddingTop: 80,
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
   },
   bottomNavigationContainer: {
     position: 'absolute',
-    bottom: 34, // Safe area padding
+    bottom: Platform.OS === 'android' ? 54 : 34, // Extra padding on Android for system navbar
     left: 0,
     right: 0,
   },
