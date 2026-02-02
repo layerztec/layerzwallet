@@ -8,7 +8,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from '
 import Rive, { RiveRef } from 'rive-react-native';
 import Pressable from '../../components/Pressable';
 
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { SendAssetProps, withAsset } from '@/hooks/withAsset';
@@ -20,7 +20,6 @@ import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
-import { getNetworkGradient } from '@shared/constants/Colors';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
@@ -54,7 +53,6 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const detailsAnimatedStyle = useAnimatedStyle(() => ({ opacity: detailsOpacity.value }));
   const sendToAnimatedStyle = useAnimatedStyle(() => ({ opacity: sendToOpacity.value }));
   const totalAnimatedStyle = useAnimatedStyle(() => ({ top: totalTop.value }));
-  const networkBackgroundColor = getNetworkGradient(displayNetwork)[0];
 
   // Animate sections when success - sequential animations
   useEffect(() => {
@@ -243,7 +241,7 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   };
 
   return (
-    <GradientScreen variant={displayNetwork} scroll={false}>
+    <RadialGradientScreen network={displayNetwork} scroll={false}>
       <Stack.Screen options={{ headerShown: false }} />
       {!hideHeader && <ScreenSendHeader network={displayNetwork} title={`Send ${getTickerByNetwork(displayNetwork)}`} />}
 
@@ -281,7 +279,7 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                     <View style={styles.sectionHeader}>
                       <ThemedText style={styles.sectionHeaderText}>Total</ThemedText>
                     </View>
-                    <View style={[styles.totalCard, { backgroundColor: networkBackgroundColor }]}>
+                    <View style={styles.totalCard}>
                       <ThemedText type="sfProRounded" style={styles.totalAmount}>
                         {totalDisplay}
                       </ThemedText>
@@ -294,7 +292,7 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                     <View style={styles.sectionHeader}>
                       <ThemedText style={styles.sectionHeaderText}>Details</ThemedText>
                     </View>
-                    <View style={[styles.detailsCard, { backgroundColor: networkBackgroundColor }]}>
+                    <View style={styles.detailsCard}>
                       <View style={styles.detailRow}>
                         <ThemedText style={styles.detailLabel}>Amount</ThemedText>
                         <View style={styles.detailValueContainer}>
@@ -324,7 +322,7 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                     <View style={styles.sectionHeader}>
                       <ThemedText style={styles.sectionHeaderText}>Send to</ThemedText>
                     </View>
-                    <View style={[styles.addressCard, { backgroundColor: networkBackgroundColor }]}>{formatAddressWithOpacity(address)}</View>
+                    <View style={styles.addressCard}>{formatAddressWithOpacity(address)}</View>
                   </Animated.View>
                 </>
               )}
@@ -339,7 +337,7 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
           </Pressable>
         )}
       </View>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 };
 

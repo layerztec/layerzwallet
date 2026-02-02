@@ -2,9 +2,10 @@ import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, ScrollView } from 'react-native';
 
-import GradientScreen from '@/components/GradientScreen';
+import { Colors } from '@shared/constants/Colors';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
@@ -48,31 +49,48 @@ export default function SwapXArkDeposit() {
   }, [router, amountIn, accountNumber, network, to]);
 
   return (
-    <GradientScreen variant={network} scroll={true}>
-      <View style={styles.root}>
-        {/* Header */}
-        <View style={styles.header}>
-          <ThemedText style={styles.headerTitle}>Spark Swap</ThemedText>
-        </View>
+    <View style={styles.backgroundContainer}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+          <View style={styles.root}>
+            {/* Header */}
+            <View style={styles.header}>
+              <ThemedText style={styles.headerTitle}>Spark Swap</ThemedText>
+            </View>
 
-        {isLoading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
-          </View>
-        )}
+            {isLoading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
+              </View>
+            )}
 
-        {/* Error */}
-        {error && (
-          <View style={styles.errorContainer}>
-            <ThemedText style={styles.errorText}>{error}</ThemedText>
+            {/* Error */}
+            {error && (
+              <View style={styles.errorContainer}>
+                <ThemedText style={styles.errorText}>{error}</ThemedText>
+              </View>
+            )}
           </View>
-        )}
-      </View>
-    </GradientScreen>
+        </SafeAreaView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundContainer: {
+    flex: 1,
+    backgroundColor: Colors.GlobalDarkBackground,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
   root: {
     flex: 1,
   },

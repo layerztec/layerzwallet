@@ -8,7 +8,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleShe
 import Pressable from '../../components/Pressable';
 
 import AmountInput from '@/components/AmountInput';
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { SendAssetProps, withAsset } from '@/hooks/withAsset';
@@ -129,19 +129,19 @@ const SendAmountLiquid: React.FC<SendAssetProps> = ({ balance, exchangeRate, tic
 
   if (isLoading) {
     return (
-      <GradientScreen variant={network} scroll={true}>
+      <RadialGradientScreen network={network} scroll={true}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenSendHeader network={network} title={`Send ${ticker}`} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
           <ThemedText style={styles.loadingText}>Loading assets...</ThemedText>
         </View>
-      </GradientScreen>
+      </RadialGradientScreen>
     );
   }
 
   return (
-    <GradientScreen variant={network} scroll={true}>
+    <RadialGradientScreen network={network} scroll={true}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenSendHeader network={network} title={`Send ${ticker}`} />
 
@@ -183,7 +183,7 @@ const SendAmountLiquid: React.FC<SendAssetProps> = ({ balance, exchangeRate, tic
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 };
 

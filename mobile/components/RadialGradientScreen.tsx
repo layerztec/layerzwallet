@@ -1,18 +1,22 @@
-import React from 'react';
-import { StyleSheet, ViewStyle, ScrollView, View } from 'react-native';
 import { RadialGradient } from 'react-native-gradients';
+import React from 'react';
+import { NativeScrollEvent, NativeSyntheticEvent, RefreshControl, StyleSheet, ViewStyle, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { getNetworkPrimaryColor } from '@shared/constants/Colors';
 
-interface GradientFormSheetProps {
+interface RadialGradientScreenProps {
   children: React.ReactNode;
   style?: ViewStyle;
-  variant?: string;
+  network?: string;
   scroll?: boolean;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  refreshControl?: React.ReactElement<React.ComponentProps<typeof RefreshControl>>;
 }
 
-const GradientFormSheet: React.FC<GradientFormSheetProps> = ({ children, style, variant = 'base', scroll = false }) => {
-  const primaryColor = getNetworkPrimaryColor(variant);
+const RadialGradientScreen: React.FC<RadialGradientScreenProps> = ({ children, style, network = 'base', scroll = false, onScroll, refreshControl }) => {
+  const primaryColor = getNetworkPrimaryColor(network);
   const colorList = [
     { offset: '0%', color: primaryColor, opacity: '1' },
     { offset: '100%', color: '#000000', opacity: '1' },
@@ -24,11 +28,19 @@ const GradientFormSheet: React.FC<GradientFormSheetProps> = ({ children, style, 
         <RadialGradient colorList={colorList} x="50%" y="-20.71%" rx="109.91%" ry="76.76%" />
       </View>
       {scroll ? (
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
+        <Animated.ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          refreshControl={refreshControl}
+        >
           <SafeAreaView style={[styles.safeArea, style]} edges={['top', 'left', 'right', 'bottom']}>
             {children}
           </SafeAreaView>
-        </ScrollView>
+        </Animated.ScrollView>
       ) : (
         <SafeAreaView style={[styles.safeArea, style]} edges={['top', 'left', 'right', 'bottom']}>
           {children}
@@ -60,4 +72,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default GradientFormSheet;
+export default RadialGradientScreen;

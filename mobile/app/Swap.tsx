@@ -5,11 +5,12 @@ import BigNumber from 'bignumber.js';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, View, ScrollView } from 'react-native';
 
 import AmountInput from '@/components/AmountInput';
 import Button from '@/components/Button';
-import GradientScreen from '@/components/GradientScreen';
+import { Colors, overlayBackground } from '@shared/constants/Colors';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { useSwapBalance } from '@/src/shared-link/hooks/useSwapBalance';
@@ -160,68 +161,85 @@ export default function Swap() {
   }
 
   return (
-    <GradientScreen variant={network} scroll={true}>
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <ThemedText style={styles.title}>Transfer</ThemedText>
-          <Pressable style={styles.closeButton} onPress={handleClose}>
-            <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.8)" />
-          </Pressable>
-        </View>
-
-        {/* From Token Input */}
-        <View style={styles.inputSection}>
-          <AmountInput
-            value={amount}
-            onChangeText={handleAmountChange}
-            ticker={ticker}
-            balance={formattedBalance}
-            exchangeRate={exchangeRate}
-            denomination={denomination}
-            decimals={decimals}
-            onDenominationSwitch={handleDenominationSwitch}
-            onMaxPress={handleMaxPress}
-            onBalancePress={handleMaxPress}
-            testID="AmountInput"
-          />
-        </View>
-
-        {/* To Token Selection */}
-        <View style={styles.toSection}>
-          <ThemedText style={styles.toLabel} testID="ToLabel">
-            To
-          </ThemedText>
-          <Pressable style={styles.targetButton} onPress={handleToTokenSelect} testID="ToNetworkButton">
-            <ThemedText style={styles.targetButtonText}>{option ? targetName : 'Select target network'}</ThemedText>
-            <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.6)" />
-          </Pressable>
-        </View>
-
-        {/* Error Display */}
-        {error && (
-          <View style={styles.errorContainer}>
-            <ThemedText style={styles.errorText}>{error}</ThemedText>
-          </View>
-        )}
-
-        {/* Swap Button */}
-        <View style={styles.swapButtonContainer}>
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
-              <ThemedText style={styles.loadingText}>Preparing swap...</ThemedText>
+    <View style={styles.backgroundContainer}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+          <View style={styles.container}>
+            {/* Header */}
+            <View style={styles.header}>
+              <ThemedText style={styles.title}>Transfer</ThemedText>
+              <Pressable style={styles.closeButton} onPress={handleClose}>
+                <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.8)" />
+              </Pressable>
             </View>
-          ) : (
-            <Button testID="SwapButton" title={buttonTitle} onPress={handleExecuteSwap} style={[styles.swapButton, ...(canSwap ? [] : [styles.swapButtonDisabled])]} disabled={!canSwap} />
-          )}
-        </View>
-      </View>
-    </GradientScreen>
+
+            {/* From Token Input */}
+            <View style={styles.inputSection}>
+              <AmountInput
+                value={amount}
+                onChangeText={handleAmountChange}
+                ticker={ticker}
+                balance={formattedBalance}
+                exchangeRate={exchangeRate}
+                denomination={denomination}
+                decimals={decimals}
+                onDenominationSwitch={handleDenominationSwitch}
+                onMaxPress={handleMaxPress}
+                onBalancePress={handleMaxPress}
+                testID="AmountInput"
+              />
+            </View>
+
+            {/* To Token Selection */}
+            <View style={styles.toSection}>
+              <ThemedText style={styles.toLabel} testID="ToLabel">
+                To
+              </ThemedText>
+              <Pressable style={styles.targetButton} onPress={handleToTokenSelect} testID="ToNetworkButton">
+                <ThemedText style={styles.targetButtonText}>{option ? targetName : 'Select target network'}</ThemedText>
+                <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.6)" />
+              </Pressable>
+            </View>
+
+            {/* Error Display */}
+            {error && (
+              <View style={styles.errorContainer}>
+                <ThemedText style={styles.errorText}>{error}</ThemedText>
+              </View>
+            )}
+
+            {/* Swap Button */}
+            <View style={styles.swapButtonContainer}>
+              {isLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
+                  <ThemedText style={styles.loadingText}>Preparing swap...</ThemedText>
+                </View>
+              ) : (
+                <Button testID="SwapButton" title={buttonTitle} onPress={handleExecuteSwap} style={[styles.swapButton, ...(canSwap ? [] : [styles.swapButtonDisabled])]} disabled={!canSwap} />
+              )}
+            </View>
+          </View>
+        </SafeAreaView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundContainer: {
+    flex: 1,
+    backgroundColor: Colors.GlobalDarkBackground,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     marginHorizontal: 20,
@@ -264,7 +282,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   targetButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: overlayBackground,
     borderRadius: 20,
     padding: 16,
     flexDirection: 'row',

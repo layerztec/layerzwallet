@@ -8,7 +8,7 @@ import { ActivityIndicator, Animated, ScrollView, Share, StyleSheet, View } from
 import Pressable from '../components/Pressable';
 import QRCode from 'react-native-qrcode-svg';
 
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -242,7 +242,7 @@ export default function ReceiveScreen() {
 
   if ((network === NETWORK_STACKS || network === NETWORK_SPARK) && stacksTokenReceiveInfo) {
     return (
-      <GradientScreen variant={network}>
+      <RadialGradientScreen network={network}>
         <Stack.Screen options={{ headerShown: false }} />
 
         <ScreenHeader title={`Receive on ${capitalizeFirstLetter(network)}`} />
@@ -258,13 +258,13 @@ export default function ReceiveScreen() {
             </View>
           </View>
         </ScrollView>
-      </GradientScreen>
+      </RadialGradientScreen>
     );
   }
 
   if (isNewBalanceGT()) {
     return (
-      <GradientScreen variant={network}>
+      <RadialGradientScreen network={network}>
         <Stack.Screen options={{ headerShown: false }} />
 
         <ScreenHeader title={`Receive on ${capitalizeFirstLetter(network)}`} />
@@ -276,12 +276,12 @@ export default function ReceiveScreen() {
             </ThemedText>
           </View>
         </ScrollView>
-      </GradientScreen>
+      </RadialGradientScreen>
     );
   }
 
   return (
-    <GradientScreen variant={network}>
+    <RadialGradientScreen network={network}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScreenHeader title={`Receive on ${capitalizeFirstLetter(network)}`} />
@@ -361,7 +361,7 @@ export default function ReceiveScreen() {
           </View>
         </View>
       </ScrollView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 }
 

@@ -8,6 +8,7 @@ import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { handleQrIntent } from '@/src/modules/scan-routing';
 import { Ionicons, Foundation } from '@expo/vector-icons';
 import PlatformBlurView from './PlatformBlurView';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useAnimatedStyle, interpolate, SharedValue } from 'react-native-reanimated';
 import Pressable from './Pressable';
 
@@ -56,6 +57,9 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Linear Gradient Background */}
+      <LinearGradient colors={['rgba(0, 0, 0, 0.80)', 'rgba(0, 0, 0, 0.00)']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 0.8832 }} style={styles.gradientBackground} />
+
       {/* Platform-aware Blur Background */}
       <Animated.View style={[styles.blurBackground, blurAnimatedStyle]}>
         <PlatformBlurView intensity={50} tint="dark" style={styles.blurView} />
@@ -98,6 +102,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
+  },
+  gradientBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   blurBackground: {
     position: 'absolute',

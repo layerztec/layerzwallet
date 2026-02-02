@@ -3,7 +3,7 @@ import Pressable from '../components/Pressable';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import NftImage from '@/components/NftImage';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
@@ -48,7 +48,7 @@ export default function NftGallery() {
   );
 
   return (
-    <GradientScreen variant={network}>
+    <RadialGradientScreen network={network} scroll={true}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.root}>
         <ScreenHeader title="NFTs" />
@@ -87,7 +87,7 @@ export default function NftGallery() {
           );
         })()}
       </View>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 }
 

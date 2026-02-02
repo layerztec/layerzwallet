@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
@@ -175,7 +175,7 @@ export default function SendTokenStacksScreen() {
   }
 
   return (
-    <GradientScreen variant={network}>
+    <RadialGradientScreen network={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title={`Send ${token?.name || params.tokenName}`} />
       <View style={styles.networkBadge}>
@@ -336,7 +336,7 @@ export default function SendTokenStacksScreen() {
           </>
         </ScrollView>
       </KeyboardAvoidingView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 }
 

@@ -13,9 +13,9 @@ import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { useBiometrics } from '@/hooks/useBiometrics';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useSettings } from '@shared/hooks/useSettings';
-import { getGradientColors } from '@/utils/gradientUtils';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
 import { SecureStorage } from '@/src/class/secure-storage';
+import { globalDarkBackground } from '@shared/constants/Colors';
 
 const gitCommitHash = require('../git_commit_hash.json');
 
@@ -105,8 +105,7 @@ export default function SettingsScreen() {
     router.push('/About');
   };
 
-  const gradientColors = getGradientColors(network);
-  const backgroundColor = gradientColors[0];
+  const backgroundColor = globalDarkBackground;
 
   const isBiometricsEnabled = settings.biometricAuth === 'ON';
 

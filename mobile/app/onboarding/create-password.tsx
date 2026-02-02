@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ThemedText } from '@/components/ThemedText';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { Colors } from '@shared/constants/Colors';
+import { Colors, globalDarkBackground } from '@shared/constants/Colors';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import Pressable from '../../components/Pressable';
 
@@ -208,7 +208,7 @@ export default function CreatePasswordScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.container, { backgroundColor: '#000000' }]}>
+      <View style={[styles.container, { backgroundColor: globalDarkBackground }]}>
         <SafeAreaView style={styles.safeAreaView}>
           <ScreenHeader />
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardContainer}>

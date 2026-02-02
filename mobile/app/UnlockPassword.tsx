@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { Colors } from '@shared/constants/Colors';
+import { Colors, globalDarkBackground } from '@shared/constants/Colors';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import { SecureStorage } from '@/src/class/secure-storage';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
@@ -84,7 +84,7 @@ export default function UnlockPassword() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.container, { backgroundColor: '#000000' }]}>
+      <View style={[styles.container, { backgroundColor: globalDarkBackground }]}>
         <SafeAreaView style={styles.safeAreaView}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardContainer}>
             <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">

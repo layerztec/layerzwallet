@@ -1,11 +1,11 @@
-import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
 import * as Linking from 'expo-linking';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Pressable from '../components/Pressable';
+import { globalDarkBackground } from '@shared/constants/Colors';
 
 const gitCommitHash = require('../git_commit_hash.json');
 
@@ -17,7 +17,6 @@ interface CommitData {
 }
 
 export default function ChangelogScreen() {
-  const { network } = useContext(NetworkContext);
   const [commits, setCommits] = useState<CommitData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,15 +98,24 @@ export default function ChangelogScreen() {
   };
 
   return (
-    <GradientScreen variant={network}>
-      <ScreenHeader title="Changelog" />
+    <View style={styles.backgroundContainer}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+        <ScreenHeader title="Changelog" />
 
-      <View style={styles.container}>{renderContent()}</View>
-    </GradientScreen>
+        <View style={styles.container}>{renderContent()}</View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundContainer: {
+    flex: 1,
+    backgroundColor: globalDarkBackground,
+  },
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     paddingHorizontal: 16,

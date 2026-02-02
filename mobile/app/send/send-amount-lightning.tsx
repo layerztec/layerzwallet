@@ -8,9 +8,10 @@ import React, { useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 
 import AmountInput from '@/components/AmountInput';
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
+import { overlayBackgroundDeeper } from '@shared/constants/Colors';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -154,7 +155,7 @@ const SendAmountLightning: React.FC = () => {
   const buttonDisabled = !localAmount || !!error || !balance || isPreparing;
 
   return (
-    <GradientScreen variant={network} scroll={true}>
+    <RadialGradientScreen network={network} scroll={true}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenSendHeader network={network} title={`Send ${getTickerByNetwork(network)}`} />
 
@@ -212,7 +213,7 @@ const SendAmountLightning: React.FC = () => {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 };
 
@@ -237,7 +238,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   memoInputContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: overlayBackgroundDeeper,
     borderRadius: 12,
     padding: 12,
   },

@@ -5,7 +5,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import NftImage from '@/components/NftImage';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
@@ -78,7 +78,7 @@ export default function Nft() {
 
   if (!nft) {
     return (
-      <GradientScreen variant={network}>
+      <RadialGradientScreen network={network} scroll={true}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.root}>
           <ScreenHeader />
@@ -86,12 +86,12 @@ export default function Nft() {
             <ThemedText style={styles.errorText}>NFT not found</ThemedText>
           </View>
         </View>
-      </GradientScreen>
+      </RadialGradientScreen>
     );
   }
 
   return (
-    <GradientScreen variant={network}>
+    <RadialGradientScreen network={network} scroll={true}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.root}>
@@ -155,7 +155,7 @@ export default function Nft() {
           </View>
         </View>
       </View>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 }
 

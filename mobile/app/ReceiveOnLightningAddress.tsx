@@ -9,7 +9,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { ActionPopupButton } from '@/components/ActionPopupButton';
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -192,7 +192,7 @@ export default function ReceiveOnLightningAddressScreen() {
   // Show success screen when balance increases
   if (isNewBalanceGT()) {
     return (
-      <GradientScreen variant={networkFromContext}>
+      <RadialGradientScreen network={networkFromContext}>
         <Stack.Screen options={{ headerShown: false }} />
 
         <ScreenHeader title={`Receive on ${capitalizeFirstLetter(network)}`} />
@@ -207,12 +207,12 @@ export default function ReceiveOnLightningAddressScreen() {
             </View>
           </View>
         </ScrollView>
-      </GradientScreen>
+      </RadialGradientScreen>
     );
   }
 
   return (
-    <GradientScreen variant={networkFromContext}>
+    <RadialGradientScreen network={networkFromContext}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScreenHeader title={`Receive on ${capitalizeFirstLetter(network)}`} />
@@ -277,7 +277,7 @@ export default function ReceiveOnLightningAddressScreen() {
           </View>
         </View>
       </ScrollView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 }
 

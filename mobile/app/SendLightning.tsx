@@ -6,7 +6,7 @@ import React, { useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import * as bolt11 from 'bolt11';
 
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
@@ -249,7 +249,7 @@ const SendLightning: React.FC = () => {
 
   if (sendState === 'success') {
     return (
-      <GradientScreen variant={network}>
+      <RadialGradientScreen network={network}>
         <ScreenHeader title="Send Lightning" />
         <View style={styles.successContainer}>
           <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
@@ -259,12 +259,12 @@ const SendLightning: React.FC = () => {
             <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
           </Pressable>
         </View>
-      </GradientScreen>
+      </RadialGradientScreen>
     );
   }
 
   return (
-    <GradientScreen variant={network}>
+    <RadialGradientScreen network={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title="Send Lightning" />
 
@@ -442,7 +442,7 @@ const SendLightning: React.FC = () => {
           )}
         </View>
       </ScrollView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 };
 

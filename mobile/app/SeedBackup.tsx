@@ -1,14 +1,14 @@
-import React, { useContext, useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Alert, StyleSheet, View, Animated, ActivityIndicator, Image, FlatList, LayoutAnimation, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
-import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import Button from '@/components/Button';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { globalDarkBackground } from '@shared/constants/Colors';
 import { usePreventScreenCapture } from 'expo-screen-capture';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
@@ -84,7 +84,6 @@ SelectableWordDisplay.displayName = 'SelectableWordDisplay';
 
 export default function SeedBackupScreen() {
   const router = useRouter();
-  const { network } = useContext(NetworkContext);
   const { settings } = useSettings();
   const { authenticateWithBiometrics } = useAuthState();
   const { askPassword } = useAskPassword();
@@ -279,101 +278,114 @@ export default function SeedBackupScreen() {
 
   if (verificationComplete) {
     return (
-      <GradientScreen variant={network} scroll>
-        <ScreenHeader title="Recovery Phrase" onBackPress={handleBackFromVerification} />
-        <View style={styles.verificationCompleteContainer}>
-          <View style={styles.successIconContainer}>
-            <Image source={require('@/assets/images/ui/success.png')} style={styles.successIcon} />
+      <View style={styles.backgroundContainer}>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+          <ScreenHeader title="Recovery Phrase" onBackPress={handleBackFromVerification} />
+          <View style={styles.verificationCompleteContainer}>
+            <View style={styles.successIconContainer}>
+              <Image source={require('@/assets/images/ui/success.png')} style={styles.successIcon} />
+            </View>
+            <ThemedText style={styles.successTitle}>Your backup is complete</ThemedText>
+            <ThemedText style={styles.successSubtitle}>You should now have your recovery phrase written down for future reference.</ThemedText>
+            <View style={styles.successButtonContainer}>
+              <Button title="Done" variant="normal" onPress={handleContinueFromSuccess} style={styles.actionButton} />
+            </View>
           </View>
-          <ThemedText style={styles.successTitle}>Your backup is complete</ThemedText>
-          <ThemedText style={styles.successSubtitle}>You should now have your recovery phrase written down for future reference.</ThemedText>
-          <View style={styles.successButtonContainer}>
-            <Button title="Done" variant="normal" onPress={handleContinueFromSuccess} style={styles.actionButton} />
-          </View>
-        </View>
-      </GradientScreen>
+        </SafeAreaView>
+      </View>
     );
   }
 
   if (isVerifying) {
     return (
-      <GradientScreen variant={network}>
-        <ScreenHeader title="Verify Recovery Phrase" onBackPress={handleBackFromVerification} />
-        <View style={styles.verificationHeader}>
-          <ThemedText style={styles.verificationTitle}>Tap the words in the correct order</ThemedText>
-          <ThemedText style={styles.verificationSubtitle}>Select each word in the same order as your recovery phrase</ThemedText>
-        </View>
+      <View style={styles.backgroundContainer}>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+          <ScreenHeader title="Verify Recovery Phrase" onBackPress={handleBackFromVerification} />
+          <View style={styles.verificationHeader}>
+            <ThemedText style={styles.verificationTitle}>Tap the words in the correct order</ThemedText>
+            <ThemedText style={styles.verificationSubtitle}>Select each word in the same order as your recovery phrase</ThemedText>
+          </View>
 
-        <FlatList
-          data={scrambledWords}
-          renderItem={renderWordItem}
-          keyExtractor={(item) => item.id.toString()}
-          numColumns={2}
-          columnWrapperStyle={styles.verificationWordRow}
-          contentContainerStyle={styles.verificationWordList}
-          scrollEnabled={true}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            showError ? (
-              <View style={styles.errorContainer}>
-                <ThemedText style={styles.errorText}>Incorrect word. Please try again.</ThemedText>
-              </View>
-            ) : null
-          }
-        />
-      </GradientScreen>
+          <FlatList
+            data={scrambledWords}
+            renderItem={renderWordItem}
+            keyExtractor={(item) => item.id.toString()}
+            numColumns={2}
+            columnWrapperStyle={styles.verificationWordRow}
+            contentContainerStyle={styles.verificationWordList}
+            scrollEnabled={true}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+              showError ? (
+                <View style={styles.errorContainer}>
+                  <ThemedText style={styles.errorText}>Incorrect word. Please try again.</ThemedText>
+                </View>
+              ) : null
+            }
+          />
+        </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <GradientScreen variant={network} scroll>
-      <ScreenHeader title="Recovery Phrase" />
-      <View style={styles.container}>
-        <View style={styles.warningSection}>
-          <Pressable style={styles.warningHeader} onPress={handleBadgeTap}>
-            <Ionicons name="alert-circle-outline" size={28} color="rgba(255, 255, 255, 0.9)" />
-            <ThemedText style={styles.warningTitle}>Warning</ThemedText>
-          </Pressable>
-          <ThemedText style={styles.warningText}>
-            Your recovery phrase is the only way to restore your wallet if you lose access to it. <ThemedText style={styles.warningBold}>Keep it safe and never share it with anyone.</ThemedText>
-          </ThemedText>
-        </View>
-
-        <View style={[styles.revealContainer, isRevealed && styles.revealContainerRevealed]}>
-          {isLoading ? (
-            <View style={styles.revealContent}>
-              <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.9)" />
-            </View>
-          ) : !isRevealed ? (
-            <Pressable style={styles.revealContent} onPress={handleRevealSeedPhrase} activeOpacity={0.8}>
-              <Ionicons name="eye-outline" size={80} color="rgba(255, 255, 255, 0.9)" />
-              <ThemedText style={styles.revealText}>tap to reveal</ThemedText>
+    <View style={styles.backgroundContainer}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+        <ScreenHeader title="Recovery Phrase" />
+        <View style={styles.container}>
+          <View style={styles.warningSection}>
+            <Pressable style={styles.warningHeader} onPress={handleBadgeTap}>
+              <Ionicons name="alert-circle-outline" size={28} color="rgba(255, 255, 255, 0.9)" />
+              <ThemedText style={styles.warningTitle}>Warning</ThemedText>
             </Pressable>
-          ) : (
-            <View style={styles.mnemonicDisplay}>
-              {mnemonicWordsData.map((item) => (
-                <View key={item.id} style={styles.wordItem}>
-                  <View style={styles.wordNumber}>
-                    <ThemedText style={styles.wordNumberText}>{item.index + 1}</ThemedText>
+            <ThemedText style={styles.warningText}>
+              Your recovery phrase is the only way to restore your wallet if you lose access to it. <ThemedText style={styles.warningBold}>Keep it safe and never share it with anyone.</ThemedText>
+            </ThemedText>
+          </View>
+
+          <View style={[styles.revealContainer, isRevealed && styles.revealContainerRevealed]}>
+            {isLoading ? (
+              <View style={styles.revealContent}>
+                <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.9)" />
+              </View>
+            ) : !isRevealed ? (
+              <Pressable style={styles.revealContent} onPress={handleRevealSeedPhrase} activeOpacity={0.8}>
+                <Ionicons name="eye-outline" size={80} color="rgba(255, 255, 255, 0.9)" />
+                <ThemedText style={styles.revealText}>tap to reveal</ThemedText>
+              </Pressable>
+            ) : (
+              <View style={styles.mnemonicDisplay}>
+                {mnemonicWordsData.map((item) => (
+                  <View key={item.id} style={styles.wordItem}>
+                    <View style={styles.wordNumber}>
+                      <ThemedText style={styles.wordNumberText}>{item.index + 1}</ThemedText>
+                    </View>
+                    <ThemedText style={styles.wordText}>{item.word}</ThemedText>
                   </View>
-                  <ThemedText style={styles.wordText}>{item.word}</ThemedText>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
+                ))}
+              </View>
+            )}
+          </View>
 
-        <View style={styles.actionsContainer}>
-          <Button title="View QR code" variant="secondary" onPress={handleViewQRCode} disabled={!mnemonic} style={styles.actionButton} />
+          <View style={styles.actionsContainer}>
+            <Button title="View QR code" variant="secondary" onPress={handleViewQRCode} disabled={!mnemonic} style={styles.actionButton} />
 
-          <Button title="Verify Backup" variant="light" onPress={handleVerifyBackup} disabled={!mnemonic} style={styles.actionButton} />
+            <Button title="Verify Backup" variant="light" onPress={handleVerifyBackup} disabled={!mnemonic} style={styles.actionButton} />
+          </View>
         </View>
-      </View>
-    </GradientScreen>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundContainer: {
+    flex: 1,
+    backgroundColor: globalDarkBackground,
+  },
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     padding: 20,

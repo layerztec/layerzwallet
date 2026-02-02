@@ -6,10 +6,11 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useContext, useRef, useState } from 'react';
 import { View, ScrollView, ActivityIndicator, StyleSheet, TextInput } from 'react-native';
 
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
+import { overlayBackground } from '@shared/constants/Colors';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
@@ -101,7 +102,7 @@ const SendAccountBased = () => {
 
   if (isSuccess) {
     return (
-      <GradientScreen variant={network}>
+      <RadialGradientScreen network={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
         <View style={styles.successContainer}>
@@ -111,12 +112,12 @@ const SendAccountBased = () => {
             <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
           </Pressable>
         </View>
-      </GradientScreen>
+      </RadialGradientScreen>
     );
   }
 
   return (
-    <GradientScreen variant={network}>
+    <RadialGradientScreen network={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
 
@@ -222,7 +223,7 @@ const SendAccountBased = () => {
           ) : null}
         </View>
       </ScrollView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 };
 
@@ -264,7 +265,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 16,
@@ -273,7 +274,7 @@ const styles = StyleSheet.create({
   },
   input2: {
     height: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 16,
@@ -283,7 +284,7 @@ const styles = StyleSheet.create({
   scanButton: {
     width: 50,
     height: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 16,

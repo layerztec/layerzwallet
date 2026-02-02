@@ -4,7 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, TextInput, Keyboard, TouchableWithoutFeedback } from 'react-native';
 
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
@@ -168,7 +168,7 @@ const SendTokenEvm: React.FC = () => {
   };
 
   return (
-    <GradientScreen variant={network}>
+    <RadialGradientScreen network={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title={`Send ${token?.name}`} />
 
@@ -264,7 +264,7 @@ const SendTokenEvm: React.FC = () => {
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 };
 

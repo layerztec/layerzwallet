@@ -7,9 +7,10 @@ import React, { useContext, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 
 import AmountInput from '@/components/AmountInput';
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
+import { overlayBackgroundDeeper } from '@shared/constants/Colors';
 import { SendAssetProps, withAsset } from '@/hooks/withAsset';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { EvmWallet } from '@shared/class/evm-wallet';
@@ -125,7 +126,7 @@ const SendAmountEvm: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker
   const buttonDisabled = !localAmount || !!errorMessage;
 
   return (
-    <GradientScreen variant={network} scroll={true}>
+    <RadialGradientScreen network={network} scroll={true}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenSendHeader network={network} title={`Send ${ticker}`} />
 
@@ -186,7 +187,7 @@ const SendAmountEvm: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker
           </Pressable>
         </View>
       </KeyboardAvoidingView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 };
 
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sliderContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackgroundDeeper,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 16,

@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,32 +7,40 @@ import { usePreventScreenCapture } from 'expo-screen-capture';
 import Pressable from '../components/Pressable';
 
 import { ThemedText } from '@/components/ThemedText';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
-import GradientScreen from '@/components/GradientScreen';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { globalDarkBackground } from '@shared/constants/Colors';
 
 export default function SeedBackupQRScreen() {
   const router = useRouter();
   const { mnemonic } = useLocalSearchParams<{ mnemonic: string }>();
-  const { network } = useContext(NetworkContext);
   usePreventScreenCapture();
 
   return (
-    <GradientScreen variant={network}>
-      <View style={styles.header}>
-        <ThemedText style={styles.title}>Recovery Phrase</ThemedText>
-        <Pressable onPress={() => router.back()} style={styles.closeButton}>
-          <Ionicons name="close" size={28} color="white" />
-        </Pressable>
-      </View>
+    <View style={styles.backgroundContainer}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+        <View style={styles.header}>
+          <ThemedText style={styles.title}>Recovery Phrase</ThemedText>
+          <Pressable onPress={() => router.back()} style={styles.closeButton}>
+            <Ionicons name="close" size={28} color="white" />
+          </Pressable>
+        </View>
 
-      <View style={styles.qrCodeSection}>
-        <View style={styles.qrCodeWrapper}>{mnemonic && <QRCode value={mnemonic} size={280} color="#000033" backgroundColor="white" />}</View>
-      </View>
-    </GradientScreen>
+        <View style={styles.qrCodeSection}>
+          <View style={styles.qrCodeWrapper}>{mnemonic && <QRCode value={mnemonic} size={280} color="#000033" backgroundColor="white" />}</View>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundContainer: {
+    flex: 1,
+    backgroundColor: globalDarkBackground,
+  },
+  safeArea: {
+    flex: 1,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

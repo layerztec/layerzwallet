@@ -4,7 +4,7 @@ import { useTransactions } from '@shared/hooks/useTransactions';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { useContext } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import { ThemedText } from '@/components/ThemedText';
 import Transaction from '@/components/Transaction';
 import { useRouter } from 'expo-router';
@@ -16,7 +16,7 @@ export default function Transactions() {
   const router = useRouter();
 
   return (
-    <GradientScreen variant={network} scroll={true}>
+    <RadialGradientScreen network={network} scroll={true}>
       <View style={styles.root}>
         {/* Header */}
         <View style={styles.header}>
@@ -48,7 +48,7 @@ export default function Transactions() {
           ))}
         </View>
       </View>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 }
 

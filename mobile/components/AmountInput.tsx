@@ -6,6 +6,7 @@ import { StyleSheet, TextInput, View } from 'react-native';
 import Pressable from './Pressable';
 
 import { ThemedText } from './ThemedText';
+import { overlayBackgroundDeeper } from '@shared/constants/Colors';
 
 export interface AmountInputProps {
   value: string;
@@ -200,7 +201,7 @@ export default function AmountInput({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: overlayBackgroundDeeper,
     borderRadius: 20,
     padding: 16,
     height: 86,

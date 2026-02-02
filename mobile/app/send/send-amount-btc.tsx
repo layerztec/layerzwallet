@@ -7,9 +7,10 @@ import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue,
 import Pressable from '../../components/Pressable';
 
 import AmountInput from '@/components/AmountInput';
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
+import { overlayBackgroundDeeper } from '@shared/constants/Colors';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { CreateTransactionTarget } from '@shared/class/wallets/types';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -293,7 +294,7 @@ const SendAmountBtc: React.FC = () => {
   const animatedChevronStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${chevronRotation.value}deg` }] }));
 
   return (
-    <GradientScreen variant={network} scroll={true}>
+    <RadialGradientScreen network={network} scroll={true}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenSendHeader network={network} title={`Send ${getTickerByNetwork(network)}`} />
 
@@ -424,7 +425,7 @@ const SendAmountBtc: React.FC = () => {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 };
 
@@ -500,7 +501,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   feeOptionsContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackgroundDeeper,
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
     overflow: 'hidden',
@@ -510,7 +511,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackgroundDeeper,
     height: 64,
   },
   selectedFeeOption: {
@@ -585,7 +586,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   customFeeInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackgroundDeeper,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,

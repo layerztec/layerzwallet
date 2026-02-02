@@ -9,7 +9,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleShe
 import Pressable from '../../components/Pressable';
 
 import AmountInput from '@/components/AmountInput';
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { SendAssetProps, withAsset } from '@/hooks/withAsset';
@@ -191,7 +191,7 @@ const SendAmountUsdt: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticke
   const buttonDisabled = !localAmount || !!errorMessage;
 
   return (
-    <GradientScreen variant={contextNetwork} scroll={true}>
+    <RadialGradientScreen network={contextNetwork} scroll={true}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenSendHeader network={contextNetwork} title={`Send ${getTickerByNetwork(contextNetwork)}`} />
 
@@ -258,7 +258,7 @@ const SendAmountUsdt: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticke
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 };
 
