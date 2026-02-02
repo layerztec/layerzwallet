@@ -10,9 +10,15 @@ appId: com.layerzwallet.mobile
     env:
       NETWORK: 'rootstock'
 
+- scrollUntilVisible:
+    element:
+      id: 'ExplorerButton'
 - tapOn:
     id: 'ExplorerButton'
-- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: 'DappBrowserAddressBar'
+    timeout: 30000
 - tapOn:
     id: 'DappBrowserAddressBar'
 - waitForAnimationToEnd
