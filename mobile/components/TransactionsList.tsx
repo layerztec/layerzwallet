@@ -1,11 +1,9 @@
-import React, { useContext, useRef } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import Rive, { RiveRef } from 'rive-react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import SectionContainer from '@/components/SectionContainer';
 import Transaction from '@/components/Transaction';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { CommonTransaction } from '@shared/types/common-transaction';
 
 interface TransactionsListProps {
@@ -16,9 +14,6 @@ interface TransactionsListProps {
 }
 
 const TransactionsList: React.FC<TransactionsListProps> = ({ transactions, error, onTransactionPress, onViewHistory }) => {
-  const { network } = useContext(NetworkContext);
-  const riveRef = useRef<RiveRef>(null);
-
   const hasTransactions = transactions.length > 0;
 
   return (
@@ -35,19 +30,7 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ transactions, error
         </View>
       ) : (
         <View style={styles.emptyContainer}>
-          <View style={styles.emptyTransactionsContainer}>
-            <Rive
-              key={`transactions-${network}`}
-              ref={riveRef}
-              autoplay={true}
-              style={styles.emptyTransactionsAnimation}
-              resourceName="transactions"
-              onError={(riveError) => {
-                console.log('Rive animation error:', riveError);
-              }}
-            />
-            <ThemedText style={styles.emptyText}>No transactions yet. Start by tapping receive and do your first transaction.</ThemedText>
-          </View>
+          <ThemedText style={styles.emptyText}>No transactions yet. Start by tapping receive and do your first transaction.</ThemedText>
         </View>
       )}
     </SectionContainer>
@@ -62,23 +45,12 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   emptyContainer: {
-    paddingVertical: 8,
+    paddingVertical: 16,
   },
   emptyText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: 'white',
     textAlign: 'center',
-  },
-  emptyTransactionsContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 0,
-    width: '100%',
-  },
-  emptyTransactionsAnimation: {
-    width: 368,
-    height: 100,
-    marginBottom: 16,
   },
 });
 
