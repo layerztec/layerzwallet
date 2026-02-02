@@ -20,6 +20,19 @@ import { sleep } from '@shared/modules/sleep';
 import { formatBalance } from '@shared/modules/string-utils';
 import { validateAddress } from '@shared/modules/wallet-utils';
 import { useSendFlow } from './_layout';
+import { TFeeEstimate } from '@shared/blue_modules/BlueElectrum';
+
+enum FeeIndex {
+  Fast = 'fast',
+  Medium = 'medium',
+  Slow = 'slow',
+}
+
+const FeeOptions = [
+  { index: FeeIndex.Fast, name: 'Fast', key: 'fast' as keyof TFeeEstimate },
+  { index: FeeIndex.Medium, name: 'Medium', key: 'medium' as keyof TFeeEstimate },
+  { index: FeeIndex.Slow, name: 'Slow', key: 'slow' as keyof TFeeEstimate },
+] as const;
 
 const SendAmountBtc: React.FC = () => {
   const router = useRouter();
@@ -30,6 +43,7 @@ const SendAmountBtc: React.FC = () => {
 
   const [localAmount, setLocalAmount] = useState(contextAmount);
   const [selectedFeeRate, setSelectedFeeRate] = useState<number | undefined>();
+  const [selectedFeeIndex, setSelectedFeeIndex] = useState<FeeIndex | undefined>();
   const [isFeeSelectorExpanded, setIsFeeSelectorExpanded] = useState(false);
   const [customFeeRate, setCustomFeeRate] = useState<number | undefined>();
   const [isCreatingTransaction, setIsCreatingTransaction] = useState(false);
@@ -62,19 +76,25 @@ const SendAmountBtc: React.FC = () => {
     return isLoading || (feeLoadingError && !customFeeRate) || !localAmount || !sendData || isCreatingTransaction;
   }, [isLoading, feeLoadingError, customFeeRate, localAmount, sendData, isCreatingTransaction]);
 
-  const feeRate = useMemo(() => {
-    if (selectedFeeRate !== undefined) return selectedFeeRate;
-    if (customFeeRate !== undefined) return customFeeRate;
-    if (estimateFees) return estimateFees.medium;
-    return 1;
-  }, [selectedFeeRate, customFeeRate, estimateFees]);
+  const [feeRate, feeIndex] = useMemo(() => {
+    if (selectedFeeRate !== undefined) return [selectedFeeRate, selectedFeeIndex ?? FeeIndex.Medium];
+    if (customFeeRate !== undefined) return [customFeeRate, FeeIndex.Slow];
+    if (estimateFees) return [estimateFees.medium, FeeIndex.Medium];
+    return [1, FeeIndex.Slow];
+  }, [selectedFeeRate, customFeeRate, estimateFees, selectedFeeIndex]);
 
   const feeName = useMemo(() => {
-    if (estimateFees && feeRate === estimateFees.fast) return 'Fast';
-    if (estimateFees && feeRate === estimateFees.medium) return 'Medium';
-    if (estimateFees && feeRate === estimateFees.slow) return 'Slow';
-    return 'Network Fee';
-  }, [estimateFees, feeRate]);
+    switch (feeIndex) {
+      case FeeIndex.Fast:
+        return 'Fast';
+      case FeeIndex.Medium:
+        return 'Medium';
+      case FeeIndex.Slow:
+        return 'Slow';
+      default:
+        return 'Network Fee';
+    }
+  }, [feeIndex]);
 
   const feeRateOptions: { [rate: number]: number } = useMemo(() => {
     if (!sendData?.utxos || !address || !wallet) {
@@ -162,8 +182,9 @@ const SendAmountBtc: React.FC = () => {
     }
   };
 
-  const handleFeeSelection = (feeRate: number) => {
+  const handleFeeSelection = (feeRate: number, index: FeeIndex) => {
     setSelectedFeeRate(feeRate);
+    setSelectedFeeIndex(index);
     setIsFeeSelectorExpanded(false);
   };
 
@@ -384,29 +405,19 @@ const SendAmountBtc: React.FC = () => {
 
               {estimateFees && (
                 <Animated.View style={[styles.feeOptionsContainer, animatedFeeOptionsStyle]}>
-                  <Pressable style={[styles.feeOption, feeRate === estimateFees.fast && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.fast)}>
-                    <View style={styles.feeOptionContent}>
-                      <ThemedText style={styles.feeOptionName}>Fast</ThemedText>
-                      <ThemedText style={styles.feeOptionRate}>{estimateFees.fast} sats v/b</ThemedText>
-                    </View>
-                    <ThemedText style={styles.feeOptionAmount}>{feeRateOptions[estimateFees.fast] ? formatFee(feeRateOptions[estimateFees.fast]) : ''}</ThemedText>
-                  </Pressable>
-
-                  <Pressable style={[styles.feeOption, feeRate === estimateFees.medium && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.medium)}>
-                    <View style={styles.feeOptionContent}>
-                      <ThemedText style={styles.feeOptionName}>Medium</ThemedText>
-                      <ThemedText style={styles.feeOptionRate}>{estimateFees.medium} sats v/b</ThemedText>
-                    </View>
-                    <ThemedText style={styles.feeOptionAmount}>{feeRateOptions[estimateFees.medium] ? formatFee(feeRateOptions[estimateFees.medium]) : ''}</ThemedText>
-                  </Pressable>
-
-                  <Pressable style={[styles.feeOption, feeRate === estimateFees.slow && styles.selectedFeeOption]} onPress={() => handleFeeSelection(estimateFees.slow)}>
-                    <View style={styles.feeOptionContent}>
-                      <ThemedText style={styles.feeOptionName}>Slow</ThemedText>
-                      <ThemedText style={styles.feeOptionRate}>{estimateFees.slow} sats v/b</ThemedText>
-                    </View>
-                    <ThemedText style={styles.feeOptionAmount}>{feeRateOptions[estimateFees.slow] ? formatFee(feeRateOptions[estimateFees.slow]) : ''}</ThemedText>
-                  </Pressable>
+                  {FeeOptions.map((option) => (
+                    <Pressable
+                      key={option.index}
+                      style={[styles.feeOption, feeIndex === option.index && styles.selectedFeeOption]}
+                      onPress={() => handleFeeSelection(estimateFees[option.index], option.index)}
+                    >
+                      <View style={styles.feeOptionContent}>
+                        <ThemedText style={styles.feeOptionName}>{option.name}</ThemedText>
+                        <ThemedText style={styles.feeOptionRate}>{estimateFees[option.key]} sats v/b</ThemedText>
+                      </View>
+                      <ThemedText style={styles.feeOptionAmount}>{formatFee(feeRateOptions[estimateFees[option.key]])}</ThemedText>
+                    </Pressable>
+                  ))}
                 </Animated.View>
               )}
             </View>
