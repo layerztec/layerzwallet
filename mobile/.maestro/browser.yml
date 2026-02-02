@@ -14,13 +14,11 @@ appId: com.layerzwallet.mobile
     element:
       id: 'ExplorerButton'
     timeout: 30000
+    centerElement: true
 - tapOn:
     id: 'ExplorerButton'
-# Wait for browser to start loading (confirms navigation worked)
-- extendedWaitUntil:
-    visible:
-      id: 'DappBrowserLoading'
-    timeout: 10000
+- waitForAnimationToEnd
+- waitForAnimationToEnd
 # Wait for browser to fully load (JS loaded)
 - extendedWaitUntil:
     visible:
