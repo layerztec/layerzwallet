@@ -21,6 +21,7 @@ import { StringNumber } from '@shared/types/string-number';
 import { NETWORK_SPARK, NETWORK_STACKS, Networks } from '@shared/types/networks';
 import { getGradientPrimaryColor } from '@/utils/gradientUtils';
 import { walletCanHaveTokens } from '@shared/class/wallets/interface-can-have-tokens';
+import { overlayBackground } from '@shared/constants/Colors';
 
 export type ReceiveTokenProps = {
   network: Networks;
@@ -406,7 +407,7 @@ const styles = StyleSheet.create({
   },
   addressContainer: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: overlayBackground,
     borderBottomRightRadius: 16,
     borderBottomLeftRadius: 16,
     padding: 16,

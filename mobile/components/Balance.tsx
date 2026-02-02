@@ -7,6 +7,7 @@ import { StyleSheet, View } from 'react-native';
 import Pressable from './Pressable';
 
 import { OnrampProps } from '@/app/Onramp';
+import SectionContainer from '@/components/SectionContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -216,7 +217,7 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
         </View>
       )}
 
-      <View style={styles.listBalanceContainer}>{rows}</View>
+      <SectionContainer contentStyle={styles.listBalanceContent}>{rows}</SectionContainer>
     </>
   );
 });
@@ -365,7 +366,7 @@ export const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceUsdtProps>
         </View>
       )}
 
-      <View style={styles.listBalanceContainer}>{rows}</View>
+      <SectionContainer contentStyle={styles.listBalanceContent}>{rows}</SectionContainer>
     </>
   );
 });
@@ -461,10 +462,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
   },
-  listBalanceContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: 16,
-    marginBottom: 32,
+  listBalanceContent: {
     paddingVertical: 8,
     gap: 6,
   },
