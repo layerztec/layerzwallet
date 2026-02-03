@@ -133,6 +133,7 @@ const PosMerchant: React.FC = () => {
 
         setTipInput('0.00');
       } catch (err: any) {
+        globalThis.handleError?.(err, 'PosMerchant.tsx');
         if (!cancelled) {
           setError(err?.message ?? 'Failed to load merchant metadata.');
         }
