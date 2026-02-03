@@ -3,7 +3,7 @@ import PlatformBlurView from '@/components/PlatformBlurView';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useImperativeHandle, useMemo, useState, forwardRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import Pressable from './Pressable';
 
 import { OnrampProps } from '@/app/Onramp';
@@ -96,6 +96,14 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
   const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK, 'USD');
   const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARK, 'USD');
   const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, 'USD');
+
+  // delay rendering of adjustsFontSizeToFit to avoid layout issues on Android
+  const [adjustsFontSizeToFit, setAdjustsFontSizeToFit] = useState(false);
+  const handleLayout = (event: LayoutChangeEvent) => {
+    if (event.nativeEvent.layout.width > 0) {
+      setAdjustsFontSizeToFit(true);
+    }
+  };
 
   useImperativeHandle(ref, () => ({
     refresh: () => {
@@ -206,7 +214,7 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
       {showTotalBalance && (
         <View style={styles.balanceSection} testID="LayerBalance">
           <View style={styles.balanceContainer}>
-            <ThemedText type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
+            <ThemedText onLayout={handleLayout} type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={adjustsFontSizeToFit} numberOfLines={1} testID="LayerActualBalance">
               {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
             </ThemedText>
             <ThemedText style={styles.balanceUsd}>${displaySubBalance}</ThemedText>
@@ -290,6 +298,14 @@ export const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceUsdtProps>
   const [tokenBalances, setTokenBalances] = useState<TTokenBalances>({});
   const ticker = getTickerByNetwork(network);
 
+  // delay rendering of adjustsFontSizeToFit to avoid layout issues on Android
+  const [adjustsFontSizeToFit, setAdjustsFontSizeToFit] = useState(false);
+  const handleLayout = (event: LayoutChangeEvent) => {
+    if (event.nativeEvent.layout.width > 0) {
+      setAdjustsFontSizeToFit(true);
+    }
+  };
+
   useImperativeHandle(ref, () => ({
     refresh: () => {
       mutateRsTokens();
@@ -356,7 +372,7 @@ export const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceUsdtProps>
       {showTotalBalance && (
         <View style={styles.balanceSection} testID="LayerBalance">
           <View style={styles.balanceContainer}>
-            <ThemedText type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
+            <ThemedText onLayout={handleLayout} type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={adjustsFontSizeToFit} numberOfLines={1} testID="LayerActualBalance">
               {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
             </ThemedText>
           </View>
