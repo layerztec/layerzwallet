@@ -65,6 +65,12 @@ describe('convertMerchantQRToLightningAddress', () => {
       expected: 'https%3A%2F%2Frad2.wigroup.co%2Fbill%2F125468@cryptoqr.net',
     },
     {
+      description: '',
+      qrContent: 'https://za.wigroup.co/bill/88186703',
+      network: 'mainnet' as Network,
+      expected: 'https%3A%2F%2Fza.wigroup.co%2Fbill%2F88186703@cryptoqr.net',
+    },
+    {
       description: 'Yoyo2',
       qrContent: 'https://rad2.yoyogroup.co/bill/125468',
       network: 'mainnet' as Network,

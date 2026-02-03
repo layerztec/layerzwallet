@@ -2,7 +2,6 @@
  * PORTED FROM  https://github.com/krakenfx/wallet
  * LICENSE: MIT
  */
-import { handleError } from '@/src/modules/error-handler';
 import React from 'react';
 
 interface ErrorBoundaryProps {
@@ -26,7 +25,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error): void {
     console.log('ErrorBoundary encountered fatal error in render tree', error);
-    handleError(error, 'ErrorBoundary');
+    globalThis.handleError?.(error, 'ErrorBoundary');
     this.props.onError?.(error);
     if (this.state.error && !this.props.fallback) {
       setTimeout(() => this.setState({ error: undefined }));
