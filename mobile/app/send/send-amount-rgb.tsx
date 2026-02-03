@@ -26,6 +26,18 @@ import { CachedTokenInfo } from '@shared/types/token-info';
 import Pressable from '../../components/Pressable';
 import { useSendFlow } from './_layout';
 
+enum FeeIndex {
+  Fast = 'fast',
+  Medium = 'medium',
+  Slow = 'slow',
+}
+
+const FeeOptions = [
+  { index: FeeIndex.Fast, name: 'Fast', key: 'fast' as keyof TFeeEstimate },
+  { index: FeeIndex.Medium, name: 'Medium', key: 'medium' as keyof TFeeEstimate },
+  { index: FeeIndex.Slow, name: 'Slow', key: 'slow' as keyof TFeeEstimate },
+] as const;
+
 const SendAmountRgb: React.FC = () => {
   const router = useRouter();
   const {
@@ -51,6 +63,7 @@ const SendAmountRgb: React.FC = () => {
 
   const [localAmount, setLocalAmount] = useState(contextAmount);
   const [selectedFeeRate, setSelectedFeeRate] = useState<number | undefined>();
+  const [selectedFeeIndex, setSelectedFeeIndex] = useState<FeeIndex | undefined>();
   const [isFeeSelectorExpanded, setIsFeeSelectorExpanded] = useState(false);
   const [customFeeRate, setCustomFeeRate] = useState<number | undefined>();
   const [isCreatingTransaction, setIsCreatingTransaction] = useState(false);
@@ -136,19 +149,25 @@ const SendAmountRgb: React.FC = () => {
     return isLoadingFees || (feeLoadingError && !customFeeRate) || !localAmount || isCreatingTransaction;
   }, [isLoadingFees, feeLoadingError, customFeeRate, localAmount, isCreatingTransaction]);
 
-  const feeRate = useMemo(() => {
-    if (selectedFeeRate !== undefined) return selectedFeeRate;
-    if (customFeeRate !== undefined) return customFeeRate;
-    if (feeEstimates) return feeEstimates.medium;
-    return 1;
-  }, [selectedFeeRate, customFeeRate, feeEstimates]);
+  const [feeRate, feeIndex] = useMemo(() => {
+    if (selectedFeeRate !== undefined) return [selectedFeeRate, selectedFeeIndex ?? FeeIndex.Medium];
+    if (customFeeRate !== undefined) return [customFeeRate, FeeIndex.Slow];
+    if (feeEstimates) return [feeEstimates.medium, FeeIndex.Medium];
+    return [1, FeeIndex.Slow];
+  }, [selectedFeeRate, customFeeRate, feeEstimates, selectedFeeIndex]);
 
   const feeName = useMemo(() => {
-    if (feeEstimates && feeRate === feeEstimates.fast) return 'Fast';
-    if (feeEstimates && feeRate === feeEstimates.medium) return 'Medium';
-    if (feeEstimates && feeRate === feeEstimates.slow) return 'Slow';
-    return 'Network Fee';
-  }, [feeEstimates, feeRate]);
+    switch (feeIndex) {
+      case FeeIndex.Fast:
+        return 'Fast';
+      case FeeIndex.Medium:
+        return 'Medium';
+      case FeeIndex.Slow:
+        return 'Slow';
+      default:
+        return 'Network Fee';
+    }
+  }, [feeIndex]);
 
   const handleAmountChange = (text: string) => {
     const normalized = text.replace(',', '.');
@@ -176,8 +195,9 @@ const SendAmountRgb: React.FC = () => {
     }
   };
 
-  const handleFeeSelection = (rate: number) => {
+  const handleFeeSelection = (rate: number, index: FeeIndex) => {
     setSelectedFeeRate(rate);
+    setSelectedFeeIndex(index);
     setIsFeeSelectorExpanded(false);
   };
 
@@ -427,26 +447,18 @@ const SendAmountRgb: React.FC = () => {
               </Pressable>
 
               <Animated.View style={[styles.feeOptionsContainer, animatedFeeOptionsStyle]}>
-                <Pressable style={[styles.feeOption, feeRate === feeEstimates.fast && styles.selectedFeeOption]} onPress={() => handleFeeSelection(feeEstimates.fast)}>
-                  <View style={styles.feeOptionContent}>
-                    <ThemedText style={styles.feeOptionName}>Fast</ThemedText>
-                    <ThemedText style={styles.feeOptionRate}>{feeEstimates.fast} sats/vB</ThemedText>
-                  </View>
-                </Pressable>
-
-                <Pressable style={[styles.feeOption, feeRate === feeEstimates.medium && styles.selectedFeeOption]} onPress={() => handleFeeSelection(feeEstimates.medium)}>
-                  <View style={styles.feeOptionContent}>
-                    <ThemedText style={styles.feeOptionName}>Medium</ThemedText>
-                    <ThemedText style={styles.feeOptionRate}>{feeEstimates.medium} sats/vB</ThemedText>
-                  </View>
-                </Pressable>
-
-                <Pressable style={[styles.feeOption, feeRate === feeEstimates.slow && styles.selectedFeeOption]} onPress={() => handleFeeSelection(feeEstimates.slow)}>
-                  <View style={styles.feeOptionContent}>
-                    <ThemedText style={styles.feeOptionName}>Slow</ThemedText>
-                    <ThemedText style={styles.feeOptionRate}>{feeEstimates.slow} sats/vB</ThemedText>
-                  </View>
-                </Pressable>
+                {FeeOptions.map((option) => (
+                  <Pressable
+                    key={option.index}
+                    style={[styles.feeOption, feeIndex === option.index && styles.selectedFeeOption]}
+                    onPress={() => handleFeeSelection(feeEstimates[option.index], option.index)}
+                  >
+                    <View style={styles.feeOptionContent}>
+                      <ThemedText style={styles.feeOptionName}>{option.name}</ThemedText>
+                      <ThemedText style={styles.feeOptionRate}>{feeEstimates[option.key]} sats/vB</ThemedText>
+                    </View>
+                  </Pressable>
+                ))}
               </Animated.View>
             </View>
           )}
