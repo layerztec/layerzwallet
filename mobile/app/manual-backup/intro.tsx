@@ -2,8 +2,7 @@ import React from 'react';
 import { View, StyleSheet, Image, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
-import { Colors, gradients } from '@shared/constants/Colors';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Colors, globalDarkBackground } from '@shared/constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHorizontalSpringTransition, useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
 import Pressable from '../../components/Pressable';
@@ -23,43 +22,41 @@ export default function ManualBackupIntroScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={gradients.blueGradient} style={styles.container}>
-        <SafeAreaView style={styles.safeAreaView}>
-          <View style={styles.logoContainer}>
-            <Animated.View style={[imageTransition]}>
-              <Image source={require('@/assets/images/ui/newWallet.png')} style={styles.image} />
-            </Animated.View>
-          </View>
+      <SafeAreaView style={styles.safeAreaView}>
+        <View style={styles.logoContainer}>
+          <Animated.View style={[imageTransition]}>
+            <Image source={require('@/assets/images/ui/newWallet.png')} style={styles.image} />
+          </Animated.View>
+        </View>
 
-          <View style={styles.content}>
-            <Animated.View style={[titleTransition]}>
-              <ThemedText type="title" darkColor={Colors.dark.buttonText} textAlign="center">
-                First, let's create your recovery phrase
-              </ThemedText>
-            </Animated.View>
+        <View style={styles.content}>
+          <Animated.View style={[titleTransition]}>
+            <ThemedText type="title" darkColor={Colors.dark.buttonText} textAlign="center">
+              First, let's create your recovery phrase
+            </ThemedText>
+          </Animated.View>
 
-            <View style={styles.spacer} />
+          <View style={styles.spacer} />
 
-            <Animated.View style={[subtitleTransition]}>
-              <ThemedText type="paragraph" darkColor={Colors.dark.text} textAlign="center">
-                A recovery phrase is a series of 12 words in a specific order. This word combination is unique to your wallet. Make sure to have pen and paper ready so you can write it down.
-              </ThemedText>
-            </Animated.View>
-          </View>
+          <Animated.View style={[subtitleTransition]}>
+            <ThemedText type="paragraph" darkColor={Colors.dark.text} textAlign="center">
+              A recovery phrase is a series of 12 words in a specific order. This word combination is unique to your wallet. Make sure to have pen and paper ready so you can write it down.
+            </ThemedText>
+          </Animated.View>
+        </View>
 
-          <View style={styles.buttonSection}>
-            <Animated.View style={[styles.buttonContainer, buttonTransition]}>
-              <Pressable style={styles.button} onPress={handleContinue} testID="ManualBackupContinueButton">
-                <View style={styles.view}>
-                  <ThemedText type="button" darkColor={Colors.dark.buttonText}>
-                    Continue
-                  </ThemedText>
-                </View>
-              </Pressable>
-            </Animated.View>
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
+        <View style={styles.buttonSection}>
+          <Animated.View style={[styles.buttonContainer, buttonTransition]}>
+            <Pressable style={styles.button} onPress={handleContinue} testID="ManualBackupContinueButton">
+              <View style={styles.view}>
+                <ThemedText type="button" darkColor={Colors.dark.buttonText}>
+                  Continue
+                </ThemedText>
+              </View>
+            </Pressable>
+          </Animated.View>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }
@@ -67,6 +64,7 @@ export default function ManualBackupIntroScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: globalDarkBackground,
   },
   safeAreaView: {
     flex: 1,

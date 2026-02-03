@@ -6,7 +6,7 @@ import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Alert, ScrollView, Share, StyleSheet, TextInput, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -214,7 +214,7 @@ export default function ReceiveLightningScreen() {
   // Handle payment received
   if (isInvoicePaid) {
     return (
-      <GradientScreen variant={network}>
+      <RadialGradientScreen network={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title={'Received on ' + capitalizeFirstLetter(network)} />
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -227,12 +227,12 @@ export default function ReceiveLightningScreen() {
             </View>
           </View>
         </ScrollView>
-      </GradientScreen>
+      </RadialGradientScreen>
     );
   }
 
   return (
-    <GradientScreen variant={network}>
+    <RadialGradientScreen network={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title={'Receive Lightning on ' + capitalizeFirstLetter(network)} />
 
@@ -308,7 +308,7 @@ export default function ReceiveLightningScreen() {
           </View>
         </View>
       </ScrollView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 }
 

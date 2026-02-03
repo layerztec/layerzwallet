@@ -6,9 +6,10 @@ import React, { useContext, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 
 import { BalanceUsdt } from '@/components/Balance';
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
+import { overlayBackgroundDeeper } from '@shared/constants/Colors';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -115,7 +116,7 @@ const SendAddressUsdt: React.FC = () => {
   const canContinue = localAddress.trim() && token;
 
   return (
-    <GradientScreen variant={network} scroll={true}>
+    <RadialGradientScreen network={network} scroll={true}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenSendHeader network={network} title={`Send ${getTickerByNetwork(network)}`} />
 
@@ -159,7 +160,7 @@ const SendAddressUsdt: React.FC = () => {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 };
 
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: overlayBackgroundDeeper,
     borderRadius: 20,
     height: 64,
     paddingLeft: 24,

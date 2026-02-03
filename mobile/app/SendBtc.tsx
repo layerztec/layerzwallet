@@ -7,10 +7,11 @@ import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, AppStateStatus, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
+import { overlayBackground } from '@shared/constants/Colors';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
@@ -210,7 +211,7 @@ const SendBtc: React.FC = () => {
 
   if (isSuccess) {
     return (
-      <GradientScreen variant={network}>
+      <RadialGradientScreen network={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title="Send" />
         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -233,12 +234,12 @@ const SendBtc: React.FC = () => {
             </View>
           </View>
         </ScrollView>
-      </GradientScreen>
+      </RadialGradientScreen>
     );
   }
 
   return (
-    <GradientScreen variant={network}>
+    <RadialGradientScreen network={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title="Send" />
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -358,7 +359,7 @@ const SendBtc: React.FC = () => {
           )}
         </View>
       </ScrollView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 };
 
@@ -385,7 +386,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 16,
@@ -398,7 +399,7 @@ const styles = StyleSheet.create({
   scanButton: {
     width: 50,
     height: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 16,
@@ -436,7 +437,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderRadius: 16,
@@ -472,7 +473,7 @@ const styles = StyleSheet.create({
     marginTop: 30,
   },
   transactionDetails: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,

@@ -7,10 +7,11 @@ import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
 import { Keyboard, StyleSheet, TextInput, View, ScrollView } from 'react-native';
 
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
+import { overlayBackground } from '@shared/constants/Colors';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { EvmWallet } from '@shared/class/evm-wallet';
@@ -227,17 +228,17 @@ export default function SendScreen() {
 
   if (screenState === 'broadcasting') {
     return (
-      <GradientScreen variant={network}>
+      <RadialGradientScreen network={network}>
         <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
         <View style={styles.broadcastingContainer}>
           <ThemedText style={styles.broadcastingText}>Broadcasting transaction...</ThemedText>
         </View>
-      </GradientScreen>
+      </RadialGradientScreen>
     );
   }
 
   return (
-    <GradientScreen variant={network}>
+    <RadialGradientScreen network={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title={`Send ${getTickerByNetwork(network)}`} />
 
@@ -350,7 +351,7 @@ export default function SendScreen() {
           ) : null}
         </View>
       </ScrollView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 }
 
@@ -377,7 +378,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 16,
@@ -387,7 +388,7 @@ const styles = StyleSheet.create({
   qrButton: {
     width: 50,
     height: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 16,
@@ -397,7 +398,7 @@ const styles = StyleSheet.create({
   amountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 16,
@@ -420,7 +421,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   sliderContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 16,
@@ -474,7 +475,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
   },
   disabledButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: overlayBackground,
   },
   preparedContainer: {
     marginTop: 20,
@@ -484,7 +485,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
   },
   detailsContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 16,

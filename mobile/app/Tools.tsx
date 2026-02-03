@@ -33,8 +33,8 @@ import { SecureStorage } from '@/src/class/secure-storage';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 import { useRouter } from 'expo-router';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { getGradientColors } from '@/utils/gradientUtils';
 import { applogFilePath, disableLoggingToFile, enableLoggingToFile, isLoggingToFileEnabled } from '@/src/modules/error-handler';
+import { globalDarkBackground } from '@shared/constants/Colors';
 
 type TSettingsKey = keyof typeof SETTINGS_CONFIG;
 
@@ -321,8 +321,7 @@ export default function TabThreeScreen() {
     }
   };
 
-  const gradientColors = getGradientColors(network);
-  const backgroundColor = gradientColors[0];
+  const backgroundColor = globalDarkBackground;
 
   const sections = [
     {

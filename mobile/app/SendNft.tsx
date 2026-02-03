@@ -5,9 +5,10 @@ import { ActivityIndicator, Alert, StyleSheet, TextInput, View } from 'react-nat
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import Pressable from '../components/Pressable';
 
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
+import { overlayBackgroundDeeper } from '@shared/constants/Colors';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -114,7 +115,7 @@ export default function SendNft() {
 
   if (!nft) {
     return (
-      <GradientScreen variant={network}>
+      <RadialGradientScreen network={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.root}>
           <ScreenHeader title="Send NFT" />
@@ -122,12 +123,12 @@ export default function SendNft() {
             <ThemedText style={styles.errorText}>NFT not found</ThemedText>
           </View>
         </View>
-      </GradientScreen>
+      </RadialGradientScreen>
     );
   }
 
   return (
-    <GradientScreen variant={network}>
+    <RadialGradientScreen network={network}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.root}>
         <ScreenHeader title={title} />
@@ -181,7 +182,7 @@ export default function SendNft() {
           )}
         </View>
       </View>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 }
 
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: overlayBackgroundDeeper,
     borderRadius: 20,
     height: 64,
     paddingLeft: 24,

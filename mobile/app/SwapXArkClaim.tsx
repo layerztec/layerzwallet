@@ -5,7 +5,8 @@ import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import GradientScreen from '@/components/GradientScreen';
+import { Colors } from '@shared/constants/Colors';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { SparkWallet, StaticDepositQuoteOutput } from '@shared/class/wallets/spark-wallet';
@@ -112,40 +113,44 @@ const SwapXArkClaim = () => {
   // Success screen for claim
   if (claimSuccess) {
     return (
-      <GradientScreen variant={network}>
+      <View style={styles.backgroundContainer}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.contentContainer}>
-            <View style={styles.successContainer}>
-              <Ionicons name="checkmark-circle" size={80} color="white" />
-              <ThemedText style={styles.successMessage}>Swap Claimed Successfully!</ThemedText>
-              {quote && <ThemedText style={styles.successSubMessage}>{formatBalance(quote.creditAmountSats.toString(), decimals)} BTC has been added to your Spark balance</ThemedText>}
-              <Pressable style={styles.backButton} onPress={handleBack}>
-                <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
-              </Pressable>
+          <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+            <View style={styles.contentContainer}>
+              <View style={styles.successContainer}>
+                <Ionicons name="checkmark-circle" size={80} color="white" />
+                <ThemedText style={styles.successMessage}>Swap Claimed Successfully!</ThemedText>
+                {quote && <ThemedText style={styles.successSubMessage}>{formatBalance(quote.creditAmountSats.toString(), decimals)} BTC has been added to your Spark balance</ThemedText>}
+                <Pressable style={styles.backButton} onPress={handleBack}>
+                  <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
+                </Pressable>
+              </View>
             </View>
-          </View>
+          </SafeAreaView>
         </ScrollView>
-      </GradientScreen>
+      </View>
     );
   }
 
   // Success screen for refund
   if (refundSuccess) {
     return (
-      <GradientScreen variant={network}>
+      <View style={styles.backgroundContainer}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.contentContainer}>
-            <View style={styles.successContainer}>
-              <Ionicons name="checkmark-circle" size={80} color="white" />
-              <ThemedText style={styles.successMessage}>Swap Refunded Successfully!</ThemedText>
-              <ThemedText style={styles.successSubMessage}>Your Bitcoin has been sent back to your wallet</ThemedText>
-              <Pressable style={styles.backButton} onPress={handleBack}>
-                <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
-              </Pressable>
+          <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+            <View style={styles.contentContainer}>
+              <View style={styles.successContainer}>
+                <Ionicons name="checkmark-circle" size={80} color="white" />
+                <ThemedText style={styles.successMessage}>Swap Refunded Successfully!</ThemedText>
+                <ThemedText style={styles.successSubMessage}>Your Bitcoin has been sent back to your wallet</ThemedText>
+                <Pressable style={styles.backButton} onPress={handleBack}>
+                  <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
+                </Pressable>
+              </View>
             </View>
-          </View>
+          </SafeAreaView>
         </ScrollView>
-      </GradientScreen>
+      </View>
     );
   }
 
@@ -169,70 +174,79 @@ const SwapXArkClaim = () => {
   }
 
   return (
-    <GradientScreen variant={network}>
+    <View style={styles.backgroundContainer}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.contentContainer}>
-          {isLoading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
-              <ThemedText style={styles.loadingText}>Loading swap details...</ThemedText>
-            </View>
-          )}
+        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+          <View style={styles.contentContainer}>
+            {isLoading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
+                <ThemedText style={styles.loadingText}>Loading swap details...</ThemedText>
+              </View>
+            )}
 
-          {!isLoading && (
-            <>
-              <View style={styles.quoteContainer}>
-                <ThemedText style={styles.quoteTitle}>Swap Details</ThemedText>
-                <View style={styles.detailsCard}>
-                  <View style={styles.detailRow}>
-                    <ThemedText style={styles.detailLabel}>Amount In:</ThemedText>
-                    <ThemedText style={styles.detailValue}>{formatBalance(swap.amount.toString(), decimals)} BTC</ThemedText>
+            {!isLoading && (
+              <>
+                <View style={styles.quoteContainer}>
+                  <ThemedText style={styles.quoteTitle}>Swap Details</ThemedText>
+                  <View style={styles.detailsCard}>
+                    <View style={styles.detailRow}>
+                      <ThemedText style={styles.detailLabel}>Amount In:</ThemedText>
+                      <ThemedText style={styles.detailValue}>{formatBalance(swap.amount.toString(), decimals)} BTC</ThemedText>
+                    </View>
+
+                    {quote2}
+
+                    <View style={styles.detailRow}>
+                      <ThemedText style={styles.detailLabel}>Destination:</ThemedText>
+                      <ThemedText style={styles.detailValue}>{swap.network === NETWORK_SPARK ? 'Spark Balance' : 'Ark Balance'}</ThemedText>
+                    </View>
                   </View>
-
-                  {quote2}
-
-                  <View style={styles.detailRow}>
-                    <ThemedText style={styles.detailLabel}>Destination:</ThemedText>
-                    <ThemedText style={styles.detailValue}>{swap.network === NETWORK_SPARK ? 'Spark Balance' : 'Ark Balance'}</ThemedText>
-                  </View>
+                  <ThemedText style={styles.infoText}>
+                    You can claim this swap to receive Bitcoin on your {swap.network === NETWORK_SPARK ? 'Spark' : 'Ark'} balance, or refund it to get your sats back to your Bitcoin wallet.
+                  </ThemedText>
                 </View>
-                <ThemedText style={styles.infoText}>
-                  You can claim this swap to receive Bitcoin on your {swap.network === NETWORK_SPARK ? 'Spark' : 'Ark'} balance, or refund it to get your sats back to your Bitcoin wallet.
-                </ThemedText>
+
+                <View style={styles.buttonContainer}>
+                  <Pressable style={[styles.primaryButton, disabled && styles.disabledButton]} onPress={swap.network === NETWORK_SPARK ? handleClaimSpark : handleClaimArk} disabled={disabled}>
+                    {isClaiming && <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.9)" />}
+                    <ThemedText style={styles.primaryButtonText}>{isClaiming ? 'Claiming...' : 'Claim Swap'}</ThemedText>
+                  </Pressable>
+
+                  <Pressable style={[styles.secondaryButton, disabled && styles.disabledButton]} onPress={handleRefund} disabled={disabled}>
+                    {isRefunding && <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.7)" />}
+                    <ThemedText style={styles.secondaryButtonText}>{isRefunding ? 'Refunding...' : 'Refund Swap'}</ThemedText>
+                  </Pressable>
+                </View>
+              </>
+            )}
+
+            {error && (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle-outline" size={24} color="#FF6B6B" />
+                <ThemedText style={styles.errorText}>{error}</ThemedText>
               </View>
-
-              <View style={styles.buttonContainer}>
-                <Pressable style={[styles.primaryButton, disabled && styles.disabledButton]} onPress={swap.network === NETWORK_SPARK ? handleClaimSpark : handleClaimArk} disabled={disabled}>
-                  {isClaiming && <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.9)" />}
-                  <ThemedText style={styles.primaryButtonText}>{isClaiming ? 'Claiming...' : 'Claim Swap'}</ThemedText>
-                </Pressable>
-
-                <Pressable style={[styles.secondaryButton, disabled && styles.disabledButton]} onPress={handleRefund} disabled={disabled}>
-                  {isRefunding && <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.7)" />}
-                  <ThemedText style={styles.secondaryButtonText}>{isRefunding ? 'Refunding...' : 'Refund Swap'}</ThemedText>
-                </Pressable>
-              </View>
-            </>
-          )}
-
-          {error && (
-            <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle-outline" size={24} color="#FF6B6B" />
-              <ThemedText style={styles.errorText}>{error}</ThemedText>
-            </View>
-          )}
-        </View>
+            )}
+          </View>
+        </SafeAreaView>
       </ScrollView>
-    </GradientScreen>
+    </View>
   );
 };
 
 export default SwapXArkClaim;
 
 const styles = StyleSheet.create({
+  backgroundContainer: {
+    flex: 1,
+    backgroundColor: Colors.GlobalDarkBackground,
+  },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
+  },
+  safeArea: {
+    flex: 1,
   },
   contentContainer: {
     flex: 1,

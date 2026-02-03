@@ -8,7 +8,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from '
 import Rive, { RiveRef } from 'rive-react-native';
 import Pressable from '../../components/Pressable';
 
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -16,7 +16,6 @@ import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { TLightningWallet } from '@shared/types/TWallet';
-import { getNetworkGradient } from '@shared/constants/Colors';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
@@ -51,7 +50,6 @@ const SendConfirmLightning: React.FC = () => {
   const sendToOpacity = useSharedValue(1);
   const totalTop = useSharedValue(32);
   const riveRef = useRef<RiveRef>(null);
-  const networkBackgroundColor = getNetworkGradient(network)[0];
 
   // Animated styles
   const detailsAnimatedStyle = useAnimatedStyle(() => ({ opacity: detailsOpacity.value }));
@@ -169,7 +167,7 @@ const SendConfirmLightning: React.FC = () => {
   }
 
   return (
-    <GradientScreen variant={network} scroll={false}>
+    <RadialGradientScreen network={network} scroll={false}>
       <Stack.Screen options={{ headerShown: false }} />
       {!hideHeader && <ScreenSendHeader network={network} title={`Send ${ticker}`} />}
 
@@ -207,7 +205,7 @@ const SendConfirmLightning: React.FC = () => {
                     <View style={styles.sectionHeader}>
                       <ThemedText style={styles.sectionHeaderText}>Total</ThemedText>
                     </View>
-                    <View style={[styles.totalCard, { backgroundColor: networkBackgroundColor }]}>
+                    <View style={styles.totalCard}>
                       <ThemedText style={styles.totalAmount}>
                         {totalDisplay} {ticker}
                       </ThemedText>
@@ -220,7 +218,7 @@ const SendConfirmLightning: React.FC = () => {
                     <View style={styles.sectionHeader}>
                       <ThemedText style={styles.sectionHeaderText}>Details</ThemedText>
                     </View>
-                    <View style={[styles.detailsCard, { backgroundColor: networkBackgroundColor }]}>
+                    <View style={styles.detailsCard}>
                       <View style={styles.detailRow}>
                         <ThemedText style={styles.detailLabel}>Amount</ThemedText>
                         <View style={styles.detailValueContainer}>
@@ -260,7 +258,7 @@ const SendConfirmLightning: React.FC = () => {
                     <View style={styles.sectionHeader}>
                       <ThemedText style={styles.sectionHeaderText}>Invoice</ThemedText>
                     </View>
-                    <View style={[styles.addressCard, { backgroundColor: networkBackgroundColor }]}>
+                    <View style={styles.addressCard}>
                       <ThemedText style={styles.invoiceDisplay}>{invoiceDisplay}</ThemedText>
                     </View>
                   </Animated.View>
@@ -277,7 +275,7 @@ const SendConfirmLightning: React.FC = () => {
           </Pressable>
         )}
       </View>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 };
 

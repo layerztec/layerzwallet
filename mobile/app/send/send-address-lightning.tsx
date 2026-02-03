@@ -8,9 +8,10 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from 'rea
 import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 
 import { BalanceLightning } from '@/components/Balance';
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
+import { overlayBackgroundDeeper } from '@shared/constants/Colors';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import Lnurl, { LnurlPayServicePayload } from '@shared/class/lnurl';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -193,7 +194,7 @@ const SendAddressLightning: React.FC = () => {
   const canContinue = invoice && !validating[invoice];
 
   return (
-    <GradientScreen variant={network} scroll={true}>
+    <RadialGradientScreen network={network} scroll={true}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenSendHeader network={network} title={`Send ${getTickerByNetwork(network)}`} />
 
@@ -248,7 +249,7 @@ const SendAddressLightning: React.FC = () => {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 };
 
@@ -267,7 +268,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: overlayBackgroundDeeper,
     borderRadius: 20,
     height: 64,
     paddingLeft: 24,
@@ -311,7 +312,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
     gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackgroundDeeper,
     padding: 12,
     borderRadius: 12,
   },
@@ -342,7 +343,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
     gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackgroundDeeper,
     padding: 12,
     borderRadius: 12,
   },

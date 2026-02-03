@@ -17,48 +17,44 @@ import {
   NETWORK_STACKS,
 } from '../types/networks';
 
-const primaryColor = '#011474';
-const accent1 = '#FD5D2B';
-const accent2 = '#9DF9EC';
-const accent3 = '#D9FD5F';
-const accent4 = '#F5B9CD';
 const neutral = '#CECDCD';
-const globalDarkBackground = '#000000';
+export const globalDarkBackground = '#000000';
+export const overlayBackground = 'rgba(255, 255, 255, 0.1)';
+export const overlayBackgroundDeeper = 'rgba(255, 255, 255, 0.05)';
 
-export const gradients = {
-  gradient1: [accent1, accent2] as const,
-  gradient2: [accent3, accent4] as const,
-  blueGradient: ['#01125f', '#0e2589'] as const,
-  base: ['#01125F', '#0E2589'] as const,
-
-  // Network-specific gradients based on the UI design
-  [NETWORK_BITCOIN]: ['#0B1F6B', '#1E3A8A'] as const, // Dark blue to blue
-  [NETWORK_LIQUID]: ['#0C2E37', '#104140'] as const, // Teal gradient
-  [NETWORK_LIQUID_TESTNET]: ['#0C2E37', '#104140'] as const, // Same as liquid
-  [NETWORK_ROOTSTOCK]: ['#166534', '#22C55E'] as const, // Dark green to green
-  [NETWORK_BOTANIX]: ['#36360B', '#787600'] as const, // Brown to yellow/gold
-  [NETWORK_BOTANIX_TESTNET]: ['#36360B', '#787600'] as const, // Same as botanix
-  [NETWORK_ALPEN_TESTNET]: ['#7C2D12', '#EA580C'] as const, // Dark orange to orange
-  [NETWORK_CITREA_TESTNET]: ['#AF4904', '#CD5A0C'] as const, // Warm orange-brown gradient
-  [NETWORK_CITREA]: ['#AF4904', '#CD5A0C'] as const, // Warm orange-brown gradient
-  [NETWORK_ARK]: ['#270A7B', '#391998'] as const, // Dark purple gradient
-  [NETWORK_ARK_MUTINYNET]: ['#270A7B', '#391998'] as const, // Dark purple gradient
-  [NETWORK_LIGHTNING]: ['#581C87', '#7C3AED'] as const, // Purple gradient
-  [NETWORK_LIGHTNING_TESTNET]: ['#581C87', '#7C3AED'] as const, // Purple gradient
-  [NETWORK_USDT]: ['#058787', '#22AAAA'] as const,
-  [NETWORK_SPARK]: ['#05161D', '#1E242E'] as const, // Light gray gradient
-  [NETWORK_STACKS]: ['#7C2D12', '#fc6432'] as const, // orange
+/**
+ * Network color definitions - each network has a primary and secondary color
+ * - Cards use: [primary, secondary] for linear gradients
+ */
+export const networkColors: Record<string, { primary: string; secondary: string }> = {
+  base: { primary: '#01125F', secondary: '#0E2589' },
+  [NETWORK_BITCOIN]: { primary: '#0A6FDB', secondary: '#1883F5' },
+  [NETWORK_LIQUID]: { primary: '#0C2E37', secondary: '#104140' },
+  [NETWORK_LIQUID_TESTNET]: { primary: '#0C2E37', secondary: '#104140' },
+  [NETWORK_ROOTSTOCK]: { primary: '#166534', secondary: '#22C55E' },
+  [NETWORK_BOTANIX]: { primary: '#36360B', secondary: '#787600' },
+  [NETWORK_BOTANIX_TESTNET]: { primary: '#36360B', secondary: '#787600' },
+  [NETWORK_ALPEN_TESTNET]: { primary: '#7C2D12', secondary: '#EA580C' },
+  [NETWORK_CITREA]: { primary: '#AF4904', secondary: '#CD5A0C' },
+  [NETWORK_CITREA_TESTNET]: { primary: '#AF4904', secondary: '#CD5A0C' },
+  [NETWORK_ARK]: { primary: '#270A7B', secondary: '#391998' },
+  [NETWORK_ARK_MUTINYNET]: { primary: '#270A7B', secondary: '#391998' },
+  [NETWORK_LIGHTNING]: { primary: '#581C87', secondary: '#7C3AED' },
+  [NETWORK_LIGHTNING_TESTNET]: { primary: '#581C87', secondary: '#7C3AED' },
+  [NETWORK_USDT]: { primary: '#058787', secondary: '#22AAAA' },
+  [NETWORK_SPARK]: { primary: '#607E8A', secondary: '#7297A6' },
+  [NETWORK_STACKS]: { primary: '#7C2D12', secondary: '#fc6432' },
 };
 
 export const Colors = {
   light: {
     text: '#ebebeb',
     background: '#fff',
-    tint: primaryColor,
-    icon: accent1,
+    tint: '#011474',
+    icon: '#FD5D2B',
     tabIconDefault: neutral,
-    tabIconSelected: accent1,
-    buttonPrimary: primaryColor,
+    tabIconSelected: '#FD5D2B',
+    buttonPrimary: '#011474',
     buttonSecondary: 'transparent',
     buttonBorder: '#FFFFFF1A',
     buttonText: '#FFFFFF',
@@ -66,11 +62,11 @@ export const Colors = {
   },
   dark: {
     text: 'grey', // Change to #FFFFFF later to match Figma. Currently using 'grey' for visibility in dark mode and e2e testing.
-    background: primaryColor,
-    tint: primaryColor,
-    icon: accent1,
+    background: globalDarkBackground,
+    tint: '#FFFFFF',
+    icon: '#FD5D2B',
     tabIconDefault: neutral,
-    tabIconSelected: accent1,
+    tabIconSelected: '#FD5D2B',
     buttonPrimary: 'rgba(255, 255, 255, 0.3)',
     buttonSecondary: 'transparent',
     buttonBorder: '#FFFFFF1A',
@@ -80,33 +76,22 @@ export const Colors = {
   GlobalDarkBackground: globalDarkBackground,
 };
 
-export const getNetworkGradient = (network: string) => {
-  switch (network) {
-    case NETWORK_BITCOIN:
-      return ['#0B1F6B', '#1E3A8A']; // Dark blue to blue
-    case NETWORK_LIQUID:
-    case NETWORK_LIQUID_TESTNET:
-      return ['#0C2E37', '#104140']; // Teal gradient
-    case NETWORK_ROOTSTOCK:
-      return ['#166534', '#22C55E']; // Dark green to green
-    case NETWORK_BOTANIX:
-    case NETWORK_BOTANIX_TESTNET:
-      return ['#36360B', '#787600']; // Brown to yellow/gold
-    case NETWORK_ALPEN_TESTNET:
-      return ['#7C2D12', '#EA580C']; // Dark orange to orange
-    case NETWORK_CITREA:
-    case NETWORK_CITREA_TESTNET:
-      return ['#AF4904', '#CD5A0C']; // Warm orange-brown gradient
-    case NETWORK_ARK_MUTINYNET:
-      return ['#270A7B', '#391998']; // Dark purple gradient
-    case NETWORK_ARK:
-      return ['#270A7B', '#391998']; // Dark purple gradient
-    case NETWORK_LIGHTNING:
-    case NETWORK_LIGHTNING_TESTNET:
-      return ['#581C87', '#7C3AED']; // Purple gradient
-    case NETWORK_USDT:
-      return ['#058787', '#22AAAA']; // Teal gradient
-    default:
-      return ['#6B7280', '#9CA3AF']; // Light gray gradient for unknown networks
-  }
+/**
+ * Get network gradient colors for cards [primary, secondary]
+ */
+export const getNetworkGradient = (network: string): [string, string] => {
+  const colors = networkColors[network] || networkColors.base;
+  return [colors.primary, colors.secondary];
 };
+
+/**
+ * Get the primary color for a network (used for radial gradients: primary → black)
+ */
+export const getNetworkPrimaryColor = (network: string): string => {
+  return networkColors[network]?.primary || networkColors.base.primary;
+};
+
+/**
+ * Gradients export - derived from networkColors for backward compatibility
+ */
+export const gradients = Object.fromEntries(Object.entries(networkColors).map(([key, colors]) => [key, [colors.primary, colors.secondary] as const])) as Record<string, readonly [string, string]>;

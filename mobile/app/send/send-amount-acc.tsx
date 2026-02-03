@@ -6,9 +6,10 @@ import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'rea
 import Pressable from '../../components/Pressable';
 
 import AmountInput from '@/components/AmountInput';
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
+import { overlayBackgroundDeeper } from '@shared/constants/Colors';
 import { SendAssetProps, withAsset } from '@/hooks/withAsset';
 import { formatBalance } from '@shared/modules/string-utils';
 import { validateAddress } from '@shared/modules/wallet-utils';
@@ -85,7 +86,7 @@ const SendAmountAcc: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker
   const buttonDisabled = !localAmount || !!errorMessage;
 
   return (
-    <GradientScreen variant={network} scroll={true}>
+    <RadialGradientScreen network={network} scroll={true}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenSendHeader network={network} title={`Send ${ticker}`} />
 
@@ -136,7 +137,7 @@ const SendAmountAcc: React.FC<SendAssetProps> = ({ balance, exchangeRate, ticker
           </Pressable>
         </View>
       </KeyboardAvoidingView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 };
 
@@ -192,7 +193,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   memoInput: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: overlayBackgroundDeeper,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,

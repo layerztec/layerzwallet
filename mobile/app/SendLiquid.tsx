@@ -5,10 +5,11 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import LongPressButton from '@/components/LongPressButton';
 import { ThemedText } from '@/components/ThemedText';
+import { overlayBackground } from '@shared/constants/Colors';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { BreezWallet, LBTC_ASSET_IDS } from '@shared/class/wallets/breez-wallet';
@@ -189,7 +190,7 @@ const SendLiquid = () => {
 
   if (isSuccess) {
     return (
-      <GradientScreen variant={network}>
+      <RadialGradientScreen network={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title="Send Liquid" />
         <View style={styles.successContainer}>
@@ -199,20 +200,20 @@ const SendLiquid = () => {
             <ThemedText style={styles.buttonText}>Back to Wallet</ThemedText>
           </Pressable>
         </View>
-      </GradientScreen>
+      </RadialGradientScreen>
     );
   }
 
   if (isLoading) {
     return (
-      <GradientScreen variant={network}>
+      <RadialGradientScreen network={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title="Send Liquid" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
           <ThemedText style={styles.loadingText}>Loading asset...</ThemedText>
         </View>
-      </GradientScreen>
+      </RadialGradientScreen>
     );
   }
 
@@ -223,7 +224,7 @@ const SendLiquid = () => {
     }
 
     return (
-      <GradientScreen variant={network}>
+      <RadialGradientScreen network={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title="Confirm Transaction" />
         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -264,12 +265,12 @@ const SendLiquid = () => {
             </Pressable>
           </View>
         </ScrollView>
-      </GradientScreen>
+      </RadialGradientScreen>
     );
   }
 
   return (
-    <GradientScreen variant={network}>
+    <RadialGradientScreen network={network}>
       <Stack.Screen options={{ headerShown: false }} />
       {selectedAsset ? <ScreenHeader title={`Send ${getAssetName(selectedAsset)}`} /> : null}
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -316,7 +317,7 @@ const SendLiquid = () => {
           </Pressable>
         </View>
       </ScrollView>
-    </GradientScreen>
+    </RadialGradientScreen>
   );
 };
 
@@ -352,7 +353,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     padding: 15,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
@@ -369,7 +370,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 16,
@@ -389,7 +390,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   disabledButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: overlayBackground,
   },
   buttonText: {
     color: 'rgba(255, 255, 255, 0.9)',
@@ -429,7 +430,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
   },
   cancelButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     marginTop: 10,
@@ -446,7 +447,7 @@ const styles = StyleSheet.create({
   scanButton: {
     width: 50,
     height: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackground,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 16,

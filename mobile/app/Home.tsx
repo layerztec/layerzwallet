@@ -13,7 +13,7 @@ import { ActionPopupButton } from '@/components/ActionPopupButton';
 import Balance from '@/components/Balance';
 import Button from '@/components/Button';
 import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
-import GradientScreen from '@/components/GradientScreen';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import PlatformBlurView from '@/components/PlatformBlurView';
 import StickyHeader from '@/components/StickyHeader';
 import SwapList from '@/components/SwapList';
@@ -408,7 +408,7 @@ export default function Home() {
         {/* Invisible Settings Button for Maestro Testing */}
         <Pressable style={styles.maestroSettingsButton} onPress={goToSettings} testID="SettingsButton" accessibilityLabel="Settings" />
 
-        <GradientScreen variant={network} scroll={true} onScroll={handleScroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} {...refreshOptions} />}>
+        <RadialGradientScreen network={network} scroll={true} onScroll={handleScroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} {...refreshOptions} />}>
           <View style={[styles.root, styles.contentWithHeader]}>
             {/* Network Selector */}
             <View style={styles.networkSelectorContainer}>
@@ -495,7 +495,7 @@ export default function Home() {
               {latestTransactions.length > 0 && <Button title="Transaction History" onPress={handleTransactionHistory} variant="dark" />}
             </View>
           </View>
-        </GradientScreen>
+        </RadialGradientScreen>
 
         {/* White Flash Overlay for Network Transition */}
         <Animated.View style={[styles.whiteFlashOverlayAnimated, whiteFlashAnimatedStyle]} />

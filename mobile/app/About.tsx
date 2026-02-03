@@ -7,8 +7,8 @@ import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import SettingsRow from '@/components/SettingsRow';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { getGradientColors } from '@/utils/gradientUtils';
 import * as Linking from 'expo-linking';
+import { globalDarkBackground } from '@shared/constants/Colors';
 
 interface SettingsItem {
   id: string;
@@ -46,8 +46,7 @@ export default function AboutScreen() {
     router.push('/Changelog');
   };
 
-  const gradientColors = getGradientColors(network);
-  const backgroundColor = gradientColors[0];
+  const backgroundColor = globalDarkBackground;
 
   const sections: SettingsSection[] = [
     {
