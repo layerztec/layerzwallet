@@ -4,7 +4,7 @@ import GorhomBottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RadialGradient } from 'react-native-gradients';
-import { gradients, getNetworkPrimaryColor } from '@shared/constants/Colors';
+import { getNetworkPrimaryColor } from '@shared/constants/Colors';
 import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_USDT } from '@shared/types/networks';
 import PlatformBlurView from './PlatformBlurView';
 
@@ -33,33 +33,6 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
 }) => {
   const bottomSheetRef = useRef<GorhomBottomSheet>(null);
   const insets = useSafeAreaInsets();
-
-  // Get gradient colors for the network
-  const gradientColors = useMemo(() => {
-    if (layerNetwork === NETWORK_LIGHTNING || layerNetwork === NETWORK_LIGHTNING_TESTNET) {
-      return gradients[NETWORK_LIGHTNING];
-    }
-
-    if (layerNetwork === NETWORK_USDT) {
-      return gradients[NETWORK_USDT];
-    }
-
-    if (variant === NETWORK_LIGHTNING || variant === NETWORK_LIGHTNING_TESTNET) {
-      return gradients[NETWORK_LIGHTNING];
-    }
-    if (variant === NETWORK_USDT) {
-      return gradients[NETWORK_USDT];
-    }
-
-    let id: keyof typeof gradients = 'base';
-    for (const key of Object.keys(gradients)) {
-      if (key.startsWith(variant)) {
-        id = key as keyof typeof gradients;
-        break;
-      }
-    }
-    return gradients[id];
-  }, [variant, layerNetwork]);
 
   // Get the effective network for the radial gradient
   const effectiveNetwork = useMemo(() => {
@@ -119,7 +92,7 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
           <View style={[backgroundStyle, styles.gradientContainer]}>
             <PlatformBlurView intensity={50} tint="light" style={styles.blurOverlay} />
             <View style={styles.radialGradientWrapper}>
-              <RadialGradient colorList={radialColorList} x="48.63%" y="-24.14%" rx="163.06%" ry="75.01%" />
+              <RadialGradient colorList={radialColorList} x="50%" y={Platform.OS === 'ios' ? '-14%' : '-34%'} rx={Platform.OS === 'ios' ? '102%' : '80%'} ry={Platform.OS === 'ios' ? '95%' : '85%'} />
             </View>
             <View style={styles.borderOverlay} pointerEvents="none" />
           </View>
