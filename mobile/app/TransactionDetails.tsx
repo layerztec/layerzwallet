@@ -15,9 +15,23 @@ import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { getDecimalsByNetwork, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { getTokenInfo, getTokenIconColor } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { CommonTransaction } from '@shared/types/common-transaction';
+import { CommonTransaction, CommonTokenTransfer } from '@shared/types/common-transaction';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
+
+// Helper to get token info - uses embedded info if available, falls back to static list
+function getTokenInfoFromTransfer(transfer: CommonTokenTransfer) {
+  if (transfer.name !== undefined && transfer.symbol !== undefined && transfer.decimals !== undefined) {
+    return {
+      id: transfer.tokenId,
+      name: transfer.name,
+      symbol: transfer.symbol,
+      decimals: transfer.decimals,
+      chainId: 0,
+    };
+  }
+  return getTokenInfo(transfer.tokenId);
+}
 
 export default function TransactionDetails() {
   const { transaction: jsonTransaction, layerNetwork } = useLocalSearchParams();
@@ -270,7 +284,7 @@ export default function TransactionDetails() {
 
   const singleTokenInfo = useMemo(() => {
     if (isZeroAmountWithTokens && transaction.tokenTransfers?.length === 1) {
-      return getTokenInfo(transaction.tokenTransfers[0].tokenId);
+      return getTokenInfoFromTransfer(transaction.tokenTransfers[0]);
     }
     return null;
   }, [isZeroAmountWithTokens, transaction.tokenTransfers]);
@@ -493,7 +507,7 @@ export default function TransactionDetails() {
     return (
       <View style={styles.tokenTransfersBlock}>
         {transaction.tokenTransfers.map((transfer, index) => {
-          const tokenInfo = getTokenInfo(transfer.tokenId);
+          const tokenInfo = getTokenInfoFromTransfer(transfer);
           const iconColor = getTokenIconColor(tokenInfo.name);
           const formattedAmount = transfer.amount ? formatBalance(transfer.amount.toString(), tokenInfo.decimals) : '0';
           const isNegative = !transfer.amount && transaction.direction === 'send';

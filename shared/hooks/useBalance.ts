@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import { SparkWallet } from '../class/wallets/spark-wallet';
 import { BreezWallet } from '../class/wallets/breez-wallet';
 import { ArkWallet } from '../class/wallets/ark-wallet';
+import { RGBWallet } from '../class/wallets/rgb-wallet';
 import { StacksWallet } from '../class/wallets/stacks-wallet';
 import { getRpcProvider } from '../models/network-getters';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
@@ -15,6 +16,8 @@ import {
   NETWORK_LIGHTNING_TESTNET,
   NETWORK_LIQUID,
   NETWORK_LIQUID_TESTNET,
+  NETWORK_RGB,
+  NETWORK_RGB_TESTNET,
   NETWORK_SPARK,
   NETWORK_STACKS,
   Networks,
@@ -102,6 +105,16 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
     return virtualBalance.toString(10);
   }
 
+  if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+    const start = +new Date();
+    const rw = await backgroundCaller.lazyInitWallet(network, accountNumber);
+    assert(rw instanceof RGBWallet);
+    const balance = await rw.getOffchainBalance();
+    const end = +new Date();
+    console.log('rgb balance took', (end - start) / 1000, 'sec, balance =', balance.toString(10));
+    return balance.toString(10);
+  }
+
   const address = await backgroundCaller.getAddress(network, accountNumber);
   const rpc = getRpcProvider(network);
 
@@ -122,6 +135,11 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
 
     case NETWORK_STACKS:
       refreshInterval = 10_000; // stacks block time
+      break;
+
+    case NETWORK_RGB:
+    case NETWORK_RGB_TESTNET:
+      refreshInterval = 30_000; // RGB operations can be slower
       break;
 
     case NETWORK_LIGHTNING:

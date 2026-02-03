@@ -2,7 +2,7 @@ import { Redirect, useLocalSearchParams } from 'expo-router';
 import React, { useContext, useLayoutEffect } from 'react';
 
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET } from '@shared/types/networks';
+import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_RGB, NETWORK_RGB_TESTNET } from '@shared/types/networks';
 import { useSendFlow } from './_layout';
 
 export type SendParams = {
@@ -36,6 +36,11 @@ const SendIndex: React.FC = () => {
   // Route to lightning address screen for lightning networks
   if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET) {
     return <Redirect href="/send/send-address-lightning" />;
+  }
+
+  // Route to RGB address screen for RGB networks
+  if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+    return <Redirect href="/send/send-address-rgb" />;
   }
 
   return <Redirect href="/send/send-address" />;

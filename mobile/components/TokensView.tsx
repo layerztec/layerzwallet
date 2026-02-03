@@ -1,6 +1,5 @@
-import React, { useContext, useEffect, useImperativeHandle, useState, forwardRef } from 'react';
+import React, { forwardRef, useContext, useEffect, useImperativeHandle, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
-import Pressable from './Pressable';
 
 import { ThemedText } from '@/components/ThemedText';
 import { LayerzStorage } from '@/src/class/layerz-storage';
@@ -9,12 +8,19 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
+import { useTokenExchangeRate } from '@shared/hooks/useTokenExchangeRate';
 import { getTokenIconColor } from '@shared/models/token-list';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CachedTokenInfo } from '@shared/types/token-info';
-import { useTokenExchangeRate } from '@shared/hooks/useTokenExchangeRate';
+import Pressable from './Pressable';
 
-const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenInfo) => void; selected: boolean; setShow: (show: boolean) => void }> = ({ token, onPress, selected, setShow }) => {
+const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenInfo) => void; selected: boolean; setShow: (show: boolean) => void; disabled?: boolean }> = ({
+  token,
+  onPress,
+  selected,
+  setShow,
+  disabled,
+}) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundExecutor);
@@ -41,11 +47,18 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenI
   const iconColor = getTokenIconColor(token?.name);
 
   const handleTokenPress = () => {
-    onPress(token);
+    if (!disabled) {
+      onPress(token);
+    }
   };
 
   return (
-    <Pressable style={[styles.tokenRow, selected && styles.selectedTokenRow]} onPress={handleTokenPress} activeOpacity={0.7} testID={`token-row-${token.id}`}>
+    <Pressable
+      style={[styles.tokenRow, selected && styles.selectedTokenRow, disabled && styles.disabledTokenRow]}
+      onPress={handleTokenPress}
+      activeOpacity={disabled ? 1 : 0.7}
+      testID={`token-row-${token.id}`}
+    >
       {/* Token Icon */}
       <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
         {token.logoURI ? (
@@ -69,36 +82,38 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenI
   );
 };
 
-const TokensView = forwardRef<{ refresh: () => void }, { onTokenPress: (token: CachedTokenInfo) => void; selectedToken?: string }>(({ onTokenPress, selectedToken }, ref) => {
-  const { network } = useContext(NetworkContext);
-  const { accountNumber } = useContext(AccountNumberContext);
-  const { tokenList, error, mutate } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
-  const [show, setShow] = useState(false);
+const TokensView = forwardRef<{ refresh: () => void }, { onTokenPress: (token: CachedTokenInfo) => void; selectedToken?: string; disabled?: boolean }>(
+  ({ onTokenPress, selectedToken, disabled }, ref) => {
+    const { network } = useContext(NetworkContext);
+    const { accountNumber } = useContext(AccountNumberContext);
+    const { tokenList, error, mutate } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
+    const [show, setShow] = useState(false);
 
-  useImperativeHandle(ref, () => ({
-    refresh: () => {
-      mutate();
-    },
-  }));
+    useImperativeHandle(ref, () => ({
+      refresh: () => {
+        mutate();
+      },
+    }));
 
-  if (tokenList.length === 0) {
-    return null;
-  }
+    if (tokenList.length === 0) {
+      return null;
+    }
 
-  const hide = !show && !error;
+    const hide = !show && !error;
 
-  return (
-    <View style={[styles.container, hide && styles.hiddenContainer]}>
-      <ThemedText style={styles.title}>Tokens</ThemedText>
-      <View style={styles.tokensList}>
-        {tokenList.map((token) => (
-          <TokenRow key={token.id} token={token} onPress={onTokenPress} selected={selectedToken === token.id} setShow={setShow} />
-        ))}
+    return (
+      <View style={[styles.container, hide && styles.hiddenContainer]}>
+        <ThemedText style={styles.title}>Tokens</ThemedText>
+        <View style={styles.tokensList}>
+          {tokenList.map((token) => (
+            <TokenRow key={token.id} token={token} onPress={onTokenPress} selected={selectedToken === token.id} setShow={setShow} disabled={disabled} />
+          ))}
+        </View>
+        {error ? <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText> : null}
       </View>
-      {error ? <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText> : null}
-    </View>
-  );
-});
+    );
+  }
+);
 
 TokensView.displayName = 'TokensView';
 
@@ -175,6 +190,9 @@ const styles = StyleSheet.create({
   },
   selectedTokenRow: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  disabledTokenRow: {
+    opacity: 0.4,
   },
 });
 
