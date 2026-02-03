@@ -7,11 +7,10 @@ import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, S
 import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Rive, { RiveRef } from 'rive-react-native';
 
-import RadialGradientScreen from '@/components/RadialGradientScreen';
 import LongPressButton from '@/components/LongPressButton';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import { ThemedText } from '@/components/ThemedText';
-import { overlayBackgroundDeeper } from '@shared/constants/Colors';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { TFeeEstimate } from '@shared/blue_modules/BlueElectrum';
