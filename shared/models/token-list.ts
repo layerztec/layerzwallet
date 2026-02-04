@@ -2,6 +2,7 @@ import { NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, Networks } from '../t
 import { TokenInfo, EVMTokenInfo, LiquidTokenInfo, SparkTokenInfo } from '../types/token-info';
 import { getChainIdByNetwork } from './network-getters';
 import { hexToDec } from '../modules/string-utils';
+import { overlayBackground } from '../constants/Colors';
 
 // kept as a separate json just because in evm world token list is standard by itself and
 // json files can be shared, imported etc
@@ -89,11 +90,11 @@ export const getTokenIconColor = (name?: string): string => {
   };
 
   if (!name) {
-    return '#8A92B2'; // Default gray
+    return overlayBackground; // Default overlay
   }
 
   const key = name.toUpperCase();
-  return colorMap[key] || '#8A92B2'; // Default gray
+  return colorMap[key] || overlayBackground; // Default overlay
 };
 
 export const USDT_TOKENS = {

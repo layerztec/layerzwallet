@@ -174,11 +174,13 @@ export const queryForMetadata = async (payload: string): Promise<PosMetadata> =>
     },
   });
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch POS payload metadata: ${response}`);
+  const data: PosMetadata = await response.json();
+
+  if (!data.merchantName) {
+    // invalid response, something went wrong
+    throw new Error('Failed to fetch POS payload metadata: ' + JSON.stringify(data));
   }
 
-  const data: PosMetadata = await response.json();
   return data;
 };
 
