@@ -3,8 +3,8 @@ import { View, StyleSheet, ViewStyle, Platform } from 'react-native';
 import GorhomBottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { RadialGradient } from 'react-native-gradients';
-import { gradients, getNetworkPrimaryColor } from '@shared/constants/Colors';
+import { RadialGradient } from '@/components/RadialGradient';
+import { getNetworkPrimaryColor } from '@shared/constants/Colors';
 import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_USDT } from '@shared/types/networks';
 import PlatformBlurView from './PlatformBlurView';
 
@@ -34,33 +34,6 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
   const bottomSheetRef = useRef<GorhomBottomSheet>(null);
   const insets = useSafeAreaInsets();
 
-  // Get gradient colors for the network
-  const gradientColors = useMemo(() => {
-    if (layerNetwork === NETWORK_LIGHTNING || layerNetwork === NETWORK_LIGHTNING_TESTNET) {
-      return gradients[NETWORK_LIGHTNING];
-    }
-
-    if (layerNetwork === NETWORK_USDT) {
-      return gradients[NETWORK_USDT];
-    }
-
-    if (variant === NETWORK_LIGHTNING || variant === NETWORK_LIGHTNING_TESTNET) {
-      return gradients[NETWORK_LIGHTNING];
-    }
-    if (variant === NETWORK_USDT) {
-      return gradients[NETWORK_USDT];
-    }
-
-    let id: keyof typeof gradients = 'base';
-    for (const key of Object.keys(gradients)) {
-      if (key.startsWith(variant)) {
-        id = key as keyof typeof gradients;
-        break;
-      }
-    }
-    return gradients[id];
-  }, [variant, layerNetwork]);
-
   // Get the effective network for the radial gradient
   const effectiveNetwork = useMemo(() => {
     if (layerNetwork === NETWORK_LIGHTNING || layerNetwork === NETWORK_LIGHTNING_TESTNET) {
@@ -77,7 +50,6 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
     }
     return variant;
   }, [variant, layerNetwork]);
-
   // Radial gradient color list
   const radialColorList = useMemo(() => {
     const primaryColor = getNetworkPrimaryColor(effectiveNetwork);
