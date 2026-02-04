@@ -84,7 +84,18 @@
       [
         "expo-asset",
         {
-          "assets": ["assets/js/inpage-bridge.jstxt", "assets/animations/intro.riv", "assets/animations/transactions.riv", "assets/animations/success.riv"]
+          "assets": [
+            "assets/js/inpage-bridge.jstxt",
+            "assets/animations/selfcustody.riv",
+            "assets/animations/lightning.riv",
+            "assets/animations/bars.riv",
+            "assets/animations/swaps.riv",
+            "assets/animations/liquid.riv",
+            "assets/animations/nfts.riv",
+            "assets/animations/oss.riv",
+            "assets/animations/transactions.riv",
+            "assets/animations/success.riv"
+          ]
         }
       ],
       "expo-secure-store",
