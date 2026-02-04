@@ -8,7 +8,7 @@ import Rive from 'rive-react-native';
 import Pressable from '../../components/Pressable';
 import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, Easing } from 'react-native-reanimated';
-import { RadialGradient } from 'react-native-gradients';
+import { RadialGradient } from '@/components/RadialGradient';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');

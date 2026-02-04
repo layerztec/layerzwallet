@@ -3,7 +3,7 @@ import { View, StyleSheet, ViewStyle, Platform } from 'react-native';
 import GorhomBottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { RadialGradient } from 'react-native-gradients';
+import { RadialGradient } from '@/components/RadialGradient';
 import { getNetworkPrimaryColor } from '@shared/constants/Colors';
 import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_USDT } from '@shared/types/networks';
 import PlatformBlurView from './PlatformBlurView';
@@ -91,7 +91,7 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
           <View style={[backgroundStyle, styles.gradientContainer]}>
             <PlatformBlurView intensity={50} tint="light" style={styles.blurOverlay} />
             <View style={styles.radialGradientWrapper}>
-              <RadialGradient colorList={radialColorList} x="50%" y={Platform.OS === 'ios' ? '-14%' : '-34%'} rx={Platform.OS === 'ios' ? '102%' : '80%'} ry={Platform.OS === 'ios' ? '95%' : '85%'} />
+              <RadialGradient colorList={radialColorList} x="48.63%" y="-24.14%" rx="163.06%" ry="75.01%" />
             </View>
             <View style={styles.borderOverlay} pointerEvents="none" />
           </View>
