@@ -1,8 +1,9 @@
 import React from 'react';
 import { StyleSheet, ViewStyle, ScrollView, View } from 'react-native';
-import { RadialGradient } from 'react-native-gradients';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { getNetworkPrimaryColor } from '@shared/constants/Colors';
+import { RadialGradient } from './RadialGradient';
 
 interface GradientFormSheetProps {
   children: React.ReactNode;
