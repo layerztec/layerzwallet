@@ -1,7 +1,7 @@
 import { Foundation, Ionicons } from '@expo/vector-icons';
 import Pressable from '../components/Pressable';
 import { useRouter } from 'expo-router';
-import React, { useContext } from 'react';
+import React, { useContext, useMemo } from 'react';
 import { StyleSheet, View, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,21 +12,50 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAccountBalance } from '@shared/hooks/useAccountBalance';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
-import { formatBalance } from '@shared/modules/string-utils';
+import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
+import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { overlayBackgroundSections } from '@shared/constants/Colors';
 
+const TotalBalanceSection = () => {
+  const availableNetworks = useAvailableNetworks();
+  const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN, 'USD');
+
+  // Get balances for all accounts (hooks must be called unconditionally)
+  const { accountBalance: balance0 } = useAccountBalance(0, availableNetworks);
+  const { accountBalance: balance1 } = useAccountBalance(1, availableNetworks);
+  const { accountBalance: balance2 } = useAccountBalance(2, availableNetworks);
+  const { accountBalance: balance3 } = useAccountBalance(3, availableNetworks);
+  const { accountBalance: balance4 } = useAccountBalance(4, availableNetworks);
+
+  const totalBalance = useMemo(() => {
+    const balances = [balance0, balance1, balance2, balance3, balance4].slice(0, accountItems.length);
+    return balances.reduce((sum, bal) => sum + (parseInt(bal) || 0), 0).toString();
+  }, [balance0, balance1, balance2, balance3, balance4]);
+
+  const totalUsd = totalBalance && exchangeRate ? formatFiatBalance(totalBalance, getDecimalsByNetwork(NETWORK_BITCOIN), exchangeRate) : '—';
+
+  return (
+    <View style={styles.totalBalanceSection}>
+      <ThemedText style={styles.totalBalanceLabel}>Total balance</ThemedText>
+      <ThemedText type="sfProRounded" style={styles.totalBalanceAmount}>
+        ${totalUsd}
+      </ThemedText>
+    </View>
+  );
+};
 const ListItem = ({ item, onPress, accountNumber, currentAccountNumber }: { item: AccountItem; onPress: () => void; accountNumber: number; currentAccountNumber: number }) => {
   const availableNetworks = useAvailableNetworks();
   const IconComponent = item.iconCollection === 'ion' ? Ionicons : Foundation;
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
+  const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN, 'USD');
 
   const active = accountNumber === currentAccountNumber;
-  const first = accountNumber === 0;
-  const last = accountNumber === accountItems.length - 1;
+
+  const usdBalance = accountBalance && exchangeRate ? formatFiatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), exchangeRate) : '—';
 
   return (
-    <Pressable style={[styles.item, active && styles.activeItem, first && styles.firstItem, last && styles.lastItem]} onPress={onPress} activeOpacity={0.7}>
+    <Pressable style={[styles.item, active && styles.activeItem]} onPress={onPress} scaleOnPress={0.97}>
       <View style={styles.icon}>
         <IconComponent name={item.icon as any} size={24} color="white" />
       </View>
@@ -35,6 +64,9 @@ const ListItem = ({ item, onPress, accountNumber, currentAccountNumber }: { item
         <ThemedText style={styles.balance}>
           {accountBalance ? formatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), 8) : '0'} {getTickerByNetwork(NETWORK_BITCOIN)}
         </ThemedText>
+      </View>
+      <View style={styles.usdContainer}>
+        <ThemedText style={styles.usdBalance}>${usdBalance}</ThemedText>
       </View>
     </Pressable>
   );
@@ -58,11 +90,13 @@ export default function PocketSwitch() {
     <DetachedSheet variant={network} onClose={handleClose}>
       <SafeAreaView style={styles.safeArea} edges={Platform.OS === 'ios' ? ['left', 'right', 'bottom'] : ['left', 'right']}>
         <View style={styles.container}>
+          {/* Total Balance Section */}
+          <TotalBalanceSection />
+
           {/* Header */}
           <View style={styles.header}>
-            <ThemedText style={styles.title}>Your pockets</ThemedText>
+            <ThemedText style={styles.title}>Pockets</ThemedText>
           </View>
-
           {/* Target Networks List */}
           <View style={styles.listContainer}>
             {accountItems.map((item, index) => (
@@ -85,22 +119,34 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     paddingBottom: 16,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    marginTop: 8,
+  totalBalanceSection: {
+    alignItems: 'flex-start',
+    marginTop: 16,
     marginBottom: 24,
   },
+  totalBalanceLabel: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 4,
+  },
+  totalBalanceAmount: {
+    fontSize: 52,
+    color: '#ffffff',
+    lineHeight: 60,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   title: {
-    fontSize: 24,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.6)',
     fontWeight: '500',
   },
   listContainer: {
-    gap: 2,
+    gap: 8,
   },
   item: {
     backgroundColor: overlayBackgroundSections,
@@ -108,17 +154,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 64,
-  },
-  firstItem: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-  lastItem: {
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    borderRadius: 24,
   },
   activeItem: {
-    backgroundColor: overlayBackgroundSections,
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
   icon: {
     width: 40,
@@ -130,10 +170,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   info: {
-    // justifyContent: 'center',
-    // alignItems: 'flex-start',
-    // gap: 1,
-    // backgroundColor: 'red',
+    flex: 1,
   },
   name: {
     fontSize: 16,
@@ -142,6 +179,15 @@ const styles = StyleSheet.create({
   balance: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
+  },
+  usdContainer: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  usdBalance: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#ffffff',
   },
   emptyState: {
     flex: 1,
