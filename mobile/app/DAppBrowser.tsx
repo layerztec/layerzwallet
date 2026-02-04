@@ -1004,7 +1004,7 @@ const DAppBrowser: React.FC = () => {
   if (!js) {
     return (
       <GradientScreen variant={network}>
-        <View style={styles.loadingContainer}>
+        <View style={styles.loadingContainer} testID="DappBrowserLoading">
           <ThemedText style={styles.loadingText}>Loading DApp browser...</ThemedText>
         </View>
       </GradientScreen>

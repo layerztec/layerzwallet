@@ -2,24 +2,25 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Dimensions, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
+import { Alert, Dimensions, Platform, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import Rive, { RiveRef } from 'rive-react-native';
 import Pressable from '../components/Pressable';
 
 import { ActionPopupButton } from '@/components/ActionPopupButton';
+import BackupWarning from '@/components/BackupWarning';
 import Balance from '@/components/Balance';
 import Button from '@/components/Button';
 import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
-import RadialGradientScreen from '@/components/RadialGradientScreen';
+import NftsView from '@/components/NftsView';
 import PlatformBlurView from '@/components/PlatformBlurView';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import StickyHeader from '@/components/StickyHeader';
 import SwapList from '@/components/SwapList';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
-import Transaction from '@/components/Transaction';
+import TransactionsList from '@/components/TransactionsList';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { getNetworkGradient } from '@shared/constants/Colors';
@@ -36,12 +37,11 @@ import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { NETWORK_ARK, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
 import { SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapPlatform } from '@shared/types/swap';
-import { CachedTokenInfo, NftInfo } from '@shared/types/token-info';
+import { CachedTokenInfo } from '@shared/types/token-info';
 import { ReceiveTokenProps } from './Receive';
 import { SendTokenEvmProps } from './SendTokenEvm';
 import { SwapParams } from './Swap';
 import { SendParams } from './send';
-import NftsView from '@/components/NftsView';
 
 const Action = ({ network, text }: { network?: Networks; text: string }) => {
   const networkImage = network ? getNetworkImageAsset(network) : null;
@@ -77,7 +77,6 @@ export default function Home() {
   const currentModalPosition = useSharedValue(0); // Track current modal position using shared value
   const gestureStartPosition = useSharedValue(0); // Track gesture start position using shared value
   const whiteFlashAnim = useSharedValue(0); // Animation for white flash transition
-  const riveRef = useRef<RiveRef>(null); // Ref for Rive animation
   const balanceRef = useRef<{ refresh: () => void }>(null);
   const tokensViewRef = useRef<{ refresh: () => void }>(null);
   const nftsViewRef = useRef<{ refresh: () => void }>(null);
@@ -433,11 +432,8 @@ export default function Home() {
             {/* Balance Section */}
             <Balance ref={balanceRef} />
 
-            {/* Explorer Button */}
-            <Button title="Explore" onPress={handleExplorer} variant="dark" style={styles.explorerButton} testID="ExplorerButton" />
-
-            {/* Swap List Section */}
-            <SwapList ref={swapListRef} />
+            {/* Seed Backup Warning */}
+            {hasBackedUpSeed === false && <BackupWarning onPress={handleBackupSeed} />}
 
             {/* Tokens Section */}
             <TokensView ref={tokensViewRef} onTokenPress={handleTokenPress} />
@@ -445,55 +441,14 @@ export default function Home() {
             {/* NFTs Section */}
             <NftsView ref={nftsViewRef} />
 
-            {/* Seed Backup Warning */}
-            {hasBackedUpSeed === false && (
-              <Pressable style={styles.backupWarning} onPress={handleBackupSeed} activeOpacity={0.8}>
-                <View style={styles.backupWarningHeader}>
-                  <View style={styles.backupWarningIcon}>
-                    <Ionicons name="alert-circle-outline" size={24} color="rgba(255, 255, 255, 0.9)" />
-                  </View>
-                  <ThemedText style={styles.backupWarningTitle}>Recovery phrase</ThemedText>
-                </View>
-                <View style={styles.backupWarningTextRow}>
-                  <ThemedText style={styles.backupWarningText}>Your Recovery phrase is necessary to recover your wallet. Please verify you have backed it up.</ThemedText>
-                </View>
-              </Pressable>
-            )}
-
             {/* Transactions Section */}
-            <View style={styles.transactionsContainer}>
-              <ThemedText style={styles.transactionsTitle}>Latest Transactions</ThemedText>
+            <TransactionsList transactions={latestTransactions} error={transactionsError} onTransactionPress={handleTransactionDetails} onViewHistory={handleTransactionHistory} />
 
-              {latestTransactions.length > 0 ? (
-                <View style={styles.transactionsList}>
-                  {latestTransactions.map((transaction) => (
-                    <Transaction key={transaction.txid} transaction={transaction} onPress={() => handleTransactionDetails(transaction)} />
-                  ))}
-                </View>
-              ) : transactionsError ? (
-                <View style={styles.transactionsList}>
-                  <ThemedText style={styles.transactionDate}>Error loading transactions</ThemedText>
-                </View>
-              ) : (
-                <View style={styles.transactionsList}>
-                  <View style={styles.emptyTransactionsContainer}>
-                    <Rive
-                      key={`transactions-${network}`}
-                      ref={riveRef}
-                      autoplay={true}
-                      style={styles.emptyTransactionsAnimation}
-                      resourceName="transactions"
-                      onError={(error) => {
-                        console.log('Rive animation error:', error);
-                      }}
-                    />
-                    <ThemedText style={styles.transactionDate}>No transactions yet. Start by tapping receive and do your first transaction.</ThemedText>
-                  </View>
-                </View>
-              )}
+            {/* Swap List Section */}
+            <SwapList ref={swapListRef} />
 
-              {latestTransactions.length > 0 && <Button title="Transaction History" onPress={handleTransactionHistory} variant="dark" />}
-            </View>
+            {/* Explorer Button */}
+            <Button title="Explore" onPress={handleExplorer} variant="lighter" style={styles.explorerButton} testID="ExplorerButton" />
           </View>
         </RadialGradientScreen>
 
@@ -594,7 +549,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     paddingHorizontal: 18,
-    paddingBottom: 100,
+    paddingBottom: 180, // Account for bottom nav (68px) + safe area (34px) + Android navbar + extra scroll space
   },
   contentWithHeader: {
     paddingTop: 80,
@@ -633,32 +588,9 @@ const styles = StyleSheet.create({
   explorerButton: {
     marginBottom: 20,
   },
-  transactionsContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 20,
-    overflow: 'hidden',
-  },
-  transactionsTitle: {
-    fontSize: 20,
-    fontWeight: '500',
-    color: 'white',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  transactionsList: {
-    gap: 24,
-    marginBottom: 24,
-  },
-  transactionDate: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.4)',
-    textAlign: 'center',
-  },
   bottomNavigationContainer: {
     position: 'absolute',
-    bottom: 34, // Safe area padding
+    bottom: Platform.OS === 'android' ? 54 : 34, // Extra padding on Android for system navbar
     left: 0,
     right: 0,
   },
@@ -818,58 +750,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     zIndex: 9998,
     pointerEvents: 'none',
-  },
-  emptyTransactionsContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 0,
-    width: '100%',
-  },
-  emptyTransactionsAnimation: {
-    width: 368,
-    height: 100,
-    marginBottom: 16,
-  },
-  backupWarning: {
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
-    minHeight: 98,
-    borderRadius: 20,
-    paddingTop: 12,
-    paddingRight: 16,
-    paddingBottom: 12,
-    paddingLeft: 16,
-    marginBottom: 20,
-    overflow: 'hidden',
-  },
-  backupWarningHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
-  },
-  backupWarningIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backupWarningTitle: {
-    fontSize: 15,
-    color: 'white',
-    fontWeight: '600',
-    flex: 1,
-  },
-  backupWarningTextRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    paddingLeft: 10,
-  },
-  backupWarningText: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '400',
-    flex: 1,
   },
 });

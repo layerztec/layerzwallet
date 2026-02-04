@@ -1,9 +1,10 @@
-import React, { useCallback, useContext, useEffect, useImperativeHandle, useMemo, useState, forwardRef } from 'react';
+import React, { useCallback, useContext, useEffect, useImperativeHandle, useState, forwardRef } from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import Pressable from './Pressable';
 
 import { ThemedText } from '@/components/ThemedText';
+import SectionContainer from '@/components/SectionContainer';
 import NftImage from '@/components/NftImage';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -81,27 +82,35 @@ const NftsView = forwardRef<{ refresh: () => void }, { selectedNft?: string; onV
   const hide = !show && !error;
 
   return (
-    <View style={[styles.container, hide && styles.hiddenContainer]}>
-      <ThemedText style={styles.title}>NFTs</ThemedText>
-      <View style={styles.previewRow}>
-        {previewNfts.map((nft, idx) => (
-          <NftPreviewItem
-            key={nft.tokenId}
-            nft={nft}
-            onPress={handleNftPress}
-            selected={selectedNft === nft.tokenId}
-            style={idx !== previewNfts.length - 1 ? styles.nftPreviewItemSpacing : undefined}
-          />
-        ))}
-      </View>
+    <View style={hide && styles.hiddenContainer}>
+      <SectionContainer title="NFTs">
+        <View style={styles.previewRow}>
+          {previewNfts.map((nft, idx) => (
+            <NftPreviewItem
+              key={nft.tokenId}
+              nft={nft}
+              onPress={handleNftPress}
+              selected={selectedNft === nft.tokenId}
+              style={idx !== previewNfts.length - 1 ? styles.nftPreviewItemSpacing : undefined}
+            />
+          ))}
+        </View>
 
-      {error ? <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText> : null}
+        {error ? <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText> : null}
 
-      {hasMoreThanPreview && (
-        <Pressable style={styles.viewGalleryButton} onPress={handleViewGalleryPress} activeOpacity={0.85} testID="view-gallery-button" accessibilityRole="button" accessibilityLabel="View NFT Gallery">
-          <ThemedText style={styles.viewGalleryButtonText}>View Gallery</ThemedText>
-        </Pressable>
-      )}
+        {hasMoreThanPreview && (
+          <Pressable
+            style={styles.viewGalleryButton}
+            onPress={handleViewGalleryPress}
+            activeOpacity={0.85}
+            testID="view-gallery-button"
+            accessibilityRole="button"
+            accessibilityLabel="View NFT Gallery"
+          >
+            <ThemedText style={styles.viewGalleryButtonText}>View Gallery</ThemedText>
+          </Pressable>
+        )}
+      </SectionContainer>
     </View>
   );
 });
@@ -109,22 +118,8 @@ const NftsView = forwardRef<{ refresh: () => void }, { selectedNft?: string; onV
 NftsView.displayName = 'NftsView';
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginBottom: 20,
-    paddingVertical: 16,
-  },
   hiddenContainer: {
     display: 'none',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '500',
-    color: 'white',
-    textAlign: 'center',
-    marginBottom: 24,
   },
   errorText: {
     fontSize: 16,

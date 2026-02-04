@@ -21,6 +21,7 @@ const neutral = '#CECDCD';
 export const globalDarkBackground = '#000000';
 export const overlayBackground = 'rgba(255, 255, 255, 0.1)';
 export const overlayBackgroundDeeper = 'rgba(255, 255, 255, 0.05)';
+export const overlayBackgroundSections = 'rgba(255, 255, 255, 0.08)';
 
 /**
  * Network color definitions - each network has a primary and secondary color
