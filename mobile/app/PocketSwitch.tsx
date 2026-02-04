@@ -44,7 +44,6 @@ const TotalBalanceSection = () => {
     </View>
   );
 };
-
 const ListItem = ({ item, onPress, accountNumber, currentAccountNumber }: { item: AccountItem; onPress: () => void; accountNumber: number; currentAccountNumber: number }) => {
   const availableNetworks = useAvailableNetworks();
   const IconComponent = item.iconCollection === 'ion' ? Ionicons : Foundation;
@@ -98,7 +97,6 @@ export default function PocketSwitch() {
           <View style={styles.header}>
             <ThemedText style={styles.title}>Pockets</ThemedText>
           </View>
-
           {/* Target Networks List */}
           <View style={styles.listContainer}>
             {accountItems.map((item, index) => (

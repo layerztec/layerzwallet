@@ -50,7 +50,6 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
     }
     return variant;
   }, [variant, layerNetwork]);
-
   // Radial gradient color list
   const radialColorList = useMemo(() => {
     const primaryColor = getNetworkPrimaryColor(effectiveNetwork);
