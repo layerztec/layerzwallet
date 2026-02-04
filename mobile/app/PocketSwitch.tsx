@@ -2,9 +2,10 @@ import { Foundation, Ionicons } from '@expo/vector-icons';
 import Pressable from '../components/Pressable';
 import { useRouter } from 'expo-router';
 import React, { useContext } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import GradientFormSheet from '@/components/GradientFormSheet';
+import DetachedSheet from '@/components/DetachedSheet';
 import { ThemedText } from '@/components/ThemedText';
 import { AccountItem, AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -13,13 +14,14 @@ import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
+import { overlayBackgroundSections } from '@shared/constants/Colors';
 
-const ListItem = ({ item, onPress, accountNumber }: { item: AccountItem; onPress: () => void; accountNumber: number }) => {
+const ListItem = ({ item, onPress, accountNumber, currentAccountNumber }: { item: AccountItem; onPress: () => void; accountNumber: number; currentAccountNumber: number }) => {
   const availableNetworks = useAvailableNetworks();
   const IconComponent = item.iconCollection === 'ion' ? Ionicons : Foundation;
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
 
-  const active = accountNumber === accountNumber;
+  const active = accountNumber === currentAccountNumber;
   const first = accountNumber === 0;
   const last = accountNumber === accountItems.length - 1;
 
@@ -41,7 +43,7 @@ const ListItem = ({ item, onPress, accountNumber }: { item: AccountItem; onPress
 export default function PocketSwitch() {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
-  const { setAccountNumber } = useContext(AccountNumberContext);
+  const { accountNumber: currentAccountNumber, setAccountNumber } = useContext(AccountNumberContext);
 
   const handleClose = () => {
     router.back();
@@ -53,64 +55,55 @@ export default function PocketSwitch() {
   };
 
   return (
-    <GradientFormSheet variant={network}>
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <ThemedText style={styles.title}>Your pockets</ThemedText>
-        </View>
-        <Pressable style={styles.closeButton} onPress={handleClose}>
-          <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.8)" />
-        </Pressable>
+    <DetachedSheet variant={network} onClose={handleClose}>
+      <SafeAreaView style={styles.safeArea} edges={Platform.OS === 'ios' ? ['left', 'right', 'bottom'] : ['left', 'right']}>
+        <View style={styles.container}>
+          {/* Header */}
+          <View style={styles.header}>
+            <ThemedText style={styles.title}>Your pockets</ThemedText>
+          </View>
 
-        {/* Target Networks List */}
-        <View style={styles.listContainer}>
-          {accountItems.map((item, index) => (
-            <ListItem key={index} accountNumber={index} item={item} onPress={() => handleSelect(index)} />
-          ))}
+          {/* Target Networks List */}
+          <View style={styles.listContainer}>
+            {accountItems.map((item, index) => (
+              <ListItem key={index} accountNumber={index} currentAccountNumber={currentAccountNumber} item={item} onPress={() => handleSelect(index)} />
+            ))}
+          </View>
         </View>
-      </View>
-    </GradientFormSheet>
+      </SafeAreaView>
+    </DetachedSheet>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
   container: {
     flex: 1,
     marginHorizontal: 16,
+    paddingBottom: 16,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    marginTop: 64,
+    marginTop: 8,
     marginBottom: 24,
   },
   title: {
-    fontSize: 28,
-    paddingTop: 8,
+    fontSize: 24,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    fontWeight: '400',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 16,
-    right: 0,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontWeight: '500',
   },
   listContainer: {
-    flex: 1,
     gap: 2,
   },
   item: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: overlayBackgroundSections,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -125,7 +118,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 16,
   },
   activeItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: overlayBackgroundSections,
   },
   icon: {
     width: 40,
@@ -148,7 +141,7 @@ const styles = StyleSheet.create({
   },
   balance: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: 'rgba(255, 255, 255, 0.5)',
   },
   emptyState: {
     flex: 1,
