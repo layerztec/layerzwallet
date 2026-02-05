@@ -86,3 +86,52 @@ export interface RgbTransferCustom extends Omit<RgbTransfer, 'status' | 'kind' |
 export interface TransactionCustom extends Omit<Transaction, 'transactionType'> {
   transactionType: 'RgbSend' | 'Drain' | 'CreateUtxos' | 'User';
 }
+
+// ============================================
+// Adapter Parameter Types
+// ============================================
+
+/**
+ * Parameters for sending RGB assets.
+ */
+export interface SendAssetParams {
+  invoice: string;
+  assetId?: string;
+  amount?: number;
+  feeRate: number;
+  minConfirmations?: number;
+}
+
+/**
+ * Parameters for creating colorable UTXOs.
+ */
+export interface CreateUtxosParams {
+  upTo?: boolean;
+  num?: number;
+  size?: number;
+  feeRate: number;
+}
+
+/**
+ * Parameters for sending BTC.
+ */
+export interface SendBtcParams {
+  address: string;
+  amount: number;
+  feeRate: number;
+}
+
+/**
+ * Parameters for creating backups.
+ */
+export interface CreateBackupParams {
+  backupPath: string;
+  password: string;
+}
+
+/**
+ * Result from backup creation.
+ */
+export interface BackupResult {
+  backupPath: string;
+}

@@ -3,6 +3,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 
+import type { IRGBAdapter, RGBConnection } from '../../class/wallets/rgb-wallet';
+
 const TIMEOUT = 60000;
 
 // Backup file location and password
@@ -11,20 +13,22 @@ const BACKUP_PASSWORD = '123321';
 
 describe('RGB Integration', () => {
   let testDataDir: string;
-  let sdk: any;
-  let wallet: any;
+  let adapter: IRGBAdapter;
+  let connection: RGBConnection;
 
   describe('rgbAdapter', () => {
-    it('should initialize and return SDK', async () => {
-      sdk = await globalThis.rgbAdapter.initialize();
-      expect(sdk).toBeDefined();
-      expect(sdk.createWallet).toBeDefined();
+    it('should have api methods defined', async () => {
+      adapter = globalThis.rgbAdapter;
+      expect(adapter).toBeDefined();
+      expect(adapter.api).toBeDefined();
+      expect(adapter.api.registerWallet).toBeDefined();
+      expect(adapter.api.getBtcBalance).toBeDefined();
+      expect(adapter.api.listAssets).toBeDefined();
     });
 
-    it('should return cached SDK on subsequent calls', async () => {
-      const sdk1 = await globalThis.rgbAdapter.initialize();
-      const sdk2 = await globalThis.rgbAdapter.initialize();
-      expect(sdk1).toBe(sdk2);
+    it('should have deriveKeysFromMnemonic defined', async () => {
+      adapter = globalThis.rgbAdapter;
+      expect(adapter.deriveKeysFromMnemonic).toBeDefined();
     });
   });
 
@@ -37,14 +41,15 @@ describe('RGB Integration', () => {
       // Verify backup file exists
       assert(fs.existsSync(BACKUP_FILE), `Backup file not found: ${BACKUP_FILE}`);
 
-      // Initialize SDK
-      sdk = await globalThis.rgbAdapter.initialize();
+      adapter = globalThis.rgbAdapter;
 
       console.log('Restoring from backup...');
       console.log('Backup file:', BACKUP_FILE);
       console.log('Data dir:', testDataDir);
 
-      // Restore wallet from backup
+      // For backup restore, we need to use the SDK directly since it's a standalone function
+      // This is testing the raw SDK, not the adapter pattern
+      const sdk = await import('@utexo/rgb-sdk');
       const restoreResult = sdk.restoreFromBackup({
         backupFilePath: BACKUP_FILE,
         password: BACKUP_PASSWORD,
@@ -53,20 +58,15 @@ describe('RGB Integration', () => {
       console.log('Restore result:', restoreResult);
       expect(restoreResult.message).toBe('Wallet restored successfully');
 
-      // Create wallet manager
+      // Create connection params
       assert(process.env.TEST_MNEMONIC, 'TEST_MNEMONIC not set');
-      const keys = await sdk.deriveKeysFromMnemonic('testnet', process.env.TEST_MNEMONIC);
-
-      wallet = new sdk.WalletManager({
-        xpubVan: keys.accountXpubVanilla,
-        xpubCol: keys.accountXpubColored,
-        masterFingerprint: keys.masterFingerprint,
-        mnemonic: keys.mnemonic,
+      connection = {
+        mnemonic: process.env.TEST_MNEMONIC,
         network: 'testnet',
         dataDir: testDataDir,
         transportEndpoint: 'rpc://proxy.iriswallet.com/0.2/json-rpc',
         indexerUrl: 'ssl://electrum.iriswallet.com:50013', // Testnet3 server
-      });
+      };
     }, TIMEOUT);
 
     it('should have restored files in dataDir', async () => {
@@ -79,7 +79,7 @@ describe('RGB Integration', () => {
     });
 
     it('should get address from restored wallet (offline)', async () => {
-      const address = wallet.getAddress();
+      const address = await adapter.api.getAddress(connection);
       console.log('Address:', address);
 
       expect(address).toBeDefined();
@@ -87,17 +87,17 @@ describe('RGB Integration', () => {
     });
 
     it('should have correct master fingerprint', async () => {
-      const keys = await sdk.deriveKeysFromMnemonic('testnet', process.env.TEST_MNEMONIC);
+      const keys = await adapter.deriveKeysFromMnemonic('testnet', process.env.TEST_MNEMONIC!);
       console.log('Master fingerprint:', keys.masterFingerprint);
       expect(keys.masterFingerprint).toBe('dd80d908');
     });
 
     // Skip online tests for now - WASM networking issues in Node.js
     it('should have tokens after restore (requires online)', async () => {
-      const registerResult = wallet.registerWallet();
+      const registerResult = await adapter.api.registerWallet(connection);
       console.log('Register result:', registerResult);
 
-      const assets = wallet.listAssets();
+      const assets = await adapter.api.listAssets(connection);
       console.log('Assets:', JSON.stringify(assets, null, 2));
 
       expect(assets.nia).toBeDefined();
@@ -105,7 +105,7 @@ describe('RGB Integration', () => {
     });
 
     it.skip('should get transactions (requires online)', async () => {
-      const transactions = wallet.listTransactions();
+      const transactions = await adapter.api.listTransactions(connection);
       console.log('Transactions:', transactions.length);
       expect(Array.isArray(transactions)).toBe(true);
     });

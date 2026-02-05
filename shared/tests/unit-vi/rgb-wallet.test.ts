@@ -1,77 +1,53 @@
-import { describe, expect, it, vi, assert } from 'vitest';
+import { describe, expect, it, vi, assert, beforeAll } from 'vitest';
 
-import { RGBWallet } from '../../class/wallets/rgb-wallet';
+import { RGBWallet, IRGBAdapter, RGBConnection } from '../../class/wallets/rgb-wallet';
 import type { ListAssetsResponseCustom, RgbTransferCustom, TransactionCustom } from '../../class/wallets/rgb-types';
 import type { DeepPartial } from '../../class/wallets/types';
 import { NETWORK_RGB_TESTNET } from '../../types/networks';
+import type { BtcBalance, GeneratedKeys, InvoiceReceiveData, SendResult } from '@utexo/rgb-sdk';
 
 const TEST_MNEMONIC = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
 
-describe('RGBWallet.customDeriveKeysFromMnemonic', () => {
-  it('should derive keys for account 0', async () => {
-    const wallet = new RGBWallet('testnet');
-    wallet.setSecret(TEST_MNEMONIC);
-    wallet.setAccountNumber(0);
-    const keys = await wallet.customDeriveKeysFromMnemonic();
+/**
+ * Create a mock adapter for testing
+ */
+function createMockAdapter(overrides: Partial<IRGBAdapter['api']> = {}): IRGBAdapter {
+  const defaultApi: IRGBAdapter['api'] = {
+    registerWallet: vi.fn().mockResolvedValue({ address: 'tb1ptest', btcBalance: { vanilla: { settled: 0, future: 0, spendable: 0 }, colored: { settled: 0, future: 0, spendable: 0 } } }),
+    refreshWallet: vi.fn().mockResolvedValue(undefined),
+    getBtcBalance: vi.fn().mockResolvedValue({ vanilla: { settled: 0, future: 0, spendable: 0 }, colored: { settled: 0, future: 0, spendable: 0 } }),
+    getAddress: vi.fn().mockResolvedValue('tb1ptest'),
+    listUnspents: vi.fn().mockResolvedValue([]),
+    listAssets: vi.fn().mockResolvedValue({ nia: [], uda: [], cfa: [] }),
+    sendBtcBegin: vi.fn().mockResolvedValue('psbt'),
+    sendBtcEnd: vi.fn().mockResolvedValue('txid'),
+    sendBegin: vi.fn().mockResolvedValue('psbt'),
+    sendEnd: vi.fn().mockResolvedValue({ txid: 'txid', batchTransferIdx: 0 }),
+    createUtxos: vi.fn().mockResolvedValue(5),
+    blindReceive: vi.fn().mockResolvedValue({ invoice: 'rgb:invoice', recipientId: 'recipient', expirationTimestamp: 0, batchTransferIdx: 0 }),
+    decodeRGBInvoice: vi.fn().mockResolvedValue({ recipientId: 'recipient', network: 'testnet', assignment: {}, transportEndpoints: [] }),
+    listTransactions: vi.fn().mockResolvedValue([]),
+    listTransfers: vi.fn().mockResolvedValue([]),
+    signPsbt: vi.fn().mockResolvedValue('signed_psbt'),
+    createBackup: vi.fn().mockResolvedValue({ backupPath: '/tmp/backup.rgbbackup' }),
+    ...overrides,
+  };
 
-    expect(keys.mnemonic).toBe(TEST_MNEMONIC);
-    expect(keys.accountXpubVanilla).toBeDefined();
-    expect(keys.accountXpubColored).toBeDefined();
-    expect(keys.masterFingerprint).toBeDefined();
-    expect(keys.xpub).toBeDefined();
-    expect(keys.xpriv).toBeDefined();
-  });
+  return {
+    api: defaultApi,
+    deriveKeysFromMnemonic: vi.fn().mockResolvedValue({
+      mnemonic: TEST_MNEMONIC,
+      xpub: 'tpubD6NzVbkrYhZ4Y...',
+      xpriv: 'tprv8ZgxMBicQKsPd...',
+      accountXpubVanilla: 'tpubDCivdM...',
+      accountXpubColored: 'tpubDCivdN...',
+      masterFingerprint: '73c5da0a',
+    }),
+    getDataDir: vi.fn().mockReturnValue('/tmp/rgb-test'),
+  };
+}
 
-  it('should derive different xpubs for different account numbers', async () => {
-    const wallet0 = new RGBWallet('testnet');
-    wallet0.setSecret(TEST_MNEMONIC);
-    wallet0.setAccountNumber(0);
-    const keys0 = await wallet0.customDeriveKeysFromMnemonic();
-
-    const wallet1 = new RGBWallet('testnet');
-    wallet1.setSecret(TEST_MNEMONIC);
-    wallet1.setAccountNumber(1);
-    const keys1 = await wallet1.customDeriveKeysFromMnemonic();
-
-    expect(keys0.accountXpubVanilla).not.toBe(keys1.accountXpubVanilla);
-    expect(keys0.accountXpubColored).not.toBe(keys1.accountXpubColored);
-    // Master fingerprint should be the same (same mnemonic)
-    expect(keys0.masterFingerprint).toBe(keys1.masterFingerprint);
-    // Root xpub/xpriv should be the same
-    expect(keys0.xpub).toBe(keys1.xpub);
-    expect(keys0.xpriv).toBe(keys1.xpriv);
-  });
-
-  it('should produce expected master fingerprint for test mnemonic', async () => {
-    const wallet = new RGBWallet('testnet');
-    wallet.setSecret(TEST_MNEMONIC);
-    wallet.setAccountNumber(0);
-    const keys = await wallet.customDeriveKeysFromMnemonic();
-
-    // Known master fingerprint for "abandon abandon..." mnemonic
-    expect(keys.masterFingerprint).toBe('73c5da0a');
-  });
-
-  it('should derive different keys for mainnet vs testnet', async () => {
-    const walletTestnet = new RGBWallet('testnet');
-    walletTestnet.setSecret(TEST_MNEMONIC);
-    walletTestnet.setAccountNumber(0);
-    const keysTestnet = await walletTestnet.customDeriveKeysFromMnemonic();
-
-    const walletMainnet = new RGBWallet('mainnet');
-    walletMainnet.setSecret(TEST_MNEMONIC);
-    walletMainnet.setAccountNumber(0);
-    const keysMainnet = await walletMainnet.customDeriveKeysFromMnemonic();
-
-    // Different coin types lead to different xpubs
-    expect(keysTestnet.accountXpubVanilla).not.toBe(keysMainnet.accountXpubVanilla);
-    expect(keysTestnet.accountXpubColored).not.toBe(keysMainnet.accountXpubColored);
-    // Root xpubs are also different due to different version bytes
-    expect(keysTestnet.xpub).not.toBe(keysMainnet.xpub);
-  });
-});
-
-describe('RGBWallet.isAddressValid', () => {
+describe('RGBWallet address validation', () => {
   it('should accept mainnet taproot addresses', () => {
     expect(RGBWallet.isAddressValid('bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0')).toBe(true);
   });
@@ -97,13 +73,6 @@ describe('RGBWallet.isAddressValid', () => {
 
 describe('RGBWallet.getCommonTransactions', () => {
   it('should map and merge bitcoin transactions and token transfers', async () => {
-    const wallet = new RGBWallet('testnet');
-
-    // Mock adapter for getDataDir
-    (wallet as any).adapter = {
-      getDataDir: () => '/tmp/rgb-test',
-    };
-
     // Mock data based on real RGB SDK output
     // Note: SDK types say transactionType is enum (number), but actual data is string
     const mockBtcTransactions: DeepPartial<TransactionCustom>[] = [
@@ -202,12 +171,17 @@ describe('RGBWallet.getCommonTransactions', () => {
       },
     ];
 
-    (wallet as any)._wallet = {
-      listTransactions: vi.fn().mockReturnValue(mockBtcTransactions),
-      listAssets: vi.fn().mockReturnValue(mockAssets),
-      listTransfers: vi.fn().mockReturnValue(mockTransfers),
-      createBackup: vi.fn().mockReturnValue({ backupPath: '/tmp/backup.rgbbackup', message: 'ok' }),
-    };
+    const mockAdapter = createMockAdapter({
+      listTransactions: vi.fn().mockResolvedValue(mockBtcTransactions as TransactionCustom[]),
+      listAssets: vi.fn().mockResolvedValue(mockAssets),
+      listTransfers: vi.fn().mockResolvedValue(mockTransfers as RgbTransferCustom[]),
+    });
+
+    // Inject mock adapter
+    (globalThis as any).rgbAdapter = mockAdapter;
+
+    const wallet = new RGBWallet('testnet');
+    wallet.setSecret(TEST_MNEMONIC);
 
     const result = await wallet.getCommonTransactions();
 

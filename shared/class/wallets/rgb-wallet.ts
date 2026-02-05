@@ -1,10 +1,7 @@
 import ecc from '@bitcoinerlab/secp256k1';
 import assert from 'assert';
-import { BIP32Factory } from 'bip32';
-import * as bip39 from 'bip39';
 import * as bitcoin from 'bitcoinjs-lib';
-import { createHash } from 'crypto';
-import type { GeneratedKeys, SendResult } from '@utexo/rgb-sdk';
+import type { BtcBalance, GeneratedKeys, InvoiceReceiveData, SendResult } from '@utexo/rgb-sdk';
 
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { concatUint8Arrays } from '../../modules/uint8array-extras';
@@ -14,14 +11,19 @@ import { NETWORK_RGB, NETWORK_RGB_TESTNET } from '../../types/networks';
 import { CachedTokenInfo } from '../../types/token-info';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
-import type { DecodeRgbInvoiceResponseCustom, InvoiceRequestCustom, ListAssetsResponseCustom, RgbTransferCustom, TransactionCustom, UnspentCustom } from './rgb-types';
-
-/**
- * RGB SDK type - derived from the @utexo/rgb-sdk package exports.
- * This is a type-only import, no runtime code is executed.
- * Both @utexo/rgb-sdk (web) and @utexo/rgb-sdk-rn (react native) should have compatible types.
- */
-export type RGBSDK = typeof import('@utexo/rgb-sdk');
+import type {
+  BackupResult,
+  CreateBackupParams,
+  CreateUtxosParams,
+  DecodeRgbInvoiceResponseCustom,
+  InvoiceRequestCustom,
+  ListAssetsResponseCustom,
+  RgbTransferCustom,
+  SendAssetParams,
+  SendBtcParams,
+  TransactionCustom,
+  UnspentCustom,
+} from './rgb-types';
 
 /**
  * Decoded RGB invoice type.
@@ -29,21 +31,76 @@ export type RGBSDK = typeof import('@utexo/rgb-sdk');
  */
 export type RgbDecodedInvoice = DecodeRgbInvoiceResponseCustom;
 
-type RGBNetwork = 'mainnet' | 'testnet';
+export type RGBNetwork = 'mainnet' | 'testnet';
 
+/**
+ * Connection parameters for RGB adapter.
+ * Contains all information needed to initialize/identify a wallet session.
+ */
+export type RGBConnection = {
+  mnemonic: string;
+  network: RGBNetwork;
+  dataDir: string;
+  transportEndpoint: string;
+  indexerUrl: string;
+};
+
+/**
+ * RGB Adapter interface following the Breez adapter pattern.
+ * All methods are async, adapters handle platform-specific SDK calls internally.
+ */
 export interface IRGBAdapter {
-  initialize(): Promise<RGBSDK>;
+  api: {
+    // Wallet Lifecycle
+    registerWallet(connection: RGBConnection): Promise<{ address: string; btcBalance: BtcBalance }>;
+    refreshWallet(connection: RGBConnection): Promise<void>;
+
+    // Balance & Address
+    getBtcBalance(connection: RGBConnection): Promise<BtcBalance>;
+    getAddress(connection: RGBConnection): Promise<string>;
+    listUnspents(connection: RGBConnection): Promise<UnspentCustom[]>;
+
+    // Assets
+    listAssets(connection: RGBConnection): Promise<ListAssetsResponseCustom>;
+
+    // BTC Transactions (2-step)
+    sendBtcBegin(connection: RGBConnection, params: SendBtcParams): Promise<string>;
+    sendBtcEnd(connection: RGBConnection, params: { signedPsbt: string }): Promise<string>;
+
+    // Token Transactions (2-step)
+    sendBegin(connection: RGBConnection, params: SendAssetParams): Promise<string>;
+    sendEnd(connection: RGBConnection, params: { signedPsbt: string }): Promise<SendResult>;
+
+    // UTXO Management
+    createUtxos(connection: RGBConnection, params: CreateUtxosParams): Promise<number>;
+
+    // Invoices
+    blindReceive(connection: RGBConnection, params: InvoiceRequestCustom): Promise<InvoiceReceiveData>;
+    decodeRGBInvoice(connection: RGBConnection, params: { invoice: string }): Promise<DecodeRgbInvoiceResponseCustom>;
+
+    // History
+    listTransactions(connection: RGBConnection): Promise<TransactionCustom[]>;
+    listTransfers(connection: RGBConnection, assetId: string): Promise<RgbTransferCustom[]>;
+
+    // Signing
+    signPsbt(connection: RGBConnection, psbt: string): Promise<string>;
+
+    // Backup
+    createBackup(connection: RGBConnection, params: CreateBackupParams): Promise<BackupResult>;
+  };
+
+  // Key derivation (standalone, doesn't need active connection)
+  deriveKeysFromMnemonic(network: RGBNetwork, mnemonic: string): Promise<GeneratedKeys>;
+
   getDataDir(): string;
 }
 
 export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveTokens {
   protected adapter: IRGBAdapter;
-  private _sdk: RGBSDK | undefined;
   private _secret: string | undefined;
   private _network: RGBNetwork = 'mainnet';
   private _transportEndpoint: string = 'rpc://rgb-node.thunderstack.org/json-rpc';
-  private _indexerUrl: string = 'ssl://electrum.iriswallet.com:50003'; // Updated in constructor based on network
-  public _wallet: InstanceType<RGBSDK['WalletManager']> | undefined;
+  private _indexerUrl: string = 'ssl://electrum.iriswallet.com:50003';
   private _accountNumber: number = 0;
   private _tokenBalances: CachedTokenInfo[] = [];
   public _lastBalanceFetch: number = 0;
@@ -62,6 +119,21 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
     this.adapter = globalThis.rgbAdapter;
   }
 
+  /**
+   * Returns the connection parameters for the current wallet session.
+   * Used by adapter methods to identify the wallet context.
+   */
+  private get connection(): RGBConnection {
+    assert(this._secret, 'RGBWallet secret is not set. Call setSecret() first.');
+    return {
+      mnemonic: this._secret,
+      network: this._network,
+      dataDir: this.adapter.getDataDir(),
+      transportEndpoint: this._transportEndpoint,
+      indexerUrl: this._indexerUrl,
+    };
+  }
+
   public setSecret(secret: string) {
     this._secret = secret;
   }
@@ -78,69 +150,10 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
     return this._accountNumber;
   }
 
-  /**
-   * Custom method to derive keys from mnemonic
-   * same as deriveKeysFromMnemonic, but with custom account number
-   * @returns The derived keys
-   */
-  public async customDeriveKeysFromMnemonic(): Promise<GeneratedKeys> {
-    assert(this._secret, 'RGBWallet secret is not set. Call setSecret() first.');
-    const DERIVATION_PURPOSE = 86;
-    const COIN_RGB_MAINNET = 827166;
-    const COIN_RGB_TESTNET = 827167;
-    const COIN_BITCOIN_MAINNET = 0;
-    const COIN_BITCOIN_TESTNET = 1;
-
-    const isMainnet = this._network === 'mainnet';
-    const coinTypeBtc = isMainnet ? COIN_BITCOIN_MAINNET : COIN_BITCOIN_TESTNET;
-    const coinTypeRgb = isMainnet ? COIN_RGB_MAINNET : COIN_RGB_TESTNET;
-
-    const BIP32_VERSIONS = isMainnet ? { public: 0x0488b21e, private: 0x0488ade4 } : { public: 0x043587cf, private: 0x04358394 };
-
-    const seed = bip39.mnemonicToSeedSync(this._secret);
-    const bip32 = BIP32Factory(ecc);
-    const root = bip32.fromSeed(seed, { bip32: BIP32_VERSIONS, wif: isMainnet ? 128 : 239 });
-
-    // Calculate master fingerprint
-    const pubkey = root.publicKey;
-    const sha256Hash = createHash('sha256').update(pubkey).digest();
-    const ripemd160Hash = createHash('ripemd160').update(sha256Hash).digest();
-    const masterFingerprint = ripemd160Hash.subarray(0, 4).toString('hex');
-
-    // Derive account xpubs with custom account number
-    const vanillaPath = `m/${DERIVATION_PURPOSE}'/${coinTypeBtc}'/${this._accountNumber}'`;
-    const coloredPath = `m/${DERIVATION_PURPOSE}'/${coinTypeRgb}'/${this._accountNumber}'`;
-
-    const accountXpubVanilla = root.derivePath(vanillaPath).neutered().toBase58();
-    const accountXpubColored = root.derivePath(coloredPath).neutered().toBase58();
-
-    return {
-      mnemonic: this._secret,
-      xpub: root.neutered().toBase58(),
-      xpriv: root.toBase58(),
-      accountXpubVanilla,
-      accountXpubColored,
-      masterFingerprint,
-    };
-  }
-
   async init() {
     assert(this._secret, 'RGBWallet secret is not set. Call setSecret() first.');
-    this._sdk = await this.adapter.initialize();
-    // Can't use customDeriveKeysFromMnemonic() here because server throws 400 error while initialize
-    // const restoredKeys = await this.customDeriveKeysFromMnemonic();
-    const restoredKeys = await this._sdk.deriveKeysFromMnemonic(this._network, this._secret);
-    this._wallet = new this._sdk.WalletManager({
-      xpubVan: restoredKeys.accountXpubVanilla,
-      xpubCol: restoredKeys.accountXpubColored,
-      masterFingerprint: restoredKeys.masterFingerprint,
-      mnemonic: restoredKeys.mnemonic,
-      network: this._network,
-      dataDir: this.adapter.getDataDir(),
-      transportEndpoint: this._transportEndpoint,
-      indexerUrl: this._indexerUrl,
-    });
-    this._wallet.registerWallet();
+    const result = await this.adapter.api.registerWallet(this.connection);
+    console.info('RGBWallet initialized', result);
     setTimeout(() => this.prepareWallet(), 1000); // we don't want to block the main thread
   }
 
@@ -149,8 +162,6 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
    * Only runs in low-fee environment and when we have 1 or fewer available colorable UTXOs.
    */
   async prepareWallet(): Promise<void> {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-
     // Prevent concurrent calls
     if (this._preparingWallet) return;
     this._preparingWallet = true;
@@ -164,7 +175,7 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
       }
 
       // Check available colorable UTXOs
-      const unspents = this.listUnspents();
+      const unspents = await this.adapter.api.listUnspents(this.connection);
       if (unspents.length === 0) {
         console.log('RGB prepareWallet: no UTXOs available, skipping');
         return;
@@ -178,7 +189,7 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
       }
 
       // Create UTXOs (server validates balance, upTo:true creates as many as affordable)
-      await this._wallet.createUtxos({
+      await this.adapter.api.createUtxos(this.connection, {
         upTo: true,
         num: 5,
         size: 1000,
@@ -192,56 +203,14 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
     }
   }
 
-  get sdk(): RGBSDK {
-    assert(this._sdk, 'RGBWallet not initialized. Call init() first.');
-    return this._sdk;
-  }
-
-  // ============================================
-  // SDK Wrapper Methods (with corrected types)
-  // ============================================
-  // The @utexo/rgb-sdk uses camelCase properties.
-  // These wrappers provide correct return types. See rgb-types.ts for details.
-
-  private listUnspents(): UnspentCustom[] {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-    return this._wallet.listUnspents() as unknown as UnspentCustom[];
-  }
-
-  private listAssets(): ListAssetsResponseCustom {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-    return this._wallet.listAssets() as unknown as ListAssetsResponseCustom;
-  }
-
-  private decodeInvoice(invoice: string): DecodeRgbInvoiceResponseCustom {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-    return this._wallet.decodeRGBInvoice({ invoice }) as unknown as DecodeRgbInvoiceResponseCustom;
-  }
-
-  private completeBtcSend(signedPsbt: string): string {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-    return this._wallet.sendBtcEnd({ signedPsbt });
-  }
-
-  private completeTokenSend(signedPsbt: string): SendResult {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-    return this._wallet.sendEnd({ signedPsbt });
-  }
-
-  private blindReceive(request: InvoiceRequestCustom) {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-    return this._wallet.blindReceive(request as Parameters<typeof this._wallet.blindReceive>[0]);
-  }
-
   /**
    * Create a backup of the wallet state.
    * @param backupPath - Path to save the backup file
    * @param password - Password to encrypt the backup
    * @returns The backup file path
    */
-  createBackup(backupPath: string, password: string): string {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-    const response = this._wallet.createBackup({ backupPath, password });
+  async createBackup(backupPath: string, password: string): Promise<string> {
+    const response = await this.adapter.api.createBackup(this.connection, { backupPath, password });
     return response.backupPath;
   }
 
@@ -249,22 +218,19 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
   // Public Methods
   // ============================================
 
-  public async getBalance() {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-    const balance = this._wallet.getBtcBalance();
+  public async getBalance(): Promise<number> {
+    const balance = await this.adapter.api.getBtcBalance(this.connection);
     return balance.vanilla.spendable + balance.colored.spendable;
   }
 
   // InterfaceAccountBasedWallet implementation
 
   async getOffchainReceiveAddress(): Promise<string> {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-    return this._wallet.getAddress();
+    return await this.adapter.api.getAddress(this.connection);
   }
 
   async getOffchainBalance(): Promise<number> {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-    const balance = this._wallet.getBtcBalance();
+    const balance = await this.adapter.api.getBtcBalance(this.connection);
     this._lastBalanceFetch = Date.now();
     await this.fetchTokenBalances();
     return balance.vanilla.spendable + balance.colored.spendable;
@@ -278,14 +244,12 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
    * @returns Signed PSBT ready for broadcast
    */
   async sendBtcPrepare(address: string, amount: number, feeRate: number): Promise<string> {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-    assert(this._sdk, 'RGBWallet SDK not initialized.');
-    const psbt = this._wallet.sendBtcBegin({
+    const psbt = await this.adapter.api.sendBtcBegin(this.connection, {
       address,
       amount,
       feeRate,
     });
-    return await this._wallet.signPsbt(psbt);
+    return await this.adapter.api.signPsbt(this.connection, psbt);
   }
 
   /**
@@ -294,7 +258,7 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
    * @returns Transaction ID
    */
   async sendBtcBroadcast(signedPsbt: string): Promise<string> {
-    return this.completeBtcSend(signedPsbt);
+    return await this.adapter.api.sendBtcEnd(this.connection, { signedPsbt });
   }
 
   /**
@@ -315,11 +279,10 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
    * @returns The RGB invoice string
    */
   async getWitnessReceiveInvoice(amount: number): Promise<string> {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
     assert(amount > 0, 'Amount must be greater than 0');
     // SDK declares assetId as required but runtime allows it to be optional for any-asset invoices
     const invoiceRequest: InvoiceRequestCustom = { amount };
-    const receiveData = this.blindReceive(invoiceRequest);
+    const receiveData = await this.adapter.api.blindReceive(this.connection, invoiceRequest);
     return receiveData.invoice;
   }
 
@@ -337,7 +300,6 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
    * @throws Error if wallet has no balance and cannot create UTXOs
    */
   async createBlindInvoice(amount: number, assetId?: string, feeRate?: number): Promise<{ invoice: string; expirationTimestamp: number }> {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
     assert(amount > 0, 'Amount must be greater than 0');
 
     // Ensure UTXOs are available for the invoice
@@ -350,7 +312,7 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
     }
 
     try {
-      const receiveData = this.blindReceive(invoiceRequest);
+      const receiveData = await this.adapter.api.blindReceive(this.connection, invoiceRequest);
       return {
         invoice: receiveData.invoice,
         expirationTimestamp: receiveData.expirationTimestamp ?? Math.floor(Date.now() / 1000) + 86400, // default 24h
@@ -361,7 +323,7 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
       if (errorMessage.includes('InsufficientAllocationSlots') || errorMessage.includes('allocation') || errorMessage.includes('slot')) {
         console.log('[RGB] blindReceive failed with allocation error, creating UTXOs and retrying');
         await this.createColorableUtxos(feeRate);
-        const receiveData = this.blindReceive(invoiceRequest);
+        const receiveData = await this.adapter.api.blindReceive(this.connection, invoiceRequest);
         return {
           invoice: receiveData.invoice,
           expirationTimestamp: receiveData.expirationTimestamp ?? Math.floor(Date.now() / 1000) + 86400,
@@ -379,7 +341,7 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
    * @throws Error if wallet has no balance to create UTXOs
    */
   async ensureColorableUtxos(feeRate?: number): Promise<void> {
-    const unspents = this.listUnspents();
+    const unspents = await this.adapter.api.listUnspents(this.connection);
     const availableColorable = unspents.filter((u) => u.utxo.colorable && !u.pendingBlinded && (!u.rgbAllocations || u.rgbAllocations.length === 0));
 
     // Create UTXOs if none available
@@ -399,8 +361,6 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
    * @param feeRate - Optional fee rate for UTXO creation (sats/vB). Defaults to slow fee estimate.
    */
   async createColorableUtxos(feeRate?: number): Promise<void> {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-
     // Get fee rate if not provided
     if (!feeRate) {
       const fees = await this.getFeeEstimates();
@@ -408,7 +368,7 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
     }
 
     console.log(`[RGB] Creating colorable UTXOs with fee rate: ${feeRate} sats/vB`);
-    await this._wallet.createUtxos({
+    await this.adapter.api.createUtxos(this.connection, {
       upTo: true, // Create as many as affordable up to 'num'
       num: 5, // Target number of UTXOs
       size: 1000, // Size in sats for each UTXO
@@ -420,7 +380,7 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
   // InterfaceCanHaveTokens implementation
 
   async fetchTokenBalances(): Promise<void> {
-    const assets = this.listAssets();
+    const assets = await this.adapter.api.listAssets(this.connection);
     this._tokenBalances = [];
     const chainId = this._network === 'mainnet' ? 20 : 21;
 
@@ -451,8 +411,6 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
    * @returns Array of CommonTransaction objects
    */
   async getCommonTransactions(): Promise<CommonTransaction[]> {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-
     const network = this._network === 'mainnet' ? NETWORK_RGB : NETWORK_RGB_TESTNET;
     const explorerBase = AllNetworkInfos[network].explorerUrl;
 
@@ -461,9 +419,9 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
 
     // Fetch Bitcoin on-chain transactions
     // TransactionType: RGB_SEND=0, DRAIN=1, CREATE_UTXOS=2, USER=3
-    const btcTransactions = this._wallet.listTransactions();
+    const btcTransactions = await this.adapter.api.listTransactions(this.connection);
 
-    for (const tx of btcTransactions as unknown as TransactionCustom[]) {
+    for (const tx of btcTransactions) {
       const status: TransactionStatus = tx.confirmationTime ? 'confirmed' : 'pending';
       const timestamp = tx.confirmationTime?.timestamp ?? Math.floor(Date.now() / 1000);
 
@@ -511,7 +469,7 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
     }
 
     // Fetch RGB token transfers for each known asset
-    const assets = this.listAssets();
+    const assets = await this.adapter.api.listAssets(this.connection);
 
     // Build asset info map for quick lookup (all asset types for token info)
     const assetInfoMap = new Map<string, { name: string; symbol: string; decimals: number }>();
@@ -541,7 +499,7 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
     // Process transfers for each NIA asset
     for (const assetId of niaAssetIds) {
       const assetInfo = assetInfoMap.get(assetId)!;
-      const transfers = this._wallet.listTransfers(assetId) as unknown as RgbTransferCustom[];
+      const transfers = await this.adapter.api.listTransfers(this.connection, assetId);
 
       for (const transfer of transfers) {
         // Map RGB transfer status to CommonTransaction status
@@ -610,7 +568,7 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
     // Create backup after fetching transactions
     try {
       const backupPath = `${this.adapter.getDataDir()}/backup_${Date.now()}.rgbbackup`;
-      this.createBackup(backupPath, 'auto-backup');
+      await this.createBackup(backupPath, 'auto-backup');
       console.log('[RGB] Auto-backup created:', backupPath);
     } catch (error) {
       console.error('[RGB] Failed to create auto-backup:', error);
@@ -627,7 +585,7 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
    * @throws Error if invoice is invalid
    */
   async decodeRgbInvoice(invoice: string): Promise<RgbDecodedInvoice> {
-    return this.decodeInvoice(invoice);
+    return await this.adapter.api.decodeRGBInvoice(this.connection, { invoice });
   }
 
   /**
@@ -639,20 +597,11 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
    * @returns Signed PSBT ready for broadcast
    */
   async sendTokenPrepare(tokenId: string, amount: bigint, invoice: string, feeRate: number): Promise<string> {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-    assert(this._sdk, 'RGBWallet SDK not initialized.');
-
     // Decode the invoice first to understand what it expects
-    const decodedInvoice = this.decodeInvoice(invoice);
+    const decodedInvoice = await this.adapter.api.decodeRGBInvoice(this.connection, { invoice });
 
     // Build sendBegin params
-    const sendParams: {
-      invoice: string;
-      minConfirmations: number;
-      feeRate: number;
-      assetId?: string;
-      amount?: number;
-    } = {
+    const sendParams: SendAssetParams = {
       invoice,
       minConfirmations: 1,
       feeRate,
@@ -671,10 +620,10 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
     }
 
     // Use sendBegin to create unsigned PSBT for token transfer
-    const psbt = this._wallet.sendBegin(sendParams);
+    const psbt = await this.adapter.api.sendBegin(this.connection, sendParams);
 
     // Sign the PSBT
-    return await this._wallet.signPsbt(psbt);
+    return await this.adapter.api.signPsbt(this.connection, psbt);
   }
 
   /**
@@ -683,7 +632,7 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
    * @returns Transaction ID
    */
   async sendTokenBroadcast(signedPsbt: string): Promise<string> {
-    const result = this.completeTokenSend(signedPsbt);
+    const result = await this.adapter.api.sendEnd(this.connection, { signedPsbt });
     return result.txid;
   }
 
@@ -696,8 +645,6 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
    * @returns Transaction ID
    */
   async transferToken(tokenId: string, amount: bigint, invoice: string, feeRateStr?: string): Promise<string> {
-    assert(this._wallet, 'RGBWallet not initialized. Call init() first.');
-
     let feeRate = feeRateStr ? Number(feeRateStr) : undefined;
     if (!feeRate || isNaN(feeRate)) {
       const fees = await this.getFeeEstimates();
