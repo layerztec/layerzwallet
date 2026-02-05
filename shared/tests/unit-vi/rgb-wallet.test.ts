@@ -1,9 +1,8 @@
 import { describe, expect, it, vi, assert } from 'vitest';
-import type { Transaction, RgbTransfer } from 'rgb-sdk';
 
 import { RGBWallet } from '../../class/wallets/rgb-wallet';
-import { ListAssetsResponseCustom } from '../../class/wallets/rgb-types';
-import { DeepPartial } from '../../class/wallets/types';
+import type { ListAssetsResponseCustom, RgbTransferCustom, TransactionCustom } from '../../class/wallets/rgb-types';
+import type { DeepPartial } from '../../class/wallets/types';
 import { NETWORK_RGB_TESTNET } from '../../types/networks';
 
 const TEST_MNEMONIC = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
@@ -16,9 +15,9 @@ describe('RGBWallet.customDeriveKeysFromMnemonic', () => {
     const keys = await wallet.customDeriveKeysFromMnemonic();
 
     expect(keys.mnemonic).toBe(TEST_MNEMONIC);
-    expect(keys.account_xpub_vanilla).toBeDefined();
-    expect(keys.account_xpub_colored).toBeDefined();
-    expect(keys.master_fingerprint).toBeDefined();
+    expect(keys.accountXpubVanilla).toBeDefined();
+    expect(keys.accountXpubColored).toBeDefined();
+    expect(keys.masterFingerprint).toBeDefined();
     expect(keys.xpub).toBeDefined();
     expect(keys.xpriv).toBeDefined();
   });
@@ -34,10 +33,10 @@ describe('RGBWallet.customDeriveKeysFromMnemonic', () => {
     wallet1.setAccountNumber(1);
     const keys1 = await wallet1.customDeriveKeysFromMnemonic();
 
-    expect(keys0.account_xpub_vanilla).not.toBe(keys1.account_xpub_vanilla);
-    expect(keys0.account_xpub_colored).not.toBe(keys1.account_xpub_colored);
+    expect(keys0.accountXpubVanilla).not.toBe(keys1.accountXpubVanilla);
+    expect(keys0.accountXpubColored).not.toBe(keys1.accountXpubColored);
     // Master fingerprint should be the same (same mnemonic)
-    expect(keys0.master_fingerprint).toBe(keys1.master_fingerprint);
+    expect(keys0.masterFingerprint).toBe(keys1.masterFingerprint);
     // Root xpub/xpriv should be the same
     expect(keys0.xpub).toBe(keys1.xpub);
     expect(keys0.xpriv).toBe(keys1.xpriv);
@@ -50,7 +49,7 @@ describe('RGBWallet.customDeriveKeysFromMnemonic', () => {
     const keys = await wallet.customDeriveKeysFromMnemonic();
 
     // Known master fingerprint for "abandon abandon..." mnemonic
-    expect(keys.master_fingerprint).toBe('73c5da0a');
+    expect(keys.masterFingerprint).toBe('73c5da0a');
   });
 
   it('should derive different keys for mainnet vs testnet', async () => {
@@ -65,8 +64,8 @@ describe('RGBWallet.customDeriveKeysFromMnemonic', () => {
     const keysMainnet = await walletMainnet.customDeriveKeysFromMnemonic();
 
     // Different coin types lead to different xpubs
-    expect(keysTestnet.account_xpub_vanilla).not.toBe(keysMainnet.account_xpub_vanilla);
-    expect(keysTestnet.account_xpub_colored).not.toBe(keysMainnet.account_xpub_colored);
+    expect(keysTestnet.accountXpubVanilla).not.toBe(keysMainnet.accountXpubVanilla);
+    expect(keysTestnet.accountXpubColored).not.toBe(keysMainnet.accountXpubColored);
     // Root xpubs are also different due to different version bytes
     expect(keysTestnet.xpub).not.toBe(keysMainnet.xpub);
   });
@@ -100,109 +99,114 @@ describe('RGBWallet.getCommonTransactions', () => {
   it('should map and merge bitcoin transactions and token transfers', async () => {
     const wallet = new RGBWallet('testnet');
 
+    // Mock adapter for getDataDir
+    (wallet as any).adapter = {
+      getDataDir: () => '/tmp/rgb-test',
+    };
+
     // Mock data based on real RGB SDK output
-    // transaction_type: 0=RGB_SEND, 2=CREATE_UTXOS, 3=USER
-    const mockBtcTransactions: DeepPartial<Transaction>[] = [
-      // RGB send tx (type 0)
+    // Note: SDK types say transactionType is enum (number), but actual data is string
+    const mockBtcTransactions: DeepPartial<TransactionCustom>[] = [
+      // RGB send tx
       {
-        transaction_type: 0,
+        transactionType: 'RgbSend',
         txid: 'tx0',
         received: 690,
         sent: 845,
         fee: 155,
-        confirmation_time: { height: 4834605, timestamp: 1768920959 },
+        confirmationTime: { height: 4834605, timestamp: 1768920959 },
       },
-      // User deposit tx (type 3)
+      // User deposit tx
       {
-        transaction_type: 3,
+        transactionType: 'User',
         txid: 'tx1',
         received: 100000,
         sent: 0,
         fee: 309,
-        confirmation_time: { height: 4832594, timestamp: 1768839381 },
+        confirmationTime: { height: 4832594, timestamp: 1768839381 },
       },
-      // CREATE_UTXOS tx (type 2) - internal, net negative
+      // CREATE_UTXOS tx - internal, net negative
       {
-        transaction_type: 2,
+        transactionType: 'CreateUtxos',
         txid: 'tx2',
         received: 339233,
         sent: 341443,
         fee: 2210,
-        confirmation_time: { height: 4834518, timestamp: 1768910759 },
+        confirmationTime: { height: 4834518, timestamp: 1768910759 },
       },
     ];
 
     const mockAssets: ListAssetsResponseCustom = {
       nia: [
         {
-          asset_id: 'rgb:token1',
+          assetId: 'rgb:token1',
           name: 'Layerz Shares',
           ticker: 'LZ',
           precision: 0,
-          balance: { settled: 97, future: 93, spendable: 0, offchain_outbound: 0, offchain_inbound: 0 },
+          balance: { settled: 97, future: 93, spendable: 0 },
         },
       ],
-      uda: null,
-      cfa: null,
+      uda: [],
+      cfa: [],
     };
 
-    // kind: 0=issue, 1=receive, 2=receive_blind, 3=send
-    // status: 0=WAITING_COUNTERPARTY, 1=WAITING_CONFIRMATIONS, 2=SETTLED, 3=FAILED
-    const mockTransfers: DeepPartial<RgbTransfer>[] = [
-      // Settled receive (kind 1)
+    // Note: SDK types say status/kind are enums (number), but actual data is string
+    const mockTransfers: DeepPartial<RgbTransferCustom>[] = [
+      // Settled receive (kind ReceiveBlind)
       {
         idx: 1,
-        batch_transfer_idx: 1,
-        created_at: 1768911476,
-        updated_at: 1768913040,
-        status: 2,
-        amount: 100,
-        kind: 1,
+        batchTransferIdx: 1,
+        createdAt: 1768911476,
+        updatedAt: 1768913040,
+        status: 'Settled',
+        requestedAssignment: { Fungible: 100 },
+        kind: 'ReceiveBlind',
         txid: 'tx3',
-        recipient_id: 'tb3:utxob:D1BIpGOS-2IGi7ex-nmhSxJ_-uQk1B6N-bU_dyas-vxzsBfM-Rubm6',
+        recipientId: 'tb3:utxob:D1BIpGOS-2IGi7ex-nmhSxJ_-uQk1B6N-bU_dyas-vxzsBfM-Rubm6',
       },
-      // Settled send (kind 3)
+      // Settled send
       {
         idx: 10,
-        batch_transfer_idx: 10,
-        created_at: 1768920427,
-        updated_at: 1768920661,
-        status: 2,
-        amount: 3,
-        kind: 3,
+        batchTransferIdx: 10,
+        createdAt: 1768920427,
+        updatedAt: 1768920661,
+        status: 'Settled',
+        requestedAssignment: { Fungible: 3 },
+        kind: 'Send',
         txid: 'tx4',
-        recipient_id: 'tb3:utxob:rV1kdaRk-fUPIV5d-Ks1L~Qb-Jvu93~6-QlxuPSR-9jClQsU-xIyMQ',
+        recipientId: 'tb3:utxob:rV1kdaRk-fUPIV5d-Ks1L~Qb-Jvu93~6-QlxuPSR-9jClQsU-xIyMQ',
       },
-      // Pending send (status 1, kind 3)
+      // Pending send (WaitingConfirmations)
       {
         idx: 11,
-        batch_transfer_idx: 11,
-        created_at: 1768920683,
-        updated_at: 1768920743,
-        status: 1,
-        amount: 4,
-        kind: 3,
+        batchTransferIdx: 11,
+        createdAt: 1768920683,
+        updatedAt: 1768920743,
+        status: 'WaitingConfirmations',
+        requestedAssignment: { Fungible: 4 },
+        kind: 'Send',
         txid: 'tx0',
-        recipient_id: 'tb3:utxob:zacFno3V-ioge7Gx-ZZHx~_l-MJuX6A5-2XKL_Ih-uckFdgW-X8~NH',
+        recipientId: 'tb3:utxob:zacFno3V-ioge7Gx-ZZHx~_l-MJuX6A5-2XKL_Ih-uckFdgW-X8~NH',
       },
-      // Failed transfer (status 3)
+      // Failed transfer
       {
         idx: 5,
-        batch_transfer_idx: 5,
-        created_at: 1768900000,
-        updated_at: 1768900100,
-        status: 3,
-        amount: 50,
-        kind: 3,
+        batchTransferIdx: 5,
+        createdAt: 1768900000,
+        updatedAt: 1768900100,
+        status: 'Failed',
+        requestedAssignment: { Fungible: 50 },
+        kind: 'Send',
         txid: null,
-        recipient_id: 'tb3:utxob:failed-recipient',
+        recipientId: 'tb3:utxob:failed-recipient',
       },
     ];
 
     (wallet as any)._wallet = {
-      listTransactions: vi.fn().mockResolvedValue(mockBtcTransactions),
-      listAssets: vi.fn().mockResolvedValue(mockAssets),
-      listTransfers: vi.fn().mockResolvedValue(mockTransfers),
+      listTransactions: vi.fn().mockReturnValue(mockBtcTransactions),
+      listAssets: vi.fn().mockReturnValue(mockAssets),
+      listTransfers: vi.fn().mockReturnValue(mockTransfers),
+      createBackup: vi.fn().mockReturnValue({ backupPath: '/tmp/backup.rgbbackup', message: 'ok' }),
     };
 
     const result = await wallet.getCommonTransactions();

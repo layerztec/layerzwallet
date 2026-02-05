@@ -17,8 +17,8 @@ RGB is a Bitcoin Layer 2 protocol for smart contracts and token issuance. The im
 - **`shared/models/all-network-infos.ts`** - Network metadata (chainId, ticker, decimals)
 
 ### Platform Adapters
-- **`mobile/src/modules/rgb-adapter.ts`** - React Native adapter using `rgb-sdk-rn`
-- **`ext/src/modules/rgb-adapter.ts`** - Extension adapter using `rgb-sdk` (web)
+- **`mobile/src/modules/rgb-adapter.ts`** - React Native adapter using `@utexo/rgb-sdk-rn`
+- **`ext/src/modules/rgb-adapter.ts`** - Extension adapter using `@utexo/rgb-sdk` (web)
 
 ### React Hooks
 - **`shared/hooks/useBalance.ts`** - Balance fetching with RGB support
@@ -69,10 +69,17 @@ export const NETWORK_RGB_TESTNET = 'rgb_testnet' as const;
   sortIndex: 85,
 },
 
-// RGB Node endpoints
-mainnet: 'https://rgb-node.thunderstack.org/'
-testnet: 'https://rgb-node.test.thunderstack.org/'
+// RGB Transport endpoints
+mainnet: 'rpc://rgb-node.thunderstack.org/json-rpc'
+testnet: 'rpc://rgb-node.test.thunderstack.org/json-rpc'
+
+// Electrum Indexer URLs (IMPORTANT: must match wallet network!)
+mainnet: 'ssl://electrum.iriswallet.com:50003'
+testnet3: 'ssl://electrum.iriswallet.com:50013'
+testnet4: 'ssl://electrum.iriswallet.com:50053'
 ```
+
+> **Note**: Using the wrong electrum server causes `InvalidIndexer` error: "indexer is for a network different from the wallet's one"
 
 ---
 
@@ -90,12 +97,24 @@ class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveTokens {
   private _sdk: RGBSDK | undefined;
   private _secret: string | undefined;
   private _network: RGBNetwork = 'mainnet';
-  private _node: string = 'https://rgb-node.thunderstack.org/';
+  private _transportEndpoint: string;  // Set in constructor based on network
+  private _indexerUrl: string;         // Set in constructor based on network
   public _wallet: InstanceType<RGBSDK['WalletManager']> | undefined;
   private _accountNumber: number = 0;
   private _tokenBalances: CachedTokenInfo[] = [];
   public _lastBalanceFetch: number = 0;
   private _preparingWallet: boolean = false;
+}
+
+// Constructor sets network-specific endpoints:
+constructor(network: RGBNetwork) {
+  if (network === 'testnet') {
+    this._transportEndpoint = 'rpc://rgb-node.test.thunderstack.org/json-rpc';
+    this._indexerUrl = 'ssl://electrum.iriswallet.com:50013'; // Testnet3
+  } else {
+    this._transportEndpoint = 'rpc://rgb-node.thunderstack.org/json-rpc';
+    this._indexerUrl = 'ssl://electrum.iriswallet.com:50003'; // Mainnet
+  }
 }
 ```
 
@@ -118,9 +137,9 @@ const COIN_BITCOIN_TESTNET = 1;
 Key derivation produces:
 - `mnemonic` - Original seed phrase
 - `xpub` / `xpriv` - Root keys
-- `account_xpub_vanilla` - BTC account xpub
-- `account_xpub_colored` - RGB account xpub
-- `master_fingerprint` - Hash160 of root pubkey (first 4 bytes)
+- `accountXpubVanilla` - BTC account xpub
+- `accountXpubColored` - RGB account xpub
+- `masterFingerprint` - Hash160 of root pubkey (first 4 bytes)
 
 ### Initialization
 
@@ -129,12 +148,14 @@ async init() {
   this._sdk = await this.adapter.initialize();
   const restoredKeys = await this._sdk.deriveKeysFromMnemonic(this._network, this._secret);
   this._wallet = new this._sdk.WalletManager({
-    xpub_van: restoredKeys.account_xpub_vanilla,
-    xpub_col: restoredKeys.account_xpub_colored,
-    master_fingerprint: restoredKeys.master_fingerprint,
+    xpubVan: restoredKeys.accountXpubVanilla,
+    xpubCol: restoredKeys.accountXpubColored,
+    masterFingerprint: restoredKeys.masterFingerprint,
     mnemonic: restoredKeys.mnemonic,
     network: this._network,
-    rgb_node_endpoint: this._node,
+    dataDir: this.adapter.getDataDir(),
+    transportEndpoint: this._transportEndpoint,
+    indexerUrl: this._indexerUrl,
   });
   await this._wallet.registerWallet();
   setTimeout(() => this.prepareWallet(), 1000); // Background UTXO preparation
@@ -172,7 +193,7 @@ async getOffchainReceiveAddress(): Promise<string> {
 ```typescript
 // Step 1: Sign transaction (don't broadcast)
 async sendBtcPrepare(address: string, amount: number, feeRate: number): Promise<string> {
-  const psbt = await this._wallet.sendBtcBegin({ address, amount, fee_rate: feeRate });
+  const psbt = await this._wallet.sendBtcBegin({ address, amount, feeRate });
   return await this._wallet.signPsbt(psbt);
 }
 
@@ -195,18 +216,18 @@ async sendTokenPrepare(
   amount: bigint,
   invoice: string,
   feeRate: number
-): Promise<{ signedPsbt: string; txid: string }> {
+): Promise<string> {
   const decodedInvoice = await this.decodeInvoice(invoice);
 
   const sendParams = {
     invoice,
-    min_confirmations: 1,
-    fee_rate: feeRate,
+    minConfirmations: 1,
+    feeRate,
   };
 
-  // Only pass asset_id if invoice is wildcard (no asset specified)
-  if (!decodedInvoice.asset_id) {
-    sendParams.asset_id = tokenId;
+  // Only pass assetId if invoice is wildcard (no asset specified)
+  if (!decodedInvoice.assetId) {
+    sendParams.assetId = tokenId;
   }
 
   // Only pass amount if invoice doesn't specify one
@@ -215,8 +236,7 @@ async sendTokenPrepare(
   }
 
   const psbt = await this._wallet.sendBegin(sendParams);
-  const signedPsbt = await this._wallet.signPsbt(psbt);
-  return { signedPsbt, txid: '' };
+  return await this._wallet.signPsbt(psbt);
 }
 
 // Step 2: Broadcast token transfer
@@ -249,13 +269,13 @@ async createBlindInvoice(
   await this.ensureColorableUtxos(feeRate);
 
   const invoiceRequest = { amount };
-  if (assetId) invoiceRequest.asset_id = assetId;
+  if (assetId) invoiceRequest.assetId = assetId;
 
   try {
     const receiveData = await this.blindReceive(invoiceRequest);
     return {
       invoice: receiveData.invoice,
-      expirationTimestamp: receiveData.expiration_timestamp ?? Math.floor(Date.now() / 1000) + 86400,
+      expirationTimestamp: receiveData.expirationTimestamp ?? Math.floor(Date.now() / 1000) + 86400,
     };
   } catch (error) {
     // Retry with UTXO creation on allocation errors
@@ -283,17 +303,17 @@ async prepareWallet(): Promise<void> {
   const unspents = await this.listUnspents();
   const availableColorable = unspents.filter(u =>
     u.utxo.colorable &&
-    !u.pending_blinded &&
-    (!u.rgb_allocations || u.rgb_allocations.length === 0)
+    !u.pendingBlinded &&
+    (!u.rgbAllocations || u.rgbAllocations.length === 0)
   );
 
   // Create if 1 or fewer available
   if (availableColorable.length <= 1) {
     await this._wallet.createUtxos({
-      up_to: true,   // Create as many as affordable
+      upTo: true,   // Create as many as affordable
       num: 5,        // Target 5 UTXOs
       size: 1000,    // 1000 sats each
-      fee_rate: fees.slow,
+      feeRate: fees.slow,
     });
   }
 }
@@ -320,7 +340,7 @@ async fetchTokenBalances(): Promise<void> {
     if (!assets[key]) continue;
     for (const asset of assets[key]) {
       this._tokenBalances.push({
-        id: asset.asset_id,
+        id: asset.assetId,
         name: asset.name,
         symbol: asset.ticker,
         decimals: asset.precision,
@@ -343,22 +363,23 @@ async getCommonTransactions(): Promise<CommonTransaction[]> {
   const txMap = new Map<string, CommonTransaction>();
 
   // 1. Fetch BTC on-chain transactions
-  const btcTransactions = await this._wallet.listTransactions();
+  // Note: Cast needed because SDK says transactionType is enum, actual is string
+  const btcTransactions = await this._wallet.listTransactions() as unknown as TransactionCustom[];
 
-  // transaction_type: 0=RGB_SEND, 1=DRAIN, 2=CREATE_UTXOS, 3=USER
+  // transactionType is STRING: 'RgbSend', 'Drain', 'CreateUtxos', 'User'
   for (const tx of btcTransactions) {
     let direction: 'send' | 'receive' | 'swap';
     let amount = 0;
 
-    switch (tx.transaction_type) {
-      case 0: // RGB_SEND - amount is 0 (shown in tokenTransfers)
+    switch (tx.transactionType) {
+      case 'RgbSend': // RGB token send - amount is 0 (shown in tokenTransfers)
         direction = 'send';
         break;
-      case 2: // CREATE_UTXOS - internal, net negative
+      case 'CreateUtxos': // Internal UTXO management, net negative
         direction = 'swap';
         amount = -tx.fee;
         break;
-      default: // USER - regular transaction
+      default: // 'User' - regular transaction
         if (tx.received > 0 && tx.sent > 0) {
           direction = 'swap';
           amount = tx.received - tx.sent;
@@ -378,12 +399,23 @@ async getCommonTransactions(): Promise<CommonTransaction[]> {
   const assets = await this.listAssets();
 
   for (const assetId of niaAssetIds) {
-    const transfers = await this._wallet.listTransfers(assetId);
+    // Note: Cast needed because SDK says status/kind are enums, actual are strings
+    const transfers = await this._wallet.listTransfers(assetId) as unknown as RgbTransferCustom[];
 
-    // kind: 0=issue, 1=receive, 2=receive_blind, 3=send
-    // status: 0=WAITING_COUNTERPARTY, 1=WAITING_CONFIRMATIONS, 2=SETTLED, 3=FAILED
+    // status is STRING: 'WaitingCounterparty', 'WaitingConfirmations', 'Settled', 'Failed'
+    // kind is STRING: 'Issuance', 'ReceiveBlind', 'ReceiveWitness', 'Send', 'Inflation'
     for (const transfer of transfers) {
-      const direction = transfer.kind === 3 ? 'send' : 'receive';
+      const direction = transfer.kind === 'Send' ? 'send' : 'receive';
+
+      // Amount is in requestedAssignment.Fungible, NOT in 'amount' field
+      const amount = transfer.requestedAssignment?.Fungible ?? 0;
+
+      let rgbStatus: TransactionStatus;
+      switch (transfer.status) {
+        case 'Settled': rgbStatus = 'confirmed'; break;
+        case 'Failed': rgbStatus = 'failed'; break;
+        default: rgbStatus = 'pending';
+      }
 
       // Merge with BTC tx or create standalone entry
       const existingTx = txMap.get(transfer.txid);
@@ -396,6 +428,9 @@ async getCommonTransactions(): Promise<CommonTransaction[]> {
       }
     }
   }
+
+  // 3. Create backup after fetching transactions
+  await this.createBackup(backupPath, 'auto-backup');
 
   // Sort by timestamp, newest first
   return Array.from(txMap.values()).sort((a, b) => b.timestamp - a.timestamp);
@@ -442,70 +477,82 @@ async getFeeEstimates(): Promise<{ slow: number; medium: number; fast: number }>
 
 ## Custom Types (rgb-types.ts)
 
-The RGB SDK TypeScript definitions have inaccuracies. These types correct them:
+The `@utexo/rgb-sdk` TypeScript definitions have several discrepancies with actual runtime data. Custom types extend SDK types and override only what's different.
+
+### SDK Type Issues (Verified 2026-02-05)
+
+| SDK Type | Issue | Actual Data |
+|----------|-------|-------------|
+| `AssetNIA.balance` | Says `BtcBalance` | Actually `Balance` (settled/future/spendable) |
+| `Unspent` | Missing fields | Has `pendingBlinded` and `utxo.exists` |
+| `Transaction.transactionType` | Enum (number) | String (`"User"`, `"RgbSend"`, etc.) |
+| `RgbTransfer.status` | Enum (number) | String (`"Settled"`, `"Failed"`, etc.) |
+| `RgbTransfer.kind` | Enum (number) | String (`"Send"`, `"ReceiveBlind"`, etc.) |
+| `RgbTransfer.amount` | Present | Missing - use `requestedAssignment.Fungible` |
+| `InvoiceRequest.assetId` | Required | Optional (for wildcard invoices) |
+
+### Custom Types (Extend SDK)
 
 ```typescript
-// Asset balance - SDK declares BtcBalance but runtime returns flat structure
-interface AssetBalanceCustom {
-  settled: number;
-  future: number;
-  spendable: number;
-  offchain_outbound: number;
-  offchain_inbound: number;
+import type { AssetNIA, Balance, Utxo, Unspent, RgbTransfer, Transaction, InvoiceRequest } from '@utexo/rgb-sdk';
+
+// Utxo with additional 'exists' field
+interface UtxoCustom extends Utxo {
+  exists?: boolean;
 }
 
-// Decoded invoice - SDK declares SendAssetBeginRequestModel but runtime returns this
-interface DecodeRgbInvoiceResponseCustom {
-  recipient_id: string;
-  asset_schema: string | null;
-  asset_id: string | null;                    // null for wildcard invoices
-  assignment: { amount: number } | null;      // null if no amount specified
-  assignment_name: string;
-  network: number;
-  expiration_timestamp: number;
-  transport_endpoints: string[];
+// Unspent with pendingBlinded field
+interface UnspentCustom extends Omit<Unspent, 'utxo'> {
+  utxo: UtxoCustom;
+  pendingBlinded?: number; // Returns 0 or 1
 }
 
-// UTXO - SDK missing pending_blinded property
-interface UnspentCustom {
-  utxo: {
-    outpoint: { txid: string; vout: number };
-    btc_amount: number;
-    colorable: boolean;
-  };
-  rgb_allocations: Array<{ asset_id: string; amount: number; settled: boolean }>;
-  pending_blinded?: boolean;
-}
-
-// Send result - SDK declares string but runtime returns object
-interface SendResultCustom {
-  txid: string;
-  batch_transfer_idx: number;
-}
-
-// Asset with correct balance type
-interface AssetNIACustom {
-  asset_id: string;
+// AssetNIA with correct balance type (Balance, not BtcBalance)
+interface AssetNIACustom extends Omit<AssetNIA, 'balance'> {
+  assetId: string;  // Make required
   name: string;
   ticker: string;
   precision: number;
-  balance: AssetBalanceCustom;
-  // ... optional fields
+  balance: Balance; // SDK incorrectly says BtcBalance
 }
 
-// List assets - SDK declares undefined but runtime returns null
+// List assets with non-optional arrays
 interface ListAssetsResponseCustom {
-  nia: AssetNIACustom[] | null;
-  uda: AssetNIACustom[] | null;
-  cfa: AssetNIACustom[] | null;
+  nia: AssetNIACustom[];
+  uda: AssetNIACustom[];
+  cfa: AssetNIACustom[];
+  ifa?: AssetNIACustom[];
 }
 
-// Invoice request - SDK declares asset_id required but it's optional for wildcards
-interface InvoiceRequestCustom {
-  amount: number;
-  asset_id?: string;
+// Invoice request with optional assetId for wildcard invoices
+interface InvoiceRequestCustom extends Omit<InvoiceRequest, 'assetId'> {
+  assetId?: string;
+}
+
+// RGB Transfer with string enums and correct field names
+interface RgbTransferCustom extends Omit<RgbTransfer, 'status' | 'kind' | 'amount' | 'transportEndpoints'> {
+  status: 'WaitingCounterparty' | 'WaitingConfirmations' | 'Settled' | 'Failed';
+  kind: 'Issuance' | 'ReceiveBlind' | 'ReceiveWitness' | 'Send' | 'Inflation';
+  transportEndpoints: Array<{ endpoint: string; transportType: string; used: boolean }>;
+  requestedAssignment?: { Fungible?: number };  // Replaces 'amount'
+  assignments?: Array<{ Fungible?: number }>;
+  invoiceString?: string;
+  consignmentPath?: string;
+}
+
+// Transaction with string transactionType
+interface TransactionCustom extends Omit<Transaction, 'transactionType'> {
+  transactionType: 'RgbSend' | 'Drain' | 'CreateUtxos' | 'User';
 }
 ```
+
+### SDK Types Used Directly (No Custom Needed)
+
+- `SendResult` - Matches actual data
+- `Balance` - Matches actual data
+- `BtcBalance` - Matches actual data
+- `GeneratedKeys` - Matches actual data
+- `InvoiceReceiveData` - Matches actual data
 
 ---
 
@@ -525,11 +572,21 @@ All types tracked with: balance, name, ticker, precision (decimals)
 
 ```typescript
 // mobile/src/modules/rgb-adapter.ts
-import * as sdk from 'rgb-sdk-rn';
+import * as sdk from '@utexo/rgb-sdk-rn';
+import { Paths } from 'expo-file-system';  // Note: documentDirectory is deprecated
 
 class RGBAdapter implements IRGBAdapter {
+  private _dataDir: string | undefined;
+
   async initialize(): Promise<RGBSDK> {
     return sdk as unknown as RGBSDK;
+  }
+
+  getDataDir(): string {
+    if (!this._dataDir) {
+      this._dataDir = `${Paths.document.uri}rgb-data`;  // Use Paths.document.uri
+    }
+    return this._dataDir;
   }
 }
 
@@ -542,11 +599,16 @@ globalThis.rgbAdapter = new RGBAdapter();
 // ext/src/modules/rgb-adapter.ts
 class RGBAdapter implements IRGBAdapter {
   private sdk: RGBSDK | undefined;
+  private _dataDir: string = 'rgb-data';
 
   async initialize(): Promise<RGBSDK> {
     if (this.sdk) return this.sdk;
-    this.sdk = await import('rgb-sdk');
+    this.sdk = await import('@utexo/rgb-sdk');
     return this.sdk;
+  }
+
+  getDataDir(): string {
+    return this._dataDir;
   }
 }
 
@@ -676,12 +738,14 @@ if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
 
 ```json
 // Extension (web)
-"rgb-sdk": "1.2.7"
+"@utexo/rgb-sdk": "1.0.4"
 
 // Mobile
-"rgb-sdk": "1.2.7"       // Web fallback
-"rgb-sdk-rn": "1.0.1"    // React Native native
+"@utexo/rgb-sdk": "1.0.4"           // Web fallback / types
+"@utexo/rgb-sdk-rn": "1.0.0-beta.1" // React Native native module
 ```
+
+> **Migration Note**: Packages migrated from `rgb-sdk` / `rgb-sdk-rn` to `@utexo/rgb-sdk` / `@utexo/rgb-sdk-rn`. The new SDK uses camelCase API (e.g., `blindReceive` not `blind_receive`).
 
 ---
 
@@ -711,7 +775,7 @@ if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
 2. **UTXO Management**: RGB requires "colorable" UTXOs. The wallet automatically creates them in low-fee environments.
 
 3. **Invoice Types**:
-   - Wildcard (no asset_id): Can receive any token
+   - Wildcard (no assetId): Can receive any token
    - Asset-specific: Only receives specified token
    - Amount-locked: Pre-filled amount from invoice
 
@@ -719,6 +783,19 @@ if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
 
 5. **Status Priority**: RGB pending status takes precedence over BTC confirmed (transfer isn't complete until RGB state settles).
 
-6. **SDK Type Corrections**: Many SDK types are inaccurate - use custom types from `rgb-types.ts`.
+6. **Auto-Backup**: A backup is automatically created after every `getCommonTransactions()` call to preserve wallet state.
 
 7. **Server Limitation**: Custom account derivation (`customDeriveKeysFromMnemonic`) throws 400 on server registration - must use SDK's built-in derivation.
+
+8. **Local Storage**: The new SDK uses local storage model with `dataDir`, `transportEndpoint`, and `indexerUrl` parameters instead of the previous server-dependent architecture.
+
+9. **SDK Type Discrepancies**: The `@utexo/rgb-sdk` TypeScript definitions don't match actual runtime data in several places:
+   - Enums declared as numbers but returned as strings (`transactionType`, `status`, `kind`)
+   - `AssetNIA.balance` typed as `BtcBalance` but actual is `Balance`
+   - Missing fields (`pendingBlinded`, `requestedAssignment`, `invoiceString`)
+   - Use custom types from `rgb-types.ts` that extend SDK types with `Omit<>` pattern
+
+10. **Electrum Server Network Match**: The indexer URL MUST match the wallet network. Using wrong network causes `InvalidIndexer` error:
+    - Mainnet: `ssl://electrum.iriswallet.com:50003`
+    - Testnet3: `ssl://electrum.iriswallet.com:50013`
+    - Testnet4: `ssl://electrum.iriswallet.com:50053`

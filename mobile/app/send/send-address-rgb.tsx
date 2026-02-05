@@ -50,15 +50,15 @@ const SendAddressRgb: React.FC = () => {
         assert(wallet instanceof RGBWallet, 'Not an RGB wallet');
         const decoded = await wallet.decodeRgbInvoice(invoice);
 
-        // If invoice specifies an asset_id, check if user has this token
-        if (decoded.asset_id) {
+        // If invoice specifies an assetId, check if user has this token
+        if (decoded.assetId) {
           const tokenBalances = wallet.getTokenBalances();
-          const matchingToken = tokenBalances.find((t) => t.id === decoded.asset_id);
+          const matchingToken = tokenBalances.find((t) => t.id === decoded.assetId);
           if (!matchingToken) {
             setErrorMessage("You don't have this token");
             return;
           }
-          setToken(decoded.asset_id);
+          setToken(decoded.assetId);
         }
 
         setDecodedInvoice(decoded);
@@ -135,7 +135,7 @@ const SendAddressRgb: React.FC = () => {
   const trimmed = localAddress.trim();
   const isInvoice = RGBWallet.isRgbInvoice(trimmed);
   // Allow token selection only for RGB invoices that don't specify an asset
-  const canSelectToken = isInvoice && decodedInvoice && !decodedInvoice.asset_id;
+  const canSelectToken = isInvoice && decodedInvoice && !decodedInvoice.assetId;
   // Taproot: ready when valid address; Invoice: ready when decoded + token selected
   const canContinue = !!trimmed && !isValidating && !errorMessage && (!isInvoice || (!!decodedInvoice && !!token));
 
@@ -143,7 +143,7 @@ const SendAddressRgb: React.FC = () => {
   let invoiceInfoText: string | null = null;
   if (decodedInvoice && !errorMessage && !isValidating) {
     const parts: string[] = [];
-    if (decodedInvoice.asset_id) parts.push('Token detected');
+    if (decodedInvoice.assetId) parts.push('Token detected');
     if (decodedInvoice.assignment?.amount) parts.push(`Amount: ${decodedInvoice.assignment.amount}`);
     invoiceInfoText = parts.length > 0 ? parts.join(' · ') : 'Valid RGB invoice';
   }

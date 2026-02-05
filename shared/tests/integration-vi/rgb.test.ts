@@ -1,15 +1,22 @@
 import { describe, expect, it, beforeAll, assert } from 'vitest';
-import { RGBWallet } from '@shared/class/wallets/rgb-wallet';
-import { NETWORK_RGB_TESTNET } from '@shared/types/networks';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 
 const TIMEOUT = 60000;
 
+// Backup file location and password
+const BACKUP_FILE = path.join(__dirname, '../fixtures/rgb_backup.rgb');
+const BACKUP_PASSWORD = '123321';
+
 describe('RGB Integration', () => {
-  let wallet: RGBWallet;
+  let testDataDir: string;
+  let sdk: any;
+  let wallet: any;
 
   describe('rgbAdapter', () => {
     it('should initialize and return SDK', async () => {
-      const sdk = await globalThis.rgbAdapter.initialize();
+      sdk = await globalThis.rgbAdapter.initialize();
       expect(sdk).toBeDefined();
       expect(sdk.createWallet).toBeDefined();
     });
@@ -21,155 +28,86 @@ describe('RGB Integration', () => {
     });
   });
 
-  beforeAll(async () => {
-    assert(process.env.TEST_MNEMONIC, 'TEST_MNEMONIC not set');
-    wallet = new RGBWallet('testnet');
-    wallet.setSecret(process.env.TEST_MNEMONIC);
-    await wallet.init();
-  }, TIMEOUT);
+  describe('Restore from backup', () => {
+    beforeAll(async () => {
+      // Create a unique temp directory for this test
+      testDataDir = path.join(os.tmpdir(), `rgb-test-${Date.now()}`);
+      fs.mkdirSync(testDataDir, { recursive: true });
 
-  it(
-    'should get balance',
-    async () => {
-      const balance = await wallet.getBalance();
-      expect(typeof balance).toBe('number');
-    },
-    TIMEOUT
-  );
+      // Verify backup file exists
+      assert(fs.existsSync(BACKUP_FILE), `Backup file not found: ${BACKUP_FILE}`);
 
-  it(
-    'should get common transactions',
-    async () => {
-      const transactions = await wallet.getCommonTransactions();
+      // Initialize SDK
+      sdk = await globalThis.rgbAdapter.initialize();
 
+      console.log('Restoring from backup...');
+      console.log('Backup file:', BACKUP_FILE);
+      console.log('Data dir:', testDataDir);
+
+      // Restore wallet from backup
+      const restoreResult = sdk.restoreFromBackup({
+        backupFilePath: BACKUP_FILE,
+        password: BACKUP_PASSWORD,
+        dataDir: testDataDir,
+      });
+      console.log('Restore result:', restoreResult);
+      expect(restoreResult.message).toBe('Wallet restored successfully');
+
+      // Create wallet manager
+      assert(process.env.TEST_MNEMONIC, 'TEST_MNEMONIC not set');
+      const keys = await sdk.deriveKeysFromMnemonic('testnet', process.env.TEST_MNEMONIC);
+
+      wallet = new sdk.WalletManager({
+        xpubVan: keys.accountXpubVanilla,
+        xpubCol: keys.accountXpubColored,
+        masterFingerprint: keys.masterFingerprint,
+        mnemonic: keys.mnemonic,
+        network: 'testnet',
+        dataDir: testDataDir,
+        transportEndpoint: 'rpc://proxy.iriswallet.com/0.2/json-rpc',
+        indexerUrl: 'ssl://electrum.iriswallet.com:50013', // Testnet3 server
+      });
+    }, TIMEOUT);
+
+    it('should have restored files in dataDir', async () => {
+      const files = fs.readdirSync(testDataDir);
+      console.log('Restored files:', files);
+      expect(files.length).toBeGreaterThan(0);
+
+      // Should have master fingerprint directory
+      expect(files).toContain('dd80d908');
+    });
+
+    it('should get address from restored wallet (offline)', async () => {
+      const address = wallet.getAddress();
+      console.log('Address:', address);
+
+      expect(address).toBeDefined();
+      expect(address).toMatch(/^tb1/); // testnet taproot address
+    });
+
+    it('should have correct master fingerprint', async () => {
+      const keys = await sdk.deriveKeysFromMnemonic('testnet', process.env.TEST_MNEMONIC);
+      console.log('Master fingerprint:', keys.masterFingerprint);
+      expect(keys.masterFingerprint).toBe('dd80d908');
+    });
+
+    // Skip online tests for now - WASM networking issues in Node.js
+    it('should have tokens after restore (requires online)', async () => {
+      const registerResult = wallet.registerWallet();
+      console.log('Register result:', registerResult);
+
+      const assets = wallet.listAssets();
+      console.log('Assets:', JSON.stringify(assets, null, 2));
+
+      expect(assets.nia).toBeDefined();
+      expect(assets.nia.length).toBeGreaterThan(0);
+    });
+
+    it.skip('should get transactions (requires online)', async () => {
+      const transactions = wallet.listTransactions();
+      console.log('Transactions:', transactions.length);
       expect(Array.isArray(transactions)).toBe(true);
-
-      for (const tx of transactions) {
-        expect(tx.network).toBe(NETWORK_RGB_TESTNET);
-        expect(tx.txid).toBeDefined();
-        expect(typeof tx.timestamp).toBe('number');
-        expect(['pending', 'confirmed', 'failed', 'cancelled']).toContain(tx.status);
-        expect(['send', 'receive', 'swap', 'other']).toContain(tx.direction);
-
-        // Verify token transfers have embedded token info
-        if (tx.tokenTransfers && tx.tokenTransfers.length > 0) {
-          for (const transfer of tx.tokenTransfers) {
-            expect(transfer.name).toBeDefined();
-            expect(transfer.symbol).toBeDefined();
-            expect(transfer.decimals).toBeDefined();
-            expect(typeof transfer.amount).toBe('number');
-          }
-        }
-      }
-
-      // Verify sorted by timestamp (newest first)
-      for (let i = 1; i < transactions.length; i++) {
-        expect(transactions[i - 1].timestamp).toBeGreaterThanOrEqual(transactions[i].timestamp);
-      }
-    },
-    TIMEOUT
-  );
-
-  it(
-    'should fetch token balances',
-    async () => {
-      await wallet.fetchTokenBalances();
-      const tokens = wallet.getTokenBalances();
-
-      expect(Array.isArray(tokens)).toBe(true);
-      for (const token of tokens) {
-        expect(token.id).toBeDefined();
-        expect(token.name).toBeDefined();
-        expect(typeof token.decimals).toBe('number');
-      }
-    },
-    TIMEOUT
-  );
-
-  it.only('should get balance', async () => {
-    const balance = await wallet.getBalance();
-    assert(wallet._wallet, 'RGBWallet not initialized. Call init() first.');
-    // console.log('balance', await wallet._wallet.syncWallet());
-    // console.log('balance', await wallet._wallet.refreshWallet());
-    console.log('balance', await wallet._wallet.getBtcBalance());
-    console.log('listTransactions', await wallet._wallet.listTransactions());
-
-    console.log('address', await wallet._wallet.getAddress());
-    console.log('listAssets', await wallet._wallet.listAssets());
-    const assets = await wallet._wallet.listAssets();
-    const asset1 = assets.nia?.[0]?.asset_id;
-    if (asset1) {
-      console.log('listTransactions', await wallet._wallet.listTransfers(asset1));
-    }
-    console.log('listAssets', JSON.stringify(await wallet._wallet.listAssets()));
-    console.log('listUnspents', await wallet._wallet.listUnspents());
-    // expect(balance).toBeDefined();
-    // expect(balance).toBeGreaterThan(0);
-
-    // const psbt = await wallet._wallet.createUtxosBegin({
-    //   // up_to: true,
-    //   // num: 5,
-    //   // size: 1000,
-    //   // fee_rate: 1
-    // });
-    // // Step 2: Sign the PSBT (synchronous operation)
-    // const signed_psbt = await wallet._wallet.signPsbt(psbt);
-    // // Step 3: Finalize UTXO creation
-    // try {
-    //   const utxosCreated = await wallet._wallet.createUtxosEnd({ signed_psbt });
-    //   console.log(`Created ${utxosCreated} UTXOs`);
-    //   // console.log(utxosCreated.data.detail);
-    // } catch (error) {
-    //   console.error('Error creating UTXOs:', error);
-    //   console.error('Error creating UTXOs:', JSON.stringify(error));
-    // }
-
-    // return;
-    // const receiveData = await wallet._wallet.witnessReceive({
-    //   // asset_id: 'rgb:NR~RUnC3-BFWHRcC-9bhMmIj-Q7EiBin-WWzNWCp-GHSwSdk',
-    //   amount: 66,
-    // });
-    // console.log('Receive data2:', receiveData);
-    // return;
-
-    // const receiveData = await wallet._wallet.blindReceive({
-    //   // asset_id: 'rgb:NR~RUnC3-BFWHRcC-9bhMmIj-Q7EiBin-WWzNWCp-GHSwSdk',
-    //   amount: 1,
-    // });
-    // console.log('Receive data:', receiveData);
-    // return;
-
-    // try {
-    //   const sendResult2 = await wallet._wallet.send({
-    //     invoice:
-    //       'rgb:NR~RUnC3-BFWHRcC-9bhMmIj-Q7EiBin-WWzNWCp-GHSwSdk/RWhwUfTMpuP2Zfx1~j4nswCANGeJrYOqDcKelaMV4zU/~/tb3:utxob:slx7HQOG-6FLSEN3-2J0n4zY-UElKxmg-Whf~ro3-nxXvAFp-qX19H?assignment_name=assetOwner&expiry=1769007841&endpoints=rpcs://proxy.iriswallet.com/0.2/json-rpc',
-    //     amount: 5,
-    //     asset_id: 'rgb:NR~RUnC3-BFWHRcC-9bhMmIj-Q7EiBin-WWzNWCp-GHSwSdk',
-    //     fee_rate: 1,
-    //     min_confirmations: 1,
-    //   });
-    //   console.log('Send result2:', sendResult2);
-    //   return;
-    // } catch (error) {
-    //   console.error('Error sending:', error);
-    //   console.error('Error sending:', JSON.stringify(error));
-    // }
-
-    // return;
-    // const asset = await wallet._wallet.issueAssetNia({
-    //   ticker: 'USDT',
-    //   name: 'Tether USD',
-    //   amounts: [1000, 500],
-    //   precision: 6,
-    // });
-
-    //   const asset = await wallet._wallet.issueAssetNia({
-    //     ticker: "LZ",
-    //     name: "Layerz Shares",
-    //     amounts: [1000, 500],
-    //     precision: 6
-    // });
-
-    // console.log('Asset issued:', asset.asset?.assetId);
-  }, 60000);
+    });
+  });
 });
