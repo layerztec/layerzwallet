@@ -4,7 +4,7 @@ import * as FileSystem from 'expo-file-system';
 import { File as ExpoFsFile, Directory } from 'expo-file-system';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
 import { StyleSheet, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions } from 'react-native';
-import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
+import WebView, { WebViewMessageEvent, WebViewNavigation, WebViewNavigationEvent } from 'react-native-webview';
 import { Stack, useLocalSearchParams, useRouter, Link, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,7 +14,10 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming, withSpring, int
 import { ThemedText } from '@/components/ThemedText';
 import GradientScreen from '@/components/GradientScreen';
 import { BrowserBridge } from '@/src/class/browser-bridge';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { DAppBrowserTabs } from './DAppBrowserTabs';
 import { useWebViewPreviewManager } from './hooks/useWebViewPreviewManager';
@@ -64,6 +67,16 @@ const isValidUrl = (urlString: string): boolean => {
   try {
     const url = new URL(urlString);
     return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const isBotanixBridgeUrl = (urlString?: string): boolean => {
+  if (!urlString) return false;
+  try {
+    const { hostname } = new URL(urlString);
+    return hostname === 'bridge.botanixlabs.dev' || hostname === 'bridge.botanixlabs.com' || hostname.endsWith('.botanixlabs.dev') || hostname.endsWith('.botanixlabs.com');
   } catch {
     return false;
   }
@@ -131,6 +144,7 @@ const getScreenshotDir = (): string | null => {
 
 const DAppBrowser: React.FC = () => {
   const { network } = useContext(NetworkContext);
+  const { accountNumber } = useContext(AccountNumberContext);
   const router = useRouter();
   const navigation = useNavigation();
   const webviewRef = useRef<WebView>(null);
@@ -149,6 +163,7 @@ const DAppBrowser: React.FC = () => {
   const [showTabsOverview, setShowTabsOverview] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isAddressInputFocused, setIsAddressInputFocused] = useState(false);
+  const [btcAddress, setBtcAddress] = useState<string>('');
 
   const webviewOpacity = useSharedValue(1);
   const tabsOpacity = useSharedValue(0);
@@ -167,6 +182,7 @@ const DAppBrowser: React.FC = () => {
   const lastManualNavigationUrl = useRef<string | undefined>(undefined);
   const loadingScreenshotsRef = useRef<Set<string>>(new Set());
   const tabsNeedingScreenshotsRef = useRef<Set<string>>(new Set());
+  const lastPrefillRef = useRef<{ url?: string; address?: string }>({});
 
   const setAddressBarValue = useCallback((value: string, options?: { ensureStartVisible?: boolean }) => {
     setAddressInput(value);
@@ -331,6 +347,23 @@ const DAppBrowser: React.FC = () => {
       },
     });
   }, [showTabsOverview, navigation]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadBtcAddress = async () => {
+      try {
+        const address = await BackgroundExecutor.getAddress(NETWORK_BITCOIN, accountNumber);
+        if (!cancelled) {
+          setBtcAddress(address);
+        }
+      } catch (error) {}
+    };
+
+    loadBtcAddress();
+    return () => {
+      cancelled = true;
+    };
+  }, [accountNumber]);
 
   useEffect(() => {
     (async () => {
@@ -931,6 +964,56 @@ const DAppBrowser: React.FC = () => {
     [progressWidth, progressOpacity, activeTabId, captureTabScreenshot]
   );
 
+  const prefillBtcAddressOnBotanixBridge = useCallback(
+    (url?: string) => {
+      if (!url || !btcAddress) return;
+      if (!isBotanixBridgeUrl(url)) return;
+
+      if (lastPrefillRef.current.url === url && lastPrefillRef.current.address === btcAddress) {
+        return;
+      }
+
+      const addressValue = JSON.stringify(btcAddress);
+      const script = `
+        (function() {
+          try {
+            var address = ${addressValue};
+            if (!address) return;
+            var inputs = Array.prototype.slice.call(document.querySelectorAll('input'));
+            var candidates = inputs.filter(function(input) {
+              var type = (input.getAttribute('type') || 'text').toLowerCase();
+              if (type && ['text', 'search', 'tel', 'url'].indexOf(type) === -1) return false;
+              if (input.disabled || input.readOnly) return false;
+              if (input.value) return false;
+              return true;
+            });
+            var match = candidates.find(function(input) {
+              var hint = [input.placeholder, input.name, input.id, input.getAttribute('aria-label')].filter(Boolean).join(' ');
+              return /btc|bitcoin|address/i.test(hint);
+            }) || candidates[0];
+            if (match) {
+              match.value = address;
+              match.dispatchEvent(new Event('input', { bubbles: true }));
+              match.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          } catch (e) {}
+        })();
+        true;
+      `;
+
+      webviewRef.current?.injectJavaScript(script);
+      lastPrefillRef.current = { url, address: btcAddress };
+    },
+    [btcAddress]
+  );
+
+  const handleActiveTabLoadEnd = useCallback(
+    (event: WebViewNavigationEvent) => {
+      prefillBtcAddressOnBotanixBridge(event.nativeEvent.url);
+    },
+    [prefillBtcAddressOnBotanixBridge]
+  );
+
   const handleInactiveTabLoad = useCallback(
     async (tabId: string) => {
       // Check if this tab needs a screenshot
@@ -1139,11 +1222,11 @@ const DAppBrowser: React.FC = () => {
                         onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
                         onLoadProgress={isActive ? handleLoadProgress : undefined}
                         onLoadEnd={
-                          !isActive
-                            ? () => {
+                          isActive
+                            ? handleActiveTabLoadEnd
+                            : () => {
                                 handleInactiveTabLoad(tab.id);
                               }
-                            : undefined
                         }
                         injectedJavaScriptBeforeContentLoaded={js}
                         style={styles.webviewVisible}
