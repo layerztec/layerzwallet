@@ -220,14 +220,12 @@ export function ProtectedRouteStack() {
         <Stack.Screen
           name="PocketSwitch"
           options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.7],
-            sheetGrabberVisible: true,
-            headerTransparent: false,
-            gestureEnabled: true,
+            presentation: 'transparentModal',
+            animation: 'fade',
             headerShown: false,
+            gestureEnabled: true,
             contentStyle: {
-              height: '100%',
+              backgroundColor: 'transparent',
             },
           }}
         />

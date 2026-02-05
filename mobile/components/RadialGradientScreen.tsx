@@ -1,10 +1,10 @@
-import { RadialGradient } from 'react-native-gradients';
 import React from 'react';
 import { NativeScrollEvent, NativeSyntheticEvent, RefreshControl, StyleSheet, ViewStyle, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getNetworkPrimaryColor } from '@shared/constants/Colors';
+import { RadialGradient } from './RadialGradient';
 
 interface RadialGradientScreenProps {
   children: React.ReactNode;

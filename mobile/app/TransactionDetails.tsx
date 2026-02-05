@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Pressable from '../components/Pressable';
-import { Linking, StyleSheet, View } from 'react-native';
+import { Linking, StyleSheet, View, Platform } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, withRepeat, withSequence } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
@@ -558,7 +558,7 @@ export default function TransactionDetails() {
 
   return (
     <DetachedSheet variant={network} layerNetwork={currentLayerNetwork} onClose={handleSheetClose}>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+      <SafeAreaView style={styles.safeArea} edges={Platform.OS === 'ios' ? ['top', 'left', 'right', 'bottom'] : ['left', 'right']}>
         <View style={styles.container}>
           {/* Top header: icon, type, date */}
           <View style={styles.topHeader}>
@@ -894,9 +894,22 @@ const styles = StyleSheet.create({
   timelineContainer: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
     overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+      },
+      android: {
+        // Skip elevation for transparent backgrounds - the border provides enough definition
+      },
+    }),
   },
   timelineInnerContainer: {
     minHeight: 104,

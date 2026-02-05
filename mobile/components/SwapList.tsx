@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import Pressable from './Pressable';
 
 import { ThemedText } from '@/components/ThemedText';
+import SectionContainer from '@/components/SectionContainer';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_SPARK } from '@shared/types/networks';
 import { useSwaps } from '@shared/hooks/useSwaps';
@@ -93,15 +94,13 @@ const SwapList = forwardRef<{ refresh: () => void }>((props, ref) => {
   }
 
   return (
-    <View style={styles.swapsContainer}>
-      <ThemedText style={styles.swapsTitle}>Swaps</ThemedText>
-
+    <SectionContainer title="Swaps" contentStyle={styles.contentPadding}>
       <View style={styles.swapsList}>
-        {swaps.map((swap, index) => (
+        {swaps.map((swap) => (
           <SwapItem key={swap.id} swap={swap} />
         ))}
       </View>
-    </View>
+    </SectionContainer>
   );
 });
 
@@ -110,18 +109,8 @@ SwapList.displayName = 'SwapList';
 export default SwapList;
 
 const styles = StyleSheet.create({
-  swapsContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 20,
-    overflow: 'hidden',
-  },
-  swapsTitle: {
-    fontSize: 20,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
-    marginBottom: 24,
+  contentPadding: {
+    paddingHorizontal: 16,
   },
   swapsList: {
     gap: 24,

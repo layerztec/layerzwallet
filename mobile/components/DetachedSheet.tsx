@@ -1,10 +1,12 @@
 import React, { useMemo, useRef, useEffect } from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import { View, StyleSheet, ViewStyle, Platform } from 'react-native';
 import GorhomBottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { gradients } from '@shared/constants/Colors';
+import { RadialGradient } from '@/components/RadialGradient';
+import { getNetworkPrimaryColor } from '@shared/constants/Colors';
 import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_USDT } from '@shared/types/networks';
+import PlatformBlurView from './PlatformBlurView';
 
 interface DetachedSheetProps {
   children: React.ReactNode;
@@ -32,34 +34,31 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
   const bottomSheetRef = useRef<GorhomBottomSheet>(null);
   const insets = useSafeAreaInsets();
 
-  // Get gradient colors for the network
-  const gradientColors = useMemo(() => {
+  // Get the effective network for the radial gradient
+  const effectiveNetwork = useMemo(() => {
     if (layerNetwork === NETWORK_LIGHTNING || layerNetwork === NETWORK_LIGHTNING_TESTNET) {
-      return gradients[NETWORK_LIGHTNING];
+      return NETWORK_LIGHTNING;
     }
-
     if (layerNetwork === NETWORK_USDT) {
-      return gradients[NETWORK_USDT];
+      return NETWORK_USDT;
     }
-
     if (variant === NETWORK_LIGHTNING || variant === NETWORK_LIGHTNING_TESTNET) {
-      return gradients[NETWORK_LIGHTNING];
+      return NETWORK_LIGHTNING;
     }
     if (variant === NETWORK_USDT) {
-      return gradients[NETWORK_USDT];
+      return NETWORK_USDT;
     }
-
-    let id: keyof typeof gradients = 'base';
-    for (const key of Object.keys(gradients)) {
-      if (key.startsWith(variant)) {
-        id = key as keyof typeof gradients;
-        break;
-      }
-    }
-    return gradients[id];
+    return variant;
   }, [variant, layerNetwork]);
-
-  const backgroundColor = useMemo(() => gradientColors[0], [gradientColors]);
+  // Radial gradient color list
+  const radialColorList = useMemo(() => {
+    const primaryColor = getNetworkPrimaryColor(effectiveNetwork);
+    const blackOpacity = Platform.OS === 'ios' ? '0' : '0.7';
+    return [
+      { offset: '0%', color: primaryColor, opacity: '1' },
+      { offset: '100%', color: '#000000', opacity: blackOpacity },
+    ];
+  }, [effectiveNetwork]);
 
   const calculatedBottomInset = useMemo(() => {
     if (bottomInset !== undefined) return bottomInset;
@@ -89,8 +88,12 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
         bottomInset={calculatedBottomInset}
         style={[styles.bottomSheetStyle, style]}
         backgroundComponent={({ style: backgroundStyle }) => (
-          <View style={[backgroundStyle, styles.gradientContainer, { backgroundColor }]}>
-            <View style={styles.blurView} />
+          <View style={[backgroundStyle, styles.gradientContainer]}>
+            <PlatformBlurView intensity={50} tint="light" style={styles.blurOverlay} />
+            <View style={styles.radialGradientWrapper}>
+              <RadialGradient colorList={radialColorList} x="48.63%" y="-24.14%" rx="163.06%" ry="75.01%" />
+            </View>
+            <View style={styles.borderOverlay} pointerEvents="none" />
           </View>
         )}
       >
@@ -109,16 +112,24 @@ const styles = StyleSheet.create({
   },
   gradientContainer: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 20,
+    borderRadius: 32,
     overflow: 'hidden',
   },
-  blurView: {
+  radialGradientWrapper: {
     position: 'absolute',
-    top: -10,
-    left: -10,
-    right: -10,
-    height: '120%',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 800,
+  },
+  blurOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  borderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   bottomSheetContent: {
     flex: 1,
