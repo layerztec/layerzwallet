@@ -10,13 +10,9 @@ appId: com.layerzwallet.mobile
     env:
       NETWORK: 'rootstock'
 
-- scrollUntilVisible:
-    element:
-      id: 'ExplorerButton'
-    timeout: 30000
-    centerElement: true
+# Navigate to Explorer tab (explorer is now in the bottom tab bar)
 - tapOn:
-    id: 'ExplorerButton'
+    text: 'Explorer'
 - waitForAnimationToEnd
 - waitForAnimationToEnd
 # Wait for browser to fully load (JS loaded)

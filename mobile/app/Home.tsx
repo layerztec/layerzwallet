@@ -219,10 +219,6 @@ export default function Home() {
     router.push('/Transactions');
   };
 
-  const handleExplorer = () => {
-    router.push('/DAppBrowser');
-  };
-
   const handleTokenPress = (token: CachedTokenInfo) => {
     router.push({
       pathname: '/send',
@@ -354,17 +350,19 @@ export default function Home() {
           <View style={[styles.root, styles.contentWithHeader]}>
             {/* Network Selector */}
             <View style={styles.networkSelectorContainer}>
-              <LiquidGlassView tint="light" glassStyle="clear" intensity={15} borderIntensity={1} style={styles.networkSelectorGlass}>
-                <Pressable testID="NetworkSwitcherTrigger" style={styles.networkSelector} onPress={handleNetworkSelect} activeOpacity={0.8}>
-                  <View testID={`selectedNetwork-${network}`} style={styles.networkIcon}>
-                    {networkIconContent}
+              <Pressable testID="NetworkSwitcherTrigger" onPress={handleNetworkSelect} activeOpacity={0.8}>
+                <LiquidGlassView tint="light" glassStyle="clear" intensity={1} borderIntensity={0.2} style={styles.networkSelectorGlass}>
+                  <View style={styles.networkSelector}>
+                    <View testID={`selectedNetwork-${network}`} style={styles.networkIcon}>
+                      {networkIconContent}
+                    </View>
+                    <ThemedText style={styles.networkName}>{capitalizeFirstLetter(network)}</ThemedText>
+                    <Pressable onPress={handleNetworkSelect} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
+                      <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.8)" />
+                    </Pressable>
                   </View>
-                  <ThemedText style={styles.networkName}>{capitalizeFirstLetter(network)}</ThemedText>
-                  <Pressable onPress={handleNetworkSelect} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
-                    <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.8)" />
-                  </Pressable>
-                </Pressable>
-              </LiquidGlassView>
+                </LiquidGlassView>
+              </Pressable>
             </View>
 
             {/* Testnet Warning */}
@@ -394,9 +392,6 @@ export default function Home() {
 
             {/* Swap List Section */}
             <SwapList ref={swapListRef} />
-
-            {/* Explorer Button */}
-            <Button title="Explore" onPress={handleExplorer} variant="lighter" style={styles.explorerButton} testID="ExplorerButton" />
           </View>
         </RadialGradientScreen>
 
@@ -477,9 +472,6 @@ const styles = StyleSheet.create({
   networkImage: {
     width: 24,
     height: 24,
-  },
-  explorerButton: {
-    marginBottom: 20,
   },
   testnetWarning: {
     backgroundColor: 'rgba(245, 158, 11, 0.15)',

@@ -83,8 +83,8 @@ export default function LiquidGlassButton({
           <LiquidGlassView 
             tint={tint} 
             glassStyle={glassStyle} 
-            intensity={15} 
-            borderIntensity={1}
+            intensity={1} 
+            borderIntensity={0.2}
             style={styles.glassContainer}
           >
             {renderContent()}

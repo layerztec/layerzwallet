@@ -13,6 +13,9 @@ export default function TabsLayout() {
 
   return (
     <NativeTabs
+      backgroundColor={Platform.OS === 'android' ? '#111111' : undefined}
+      iconColor="white"
+      indicatorColor={Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.1)' : undefined}
       labelStyle={{
         color: labelColor,
       }}
