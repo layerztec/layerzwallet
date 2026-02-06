@@ -1,5 +1,5 @@
 import * as RNAPI from '@utexo/rgb-sdk-rn';
-import { Paths } from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
 
 import type { BtcBalance, GeneratedKeys, InvoiceReceiveData, SendResult } from '@utexo/rgb-sdk';
 import type { IRGBAdapter, RGBConnection, RGBNetwork } from '@shared/class/wallets/rgb-wallet';
@@ -60,10 +60,11 @@ class RGBAdapter implements IRGBAdapter {
       xpubCol: keys.accountXpubColored,
       masterFingerprint: keys.masterFingerprint,
       mnemonic: keys.mnemonic,
-      network: connection.network,
       dataDir: connection.dataDir,
       transportEndpoint: connection.transportEndpoint,
-      indexerUrl: connection.indexerUrl,
+      // FIXME: https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/1
+      // network: connection.network,
+      // indexerUrl: connection.indexerUrl,
     });
     this.cc = connection;
     return this.wallet;
@@ -195,9 +196,30 @@ class RGBAdapter implements IRGBAdapter {
 
   getDataDir(): string {
     if (!this._dataDir) {
-      this._dataDir = `${Paths.document.uri}rgb-data`;
+      // Strip file:// prefix - RGB SDK expects raw filesystem path, not URI
+      const basePath = Paths.document.uri.replace(/^file:\/\//, '');
+      this._dataDir = `${basePath}rgb-data`;
     }
     return this._dataDir;
+  }
+
+  // File operations for backup management
+  async fileExists(path: string): Promise<boolean> {
+    const file = new File(`file://${path}`);
+    return file.exists;
+  }
+
+  async deleteFile(path: string): Promise<void> {
+    const file = new File(`file://${path}`);
+    await file.delete();
+  }
+
+  async renameFile(from: string, to: string): Promise<void> {
+    // Use copy + delete instead of move (move fails on files created by native modules)
+    const fromFile = new File(`file://${from}`);
+    const toFile = new File(`file://${to}`);
+    await fromFile.copy(toFile);
+    await fromFile.delete();
   }
 }
 

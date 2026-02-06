@@ -202,6 +202,27 @@ class RGBAdapter implements IRGBAdapter {
   getDataDir(): string {
     return this._dataDir;
   }
+
+  // File operations for backup management
+  async fileExists(path: string): Promise<boolean> {
+    try {
+      const fs = await import('fs/promises');
+      await fs.access(path);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async deleteFile(path: string): Promise<void> {
+    const fs = await import('fs/promises');
+    await fs.unlink(path);
+  }
+
+  async renameFile(from: string, to: string): Promise<void> {
+    const fs = await import('fs/promises');
+    await fs.rename(from, to);
+  }
 }
 
 globalThis.rgbAdapter = new RGBAdapter();

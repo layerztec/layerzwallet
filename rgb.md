@@ -153,7 +153,7 @@ async init() {
     masterFingerprint: restoredKeys.masterFingerprint,
     mnemonic: restoredKeys.mnemonic,
     network: this._network,
-    dataDir: this.adapter.getDataDir(),
+    dataDir: `${this.adapter.getDataDir()}/${this._network}`, // Network-specific to avoid conflicts
     transportEndpoint: this._transportEndpoint,
     indexerUrl: this._indexerUrl,
   });
@@ -787,7 +787,7 @@ if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
 
 7. **Server Limitation**: Custom account derivation (`customDeriveKeysFromMnemonic`) throws 400 on server registration - must use SDK's built-in derivation.
 
-8. **Local Storage**: The new SDK uses local storage model with `dataDir`, `transportEndpoint`, and `indexerUrl` parameters instead of the previous server-dependent architecture.
+8. **Local Storage**: The new SDK uses local storage model with `dataDir`, `transportEndpoint`, and `indexerUrl` parameters instead of the previous server-dependent architecture. The `dataDir` is made network-specific (e.g., `rgb-data/testnet`) to avoid conflicts between mainnet/testnet wallet data.
 
 9. **SDK Type Discrepancies**: The `@utexo/rgb-sdk` TypeScript definitions don't match actual runtime data in several places:
    - Enums declared as numbers but returned as strings (`transactionType`, `status`, `kind`)

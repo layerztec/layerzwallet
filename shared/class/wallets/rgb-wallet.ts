@@ -92,12 +92,18 @@ export interface IRGBAdapter {
   // Key derivation (standalone, doesn't need active connection)
   deriveKeysFromMnemonic(network: RGBNetwork, mnemonic: string): Promise<GeneratedKeys>;
 
+  // File operations for backup management
+  fileExists(path: string): Promise<boolean>;
+  deleteFile(path: string): Promise<void>;
+  renameFile(from: string, to: string): Promise<void>;
+
   getDataDir(): string;
 }
 
 export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveTokens {
   protected adapter: IRGBAdapter;
   private _secret: string | undefined;
+  private _masterFingerprint: string | undefined;
   private _network: RGBNetwork = 'mainnet';
   private _transportEndpoint: string = 'rpc://rgb-node.thunderstack.org/json-rpc';
   private _indexerUrl: string = 'ssl://electrum.iriswallet.com:50003';
@@ -125,10 +131,13 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
    */
   private get connection(): RGBConnection {
     assert(this._secret, 'RGBWallet secret is not set. Call setSecret() first.');
+    // Use network-specific dataDir to avoid conflicts between mainnet/testnet wallet data
+    const baseDataDir = this.adapter.getDataDir();
+    const networkDataDir = `${baseDataDir}/${this._network}`;
     return {
       mnemonic: this._secret,
       network: this._network,
-      dataDir: this.adapter.getDataDir(),
+      dataDir: networkDataDir,
       transportEndpoint: this._transportEndpoint,
       indexerUrl: this._indexerUrl,
     };
@@ -152,6 +161,9 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
 
   async init() {
     assert(this._secret, 'RGBWallet secret is not set. Call setSecret() first.');
+    // Derive keys to get master fingerprint for backup naming
+    const keys = await this.adapter.deriveKeysFromMnemonic(this._network, this._secret);
+    this._masterFingerprint = keys.masterFingerprint;
     const result = await this.adapter.api.registerWallet(this.connection);
     console.info('RGBWallet initialized', result);
     setTimeout(() => this.prepareWallet(), 1000); // we don't want to block the main thread
@@ -411,6 +423,7 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
    * @returns Array of CommonTransaction objects
    */
   async getCommonTransactions(): Promise<CommonTransaction[]> {
+    assert(this._masterFingerprint, 'Master fingerprint is required');
     const network = this._network === 'mainnet' ? NETWORK_RGB : NETWORK_RGB_TESTNET;
     const explorerBase = AllNetworkInfos[network].explorerUrl;
 
@@ -566,10 +579,38 @@ export class RGBWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveT
     commonTransactions.sort((a, b) => b.timestamp - a.timestamp);
 
     // Create backup after fetching transactions
+    // Uses master fingerprint as filename, with temp file for atomic replacement
     try {
-      const backupPath = `${this.adapter.getDataDir()}/backup_${Date.now()}.rgbbackup`;
-      await this.createBackup(backupPath, 'auto-backup');
-      console.log('[RGB] Auto-backup created:', backupPath);
+      const dataDir = this.connection.dataDir;
+      const finalPath = `${dataDir}/${this._masterFingerprint}.rgbbackup`;
+      const tempPath = `${dataDir}/${this._masterFingerprint}_${Date.now()}.rgbbackup`;
+
+      // Create backup with temp name
+      await this.adapter.api.createBackup(this.connection, { backupPath: tempPath, password: 'auto-backup' });
+
+      // Wait for file to become visible (up to 100 seconds)
+      let fileVisible = false;
+      for (let i = 1; i <= 100; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (await this.adapter.fileExists(tempPath)) {
+          fileVisible = true;
+          break;
+        }
+      }
+
+      if (!fileVisible) {
+        console.error('[RGB] Backup file never became visible');
+        return commonTransactions;
+      }
+
+      // Delete old backup if exists, then rename temp to final
+      try {
+        await this.adapter.deleteFile(finalPath);
+      } catch {
+        // Ignore if doesn't exist
+      }
+      await this.adapter.renameFile(tempPath, finalPath);
+      console.log('[RGB] Auto-backup saved:', finalPath);
     } catch (error) {
       console.error('[RGB] Failed to create auto-backup:', error);
     }

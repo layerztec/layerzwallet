@@ -1,10 +1,9 @@
-import { describe, expect, it, vi, assert, beforeAll } from 'vitest';
+import { assert, describe, expect, it, vi } from 'vitest';
 
-import { RGBWallet, IRGBAdapter, RGBConnection } from '../../class/wallets/rgb-wallet';
 import type { ListAssetsResponseCustom, RgbTransferCustom, TransactionCustom } from '../../class/wallets/rgb-types';
+import { IRGBAdapter, RGBWallet } from '../../class/wallets/rgb-wallet';
 import type { DeepPartial } from '../../class/wallets/types';
 import { NETWORK_RGB_TESTNET } from '../../types/networks';
-import type { BtcBalance, GeneratedKeys, InvoiceReceiveData, SendResult } from '@utexo/rgb-sdk';
 
 const TEST_MNEMONIC = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
 
@@ -44,6 +43,9 @@ function createMockAdapter(overrides: Partial<IRGBAdapter['api']> = {}): IRGBAda
       masterFingerprint: '73c5da0a',
     }),
     getDataDir: vi.fn().mockReturnValue('/tmp/rgb-test'),
+    fileExists: vi.fn().mockResolvedValue(true),
+    deleteFile: vi.fn().mockResolvedValue(undefined),
+    renameFile: vi.fn().mockResolvedValue(undefined),
   };
 }
 
