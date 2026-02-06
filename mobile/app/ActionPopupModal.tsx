@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { getGradientColors } from '@/utils/gradientUtils';
 import { useActionPopup } from '@/contexts/ActionPopupContext';
+import { Ionicons } from '@expo/vector-icons';
 
 const ACTION_ITEM_HEIGHT = 68;
 const ACTION_ITEM_GAP = 22;
@@ -53,11 +54,18 @@ export default function ActionPopupModal() {
       <Pressable accessible={false} activeOpacity={1} onPress={(e: GestureResponderEvent) => e.stopPropagation()}>
         <View accessible={false} style={[styles.popupContainer, { backgroundColor }]}>
           <View style={styles.actionsContainer}>
-            {title && (
-              <View style={styles.titleContainer}>
-                <Text style={styles.title}>{title}</Text>
-              </View>
-            )}
+            <View style={styles.headerRow}>
+              {title ? (
+                <View style={styles.titleContainer}>
+                  <Text style={styles.title}>{title}</Text>
+                </View>
+              ) : (
+                <View style={styles.titleContainer} />
+              )}
+              <Pressable style={styles.closeButton} onPress={handleClose} accessibilityLabel="Close menu" accessibilityRole="button">
+                <Ionicons name="close" size={20} color="white" />
+              </Pressable>
+            </View>
             {actions.map((action, index) => (
               <Pressable accessible={true} key={index} onPress={() => handleActionPress(action.onClick, index)} style={styles.actionItem} activeOpacity={0.8}>
                 <View style={styles.actionContent}>{action.children}</View>
@@ -97,10 +105,24 @@ const styles = StyleSheet.create({
   titleContainer: {
     alignItems: 'center',
     height: TITLE_HEIGHT,
+    flex: 1,
+    justifyContent: 'center',
   },
   title: {
     color: 'white',
     fontSize: 20,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionsContainer: {
     padding: ACTIONS_PADDING,

@@ -1,5 +1,5 @@
 import { BrowserBridge } from '@/src/class/browser-bridge';
-import { Eip1193CustomEventResponse } from '@shared/types/eip1193-custom-event';
+import { Eip1193CustomEventCallback, Eip1193CustomEventResponse } from '@shared/types/eip1193-custom-event';
 import { MessageTypeMap } from '@shared/types/IBackgroundCaller';
 import { IMessenger } from '@shared/modules/messenger';
 
@@ -15,8 +15,14 @@ class MobileMessenger implements IMessenger {
     // do nothing
   }
 
-  documentDispatchEvent() {
-    throw new Error('documentDispatchEvent not implemented in mobile context');
+  documentDispatchEvent(message: any) {
+    console.log('Dispatching event to the Dapp:', message);
+    const bridge = BrowserBridge.getInstance();
+    if (bridge) {
+      bridge.sendMessage(message);
+    } else {
+      console.warn('BrowserBridge not available for documentDispatchEvent');
+    }
   }
 
   async sendResponseFromContentScriptToContentScript(message: Eip1193CustomEventResponse): Promise<void> {

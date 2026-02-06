@@ -3,7 +3,7 @@ import Pressable from '../components/Pressable';
 import * as FileSystem from 'expo-file-system';
 import { File as ExpoFsFile, Directory } from 'expo-file-system';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
-import { StyleSheet, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions } from 'react-native';
+import { StyleSheet, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions, BackHandler } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation, WebViewNavigationEvent } from 'react-native-webview';
 import { Stack, useLocalSearchParams, useRouter, Link, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,8 +17,11 @@ import { BrowserBridge } from '@/src/class/browser-bridge';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { useFocusEffect } from '@react-navigation/native';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
+import { getGradientColors } from '@/utils/gradientUtils';
+import { ActionPopupButton } from '@/components/ActionPopupButton';
 import { DAppBrowserTabs } from './DAppBrowserTabs';
 import { useWebViewPreviewManager } from './hooks/useWebViewPreviewManager';
 
@@ -49,6 +52,7 @@ export const BROWSER_CONSTANTS = {
   STORAGE: {
     TABS_KEY: '@browser_tabs',
     ACTIVE_TAB_KEY: '@browser_active_tab',
+    AUTOFILL_BTC_KEY: '@browser_autofill_btc_domains',
   },
 } as const;
 
@@ -72,14 +76,30 @@ const isValidUrl = (urlString: string): boolean => {
   }
 };
 
-const isBotanixBridgeUrl = (urlString?: string): boolean => {
-  if (!urlString) return false;
+const getDomainFromUrl = (urlString?: string): string | null => {
+  if (!urlString) return null;
   try {
-    const { hostname } = new URL(urlString);
-    return hostname === 'bridge.botanixlabs.dev' || hostname === 'bridge.botanixlabs.com' || hostname.endsWith('.botanixlabs.dev') || hostname.endsWith('.botanixlabs.com');
+    return new URL(urlString).hostname;
   } catch {
-    return false;
+    return null;
   }
+};
+
+const hexToRgba = (hex: string, alpha: number): string => {
+  const normalized = hex.replace('#', '');
+  const bigint = parseInt(
+    normalized.length === 3
+      ? normalized
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : normalized,
+    16
+  );
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
 interface BrowserTab {
@@ -164,6 +184,7 @@ const DAppBrowser: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isAddressInputFocused, setIsAddressInputFocused] = useState(false);
   const [btcAddress, setBtcAddress] = useState<string>('');
+  const [autofillDomains, setAutofillDomains] = useState<Record<string, boolean>>({});
 
   const webviewOpacity = useSharedValue(1);
   const tabsOpacity = useSharedValue(0);
@@ -182,7 +203,7 @@ const DAppBrowser: React.FC = () => {
   const lastManualNavigationUrl = useRef<string | undefined>(undefined);
   const loadingScreenshotsRef = useRef<Set<string>>(new Set());
   const tabsNeedingScreenshotsRef = useRef<Set<string>>(new Set());
-  const lastPrefillRef = useRef<{ url?: string; address?: string }>({});
+  const promptedDomainsRef = useRef<Set<string>>(new Set());
 
   const setAddressBarValue = useCallback((value: string, options?: { ensureStartVisible?: boolean }) => {
     setAddressInput(value);
@@ -203,6 +224,11 @@ const DAppBrowser: React.FC = () => {
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId);
   const selectionAtStart = useMemo(() => ({ start: 0, end: 0 }), []);
+  const currentDomain = getDomainFromUrl(activeTab?.url) ?? '';
+  const autofillActiveBackground = useMemo(() => {
+    const [primary] = getGradientColors(network);
+    return hexToRgba(primary, 0.25);
+  }, [network]);
 
   const modalAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: modalTranslateY.value }],
@@ -348,6 +374,13 @@ const DAppBrowser: React.FC = () => {
     });
   }, [showTabsOverview, navigation]);
 
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => true);
+      return () => subscription.remove();
+    }, [])
+  );
+
   useEffect(() => {
     let cancelled = false;
     const loadBtcAddress = async () => {
@@ -364,6 +397,34 @@ const DAppBrowser: React.FC = () => {
       cancelled = true;
     };
   }, [accountNumber]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadAutofillDomains = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_KEY);
+        if (cancelled) return;
+        if (!raw) {
+          setAutofillDomains({});
+          return;
+        }
+
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          setAutofillDomains(parsed);
+        } else {
+          setAutofillDomains({});
+        }
+      } catch (error) {
+        setAutofillDomains({});
+      }
+    };
+
+    loadAutofillDomains();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -936,9 +997,103 @@ const DAppBrowser: React.FC = () => {
     return tab.history.slice(tab.historyIndex + 1);
   };
 
-  const handleMessage = useCallback((event: WebViewMessageEvent) => {
-    browserBridgeRef.current?.handleMessage(event);
+  const injectAutofillScript = useCallback((address: string) => {
+    if (!address) return;
+    const addressValue = JSON.stringify(address);
+    const script = `
+      (function() {
+        try {
+          var address = ${addressValue};
+          if (!address) return;
+          var inputs = Array.prototype.slice.call(document.querySelectorAll('input'));
+          var candidates = inputs.filter(function(input) {
+            var type = (input.getAttribute('type') || 'text').toLowerCase();
+            if (type && ['text', 'search', 'tel', 'url'].indexOf(type) === -1) return false;
+            if (input.disabled || input.readOnly) return false;
+            if (input.value) return false;
+            return true;
+          });
+          var match = candidates.find(function(input) {
+            var hint = [input.placeholder, input.name, input.id, input.getAttribute('aria-label')].filter(Boolean).join(' ');
+            return /btc|bitcoin|address/i.test(hint);
+          }) || candidates[0];
+          if (match) {
+            match.value = address;
+            match.dispatchEvent(new Event('input', { bubbles: true }));
+            match.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        } catch (e) {}
+      })();
+      true;
+    `;
+
+    webviewRef.current?.injectJavaScript(script);
   }, []);
+
+  const injectDetectionScript = useCallback(() => {
+    const script = `
+      (function() {
+        try {
+          if (window.__lwBtcInputFound) return;
+          var inputs = Array.prototype.slice.call(document.querySelectorAll('input'));
+          var match = inputs.find(function(input) {
+            var type = (input.getAttribute('type') || 'text').toLowerCase();
+            if (type && ['text', 'search', 'tel', 'url'].indexOf(type) === -1) return false;
+            var hint = [input.placeholder, input.name, input.id, input.getAttribute('aria-label')].filter(Boolean).join(' ');
+            return /btc|bitcoin|address/i.test(hint);
+          });
+          if (match && window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+            window.__lwBtcInputFound = true;
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'btc-input-found', url: window.location.href }));
+          }
+        } catch (e) {}
+      })();
+      true;
+    `;
+
+    webviewRef.current?.injectJavaScript(script);
+  }, []);
+
+  const handleMessage = useCallback(
+    (event: WebViewMessageEvent) => {
+      const data = event?.nativeEvent?.data;
+
+      if (typeof data === 'string') {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed?.type === 'btc-input-found' && typeof parsed?.url === 'string') {
+            const domain = getDomainFromUrl(parsed.url);
+            if (!domain) return;
+
+            if (!autofillDomains[domain] && !promptedDomainsRef.current.has(domain)) {
+              promptedDomainsRef.current.add(domain);
+              Alert.alert('Enable Autofill?', 'Autofill your Bitcoin address on this site?', [
+                {
+                  text: 'Not now',
+                  style: 'cancel',
+                },
+                {
+                  text: 'Enable',
+                  onPress: async () => {
+                    const next = { ...autofillDomains, [domain]: true };
+                    setAutofillDomains(next);
+                    await AsyncStorage.setItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_KEY, JSON.stringify(next));
+                    if (btcAddress) {
+                      injectAutofillScript(btcAddress);
+                    }
+                  },
+                },
+              ]);
+            }
+            return;
+          }
+        } catch (error) {}
+      }
+
+      browserBridgeRef.current?.handleMessage(event);
+    },
+    [autofillDomains, btcAddress, injectAutofillScript]
+  );
 
   const handleLoadProgress = useCallback(
     ({ nativeEvent }: { nativeEvent: { progress: number } }) => {
@@ -964,54 +1119,16 @@ const DAppBrowser: React.FC = () => {
     [progressWidth, progressOpacity, activeTabId, captureTabScreenshot]
   );
 
-  const prefillBtcAddressOnBotanixBridge = useCallback(
-    (url?: string) => {
-      if (!url || !btcAddress) return;
-      if (!isBotanixBridgeUrl(url)) return;
-
-      if (lastPrefillRef.current.url === url && lastPrefillRef.current.address === btcAddress) {
-        return;
-      }
-
-      const addressValue = JSON.stringify(btcAddress);
-      const script = `
-        (function() {
-          try {
-            var address = ${addressValue};
-            if (!address) return;
-            var inputs = Array.prototype.slice.call(document.querySelectorAll('input'));
-            var candidates = inputs.filter(function(input) {
-              var type = (input.getAttribute('type') || 'text').toLowerCase();
-              if (type && ['text', 'search', 'tel', 'url'].indexOf(type) === -1) return false;
-              if (input.disabled || input.readOnly) return false;
-              if (input.value) return false;
-              return true;
-            });
-            var match = candidates.find(function(input) {
-              var hint = [input.placeholder, input.name, input.id, input.getAttribute('aria-label')].filter(Boolean).join(' ');
-              return /btc|bitcoin|address/i.test(hint);
-            }) || candidates[0];
-            if (match) {
-              match.value = address;
-              match.dispatchEvent(new Event('input', { bubbles: true }));
-              match.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-          } catch (e) {}
-        })();
-        true;
-      `;
-
-      webviewRef.current?.injectJavaScript(script);
-      lastPrefillRef.current = { url, address: btcAddress };
-    },
-    [btcAddress]
-  );
-
   const handleActiveTabLoadEnd = useCallback(
     (event: WebViewNavigationEvent) => {
-      prefillBtcAddressOnBotanixBridge(event.nativeEvent.url);
+      const domain = getDomainFromUrl(event.nativeEvent.url);
+      if (domain && autofillDomains[domain] && btcAddress) {
+        injectAutofillScript(btcAddress);
+      } else {
+        injectDetectionScript();
+      }
     },
-    [prefillBtcAddressOnBotanixBridge]
+    [autofillDomains, btcAddress, injectAutofillScript, injectDetectionScript]
   );
 
   const handleInactiveTabLoad = useCallback(
@@ -1160,6 +1277,44 @@ const DAppBrowser: React.FC = () => {
                         <Ionicons name="reload" size={18} color="rgba(255, 255, 255, 0.8)" />
                       </Pressable>
                     )}
+                    <ActionPopupButton
+                      title="Autofill"
+                      actions={[
+                        {
+                          onClick: async () => {
+                            if (!currentDomain) return;
+                            const next = { ...autofillDomains, [currentDomain]: !autofillDomains[currentDomain] };
+                            if (!next[currentDomain]) {
+                              delete next[currentDomain];
+                            }
+                            setAutofillDomains(next);
+                            await AsyncStorage.setItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_KEY, JSON.stringify(next));
+                            if (next[currentDomain] && btcAddress) {
+                              injectAutofillScript(btcAddress);
+                            }
+                          },
+                          children: (
+                            <View style={styles.menuItemContent}>
+                              <Ionicons name={autofillDomains[currentDomain] ? 'checkbox' : 'square-outline'} size={20} color="rgba(255, 255, 255, 0.9)" />
+                              <ThemedText style={styles.menuItemText}>Autofill Bitcoin Address</ThemedText>
+                            </View>
+                          ),
+                        },
+                      ]}
+                    >
+                      <Pressable
+                        style={[
+                          styles.stopButton,
+                          styles.autofillMenuButton,
+                          autofillDomains[currentDomain] ? { backgroundColor: autofillActiveBackground } : null,
+                          isAddressInputFocused ? { opacity: 0.4 } : null,
+                        ]}
+                        testID="BrowserAutofillMenuButton"
+                        disabled={!currentDomain || isAddressInputFocused}
+                      >
+                        <Ionicons name="ellipsis-vertical" size={18} color="rgba(255, 255, 255, 0.8)" />
+                      </Pressable>
+                    </ActionPopupButton>
                   </View>
                   <Animated.View style={[styles.progressBar, progressBarAnimatedStyle]} />
                 </View>
@@ -1568,5 +1723,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  menuItemText: {
+    color: 'white',
+    fontSize: 16,
+  },
+  menuItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  autofillMenuButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
