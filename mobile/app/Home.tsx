@@ -1,6 +1,6 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter, useSegments } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Dimensions, Platform, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -8,13 +8,25 @@ import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, w
 import { scheduleOnRN } from 'react-native-worklets';
 import Pressable from '../components/Pressable';
 
-import { ActionPopupButton } from '@/components/ActionPopupButton';
+import ActionButtons from '@/components/ActionButtons';
+
+const Action = ({ network, text }: { network?: Networks; text: string }) => {
+  const networkImage = network ? getNetworkImageAsset(network) : null;
+  const networkIconContent = networkImage ? <Image source={networkImage} style={styles.actionIconImage} contentFit="contain" /> : null;
+  return (
+    <View style={styles.action}>
+      {networkIconContent && <View style={styles.actionIcon}>{networkIconContent}</View>}
+      <ThemedText style={styles.actionText}>{text}</ThemedText>
+    </View>
+  );
+};
 import BackupWarning from '@/components/BackupWarning';
 import Balance from '@/components/Balance';
 import Button from '@/components/Button';
 import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
 import NftsView from '@/components/NftsView';
 import PlatformBlurView from '@/components/PlatformBlurView';
+import LiquidGlassView from '@/components/LiquidGlassView';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
 import StickyHeader from '@/components/StickyHeader';
 import SwapList from '@/components/SwapList';
@@ -30,6 +42,7 @@ import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useSettings } from '@shared/hooks/useSettings';
 import { useTransactions } from '@shared/hooks/useTransactions';
 import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
+import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { USDT_TOKENS } from '@shared/models/token-list';
 import { sleep } from '@shared/modules/sleep';
@@ -38,21 +51,9 @@ import { CommonTransaction } from '@shared/types/common-transaction';
 import { NETWORK_ARK, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
 import { SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapPlatform } from '@shared/types/swap';
 import { CachedTokenInfo } from '@shared/types/token-info';
-import { ReceiveTokenProps } from './Receive';
-import { SendTokenEvmProps } from './SendTokenEvm';
+import { OnrampProps } from './Onramp';
 import { SwapParams } from './Swap';
-import { SendParams } from './send';
 
-const Action = ({ network, text }: { network?: Networks; text: string }) => {
-  const networkImage = network ? getNetworkImageAsset(network) : null;
-  const networkIconContent = networkImage ? <Image source={networkImage} style={styles.actionIconImage} contentFit="contain" /> : null;
-  return (
-    <View style={styles.action}>
-      {networkIconContent && <View style={styles.actionIcon}>{networkIconContent}</View>}
-      <ThemedText style={styles.actionText}>{text}</ThemedText>
-    </View>
-  );
-};
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const MODAL_MIN_HEIGHT = 120; // Height when dragged down (header + some content)
@@ -70,7 +71,17 @@ export default function Home() {
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const router = useRouter();
+  const segments = useSegments();
   const params = useLocalSearchParams<HomeProps>();
+
+  // Redirect to tabs if accessed via Stack route instead of Tabs route
+  useEffect(() => {
+    const isInTabs = segments.some(seg => seg === '(tabs)');
+    if (!isInTabs && segments[0] === 'Home') {
+      console.log('🟦 Home: Detected Stack route, redirecting to /(tabs)/home');
+      router.replace('/(tabs)/home' as any);
+    }
+  }, [segments, router]);
   const { transactions, error: transactionsError, mutate: mutateTransactions } = useTransactions(network, accountNumber, BackgroundExecutor);
   const scrollY = useSharedValue(0); // Scroll animation for sticky header
   const modalTranslateY = useSharedValue(0); // Modal state and animations
@@ -85,6 +96,14 @@ export default function Home() {
   const [refreshOptions, setRefreshOptions] = useState<Partial<RefreshControlProps>>({});
   const settingsContext = useSettings();
   const hasBackedUpSeed = settingsContext.settings.seedBackedUp === 'ON';
+
+  // Fund button handler (extracted from Balance component)
+  const handleFund = useCallback(() => {
+    BackgroundExecutor.getAddress(network, accountNumber).then((address) => {
+      const params: OnrampProps = { address, network };
+      router.push({ pathname: '/Onramp', params });
+    });
+  }, [network, accountNumber, router]);
 
   // Initialize modal position based on whether coming from onboarding
   useEffect(() => {
@@ -211,35 +230,6 @@ export default function Home() {
     });
   };
 
-  // Lightning Network specific handlers
-  const handleReceiveOnSpark = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      Alert.alert('Spark does not have a testnet');
-    } else {
-      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_SPARK } });
-    }
-  };
-
-  const handleReceiveOnLiquid = () => {
-    const n = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
-    router.push({ pathname: '/ReceiveLightning', params: { network: n } });
-  };
-
-  const handleReceiveOnArk = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      Alert.alert('Ark lightning does not have a testnet');
-    } else {
-      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_ARK } });
-    }
-  };
-
-  const lightningReceiveActions = [
-    { children: <Action network={NETWORK_SPARK} text="Receive on Spark" />, onClick: handleReceiveOnSpark },
-    { children: <Action network={NETWORK_LIQUID} text="Receive on Liquid" />, onClick: handleReceiveOnLiquid },
-    { children: <Action network={NETWORK_ARK} text="Receive on Ark" />, onClick: handleReceiveOnArk },
-    { children: <Action text="Cancel" />, onClick: () => {} },
-  ];
-
   const handleTransactionDetails = (transaction: CommonTransaction) => {
     // Pass the current layer network so transaction details can use the correct background color
     router.push({
@@ -268,53 +258,6 @@ export default function Home() {
       setRefreshing(false);
     }
   }, [mutateTransactions]);
-
-  const handleSendUSDTViaRootstock = (contractAddress: string) => () => {
-    const params: SendTokenEvmProps = { contractAddress, network: NETWORK_ROOTSTOCK };
-    router.push({ pathname: '/SendTokenEvm', params });
-  };
-
-  const handleSendUSDTViaLiquid = () => {
-    const params: SendParams = { token: USDT_TOKENS[NETWORK_LIQUID][0], network: NETWORK_LIQUID };
-    router.push({ pathname: '/send', params });
-  };
-
-  const handleSendUSDBViaSpark = () => {
-    const params: SendParams = { token: USDT_TOKENS[NETWORK_SPARK][0], network: NETWORK_SPARK };
-    router.push({ pathname: '/send', params });
-  };
-
-  // USDT send and receive actions
-  const usdtSendActions = [
-    { children: <Action network={NETWORK_ROOTSTOCK} text="Send USDT via Rootstock" />, onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][0]) },
-    { children: <Action network={NETWORK_ROOTSTOCK} text="Send USDT0 via Rootstock" />, onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][1]) },
-    { children: <Action network={NETWORK_ROOTSTOCK} text="Send rUSDT via Rootstock" />, onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][2]) },
-    { children: <Action network={NETWORK_LIQUID} text="Send USDT via Liquid" />, onClick: handleSendUSDTViaLiquid },
-    { children: <Action network={NETWORK_SPARK} text="Send USDB via Spark" />, onClick: handleSendUSDBViaSpark },
-    { children: <Action text="Cancel" />, onClick: () => {} },
-  ];
-
-  const handleReceiveTokenViaRootstock = () => {
-    const params: ReceiveTokenProps = { network: NETWORK_ROOTSTOCK };
-    router.push({ pathname: '/Receive', params });
-  };
-
-  const handleReceiveTokenViaLiquid = () => {
-    const params: ReceiveTokenProps = { network: NETWORK_LIQUID };
-    router.push({ pathname: '/Receive', params });
-  };
-
-  const handleReceiveTokenViaSpark = () => {
-    const params: ReceiveTokenProps = { network: NETWORK_SPARK };
-    router.push({ pathname: '/Receive', params });
-  };
-
-  const usdtReceiveActions = [
-    { children: <Action network={NETWORK_ROOTSTOCK} text="Receive via Rootstock" />, onClick: handleReceiveTokenViaRootstock },
-    { children: <Action network={NETWORK_LIQUID} text="Receive via Liquid" />, onClick: handleReceiveTokenViaLiquid },
-    { children: <Action network={NETWORK_SPARK} text="Receive via Spark" />, onClick: handleReceiveTokenViaSpark },
-    { children: <Action text="Cancel" />, onClick: () => {} },
-  ];
 
   const usdtSwapActions = useMemo(() => {
     const actions = [];
@@ -411,15 +354,17 @@ export default function Home() {
           <View style={[styles.root, styles.contentWithHeader]}>
             {/* Network Selector */}
             <View style={styles.networkSelectorContainer}>
-              <Pressable testID="NetworkSwitcherTrigger" style={styles.networkSelector} onPress={handleNetworkSelect} activeOpacity={0.8}>
-                <View testID={`selectedNetwork-${network}`} style={styles.networkIcon}>
-                  {networkIconContent}
-                </View>
-                <ThemedText style={styles.networkName}>{capitalizeFirstLetter(network)}</ThemedText>
-                <Pressable onPress={handleNetworkSelect} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
-                  <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.8)" />
+              <LiquidGlassView tint="light" glassStyle="clear" intensity={15} borderIntensity={1} style={styles.networkSelectorGlass}>
+                <Pressable testID="NetworkSwitcherTrigger" style={styles.networkSelector} onPress={handleNetworkSelect} activeOpacity={0.8}>
+                  <View testID={`selectedNetwork-${network}`} style={styles.networkIcon}>
+                    {networkIconContent}
+                  </View>
+                  <ThemedText style={styles.networkName}>{capitalizeFirstLetter(network)}</ThemedText>
+                  <Pressable onPress={handleNetworkSelect} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
+                    <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.8)" />
+                  </Pressable>
                 </Pressable>
-              </Pressable>
+              </LiquidGlassView>
             </View>
 
             {/* Testnet Warning */}
@@ -431,6 +376,9 @@ export default function Home() {
 
             {/* Balance Section */}
             <Balance ref={balanceRef} />
+
+            {/* Action Buttons Section */}
+            <ActionButtons onFundPress={handleFund} />
 
             {/* Seed Backup Warning */}
             {hasBackedUpSeed === false && <BackupWarning onPress={handleBackupSeed} />}
@@ -454,65 +402,6 @@ export default function Home() {
 
         {/* White Flash Overlay for Network Transition */}
         <Animated.View style={[styles.whiteFlashOverlayAnimated, whiteFlashAnimatedStyle]} />
-
-        {/* Bottom Navigation - Fixed to modal bottom */}
-        <View style={styles.bottomNavigationContainer}>
-          <View style={styles.bottomNavigation}>
-            <View style={styles.navContainer}>
-              <PlatformBlurView intensity={20} tint="dark" style={styles.navBlur} />
-
-              {network === NETWORK_USDT ? (
-                <Pressable style={styles.navButtonLarge} testID="SendButton" onPress={() => router.push({ pathname: '/send/send-address-usdt' } as any)} activeOpacity={0.8}>
-                  <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
-                  <ThemedText style={styles.navButtonText}>Send</ThemedText>
-                </Pressable>
-              ) : (
-                <Pressable style={styles.navButtonLarge} testID="SendButton" onPress={handleSend} activeOpacity={0.8}>
-                  <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
-                  <ThemedText style={styles.navButtonText}>Send</ThemedText>
-                </Pressable>
-              )}
-
-              {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
-                <Pressable style={styles.navButtonLarge} testID="ReceiveButton" onPress={() => router.push('/ReceiveOnLightningAddress')} activeOpacity={0.8}>
-                  <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
-                  <ThemedText style={styles.navButtonText}>Receive</ThemedText>
-                </Pressable>
-              ) : network === NETWORK_USDT ? (
-                <ActionPopupButton actions={usdtReceiveActions} title="Layer to receive">
-                  <Pressable style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
-                    <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
-                    <ThemedText style={styles.navButtonText}>Receive</ThemedText>
-                  </Pressable>
-                </ActionPopupButton>
-              ) : (
-                <Pressable style={styles.navButtonLarge} testID="ReceiveButton" onPress={handleReceive} activeOpacity={0.8}>
-                  <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
-                  <ThemedText style={styles.navButtonText}>Receive</ThemedText>
-                </Pressable>
-              )}
-            </View>
-
-            {swapEnabled && (
-              <View style={styles.swapButton}>
-                <PlatformBlurView intensity={40} tint="light" style={styles.navBlur} />
-                {network === NETWORK_USDT ? (
-                  <ActionPopupButton actions={usdtSwapActions} title="Choose network to swap">
-                    <Pressable style={styles.swapButtonInner} activeOpacity={0.8} testID="SwapButton">
-                      <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
-                      <ThemedText style={styles.navButtonText}>Transfer</ThemedText>
-                    </Pressable>
-                  </ActionPopupButton>
-                ) : (
-                  <Pressable style={styles.swapButtonInner} onPress={handleSwap} activeOpacity={0.8} testID="SwapButton">
-                    <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
-                    <ThemedText style={styles.navButtonText}>Transfer</ThemedText>
-                  </Pressable>
-                )}
-              </View>
-            )}
-          </View>
-        </View>
       </Animated.View>
     </GestureHandlerRootView>
   );
@@ -549,7 +438,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     paddingHorizontal: 18,
-    paddingBottom: 180, // Account for bottom nav (68px) + safe area (34px) + Android navbar + extra scroll space
+    paddingBottom: 100, // Account for safe area + extra scroll space
   },
   contentWithHeader: {
     paddingTop: 80,
@@ -557,15 +446,19 @@ const styles = StyleSheet.create({
   networkSelectorContainer: {
     alignSelf: 'flex-start',
     marginTop: 0,
+    marginBottom: 16,
+  },
+  networkSelectorGlass: {
+    borderRadius: 16,
+    backgroundColor: 'transparent', // Ensure transparent background for glass effect
   },
   networkSelector: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 11,
-    paddingVertical: 9,
-    borderRadius: 16,
-    marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 56,
+    backgroundColor: 'transparent', // Ensure transparent background
   },
   networkIcon: {
     width: 36,
@@ -587,58 +480,6 @@ const styles = StyleSheet.create({
   },
   explorerButton: {
     marginBottom: 20,
-  },
-  bottomNavigationContainer: {
-    position: 'absolute',
-    bottom: Platform.OS === 'android' ? 54 : 34, // Extra padding on Android for system navbar
-    left: 0,
-    right: 0,
-  },
-  bottomNavigation: {
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  navContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    borderRadius: 40,
-    height: 68,
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingHorizontal: 20,
-    overflow: 'hidden',
-  },
-  navButtonLarge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    justifyContent: 'center',
-    height: '100%',
-  },
-  navButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  swapButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 40,
-    height: 68,
-    width: 121,
-    overflow: 'hidden',
-  },
-  swapButtonInner: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  navBlur: {
-    ...StyleSheet.absoluteFillObject,
   },
   testnetWarning: {
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
