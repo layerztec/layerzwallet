@@ -66,11 +66,25 @@ export default function ActionPopupModal() {
                 <Ionicons name="close" size={20} color="white" />
               </Pressable>
             </View>
-            {actions.map((action, index) => (
-              <Pressable accessible={true} key={index} onPress={() => handleActionPress(action.onClick, index)} style={styles.actionItem} activeOpacity={0.8}>
-                <View style={styles.actionContent}>{action.children}</View>
-              </Pressable>
-            ))}
+            {actions.map((action, index) => {
+              const isSection = action.variant === 'section';
+              return (
+                <Pressable
+                  accessible={true}
+                  key={index}
+                  onPress={() => {
+                    if (!action.disabled && !isSection) {
+                      handleActionPress(action.onClick, index);
+                    }
+                  }}
+                  style={[styles.actionItem, isSection ? styles.sectionItem : null, action.disabled ? styles.actionItemDisabled : null]}
+                  activeOpacity={0.8}
+                  disabled={action.disabled || isSection}
+                >
+                  <View style={styles.actionContent}>{action.children}</View>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
       </Pressable>
@@ -134,6 +148,12 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     position: 'relative',
     overflow: 'hidden',
+  },
+  actionItemDisabled: {
+    opacity: 0.7,
+  },
+  sectionItem: {
+    backgroundColor: 'transparent',
   },
   actionContent: {
     flexDirection: 'row',

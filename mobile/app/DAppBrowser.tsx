@@ -4,9 +4,11 @@ import * as FileSystem from 'expo-file-system';
 import { File as ExpoFsFile, Directory } from 'expo-file-system';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
 import { StyleSheet, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions, BackHandler } from 'react-native';
-import WebView, { WebViewMessageEvent, WebViewNavigation, WebViewNavigationEvent } from 'react-native-webview';
+import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
+import type { WebViewErrorEvent, WebViewNavigationEvent } from 'react-native-webview/lib/WebViewTypes';
 import { Stack, useLocalSearchParams, useRouter, Link, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image as ExpoImage } from 'expo-image';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -57,6 +59,9 @@ export const BROWSER_CONSTANTS = {
 } as const;
 
 const getHomeUrl = (network: string): string => `https://layerztec.github.io/website/explore/?network=${network}`; // to test: https://metamask.github.io/test-dapp/ & https://eip6963.org/
+
+type AutofillPreference = 'enabled' | 'never';
+type AutofillPreferenceMap = Record<string, AutofillPreference>;
 
 const getTabTitle = (url: string): string => {
   try {
@@ -183,8 +188,9 @@ const DAppBrowser: React.FC = () => {
   const [showTabsOverview, setShowTabsOverview] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isAddressInputFocused, setIsAddressInputFocused] = useState(false);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [btcAddress, setBtcAddress] = useState<string>('');
-  const [autofillDomains, setAutofillDomains] = useState<Record<string, boolean>>({});
+  const [autofillDomains, setAutofillDomains] = useState<AutofillPreferenceMap>({});
 
   const webviewOpacity = useSharedValue(1);
   const tabsOpacity = useSharedValue(0);
@@ -229,6 +235,25 @@ const DAppBrowser: React.FC = () => {
     const [primary] = getGradientColors(network);
     return hexToRgba(primary, 0.25);
   }, [network]);
+  const isAutofillEnabled = currentDomain ? autofillDomains[currentDomain] === 'enabled' : false;
+  const addressSuggestions = useMemo(() => {
+    const query = addressInput.trim().toLowerCase();
+    if (!query) return [];
+
+    const entries = tabs.flatMap((tab) => tab.history || []);
+    const unique = new Map<string, string>();
+
+    for (const item of entries) {
+      if (!item?.url) continue;
+      if (!unique.has(item.url)) {
+        unique.set(item.url, item.url);
+      }
+    }
+
+    return Array.from(unique.keys())
+      .filter((url) => url.toLowerCase().includes(query))
+      .slice(0, 6);
+  }, [addressInput, tabs]);
 
   const modalAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: modalTranslateY.value }],
@@ -688,6 +713,12 @@ const DAppBrowser: React.FC = () => {
   }, [tabs, activeTabId, isRestoringTabs, saveTabs]);
 
   useEffect(() => {
+    if (!addressInput.trim()) {
+      setShowAddressSuggestions(false);
+    }
+  }, [addressInput]);
+
+  useEffect(() => {
     const currentTabIds = new Set(tabs.map((t) => t.id));
     const refTabIds = Object.keys(tabWebViewRefs.current);
 
@@ -893,6 +924,16 @@ const DAppBrowser: React.FC = () => {
     );
   };
 
+  const handleSuggestionSelect = (url: string) => {
+    setAddressBarValue(url, { ensureStartVisible: true });
+    updateActiveTab({ url, title: getTabTitle(url) });
+    setShowAddressSuggestions(false);
+    if (addressInputRef.current?.isFocused()) {
+      addressInputRef.current.blur();
+      setIsAddressInputFocused(false);
+    }
+  };
+
   const stopLoading = () => {
     webviewRef.current?.stopLoading();
     setIsLoading(false);
@@ -1005,23 +1046,58 @@ const DAppBrowser: React.FC = () => {
         try {
           var address = ${addressValue};
           if (!address) return;
-          var inputs = Array.prototype.slice.call(document.querySelectorAll('input'));
-          var candidates = inputs.filter(function(input) {
-            var type = (input.getAttribute('type') || 'text').toLowerCase();
-            if (type && ['text', 'search', 'tel', 'url'].indexOf(type) === -1) return false;
-            if (input.disabled || input.readOnly) return false;
-            if (input.value) return false;
-            return true;
-          });
-          var match = candidates.find(function(input) {
-            var hint = [input.placeholder, input.name, input.id, input.getAttribute('aria-label')].filter(Boolean).join(' ');
-            return /btc|bitcoin|address/i.test(hint);
-          }) || candidates[0];
-          if (match) {
-            match.value = address;
-            match.dispatchEvent(new Event('input', { bubbles: true }));
-            match.dispatchEvent(new Event('change', { bubbles: true }));
+          var findMatch = function() {
+            var fields = Array.prototype.slice.call(document.querySelectorAll('input, textarea'));
+            var candidates = fields.filter(function(input) {
+              var type = (input.getAttribute('type') || 'text').toLowerCase();
+              if (input.tagName === 'INPUT' && type && ['text', 'search', 'tel', 'url'].indexOf(type) === -1) return false;
+              if (input.disabled || input.readOnly) return false;
+              return true;
+            });
+            return (
+              candidates.find(function(input) {
+                var hint = [input.placeholder, input.name, input.id, input.getAttribute('aria-label')].filter(Boolean).join(' ');
+                return /btc|bitcoin|address/i.test(hint);
+              }) || candidates[0]
+            );
+          };
+
+          var setValue = function(el, value) {
+            var prototype = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+            var descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
+            if (descriptor && descriptor.set) {
+              descriptor.set.call(el, value);
+            } else {
+              el.value = value;
+            }
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          };
+
+          var applyIfEmpty = function() {
+            var match = findMatch();
+            if (match && !match.value) {
+              setValue(match, address);
+            }
+          };
+
+          applyIfEmpty();
+
+          if (!window.__lwBtcAutofillObserver) {
+            var observer = new MutationObserver(function() {
+              applyIfEmpty();
+            });
+            observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
+            window.__lwBtcAutofillObserver = observer;
           }
+
+          var start = Date.now();
+          var interval = setInterval(function() {
+            applyIfEmpty();
+            if (Date.now() - start > 8000) {
+              clearInterval(interval);
+            }
+          }, 500);
         } catch (e) {}
       })();
       true;
@@ -1034,18 +1110,28 @@ const DAppBrowser: React.FC = () => {
     const script = `
       (function() {
         try {
-          if (window.__lwBtcInputFound) return;
-          var inputs = Array.prototype.slice.call(document.querySelectorAll('input'));
-          var match = inputs.find(function(input) {
-            var type = (input.getAttribute('type') || 'text').toLowerCase();
-            if (type && ['text', 'search', 'tel', 'url'].indexOf(type) === -1) return false;
-            var hint = [input.placeholder, input.name, input.id, input.getAttribute('aria-label')].filter(Boolean).join(' ');
-            return /btc|bitcoin|address/i.test(hint);
+          if (window.__lwBtcInputObserver) return;
+
+          var scan = function() {
+            var fields = Array.prototype.slice.call(document.querySelectorAll('input, textarea'));
+            var match = fields.find(function(input) {
+              var type = (input.getAttribute('type') || 'text').toLowerCase();
+              if (input.tagName === 'INPUT' && type && ['text', 'search', 'tel', 'url'].indexOf(type) === -1) return false;
+              var hint = [input.placeholder, input.name, input.id, input.getAttribute('aria-label')].filter(Boolean).join(' ');
+              return /btc|bitcoin|address/i.test(hint);
+            });
+
+            if (match && window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'btc-input-found', url: window.location.href }));
+            }
+          };
+
+          scan();
+          var observer = new MutationObserver(function() {
+            scan();
           });
-          if (match && window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-            window.__lwBtcInputFound = true;
-            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'btc-input-found', url: window.location.href }));
-          }
+          observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
+          window.__lwBtcInputObserver = observer;
         } catch (e) {}
       })();
       true;
@@ -1073,9 +1159,18 @@ const DAppBrowser: React.FC = () => {
                   style: 'cancel',
                 },
                 {
+                  text: 'Never',
+                  style: 'destructive',
+                  onPress: async () => {
+                    const next: AutofillPreferenceMap = { ...autofillDomains, [domain]: 'never' };
+                    setAutofillDomains(next);
+                    await AsyncStorage.setItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_KEY, JSON.stringify(next));
+                  },
+                },
+                {
                   text: 'Enable',
                   onPress: async () => {
-                    const next = { ...autofillDomains, [domain]: true };
+                    const next: AutofillPreferenceMap = { ...autofillDomains, [domain]: 'enabled' };
                     setAutofillDomains(next);
                     await AsyncStorage.setItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_KEY, JSON.stringify(next));
                     if (btcAddress) {
@@ -1120,10 +1215,14 @@ const DAppBrowser: React.FC = () => {
   );
 
   const handleActiveTabLoadEnd = useCallback(
-    (event: WebViewNavigationEvent) => {
-      const domain = getDomainFromUrl(event.nativeEvent.url);
-      if (domain && autofillDomains[domain] && btcAddress) {
+    (event: WebViewNavigationEvent | WebViewErrorEvent) => {
+      const url = 'url' in event.nativeEvent ? event.nativeEvent.url : undefined;
+      const domain = getDomainFromUrl(url);
+      if (domain && autofillDomains[domain] === 'enabled' && btcAddress) {
         injectAutofillScript(btcAddress);
+        setTimeout(() => {
+          injectAutofillScript(btcAddress);
+        }, 1500);
       } else {
         injectDetectionScript();
       }
@@ -1217,7 +1316,7 @@ const DAppBrowser: React.FC = () => {
       <Animated.View style={[styles.modalContainer, styles.modalMaxHeight, modalAnimatedStyle]}>
         <GradientScreen variant={network}>
           <GestureDetector gesture={panGesture}>
-            <Animated.View style={addressBarAnimatedStyle} pointerEvents={showTabsOverview ? 'none' : 'auto'}>
+            <Animated.View style={[styles.addressBarContainer, addressBarAnimatedStyle]} pointerEvents={showTabsOverview ? 'none' : 'auto'}>
               <View style={styles.addressContainer}>
                 <Pressable style={styles.networkButton} onPress={redirectActiveTabToHome}>
                   <ExpoImage source={getNetworkImageAsset(network)} style={styles.networkIcon} contentFit="contain" />
@@ -1229,12 +1328,17 @@ const DAppBrowser: React.FC = () => {
                       style={styles.addressText}
                       value={addressInput}
                       selection={isAddressInputFocused ? undefined : selectionAtStart}
-                      onChangeText={setAddressInput}
+                      onChangeText={(value) => {
+                        setAddressInput(value);
+                        setShowAddressSuggestions(true);
+                      }}
                       onFocus={() => {
                         setIsAddressInputFocused(true);
+                        setShowAddressSuggestions(true);
                       }}
                       onBlur={() => {
                         setIsAddressInputFocused(false);
+                        setShowAddressSuggestions(false);
                         if (activeTab?.url) {
                           setAddressBarValue(activeTab.url, { ensureStartVisible: true });
                         }
@@ -1278,25 +1382,55 @@ const DAppBrowser: React.FC = () => {
                       </Pressable>
                     )}
                     <ActionPopupButton
-                      title="Autofill"
+                      title="Options"
                       actions={[
+                        {
+                          onClick: () => {},
+                          variant: 'section',
+                          children: <ThemedText style={styles.menuSectionText}>Autofill</ThemedText>,
+                        },
                         {
                           onClick: async () => {
                             if (!currentDomain) return;
-                            const next = { ...autofillDomains, [currentDomain]: !autofillDomains[currentDomain] };
-                            if (!next[currentDomain]) {
+                            const next: AutofillPreferenceMap = { ...autofillDomains };
+                            if (next[currentDomain] === 'enabled') {
                               delete next[currentDomain];
+                            } else {
+                              next[currentDomain] = 'enabled';
                             }
                             setAutofillDomains(next);
                             await AsyncStorage.setItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_KEY, JSON.stringify(next));
-                            if (next[currentDomain] && btcAddress) {
+                            if (next[currentDomain] === 'enabled' && btcAddress) {
                               injectAutofillScript(btcAddress);
                             }
                           },
                           children: (
-                            <View style={styles.menuItemContent}>
-                              <Ionicons name={autofillDomains[currentDomain] ? 'checkbox' : 'square-outline'} size={20} color="rgba(255, 255, 255, 0.9)" />
-                              <ThemedText style={styles.menuItemText}>Autofill Bitcoin Address</ThemedText>
+                            <View style={styles.menuItemContentColumn}>
+                              <View style={styles.menuItemContent}>
+                                <Ionicons name={isAutofillEnabled ? 'checkbox' : 'square-outline'} size={20} color="rgba(255, 255, 255, 0.9)" />
+                                <ThemedText style={styles.menuItemText}>Autofill Bitcoin Address</ThemedText>
+                              </View>
+                              <ThemedText style={styles.menuItemSubtitle}>Fill a matching BTC address field on this site.</ThemedText>
+                            </View>
+                          ),
+                        },
+                        {
+                          onClick: () => {},
+                          variant: 'section',
+                          children: <ThemedText style={styles.menuSectionText}>Clipboard</ThemedText>,
+                        },
+                        {
+                          onClick: async () => {
+                            if (!btcAddress) return;
+                            await Clipboard.setStringAsync(btcAddress);
+                          },
+                          children: (
+                            <View style={styles.menuItemContentColumn}>
+                              <View style={styles.menuItemContent}>
+                                <Ionicons name="copy-outline" size={20} color="rgba(255, 255, 255, 0.9)" />
+                                <ThemedText style={styles.menuItemText}>Copy Bitcoin Address</ThemedText>
+                              </View>
+                              {btcAddress ? <ThemedText style={styles.menuItemSubtitle}>{btcAddress}</ThemedText> : null}
                             </View>
                           ),
                         },
@@ -1306,7 +1440,7 @@ const DAppBrowser: React.FC = () => {
                         style={[
                           styles.stopButton,
                           styles.autofillMenuButton,
-                          autofillDomains[currentDomain] ? { backgroundColor: autofillActiveBackground } : null,
+                          isAutofillEnabled ? { backgroundColor: autofillActiveBackground } : null,
                           isAddressInputFocused ? { opacity: 0.4 } : null,
                         ]}
                         testID="BrowserAutofillMenuButton"
@@ -1322,6 +1456,19 @@ const DAppBrowser: React.FC = () => {
                   <Ionicons name="close" size={20} color={isAddressInputFocused ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.9)'} />
                 </Pressable>
               </View>
+              {showAddressSuggestions && addressSuggestions.length > 0 && (
+                <View style={styles.suggestionsContainer}>
+                  {addressSuggestions.map((suggestion, index) => (
+                    <Pressable
+                      key={suggestion}
+                      style={[styles.suggestionItem, index === addressSuggestions.length - 1 ? styles.suggestionItemLast : null]}
+                      onPress={() => handleSuggestionSelect(suggestion)}
+                    >
+                      <ThemedText style={styles.suggestionText}>{suggestion}</ThemedText>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
             </Animated.View>
           </GestureDetector>
 
@@ -1547,6 +1694,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 8,
   },
+  addressBarContainer: {
+    position: 'relative',
+    zIndex: 10,
+  },
   addressBarWrapper: {
     flex: 1,
     height: 40,
@@ -1554,6 +1705,26 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     justifyContent: 'center',
+  },
+  suggestionsContainer: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    overflow: 'hidden',
+  },
+  suggestionItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  suggestionItemLast: {
+    borderBottomWidth: 0,
+  },
+  suggestionText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
   },
   addressBar: {
     flexDirection: 'row',
@@ -1728,10 +1899,26 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
   },
+  menuItemSubtitle: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    marginLeft: 28,
+  },
   menuItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  menuItemContentColumn: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 4,
+  },
+  menuSectionText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   autofillMenuButton: {
     width: 28,
