@@ -21,7 +21,12 @@ const LOCAL_TOKEN_ICONS: Record<string, any> = {
   USDT: require('@/assets/images/ui/network/tether.png'),
 };
 
-const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenInfo) => void; selected: boolean; onVisible?: () => void }> = ({ token, onPress, selected, onVisible }) => {
+const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenInfo) => void; selected: boolean; onVisible?: (isVisible: boolean) => void }> = ({
+  token,
+  onPress,
+  selected,
+  onVisible,
+}) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundExecutor);
@@ -38,9 +43,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenI
 
   // Report visibility to parent
   useEffect(() => {
-    if (hasBalance && onVisible) {
-      onVisible();
-    }
+    onVisible?.(!!hasBalance);
   }, [hasBalance, onVisible]);
 
   // Don't render if no balance or balance rounds to 0
@@ -97,8 +100,8 @@ const TokensView = forwardRef<{ refresh: () => void }, { onTokenPress: (token: C
     }
   }
 
-  const handleTokenVisible = () => {
-    if (!hasVisibleTokens) {
+  const handleTokenVisible = (isVisible: boolean) => {
+    if (isVisible && !hasVisibleTokens) {
       setHasVisibleTokens(true);
     }
   };
@@ -114,36 +117,19 @@ const TokensView = forwardRef<{ refresh: () => void }, { onTokenPress: (token: C
     return null;
   }
 
-  // Check if discovery provides balances (some networks like Spark/Stacks include balance,
-  // while others like Liquid set balance: undefined and rely on useTokenBalance hook)
-  const discoveryProvidesBalances = tokenList.some((token) => token.balance !== undefined);
-
-  // If discovery provides balances, check if any token has a balance > 0
-  if (discoveryProvidesBalances) {
-    const hasTokensWithBalance = tokenList.some((token) => {
-      const balance = token.balance ?? '0';
-      return +balance > 0;
-    });
-
-    // Don't render section if no tokens have balances (unless there's an error)
-    if (!hasTokensWithBalance && !error) {
-      return null;
-    }
-  }
-
-  // For networks without discovery balances, show placeholder if no tokens have rendered yet
-  const showEmptyPlaceholder = !discoveryProvidesBalances && !hasVisibleTokens && !error;
+  console.log('tokenList', tokenList);
 
   return (
-    <SectionContainer title="Tokens">
-      <View style={styles.tokensList}>
-        {tokenList.map((token) => (
-          <TokenRow key={token.id} token={token} onPress={onTokenPress} selected={selectedToken === token.id} onVisible={handleTokenVisible} />
-        ))}
-        {showEmptyPlaceholder && <ThemedText style={styles.emptyText}>No tokens yet...</ThemedText>}
-      </View>
+    <>
+      <SectionContainer title="Tokens" style={!hasVisibleTokens ? styles.hiddenSection : undefined}>
+        <View style={styles.tokensList}>
+          {tokenList.map((token) => (
+            <TokenRow key={token.id} token={token} onPress={onTokenPress} selected={selectedToken === token.id} onVisible={handleTokenVisible} />
+          ))}
+        </View>
+      </SectionContainer>
       {error ? <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText> : null}
-    </SectionContainer>
+    </>
   );
 });
 
@@ -164,6 +150,13 @@ const styles = StyleSheet.create({
   },
   tokensList: {
     gap: 16,
+  },
+  hiddenSection: {
+    position: 'absolute',
+    opacity: 0,
+    height: 0,
+    width: 0,
+    marginBottom: 0,
   },
   tokenRow: {
     flexDirection: 'row',

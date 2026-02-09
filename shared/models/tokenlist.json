@@ -56,6 +56,22 @@
     "logoURI": ""
   },
   {
+    "symbol": "zUSDC",
+    "name": "Interest-bearing USDC",
+    "address": "0x01465912C8cEc266237050f429fE1b88dAa56C0A",
+    "decimals": 6,
+    "chainId": 4114,
+    "logoURI": ""
+  },
+  {
+    "symbol": "zWcBTC",
+    "name": "Interest-bearing wcBTC",
+    "address": "0x21EdC56532b6E92E676aA260B2a1f968B20EB1F5",
+    "decimals": 18,
+    "chainId": 4114,
+    "logoURI": ""
+  },
+  {
     "symbol": "USDC",
     "name": "USD Coin",
     "address": "0xb669dc8cc6d044307ba45366c0c836ec3c7e31aa",
