@@ -12,6 +12,9 @@
 # zip
 /zip
 
+# Chrome for Testing (debug tooling)
+/chrome
+
 # misc
 .DS_Store
 .env.local

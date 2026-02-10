@@ -8,6 +8,7 @@ export default defineConfig({
       '../shared/tests/setup-vi.js',
       '../ext/src/modules/spark-adapter.ts',
       '../ext/src/modules/breeze-adapter.ts',
+      '../ext/src/modules/rgb-adapter.ts',
       '../ext/src/modules/error-handler.ts',
     ],
     testTimeout: 120_000,

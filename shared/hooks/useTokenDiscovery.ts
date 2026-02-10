@@ -1,12 +1,13 @@
 import assert from 'assert';
 import useSWR from 'swr';
 
+import { RGBWallet } from '../class/wallets/rgb-wallet';
 import { SparkWallet } from '../class/wallets/spark-wallet';
 import { StacksWallet } from '../class/wallets/stacks-wallet';
 import { getTokenList } from '../models/token-list';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { IStorage } from '../types/IStorage';
-import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
+import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_RGB, NETWORK_RGB_TESTNET, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
 import { CachedTokenInfo } from '../types/token-info';
 
 const STORAGE_KEY_CACHED_TOKEN_LIST = 'STORAGE_KEY_CACHED_TOKEN_LIST_V2';
@@ -82,6 +83,23 @@ export const tokenDiscoveryFetcher = async (arg: tokenDiscoveryFetcherArg): Prom
     }
 
     return tokenInfos;
+  } else if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+    if (!backgroundCaller.lazyInitWalletReady(network, accountNumber)) {
+      // wallet not ready, definitely can use cached tokens (if any)
+      const cachedTokens = await restoreCachedTokens(cacheKey, storage);
+      if (cachedTokens) return cachedTokens;
+    }
+
+    const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
+    assert(wallet instanceof RGBWallet, 'Not an RGB wallet');
+
+    await wallet.fetchTokenBalances();
+    const tokenInfos: CachedTokenInfo[] = wallet.getTokenBalances();
+    if (tokenInfos.length > 0) {
+      await storage.setItem(cacheKey, JSON.stringify(tokenInfos)); // saving to cache
+    }
+
+    return tokenInfos;
   } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
     const tokens = getTokenList(network).map((token) => ({
       ...token,
@@ -100,8 +118,8 @@ export const tokenDiscoveryFetcher = async (arg: tokenDiscoveryFetcherArg): Prom
 };
 
 export function useTokenDiscovery(network: Networks, accountNumber: number, backgroundCaller: IBackgroundCaller, storage: IStorage, refreshInterval = 5_000) {
-  // Only enable refresh interval for NETWORK_SPARK & NETWORK_STACKS
-  const shouldRefresh = network === NETWORK_SPARK || network === NETWORK_STACKS;
+  // Only enable refresh interval for NETWORK_SPARK, NETWORK_STACKS & RGB networks
+  const shouldRefresh = network === NETWORK_SPARK || network === NETWORK_STACKS || network === NETWORK_RGB || network === NETWORK_RGB_TESTNET;
 
   const arg: tokenDiscoveryFetcherArg = {
     cacheKey: 'tokenDiscoveryFetcher',

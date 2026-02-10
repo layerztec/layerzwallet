@@ -18,6 +18,7 @@ import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { RGBWallet } from '@shared/class/wallets/rgb-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -25,13 +26,24 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { getDecimalsByNetwork, getIsAccountBased, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT } from '@shared/types/networks';
+import {
+  NETWORK_ARK,
+  NETWORK_ARK_MUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_RGB,
+  NETWORK_RGB_TESTNET,
+  NETWORK_SPARK,
+  NETWORK_STACKS,
+  NETWORK_USDT,
+} from '@shared/types/networks';
 import { useSendFlow } from './_layout';
 
 const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const router = useRouter();
   const { network: contextNetwork } = useContext(NetworkContext);
-  const { network, address, amount, createdTransaction, memo, liquidPrepareResult } = useSendFlow();
+  const { network, address, amount, createdTransaction, memo, liquidPrepareResult, rgbPreparedTx, token: selectedTokenId } = useSendFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const { exchangeRate } = useCachedExchangeRate(network, 'USD');
 
@@ -95,7 +107,8 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
 
   // Redirect back in case no transaction is available
   const isLiquid = network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET;
-  if (!getIsAccountBased(network) && !createdTransaction && !liquidPrepareResult) {
+  const isRgb = network === NETWORK_RGB || network === NETWORK_RGB_TESTNET;
+  if (!getIsAccountBased(network) && !createdTransaction && !liquidPrepareResult && !rgbPreparedTx) {
     Alert.alert('No transaction available');
     return <Redirect href="/Home" />;
   }
@@ -105,9 +118,10 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const networkDecimals = getDecimalsByNetwork(network);
   const nativeTicker = getTickerByNetwork(network);
 
-  // For Liquid, get fee from prepare result
+  // For Liquid, get fee from prepare result; for RGB, estimate from fee rate
   const liquidFee = liquidPrepareResult?.feesSat ?? 0;
-  const feeToUse = isLiquid ? liquidFee : actualFee;
+  const rgbFee = rgbPreparedTx ? rgbPreparedTx.feeRate * 150 : 0; // Approximate vBytes for taproot tx
+  const feeToUse = isLiquid ? liquidFee : isRgb ? rgbFee : actualFee;
 
   const feeInNative = formatBalance(String(feeToUse), networkDecimals, 8);
   const feeInNativeUnits = BigNumber(feeToUse).dividedBy(new BigNumber(10).pow(networkDecimals));
@@ -183,6 +197,17 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
         const result = await wallet.sendPayment({ prepareResponse: liquidPrepareResult });
         if (!result) {
           throw new Error('Transaction failed');
+        }
+      } else if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+        assert(rgbPreparedTx, 'RGB prepared transaction is required');
+
+        const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        assert(wallet instanceof RGBWallet, 'Internal error: incorrect wallet instance');
+
+        if (rgbPreparedTx.tokenId) {
+          await wallet.sendTokenBroadcast(rgbPreparedTx.signedPsbt);
+        } else {
+          await wallet.sendBtcBroadcast(rgbPreparedTx.signedPsbt);
         }
       } else {
         throw new Error('Unsupported network for broadcasting');

@@ -1,7 +1,6 @@
 import React, { useContext, useImperativeHandle, forwardRef, useState, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
-import Pressable from './Pressable';
 
 import { ThemedText } from '@/components/ThemedText';
 import SectionContainer from '@/components/SectionContainer';
@@ -11,17 +10,24 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
+import { useTokenExchangeRate } from '@shared/hooks/useTokenExchangeRate';
 import { getTokenIconColor } from '@shared/models/token-list';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CachedTokenInfo } from '@shared/types/token-info';
-import { useTokenExchangeRate } from '@shared/hooks/useTokenExchangeRate';
+import Pressable from './Pressable';
 
 // Local token icons for known tokens
 const LOCAL_TOKEN_ICONS: Record<string, any> = {
   USDT: require('@/assets/images/ui/network/tether.png'),
 };
 
-const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenInfo) => void; selected: boolean; onVisible?: () => void }> = ({ token, onPress, selected, onVisible }) => {
+const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenInfo) => void; selected: boolean; onVisible?: () => void; disabled?: boolean }> = ({
+  token,
+  onPress,
+  selected,
+  onVisible,
+  disabled,
+}) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundExecutor);
@@ -52,11 +58,18 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenI
   const localIcon = LOCAL_TOKEN_ICONS[token?.symbol?.toUpperCase()] || LOCAL_TOKEN_ICONS[token?.name?.toUpperCase()];
 
   const handleTokenPress = () => {
-    onPress(token);
+    if (!disabled) {
+      onPress(token);
+    }
   };
 
   return (
-    <Pressable style={[styles.tokenRow, selected && styles.selectedTokenRow]} onPress={handleTokenPress} activeOpacity={0.7} testID={`token-row-${token.id}`}>
+    <Pressable
+      style={[styles.tokenRow, selected && styles.selectedTokenRow, disabled && styles.disabledTokenRow]}
+      onPress={handleTokenPress}
+      activeOpacity={disabled ? 1 : 0.7}
+      testID={`token-row-${token.id}`}
+    >
       {/* Token Icon */}
       <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
         {localIcon ? (
@@ -82,70 +95,72 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenI
   );
 };
 
-const TokensView = forwardRef<{ refresh: () => void }, { onTokenPress: (token: CachedTokenInfo) => void; selectedToken?: string }>(({ onTokenPress, selectedToken }, ref) => {
-  const { network } = useContext(NetworkContext);
-  const { accountNumber } = useContext(AccountNumberContext);
-  const { tokenList, error, mutate } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
-  const [hasVisibleTokens, setHasVisibleTokens] = useState(false);
-  const prevContextRef = useRef({ network, accountNumber });
+const TokensView = forwardRef<{ refresh: () => void }, { onTokenPress: (token: CachedTokenInfo) => void; selectedToken?: string; disabled?: boolean }>(
+  ({ onTokenPress, selectedToken, disabled }, ref) => {
+    const { network } = useContext(NetworkContext);
+    const { accountNumber } = useContext(AccountNumberContext);
+    const { tokenList, error, mutate } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
+    const [hasVisibleTokens, setHasVisibleTokens] = useState(false);
+    const prevContextRef = useRef({ network, accountNumber });
 
-  // Reset visibility state when network or account changes (synchronous check before render)
-  if (prevContextRef.current.network !== network || prevContextRef.current.accountNumber !== accountNumber) {
-    prevContextRef.current = { network, accountNumber };
-    if (hasVisibleTokens) {
-      setHasVisibleTokens(false);
+    // Reset visibility state when network or account changes (synchronous check before render)
+    if (prevContextRef.current.network !== network || prevContextRef.current.accountNumber !== accountNumber) {
+      prevContextRef.current = { network, accountNumber };
+      if (hasVisibleTokens) {
+        setHasVisibleTokens(false);
+      }
     }
-  }
 
-  const handleTokenVisible = () => {
-    if (!hasVisibleTokens) {
-      setHasVisibleTokens(true);
-    }
-  };
+    const handleTokenVisible = () => {
+      if (!hasVisibleTokens) {
+        setHasVisibleTokens(true);
+      }
+    };
 
-  useImperativeHandle(ref, () => ({
-    refresh: () => {
-      mutate();
-    },
-  }));
+    useImperativeHandle(ref, () => ({
+      refresh: () => {
+        mutate();
+      },
+    }));
 
-  // Don't render anything if no tokens discovered
-  if (tokenList.length === 0) {
-    return null;
-  }
-
-  // Check if discovery provides balances (some networks like Spark/Stacks include balance,
-  // while others like Liquid set balance: undefined and rely on useTokenBalance hook)
-  const discoveryProvidesBalances = tokenList.some((token) => token.balance !== undefined);
-
-  // If discovery provides balances, check if any token has a balance > 0
-  if (discoveryProvidesBalances) {
-    const hasTokensWithBalance = tokenList.some((token) => {
-      const balance = token.balance ?? '0';
-      return +balance > 0;
-    });
-
-    // Don't render section if no tokens have balances (unless there's an error)
-    if (!hasTokensWithBalance && !error) {
+    // Don't render anything if no tokens discovered
+    if (tokenList.length === 0) {
       return null;
     }
+
+    // Check if discovery provides balances (some networks like Spark/Stacks include balance,
+    // while others like Liquid set balance: undefined and rely on useTokenBalance hook)
+    const discoveryProvidesBalances = tokenList.some((token) => token.balance !== undefined);
+
+    // If discovery provides balances, check if any token has a balance > 0
+    if (discoveryProvidesBalances) {
+      const hasTokensWithBalance = tokenList.some((token) => {
+        const balance = token.balance ?? '0';
+        return +balance > 0;
+      });
+
+      // Don't render section if no tokens have balances (unless there's an error)
+      if (!hasTokensWithBalance && !error) {
+        return null;
+      }
+    }
+
+    // For networks without discovery balances, show placeholder if no tokens have rendered yet
+    const showEmptyPlaceholder = !discoveryProvidesBalances && !hasVisibleTokens && !error;
+
+    return (
+      <SectionContainer title="Tokens">
+        <View style={styles.tokensList}>
+          {tokenList.map((token) => (
+            <TokenRow key={token.id} token={token} onPress={onTokenPress} selected={selectedToken === token.id} onVisible={handleTokenVisible} disabled={disabled} />
+          ))}
+          {showEmptyPlaceholder && <ThemedText style={styles.emptyText}>No tokens yet...</ThemedText>}
+        </View>
+        {error ? <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText> : null}
+      </SectionContainer>
+    );
   }
-
-  // For networks without discovery balances, show placeholder if no tokens have rendered yet
-  const showEmptyPlaceholder = !discoveryProvidesBalances && !hasVisibleTokens && !error;
-
-  return (
-    <SectionContainer title="Tokens">
-      <View style={styles.tokensList}>
-        {tokenList.map((token) => (
-          <TokenRow key={token.id} token={token} onPress={onTokenPress} selected={selectedToken === token.id} onVisible={handleTokenVisible} />
-        ))}
-        {showEmptyPlaceholder && <ThemedText style={styles.emptyText}>No tokens yet...</ThemedText>}
-      </View>
-      {error ? <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText> : null}
-    </SectionContainer>
-  );
-});
+);
 
 TokensView.displayName = 'TokensView';
 
@@ -211,6 +226,9 @@ const styles = StyleSheet.create({
   },
   selectedTokenRow: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  disabledTokenRow: {
+    opacity: 0.4,
   },
 });
 

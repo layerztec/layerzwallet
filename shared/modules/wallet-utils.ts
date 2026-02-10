@@ -6,6 +6,7 @@ import { ArkWallet } from '../class/wallets/ark-wallet';
 import { BreezWallet, getBreezNetwork } from '../class/wallets/breez-wallet';
 import { HDSegwitBech32Wallet } from '../class/wallets/hd-segwit-bech32-wallet';
 import { LegacyWallet } from '../class/wallets/legacy-wallet';
+import { RGBWallet } from '../class/wallets/rgb-wallet';
 import { SparkWallet } from '../class/wallets/spark-wallet';
 import { StacksWallet } from '../class/wallets/stacks-wallet';
 import { WatchOnlyWallet } from '../class/wallets/watch-only-wallet';
@@ -20,6 +21,8 @@ import {
   NETWORK_CITREA_TESTNET,
   NETWORK_LIQUID,
   NETWORK_LIQUID_TESTNET,
+  NETWORK_RGB,
+  NETWORK_RGB_TESTNET,
   NETWORK_ROOTSTOCK,
   NETWORK_SEPOLIA,
   NETWORK_SPARK,
@@ -40,6 +43,8 @@ const cachedWallets: Record<TSupportedLazyInitWalletNetworks, Record<number, TLa
   [NETWORK_LIQUID]: {},
   [NETWORK_LIQUID_TESTNET]: {},
   [NETWORK_STACKS]: {},
+  [NETWORK_RGB]: {},
+  [NETWORK_RGB_TESTNET]: {},
 };
 
 const locks: Record<string, boolean> = {};
@@ -91,8 +96,10 @@ export type TSupportedLazyInitWalletNetworks =
   | typeof NETWORK_LIQUID_TESTNET
   | typeof NETWORK_ARK_MUTINYNET
   | typeof NETWORK_STACKS
-  | typeof NETWORK_ARK;
-export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkWallet | StacksWallet;
+  | typeof NETWORK_ARK
+  | typeof NETWORK_RGB
+  | typeof NETWORK_RGB_TESTNET;
+export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkWallet | StacksWallet | RGBWallet;
 
 /**
  * Initialize and cache a wallet for the given network/account, using serialization if available.
@@ -104,7 +111,7 @@ export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | A
  * @returns The initialized wallet instance
  */
 export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, accountNumber: number, storage: IStorage, secureStorage: IStorage): Promise<TLazyInitedWallets> {
-  if (![NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ARK_MUTINYNET, NETWORK_ARK, NETWORK_STACKS].includes(network)) {
+  if (![NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ARK_MUTINYNET, NETWORK_ARK, NETWORK_STACKS, NETWORK_RGB, NETWORK_RGB_TESTNET].includes(network)) {
     throw new Error(`Unsupported network for lazyInitWallet: ${network}`);
   }
 
@@ -203,6 +210,17 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       return bw;
     }
 
+    if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+      assert(masterSeed, 'Master seed is not available');
+      const rgbNetwork = network === NETWORK_RGB ? 'mainnet' : 'testnet';
+      const rw = new RGBWallet(rgbNetwork);
+      rw.setSecret(masterSeed);
+      rw.setAccountNumber(accountNumber);
+      await rw.init();
+      cachedWallets[network][accountNumber] = rw;
+      return rw;
+    }
+
     // try to restore wallet from the storage
     const storageKey = getSerializedStorageKey(network, accountNumber);
     try {
@@ -293,6 +311,9 @@ export function validateAddress(network: Networks, address: string): boolean {
         return ArkWallet.isAddressValid(a);
       case NETWORK_STACKS:
         return StacksWallet.isAddressValid(a);
+      case NETWORK_RGB:
+      case NETWORK_RGB_TESTNET:
+        return RGBWallet.isAddressValid(a);
       // EVM networks
       case NETWORK_ROOTSTOCK:
       case NETWORK_BOTANIX:

@@ -2,11 +2,12 @@ import useSWR from 'swr';
 import assert from 'assert';
 import { ethers } from 'ethers';
 
-import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
+import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_RGB, NETWORK_RGB_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
 import { StringNumber } from '../types/string-number';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { getIsEVM, getRpcProvider } from '../models/network-getters';
 import { BreezWallet } from '../class/wallets/breez-wallet';
+import { RGBWallet } from '../class/wallets/rgb-wallet';
 import { walletCanHaveTokens } from '../class/wallets/interface-can-have-tokens';
 
 interface tokenBalanceFetcherArg {
@@ -55,6 +56,16 @@ export const tokenBalanceFetcher = async (arg: tokenBalanceFetcherArg): Promise<
       // has many tokens its just gona be a bunch of concurrent calls for the same thing.
 
       // Find the token balance where tokenMetadata.tokenPublicKey matches tokenContractAddress
+      const tokenBalances = wallet.getTokenBalances();
+      for (const value of tokenBalances) {
+        if (value.id === tokenContractAddress) {
+          return String(value.balance);
+        }
+      }
+      return undefined;
+    } else if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+      const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof RGBWallet, 'Not an RGB wallet');
       const tokenBalances = wallet.getTokenBalances();
       for (const value of tokenBalances) {
         if (value.id === tokenContractAddress) {
@@ -118,6 +129,11 @@ export function useTokenBalance(network: Networks, accountNumber: number, tokenC
 
     case NETWORK_SPARK:
       refreshInterval = 2_000;
+      break;
+
+    case NETWORK_RGB:
+    case NETWORK_RGB_TESTNET:
+      refreshInterval = 30_000;
       break;
   }
 

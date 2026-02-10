@@ -4,14 +4,18 @@ import { Networks } from './networks';
  * Simplified token transfer information for cross-chain compatibility
  */
 export interface CommonTokenTransfer {
-  /** Token symbol (e.g., 'USDT', 'DAI') */
-  // symbol: string;
-  /** Transfer amount in token's base units */
-  amount?: number;
-  /** Address the transfer is from (for receives) or to (for sends) */
-  address?: string;
   /** Token contract address (for EVM chains) or identifier (for other chains) */
   tokenId: string;
+  /** Token name (e.g., 'Tether USD', 'Layerz Shares'). Required for new implementations, optional for backwards compatibility */
+  name?: string;
+  /** Token symbol (e.g., 'USDT', 'LZ'). Required for new implementations, optional for backwards compatibility */
+  symbol?: string;
+  /** Token decimals for formatting. Required for new implementations, optional for backwards compatibility */
+  decimals?: number;
+  /** Transfer amount in token's base units (raw, not divided by decimals) */
+  amount: number;
+  /** Address the transfer is from (for receives) or to (for sends) */
+  address?: string;
 }
 
 /**

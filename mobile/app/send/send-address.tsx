@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as bip21 from 'bip21';
 import { Stack, useRouter } from 'expo-router';
-import React, { useContext, useRef, useState } from 'react';
+import React, { useContext, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import Pressable from '../../components/Pressable';
 
@@ -11,9 +11,10 @@ import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
 import { overlayBackgroundDeeper } from '@shared/constants/Colors';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
+import { RGBWallet } from '@shared/class/wallets/rgb-wallet';
 import { getIsAccountBased, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { validateAddress } from '@shared/modules/wallet-utils';
-import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_RGB, NETWORK_RGB_TESTNET } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { useSendFlow } from './_layout';
 
@@ -25,6 +26,16 @@ const SendAddress: React.FC = () => {
   const [localAddress, setLocalAddress] = useState(contextAddress);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const inputRef = useRef<TextInput>(null);
+
+  const isRgbNetwork = network === NETWORK_RGB || network === NETWORK_RGB_TESTNET;
+
+  // For RGB networks, detect if address is an RGB invoice or taproot address
+  const addressType = useMemo(() => {
+    if (!isRgbNetwork || !localAddress.trim()) return null;
+    if (RGBWallet.isRgbInvoice(localAddress)) return 'invoice';
+    if (RGBWallet.isTaprootAddress(localAddress)) return 'taproot';
+    return null;
+  }, [isRgbNetwork, localAddress]);
 
   const handleScanQR = async () => {
     const scanned = await scanQr();
@@ -49,6 +60,18 @@ const SendAddress: React.FC = () => {
       return;
     }
 
+    // For RGB networks: validate address type matches token selection
+    if (isRgbNetwork) {
+      if (token && addressType !== 'invoice') {
+        setErrorMessage('Token sends require an RGB invoice (rgb:...)');
+        return;
+      }
+      if (!token && addressType !== 'taproot') {
+        setErrorMessage('BTC sends require a taproot address (bc1p/tb1p)');
+        return;
+      }
+    }
+
     setErrorMessage('');
 
     try {
@@ -58,12 +81,15 @@ const SendAddress: React.FC = () => {
       setContextAddress(localAddress);
       if (getIsEVM(network)) {
         router.push('/send/send-amount-evm');
+      } else if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+        // RGB check must come before getIsAccountBased since RGB is also account-based
+        router.push('/send/send-amount-rgb');
+      } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
+        router.push('/send/send-amount-liquid');
       } else if (getIsAccountBased(network)) {
         router.push('/send/send-amount-acc');
       } else if (network === NETWORK_BITCOIN) {
         router.push('/send/send-amount-btc');
-      } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
-        router.push('/send/send-amount-liquid');
       } else {
         throw new Error('Invalid network');
       }
@@ -97,7 +123,7 @@ const SendAddress: React.FC = () => {
                 <TextInput
                   ref={inputRef}
                   style={styles.input}
-                  placeholder="Enter address"
+                  placeholder={isRgbNetwork ? 'Enter address or RGB invoice' : 'Enter address'}
                   placeholderTextColor="rgba(255, 255, 255, 0.8)"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -182,6 +208,16 @@ const styles = StyleSheet.create({
   errorText: {
     color: 'white',
     fontSize: 14,
+  },
+  hintContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 6,
+  },
+  hintText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 13,
   },
   continueButton: {
     alignItems: 'center',

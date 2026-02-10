@@ -10,6 +10,7 @@ import { SWRConfig } from 'swr';
 
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
+import '../src/modules/rgb-adapter'; // needed to be imported before we can use RGBWallet
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useColorScheme } from '@/hooks/useColorScheme';

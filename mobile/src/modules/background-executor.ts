@@ -2,32 +2,33 @@ import assert from 'assert';
 
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
+import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
+import { RGBWallet } from '@shared/class/wallets/rgb-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
+import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { WatchOnlyWallet } from '@shared/class/wallets/watch-only-wallet';
 import { getDeviceID } from '@shared/modules/device-id';
 import {
+  clearWalletCache,
+  getMasterSeed as getMasterSeedOrig,
   lazyInitWallet as lazyInitWalletOrig,
   lazyInitWalletReady as lazyInitWalletReadyOrig,
-  setMasterSeed as setMasterSeedOrig,
-  getMasterSeed as getMasterSeedOrig,
   sanitizeAndValidateMnemonic,
   saveBitcoinXpubs,
   saveWalletState,
+  setMasterSeed as setMasterSeedOrig,
   TSupportedLazyInitWalletNetworks,
-  clearWalletCache,
 } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, OpenPopupRequest } from '@shared/types/IBackgroundCaller';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_WHITELIST, STORAGE_KEY_SEED_VERIFIED } from '@shared/types/IStorage';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
+import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SEED_VERIFIED, STORAGE_KEY_WHITELIST } from '@shared/types/IStorage';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_RGB, NETWORK_RGB_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { BrowserBridge } from '../class/browser-bridge';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
 import { SecureStorage } from '../class/secure-storage';
-import { decrypt, encrypt } from '../modules/encryption';
-import { ArkWallet } from '@shared/class/wallets/ark-wallet';
-import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
-import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
+import { encrypt } from '../modules/encryption';
 
 /**
  * A drop-in replacement for BackgroundCaller in `ext` project. Since we have only one js context on mobile,
@@ -75,6 +76,10 @@ export const BackgroundExecutor: IBackgroundCaller = {
       const sp = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(sp instanceof StacksWallet);
       return String(await sp.getOffchainReceiveAddress());
+    } else if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+      const rgb = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      assert(rgb instanceof RGBWallet);
+      return await rgb.getOffchainReceiveAddress();
     } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
       const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(wallet instanceof BreezWallet);
@@ -267,6 +272,10 @@ export const BackgroundExecutor: IBackgroundCaller = {
     } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
       const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(wallet instanceof BreezWallet);
+      return await wallet.getCommonTransactions();
+    } else if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof RGBWallet);
       return await wallet.getCommonTransactions();
     }
     return [];

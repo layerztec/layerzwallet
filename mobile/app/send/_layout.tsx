@@ -11,6 +11,7 @@ import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wal
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { GetBtcSendDataResponse } from '@shared/types/IBackgroundCaller';
+import type { RgbDecodedInvoice } from '@shared/class/wallets/rgb-wallet';
 import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 
 // Bitcoin-specific data types
@@ -48,6 +49,16 @@ export interface LightningNetworkData {
   setLnurlPayServicePayload: React.Dispatch<React.SetStateAction<LnurlPayServicePayload | undefined>>;
 }
 
+// RGB-specific data types
+export interface RgbPreparedTx {
+  signedPsbt: string;
+  feeRate: number;
+  amount: number;
+  // Token-specific fields (optional, only for token sends)
+  tokenId?: string;
+  invoice?: string;
+}
+
 // Denomination type
 export type Denomination = 'Native' | 'Fiat';
 
@@ -70,6 +81,10 @@ export interface SendFlowContextData {
   // Lightning-specific data
   lightning: LightningNetworkData | undefined;
 
+  // RGB-specific data
+  rgbDecodedInvoice: RgbDecodedInvoice | undefined;
+  rgbPreparedTx: RgbPreparedTx | undefined;
+
   // Generic created transaction
   createdTransaction: CreatedTransaction | undefined;
 
@@ -82,6 +97,8 @@ export interface SendFlowContextData {
   setMemo: (memo: string) => void;
   setCreatedTransaction: (transaction: CreatedTransaction | undefined) => void;
   setLiquidPrepareResult: (result: PrepareSendResponse | undefined) => void;
+  setRgbDecodedInvoice: (invoice: RgbDecodedInvoice | undefined) => void;
+  setRgbPreparedTx: (tx: RgbPreparedTx | undefined) => void;
   reset: () => void;
 }
 
@@ -125,6 +142,10 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
 
   // Liquid-specific state
   const [liquidPrepareResult, setLiquidPrepareResult] = useState<PrepareSendResponse | undefined>(undefined);
+
+  // RGB-specific state
+  const [rgbDecodedInvoice, setRgbDecodedInvoice] = useState<RgbDecodedInvoice | undefined>(undefined);
+  const [rgbPreparedTx, setRgbPreparedTx] = useState<RgbPreparedTx | undefined>(undefined);
 
   // Generic created transaction (for all networks)
   const [createdTransaction, setCreatedTransaction] = useState<CreatedTransaction | undefined>(undefined);
@@ -182,6 +203,8 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
     setMemo('');
     setCreatedTransaction(undefined);
     setLiquidPrepareResult(undefined);
+    setRgbDecodedInvoice(undefined);
+    setRgbPreparedTx(undefined);
   };
 
   // Construct Bitcoin-specific data object
@@ -225,6 +248,8 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
         bitcoin: bitcoinData,
         lightning: lightningData,
         liquidPrepareResult,
+        rgbDecodedInvoice,
+        rgbPreparedTx,
         createdTransaction,
         setNetwork,
         setAddress,
@@ -234,6 +259,8 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
         setMemo,
         setCreatedTransaction,
         setLiquidPrepareResult,
+        setRgbDecodedInvoice,
+        setRgbPreparedTx,
         reset,
       }}
     >
@@ -257,10 +284,12 @@ export default function SendLayout() {
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="send-address" />
+        <Stack.Screen name="send-address-rgb" />
         <Stack.Screen name="send-amount-btc" />
         <Stack.Screen name="send-amount-evm" />
         <Stack.Screen name="send-amount-acc" />
         <Stack.Screen name="send-amount-liquid" />
+        <Stack.Screen name="send-amount-rgb" />
         <Stack.Screen name="send-confirm" />
         <Stack.Screen name="send-address-usdt" />
         <Stack.Screen name="send-amount-usdt" />

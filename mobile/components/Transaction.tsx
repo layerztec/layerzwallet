@@ -8,8 +8,22 @@ import { ThemedText } from '@/components/ThemedText';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { CommonTransaction } from '@shared/types/common-transaction';
+import { CommonTransaction, CommonTokenTransfer } from '@shared/types/common-transaction';
 import { getTokenIconColor, getTokenInfo } from '@shared/models/token-list';
+
+// Helper to get token info - uses embedded info if available, falls back to static list
+function getTokenInfoFromTransfer(transfer: CommonTokenTransfer) {
+  if (transfer.name !== undefined && transfer.symbol !== undefined && transfer.decimals !== undefined) {
+    return {
+      id: transfer.tokenId,
+      name: transfer.name,
+      symbol: transfer.symbol,
+      decimals: transfer.decimals,
+      chainId: 0,
+    };
+  }
+  return getTokenInfo(transfer.tokenId);
+}
 
 interface TransactionProps {
   transaction: CommonTransaction;
@@ -29,7 +43,7 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
 
   const singleTokenInfo = useMemo(() => {
     if (isZeroAmountWithSingleToken && transaction.tokenTransfers?.[0]) {
-      return getTokenInfo(transaction.tokenTransfers[0].tokenId);
+      return getTokenInfoFromTransfer(transaction.tokenTransfers[0]);
     }
     return null;
   }, [isZeroAmountWithSingleToken, transaction.tokenTransfers]);
@@ -145,13 +159,10 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
     return (
       <View style={styles.tokenTransfers}>
         {transaction.tokenTransfers.map((transfer, index) => {
-          const tokenInfo = getTokenInfo(transfer.tokenId);
+          const tokenInfo = getTokenInfoFromTransfer(transfer);
           const iconColor = getTokenIconColor(tokenInfo.name);
-          let formattedAmount = '';
-          if (transfer.amount) {
-            formattedAmount = formatBalance(transfer.amount.toString(), tokenInfo.decimals);
-          }
-          const isNegative = !transfer.amount && transaction.direction === 'send';
+          const formattedAmount = formatBalance(transfer.amount.toString(), tokenInfo.decimals);
+          const isNegative = transaction.direction === 'send';
           const sign = isNegative ? '-' : '';
 
           return (

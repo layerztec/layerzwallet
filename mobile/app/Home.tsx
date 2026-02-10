@@ -35,11 +35,24 @@ import { USDT_TOKENS } from '@shared/models/token-list';
 import { sleep } from '@shared/modules/sleep';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { NETWORK_ARK, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
+import {
+  NETWORK_ARK,
+  NETWORK_LIGHTNING,
+  NETWORK_LIGHTNING_TESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_RGB,
+  NETWORK_RGB_TESTNET,
+  NETWORK_ROOTSTOCK,
+  NETWORK_SPARK,
+  NETWORK_USDT,
+  Networks,
+} from '@shared/types/networks';
 import { SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapPlatform } from '@shared/types/swap';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { ReceiveTokenProps } from './Receive';
 import { SendTokenEvmProps } from './SendTokenEvm';
+import { SendRgbTokenParams } from './SendRgbToken';
 import { SwapParams } from './Swap';
 import { SendParams } from './send';
 
@@ -316,6 +329,23 @@ export default function Home() {
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
+  // RGB receive actions
+  const handleReceiveBitcoinOnRgb = () => {
+    router.push('/Receive');
+  };
+
+  const handleReceiveTokenOnRgb = () => {
+    router.push({ pathname: '/ReceiveRgbToken', params: { network } });
+  };
+
+  const rgbReceiveActions = [
+    { children: <Action text="Receive Bitcoin" />, onClick: handleReceiveBitcoinOnRgb },
+    { children: <Action text="Receive Token" />, onClick: handleReceiveTokenOnRgb },
+    { children: <Action text="Cancel" />, onClick: () => {} },
+  ];
+
+  const isRgbNetwork = network === NETWORK_RGB || network === NETWORK_RGB_TESTNET;
+
   const usdtSwapActions = useMemo(() => {
     const actions = [];
     if (getSwapPairs(SO_LIQUID_USDT, SwapPlatform.MOBILE).length > 0) {
@@ -480,6 +510,13 @@ export default function Home() {
                 </Pressable>
               ) : network === NETWORK_USDT ? (
                 <ActionPopupButton actions={usdtReceiveActions} title="Layer to receive">
+                  <Pressable style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
+                    <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
+                    <ThemedText style={styles.navButtonText}>Receive</ThemedText>
+                  </Pressable>
+                </ActionPopupButton>
+              ) : isRgbNetwork ? (
+                <ActionPopupButton actions={rgbReceiveActions} title="What to receive?">
                   <Pressable style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
                     <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
                     <ThemedText style={styles.navButtonText}>Receive</ThemedText>
