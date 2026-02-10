@@ -1038,14 +1038,13 @@ const DAppBrowser: React.FC = () => {
     return tab.history.slice(tab.historyIndex + 1);
   };
 
-  const injectAutofillScript = useCallback((address: string) => {
-    if (!address) return;
-    const addressValue = JSON.stringify(address);
+  const injectBtcScript = useCallback((address?: string) => {
+    const addressValue = address ? JSON.stringify(address) : 'null';
     const script = `
       (function() {
         try {
           var address = ${addressValue};
-          if (!address) return;
+
           var findMatch = function() {
             var fields = Array.prototype.slice.call(document.querySelectorAll('input, textarea'));
             var candidates = fields.filter(function(input) {
@@ -1075,63 +1074,42 @@ const DAppBrowser: React.FC = () => {
           };
 
           var applyIfEmpty = function() {
+            if (!address) return;
             var match = findMatch();
             if (match && !match.value) {
               setValue(match, address);
             }
           };
 
-          applyIfEmpty();
-
-          if (!window.__lwBtcAutofillObserver) {
-            var observer = new MutationObserver(function() {
-              applyIfEmpty();
-            });
-            observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
-            window.__lwBtcAutofillObserver = observer;
-          }
-
-          var start = Date.now();
-          var interval = setInterval(function() {
-            applyIfEmpty();
-            if (Date.now() - start > 8000) {
-              clearInterval(interval);
-            }
-          }, 500);
-        } catch (e) {}
-      })();
-      true;
-    `;
-
-    webviewRef.current?.injectJavaScript(script);
-  }, []);
-
-  const injectDetectionScript = useCallback(() => {
-    const script = `
-      (function() {
-        try {
-          if (window.__lwBtcInputObserver) return;
-
           var scan = function() {
-            var fields = Array.prototype.slice.call(document.querySelectorAll('input, textarea'));
-            var match = fields.find(function(input) {
-              var type = (input.getAttribute('type') || 'text').toLowerCase();
-              if (input.tagName === 'INPUT' && type && ['text', 'search', 'tel', 'url'].indexOf(type) === -1) return false;
-              var hint = [input.placeholder, input.name, input.id, input.getAttribute('aria-label')].filter(Boolean).join(' ');
-              return /btc|bitcoin|address|bc1/i.test(hint);
-            });
-
+            var match = findMatch();
             if (match && window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
               window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'btc-input-found', url: window.location.href }));
             }
           };
 
+          if (!window.__lwBtcManager) {
+            window.__lwBtcManager = { observer: null };
+            var observer = new MutationObserver(function() {
+              scan();
+              applyIfEmpty();
+            });
+            observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
+            window.__lwBtcManager.observer = observer;
+          }
+
           scan();
-          var observer = new MutationObserver(function() {
-            scan();
-          });
-          observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
-          window.__lwBtcInputObserver = observer;
+          applyIfEmpty();
+
+          if (address) {
+            var start = Date.now();
+            var interval = setInterval(function() {
+              applyIfEmpty();
+              if (Date.now() - start > 8000) {
+                clearInterval(interval);
+              }
+            }, 500);
+          }
         } catch (e) {}
       })();
       true;
@@ -1174,7 +1152,7 @@ const DAppBrowser: React.FC = () => {
                     setAutofillDomains(next);
                     await AsyncStorage.setItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_KEY, JSON.stringify(next));
                     if (btcAddress) {
-                      injectAutofillScript(btcAddress);
+                      injectBtcScript(btcAddress);
                     }
                   },
                 },
@@ -1187,7 +1165,7 @@ const DAppBrowser: React.FC = () => {
 
       browserBridgeRef.current?.handleMessage(event);
     },
-    [autofillDomains, btcAddress, injectAutofillScript]
+    [autofillDomains, btcAddress, injectBtcScript]
   );
 
   const handleLoadProgress = useCallback(
@@ -1219,15 +1197,15 @@ const DAppBrowser: React.FC = () => {
       const url = 'url' in event.nativeEvent ? event.nativeEvent.url : undefined;
       const domain = getDomainFromUrl(url);
       if (domain && autofillDomains[domain] === 'enabled' && btcAddress) {
-        injectAutofillScript(btcAddress);
+        injectBtcScript(btcAddress);
         setTimeout(() => {
-          injectAutofillScript(btcAddress);
+          injectBtcScript(btcAddress);
         }, 1500);
       } else {
-        injectDetectionScript();
+        injectBtcScript();
       }
     },
-    [autofillDomains, btcAddress, injectAutofillScript, injectDetectionScript]
+    [autofillDomains, btcAddress, injectBtcScript]
   );
 
   const handleInactiveTabLoad = useCallback(
@@ -1401,7 +1379,7 @@ const DAppBrowser: React.FC = () => {
                             setAutofillDomains(next);
                             await AsyncStorage.setItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_KEY, JSON.stringify(next));
                             if (next[currentDomain] === 'enabled' && btcAddress) {
-                              injectAutofillScript(btcAddress);
+                              injectBtcScript(btcAddress);
                             }
                           },
                           children: (
