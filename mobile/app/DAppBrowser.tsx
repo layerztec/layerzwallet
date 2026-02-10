@@ -1057,7 +1057,7 @@ const DAppBrowser: React.FC = () => {
             return (
               candidates.find(function(input) {
                 var hint = [input.placeholder, input.name, input.id, input.getAttribute('aria-label')].filter(Boolean).join(' ');
-                return /btc|bitcoin|address/i.test(hint);
+                return /btc|bitcoin|address|bc1/i.test(hint);
               }) || candidates[0]
             );
           };
@@ -1118,7 +1118,7 @@ const DAppBrowser: React.FC = () => {
               var type = (input.getAttribute('type') || 'text').toLowerCase();
               if (input.tagName === 'INPUT' && type && ['text', 'search', 'tel', 'url'].indexOf(type) === -1) return false;
               var hint = [input.placeholder, input.name, input.id, input.getAttribute('aria-label')].filter(Boolean).join(' ');
-              return /btc|bitcoin|address/i.test(hint);
+              return /btc|bitcoin|address|bc1/i.test(hint);
             });
 
             if (match && window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
