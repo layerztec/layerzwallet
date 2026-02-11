@@ -15,7 +15,7 @@ jobs:
       platform: ios
       profile: simulator
 
-  maestro_test_1:
+  home:
     needs: [build_ios_for_e2e]
     type: maestro
     params:
@@ -24,7 +24,7 @@ jobs:
       flow_path:
         - .maestro/home.yml
 
-  maestro_test_2:
+  wallet_creation_and_selftest:
     needs: [build_ios_for_e2e]
     type: maestro
     params:
@@ -33,7 +33,7 @@ jobs:
       flow_path:
         - .maestro/wallet-creation-and-selftest.yml
 
-  maestro_test_3:
+  receive:
     needs: [build_ios_for_e2e]
     type: maestro
     params:
@@ -42,7 +42,7 @@ jobs:
       flow_path:
         - .maestro/receive.yml
 
-  maestro_test_4:
+  restore:
     needs: [build_ios_for_e2e]
     type: maestro
     params:
@@ -51,7 +51,7 @@ jobs:
       flow_path:
         - .maestro/restore.yml
 
-  maestro_test_5:
+  swap:
     needs: [build_ios_for_e2e]
     type: maestro
     params:
@@ -60,7 +60,7 @@ jobs:
       flow_path:
         - .maestro/swap.yml
 
-  maestro_test_6:
+  biometric_toggle:
     needs: [build_ios_for_e2e]
     type: maestro
     params:
@@ -69,7 +69,7 @@ jobs:
       flow_path:
         - .maestro/biometric-toggle-test.yml
 
-  maestro_test_7:
+  send_spark:
     needs: [build_ios_for_e2e]
     type: maestro
     params:
@@ -78,7 +78,7 @@ jobs:
       flow_path:
         - .maestro/send-spark.yml
 
-  maestro_test_8:
+  send_token:
     needs: [build_ios_for_e2e]
     type: maestro
     params:
