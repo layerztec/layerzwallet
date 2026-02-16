@@ -127,7 +127,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
   getTokenBalances(): CachedTokenInfo[] {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
     const ret: CachedTokenInfo[] = [];
-    for (const [tokenIdentifier, { balance, tokenMetadata }] of this.tokenBalances.entries()) {
+    for (const [tokenIdentifier, { ownedBalance, tokenMetadata }] of this.tokenBalances.entries()) {
       if (this.isNft(tokenMetadata)) continue;
       ret.push({
         name: tokenMetadata.tokenName,
@@ -135,7 +135,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
         chainId: 0, // N/A
         decimals: tokenMetadata.decimals,
         id: tokenIdentifier,
-        balance: balance.toString(),
+        balance: ownedBalance.toString(),
       });
     }
     return ret;
@@ -376,10 +376,10 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     await this.fetchTokenBalances(); // NFTS are just tokens with a special identifier and supply of 1
 
     const ret: NftInfo[] = [];
-    for (const [tokenIdentifier, { tokenMetadata, balance }] of this.tokenBalances.entries()) {
+    for (const [tokenIdentifier, { tokenMetadata, ownedBalance }] of this.tokenBalances.entries()) {
       if (!this.isNft(tokenMetadata)) continue;
 
-      if (balance === BigInt(0)) continue; // we dont have it actually, skip it
+      if (ownedBalance === BigInt(0)) continue; // we dont have it actually, skip it
 
       let bnftMetadata: ReturnType<typeof this.parseBNFTMetadata>;
       try {
