@@ -21,11 +21,11 @@
     "prepare": "cd .. && husky ext/.husky"
   },
   "dependencies": {
-    "@arkade-os/boltz-swap": "0.2.16",
-    "@arkade-os/sdk": "0.3.10",
+    "@arkade-os/boltz-swap": "0.2.20",
+    "@arkade-os/sdk": "0.3.13",
     "@bitcoinerlab/secp256k1": "1.2.0",
-    "@breeztech/breez-sdk-liquid": "0.11.11",
-    "@buildonspark/spark-sdk": "0.6.0",
+    "@breeztech/breez-sdk-liquid": "0.11.13",
+    "@buildonspark/spark-sdk": "0.6.4",
     "@metamask/eth-sig-util": "8.2.0",
     "@noble/hashes": "1.7.1",
     "@noble/secp256k1": "1.6.3",
