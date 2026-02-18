@@ -80,13 +80,7 @@ export default function LiquidGlassButton({
     <View style={styles.buttonContainer}>
       <View style={styles.buttonWrapper}>
         <Pressable style={getButtonStyle()} onPress={onPress} disabled={disabled || loading} activeOpacity={activeOpacity} {...restProps}>
-          <LiquidGlassView 
-            tint={tint} 
-            glassStyle={glassStyle} 
-            intensity={1} 
-            borderIntensity={0.2}
-            style={styles.glassContainer}
-          >
+          <LiquidGlassView tint={tint} glassStyle={glassStyle} intensity={1} borderIntensity={0.2} style={styles.glassContainer}>
             {renderContent()}
           </LiquidGlassView>
         </Pressable>

@@ -123,11 +123,11 @@ export function ProtectedRouteStack() {
             animation: 'none',
           }}
         />
-        <Stack.Screen 
-          name="(tabs)" 
-          options={{ 
+        <Stack.Screen
+          name="(tabs)"
+          options={{
             headerShown: false,
-          }} 
+          }}
           listeners={{
             focus: () => {
               console.log('🟪 ProtectedRouteStack: (tabs) screen focused');

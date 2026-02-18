@@ -9,17 +9,6 @@ import { scheduleOnRN } from 'react-native-worklets';
 import Pressable from '../components/Pressable';
 
 import ActionButtons from '@/components/ActionButtons';
-
-const Action = ({ network, text }: { network?: Networks; text: string }) => {
-  const networkImage = network ? getNetworkImageAsset(network) : null;
-  const networkIconContent = networkImage ? <Image source={networkImage} style={styles.actionIconImage} contentFit="contain" /> : null;
-  return (
-    <View style={styles.action}>
-      {networkIconContent && <View style={styles.actionIcon}>{networkIconContent}</View>}
-      <ThemedText style={styles.actionText}>{text}</ThemedText>
-    </View>
-  );
-};
 import BackupWarning from '@/components/BackupWarning';
 import Balance from '@/components/Balance';
 import Button from '@/components/Button';
@@ -54,6 +43,16 @@ import { CachedTokenInfo } from '@shared/types/token-info';
 import { OnrampProps } from './Onramp';
 import { SwapParams } from './Swap';
 
+const Action = ({ network, text }: { network?: Networks; text: string }) => {
+  const networkImage = network ? getNetworkImageAsset(network) : null;
+  const networkIconContent = networkImage ? <Image source={networkImage} style={styles.actionIconImage} contentFit="contain" /> : null;
+  return (
+    <View style={styles.action}>
+      {networkIconContent && <View style={styles.actionIcon}>{networkIconContent}</View>}
+      <ThemedText style={styles.actionText}>{text}</ThemedText>
+    </View>
+  );
+};
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const MODAL_MIN_HEIGHT = 120; // Height when dragged down (header + some content)
@@ -76,7 +75,7 @@ export default function Home() {
 
   // Redirect to tabs if accessed via Stack route instead of Tabs route
   useEffect(() => {
-    const isInTabs = segments.some(seg => seg === '(tabs)');
+    const isInTabs = segments.some((seg) => seg === '(tabs)');
     if (!isInTabs && segments[0] === 'Home') {
       console.log('🟦 Home: Detected Stack route, redirecting to /(tabs)/home');
       router.replace('/(tabs)/home' as any);

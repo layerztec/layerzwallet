@@ -12,17 +12,7 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { USDT_TOKENS } from '@shared/models/token-list';
-import {
-  NETWORK_ARK,
-  NETWORK_LIGHTNING,
-  NETWORK_LIGHTNING_TESTNET,
-  NETWORK_LIQUID,
-  NETWORK_LIQUID_TESTNET,
-  NETWORK_ROOTSTOCK,
-  NETWORK_SPARK,
-  NETWORK_USDT,
-  Networks,
-} from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
 import { SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapPlatform } from '@shared/types/swap';
 import { OnrampProps } from '@/app/Onramp';
 import { ReceiveTokenProps } from '@/app/Receive';
@@ -165,61 +155,30 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
     if (network === NETWORK_USDT) {
       return (
         <ActionPopupButton actions={usdtSendActions} title="Choose network to send">
-          <LiquidGlassButton
-            title="Send"
-            icon={{ name: 'call-made', type: 'material', size: 24 }}
-            onPress={() => {}}
-            testID="SendButton"
-          />
+          <LiquidGlassButton title="Send" icon={{ name: 'call-made', type: 'material', size: 24 }} onPress={() => {}} testID="SendButton" />
         </ActionPopupButton>
       );
     }
 
-    return (
-      <LiquidGlassButton
-        title="Send"
-        icon={{ name: 'call-made', type: 'material', size: 24 }}
-        onPress={handleSend}
-        testID="SendButton"
-      />
-    );
+    return <LiquidGlassButton title="Send" icon={{ name: 'call-made', type: 'material', size: 24 }} onPress={handleSend} testID="SendButton" />;
   };
 
   // Render Receive button
   const renderReceiveButton = () => {
     if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET) {
       // Default to Lightning Address receive on tap (as per master behavior)
-      return (
-        <LiquidGlassButton
-          title="Receive"
-          icon={{ name: 'call-received', type: 'material', size: 24 }}
-          onPress={handleReceiveOnLightningAddress}
-          testID="ReceiveButton"
-        />
-      );
+      return <LiquidGlassButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={handleReceiveOnLightningAddress} testID="ReceiveButton" />;
     }
 
     if (network === NETWORK_USDT) {
       return (
         <ActionPopupButton actions={usdtReceiveActions} title="Layer to receive">
-          <LiquidGlassButton
-            title="Receive"
-            icon={{ name: 'call-received', type: 'material', size: 24 }}
-            onPress={() => {}}
-            testID="ReceiveButton"
-          />
+          <LiquidGlassButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={() => {}} testID="ReceiveButton" />
         </ActionPopupButton>
       );
     }
 
-    return (
-      <LiquidGlassButton
-        title="Receive"
-        icon={{ name: 'call-received', type: 'material', size: 24 }}
-        onPress={handleReceive}
-        testID="ReceiveButton"
-      />
-    );
+    return <LiquidGlassButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={handleReceive} testID="ReceiveButton" />;
   };
 
   // Render Fund button (only if canBuyWithFiat is true)
@@ -228,14 +187,7 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
       return null;
     }
 
-    return (
-      <LiquidGlassButton
-        title="Fund"
-        icon={{ name: 'add', type: 'ionicons', size: 24 }}
-        onPress={handleFund}
-        testID="FundButton"
-      />
-    );
+    return <LiquidGlassButton title="Fund" icon={{ name: 'add', type: 'ionicons', size: 24 }} onPress={handleFund} testID="FundButton" />;
   };
 
   return (

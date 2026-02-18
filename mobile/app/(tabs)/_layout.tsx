@@ -3,13 +3,9 @@ import { Platform, DynamicColorIOS } from 'react-native';
 
 export default function TabsLayout() {
   // Platform-aware color for label and tint
-  const labelColor = Platform.OS === 'ios' 
-    ? DynamicColorIOS({ dark: 'white', light: 'white' })
-    : 'white';
-  
-  const tintColorValue = Platform.OS === 'ios'
-    ? DynamicColorIOS({ dark: 'white', light: 'white' })
-    : 'white';
+  const labelColor = Platform.OS === 'ios' ? DynamicColorIOS({ dark: 'white', light: 'white' }) : 'white';
+
+  const tintColorValue = Platform.OS === 'ios' ? DynamicColorIOS({ dark: 'white', light: 'white' }) : 'white';
 
   return (
     <NativeTabs

@@ -12,7 +12,7 @@ interface LiquidGlassTabBarProps {
  */
 export default function LiquidGlassTabBar({ style }: LiquidGlassTabBarProps) {
   console.log('🟢 LiquidGlassTabBar: Component rendering');
-  
+
   return (
     <LiquidGlassView
       tint="light"

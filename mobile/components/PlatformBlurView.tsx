@@ -11,10 +11,21 @@ interface PlatformBlurViewProps {
 
 const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({ intensity = 50, tint = 'dark', style, children }) => {
   // Map tint to blurType according to library documentation
-  // Valid types: 'xlight' | 'light' | 'dark' | 'extraDark' | 'regular' | 'prominent' | 
-  // 'systemUltraThinMaterial' | 'systemThinMaterial' | 'systemMaterial' | 'systemThickMaterial' | 
+  // Valid types: 'xlight' | 'light' | 'dark' | 'extraDark' | 'regular' | 'prominent' |
+  // 'systemUltraThinMaterial' | 'systemThinMaterial' | 'systemMaterial' | 'systemThickMaterial' |
   // 'systemChromeMaterial' | etc.
-  let blurType: 'xlight' | 'light' | 'dark' | 'extraDark' | 'regular' | 'prominent' | 'systemUltraThinMaterial' | 'systemThinMaterial' | 'systemMaterial' | 'systemThickMaterial' | 'systemChromeMaterial' = 'systemMaterial';
+  let blurType:
+    | 'xlight'
+    | 'light'
+    | 'dark'
+    | 'extraDark'
+    | 'regular'
+    | 'prominent'
+    | 'systemUltraThinMaterial'
+    | 'systemThinMaterial'
+    | 'systemMaterial'
+    | 'systemThickMaterial'
+    | 'systemChromeMaterial' = 'systemMaterial';
   if (tint === 'light') {
     blurType = 'light';
   } else if (tint === 'dark') {
@@ -35,12 +46,10 @@ const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({ intensity = 50, tin
   // Android: Use simple transparency fallback to avoid hardware bitmap crashes
   // The library may work on Android with hardware acceleration, but we use fallback for safety
   if (Platform.OS === 'android') {
-    const backgroundColor = tint === 'light' 
-      ? 'rgba(255, 255, 255, 0.1)' 
-      : 'rgba(0, 0, 0, 0.3)';
+    const backgroundColor = tint === 'light' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.3)';
 
     return (
-      <View 
+      <View
         style={[
           restStyle,
           {
@@ -58,7 +67,7 @@ const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({ intensity = 50, tin
   // iOS: Use native BlurView
   // Ensure proper layout constraints to prevent blur from extending beyond bounds
   return (
-    <View 
+    <View
       style={[
         {
           overflow: overflow || 'hidden',
@@ -67,12 +76,7 @@ const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({ intensity = 50, tin
         restStyle,
       ]}
     >
-      <BlurView
-        blurType={blurType}
-        blurAmount={blurAmount}
-        style={StyleSheet.absoluteFill}
-        ignoreSafeArea={false}
-      >
+      <BlurView blurType={blurType} blurAmount={blurAmount} style={StyleSheet.absoluteFill} ignoreSafeArea={false}>
         {children}
       </BlurView>
     </View>

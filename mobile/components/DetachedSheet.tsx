@@ -90,12 +90,7 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
         backgroundComponent={({ style: backgroundStyle }) => (
           <View style={[backgroundStyle, styles.gradientContainer]}>
             <View style={styles.blurOverlay}>
-              <BlurView
-                blurType="light"
-                blurAmount={50}
-                style={StyleSheet.absoluteFill}
-                ignoreSafeArea={false}
-              />
+              <BlurView blurType="light" blurAmount={50} style={StyleSheet.absoluteFill} ignoreSafeArea={false} />
             </View>
             <View style={styles.radialGradientWrapper}>
               <RadialGradient colorList={radialColorList} x="48.63%" y="-24.14%" rx="163.06%" ry="75.01%" />

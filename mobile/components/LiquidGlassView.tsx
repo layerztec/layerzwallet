@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, View, ViewStyle, StyleSheet } from 'react-native';
+import { Platform, View, ViewStyle, StyleSheet, StyleProp } from 'react-native';
 import { LiquidGlassView as NativeLiquidGlassView } from '@sbaiahmed1/react-native-blur';
 
 interface LiquidGlassViewProps {
@@ -7,13 +7,13 @@ interface LiquidGlassViewProps {
   tint?: 'light' | 'dark' | 'default' | 'systemChromeMaterial';
   glassStyle?: 'clear' | 'regular'; // @sbaiahmed1/react-native-blur supports 'clear' | 'regular'
   borderIntensity?: number; // 0-1, controls border dimming (0 = no dimming, 1 = fully dimmed)
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   children?: React.ReactNode;
 }
 
 /**
  * LiquidGlassView - Platform-specific wrapper for liquid glass effects
- * 
+ *
  * iOS 26+: Uses native LiquidGlassView from @sbaiahmed1/react-native-blur
  * iOS <26: Falls back to BlurView with enhanced styling
  * Android: Falls back to simple transparency (no blur)
@@ -26,9 +26,9 @@ const LiquidGlassView: React.FC<LiquidGlassViewProps> = ({
   style,
   children,
 }) => {
-  // Extract borderRadius and other properties from style
-  const styleObj = style || {};
-  const { borderRadius, overflow, ...restStyle } = styleObj;
+  // Extract borderRadius and other properties from style (flatten if array)
+  const styleObj = StyleSheet.flatten(style) || {};
+  const { borderRadius, overflow, ...restStyle } = styleObj as ViewStyle;
   const containerStyle: ViewStyle = {
     ...(restStyle as ViewStyle),
     backgroundColor: 'transparent',
@@ -67,17 +67,15 @@ const LiquidGlassView: React.FC<LiquidGlassViewProps> = ({
         />
         {/* Border overlay to dim the glass border effect */}
         {borderIntensity > 0 && borderRadius && (
-          <View 
+          <View
             style={[
               StyleSheet.absoluteFill,
               {
                 borderWidth: 1,
-                borderColor: tint === 'light' 
-                  ? `rgba(255, 255, 255, ${borderIntensity * 0.002})` 
-                  : `rgba(0, 0, 0, ${borderIntensity * 0.3})`,
+                borderColor: tint === 'light' ? `rgba(255, 255, 255, ${borderIntensity * 0.002})` : `rgba(0, 0, 0, ${borderIntensity * 0.3})`,
                 borderRadius,
-              }
-            ]} 
+              },
+            ]}
             pointerEvents="none"
           />
         )}
@@ -88,9 +86,7 @@ const LiquidGlassView: React.FC<LiquidGlassViewProps> = ({
 
   // Android: Use simple transparency fallback (no blur)
   // Use fixed 10% white transparency for light tint, or 10% black for dark tint
-  const backgroundColor = tint === 'light' 
-    ? 'rgba(255, 255, 255, 0.1)' 
-    : 'rgba(0, 0, 0, 0.1)';
+  const backgroundColor = tint === 'light' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
 
   return (
     <View style={containerStyle}>
@@ -106,17 +102,15 @@ const LiquidGlassView: React.FC<LiquidGlassViewProps> = ({
       />
       {/* Border overlay - use 10% white on Android */}
       {borderIntensity > 0 && borderRadius && (
-        <View 
+        <View
           style={[
             StyleSheet.absoluteFill,
             {
               borderWidth: 1,
-              borderColor: tint === 'light' 
-                ? 'rgba(255, 255, 255, 0.1)' 
-                : 'rgba(0, 0, 0, 0.1)',
+              borderColor: tint === 'light' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
               borderRadius,
-            }
-          ]} 
+            },
+          ]}
           pointerEvents="none"
         />
       )}
