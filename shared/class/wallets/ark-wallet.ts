@@ -338,8 +338,9 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     if (!this._wallet) throw new Error('Ark wallet not initialized');
 
     const boardingUtxos = (await this._wallet.getBoardingUtxos()).filter((utxo) => utxo.txid === txid);
+    const { fees } = await this._wallet.arkProvider.getInfo();
 
-    await new Ramps(this._wallet).onboard(boardingUtxos);
+    await new Ramps(this._wallet).onboard(fees, boardingUtxos);
   }
 
   /**

@@ -41,7 +41,7 @@ if (!__DEV__) {
     appendLog(args, 'log');
     consoleLogOrig(...args);
   };
-  console.log = console.warn = console.error = console.debug = _log;
+  console.log = console.warn = console.error = console.debug = console.info = _log;
 }
 
 export default function RootLayout() {

@@ -3,7 +3,7 @@ import Pressable from '../components/Pressable';
 import * as FileSystem from 'expo-file-system';
 import { File as ExpoFsFile, Directory } from 'expo-file-system';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
-import { StyleSheet, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions } from 'react-native';
+import { StyleSheet, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions, BackHandler } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import { Stack, useLocalSearchParams, useRouter, Link, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/ThemedText';
 import GradientScreen from '@/components/GradientScreen';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { useFocusEffect } from '@react-navigation/native';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { DAppBrowserTabs } from './DAppBrowserTabs';
 import { useWebViewPreviewManager } from './hooks/useWebViewPreviewManager';
@@ -331,6 +332,13 @@ const DAppBrowser: React.FC = () => {
       },
     });
   }, [showTabsOverview, navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => true);
+      return () => subscription.remove();
+    }, [])
+  );
 
   useEffect(() => {
     (async () => {

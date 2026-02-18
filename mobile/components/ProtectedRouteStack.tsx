@@ -28,20 +28,6 @@ export function ProtectedRouteStack() {
   // User has completed initial auth if they're currently in main app or have been there before
   const hasCompletedInitialAuth = userInMainApp;
 
-  // Debug: Log the current auth state (only in development)
-  if (__DEV__) {
-    console.debug('ProtectedRouteStack state:', {
-      isAuthenticated,
-      isInitialized,
-      isBiometricEnabled,
-      segments,
-      userInMainApp,
-      hasCompletedInitialAuth,
-      shouldShowBiometricLogin: isBiometricEnabled && isInitialized && !isAuthenticated && !hasCompletedInitialAuth,
-      shouldShowMainApp: !isBiometricEnabled || isAuthenticated || hasCompletedInitialAuth,
-    });
-  }
-
   // Extract guard conditions for clarity
   // Show fullscreen biometric login only on first authentication attempt (never been to main app)
   const shouldShowBiometricLogin = isBiometricEnabled && isInitialized && !isAuthenticated && !hasCompletedInitialAuth;
@@ -217,7 +203,15 @@ export function ProtectedRouteStack() {
         />
         <Stack.Screen name="Onramp" options={{ headerShown: true }} />
         <Stack.Screen name="AskPassword" options={{ presentation: 'modal', headerShown: false }} />
-        <Stack.Screen name="DAppBrowser" options={{ headerShown: true, title: 'Browser' }} />
+        <Stack.Screen
+          name="DAppBrowser"
+          options={{
+            headerShown: true,
+            title: 'Browser',
+            gestureEnabled: false,
+            fullScreenGestureEnabled: false,
+          }}
+        />
         <Stack.Screen
           name="Action"
           options={{

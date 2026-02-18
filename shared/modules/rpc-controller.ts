@@ -29,7 +29,15 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
       // Revoke permissions immediately without requiring user confirmation
       const dp2 = new DappPermissions(from, LayerzStorage);
       await dp2.revokePermissions(params[0]);
+      await BackgroundCaller.unwhitelistDapp(from);
       await sendResponse({ for: 'webpage', id, response: null });
+      // Notify the dapp that accounts are now disconnected
+      Messenger.documentDispatchEvent({
+        for: 'webpage',
+        type: 'eventCallback',
+        event: 'accountsChanged',
+        arg: [],
+      });
       return { success: true };
 
     case 'eth_accounts':
@@ -45,10 +53,13 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
         });
         return { success: true };
       }
-      // theoretically, we should not fall-through to opening popup here (where user can manually approve the request),
-      // but empirically, doing so provides better user experience, as it allows the dapp to proceed with the request immediately, instead of
-      // circling back to `eth_requestAccounts`
-      break;
+      // If not whitelisted, return empty array per EIP-1193 (no popup for eth_accounts)
+      await sendResponse({
+        for: 'webpage',
+        id,
+        response: [],
+      });
+      return { success: true };
 
     case 'eth_requestAccounts':
       if (whitelist.includes(from)) {
