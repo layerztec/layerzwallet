@@ -20,6 +20,7 @@ import StickyHeader from '@/components/StickyHeader';
 import SwapList from '@/components/SwapList';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
+import YieldView from '@/components/YieldView';
 import TransactionsList from '@/components/TransactionsList';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
@@ -42,6 +43,7 @@ import { ReceiveTokenProps } from './Receive';
 import { SendTokenEvmProps } from './SendTokenEvm';
 import { SwapParams } from './Swap';
 import { SendParams } from './send';
+import { YieldBearingCachedTokenInfo } from '@shared/hooks/useYieldDiscovery';
 
 const Action = ({ network, text }: { network?: Networks; text: string }) => {
   const networkImage = network ? getNetworkImageAsset(network) : null;
@@ -78,6 +80,7 @@ export default function Home() {
   const gestureStartPosition = useSharedValue(0); // Track gesture start position using shared value
   const whiteFlashAnim = useSharedValue(0); // Animation for white flash transition
   const balanceRef = useRef<{ refresh: () => void }>(null);
+  const yieldViewRef = useRef<{ refresh: () => void }>(null);
   const tokensViewRef = useRef<{ refresh: () => void }>(null);
   const nftsViewRef = useRef<{ refresh: () => void }>(null);
   const swapListRef = useRef<{ refresh: () => void }>(null);
@@ -211,6 +214,10 @@ export default function Home() {
     });
   };
 
+  const handleYieldPress = (token: YieldBearingCachedTokenInfo) => {
+    // TODO
+  };
+
   // Lightning Network specific handlers
   const handleReceiveOnSpark = () => {
     if (network === NETWORK_LIGHTNING_TESTNET) {
@@ -259,6 +266,7 @@ export default function Home() {
     setRefreshing(true);
     try {
       balanceRef.current?.refresh();
+      yieldViewRef.current?.refresh();
       tokensViewRef.current?.refresh();
       swapListRef.current?.refresh();
       nftsViewRef.current?.refresh();
@@ -434,6 +442,9 @@ export default function Home() {
 
             {/* Seed Backup Warning */}
             {hasBackedUpSeed === false && <BackupWarning onPress={handleBackupSeed} />}
+
+            {/* Yield Section */}
+            <YieldView ref={yieldViewRef} onYieldPress={handleYieldPress} />
 
             {/* Tokens Section */}
             <TokensView ref={tokensViewRef} onTokenPress={handleTokenPress} />
