@@ -7,9 +7,9 @@ jsEngine: graaljs
 ---
 - runFlow: subflows/wallet-creation.yml
 
-# Navigate to Swaps tab (swaps are now in the bottom tab bar)
+# Navigate to Swaps tab (2nd tab: Layerz | Swaps | Explorer). Native tab bar does not expose testID.
 - tapOn:
-    id: 'SwapsTab'
+    point: '50%, 95%'
 - waitForAnimationToEnd
 - assertVisible: 'Select target network'
 - tapOn:

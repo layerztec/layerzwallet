@@ -10,9 +10,9 @@ appId: com.layerzwallet.mobile
     env:
       NETWORK: 'rootstock'
 
-# Navigate to Explorer tab (explorer is now in the bottom tab bar)
+# Navigate to Explorer tab (3rd tab: Layerz | Swaps | Explorer). Native tab bar does not expose testID.
 - tapOn:
-    id: 'ExplorerTab'
+    point: '83%, 95%'
 - waitForAnimationToEnd
 - waitForAnimationToEnd
 # Wait for browser to fully load (JS loaded)
