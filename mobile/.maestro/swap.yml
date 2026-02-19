@@ -7,8 +7,9 @@ jsEngine: graaljs
 ---
 - runFlow: subflows/wallet-creation.yml
 
+# Navigate to Swaps tab (swaps are now in the bottom tab bar)
 - tapOn:
-    id: 'SwapButton'
+    id: 'SwapsTab'
 - waitForAnimationToEnd
 - assertVisible: 'Select target network'
 - tapOn:

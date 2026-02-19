@@ -21,11 +21,11 @@ export default function TabsLayout() {
         <Label>Layerz</Label>
         <Icon sf="house.fill" src={require('@/assets/images/ui/layerz.png')} drawable="home" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="swaps">
+      <NativeTabs.Trigger name="swaps" options={{ testID: 'SwapsTab' } as React.ComponentProps<typeof NativeTabs.Trigger>['options']}>
         <Label>Swaps</Label>
         <Icon sf="arrow.triangle.2.circlepath" src={require('@/assets/images/ui/swap.png')} drawable="swap_horiz" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="explorer">
+      <NativeTabs.Trigger name="explorer" options={{ testID: 'ExplorerTab' } as React.ComponentProps<typeof NativeTabs.Trigger>['options']}>
         <Label>Explorer</Label>
         <Icon sf="globe" src={require('@/assets/images/ui/explorer.png')} drawable="public" />
       </NativeTabs.Trigger>

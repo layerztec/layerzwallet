@@ -12,7 +12,7 @@ appId: com.layerzwallet.mobile
 
 # Navigate to Explorer tab (explorer is now in the bottom tab bar)
 - tapOn:
-    text: 'Explorer'
+    id: 'ExplorerTab'
 - waitForAnimationToEnd
 - waitForAnimationToEnd
 # Wait for browser to fully load (JS loaded)
