@@ -72,7 +72,7 @@ const LiquidGlassView: React.FC<LiquidGlassViewProps> = ({
               StyleSheet.absoluteFill,
               {
                 borderWidth: 1,
-                borderColor: tint === 'light' ? `rgba(255, 255, 255, ${borderIntensity * 0.002})` : `rgba(0, 0, 0, ${borderIntensity * 0.3})`,
+                borderColor: tint === 'light' ? `rgba(255, 255, 255, ${borderIntensity * 0.2})` : `rgba(0, 0, 0, ${borderIntensity * 0.3})`,
                 borderRadius,
               },
             ]}
