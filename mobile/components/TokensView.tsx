@@ -19,6 +19,7 @@ import { useTokenExchangeRate } from '@shared/hooks/useTokenExchangeRate';
 // Local token icons for known tokens
 const LOCAL_TOKEN_ICONS: Record<string, any> = {
   USDT: require('@/assets/images/ui/network/tether.png'),
+  'USD₮0': require('@/assets/images/ui/network/tether.png'),
 };
 
 const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenInfo) => void; selected: boolean; onVisible?: (isVisible: boolean) => void }> = ({
@@ -63,9 +64,9 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenI
       {/* Token Icon */}
       <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
         {localIcon ? (
-          <Image source={localIcon} style={styles.tokenIconImage} contentFit="contain" />
+          <Image source={localIcon} style={styles.tokenIconImage} contentFit="cover" />
         ) : token.logoURI ? (
-          <Image source={{ uri: token.logoURI }} style={styles.tokenIconImage} contentFit="contain" />
+          <Image source={{ uri: token.logoURI }} style={styles.tokenIconImage} contentFit="cover" />
         ) : (
           <ThemedText style={styles.tokenIconText}>{token?.symbol?.charAt(0) || '?'}</ThemedText>
         )}
@@ -169,13 +170,15 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
   },
   tokenIconImage: {
-    width: 24,
-    height: 24,
+    width: '100%',
+    height: '100%',
+    borderRadius: 19,
   },
   tokenIconText: {
     fontSize: 16,

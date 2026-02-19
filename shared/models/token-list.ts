@@ -85,6 +85,7 @@ export const getTokenIconColor = (name?: string): string => {
     // Stablecoins
     USDT: '#26A17B', // Tether green
     RUSDT: '#26A17B', // Tether green
+    'USD₮0': '#26A17B', // Tether green
     USDB: '#26A17B', // USDB green (stablecoin)
     USDC: '#2775CA', // USD Coin blue
   };

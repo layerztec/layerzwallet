@@ -26,6 +26,10 @@ export interface ISparkAdapter {
 }
 
 const STORAGE_KEY_NFT = 'SPARK_NFT_METADATA';
+const STORAGE_KEY = 'SPARK_TOKEN_METADATA';
+
+// Static cache for token icon URLs that we fetched from the API
+const _tokenIconCache: Record<string, string> = {};
 
 // not exposed in the SDK
 export type StaticDepositQuoteOutput = Awaited<ReturnType<SDK['getClaimStaticDepositQuote']>>;
@@ -117,10 +121,35 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
   async getOffchainBalance(): Promise<number> {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
     const balance = await this._sdkWallet.getBalance();
+    this.tokenBalances = balance.tokenBalances;
+
+    // fetching tokens metadata
+    for (const [tokenId, { tokenMetadata }] of this.tokenBalances.entries()) {
+      if (this.isNft(tokenMetadata)) continue; // NFTs images are fetched in other place, so we just save ourself extra unnecessary network request
+      let remoteMetadata: any;
+      const cacheKey = `${STORAGE_KEY}-${tokenId}`;
+      if (!this._storage) console.warn('Warning: no storage available, no caching for tokens image URLs');
+      const cachedTokenMetadata = await this._storage?.getItem(cacheKey);
+      if (cachedTokenMetadata) {
+        // cache hit
+        remoteMetadata = JSON.parse(cachedTokenMetadata) as unknown;
+      } else {
+        // cache miss
+        const response = await fetch(`https://api.sparkscan.io/v1/tokens/${tokenId}`);
+        remoteMetadata = await response.json();
+        await this._storage?.setItem(cacheKey, JSON.stringify(remoteMetadata));
+      }
+
+      if (remoteMetadata?.metadata?.iconUrl) {
+        _tokenIconCache[tokenId] = String(remoteMetadata.metadata.iconUrl);
+      }
+    }
+    // end fetch tokens metadata
+
     this._lastBalanceFetch = Date.now();
     this._lastNftsFetch = Date.now();
     this._lastTokensFetch = Date.now();
-    this.tokenBalances = balance.tokenBalances;
+
     return Number(balance.balance);
   }
 
@@ -136,8 +165,10 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
         decimals: tokenMetadata.decimals,
         id: tokenIdentifier,
         balance: ownedBalance.toString(),
+        logoURI: _tokenIconCache[tokenIdentifier],
       });
     }
+
     return ret;
   }
 

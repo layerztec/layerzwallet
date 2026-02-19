@@ -45,7 +45,15 @@
     "address": "0xF4586028FFdA7Eca636864F80f8a3f2589E33795",
     "decimals": 18,
     "chainId": 3637,
-    "logoURI": ""
+    "logoURI": "https://imgproxy-mainnet.routescan.io/W1gPh_ltBM3759nyHWrWExfQ2nbGieqMIfZfvPljyOw/pr:thumb_32/aHR0cHM6Ly9jbXMtY2RuLmF2YXNjYW4uY29tL2NtczIvc3RidGMuMjlhMjQyNDJjNGM1LndlYnA"
+  },
+  {
+    "symbol": "pBTC",
+    "name": "Pegged Bitcoin",
+    "address": "0x0D2437F93Fed6EA64Ef01cCde385FB1263910C56",
+    "decimals": 18,
+    "chainId": 3637,
+    "logoURI": "https://imgproxy-mainnet.routescan.io/e_3MwRG54DBVaNdx901mhhdKqlktyxRR3G_eyWB3muI/pr:thumb_32/aHR0cHM6Ly9jbXMtY2RuLmF2YXNjYW4uY29tL2NtczIvcGJ0Yy5hYjM3NDIwYzE1Njgud2VicA"
   },
   {
     "symbol": "ctUSD",
