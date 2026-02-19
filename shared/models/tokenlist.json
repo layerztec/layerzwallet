@@ -24,12 +24,12 @@
     "logoURI": "https://tether.to/images/tetherTokenWhite.svg"
   },
   {
-    "symbol": "WBTC",
+    "symbol": "WRBTC",
     "name": "Wrapped BTC",
     "address": "0x542FDA317318eBf1d3DeAF76E0B632741a7e677d",
     "decimals": 18,
     "chainId": 30,
-    "logoURI": ""
+    "logoURI": "https://assets.coingecko.com/coins/images/5070/small/RBTC-logo.png?1718152038"
   },
   {
     "symbol": "WBTC",

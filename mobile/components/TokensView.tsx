@@ -17,9 +17,10 @@ import { CachedTokenInfo } from '@shared/types/token-info';
 import { useTokenExchangeRate } from '@shared/hooks/useTokenExchangeRate';
 
 // Local token icons for known tokens
+// TODO: lookup should be by token id, not symbol (scam tokens might pretend to be legit USDT)
 const LOCAL_TOKEN_ICONS: Record<string, any> = {
-  USDT: require('@/assets/images/ui/network/tether.png'),
-  'USD₮0': require('@/assets/images/ui/network/tether.png'),
+  USDT: 'https://tether.to/images/tetherTokenWhite.svg',
+  'USD₮0': 'https://tether.to/images/tetherTokenWhite.svg',
 };
 
 const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenInfo) => void; selected: boolean; onVisible?: (isVisible: boolean) => void }> = ({
@@ -117,8 +118,6 @@ const TokensView = forwardRef<{ refresh: () => void }, { onTokenPress: (token: C
   if (tokenList.length === 0) {
     return null;
   }
-
-  console.log('tokenList', tokenList);
 
   return (
     <>

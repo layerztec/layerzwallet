@@ -28,8 +28,6 @@ const YIELD_TOKEN_DEFINITIONS_BY_NETWORK: Partial<Record<Networks, YieldTokenDef
 export function useYieldDiscovery(network: Networks, accountNumber: number, backgroundCaller: IBackgroundCaller, storage: IStorage, refreshInterval = 5_000) {
   const { tokenList, isLoading, error, mutate } = useTokenDiscovery(network, accountNumber, backgroundCaller, storage, refreshInterval);
 
-  console.log('yield discovery got following token list:', tokenList, 'error:', error);
-
   const yieldList: YieldBearingCachedTokenInfo[] = useMemo(() => {
     const yieldTokenDefinitions = YIELD_TOKEN_DEFINITIONS_BY_NETWORK[network] ?? [];
     if (yieldTokenDefinitions.length === 0) return [];
