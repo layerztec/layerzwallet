@@ -5,13 +5,13 @@ import Pressable, { PressableProps } from './Pressable';
 import LiquidGlassView from './LiquidGlassView';
 import { ThemedText } from './ThemedText';
 
+type IconConfig =
+  | { name: React.ComponentProps<typeof MaterialIcons>['name']; type: 'material'; size?: number }
+  | { name: React.ComponentProps<typeof Ionicons>['name']; type?: 'ionicons'; size?: number };
+
 export interface LiquidGlassButtonProps extends PressableProps {
   title: string;
-  icon?: {
-    name: string;
-    type?: 'ionicons' | 'material';
-    size?: number;
-  };
+  icon?: IconConfig;
   variant?: 'light' | 'dark';
   loading?: boolean;
   textStyle?: TextStyle;
@@ -58,11 +58,13 @@ export default function LiquidGlassButton({
   const renderIcon = () => {
     if (!icon) return null;
 
-    const IconComponent = icon.type === 'material' ? MaterialIcons : Ionicons;
     const iconSize = icon.size || 24;
     const iconColor = 'rgba(255, 255, 255, 0.8)';
 
-    return <IconComponent name={icon.name as any} size={iconSize} color={iconColor} style={styles.icon} />;
+    if (icon.type === 'material') {
+      return <MaterialIcons name={icon.name} size={iconSize} color={iconColor} style={styles.icon} />;
+    }
+    return <Ionicons name={icon.name} size={iconSize} color={iconColor} style={styles.icon} />;
   };
 
   const renderContent = () => {

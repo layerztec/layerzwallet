@@ -78,7 +78,7 @@ export default function Home() {
     const isInTabs = segments.some((seg) => seg === '(tabs)');
     if (!isInTabs && segments[0] === 'Home') {
       console.log('🟦 Home: Detected Stack route, redirecting to /(tabs)/home');
-      router.replace('/(tabs)/home' as any);
+      router.replace('/(tabs)/home');
     }
   }, [segments, router]);
   const { transactions, error: transactionsError, mutate: mutateTransactions } = useTransactions(network, accountNumber, BackgroundExecutor);
