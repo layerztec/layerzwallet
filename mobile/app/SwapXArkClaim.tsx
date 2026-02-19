@@ -105,7 +105,6 @@ const SwapXArkClaim = () => {
   };
 
   const handleBack = () => {
-    console.log('🟦 SwapXArkClaim: Navigating to /(tabs)/home');
     router.replace('/(tabs)/home');
   };
 

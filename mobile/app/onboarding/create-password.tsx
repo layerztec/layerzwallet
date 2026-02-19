@@ -197,7 +197,6 @@ export default function CreatePasswordScreen() {
         throw new Error(result.message || 'Failed to encrypt wallet');
       }
 
-      console.log('🟦 create-password: Navigating to /(tabs)/home');
       router.replace('/(tabs)/home');
     } catch (error) {
       console.error('Error encrypting wallet:', error);

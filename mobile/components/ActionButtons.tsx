@@ -1,5 +1,5 @@
 import React, { useContext, useMemo } from 'react';
-import { StyleSheet, View, Alert } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { ActionPopupButton } from './ActionPopupButton';
@@ -10,15 +10,12 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
-import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { USDT_TOKENS } from '@shared/models/token-list';
-import { NETWORK_ARK, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
-import { SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapPlatform } from '@shared/types/swap';
+import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
 import { OnrampProps } from '@/app/Onramp';
 import { ReceiveTokenProps } from '@/app/Receive';
 import { SendTokenEvmProps } from '@/app/SendTokenEvm';
 import { SendParams } from '@/app/send';
-import { SwapParams } from '@/app/Swap';
 
 const Action = ({ network, text }: { network?: Networks; text: string }) => {
   const networkImage = network ? getNetworkImageAsset(network) : null;
@@ -69,39 +66,9 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
     }
   };
 
-  // Lightning Network specific handlers
-  const handleReceiveOnSpark = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      Alert.alert('Spark does not have a testnet');
-    } else {
-      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_SPARK } });
-    }
-  };
-
-  const handleReceiveOnLiquid = () => {
-    const n = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
-    router.push({ pathname: '/ReceiveLightning', params: { network: n } });
-  };
-
-  const handleReceiveOnArk = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      Alert.alert('Ark lightning does not have a testnet');
-    } else {
-      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_ARK } });
-    }
-  };
-
   const handleReceiveOnLightningAddress = () => {
     router.push('/ReceiveOnLightningAddress');
   };
-
-  const lightningReceiveActions = [
-    { children: <Action text="Receive on Lightning Address" />, onClick: handleReceiveOnLightningAddress },
-    { children: <Action network={NETWORK_SPARK} text="Receive on Spark" />, onClick: handleReceiveOnSpark },
-    { children: <Action network={NETWORK_LIQUID} text="Receive on Liquid" />, onClick: handleReceiveOnLiquid },
-    { children: <Action network={NETWORK_ARK} text="Receive on Ark" />, onClick: handleReceiveOnArk },
-    { children: <Action text="Cancel" />, onClick: () => {} },
-  ];
 
   const handleSendUSDTViaRootstock = (contractAddress: string) => () => {
     const params: SendTokenEvmProps = { contractAddress, network: NETWORK_ROOTSTOCK };

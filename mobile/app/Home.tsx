@@ -1,8 +1,8 @@
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter, useSegments } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Dimensions, Platform, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
+import { Dimensions, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -11,10 +11,8 @@ import Pressable from '../components/Pressable';
 import ActionButtons from '@/components/ActionButtons';
 import BackupWarning from '@/components/BackupWarning';
 import Balance from '@/components/Balance';
-import Button from '@/components/Button';
 import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
 import NftsView from '@/components/NftsView';
-import PlatformBlurView from '@/components/PlatformBlurView';
 import LiquidGlassView from '@/components/LiquidGlassView';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
 import StickyHeader from '@/components/StickyHeader';
@@ -31,28 +29,11 @@ import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useSettings } from '@shared/hooks/useSettings';
 import { useTransactions } from '@shared/hooks/useTransactions';
 import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
-import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
-import { getSwapPairs } from '@shared/models/swap-providers-list';
-import { USDT_TOKENS } from '@shared/models/token-list';
 import { sleep } from '@shared/modules/sleep';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { NETWORK_ARK, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
-import { SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapPlatform } from '@shared/types/swap';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { OnrampProps } from './Onramp';
-import { SwapParams } from './Swap';
-
-const Action = ({ network, text }: { network?: Networks; text: string }) => {
-  const networkImage = network ? getNetworkImageAsset(network) : null;
-  const networkIconContent = networkImage ? <Image source={networkImage} style={styles.actionIconImage} contentFit="contain" /> : null;
-  return (
-    <View style={styles.action}>
-      {networkIconContent && <View style={styles.actionIcon}>{networkIconContent}</View>}
-      <ThemedText style={styles.actionText}>{text}</ThemedText>
-    </View>
-  );
-};
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const MODAL_MIN_HEIGHT = 120; // Height when dragged down (header + some content)
@@ -77,7 +58,6 @@ export default function Home() {
   useEffect(() => {
     const isInTabs = segments.some((seg) => seg === '(tabs)');
     if (!isInTabs && segments[0] === 'Home') {
-      console.log('🟦 Home: Detected Stack route, redirecting to /(tabs)/home');
       router.replace('/(tabs)/home');
     }
   }, [segments, router]);
@@ -150,43 +130,6 @@ export default function Home() {
     });
   }, [networks, network]);
 
-  const swapEnabled = useMemo(() => {
-    if (network === NETWORK_USDT) {
-      return Boolean(getSwapPairs(SO_LIQUID_USDT, SwapPlatform.MOBILE) || getSwapPairs(SO_ROOTSTOCK_USDT, SwapPlatform.MOBILE));
-    }
-    const swapPairs = getSwapPairs(network, SwapPlatform.MOBILE);
-    return swapPairs.length > 0;
-  }, [network]);
-
-  const handleSend = () => {
-    switch (network) {
-      case NETWORK_LIGHTNING:
-      case NETWORK_LIGHTNING_TESTNET:
-        router.push('/send/send-address-lightning');
-        break;
-      default:
-        router.push('/send');
-    }
-  };
-
-  const handleReceive = () => {
-    router.push('/Receive');
-  };
-
-  const handleSwap = () => {
-    router.push('/Swap');
-  };
-
-  const handleSwapTokenViaLiquid = useCallback(() => {
-    const params: SwapParams = { fromNetwork: SO_LIQUID_USDT };
-    router.push({ pathname: '/Swap', params });
-  }, [router]);
-
-  const handleSwapTokenViaRootstock = useCallback(() => {
-    const params: SwapParams = { fromNetwork: SO_ROOTSTOCK_USDT };
-    router.push({ pathname: '/Swap', params });
-  }, [router]);
-
   const handleNetworkCardPress = (index: number) => {
     if (index >= 0 && index < networks.length) {
       const selectedNetwork = networks[index];
@@ -253,18 +196,6 @@ export default function Home() {
       setRefreshing(false);
     }
   }, [mutateTransactions]);
-
-  const usdtSwapActions = useMemo(() => {
-    const actions = [];
-    if (getSwapPairs(SO_LIQUID_USDT, SwapPlatform.MOBILE).length > 0) {
-      actions.push({ children: <Action network={NETWORK_LIQUID} text="Swap USDT on Liquid" />, onClick: handleSwapTokenViaLiquid });
-    }
-    if (getSwapPairs(SO_ROOTSTOCK_USDT, SwapPlatform.MOBILE).length > 0) {
-      actions.push({ children: <Action network={NETWORK_ROOTSTOCK} text="Swap USDT on Rootstock" />, onClick: handleSwapTokenViaRootstock });
-    }
-    actions.push({ children: <Action text="Cancel" />, onClick: () => {} });
-    return actions;
-  }, [handleSwapTokenViaLiquid, handleSwapTokenViaRootstock]);
 
   // Handle scroll events for sticky header animation
   const handleScroll = useAnimatedScrollHandler({
@@ -542,28 +473,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.8)',
-  },
-  action: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  actionText: {
-    fontSize: 16,
-    color: 'white',
-  },
-  actionIcon: {
-    width: 36,
-    height: 36,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionIconImage: {
-    width: 24,
-    height: 24,
-    color: 'white',
   },
   maestroSettingsButton: {
     position: 'absolute',

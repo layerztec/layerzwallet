@@ -111,7 +111,6 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
           if (router.canDismiss()) {
             router.dismiss();
           } else {
-            console.log('🟦 BiometricLogin: Navigating to /(tabs)/home');
             router.replace('/(tabs)/home');
           }
         } else {

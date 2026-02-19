@@ -114,11 +114,6 @@ export function ProtectedRouteStack() {
           options={{
             headerShown: false,
           }}
-          listeners={{
-            focus: () => {
-              console.log('🟪 ProtectedRouteStack: (tabs) screen focused');
-            },
-          }}
         />
         <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'fade' }} />
         <Stack.Screen name="Receive" />
