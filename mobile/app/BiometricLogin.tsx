@@ -36,11 +36,7 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
         isBiometricEnabled,
       });
 
-      if (router.canDismiss()) {
-        router.dismiss();
-      } else {
-        router.replace('/Home');
-      }
+      router.replace('/Home');
     }
   }, [isBiometricEnabled, router]);
 
