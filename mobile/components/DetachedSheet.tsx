@@ -87,6 +87,7 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
         detached={detached}
         bottomInset={calculatedBottomInset}
         style={[styles.bottomSheetStyle, style]}
+        accessible={false}
         backgroundComponent={({ style: backgroundStyle }) => (
           <View style={[backgroundStyle, styles.gradientContainer]}>
             <PlatformBlurView intensity={50} tint="light" style={styles.blurOverlay} />
