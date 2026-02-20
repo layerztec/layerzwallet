@@ -1,16 +1,11 @@
 import React, { cloneElement, ReactElement } from 'react';
 import type { PressableProps } from './Pressable';
 import { useRouter } from 'expo-router';
-import { useActionPopup } from '@/contexts/ActionPopupContext';
-
-interface Action {
-  onClick: () => void;
-  children: ReactElement;
-}
+import { useActionPopup, ActionPopupItem } from '@/contexts/ActionPopupContext';
 
 interface ActionPopupButtonProps {
   children: ReactElement<PressableProps>;
-  actions: Action[];
+  actions: ActionPopupItem[];
   title?: string;
 }
 
