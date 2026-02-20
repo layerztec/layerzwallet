@@ -1,6 +1,6 @@
 import React, { useContext, useImperativeHandle, forwardRef, useState, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import TokenRow from './TokenRow';
+import YieldRow from './YieldRow';
 
 import { ThemedText } from '@/components/ThemedText';
 import SectionContainer from '@/components/SectionContainer';
@@ -8,13 +8,13 @@ import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
-import { CachedTokenInfo } from '@shared/types/token-info';
+import { useYieldDiscovery, YieldBearingCachedTokenInfo } from '@shared/hooks/useYieldDiscovery';
 
-const TokensView = forwardRef<{ refresh: () => void }, { onTokenPress: (token: CachedTokenInfo) => void; selectedToken?: string }>(({ onTokenPress, selectedToken }, ref) => {
+const YieldView = forwardRef<{ refresh: () => void }, { onYieldPress: (token: YieldBearingCachedTokenInfo) => void; selectedToken?: string }>(({ onYieldPress: onYieldPress, selectedToken }, ref) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { tokenList, error, mutate } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
+  const { yieldList, error, mutate } = useYieldDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
+  const safeYieldList = yieldList ?? [];
   const [hasVisibleTokens, setHasVisibleTokens] = useState(false);
   const prevContextRef = useRef({ network, accountNumber });
 
@@ -26,8 +26,8 @@ const TokensView = forwardRef<{ refresh: () => void }, { onTokenPress: (token: C
     }
   }
 
-  const handleTokenVisible = (isVisible: boolean) => {
-    if (isVisible && !hasVisibleTokens) {
+  const handleYieldVisible = () => {
+    if (!hasVisibleTokens) {
       setHasVisibleTokens(true);
     }
   };
@@ -39,25 +39,27 @@ const TokensView = forwardRef<{ refresh: () => void }, { onTokenPress: (token: C
   }));
 
   // Don't render anything if no tokens discovered
-  if (tokenList.length === 0) {
+  if (safeYieldList.length === 0) {
+    return null;
+  }
+
+  if (safeYieldList.length === 0) {
     return null;
   }
 
   return (
-    <>
-      <SectionContainer title="Tokens" style={!hasVisibleTokens ? styles.hiddenSection : undefined}>
-        <View style={styles.tokensList}>
-          {tokenList.map((token) => (
-            <TokenRow key={token.id} token={token} onPress={onTokenPress} selected={selectedToken === token.id} onVisible={handleTokenVisible} />
-          ))}
-        </View>
-      </SectionContainer>
+    <SectionContainer title="Earn">
+      <View style={styles.tokensList}>
+        {safeYieldList.map((yieldToken) => (
+          <YieldRow key={yieldToken.id} token={yieldToken} onPress={onYieldPress} selected={selectedToken === yieldToken.id} onVisible={handleYieldVisible} />
+        ))}
+      </View>
       {error ? <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText> : null}
-    </>
+    </SectionContainer>
   );
 });
 
-TokensView.displayName = 'TokensView';
+YieldView.displayName = 'YieldView';
 
 const styles = StyleSheet.create({
   errorText: {
@@ -75,13 +77,6 @@ const styles = StyleSheet.create({
   tokensList: {
     gap: 16,
   },
-  hiddenSection: {
-    position: 'absolute',
-    opacity: 0,
-    height: 0,
-    width: 0,
-    marginBottom: 0,
-  },
 });
 
-export default TokensView;
+export default YieldView;
