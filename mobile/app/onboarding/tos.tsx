@@ -1,18 +1,17 @@
-import React, { useState, useContext } from 'react';
-import { StyleSheet, Alert, View, Animated, Linking } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import React, { useContext, useState } from 'react';
+import { Alert, Animated, Linking, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { Colors } from '@shared/constants/Colors';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
-import { Image } from 'expo-image';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { getErrorMessage } from '@/src/modules/error-handler';
+import { Colors } from '@shared/constants/Colors';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 import Pressable from '../../components/Pressable';
-import { getErrorMessage } from '@/src/modules/error-handler';
 
 export default function TermsOfServiceScreen() {
   const router = useRouter();
@@ -40,8 +39,6 @@ export default function TermsOfServiceScreen() {
 
       // Navigate to the main home screen with onboarding parameter
       setStep(EStep.READY);
-
-      router.dismissAll();
       router.replace('/Home?fromOnboarding=true');
     } catch (error) {
       console.error('Error accepting terms:', error);
