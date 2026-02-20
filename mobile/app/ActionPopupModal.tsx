@@ -49,7 +49,7 @@ export default function ActionPopupModal() {
   // accessibility is disabled on some wrappers for maestro to be able to see the buttons
 
   return (
-    <DetachedSheet variant={network} onClose={handleClose} enablePanDownToClose={true} detached={true}>
+    <DetachedSheet variant={network} onClose={handleClose} enablePanDownToClose={true} detached={true} accessible={false}>
       <View accessible={false} style={styles.popupContainer}>
         <View style={styles.actionsContainer}>
           <View style={styles.headerRow}>
