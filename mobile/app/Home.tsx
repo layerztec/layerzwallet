@@ -215,7 +215,7 @@ export default function Home() {
   };
 
   const handleYieldPress = (token: YieldBearingCachedTokenInfo) => {
-    // TODO
+    router.push('/YieldList');
   };
 
   // Lightning Network specific handlers

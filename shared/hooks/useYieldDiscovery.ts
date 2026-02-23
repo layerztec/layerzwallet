@@ -16,7 +16,7 @@ export interface YieldBearingCachedTokenInfo extends CachedTokenInfo {
   yield: YieldTokenDefinition;
 }
 
-const YIELD_TOKEN_DEFINITIONS_BY_NETWORK: Partial<Record<Networks, YieldTokenDefinition[]>> = {
+export const YIELD_TOKEN_DEFINITIONS_BY_NETWORK: Partial<Record<Networks, YieldTokenDefinition[]>> = {
   [NETWORK_SPARK]: [{ tokenId: 'btkn1xgrvjwey5ngcagvap2dzzvsy4uk8ua9x69k82dwvt5e7ef9drm9qztux87', apr: '3.5 - 6% in BTC', url: 'https://docs.flashnet.xyz/usdb/overview' }],
   [NETWORK_BOTANIX]: [{ tokenId: '0xf4586028ffda7eca636864f80f8a3f2589e33795', apr: '2.59%', url: 'https://yield.botanixlabs.com' }],
   [NETWORK_CITREA]: [

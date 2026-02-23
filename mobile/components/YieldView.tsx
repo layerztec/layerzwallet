@@ -43,15 +43,11 @@ const YieldView = forwardRef<{ refresh: () => void }, { onYieldPress: (token: Yi
     return null;
   }
 
-  if (safeYieldList.length === 0) {
-    return null;
-  }
-
   return (
-    <SectionContainer title="Earn">
+    <SectionContainer title="Earn" style={!hasVisibleTokens ? styles.hiddenSection : undefined}>
       <View style={styles.tokensList}>
         {safeYieldList.map((yieldToken) => (
-          <YieldRow key={yieldToken.id} token={yieldToken} onPress={onYieldPress} selected={selectedToken === yieldToken.id} onVisible={handleYieldVisible} />
+          <YieldRow key={yieldToken.id} token={yieldToken} onPress={onYieldPress} selected={selectedToken === yieldToken.id} onVisible={handleYieldVisible} network={network} />
         ))}
       </View>
       {error ? <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText> : null}
@@ -76,6 +72,13 @@ const styles = StyleSheet.create({
   },
   tokensList: {
     gap: 16,
+  },
+  hiddenSection: {
+    position: 'absolute',
+    opacity: 0,
+    height: 0,
+    width: 0,
+    marginBottom: 0,
   },
 });
 
