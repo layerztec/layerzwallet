@@ -405,11 +405,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignSelf: 'flex-start',
     marginLeft: 10,
-    marginTop: 4,
+    marginTop: 10,
   },
   balanceNetworkImage: {
     width: 20,
     height: 20,
+    alignSelf: 'center',
+    marginTop: 4,
   },
   balanceNetworkIcon: {
     width: 30,
