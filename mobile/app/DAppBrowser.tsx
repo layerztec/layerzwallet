@@ -22,7 +22,6 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
-import { getGradientColors } from '@/utils/gradientUtils';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import { DAppBrowserTabs } from './DAppBrowserTabs';
 import { useWebViewPreviewManager } from './hooks/useWebViewPreviewManager';
@@ -54,14 +53,11 @@ export const BROWSER_CONSTANTS = {
   STORAGE: {
     TABS_KEY: '@browser_tabs',
     ACTIVE_TAB_KEY: '@browser_active_tab',
-    AUTOFILL_BTC_KEY: '@browser_autofill_btc_domains',
+    AUTOFILL_BTC_DISABLED_KEY: '@browser_autofill_btc_disabled',
   },
 } as const;
 
 const getHomeUrl = (network: string): string => `https://layerztec.github.io/website/explore/?network=${network}`; // to test: https://metamask.github.io/test-dapp/ & https://eip6963.org/
-
-type AutofillPreference = 'enabled' | 'never';
-type AutofillPreferenceMap = Record<string, AutofillPreference>;
 
 const getTabTitle = (url: string): string => {
   try {
@@ -79,32 +75,6 @@ const isValidUrl = (urlString: string): boolean => {
   } catch {
     return false;
   }
-};
-
-const getDomainFromUrl = (urlString?: string): string | null => {
-  if (!urlString) return null;
-  try {
-    return new URL(urlString).hostname;
-  } catch {
-    return null;
-  }
-};
-
-const hexToRgba = (hex: string, alpha: number): string => {
-  const normalized = hex.replace('#', '');
-  const bigint = parseInt(
-    normalized.length === 3
-      ? normalized
-          .split('')
-          .map((c) => c + c)
-          .join('')
-      : normalized,
-    16
-  );
-  const r = (bigint >> 16) & 255;
-  const g = (bigint >> 8) & 255;
-  const b = bigint & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
 interface BrowserTab {
@@ -190,7 +160,7 @@ const DAppBrowser: React.FC = () => {
   const [isAddressInputFocused, setIsAddressInputFocused] = useState(false);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [btcAddress, setBtcAddress] = useState<string>('');
-  const [autofillDomains, setAutofillDomains] = useState<AutofillPreferenceMap>({});
+  const [autofillEnabled, setAutofillEnabled] = useState<boolean>(true);
 
   const webviewOpacity = useSharedValue(1);
   const tabsOpacity = useSharedValue(0);
@@ -209,7 +179,6 @@ const DAppBrowser: React.FC = () => {
   const lastManualNavigationUrl = useRef<string | undefined>(undefined);
   const loadingScreenshotsRef = useRef<Set<string>>(new Set());
   const tabsNeedingScreenshotsRef = useRef<Set<string>>(new Set());
-  const promptedDomainsRef = useRef<Set<string>>(new Set());
 
   const setAddressBarValue = useCallback((value: string, options?: { ensureStartVisible?: boolean }) => {
     setAddressInput(value);
@@ -230,12 +199,6 @@ const DAppBrowser: React.FC = () => {
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId);
   const selectionAtStart = useMemo(() => ({ start: 0, end: 0 }), []);
-  const currentDomain = getDomainFromUrl(activeTab?.url) ?? '';
-  const autofillActiveBackground = useMemo(() => {
-    const [primary] = getGradientColors(network);
-    return hexToRgba(primary, 0.25);
-  }, [network]);
-  const isAutofillEnabled = currentDomain ? autofillDomains[currentDomain] === 'enabled' : false;
   const addressSuggestions = useMemo(() => {
     const query = addressInput.trim().toLowerCase();
     if (!query) return [];
@@ -425,27 +388,17 @@ const DAppBrowser: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
-    const loadAutofillDomains = async () => {
+    const loadAutofillSetting = async () => {
       try {
-        const raw = await AsyncStorage.getItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_KEY);
+        const raw = await AsyncStorage.getItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_DISABLED_KEY);
         if (cancelled) return;
-        if (!raw) {
-          setAutofillDomains({});
-          return;
-        }
-
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === 'object') {
-          setAutofillDomains(parsed);
-        } else {
-          setAutofillDomains({});
-        }
+        setAutofillEnabled(raw !== 'true');
       } catch (error) {
-        setAutofillDomains({});
+        setAutofillEnabled(true);
       }
     };
 
-    loadAutofillDomains();
+    loadAutofillSetting();
     return () => {
       cancelled = true;
     };
@@ -1038,12 +991,11 @@ const DAppBrowser: React.FC = () => {
     return tab.history.slice(tab.historyIndex + 1);
   };
 
-  const injectBtcScript = useCallback((address?: string) => {
-    const addressValue = address ? JSON.stringify(address) : 'null';
+  const injectAutofillScript = useCallback((address: string) => {
     const script = `
       (function() {
         try {
-          var address = ${addressValue};
+          var address = ${JSON.stringify(address)};
 
           var findMatch = function() {
             var fields = Array.prototype.slice.call(document.querySelectorAll('input, textarea'));
@@ -1074,42 +1026,30 @@ const DAppBrowser: React.FC = () => {
           };
 
           var applyIfEmpty = function() {
-            if (!address) return;
             var match = findMatch();
             if (match && !match.value) {
               setValue(match, address);
             }
           };
 
-          var scan = function() {
-            var match = findMatch();
-            if (match && window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'btc-input-found', url: window.location.href }));
-            }
-          };
-
           if (!window.__lwBtcManager) {
             window.__lwBtcManager = { observer: null };
             var observer = new MutationObserver(function() {
-              scan();
               applyIfEmpty();
             });
             observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
             window.__lwBtcManager.observer = observer;
           }
 
-          scan();
           applyIfEmpty();
 
-          if (address) {
-            var start = Date.now();
-            var interval = setInterval(function() {
-              applyIfEmpty();
-              if (Date.now() - start > 8000) {
-                clearInterval(interval);
-              }
-            }, 500);
-          }
+          var start = Date.now();
+          var interval = setInterval(function() {
+            applyIfEmpty();
+            if (Date.now() - start > 8000) {
+              clearInterval(interval);
+            }
+          }, 500);
         } catch (e) {}
       })();
       true;
@@ -1118,55 +1058,9 @@ const DAppBrowser: React.FC = () => {
     webviewRef.current?.injectJavaScript(script);
   }, []);
 
-  const handleMessage = useCallback(
-    (event: WebViewMessageEvent) => {
-      const data = event?.nativeEvent?.data;
-
-      if (typeof data === 'string') {
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed?.type === 'btc-input-found' && typeof parsed?.url === 'string') {
-            const domain = getDomainFromUrl(parsed.url);
-            if (!domain) return;
-
-            if (!autofillDomains[domain] && !promptedDomainsRef.current.has(domain)) {
-              promptedDomainsRef.current.add(domain);
-              Alert.alert('Enable Autofill?', 'Autofill your Bitcoin address on this site?', [
-                {
-                  text: 'Not now',
-                  style: 'cancel',
-                },
-                {
-                  text: 'Never',
-                  style: 'destructive',
-                  onPress: async () => {
-                    const next: AutofillPreferenceMap = { ...autofillDomains, [domain]: 'never' };
-                    setAutofillDomains(next);
-                    await AsyncStorage.setItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_KEY, JSON.stringify(next));
-                  },
-                },
-                {
-                  text: 'Enable',
-                  onPress: async () => {
-                    const next: AutofillPreferenceMap = { ...autofillDomains, [domain]: 'enabled' };
-                    setAutofillDomains(next);
-                    await AsyncStorage.setItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_KEY, JSON.stringify(next));
-                    if (btcAddress) {
-                      injectBtcScript(btcAddress);
-                    }
-                  },
-                },
-              ]);
-            }
-            return;
-          }
-        } catch (error) {}
-      }
-
-      browserBridgeRef.current?.handleMessage(event);
-    },
-    [autofillDomains, btcAddress, injectBtcScript]
-  );
+  const handleMessage = useCallback((event: WebViewMessageEvent) => {
+    browserBridgeRef.current?.handleMessage(event);
+  }, []);
 
   const handleLoadProgress = useCallback(
     ({ nativeEvent }: { nativeEvent: { progress: number } }) => {
@@ -1193,19 +1087,15 @@ const DAppBrowser: React.FC = () => {
   );
 
   const handleActiveTabLoadEnd = useCallback(
-    (event: WebViewNavigationEvent | WebViewErrorEvent) => {
-      const url = 'url' in event.nativeEvent ? event.nativeEvent.url : undefined;
-      const domain = getDomainFromUrl(url);
-      if (domain && autofillDomains[domain] === 'enabled' && btcAddress) {
-        injectBtcScript(btcAddress);
+    (_event: WebViewNavigationEvent | WebViewErrorEvent) => {
+      if (autofillEnabled && btcAddress) {
+        injectAutofillScript(btcAddress);
         setTimeout(() => {
-          injectBtcScript(btcAddress);
+          injectAutofillScript(btcAddress);
         }, 1500);
-      } else {
-        injectBtcScript();
       }
     },
-    [autofillDomains, btcAddress, injectBtcScript]
+    [autofillEnabled, btcAddress, injectAutofillScript]
   );
 
   const handleInactiveTabLoad = useCallback(
@@ -1369,26 +1259,20 @@ const DAppBrowser: React.FC = () => {
                         },
                         {
                           onClick: async () => {
-                            if (!currentDomain) return;
-                            const next: AutofillPreferenceMap = { ...autofillDomains };
-                            if (next[currentDomain] === 'enabled') {
-                              delete next[currentDomain];
-                            } else {
-                              next[currentDomain] = 'enabled';
-                            }
-                            setAutofillDomains(next);
-                            await AsyncStorage.setItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_KEY, JSON.stringify(next));
-                            if (next[currentDomain] === 'enabled' && btcAddress) {
-                              injectBtcScript(btcAddress);
+                            const next = !autofillEnabled;
+                            setAutofillEnabled(next);
+                            await AsyncStorage.setItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_DISABLED_KEY, next ? '' : 'true');
+                            if (next && btcAddress) {
+                              injectAutofillScript(btcAddress);
                             }
                           },
                           children: (
                             <View style={styles.menuItemContentColumn}>
                               <View style={styles.menuItemContent}>
-                                <Ionicons name={isAutofillEnabled ? 'checkbox' : 'square-outline'} size={20} color="rgba(255, 255, 255, 0.9)" />
+                                <Ionicons name={autofillEnabled ? 'checkbox' : 'square-outline'} size={20} color="rgba(255, 255, 255, 0.9)" />
                                 <ThemedText style={styles.menuItemText}>Autofill Bitcoin Address</ThemedText>
                               </View>
-                              <ThemedText style={styles.menuItemSubtitle}>Fill a matching BTC address field on this site.</ThemedText>
+                              <ThemedText style={styles.menuItemSubtitle}>Automatically fill BTC address fields on websites.</ThemedText>
                             </View>
                           ),
                         },
@@ -1415,14 +1299,9 @@ const DAppBrowser: React.FC = () => {
                       ]}
                     >
                       <Pressable
-                        style={[
-                          styles.stopButton,
-                          styles.autofillMenuButton,
-                          isAutofillEnabled ? { backgroundColor: autofillActiveBackground } : null,
-                          isAddressInputFocused ? { opacity: 0.4 } : null,
-                        ]}
+                        style={[styles.stopButton, styles.autofillMenuButton, isAddressInputFocused ? { opacity: 0.4 } : null]}
                         testID="BrowserAutofillMenuButton"
-                        disabled={!currentDomain || isAddressInputFocused}
+                        disabled={isAddressInputFocused}
                       >
                         <Ionicons name="ellipsis-vertical" size={18} color="rgba(255, 255, 255, 0.8)" />
                       </Pressable>
