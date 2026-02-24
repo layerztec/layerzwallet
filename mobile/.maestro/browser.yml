@@ -35,11 +35,6 @@ appId: com.layerzwallet.mobile
       text: 'E2E Test Dapp'
     timeout: 60000
 
-# Handle optional BTC autofill prompt shown by DApp browser
-- tapOn:
-    text: 'Enable'
-    optional: true
-
 - tapOn: 'Use Layerz Wallet'
 - waitForAnimationToEnd
 - scroll
@@ -51,11 +46,6 @@ appId: com.layerzwallet.mobile
 - tapOn: 'Allow'
 - waitForAnimationToEnd
 - assertNotVisible: 'Account Access Request'
-
-# Prompt can appear after connect depending on page timing
-- tapOn:
-    text: 'Enable'
-    optional: true
 
 # signing v4
 - scrollUntilVisible:
