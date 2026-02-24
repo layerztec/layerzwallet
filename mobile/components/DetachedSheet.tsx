@@ -18,6 +18,7 @@ interface DetachedSheetProps {
   enablePanDownToClose?: boolean;
   detached?: boolean;
   bottomInset?: number;
+  accessible?: boolean;
 }
 
 const DetachedSheet: React.FC<DetachedSheetProps> = ({
@@ -30,6 +31,7 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
   enablePanDownToClose = true,
   detached = true,
   bottomInset,
+  accessible,
 }) => {
   const bottomSheetRef = useRef<GorhomBottomSheet>(null);
   const insets = useSafeAreaInsets();
@@ -87,6 +89,7 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
         detached={detached}
         bottomInset={calculatedBottomInset}
         style={[styles.bottomSheetStyle, style]}
+        {...(accessible !== undefined ? { accessible } : {})}
         backgroundComponent={({ style: backgroundStyle }) => (
           <View style={[backgroundStyle, styles.gradientContainer]}>
             <View style={styles.blurOverlay}>

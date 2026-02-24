@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter, useSegments } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
+import { Alert, Dimensions, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -19,6 +19,7 @@ import StickyHeader from '@/components/StickyHeader';
 import SwapList from '@/components/SwapList';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
+import YieldView from '@/components/YieldView';
 import TransactionsList from '@/components/TransactionsList';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
@@ -32,8 +33,21 @@ import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters
 import { sleep } from '@shared/modules/sleep';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
+import { NETWORK_ARK, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
+import { YieldBearingCachedTokenInfo } from '@shared/hooks/useYieldDiscovery';
 import { OnrampProps } from './Onramp';
+
+const Action = ({ network, text }: { network?: Networks; text: string }) => {
+  const networkImage = network ? getNetworkImageAsset(network) : null;
+  const networkIconContent = networkImage ? <Image source={networkImage} style={styles.actionIconImage} contentFit="contain" /> : null;
+  return (
+    <View style={styles.action}>
+      {networkIconContent && <View style={styles.actionIcon}>{networkIconContent}</View>}
+      <ThemedText style={styles.actionText}>{text}</ThemedText>
+    </View>
+  );
+};
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const MODAL_MIN_HEIGHT = 120; // Height when dragged down (header + some content)
@@ -68,6 +82,7 @@ export default function Home() {
   const gestureStartPosition = useSharedValue(0); // Track gesture start position using shared value
   const whiteFlashAnim = useSharedValue(0); // Animation for white flash transition
   const balanceRef = useRef<{ refresh: () => void }>(null);
+  const yieldViewRef = useRef<{ refresh: () => void }>(null);
   const tokensViewRef = useRef<{ refresh: () => void }>(null);
   const nftsViewRef = useRef<{ refresh: () => void }>(null);
   const swapListRef = useRef<{ refresh: () => void }>(null);
@@ -168,6 +183,39 @@ export default function Home() {
     });
   };
 
+  const handleYieldPress = (_token: YieldBearingCachedTokenInfo) => {
+    router.push('/YieldList' as never);
+  };
+
+  // Lightning Network specific handlers
+  const handleReceiveOnSpark = () => {
+    if (network === NETWORK_LIGHTNING_TESTNET) {
+      Alert.alert('Spark does not have a testnet');
+    } else {
+      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_SPARK } });
+    }
+  };
+
+  const handleReceiveOnLiquid = () => {
+    const n = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
+    router.push({ pathname: '/ReceiveLightning', params: { network: n } });
+  };
+
+  const handleReceiveOnArk = () => {
+    if (network === NETWORK_LIGHTNING_TESTNET) {
+      Alert.alert('Ark lightning does not have a testnet');
+    } else {
+      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_ARK } });
+    }
+  };
+
+  const lightningReceiveActions = [
+    { children: <Action network={NETWORK_SPARK} text="Receive on Spark" />, onClick: handleReceiveOnSpark },
+    { children: <Action network={NETWORK_LIQUID} text="Receive on Liquid" />, onClick: handleReceiveOnLiquid },
+    { children: <Action network={NETWORK_ARK} text="Receive on Ark" />, onClick: handleReceiveOnArk },
+    { children: <Action text="Cancel" />, onClick: () => {} },
+  ];
+
   const handleTransactionDetails = (transaction: CommonTransaction) => {
     // Pass the current layer network so transaction details can use the correct background color
     router.push({
@@ -187,6 +235,7 @@ export default function Home() {
     setRefreshing(true);
     try {
       balanceRef.current?.refresh();
+      yieldViewRef.current?.refresh();
       tokensViewRef.current?.refresh();
       swapListRef.current?.refresh();
       nftsViewRef.current?.refresh();
@@ -310,6 +359,9 @@ export default function Home() {
 
             {/* Seed Backup Warning */}
             {hasBackedUpSeed === false && <BackupWarning onPress={handleBackupSeed} />}
+
+            {/* Yield Section */}
+            <YieldView ref={yieldViewRef} onYieldPress={handleYieldPress} />
 
             {/* Tokens Section */}
             <TokensView ref={tokensViewRef} onTokenPress={handleTokenPress} />
@@ -473,6 +525,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.8)',
+  },
+  action: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionText: {
+    fontSize: 16,
+    color: 'white',
+  },
+  actionIcon: {
+    width: 36,
+    height: 36,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionIconImage: {
+    width: 24,
+    height: 24,
+    color: 'white',
   },
   maestroSettingsButton: {
     position: 'absolute',

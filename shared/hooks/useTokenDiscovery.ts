@@ -91,10 +91,12 @@ export const tokenDiscoveryFetcher = async (arg: tokenDiscoveryFetcherArg): Prom
   } else {
     // For all other networks, return the standard token list
     // Adapt TokenInfo[] to CachedTokenInfo[] by adding a default balance
+
     const tokens = getTokenList(network).map((token) => ({
       ...token,
       balance: undefined,
     }));
+
     return tokens;
   }
 };

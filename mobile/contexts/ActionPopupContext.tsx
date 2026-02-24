@@ -3,6 +3,8 @@ import React, { createContext, ReactElement, useContext, useState, useCallback }
 export interface ActionPopupItem {
   onClick: () => void;
   children: ReactElement;
+  disabled?: boolean;
+  variant?: 'section';
 }
 
 interface ActionPopupContextType {

@@ -129,6 +129,7 @@ export function ProtectedRouteStack() {
         />
         <Stack.Screen name="BackdoorNetworkSwitcher" options={{ headerShown: false }} />
         <Stack.Screen name="About" options={{ headerShown: false }} />
+        <Stack.Screen name="YieldList" options={{ headerShown: false }} />
         <Stack.Screen name="Changelog" options={{ headerShown: false }} />
         <Stack.Screen name="SeedBackup" options={{ headerShown: false }} />
         <Stack.Screen
