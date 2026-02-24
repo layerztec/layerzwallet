@@ -12,17 +12,18 @@ import { useYieldDiscovery, YieldBearingCachedTokenInfo } from '@shared/hooks/us
 import { getTokenIconColor } from '@shared/models/token-list';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { useTokenExchangeRate } from '@shared/hooks/useTokenExchangeRate';
+import { Networks } from '@shared/types/networks';
 
 // Local token icons for known tokens
 const LOCAL_TOKEN_ICONS: Record<string, any> = {};
 
-const YieldRow: React.FC<{ token: YieldBearingCachedTokenInfo; onPress: (token: YieldBearingCachedTokenInfo) => void; selected: boolean; onVisible?: () => void }> = ({
+const YieldRow: React.FC<{ token: YieldBearingCachedTokenInfo; onPress: (token: YieldBearingCachedTokenInfo) => void; selected: boolean; onVisible?: () => void; network: Networks }> = ({
   token,
   onPress,
   selected,
   onVisible,
+  network,
 }) => {
-  const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundExecutor);
   const { tokenExchangeRate } = useTokenExchangeRate(network, token.id, 'USD');
