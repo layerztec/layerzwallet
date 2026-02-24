@@ -8,6 +8,8 @@ import { getNetworkPrimaryColor } from '@shared/constants/Colors';
 import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_USDT } from '@shared/types/networks';
 import { BlurView } from '@sbaiahmed1/react-native-blur';
 
+const BLUR_EXTEND_BOTTOM = Platform.OS === 'ios' ? 80 : 0;
+
 interface DetachedSheetProps {
   children: React.ReactNode;
   variant?: string;
@@ -92,7 +94,7 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
         {...(accessible !== undefined ? { accessible } : {})}
         backgroundComponent={({ style: backgroundStyle }) => (
           <View style={[backgroundStyle, styles.gradientContainer]}>
-            <View style={styles.blurOverlay}>
+            <View style={[styles.blurOverlay, BLUR_EXTEND_BOTTOM > 0 && styles.blurOverlayExtended]}>
               <BlurView blurType="light" blurAmount={50} style={StyleSheet.absoluteFill} ignoreSafeArea={false} />
             </View>
             <View style={styles.radialGradientWrapper}>
@@ -125,10 +127,14 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
+    bottom: 0,
     height: 800,
   },
   blurOverlay: {
     ...StyleSheet.absoluteFillObject,
+  },
+  blurOverlayExtended: {
+    bottom: -BLUR_EXTEND_BOTTOM,
   },
   borderOverlay: {
     ...StyleSheet.absoluteFillObject,
