@@ -10,6 +10,11 @@ appId: com.layerzwallet.mobile
     env:
       NETWORK: 'rootstock'
 
+# Collapse the home modal so the tab bar is visible (modal is full-screen after wallet-creation).
+- tapOn:
+    id: 'NetworkSwitcherTrigger'
+- waitForAnimationToEnd
+
 # Navigate to Explorer tab (3rd tab: Layerz | Swaps | Explorer). Native tab bar does not expose testID.
 - tapOn:
     point: '83%, 95%'

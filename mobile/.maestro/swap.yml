@@ -7,11 +7,18 @@ jsEngine: graaljs
 ---
 - runFlow: subflows/wallet-creation.yml
 
+# Collapse the home modal so the tab bar is visible (modal is full-screen after wallet-creation).
+- tapOn:
+    id: 'NetworkSwitcherTrigger'
+- waitForAnimationToEnd
+
 # Navigate to Swaps tab (2nd tab: Layerz | Swaps | Explorer). Native tab bar does not expose testID.
 - tapOn:
     point: '50%, 95%'
 - waitForAnimationToEnd
-- assertVisible: 'Select target network'
+- extendedWaitUntil:
+    visible: 'Select target network'
+    timeout: 15000
 - tapOn:
     id: 'AmountInput'
 - eraseText
