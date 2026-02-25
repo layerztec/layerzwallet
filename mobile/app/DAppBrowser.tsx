@@ -417,7 +417,35 @@ const DAppBrowser: React.FC = () => {
         const bridgeFile = new ExpoFsFile(localUri);
         const bridgeScript = await bridgeFile.text();
 
-        setJs(bridgeScript);
+        const rebrandScript = `
+;(function() {
+  var T = 'Browser Wallet';
+  var R = 'LAYERZ WALLET';
+  function fix(n) { if (n.nodeValue && n.nodeValue.indexOf(T) !== -1) n.nodeValue = n.nodeValue.split(T).join(R); }
+  function walk(root) {
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+    var n; while (n = w.nextNode()) fix(n);
+  }
+  var obs = new MutationObserver(function(muts) {
+    for (var i = 0; i < muts.length; i++) {
+      var m = muts[i];
+      if (m.type === 'characterData') { fix(m.target); continue; }
+      for (var j = 0; j < m.addedNodes.length; j++) {
+        var a = m.addedNodes[j];
+        if (a.nodeType === 3) fix(a);
+        else if (a.nodeType === 1) walk(a);
+      }
+    }
+  });
+  function start() {
+    var el = document.documentElement || document.body;
+    if (el) { obs.observe(el, { childList: true, subtree: true, characterData: true }); walk(el); }
+  }
+  if (document.body) start();
+  else document.addEventListener('DOMContentLoaded', start);
+})();`;
+
+        setJs(bridgeScript + rebrandScript);
       } catch (error: any) {
         setError('Failed to load DApp browser script: ' + error.message);
       }
