@@ -470,7 +470,7 @@ export default function Home() {
         <View style={styles.bottomNavigationContainer}>
           <View style={styles.bottomNavigation}>
             <View style={styles.navContainer}>
-              <PlatformBlurView intensity={20} tint="dark" style={styles.navBlur} />
+              <PlatformBlurView intensity={40} tint="light" style={styles.navBlur} />
 
               {network === NETWORK_USDT ? (
                 <Pressable style={styles.navButtonLarge} testID="SendButton" onPress={() => router.push({ pathname: '/send/send-address-usdt' } as any)} activeOpacity={0.8}>
