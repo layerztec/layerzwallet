@@ -29,7 +29,10 @@ appId: com.layerzwallet.mobile
 - tapOn:
     id: 'SkipButton'
 
-- waitForAnimationToEnd
+# Wait for next screen to be ready (avoids flaky screenshot during transition on emulator)
+- extendedWaitUntil:
+    visible: 'Continue'
+    timeout: 15000
 
 # Now proceed to the enter password screen
 - repeat:
