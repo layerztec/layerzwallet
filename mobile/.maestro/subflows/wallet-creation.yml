@@ -29,23 +29,10 @@ appId: com.layerzwallet.mobile
 - tapOn:
     id: 'SkipButton'
 
-# Wait for next screen to be ready (avoids flaky screenshot during transition on emulator)
-- extendedWaitUntil:
-    visible: 'Continue'
-    timeout: 15000
-
-# Now proceed to the enter password screen
-- repeat:
-    while:
-      notVisible: 'Wallet created\nsuccessfully'
-    commands:
-      - tapOn: 'Continue'
-      - waitForAnimationToEnd
-
-# Accept terms of service
+# Skip goes directly to ToS screen (no "Continue" screen). Wait for ToS to be ready.
 - extendedWaitUntil:
     visible: 'Wallet created\nsuccessfully'
-    timeout: 10000
+    timeout: 15000
 
 # Verify success message
 - assertVisible: 'Wallet created\nsuccessfully'
