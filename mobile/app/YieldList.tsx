@@ -1,7 +1,7 @@
 import React, { useContext, useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import SectionContainer from '@/components/SectionContainer';
 import { ThemedText } from '@/components/ThemedText';
@@ -10,10 +10,11 @@ import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useYieldDiscovery, YieldBearingCachedTokenInfo, YIELD_TOKEN_DEFINITIONS_BY_NETWORK } from '@shared/hooks/useYieldDiscovery';
-import { globalDarkBackground } from '@shared/constants/Colors';
 import { getTokenInfo } from '@shared/models/token-list';
 import { NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { router } from 'expo-router';
 
 type YieldWithNetwork = YieldBearingCachedTokenInfo & { network: Networks };
 
@@ -22,6 +23,7 @@ const availableYields = (Object.entries(YIELD_TOKEN_DEFINITIONS_BY_NETWORK) as [
 );
 
 export default function YieldListScreen() {
+  const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
 
   const { yieldList: botanixYield } = useYieldDiscovery(NETWORK_BOTANIX, accountNumber, BackgroundExecutor, LayerzStorage);
@@ -37,52 +39,63 @@ export default function YieldListScreen() {
     [botanixYield, citreaYield, sparkYield]
   );
 
-  const handleYieldPress = (_token: YieldBearingCachedTokenInfo) => {
-    // TODO
+  const handleYieldPress = async (_token: YieldBearingCachedTokenInfo) => {
+    console.log('handleYieldPress', _token);
+
+    // TODO: configure somewhere once the list grows and we have better idea how we gona handle
+    // swaps to yield-bearing tokens
+    switch (_token.id) {
+      case '0xF4586028FFdA7Eca636864F80f8a3f2589E33795':
+        // botanix yield
+        setNetwork(NETWORK_BOTANIX);
+        await new Promise((res) => setTimeout(res, 100)); // propagate network change
+        router.push({ pathname: '/DAppBrowser', params: { url: 'https://yield.botanixlabs.com' } });
+        break;
+      case 'btkn1xgrvjwey5ngcagvap2dzzvsy4uk8ua9x69k82dwvt5e7ef9drm9qztux87':
+        // USDB from Flashnet
+        // TODO: trigger swap to USDB when implemented
+        break;
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
-        <ScreenHeader title="Yield" />
-        <ScrollView contentContainerStyle={styles.list}>
-          <SectionContainer title="Allocated">
-            {allYields.map((yieldToken) => (
-              <YieldRow key={yieldToken.id} token={yieldToken} onPress={handleYieldPress} selected={false} network={yieldToken.network} />
-            ))}
-          </SectionContainer>
+    <RadialGradientScreen network={network} scroll={true}>
+      <ScreenHeader title="Yield" />
+      <View style={styles.list}>
+        <SectionContainer title="Allocated">
+          {allYields.map((yieldToken) => (
+            <YieldRow key={yieldToken.id} token={yieldToken} onPress={handleYieldPress} selected={false} network={yieldToken.network} />
+          ))}
+        </SectionContainer>
 
-          <SectionContainer title="Available">
-            {availableYields.map((def) => {
-              const networkIcon = getNetworkImageAsset(def.network);
-              return (
-                <View key={`${def.network}-${def.tokenId}`} style={styles.availableRow}>
-                  <View style={styles.availableIcon}>{networkIcon && <Image source={networkIcon} style={styles.availableIconImage} contentFit="cover" />}</View>
-                  <View style={styles.availableInfo}>
-                    <ThemedText style={styles.availableName}>{def.tokenInfo.name}</ThemedText>
-                    <View style={styles.availableAprRow}>
-                      <ThemedText style={styles.aprPrefix}>APR:</ThemedText>
-                      <ThemedText style={styles.aprValue}>{def.apr}</ThemedText>
-                    </View>
+        <SectionContainer title="Available">
+          {availableYields.map((def) => {
+            const networkIcon = getNetworkImageAsset(def.network);
+            return (
+              <TouchableOpacity
+                key={`${def.network}-${def.tokenId}`}
+                style={styles.availableRow}
+                activeOpacity={0.7}
+                onPress={() => handleYieldPress({ ...def.tokenInfo, balance: undefined, yield: { tokenId: def.tokenId, apr: def.apr, url: def.url } })}
+              >
+                <View style={styles.availableIcon}>{networkIcon && <Image source={networkIcon} style={styles.availableIconImage} contentFit="cover" />}</View>
+                <View style={styles.availableInfo}>
+                  <ThemedText style={styles.availableName}>{def.tokenInfo.name}</ThemedText>
+                  <View style={styles.availableAprRow}>
+                    <ThemedText style={styles.aprPrefix}>APR:</ThemedText>
+                    <ThemedText style={styles.aprValue}>{def.apr}</ThemedText>
                   </View>
                 </View>
-              );
-            })}
-          </SectionContainer>
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+              </TouchableOpacity>
+            );
+          })}
+        </SectionContainer>
+      </View>
+    </RadialGradientScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: globalDarkBackground,
-  },
-  safeArea: {
-    flex: 1,
-  },
   list: {
     paddingTop: 16,
     paddingHorizontal: 16,
