@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from 'react';
+import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
@@ -39,6 +39,19 @@ export default function YieldListScreen() {
     [botanixYield, citreaYield, sparkYield]
   );
 
+  const [visibleAllocatedIds, setVisibleAllocatedIds] = useState<Set<string>>(new Set());
+
+  const handleYieldVisible = useCallback((id: string) => {
+    setVisibleAllocatedIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
+
+  const filteredAvailableYields = useMemo(() => availableYields.filter((def) => !visibleAllocatedIds.has(def.tokenId.toLowerCase())), [visibleAllocatedIds]);
+
   const handleYieldPress = async (_token: YieldBearingCachedTokenInfo) => {
     console.log('handleYieldPress', _token);
 
@@ -64,32 +77,41 @@ export default function YieldListScreen() {
       <View style={styles.list}>
         <SectionContainer title="Allocated">
           {allYields.map((yieldToken) => (
-            <YieldRow key={yieldToken.id} token={yieldToken} onPress={handleYieldPress} selected={false} network={yieldToken.network} />
+            <YieldRow
+              key={yieldToken.id}
+              token={yieldToken}
+              onPress={handleYieldPress}
+              selected={false}
+              network={yieldToken.network}
+              onVisible={() => handleYieldVisible(yieldToken.id.toLowerCase())}
+            />
           ))}
         </SectionContainer>
 
-        <SectionContainer title="Available">
-          {availableYields.map((def) => {
-            const networkIcon = getNetworkImageAsset(def.network);
-            return (
-              <TouchableOpacity
-                key={`${def.network}-${def.tokenId}`}
-                style={styles.availableRow}
-                activeOpacity={0.7}
-                onPress={() => handleYieldPress({ ...def.tokenInfo, balance: undefined, yield: { tokenId: def.tokenId, apr: def.apr, url: def.url } })}
-              >
-                <View style={styles.availableIcon}>{networkIcon && <Image source={networkIcon} style={styles.availableIconImage} contentFit="cover" />}</View>
-                <View style={styles.availableInfo}>
-                  <ThemedText style={styles.availableName}>{def.tokenInfo.name}</ThemedText>
-                  <View style={styles.availableAprRow}>
-                    <ThemedText style={styles.aprPrefix}>APR:</ThemedText>
-                    <ThemedText style={styles.aprValue}>{def.apr}</ThemedText>
+        {filteredAvailableYields.length > 0 && (
+          <SectionContainer title="Available">
+            {filteredAvailableYields.map((def) => {
+              const networkIcon = getNetworkImageAsset(def.network);
+              return (
+                <TouchableOpacity
+                  key={`${def.network}-${def.tokenId}`}
+                  style={styles.availableRow}
+                  activeOpacity={0.7}
+                  onPress={() => handleYieldPress({ ...def.tokenInfo, balance: undefined, yield: { tokenId: def.tokenId, apr: def.apr, url: def.url } })}
+                >
+                  <View style={styles.availableIcon}>{networkIcon && <Image source={networkIcon} style={styles.availableIconImage} contentFit="cover" />}</View>
+                  <View style={styles.availableInfo}>
+                    <ThemedText style={styles.availableName}>{def.tokenInfo.name}</ThemedText>
+                    <View style={styles.availableAprRow}>
+                      <ThemedText style={styles.aprPrefix}>APR:</ThemedText>
+                      <ThemedText style={styles.aprValue}>{def.apr}</ThemedText>
+                    </View>
                   </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </SectionContainer>
+                </TouchableOpacity>
+              );
+            })}
+          </SectionContainer>
+        )}
       </View>
     </RadialGradientScreen>
   );
