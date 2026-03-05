@@ -1,40 +1,15 @@
-<svg
-  width="256"
-  height="256"
-  viewBox="0 0 256 256"
-  fill="none"
-  xmlns="http://www.w3.org/2000/svg"
-  class="rounded-3xl shadow-lg"
->
+<svg width="120" height="120" viewBox="1.668 -4.474 38.676 38.676" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+  <path d="M21.8562 19.4185H3.3987C1.85069 19.4185 1.06839 17.5121 2.14939 16.3819L13.4145 4.59945C14.5145 3.44982 16.0198 2.80224 17.5915 2.80224H36.049C37.597 2.80224 38.3793 4.70858 37.2983 5.83881L26.0332 17.6213C24.9333 18.7709 23.4279 19.4185 21.8562 19.4185Z" fill="url(#paint0_linear_550_3191)"/>
+  <path d="M20.0421 10.3084H38.4996C40.0476 10.3084 40.8299 12.2147 39.7489 13.3449L28.4838 25.1274C27.3839 26.277 25.8785 26.9246 24.3068 26.9246H5.84929C4.30129 26.9246 3.51899 25.0182 4.59998 23.888L15.8651 12.1056C16.9651 10.9559 18.4704 10.3084 20.0421 10.3084Z" fill="url(#paint1_linear_550_3191)"/>
   <defs>
-    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#d1d5db" />
-      <stop offset="100%" stop-color="#e5e7eb" />
+    <linearGradient id="paint0_linear_550_3191" x1="1.66772" y1="19.2528" x2="38.1305" y2="4.59462" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF0004" stop-opacity="0"/>
+      <stop offset="0.85" stop-color="#FF0004"/>
     </linearGradient>
-    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#6b7280" />
-      <stop offset="100%" stop-color="#9ca3af" />
-    </linearGradient>
-    <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#374151" />
-      <stop offset="100%" stop-color="#4b5563" />
+    <linearGradient id="paint1_linear_550_3191" x1="40.3432" y1="10.4306" x2="3.8804" y2="25.0888" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF0004" stop-opacity="0"/>
+      <stop offset="1" stop-color="#FF0004"/>
     </linearGradient>
   </defs>
-  
-  <rect width="256" height="256" rx="48" ry="48" fill="url(#grad1)" />
-  <rect y="85" width="256" height="86" fill="url(#grad2)" />
-  <rect y="171" width="256" height="85" fill="url(#grad3)"  />
-  
-  <text
-    x="128"
-    y="127"
-    font-family="Arial, sans-serif"
-    font-size="187"
-    font-weight="bold"
-    fill="white"
-    fill-opacity="0.95"
-    text-anchor="middle"
-    dy="0.35em"
-    letter-spacing="-10"
-  >LZ</text>
 </svg>

@@ -417,7 +417,64 @@ const DAppBrowser: React.FC = () => {
         const bridgeFile = new ExpoFsFile(localUri);
         const bridgeScript = await bridgeFile.text();
 
-        setJs(bridgeScript);
+        const rebrandScript = `
+;(function() {
+  var T = 'Browser Wallet';
+  var R = 'LAYERZ WALLET';
+  var LOGO = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMS42NjggLTQuNDc0IDM4LjY3NiAzOC42NzYiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0yMS44NTYyIDE5LjQxODVIMy4zOTg3QzEuODUwNjkgMTkuNDE4NSAxLjA2ODM5IDE3LjUxMjEgMi4xNDkzOSAxNi4zODE5TDEzLjQxNDUgNC41OTk0NUMxNC41MTQ1IDMuNDQ5ODIgMTYuMDE5OCAyLjgwMjI0IDE3LjU5MTUgMi44MDIyNEgzNi4wNDlDMzcuNTk3IDIuODAyMjQgMzguMzc5MyA0LjcwODU4IDM3LjI5ODMgNS44Mzg4MUwyNi4wMzMyIDE3LjYyMTNDMjQuOTMzMyAxOC43NzA5IDIzLjQyNzkgMTkuNDE4NSAyMS44NTYyIDE5LjQxODVaIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXJfNTUwXzMxOTEpIi8+CjxwYXRoIGQ9Ik0yMC4wNDIxIDEwLjMwODRIMzguNDk5NkM0MC4wNDc2IDEwLjMwODQgNDAuODI5OSAxMi4yMTQ3IDM5Ljc0ODkgMTMuMzQ0OUwyOC40ODM4IDI1LjEyNzRDMjcuMzgzOSAyNi4yNzcgMjUuODc4NSAyNi45MjQ2IDI0LjMwNjggMjYuOTI0Nkg1Ljg0OTI5QzQuMzAxMjkgMjYuOTI0NiAzLjUxODk5IDI1LjAxODIgNC41OTk5OCAyMy44ODhMMTUuODY1MSAxMi4xMDU2QzE2Ljk2NTEgMTAuOTU1OSAxOC40NzA0IDEwLjMwODQgMjAuMDQyMSAxMC4zMDg0WiIgZmlsbD0idXJsKCNwYWludDFfbGluZWFyXzU1MF8zMTkxKSIvPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJwYWludDBfbGluZWFyXzU1MF8zMTkxIiB4MT0iMS42Njc3MiIgeTE9IjE5LjI1MjgiIHgyPSIzOC4xMzA1IiB5Mj0iNC41OTQ2MiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSIjRkYwMDA0IiBzdG9wLW9wYWNpdHk9IjAiLz4KPHN0b3Agb2Zmc2V0PSIwLjg1IiBzdG9wLWNvbG9yPSIjRkYwMDA0Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjxsaW5lYXJHcmFkaWVudCBpZD0icGFpbnQxX2xpbmVhcl81NTBfMzE5MSIgeDE9IjQwLjM0MzIiIHkxPSIxMC40MzA2IiB4Mj0iMy44ODA0IiB5Mj0iMjUuMDg4OCIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBzdG9wLWNvbG9yPSIjRkYwMDA0IiBzdG9wLW9wYWNpdHk9IjAiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjRkYwMDA0Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+Cg==';
+  function replaceImgSrc(el) {
+    el.setAttribute('src', LOGO);
+    if (el.hasAttribute('srcset')) el.removeAttribute('srcset');
+    if (el.hasAttribute('href')) el.setAttribute('href', LOGO);
+    if (el.hasAttribute('xlink:href')) el.setAttribute('xlink:href', LOGO);
+  }
+  function fixImg(n) {
+    var p = n.parentNode;
+    while (p && p !== document.body && p !== document.documentElement) {
+      if (p.nodeType === 1) {
+        var imgs = p.querySelectorAll('img, image, svg image');
+        if (imgs.length > 0) {
+          for (var k = 0; k < imgs.length; k++) replaceImgSrc(imgs[k]);
+          return true;
+        }
+      }
+      p = p.parentNode;
+    }
+    return false;
+  }
+  function fix(n) {
+    if (n.nodeValue && n.nodeValue.indexOf(T) !== -1) {
+      n.nodeValue = n.nodeValue.split(T).join(R);
+      if (!fixImg(n)) {
+        setTimeout(function() { fixImg(n); }, 300);
+        setTimeout(function() { fixImg(n); }, 1000);
+      }
+    }
+  }
+  function walk(root) {
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+    var n; while (n = w.nextNode()) fix(n);
+  }
+  var obs = new MutationObserver(function(muts) {
+    for (var i = 0; i < muts.length; i++) {
+      var m = muts[i];
+      if (m.type === 'characterData') { fix(m.target); continue; }
+      for (var j = 0; j < m.addedNodes.length; j++) {
+        var a = m.addedNodes[j];
+        if (a.nodeType === 3) fix(a);
+        else if (a.nodeType === 1) walk(a);
+      }
+    }
+  });
+  function start() {
+    var el = document.documentElement || document.body;
+    if (el) { obs.observe(el, { childList: true, subtree: true, characterData: true }); walk(el); }
+  }
+  if (document.body) start();
+  else document.addEventListener('DOMContentLoaded', start);
+})();`;
+
+        setJs(bridgeScript + rebrandScript);
       } catch (error: any) {
         setError('Failed to load DApp browser script: ' + error.message);
       }
