@@ -1062,12 +1062,10 @@ const DAppBrowser: React.FC = () => {
               if (input.disabled || input.readOnly) return false;
               return true;
             });
-            return (
-              candidates.find(function(input) {
-                var hint = [input.placeholder, input.name, input.id, input.getAttribute('aria-label')].filter(Boolean).join(' ');
-                return /btc|bitcoin|address|bc1/i.test(hint);
-              }) || candidates[0]
-            );
+            return candidates.find(function(input) {
+              var hint = [input.placeholder, input.name, input.id, input.getAttribute('aria-label')].filter(Boolean).join(' ');
+              return /btc|bitcoin|address|bc1/i.test(hint);
+            }) || null;
           };
 
           var setValue = function(el, value) {
