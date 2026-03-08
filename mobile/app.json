@@ -2,7 +2,7 @@
   "expo": {
     "name": "Layerz Wallet",
     "slug": "layerzwallet",
-    "version": "1.4.2",
+    "version": "1.4.3",
     "orientation": "portrait",
     "scheme": ["bitcoin", "liquidnetwork", "layerzwallet"],
     "userInterfaceStyle": "automatic",
