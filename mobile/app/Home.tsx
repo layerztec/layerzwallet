@@ -17,7 +17,10 @@ import NftsView from '@/components/NftsView';
 import PlatformBlurView from '@/components/PlatformBlurView';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
 import StickyHeader from '@/components/StickyHeader';
-import SwapList from '@/components/SwapList';
+import { LayerzStorage } from '@/src/class/layerz-storage';
+import { setNativeDepositSwapsFetcher, useTransferService } from '@shared/hooks/useTransferService';
+import { swapFetcher } from '@shared/hooks/useSwaps';
+
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
 import YieldView from '@/components/YieldView';
@@ -29,19 +32,16 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useSettings } from '@shared/hooks/useSettings';
-import { useTransactions } from '@shared/hooks/useTransactions';
+import { useTransactionHistory } from '@shared/hooks/useTransactionHistory';
 import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
-import { getSwapPairs } from '@shared/models/swap-providers-list';
 import { USDT_TOKENS } from '@shared/models/token-list';
 import { sleep } from '@shared/modules/sleep';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { NETWORK_ARK, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
-import { SO_LIQUID_USDT, SO_ROOTSTOCK_USDT, SwapPlatform } from '@shared/types/swap';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { ReceiveTokenProps } from './Receive';
 import { SendTokenEvmProps } from './SendTokenEvm';
-import { SwapParams } from './Swap';
 import { SendParams } from './send';
 import { YieldBearingCachedTokenInfo } from '@shared/hooks/useYieldDiscovery';
 
@@ -61,10 +61,6 @@ const MODAL_MIN_HEIGHT = 120; // Height when dragged down (header + some content
 const MODAL_MAX_HEIGHT = SCREEN_HEIGHT; // Full height modal
 
 export type HomeProps = {
-  showSwapInterface?: string;
-  fromNetwork?: string;
-  toNetwork?: string;
-  amount?: string;
   fromOnboarding?: string;
 };
 
@@ -73,7 +69,11 @@ export default function Home() {
   const { accountNumber } = useContext(AccountNumberContext);
   const router = useRouter();
   const params = useLocalSearchParams<HomeProps>();
-  const { transactions, error: transactionsError, mutate: mutateTransactions } = useTransactions(network, accountNumber, BackgroundExecutor);
+  const transferService = useTransferService(LayerzStorage);
+  useEffect(() => {
+    setNativeDepositSwapsFetcher((n, acc) => swapFetcher({ cacheKey: 'ndSwapFetcher', accountNumber: acc, network: n, backgroundCaller: BackgroundExecutor }));
+  }, []);
+  const { transactions, error: transactionsError, mutate: mutateTransactions } = useTransactionHistory(network, accountNumber, BackgroundExecutor, transferService);
   const scrollY = useSharedValue(0); // Scroll animation for sticky header
   const modalTranslateY = useSharedValue(0); // Modal state and animations
   const currentModalPosition = useSharedValue(0); // Track current modal position using shared value
@@ -83,7 +83,6 @@ export default function Home() {
   const yieldViewRef = useRef<{ refresh: () => void }>(null);
   const tokensViewRef = useRef<{ refresh: () => void }>(null);
   const nftsViewRef = useRef<{ refresh: () => void }>(null);
-  const swapListRef = useRef<{ refresh: () => void }>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshOptions, setRefreshOptions] = useState<Partial<RefreshControlProps>>({});
   const settingsContext = useSettings();
@@ -101,13 +100,6 @@ export default function Home() {
   // Animated styles
   const modalAnimatedStyle = useAnimatedStyle(() => ({ transform: [{ translateY: modalTranslateY.value }] }));
   const whiteFlashAnimatedStyle = useAnimatedStyle(() => ({ opacity: whiteFlashAnim.value }));
-
-  // URL parameter handling
-  useEffect(() => {
-    if (params.showSwapInterface === 'true') {
-      router.push('/Swap');
-    }
-  }, [params.showSwapInterface, router]);
 
   const networkImage = getNetworkImageAsset(network);
   const networkIconContent = networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null;
@@ -135,14 +127,6 @@ export default function Home() {
     });
   }, [networks, network]);
 
-  const swapEnabled = useMemo(() => {
-    if (network === NETWORK_USDT) {
-      return Boolean(getSwapPairs(SO_LIQUID_USDT, SwapPlatform.MOBILE) || getSwapPairs(SO_ROOTSTOCK_USDT, SwapPlatform.MOBILE));
-    }
-    const swapPairs = getSwapPairs(network, SwapPlatform.MOBILE);
-    return swapPairs.length > 0;
-  }, [network]);
-
   const handleSend = () => {
     switch (network) {
       case NETWORK_LIGHTNING:
@@ -158,19 +142,9 @@ export default function Home() {
     router.push('/Receive');
   };
 
-  const handleSwap = () => {
-    router.push('/Swap');
+  const handleNewTransfer = () => {
+    router.push('/transfer');
   };
-
-  const handleSwapTokenViaLiquid = useCallback(() => {
-    const params: SwapParams = { fromNetwork: SO_LIQUID_USDT };
-    router.push({ pathname: '/Swap', params });
-  }, [router]);
-
-  const handleSwapTokenViaRootstock = useCallback(() => {
-    const params: SwapParams = { fromNetwork: SO_ROOTSTOCK_USDT };
-    router.push({ pathname: '/Swap', params });
-  }, [router]);
 
   const handleNetworkCardPress = (index: number) => {
     if (index >= 0 && index < networks.length) {
@@ -248,6 +222,14 @@ export default function Home() {
   ];
 
   const handleTransactionDetails = (transaction: CommonTransaction) => {
+    if (transaction.transferExecution) {
+      router.push({
+        pathname: '/TransferDetails',
+        params: { execution: JSON.stringify(transaction.transferExecution) },
+      });
+      return;
+    }
+
     // Pass the current layer network so transaction details can use the correct background color
     router.push({
       pathname: '/TransactionDetails',
@@ -268,7 +250,6 @@ export default function Home() {
       balanceRef.current?.refresh();
       yieldViewRef.current?.refresh();
       tokensViewRef.current?.refresh();
-      swapListRef.current?.refresh();
       nftsViewRef.current?.refresh();
       mutateTransactions();
       await sleep(3000); // wait for 3 seconds to simulate a refresh
@@ -323,18 +304,6 @@ export default function Home() {
     { children: <Action network={NETWORK_SPARK} text="Receive via Spark" />, onClick: handleReceiveTokenViaSpark },
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
-
-  const usdtSwapActions = useMemo(() => {
-    const actions = [];
-    if (getSwapPairs(SO_LIQUID_USDT, SwapPlatform.MOBILE).length > 0) {
-      actions.push({ children: <Action network={NETWORK_LIQUID} text="Swap USDT on Liquid" />, onClick: handleSwapTokenViaLiquid });
-    }
-    if (getSwapPairs(SO_ROOTSTOCK_USDT, SwapPlatform.MOBILE).length > 0) {
-      actions.push({ children: <Action network={NETWORK_ROOTSTOCK} text="Swap USDT on Rootstock" />, onClick: handleSwapTokenViaRootstock });
-    }
-    actions.push({ children: <Action text="Cancel" />, onClick: () => {} });
-    return actions;
-  }, [handleSwapTokenViaLiquid, handleSwapTokenViaRootstock]);
 
   // Handle scroll events for sticky header animation
   const handleScroll = useAnimatedScrollHandler({
@@ -455,9 +424,6 @@ export default function Home() {
             {/* Transactions Section */}
             <TransactionsList transactions={latestTransactions} error={transactionsError} onTransactionPress={handleTransactionDetails} onViewHistory={handleTransactionHistory} />
 
-            {/* Swap List Section */}
-            <SwapList ref={swapListRef} />
-
             {/* Explorer Button */}
             <Button title="Explore" onPress={handleExplorer} variant="lighter" style={styles.explorerButton} testID="ExplorerButton" />
           </View>
@@ -504,24 +470,13 @@ export default function Home() {
               )}
             </View>
 
-            {swapEnabled && (
-              <View style={styles.swapButton}>
-                <PlatformBlurView intensity={40} tint="light" style={styles.navBlur} />
-                {network === NETWORK_USDT ? (
-                  <ActionPopupButton actions={usdtSwapActions} title="Choose network to swap">
-                    <Pressable style={styles.swapButtonInner} activeOpacity={0.8} testID="SwapButton">
-                      <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
-                      <ThemedText style={styles.navButtonText}>Transfer</ThemedText>
-                    </Pressable>
-                  </ActionPopupButton>
-                ) : (
-                  <Pressable style={styles.swapButtonInner} onPress={handleSwap} activeOpacity={0.8} testID="SwapButton">
-                    <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
-                    <ThemedText style={styles.navButtonText}>Transfer</ThemedText>
-                  </Pressable>
-                )}
-              </View>
-            )}
+            <View style={styles.swapButton}>
+              <PlatformBlurView intensity={40} tint="light" style={styles.navBlur} />
+              <Pressable style={styles.swapButtonInner} onPress={handleNewTransfer} activeOpacity={0.8} testID="SwapButton">
+                <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
+                <ThemedText style={styles.navButtonText}>Transfer</ThemedText>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Animated.View>

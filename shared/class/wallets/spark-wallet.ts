@@ -34,10 +34,15 @@ const _tokenIconCache: Record<string, string> = {};
 // not exposed in the SDK
 export type StaticDepositQuoteOutput = Awaited<ReturnType<SDK['getClaimStaticDepositQuote']>>;
 
+export type SparkSDKWallet = Awaited<ReturnType<typeof SDK.initialize>>['wallet'];
+
 export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet, InterfaceCanHaveTokens, InterfaceCanHaveNfts {
-  private _sdkWallet: Awaited<ReturnType<typeof SDK.initialize>>['wallet'] | undefined = undefined;
+  private _sdkWallet: SparkSDKWallet | undefined = undefined;
+  /** Last initialized SDK wallet instance (for services like Flashnet that need direct SDK access) */
+  static _lastSDKWallet: SparkSDKWallet | undefined;
   protected adapter: ISparkAdapter;
   private _storage: IStorage | undefined = undefined;
+  private _refundedDepositTxids: Set<string> = new Set();
   _lastNftsFetch: number = 0;
   _lastTokensFetch: number = 0;
 
@@ -70,6 +75,11 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     });
 
     this._sdkWallet = wallet;
+    SparkWallet._lastSDKWallet = wallet;
+  }
+
+  static getLastSDKWallet(): SparkSDKWallet | undefined {
+    return SparkWallet._lastSDKWallet;
   }
 
   async getTransaction() {
@@ -336,6 +346,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
       .filter((tx) => tx.vin.length === 1 && tx.vout.length === 1);
     const claimedSwaps: CommonSwap[] = filteredTxs.map((tx) => {
       const timestamp = tx.blocktime ? tx.blocktime * 1000 : new Date().getTime();
+      const inputTxid = tx.vin[0]?.txid;
       return {
         network: NETWORK_SPARK,
         id: tx.txid,
@@ -344,6 +355,8 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
         amount: BigNumber(tx.vout[0].value).multipliedBy(100000000).toNumber(),
         direction: 'receive',
         explorerUrl: `${explorerBase}/tx/${tx.txid}`,
+        depositTxid: inputTxid,
+        refunded: inputTxid ? this._refundedDepositTxids.has(inputTxid) : undefined,
       };
     });
     swaps.push(...claimedSwaps);
@@ -484,6 +497,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     });
 
     await BlueElectrum.broadcastV2(hex);
+    this._refundedDepositTxids.add(txid);
   }
 
   /**

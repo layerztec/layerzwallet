@@ -1,4 +1,4 @@
-import { NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
 import { TokenInfo, EVMTokenInfo, LiquidTokenInfo, SparkTokenInfo } from '../types/token-info';
 import { getChainIdByNetwork } from './network-getters';
 import { hexToDec } from '../modules/string-utils';
@@ -45,7 +45,17 @@ function sparkToCommonTokenInfo(token: SparkTokenInfo): TokenInfo {
   };
 }
 
-const list: TokenInfo[] = [...evmList.map(evmToCommonTokenInfo), ...liquidList.map(liquidToCommonTokenInfo), ...sparkList.map(sparkToCommonTokenInfo)];
+const manuallyDefinedTokens: TokenInfo[] = [
+  {
+    id: 'stx',
+    chainId: hexToDec(getChainIdByNetwork(NETWORK_STACKS)),
+    name: 'Stacks',
+    decimals: 6,
+    symbol: 'STX',
+  },
+];
+
+const list: TokenInfo[] = [...evmList.map(evmToCommonTokenInfo), ...liquidList.map(liquidToCommonTokenInfo), ...sparkList.map(sparkToCommonTokenInfo), ...manuallyDefinedTokens];
 
 export function getTokenList(network: Networks): TokenInfo[] {
   let ret: TokenInfo[] = [];
@@ -60,18 +70,14 @@ export function getTokenList(network: Networks): TokenInfo[] {
 }
 
 export function getTokenInfo(id: string | undefined): TokenInfo {
+  if (!id) {
+    throw new Error('Token id is required');
+  }
   const token = list.find((t) => t.id.toLowerCase() === id?.toLowerCase());
   if (token) {
     return token;
   }
-  // if token is not found, we return something
-  return {
-    id: String(id),
-    name: 'Unknown Token',
-    decimals: 8,
-    symbol: String(id).substring(0, 8),
-    chainId: 99999,
-  };
+  throw new Error(`Token not found: ${id}`);
 }
 
 // Unified function for getting token/asset icon colors

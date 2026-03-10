@@ -5,3 +5,6 @@
 .idea/
 
 .claude/
+
+# Dependencies
+shared/node_modules/

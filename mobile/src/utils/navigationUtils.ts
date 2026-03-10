@@ -8,7 +8,6 @@
 const MAIN_APP_SCREENS = [
   'Home',
   'Settings',
-  'Swap',
   'Receive',
   'SendAccountBased',
   'SendBtc',
@@ -18,15 +17,14 @@ const MAIN_APP_SCREENS = [
   'Changelog',
   'SeedBackup',
   'Tools',
-  'SwapTarget',
-  'SwapSparkDeposit',
-  'SwapDetails',
   'Onramp',
   'AskPassword',
   'DAppBrowser',
   'Action',
   'PocketSwitch',
   'TransactionDetails',
+  'transfer',
+  'TransferDetails',
 ] as const;
 
 /**

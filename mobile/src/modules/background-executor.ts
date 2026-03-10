@@ -30,6 +30,23 @@ import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 
 /**
+ * Returns the onchain deposit address (boarding address) for ARK/Spark networks.
+ * Used by the NativeDeposit transfer flow.
+ */
+export async function getOnchainDepositAddress(network: string, accountNumber: number): Promise<string> {
+  if (network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET) {
+    const w = await lazyInitWalletOrig(network, accountNumber, LayerzStorage, SecureStorage);
+    assert(w instanceof ArkWallet);
+    return await w.getOnchainDepositAddress();
+  } else if (network === NETWORK_SPARK) {
+    const w = await lazyInitWalletOrig(network, accountNumber, LayerzStorage, SecureStorage);
+    assert(w instanceof SparkWallet);
+    return await w.getOnchainDepositAddress();
+  }
+  throw new Error(`Network ${network} does not support onchain deposits`);
+}
+
+/**
  * A drop-in replacement for BackgroundCaller in `ext` project. Since we have only one js context on mobile,
  * no need to handle calls via messages, we can just execute them on the spot
  */

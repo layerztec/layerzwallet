@@ -37,4 +37,10 @@ export interface CommonSwap {
 
   /** target confirmations. Confirmations needed to process the swap */
   targetConfirmations?: number;
+
+  /** Original deposit txid (for claimed swaps where id is the spending tx) */
+  depositTxid?: string;
+
+  /** True if this swap was refunded rather than claimed */
+  refunded?: boolean;
 }

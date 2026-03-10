@@ -1,4 +1,4 @@
-import { Denomination } from '@/app/send/_layout';
+import { Denomination } from '@shared/types/transfer';
 import { Ionicons } from '@expo/vector-icons';
 import BigNumber from 'bignumber.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';

@@ -26,6 +26,7 @@
     "@bitcoinerlab/secp256k1": "1.2.0",
     "@breeztech/breez-sdk-liquid": "0.11.13",
     "@buildonspark/spark-sdk": "0.6.4",
+    "@flashnet/sdk": "0.5.7",
     "@metamask/eth-sig-util": "8.2.0",
     "@noble/hashes": "1.7.1",
     "@noble/secp256k1": "1.6.3",
