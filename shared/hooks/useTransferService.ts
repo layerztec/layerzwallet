@@ -20,8 +20,7 @@ export function useTransferService(storage: IStorage): TransferServiceManager {
   if (!_instance) {
     const services: ITransferService[] = [];
 
-    // TODO: re-enable SideShift when ready
-    // services.push(new SideshiftTransferService(storage, 'uYB9AagC9'));
+    services.push(new SideshiftTransferService(storage, 'uYB9AagC9'));
     if (process.env.EXPO_PUBLIC_GARDEN_APP_ID) {
       services.push(new GardenTransferService(storage, process.env.EXPO_PUBLIC_GARDEN_APP_ID));
     } else {
