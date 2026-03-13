@@ -32,7 +32,7 @@ export class NativeDepositTransferService implements ITransferService {
 
   async getQuote(sendAsset: AssetId, receiveAsset: AssetId, sendAmount: string): Promise<TransferQuote> {
     return {
-      id: crypto.randomUUID(),
+      id: `nd-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       sendAsset,
       receiveAsset,
       sendAmount,
@@ -48,7 +48,7 @@ export class NativeDepositTransferService implements ITransferService {
 
   async executeTransfer(quote: TransferQuote, settleAddress: string): Promise<TransferExecution> {
     return {
-      id: crypto.randomUUID(),
+      id: `nd-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       status: 'waiting',
       sendAmount: quote.sendAmount,
       receiveAmount: quote.receiveAmount,

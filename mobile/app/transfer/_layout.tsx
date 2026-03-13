@@ -34,7 +34,7 @@ export function useTransferFlow() {
 }
 
 function TransferFlowProvider({ children }: { children: ReactNode }) {
-  const [sendAsset, setSendAsset] = useState<AssetId | undefined>(undefined);
+  const [sendAsset, setSendAsset] = useState<AssetId | undefined>('native:bitcoin');
   const [receiveAsset, setReceiveAsset] = useState<AssetId | undefined>(undefined);
   const [quote, setQuote] = useState<TransferQuote | undefined>(undefined);
   const transferService = useTransferService(LayerzStorage);
