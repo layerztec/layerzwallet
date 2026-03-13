@@ -177,7 +177,7 @@ describe('SymbiosisTransferService', () => {
 
   describe('getOngoingTransfers', () => {
     it('returns empty for no stored transfers', async () => {
-      const transfers = await service.getOngoingTransfers();
+      const transfers = await service.getOngoingTransfers(0);
       expect(transfers).toEqual([]);
     });
 
@@ -203,7 +203,7 @@ describe('SymbiosisTransferService', () => {
         json: () => Promise.resolve({ status: { code: 1, text: 'Pending' } }),
       });
 
-      const transfers = await service.getOngoingTransfers();
+      const transfers = await service.getOngoingTransfers(0);
       expect(transfers).toHaveLength(1);
       expect(transfers[0].status).toBe('pending');
     });
@@ -224,7 +224,7 @@ describe('SymbiosisTransferService', () => {
       ];
       mockStorage.getItem.mockResolvedValueOnce(JSON.stringify(stored));
 
-      const transfers = await service.getOngoingTransfers();
+      const transfers = await service.getOngoingTransfers(0);
       expect(transfers).toHaveLength(1);
       expect(transfers[0].status).toBe('waiting');
       expect(fetchSpy).not.toHaveBeenCalled();
@@ -286,7 +286,7 @@ describe('SymbiosisTransferService', () => {
       ];
       mockStorage.getItem.mockResolvedValueOnce(JSON.stringify(stored));
 
-      const transfers = await service.getOngoingTransfers();
+      const transfers = await service.getOngoingTransfers(0);
       expect(transfers).toHaveLength(1);
       expect(transfers[0].status).toBe('expired');
     });
@@ -309,7 +309,7 @@ describe('SymbiosisTransferService', () => {
       ];
       mockStorage.getItem.mockResolvedValueOnce(JSON.stringify(stored));
 
-      const transfers = await service.getOngoingTransfers();
+      const transfers = await service.getOngoingTransfers(0);
       expect(transfers).toHaveLength(1);
       expect(transfers[0].status).toBe('waiting');
     });

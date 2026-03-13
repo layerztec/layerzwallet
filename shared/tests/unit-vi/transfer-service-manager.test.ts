@@ -190,7 +190,7 @@ describe('TransferServiceManager', () => {
       vi.mocked(s2.getOngoingTransfers).mockResolvedValue([makeExecution('e2', 200)]);
 
       const manager = new TransferServiceManager([s1, s2]);
-      const result = await manager.getOngoingTransfers();
+      const result = await manager.getOngoingTransfers(0);
 
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe('e2'); // newer first
@@ -206,7 +206,7 @@ describe('TransferServiceManager', () => {
       vi.mocked(s2.getOngoingTransfers).mockResolvedValue([makeExecution('e2', 200)]);
 
       const manager = new TransferServiceManager([s1, s2]);
-      const result = await manager.getOngoingTransfers();
+      const result = await manager.getOngoingTransfers(0);
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('e2');

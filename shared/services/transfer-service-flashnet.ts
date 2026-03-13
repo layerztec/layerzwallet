@@ -26,14 +26,19 @@ interface FlashnetPersistedTransfer {
 export class FlashnetTransferService implements ITransferService {
   readonly name = 'Flashnet';
   private storage: IStorage;
-  private getSparkWallet: () => SparkSDKWallet | undefined;
+  private getSparkWallet: (accountNumber: number) => SparkSDKWallet | undefined;
   private client: any | undefined;
   private clientWallet: SparkSDKWallet | undefined;
   private poolId: string | undefined;
+  private currentAccountNumber: number = 0;
 
-  constructor(storage: IStorage, getSparkWallet: () => SparkSDKWallet | undefined) {
+  constructor(storage: IStorage, getSparkWallet: (accountNumber: number) => SparkSDKWallet | undefined) {
     this.storage = storage;
     this.getSparkWallet = getSparkWallet;
+  }
+
+  setCurrentAccountNumber(accountNumber: number): void {
+    this.currentAccountNumber = accountNumber;
   }
 
   getSupportedPairs(): TransferPair[] {
@@ -160,7 +165,7 @@ export class FlashnetTransferService implements ITransferService {
   }
 
   private async ensureClient(): Promise<any> {
-    const wallet = this.getSparkWallet();
+    const wallet = this.getSparkWallet(this.currentAccountNumber);
     if (!wallet) {
       throw new Error('Spark wallet not initialized. Please open your Spark wallet first.');
     }

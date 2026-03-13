@@ -166,7 +166,7 @@ describe('SideshiftTransferService', () => {
 
   describe('getOngoingTransfers', () => {
     it('returns empty array when no transfers stored', async () => {
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
       expect(result).toEqual([]);
     });
 
@@ -201,7 +201,7 @@ describe('SideshiftTransferService', () => {
         })
       );
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
       expect(result).toHaveLength(1);
       expect(result[0].status).toBe('pending');
     });
@@ -236,7 +236,7 @@ describe('SideshiftTransferService', () => {
         })
       );
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
       expect(result).toHaveLength(1);
       expect(result[0].status).toBe('completed');
     });
@@ -265,7 +265,7 @@ describe('SideshiftTransferService', () => {
         },
       ]);
 
-      await service.getOngoingTransfers();
+      await service.getOngoingTransfers(0);
 
       const stored = JSON.parse(storage._store[STORAGE_KEY_SIDESHIFT_TRANSFERS]);
       expect(stored).toHaveLength(0);
@@ -297,7 +297,7 @@ describe('SideshiftTransferService', () => {
       fetchSpy.mockImplementation(() => mockFetchResponse({ error: { message: 'Server error' } }, false, 500));
 
       // Should not throw, keeps last known state
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
       expect(result).toHaveLength(1);
       expect(result[0].status).toBe('pending');
     });
@@ -305,7 +305,7 @@ describe('SideshiftTransferService', () => {
     it('handles corrupt storage gracefully', async () => {
       storage._store[STORAGE_KEY_SIDESHIFT_TRANSFERS] = 'not valid json{{{';
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
       expect(result).toEqual([]);
     });
   });

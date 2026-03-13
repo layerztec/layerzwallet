@@ -68,7 +68,7 @@ getTrackingUrl?(execution): string | undefined
 - **Pairs**: BTC <-> USDB on Spark (both directions)
 - **Model**: Instant atomic swap via `@flashnet/sdk`. No deposit address. Executes atomically in `executeTransfer()`.
 - **API**: `FlashnetClient.simulateSwap()` for quotes, `executeSwap()` for execution
-- **SparkWallet access**: `SparkWallet.getLastSDKWallet()` static getter
+- **SparkWallet access**: `SparkWallet.getSDKWalletForAccount(accountNumber)` static getter
 - No tracking URL (instant)
 
 ### NativeDeposit (`shared/services/transfer-service-native-deposit.ts`)

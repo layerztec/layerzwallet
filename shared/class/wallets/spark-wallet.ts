@@ -38,8 +38,8 @@ export type SparkSDKWallet = Awaited<ReturnType<typeof SDK.initialize>>['wallet'
 
 export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet, InterfaceCanHaveTokens, InterfaceCanHaveNfts {
   private _sdkWallet: SparkSDKWallet | undefined = undefined;
-  /** Last initialized SDK wallet instance (for services like Flashnet that need direct SDK access) */
-  static _lastSDKWallet: SparkSDKWallet | undefined;
+  /** SDK wallets indexed by account number */
+  private static _sdkWalletsByAccount: Map<number, SparkSDKWallet> = new Map();
   protected adapter: ISparkAdapter;
   private _storage: IStorage | undefined = undefined;
   private _refundedDepositTxids: Set<string> = new Set();
@@ -75,11 +75,11 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     });
 
     this._sdkWallet = wallet;
-    SparkWallet._lastSDKWallet = wallet;
+    SparkWallet._sdkWalletsByAccount.set(this._accountNumber, wallet);
   }
 
-  static getLastSDKWallet(): SparkSDKWallet | undefined {
-    return SparkWallet._lastSDKWallet;
+  static getSDKWalletForAccount(accountNumber: number): SparkSDKWallet | undefined {
+    return SparkWallet._sdkWalletsByAccount.get(accountNumber);
   }
 
   async getTransaction() {

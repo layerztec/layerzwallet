@@ -190,7 +190,7 @@ describe('GardenTransferService', () => {
 
   describe('getOngoingTransfers', () => {
     it('returns empty array when no transfers stored', async () => {
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
       expect(result).toEqual([]);
     });
 
@@ -221,7 +221,7 @@ describe('GardenTransferService', () => {
         })
       );
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
       expect(result).toHaveLength(1);
       expect(result[0].status).toBe('pending');
     });
@@ -256,7 +256,7 @@ describe('GardenTransferService', () => {
         })
       );
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
       expect(result).toHaveLength(1);
       expect(result[0].status).toBe('completed');
     });
@@ -281,7 +281,7 @@ describe('GardenTransferService', () => {
         },
       ]);
 
-      await service.getOngoingTransfers();
+      await service.getOngoingTransfers(0);
 
       const stored = JSON.parse(storage._store[STORAGE_KEY_GARDEN_TRANSFERS]);
       expect(stored).toHaveLength(0);
@@ -308,7 +308,7 @@ describe('GardenTransferService', () => {
 
       fetchSpy.mockImplementation(() => mockFetchResponse({ status: 'Error', error: 'Server error' }, false, 500));
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
       expect(result).toHaveLength(1);
       expect(result[0].status).toBe('pending');
     });
@@ -316,7 +316,7 @@ describe('GardenTransferService', () => {
     it('handles corrupt storage gracefully', async () => {
       storage._store[STORAGE_KEY_GARDEN_TRANSFERS] = 'not valid json{{{';
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
       expect(result).toEqual([]);
     });
   });

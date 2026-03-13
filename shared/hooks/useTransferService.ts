@@ -11,9 +11,14 @@ import { ITransferService } from '../types/transfer';
 
 let _instance: TransferServiceManager | undefined;
 let _nativeDepositService: NativeDepositTransferService | undefined;
+let _flashnetService: FlashnetTransferService | undefined;
 
 export function setNativeDepositSwapsFetcher(fn: NativeDepositSwapsFetcher): void {
   _nativeDepositService?.setSwapsFetcher(fn);
+}
+
+export function setFlashnetAccountNumber(accountNumber: number): void {
+  _flashnetService?.setCurrentAccountNumber(accountNumber);
 }
 
 export function useTransferService(storage: IStorage): TransferServiceManager {
@@ -27,7 +32,8 @@ export function useTransferService(storage: IStorage): TransferServiceManager {
       console.warn('EXPO_PUBLIC_GARDEN_APP_ID not set — Garden Finance disabled');
     }
     services.push(new SymbiosisTransferService(storage));
-    services.push(new FlashnetTransferService(storage, () => SparkWallet.getLastSDKWallet()));
+    _flashnetService = new FlashnetTransferService(storage, (accountNumber) => SparkWallet.getSDKWalletForAccount(accountNumber));
+    services.push(_flashnetService);
     _nativeDepositService = new NativeDepositTransferService(storage);
     services.push(_nativeDepositService);
     services.push(new FakeTransferService());

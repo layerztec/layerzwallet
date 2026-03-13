@@ -134,7 +134,7 @@ describe('FlashnetTransferService', () => {
 
   describe('getOngoingTransfers', () => {
     it('returns empty for no stored transfers', async () => {
-      const transfers = await service.getOngoingTransfers();
+      const transfers = await service.getOngoingTransfers(0);
       expect(transfers).toEqual([]);
     });
 
@@ -154,7 +154,7 @@ describe('FlashnetTransferService', () => {
       ];
       mockStorage.getItem.mockResolvedValueOnce(JSON.stringify(stored));
 
-      const transfers = await service.getOngoingTransfers();
+      const transfers = await service.getOngoingTransfers(0);
       expect(transfers).toHaveLength(1);
       expect(transfers[0].status).toBe('completed');
     });
@@ -176,7 +176,7 @@ describe('FlashnetTransferService', () => {
       ];
       mockStorage.getItem.mockResolvedValueOnce(JSON.stringify(stored));
 
-      const transfers = await service.getOngoingTransfers();
+      const transfers = await service.getOngoingTransfers(0);
       expect(transfers).toHaveLength(0);
     });
   });

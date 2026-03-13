@@ -4,7 +4,7 @@ import React, { createContext, ReactNode, useContext, useEffect, useState } from
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { setNativeDepositSwapsFetcher, useTransferService } from '@shared/hooks/useTransferService';
+import { setFlashnetAccountNumber, setNativeDepositSwapsFetcher, useTransferService } from '@shared/hooks/useTransferService';
 import { swapFetcher } from '@shared/hooks/useSwaps';
 import { TransferServiceManager } from '@shared/services/transfer-service-manager';
 import { AssetId } from '@shared/types/asset';
@@ -46,6 +46,7 @@ function TransferFlowProvider({ children }: { children: ReactNode }) {
 
   // Ensure Spark wallet is initialized so Flashnet swaps can work
   useEffect(() => {
+    setFlashnetAccountNumber(accountNumber);
     BackgroundExecutor.lazyInitWallet(NETWORK_SPARK, accountNumber).catch(() => {});
   }, [accountNumber]);
 

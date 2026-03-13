@@ -56,7 +56,7 @@ describe('NativeDepositTransferService', () => {
       const service = new NativeDepositTransferService(storage);
       service.setSwapsFetcher(async () => [makeSwap({ status: 'claimable' })]);
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
 
       expect(result[0].status).toBe('claimable');
       expect(result[0].claimSwapJson).toBeDefined();
@@ -68,7 +68,7 @@ describe('NativeDepositTransferService', () => {
       const service = new NativeDepositTransferService(storage);
       service.setSwapsFetcher(async () => [makeSwap({ status: 'confirmed' })]);
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
 
       expect(result[0].status).toBe('completed');
       expect(result[0].updatedAt).toBeGreaterThan(0);
@@ -81,7 +81,7 @@ describe('NativeDepositTransferService', () => {
       // Claimed swap has a different id (spending tx) but depositTxid matches the original deposit
       service.setSwapsFetcher(async () => [makeSwap({ id: 'spending-tx-different', status: 'confirmed', depositTxid: TXID })]);
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
 
       expect(result[0].status).toBe('completed');
     });
@@ -93,7 +93,7 @@ describe('NativeDepositTransferService', () => {
       const service = new NativeDepositTransferService(storage);
       service.setSwapsFetcher(fetcher);
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
 
       expect(result[0].status).toBe('completed');
       expect(fetcher).not.toHaveBeenCalled();
@@ -105,7 +105,7 @@ describe('NativeDepositTransferService', () => {
       const service = new NativeDepositTransferService(storage);
       service.setSwapsFetcher(async () => [makeSwap({ status: 'pending', confirmations: 1, targetConfirmations: 3 })]);
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
 
       expect(result[0].status).toBe('confirming');
       expect(result[0].confirmations).toBe(1);
@@ -118,7 +118,7 @@ describe('NativeDepositTransferService', () => {
       const service = new NativeDepositTransferService(storage);
       service.setSwapsFetcher(async () => [makeSwap({ status: 'confirmed' })]);
 
-      await service.getOngoingTransfers();
+      await service.getOngoingTransfers(0);
 
       expect(storage.setItem).toHaveBeenCalledWith(STORAGE_KEY_NATIVE_DEPOSIT_TRANSFERS, expect.stringContaining('"completed"'));
     });
@@ -130,7 +130,7 @@ describe('NativeDepositTransferService', () => {
       const service = new NativeDepositTransferService(storage);
       service.setSwapsFetcher(fetcher);
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
 
       expect(result[0].status).toBe('confirming');
       expect(fetcher).not.toHaveBeenCalled();
@@ -144,7 +144,7 @@ describe('NativeDepositTransferService', () => {
         throw new Error('network error');
       });
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
 
       expect(result[0].status).toBe('confirming');
     });
@@ -201,7 +201,7 @@ describe('NativeDepositTransferService', () => {
       const service = new NativeDepositTransferService(storage);
       service.setSwapsFetcher(async () => [makeSwap({ status: 'confirmed', refunded: true })]);
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
 
       expect(result[0].status).toBe('refunded');
       expect(result[0].updatedAt).toBeGreaterThan(0);
@@ -214,7 +214,7 @@ describe('NativeDepositTransferService', () => {
       const service = new NativeDepositTransferService(storage);
       service.setSwapsFetcher(fetcher);
 
-      const result = await service.getOngoingTransfers();
+      const result = await service.getOngoingTransfers(0);
 
       expect(result[0].status).toBe('refunded');
       expect(fetcher).not.toHaveBeenCalled();
@@ -226,7 +226,7 @@ describe('NativeDepositTransferService', () => {
       const service = new NativeDepositTransferService(storage);
       service.setSwapsFetcher(async () => [makeSwap({ status: 'confirmed', refunded: true })]);
 
-      await service.getOngoingTransfers();
+      await service.getOngoingTransfers(0);
 
       expect(storage.setItem).toHaveBeenCalledWith(STORAGE_KEY_NATIVE_DEPOSIT_TRANSFERS, expect.stringContaining('"refunded"'));
     });
