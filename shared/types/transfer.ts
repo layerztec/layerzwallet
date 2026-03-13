@@ -105,7 +105,7 @@ export interface TransferExecution {
   /** Which account created this transfer. */
   accountNumber: number;
   /** Which transfer service owns this execution. Used by TransferServiceManager for routing. */
-  serviceName?: string;
+  serviceName: string;
   /** Related on-chain txids for this transfer (deposit, settlement, or other lifecycle txs). */
   relatedTxids?: string[];
   /** Current on-chain confirmations (native deposit only) */

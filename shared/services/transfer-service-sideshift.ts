@@ -137,6 +137,7 @@ export class SideshiftTransferService implements ITransferService {
       createdAt: now,
       updatedAt: now,
       accountNumber: 0,
+      serviceName: this.name,
     };
 
     // Keep in memory until commitTransfer is called

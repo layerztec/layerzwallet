@@ -71,6 +71,7 @@ export class FakeTransferService implements ITransferService {
       depositAddress: 'fake-deposit-address',
       settleAddress: _settleAddress,
       accountNumber: 0,
+      serviceName: this.name,
     };
 
     this.ongoingTransfers.push(execution);

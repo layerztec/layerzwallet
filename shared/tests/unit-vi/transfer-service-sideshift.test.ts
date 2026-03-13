@@ -22,7 +22,18 @@ function createMockStorage() {
 }
 
 function makeExecution(overrides: Partial<TransferExecution> = {}): TransferExecution {
-  return { id: 'e1', status: 'pending', sendAmount: '0.01', receiveAmount: '0.00981', sendAsset: BTC_ASSET, receiveAsset: LBTC_ASSET, createdAt: 0, accountNumber: 0, ...overrides };
+  return {
+    id: 'e1',
+    status: 'pending',
+    sendAmount: '0.01',
+    receiveAmount: '0.00981',
+    sendAsset: BTC_ASSET,
+    receiveAsset: LBTC_ASSET,
+    createdAt: 0,
+    accountNumber: 0,
+    serviceName: 'SideShift',
+    ...overrides,
+  };
 }
 
 function mockFetchResponse(data: any, ok = true, status = 200) {
@@ -185,6 +196,7 @@ describe('SideshiftTransferService', () => {
             receiveAsset: LBTC_ASSET,
             createdAt: Math.floor(Date.now() / 1000),
             accountNumber: 0,
+            serviceName: 'SideShift',
           },
           sideshiftShiftId: 'shift-1',
           depositCoin: 'BTC',
@@ -221,6 +233,7 @@ describe('SideshiftTransferService', () => {
             receiveAsset: LBTC_ASSET,
             createdAt: Math.floor(Date.now() / 1000),
             accountNumber: 0,
+            serviceName: 'SideShift',
           },
           sideshiftShiftId: 'shift-1',
           depositCoin: 'BTC',
@@ -259,6 +272,7 @@ describe('SideshiftTransferService', () => {
             receiveAsset: LBTC_ASSET,
             createdAt: oldTimestamp,
             accountNumber: 0,
+            serviceName: 'SideShift',
           },
           sideshiftShiftId: 'shift-old',
           depositCoin: 'BTC',
@@ -289,6 +303,7 @@ describe('SideshiftTransferService', () => {
             receiveAsset: LBTC_ASSET,
             createdAt: Math.floor(Date.now() / 1000),
             accountNumber: 0,
+            serviceName: 'SideShift',
           },
           sideshiftShiftId: 'shift-1',
           depositCoin: 'BTC',

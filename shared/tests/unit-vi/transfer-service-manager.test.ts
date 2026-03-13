@@ -22,7 +22,7 @@ function makeQuote(receiveAmount: string, serviceName?: string): TransferQuote {
   };
 }
 
-function makeExecution(id: string, createdAt: number, serviceName?: string): TransferExecution {
+function makeExecution(id: string, createdAt: number, serviceName: string = 'Test'): TransferExecution {
   return {
     id,
     status: 'pending',
@@ -196,8 +196,8 @@ describe('TransferServiceManager', () => {
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe('e2'); // newer first
       expect(result[1].id).toBe('e1');
-      expect(result[0].serviceName).toBe('B');
-      expect(result[1].serviceName).toBe('A');
+      expect(result[0].serviceName).toBe('Test');
+      expect(result[1].serviceName).toBe('Test');
     });
 
     it('returns other services transfers when one fails', async () => {

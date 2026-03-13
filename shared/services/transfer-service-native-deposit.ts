@@ -57,6 +57,7 @@ export class NativeDepositTransferService implements ITransferService {
       depositAddress: settleAddress,
       settleAddress,
       accountNumber: 0,
+      serviceName: this.name,
     };
   }
 

@@ -118,6 +118,7 @@ export class FlashnetTransferService implements ITransferService {
       createdAt: now,
       updatedAt: now,
       accountNumber: 0,
+      serviceName: this.name,
       // No depositAddress — UI will skip the send step
     };
   }

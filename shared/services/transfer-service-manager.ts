@@ -111,7 +111,7 @@ export class TransferServiceManager {
   }
 
   async commitTransfer(execution: TransferExecution): Promise<void> {
-    const service = execution.serviceName ? this.resolveServiceByName(execution.serviceName) : undefined;
+    const service = this.resolveServiceByName(execution.serviceName);
     if (service?.commitTransfer) {
       await service.commitTransfer(execution);
     }
@@ -121,7 +121,7 @@ export class TransferServiceManager {
     const results = await Promise.allSettled(
       this.services.map(async (service) => {
         const transfers = await service.getOngoingTransfers(accountNumber);
-        return transfers.map((t) => ({ ...t, serviceName: t.serviceName || service.name }));
+        return transfers;
       })
     );
 
@@ -150,18 +150,14 @@ export class TransferServiceManager {
   }
 
   getTimelineSteps(execution: TransferExecution): TimelineStep[] {
-    if (execution.serviceName) {
-      const service = this.resolveServiceByName(execution.serviceName);
-      if (service) return service.getTimelineSteps(execution);
-    }
+    const service = this.resolveServiceByName(execution.serviceName);
+    if (service) return service.getTimelineSteps(execution);
     return getExchangeTimelineSteps(execution);
   }
 
   getTrackingUrl(execution: TransferExecution): string | undefined {
-    if (execution.serviceName) {
-      const service = this.resolveServiceByName(execution.serviceName);
-      if (service?.getTrackingUrl) return service.getTrackingUrl(execution);
-    }
+    const service = this.resolveServiceByName(execution.serviceName);
+    if (service?.getTrackingUrl) return service.getTrackingUrl(execution);
     return undefined;
   }
 
