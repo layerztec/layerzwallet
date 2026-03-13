@@ -28,7 +28,6 @@ const TRANSFER_ASSET_COLORS: Partial<Record<AssetId, string>> = {
   'native:arkade': '#D4A017',
   'native:spark': '#7297A6',
   'token:liquid:usdt': '#26A17B',
-  'token:liquid:eurx': '#0052B4',
   'token:stacks:stx': '#5546FF',
 };
 

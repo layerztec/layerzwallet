@@ -260,12 +260,26 @@ export class EvmWallet implements InterfaceSendQuotable {
     } catch {}
     const fee = this.calculateMinFee(baseFee, prepared);
 
-    // Check balance covers amount + fee
+    // Check balances
     const rpc = getRpcProvider(this.network);
-    const balance = await rpc.getBalance(request.fromAddress!);
-    const totalNeeded = BigInt(request.amount) + BigInt(fee);
-    if (balance < totalNeeded) {
-      throw new Error(`Insufficient ${AllNetworkInfos[this.network].ticker} balance`);
+    const nativeBalance = await rpc.getBalance(request.fromAddress!);
+    if (request.tokenId) {
+      // Token send: native balance must cover gas, token balance must cover amount
+      if (nativeBalance < BigInt(fee)) {
+        throw new Error(`Insufficient ${AllNetworkInfos[this.network].ticker} for gas`);
+      }
+      const abi = ['function balanceOf(address owner) view returns (uint256)'];
+      const contract = new ethers.Contract(ethers.getAddress(request.tokenId), abi, rpc);
+      const tokenBalance: bigint = await contract.balanceOf(ethers.getAddress(request.fromAddress!));
+      if (tokenBalance < BigInt(request.amount)) {
+        const token = getTokenInfo(request.tokenId);
+        throw new Error(`Insufficient ${token.symbol} balance`);
+      }
+    } else {
+      const totalNeeded = BigInt(request.amount) + BigInt(fee);
+      if (nativeBalance < totalNeeded) {
+        throw new Error(`Insufficient ${AllNetworkInfos[this.network].ticker} balance`);
+      }
     }
 
     return {
