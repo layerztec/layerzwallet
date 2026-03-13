@@ -1,18 +1,23 @@
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { useTransactions } from '@shared/hooks/useTransactions';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { useRouter } from 'expo-router';
 import { useContext } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+
 import RadialGradientScreen from '@/components/RadialGradientScreen';
 import { ThemedText } from '@/components/ThemedText';
 import Transaction from '@/components/Transaction';
-import { useRouter } from 'expo-router';
+import Transfer from '@/components/transfer/Transfer';
+import { LayerzStorage } from '@/src/class/layerz-storage';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { useTransactionHistory } from '@shared/hooks/useTransactionHistory';
+import { useTransferService } from '@shared/hooks/useTransferService';
 
 export default function Transactions() {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const { transactions = [], isLoading } = useTransactions(network, accountNumber, BackgroundExecutor);
+  const transferService = useTransferService(LayerzStorage);
+  const { transactions = [], isLoading } = useTransactionHistory(network, accountNumber, BackgroundExecutor, transferService);
   const router = useRouter();
 
   return (
@@ -31,21 +36,27 @@ export default function Transactions() {
 
         {/* Transactions List */}
         <View style={styles.transactionsList}>
-          {transactions.map((transaction) => (
-            <Transaction
-              key={transaction.txid}
-              transaction={transaction}
-              onPress={() =>
-                router.push({
-                  pathname: '/TransactionDetails',
-                  params: {
-                    transaction: JSON.stringify(transaction),
-                    layerNetwork: network, // Pass the current layer being viewed
-                  },
-                })
-              }
-            />
-          ))}
+          {transactions.map((transaction, index) => {
+            const handlePress = () =>
+              transaction.transferExecution
+                ? router.push({
+                    pathname: '/TransferDetails',
+                    params: { execution: JSON.stringify(transaction.transferExecution) },
+                  })
+                : router.push({
+                    pathname: '/TransactionDetails',
+                    params: {
+                      transaction: JSON.stringify(transaction),
+                      layerNetwork: network, // Pass the current layer being viewed
+                    },
+                  });
+
+            return transaction.transferExecution ? (
+              <Transfer key={transaction.txid} execution={transaction.transferExecution} isLast={index === transactions.length - 1} onPress={handlePress} />
+            ) : (
+              <Transaction key={transaction.txid} transaction={transaction} onPress={handlePress} />
+            );
+          })}
         </View>
       </View>
     </RadialGradientScreen>

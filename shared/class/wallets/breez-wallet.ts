@@ -18,7 +18,9 @@ import type {
 import bolt11 from 'bolt11';
 
 import { createLightningInvoiceResponse, InterfaceLightningWallet } from './interface-lightning-wallet';
+import { InterfaceSendQuotable } from './interface-send-quotable';
 import { CommonTransaction } from '@shared/types/common-transaction';
+import { SendQuote, SendQuoteRequest } from '@shared/types/send-quote';
 import { getTokenInfo, getTokenList } from '@shared/models/token-list';
 import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET } from '@shared/types/networks';
 
@@ -46,7 +48,7 @@ export interface IBreezAdapter {
   };
 }
 
-export class BreezWallet implements InterfaceLightningWallet {
+export class BreezWallet implements InterfaceLightningWallet, InterfaceSendQuotable {
   public m: string;
   public n: LiquidNetwork;
   public adapter: IBreezAdapter;
@@ -260,6 +262,36 @@ export class BreezWallet implements InterfaceLightningWallet {
 
     // convert map to array and sort by timestamp
     return Array.from(txMap.values()).sort((a, b) => b.timestamp - a.timestamp);
+  }
+
+  async getSendQuote(request: SendQuoteRequest): Promise<SendQuote> {
+    const isToken = request.tokenId && !Object.values(LBTC_ASSET_IDS).includes(request.tokenId);
+
+    let prepareRequest: PrepareSendRequest;
+    if (isToken) {
+      const token = getTokenInfo(request.tokenId!);
+      const receiverAmount = Number(request.amount) / Math.pow(10, token.decimals);
+      prepareRequest = { destination: request.toAddress, amount: { type: 'asset', toAsset: request.tokenId!, receiverAmount } };
+    } else {
+      prepareRequest = { destination: request.toAddress, amount: { type: 'bitcoin', receiverAmountSat: Number(request.amount) } };
+    }
+
+    const prepareResponse = await this.prepareSendPayment(prepareRequest);
+
+    return {
+      request,
+      fee: String(prepareResponse.feesSat),
+      feeTicker: 'L-BTC',
+      _prepared: prepareResponse,
+    };
+  }
+
+  async executeSendQuote(quote: SendQuote): Promise<string> {
+    const response = await this.sendPayment({ prepareResponse: quote._prepared as PrepareSendResponse });
+    if (!response.payment.txId) {
+      throw new Error('Breez sendPayment did not return a txId');
+    }
+    return response.payment.txId;
   }
 
   allowLightning() {

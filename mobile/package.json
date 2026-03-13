@@ -42,6 +42,7 @@
     "@bugsnag/expo": "^54.0.0",
     "@buildonspark/spark-sdk": "0.6.4",
     "@expo/vector-icons": "^15.0.3",
+    "@flashnet/sdk": "0.5.7",
     "@gorhom/bottom-sheet": "^5.2.8",
     "@metamask/eth-sig-util": "8.2.0",
     "@noble/curves": "2.0.1",

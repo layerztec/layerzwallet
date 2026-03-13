@@ -23,6 +23,7 @@ import {
 export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   [NETWORK_BITCOIN]: {
     chainId: 0,
+    displayName: 'Bitcoin',
     ticker: 'BTC',
     decimals: 8,
     explorerUrl: 'https://layerz.mempool.space',
@@ -32,6 +33,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_ROOTSTOCK]: {
     chainId: 30,
+    displayName: 'Rootstock',
     ticker: 'RBTC',
     rpcUrl: 'https://rpc.mainnet.rootstock.io/rFOXXhwHGfZbgbVVVbNvpyVdr4VjE6-M',
     explorerUrl: 'https://rootstock.blockscout.com',
@@ -43,6 +45,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_BOTANIX_TESTNET]: {
     chainId: 3636,
+    displayName: 'Botanix Testnet',
     ticker: 'BTC',
     rpcUrl: 'https://node.botanixlabs.dev',
     explorerUrl: 'https://testnet.botanixscan.io',
@@ -55,6 +58,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_BOTANIX]: {
     chainId: 3637,
+    displayName: 'Botanix',
     ticker: 'BTC',
     rpcUrl: 'https://rpc.botanixlabs.com',
     explorerUrl: 'https://botanixscan.io',
@@ -67,6 +71,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_ALPEN_TESTNET]: {
     chainId: 2892,
+    displayName: 'Alpen Testnet',
     ticker: 'sBTC',
     rpcUrl: 'https://rpc.testnet.alpenlabs.io',
     explorerUrl: 'https://explorer.testnet.alpenlabs.io',
@@ -79,6 +84,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_SEPOLIA]: {
     chainId: 11155111,
+    displayName: 'Sepolia',
     ticker: 'SepoliaETH',
     rpcUrl: 'https://sepolia.infura.io/v3/875fcd83840448e489608311502ae61c',
     explorerUrl: 'https://sepolia.etherscan.io',
@@ -91,6 +97,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
 
   [NETWORK_CITREA]: {
     chainId: 4114,
+    displayName: 'Citrea',
     ticker: 'cBTC',
     rpcUrl: 'https://rpc.mainnet.citrea.xyz',
     explorerUrl: 'https://explorer.mainnet.citrea.xyz',
@@ -103,6 +110,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_CITREA_TESTNET]: {
     chainId: 5115,
+    displayName: 'Citrea Testnet',
     ticker: 'cBTC',
     rpcUrl: 'https://rpc.testnet.citrea.xyz',
     explorerUrl: 'https://explorer.testnet.citrea.xyz',
@@ -115,6 +123,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_ARK_MUTINYNET]: {
     chainId: -1,
+    displayName: 'ARK Mutinynet',
     ticker: 'BTC',
     rpcUrl: '',
     explorerUrl: '',
@@ -126,6 +135,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_ARK]: {
     chainId: -1,
+    displayName: 'ARK',
     ticker: 'BTC',
     rpcUrl: '',
     explorerUrl: '',
@@ -137,6 +147,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_LIQUID]: {
     chainId: 11,
+    displayName: 'Liquid',
     ticker: 'L-BTC',
     rpcUrl: '',
     explorerUrl: '',
@@ -147,6 +158,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_LIQUID_TESTNET]: {
     chainId: 12,
+    displayName: 'Liquid Testnet',
     ticker: 'tL-BTC',
     rpcUrl: '',
     explorerUrl: '',
@@ -158,6 +170,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_SPARK]: {
     chainId: 13,
+    displayName: 'Spark',
     ticker: 'BTC',
     rpcUrl: '',
     explorerUrl: 'https://sparkscan.io',
@@ -169,6 +182,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_LIGHTNING]: {
     chainId: 14,
+    displayName: 'Lightning',
     ticker: 'BTC',
     decimals: 8,
     explorerUrl: 'https://layerz.mempool.space/lightning',
@@ -179,6 +193,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_LIGHTNING_TESTNET]: {
     chainId: 15,
+    displayName: 'Lightning Testnet',
     ticker: 'tBTC',
     decimals: 8,
     explorerUrl: 'https://mempool.space/testnet/lightning',
@@ -190,6 +205,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_USDT]: {
     chainId: 16,
+    displayName: 'USDT',
     ticker: 'USDT',
     decimals: 0, // because it is a meta network that consists of several tokens with different decimals we apply decimal rules on a per token basis
     explorerUrl: '',
@@ -200,6 +216,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
   },
   [NETWORK_STACKS]: {
     chainId: 17,
+    displayName: 'Stacks',
     ticker: 'sBTC',
     decimals: 8,
     explorerUrl: 'https://explorer.hiro.so/',

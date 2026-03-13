@@ -193,6 +193,7 @@ const styles = StyleSheet.create({
   transactionItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginVertical: 10,
   },
   transactionIcon: {
     width: 24,

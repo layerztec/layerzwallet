@@ -4,13 +4,16 @@ import { ethers, TransactionRequest, Wallet } from 'ethers';
 
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util';
 import { getChainIdByNetwork, getRpcProvider } from '../models/network-getters';
+import { getTokenInfo } from '../models/token-list';
 import { Networks } from '../types/networks';
+import { SendQuote, SendQuoteRequest } from '../types/send-quote';
 import { StringNumber } from '../types/string-number';
 import { TokenInfo } from '../types/token-info';
 import { hexStr } from '../modules/string-utils';
 import { ICsprng } from '../types/ICsprng';
 import { CommonTransaction, CommonTokenTransfer, TransactionStatus } from '../types/common-transaction';
 import { AllNetworkInfos } from '../models/all-network-infos';
+import { InterfaceSendQuotable } from './wallets/interface-send-quotable';
 
 type ExplorerAction = 'txlist' | 'txlistinternal' | 'tokentx';
 
@@ -42,7 +45,7 @@ const toBigInt = (v: any | undefined): bigint => {
   }
 };
 
-export class EvmWallet {
+export class EvmWallet implements InterfaceSendQuotable {
   private static readonly DEFAULT_GAS_LIMIT = 250_000;
   private static readonly SIMPLE_TRANSFER_GAS = 21000;
   private static readonly HD_PATH = "m/44'/60'/0'/0";
@@ -232,6 +235,68 @@ export class EvmWallet {
     }
 
     return calculatedMaxFee;
+  }
+
+  async getSendQuote(request: SendQuoteRequest): Promise<SendQuote> {
+    assert(this.network, 'EvmWallet.network must be set before calling getSendQuote');
+    assert(request.fromAddress, 'fromAddress is required for EVM getSendQuote');
+
+    let tx: TransactionRequest;
+    if (request.tokenId) {
+      const token = getTokenInfo(request.tokenId);
+      tx = await this.createTokenTransferTransaction(request.fromAddress, request.toAddress, token, request.amount);
+    } else {
+      tx = await this.createPaymentTransaction(request.fromAddress, request.toAddress, request.amount);
+    }
+
+    const feeData = await this.getFeeData(this.network);
+    const prepared = await this.prepareTransaction(tx, this.network, feeData);
+
+    // Legacy chains (e.g. Rootstock) don't have baseFeePerGas — calculateMinFee
+    // handles type 0 txs using gasPrice directly, so baseFee=0n is fine.
+    let baseFee = 0n;
+    try {
+      baseFee = await this.getBaseFeePerGas(this.network);
+    } catch {}
+    const fee = this.calculateMinFee(baseFee, prepared);
+
+    // Check balances
+    const rpc = getRpcProvider(this.network);
+    const nativeBalance = await rpc.getBalance(request.fromAddress!);
+    if (request.tokenId) {
+      // Token send: native balance must cover gas, token balance must cover amount
+      if (nativeBalance < BigInt(fee)) {
+        throw new Error(`Insufficient ${AllNetworkInfos[this.network].ticker} for gas`);
+      }
+      const abi = ['function balanceOf(address owner) view returns (uint256)'];
+      const contract = new ethers.Contract(ethers.getAddress(request.tokenId), abi, rpc);
+      const tokenBalance: bigint = await contract.balanceOf(ethers.getAddress(request.fromAddress!));
+      if (tokenBalance < BigInt(request.amount)) {
+        const token = getTokenInfo(request.tokenId);
+        throw new Error(`Insufficient ${token.symbol} balance`);
+      }
+    } else {
+      const totalNeeded = BigInt(request.amount) + BigInt(fee);
+      if (nativeBalance < totalNeeded) {
+        throw new Error(`Insufficient ${AllNetworkInfos[this.network].ticker} balance`);
+      }
+    }
+
+    return {
+      request,
+      fee,
+      feeTicker: AllNetworkInfos[this.network].ticker,
+      _prepared: prepared,
+    };
+  }
+
+  async executeSendQuote(quote: SendQuote, mnemonic?: string, accountNumber?: number): Promise<string> {
+    assert(this.network, 'EvmWallet.network must be set before calling executeSendQuote');
+    assert(mnemonic, 'mnemonic is required for EVM executeSendQuote');
+    assert(accountNumber !== undefined, 'accountNumber is required for EVM executeSendQuote');
+
+    const signedTx = await this.signTransaction(quote._prepared as TransactionRequest, mnemonic, accountNumber);
+    return await this.broadcastTransaction(this.network, signedTx);
   }
 
   private getActionDataUniqueKey(action: ExplorerAction, r: any): string {

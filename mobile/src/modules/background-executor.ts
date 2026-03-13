@@ -19,7 +19,7 @@ import {
 } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, OpenPopupRequest } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_WHITELIST, STORAGE_KEY_SEED_VERIFIED } from '@shared/types/IStorage';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
+import { Networks, NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { BrowserBridge } from '../class/browser-bridge';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
@@ -28,6 +28,23 @@ import { decrypt, encrypt } from '../modules/encryption';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
+
+/**
+ * Returns the onchain deposit address (boarding address) for ARK/Spark networks.
+ * Used by the NativeDeposit transfer flow.
+ */
+export async function getOnchainDepositAddress(network: Networks, accountNumber: number): Promise<string> {
+  if (network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET) {
+    const w = await lazyInitWalletOrig(network, accountNumber, LayerzStorage, SecureStorage);
+    assert(w instanceof ArkWallet);
+    return await w.getOnchainDepositAddress();
+  } else if (network === NETWORK_SPARK) {
+    const w = await lazyInitWalletOrig(network, accountNumber, LayerzStorage, SecureStorage);
+    assert(w instanceof SparkWallet);
+    return await w.getOnchainDepositAddress();
+  }
+  throw new Error(`Network ${network} does not support onchain deposits`);
+}
 
 /**
  * A drop-in replacement for BackgroundCaller in `ext` project. Since we have only one js context on mobile,

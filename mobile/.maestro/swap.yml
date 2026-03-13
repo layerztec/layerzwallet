@@ -1,32 +1,175 @@
 # Testplan:
-# - create a wallet
-# - check if we can swap bitcoin -> liquid
+# - Navigate to transfer flow
+# - Select testnet pair: tL-BTC -> BTC (Botanix Testnet) via Fake service
+# - Enter amount 0.01
+# - Wait for quote from Fake service
+# - Continue to confirm screen
+# - Wait for loading (executeTransfer + getSendQuote)
+# - Verify confirm details: Rate, Fee, Est. time, Expiry, Provider=Fake
+# - Confirm transfer
+# - Verify success screen
 
 appId: com.layerzwallet.mobile
-jsEngine: graaljs
 ---
 - runFlow: subflows/wallet-creation.yml
+# - launchApp
 
+# Wait for home screen to fully load
+- extendedWaitUntil:
+    visible:
+      id: 'SwapButton'
+    timeout: 30000
+
+# Enable testnets in Settings → Tools → App Settings
+- tapOn:
+    id: 'SettingsButton'
+- extendedWaitUntil:
+    visible:
+      id: 'ToolsButton'
+    timeout: 5000
+- tapOn:
+    id: 'ToolsButton'
+- extendedWaitUntil:
+    visible: 'App Settings'
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: 'SettingOption-showTestnets-ON'
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: 'SettingOption-showTestnets-ON'
+
+# Navigate back: Tools → Settings → Home
+# Tap back button (top-left chevron) since 'back' gesture doesn't work with custom headers
+- tapOn:
+    id: 'BackButton'
+- extendedWaitUntil:
+    visible:
+      id: 'ToolsButton'
+    timeout: 5000
+- tapOn:
+    id: 'BackButton'
+- extendedWaitUntil:
+    visible:
+      id: 'SwapButton'
+    timeout: 10000
 - tapOn:
     id: 'SwapButton'
-- waitForAnimationToEnd
-- assertVisible: 'Select target network'
+
+# Wait for transfer input screen to load
+- extendedWaitUntil:
+    visible: 'Transfer'
+    timeout: 15000
+
+# Select send asset: tL-BTC (Liquid Testnet)
 - tapOn:
-    id: 'AmountInput'
-- eraseText
-- inputText: '0.1'
-- tapOn: # close keyboard
-    id: 'ToLabel'
+    id: 'TransferSend-asset-pill'
+- extendedWaitUntil:
+    visible: 'Select'
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: 'TransferAsset-native:liquid_testnet'
+    direction: DOWN
+    timeout: 10000
 - tapOn:
-    id: 'ToNetworkButton'
+    id: 'TransferAsset-native:liquid_testnet'
 - waitForAnimationToEnd
-- assertVisible: 'Swap to'
+
+# Select receive asset: BTC (Botanix Testnet)
+- tapOn:
+    id: 'TransferReceive-asset-pill'
+- extendedWaitUntil:
+    visible: 'Select'
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: 'TransferAsset-native:botanix_testnet'
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: 'TransferAsset-native:botanix_testnet'
+- waitForAnimationToEnd
+
+# Enter send amount
+- tapOn:
+    id: 'TransferSend-input'
+- inputText: '0.01'
+
+# Dismiss numeric keyboard by tapping on non-input area (hideKeyboard doesn't work for iOS numeric keyboard)
+- tapOn: 'Receive'
+
+# Wait for quote to load and Continue button to become enabled
+- extendedWaitUntil:
+    visible:
+      id: 'TransferContinueButton'
+      enabled: true
+    timeout: 15000
+
+# Tap Continue
+- tapOn:
+    id: 'TransferContinueButton'
+- waitForAnimationToEnd
+
+# Wait for confirm screen to finish loading (executeTransfer in background)
+- extendedWaitUntil:
+    visible:
+      id: 'TransferConfirmButton'
+    timeout: 15000
+
+# Verify confirm screen elements
 - assertVisible:
-    id: 'SwapTarget-rootstock'
+    id: 'ConfirmSendBlock'
+- assertVisible:
+    id: 'ConfirmReceiveBlock'
+- assertVisible:
+    id: 'ConfirmRate'
+- assertVisible:
+    id: 'ConfirmFee'
+- assertVisible:
+    id: 'ConfirmEstTime'
+- assertVisible:
+    id: 'ConfirmExpiry'
+
+# Verify it is the Fake transfer service
+- assertVisible:
+    id: 'ConfirmProvider'
+- assertVisible: 'Fake'
+
+# Confirm the transfer
 - tapOn:
-    id: 'SwapTarget-liquid'
+    id: 'TransferConfirmButton'
+
+# Verify success screen appears
+- extendedWaitUntil:
+    notVisible:
+      id: 'TransferConfirmButton'
+    timeout: 15000
 - waitForAnimationToEnd
-- assertVisible: 'Swap BTC to Liquid'
+
+# Dismiss success modal by tapping top of screen
 - tapOn:
-    id: 'SwapButton'
-- assertVisible: 'Not enough balance'
+    point: '50%,10%'
+- waitForAnimationToEnd
+
+# --- Error case: amount=1 triggers TestError ---
+- tapOn:
+    id: 'TransferSend-input'
+- eraseText: 4
+- inputText: '1'
+
+# Dismiss keyboard
+- tapOn: 'Receive'
+
+# Wait for quote error to appear
+- extendedWaitUntil:
+    visible:
+      id: 'TransferQuoteError'
+    timeout: 10000
+- assertVisible: 'Fake: TestError'
+
+# Verify Continue button is disabled
+- assertVisible:
+    id: 'TransferContinueButton'
+    enabled: false

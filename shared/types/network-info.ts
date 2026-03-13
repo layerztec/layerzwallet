@@ -1,5 +1,6 @@
 export type NetworkInfo = {
   chainId: number;
+  displayName: string;
   ticker: string;
   decimals: number;
   explorerUrl: string;

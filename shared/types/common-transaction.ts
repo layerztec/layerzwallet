@@ -1,4 +1,5 @@
 import { Networks } from './networks';
+import { TransferExecution } from './transfer';
 
 /**
  * Simplified token transfer information for cross-chain compatibility
@@ -62,4 +63,7 @@ export interface CommonTransaction {
 
   /** Explorer URL for the transaction */
   explorerUrl?: string;
+
+  /** Present when this row represents a transfer execution instead of a raw transaction. */
+  transferExecution?: TransferExecution;
 }

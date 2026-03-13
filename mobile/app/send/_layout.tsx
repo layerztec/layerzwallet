@@ -13,6 +13,8 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { GetBtcSendDataResponse } from '@shared/types/IBackgroundCaller';
 import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 
+import { Denomination } from '@shared/types/transfer';
+
 // Bitcoin-specific data types
 export type BtcSendData = GetBtcSendDataResponse;
 
@@ -47,10 +49,6 @@ export interface LightningNetworkData {
   lnurlPayServicePayload: LnurlPayServicePayload | undefined;
   setLnurlPayServicePayload: React.Dispatch<React.SetStateAction<LnurlPayServicePayload | undefined>>;
 }
-
-// Denomination type
-export type Denomination = 'Native' | 'Fiat';
-
 // Generic send flow context
 export interface SendFlowContextData {
   // Generic fields (all networks)

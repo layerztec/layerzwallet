@@ -8,8 +8,7 @@ const DEFAULT_TIMEOUT = 10_000; // default timeout in ms
 const nativeFetch = globalThis.fetch.bind(globalThis);
 
 export function fetch(input: RequestInfo | URL, init: RequestInit & { timeout?: number } = {}): Promise<Response> {
-  // @ts-ignore linter in ext doesnt know about __DEV__
-  if (typeof __DEV__ !== 'undefined' && __DEV__) {
+  if (__DEV__) {
     console.log('fetch wrapper: ', input, init);
   }
   const { timeout = DEFAULT_TIMEOUT, ...rest } = init;

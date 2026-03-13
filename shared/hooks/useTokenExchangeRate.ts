@@ -102,7 +102,7 @@ export function useTokenExchangeRate(network: Networks, tokenId: string, fiat: T
     [network, tokenId, fiat]
   );
 
-  const { data, error, isLoading } = useSWR(arg, tokenExchangeRateFetcher, {
+  const { data, error, isLoading } = useSWR(tokenId ? arg : null, tokenExchangeRateFetcher, {
     use: [middleware],
     refreshInterval,
     refreshWhenHidden: false,

@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import SectionContainer from '@/components/SectionContainer';
 import Transaction from '@/components/Transaction';
+import Transfer from '@/components/transfer/Transfer';
 import { CommonTransaction } from '@shared/types/common-transaction';
 
 interface TransactionsListProps {
@@ -20,9 +21,13 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ transactions, error
     <SectionContainer title="Transactions" onViewAll={hasTransactions ? onViewHistory : undefined} contentStyle={styles.contentPadding}>
       {hasTransactions ? (
         <View style={styles.transactionsList}>
-          {transactions.map((transaction) => (
-            <Transaction key={transaction.txid} transaction={transaction} onPress={() => onTransactionPress(transaction)} />
-          ))}
+          {transactions.map((transaction, index) =>
+            transaction.transferExecution ? (
+              <Transfer key={transaction.txid} execution={transaction.transferExecution} isLast={index === transactions.length - 1} onPress={() => onTransactionPress(transaction)} />
+            ) : (
+              <Transaction key={transaction.txid} transaction={transaction} onPress={() => onTransactionPress(transaction)} />
+            )
+          )}
         </View>
       ) : error ? (
         <View style={styles.emptyContainer}>
@@ -40,10 +45,9 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ transactions, error
 const styles = StyleSheet.create({
   contentPadding: {
     paddingHorizontal: 16,
+    paddingVertical: -5,
   },
-  transactionsList: {
-    gap: 24,
-  },
+  transactionsList: {},
   emptyContainer: {
     paddingVertical: 16,
   },

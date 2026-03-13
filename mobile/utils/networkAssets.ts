@@ -16,7 +16,43 @@ import {
   NETWORK_STACKS,
   NETWORK_CITREA,
 } from '@shared/types/networks';
+import { AssetId } from '@shared/types/asset';
 import { SO_LIQUID_USDT, SO_STACKS_STX } from '@shared/types/swap';
+
+/** Brand colors for transfer asset icon backgrounds (used with transparency) */
+const TRANSFER_ASSET_COLORS: Partial<Record<AssetId, string>> = {
+  'native:bitcoin': '#F7931A',
+  'native:citrea': '#F7931A',
+  'native:liquid': '#1BA9A4',
+  'native:rootstock': '#3FCF54',
+  'native:arkade': '#D4A017',
+  'native:spark': '#7297A6',
+  'token:liquid:usdt': '#26A17B',
+  'token:stacks:stx': '#5546FF',
+};
+
+/**
+ * Gets the brand color for a transfer asset icon.
+ * Returns a hex color string; caller should apply desired opacity.
+ */
+export const getTransferAssetColor = (assetId: AssetId): string | undefined => {
+  return TRANSFER_ASSET_COLORS[assetId];
+};
+
+/**
+ * Gets the image asset for a specific transfer asset (coin/token icon).
+ * For tokens, returns the token-specific icon. For native coins, returns the network icon.
+ */
+export const getTransferAssetIcon = (assetId: AssetId, network: string): string | null => {
+  switch (assetId) {
+    case 'token:liquid:usdt':
+      return require('../assets/images/ui/network/tether.png');
+    case 'token:stacks:stx':
+      return require('../assets/images/ui/network/stacks.png');
+    default:
+      return getNetworkImageAsset(network);
+  }
+};
 
 /**
  * Gets the image asset for a given network
