@@ -15,6 +15,7 @@ function makeTransfer(overrides: Partial<TransferExecution> = {}): TransferExecu
     sendAsset: 'native:bitcoin',
     receiveAsset: 'native:spark',
     createdAt: 1700000000,
+    accountNumber: 0,
     depositAddress: 'bc1q...',
     settleAddress: 'bc1q...',
     serviceName: 'Native',
@@ -87,7 +88,7 @@ describe('NativeDepositTransferService', () => {
     });
 
     it('does not re-poll completed transfers', async () => {
-      const transfer = makeTransfer({ status: 'completed' });
+      const transfer = makeTransfer({ status: 'completed', createdAt: Math.floor(Date.now() / 1000) });
       const storage = createMockStorage([transfer]);
       const fetcher = vi.fn(async () => []);
       const service = new NativeDepositTransferService(storage);
@@ -208,7 +209,7 @@ describe('NativeDepositTransferService', () => {
     });
 
     it('does not re-poll refunded transfers', async () => {
-      const transfer = makeTransfer({ status: 'refunded' });
+      const transfer = makeTransfer({ status: 'refunded', createdAt: Math.floor(Date.now() / 1000) });
       const storage = createMockStorage([transfer]);
       const fetcher = vi.fn(async () => []);
       const service = new NativeDepositTransferService(storage);

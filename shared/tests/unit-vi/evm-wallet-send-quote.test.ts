@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EvmWallet } from '../../class/evm-wallet';
 import { NETWORK_ROOTSTOCK } from '../../types/networks';
 
+// @ts-ignore - injected by vi.mock above
+import { __setMockProvider } from '../../models/network-getters';
+
 const FROM = '0x0000000000000000000000000000000000000001';
 const TO = '0x0000000000000000000000000000000000000002';
 const TOKEN_ID = '0x542fDA317318eBF1d3DEAf76E0b632741A7e677d'; // checksum-valid address
@@ -18,9 +21,6 @@ vi.mock('../../models/network-getters', () => {
     },
   };
 });
-
-// @ts-ignore - injected by vi.mock above
-import { __setMockProvider } from '../../models/network-getters';
 
 function createWallet(): EvmWallet {
   const w = new EvmWallet();

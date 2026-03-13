@@ -3,11 +3,12 @@ import { IStorage, STORAGE_KEY_NATIVE_DEPOSIT_TRANSFERS } from '../types/IStorag
 import { AssetId } from '../types/asset';
 import { CommonSwap } from '../types/common-swap';
 import { Networks } from '../types/networks';
-import { ITransferService, TimelineStep, TransferExecution, TransferPair, TransferPairInfo, TransferQuote } from '../types/transfer';
+import { isTerminalStatus, ITransferService, TimelineStep, TransferExecution, TransferPair, TransferPairInfo, TransferQuote } from '../types/transfer';
 
 const SEND_ASSET: AssetId = 'native:bitcoin';
 const RECEIVE_ASSETS: AssetId[] = ['native:arkade', 'native:spark'];
 const QUOTE_EXPIRY_SECONDS = 7 * 24 * 60 * 60; // 7 days
+const PRUNE_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 export type NativeDepositSwapsFetcher = (network: Networks, accountNumber: number) => Promise<CommonSwap[]>;
 
@@ -55,6 +56,7 @@ export class NativeDepositTransferService implements ITransferService {
       createdAt: Math.floor(Date.now() / 1000),
       depositAddress: settleAddress,
       settleAddress,
+      accountNumber: 0,
     };
   }
 
@@ -77,10 +79,18 @@ export class NativeDepositTransferService implements ITransferService {
 
   async getOngoingTransfers(accountNumber: number): Promise<TransferExecution[]> {
     const transfers = await this.loadTransfers();
-    if (!this.swapsFetcher) return transfers;
+
+    // Prune old terminal transfers from the full list
+    const now = Math.floor(Date.now() / 1000);
+    const active = transfers.filter((t) => !(isTerminalStatus(t.status) && now - t.createdAt > PRUNE_AGE_SECONDS));
+    if (active.length !== transfers.length) {
+      await this.saveTransfers(active);
+    }
+
+    if (!this.swapsFetcher) return active.filter((t) => t.accountNumber === accountNumber);
 
     let changed = false;
-    for (const transfer of transfers) {
+    for (const transfer of active) {
       if (transfer.status === 'completed' || transfer.status === 'refunded') continue;
       if (!transfer.relatedTxids?.length) continue;
 
@@ -113,10 +123,10 @@ export class NativeDepositTransferService implements ITransferService {
     }
 
     if (changed) {
-      await this.saveTransfers(transfers);
+      await this.saveTransfers(active);
     }
 
-    return transfers;
+    return active.filter((t) => t.accountNumber === accountNumber);
   }
 
   getTimelineSteps(execution: TransferExecution): TimelineStep[] {

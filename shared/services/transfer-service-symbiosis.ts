@@ -114,6 +114,7 @@ export class SymbiosisTransferService implements ITransferService {
       settleAddress,
       createdAt: now,
       updatedAt: now,
+      accountNumber: 0,
     };
 
     this.uncommitted.set(execution.id, { execution, expiresAt });
@@ -135,7 +136,7 @@ export class SymbiosisTransferService implements ITransferService {
     this.uncommitted.delete(execution.id);
   }
 
-  async getOngoingTransfers(_accountNumber: number): Promise<TransferExecution[]> {
+  async getOngoingTransfers(accountNumber: number): Promise<TransferExecution[]> {
     const transfers = await this.loadTransfers();
     const now = Math.floor(Date.now() / 1000);
     const active: SymbiosisPersistedTransfer[] = [];
@@ -170,7 +171,7 @@ export class SymbiosisTransferService implements ITransferService {
     }
 
     await this.saveTransfers(active);
-    return active.map((t) => t.execution);
+    return active.filter((t) => t.execution.accountNumber === accountNumber).map((t) => t.execution);
   }
 
   async refreshTransferStatus(executionId: string, _accountNumber: number): Promise<TransferExecution> {

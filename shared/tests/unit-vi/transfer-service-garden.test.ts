@@ -20,7 +20,7 @@ function createMockStorage() {
 }
 
 function makeExecution(overrides: Partial<TransferExecution> = {}): TransferExecution {
-  return { id: 'e1', status: 'pending', sendAmount: '0.0005', receiveAmount: '0.000495', sendAsset: BTC_ASSET, receiveAsset: BOTANIX_ASSET, createdAt: 0, ...overrides };
+  return { id: 'e1', status: 'pending', sendAmount: '0.0005', receiveAmount: '0.000495', sendAsset: BTC_ASSET, receiveAsset: BOTANIX_ASSET, createdAt: 0, accountNumber: 0, ...overrides };
 }
 
 function mockFetchResponse(data: any, ok = true, status = 200) {
@@ -206,6 +206,7 @@ describe('GardenTransferService', () => {
             sendAsset: BTC_ASSET,
             receiveAsset: BOTANIX_ASSET,
             createdAt: Math.floor(Date.now() / 1000),
+            accountNumber: 0,
           },
           gardenOrderId: 'order-1',
           sourceAsset: 'bitcoin:btc',
@@ -238,6 +239,7 @@ describe('GardenTransferService', () => {
             sendAsset: BTC_ASSET,
             receiveAsset: BOTANIX_ASSET,
             createdAt: Math.floor(Date.now() / 1000),
+            accountNumber: 0,
           },
           gardenOrderId: 'order-1',
           sourceAsset: 'bitcoin:btc',
@@ -274,6 +276,7 @@ describe('GardenTransferService', () => {
             sendAsset: BTC_ASSET,
             receiveAsset: BOTANIX_ASSET,
             createdAt: oldTimestamp,
+            accountNumber: 0,
           },
           gardenOrderId: 'order-old',
           sourceAsset: 'bitcoin:btc',
@@ -299,6 +302,7 @@ describe('GardenTransferService', () => {
             sendAsset: BTC_ASSET,
             receiveAsset: BOTANIX_ASSET,
             createdAt: Math.floor(Date.now() / 1000),
+            accountNumber: 0,
           },
           gardenOrderId: 'order-1',
           sourceAsset: 'bitcoin:btc',

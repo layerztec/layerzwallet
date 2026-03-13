@@ -26,6 +26,7 @@ function makeTransfer(overrides: Partial<TransferExecution> = {}): TransferExecu
     sendAsset: 'native:bitcoin',
     receiveAsset: 'native:liquid',
     createdAt: 200,
+    accountNumber: 0,
     relatedTxids: ['deposit-1'],
     ...overrides,
   };

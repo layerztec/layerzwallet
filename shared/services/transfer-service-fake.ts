@@ -70,6 +70,7 @@ export class FakeTransferService implements ITransferService {
       createdAt: Math.floor(Date.now() / 1000),
       depositAddress: 'fake-deposit-address',
       settleAddress: _settleAddress,
+      accountNumber: 0,
     };
 
     this.ongoingTransfers.push(execution);

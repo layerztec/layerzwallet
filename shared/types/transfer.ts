@@ -102,6 +102,8 @@ export interface TransferExecution {
   providerId?: string;
   /** Timestamp of last status update */
   updatedAt?: number;
+  /** Which account created this transfer. */
+  accountNumber: number;
   /** Which transfer service owns this execution. Used by TransferServiceManager for routing. */
   serviceName?: string;
   /** Related on-chain txids for this transfer (deposit, settlement, or other lifecycle txs). */

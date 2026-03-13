@@ -11,7 +11,7 @@ const BTC_SPARK = 'native:spark' as const;
 const USDB = 'token:spark:usdb' as const;
 
 function makeExecution(overrides: Partial<TransferExecution> = {}): TransferExecution {
-  return { id: 'flashnet-1', status: 'completed', sendAmount: '0.001', receiveAmount: '99.5', sendAsset: BTC_SPARK, receiveAsset: USDB, createdAt: 0, ...overrides };
+  return { id: 'flashnet-1', status: 'completed', sendAmount: '0.001', receiveAmount: '99.5', sendAsset: BTC_SPARK, receiveAsset: USDB, createdAt: 0, accountNumber: 0, ...overrides };
 }
 
 const MOCK_POOL_ID = 'pool-btc-usdb-123';
@@ -149,6 +149,7 @@ describe('FlashnetTransferService', () => {
             sendAsset: BTC_SPARK,
             receiveAsset: USDB,
             createdAt: Math.floor(Date.now() / 1000),
+            accountNumber: 0,
           },
         },
       ];
@@ -171,6 +172,7 @@ describe('FlashnetTransferService', () => {
             sendAsset: BTC_SPARK,
             receiveAsset: USDB,
             createdAt: oldTime,
+            accountNumber: 0,
           },
         },
       ];

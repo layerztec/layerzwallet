@@ -31,6 +31,7 @@ function makeExecution(id: string, createdAt: number, serviceName?: string): Tra
     sendAsset: BTC,
     receiveAsset: LBTC,
     createdAt,
+    accountNumber: 0,
     serviceName,
   };
 }

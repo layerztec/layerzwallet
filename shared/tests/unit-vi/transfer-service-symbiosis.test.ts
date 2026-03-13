@@ -11,7 +11,7 @@ const SEND = 'native:bitcoin' as const;
 const RECEIVE = 'native:rootstock' as const;
 
 function makeExecution(overrides: Partial<TransferExecution> = {}): TransferExecution {
-  return { id: 'e1', status: 'pending', sendAmount: '0.01', receiveAmount: '0.0099', sendAsset: SEND, receiveAsset: RECEIVE, createdAt: 0, ...overrides };
+  return { id: 'e1', status: 'pending', sendAmount: '0.01', receiveAmount: '0.0099', sendAsset: SEND, receiveAsset: RECEIVE, createdAt: 0, accountNumber: 0, ...overrides };
 }
 
 function makeSwapResponse(overrides?: Partial<any>) {
@@ -193,6 +193,7 @@ describe('SymbiosisTransferService', () => {
             receiveAsset: RECEIVE,
             createdAt: Math.floor(Date.now() / 1000),
             relatedTxids: ['txhash123'],
+            accountNumber: 0,
           },
         },
       ];
@@ -219,6 +220,7 @@ describe('SymbiosisTransferService', () => {
             sendAsset: SEND,
             receiveAsset: RECEIVE,
             createdAt: Math.floor(Date.now() / 1000),
+            accountNumber: 0,
           },
         },
       ];
@@ -280,6 +282,7 @@ describe('SymbiosisTransferService', () => {
             sendAsset: SEND,
             receiveAsset: RECEIVE,
             createdAt: pastExpiry - 600,
+            accountNumber: 0,
           },
           expiresAt: pastExpiry,
         },
@@ -303,6 +306,7 @@ describe('SymbiosisTransferService', () => {
             sendAsset: SEND,
             receiveAsset: RECEIVE,
             createdAt: Math.floor(Date.now() / 1000),
+            accountNumber: 0,
           },
           expiresAt: futureExpiry,
         },

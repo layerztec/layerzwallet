@@ -117,6 +117,7 @@ export class FlashnetTransferService implements ITransferService {
       receiveAsset: quote.receiveAsset,
       createdAt: now,
       updatedAt: now,
+      accountNumber: 0,
       // No depositAddress — UI will skip the send step
     };
   }
@@ -127,7 +128,7 @@ export class FlashnetTransferService implements ITransferService {
     await this.saveTransfers(transfers);
   }
 
-  async getOngoingTransfers(_accountNumber: number): Promise<TransferExecution[]> {
+  async getOngoingTransfers(accountNumber: number): Promise<TransferExecution[]> {
     const transfers = await this.loadTransfers();
     const now = Math.floor(Date.now() / 1000);
     const active: FlashnetPersistedTransfer[] = [];
@@ -143,7 +144,7 @@ export class FlashnetTransferService implements ITransferService {
       await this.saveTransfers(active);
     }
 
-    return active.map((t) => t.execution);
+    return active.filter((t) => t.execution.accountNumber === accountNumber).map((t) => t.execution);
   }
 
   getTimelineSteps(execution: TransferExecution): TimelineStep[] {
