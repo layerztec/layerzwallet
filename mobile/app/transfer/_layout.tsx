@@ -8,6 +8,7 @@ import { setNativeDepositSwapsFetcher, useTransferService } from '@shared/hooks/
 import { swapFetcher } from '@shared/hooks/useSwaps';
 import { TransferServiceManager } from '@shared/services/transfer-service-manager';
 import { AssetId } from '@shared/types/asset';
+import { NETWORK_SPARK } from '@shared/types/networks';
 import { TransferQuote } from '@shared/types/transfer';
 
 export interface TransferFlowContextData {
@@ -45,7 +46,7 @@ function TransferFlowProvider({ children }: { children: ReactNode }) {
 
   // Ensure Spark wallet is initialized so Flashnet swaps can work
   useEffect(() => {
-    BackgroundExecutor.lazyInitWallet('spark', accountNumber).catch(() => {});
+    BackgroundExecutor.lazyInitWallet(NETWORK_SPARK, accountNumber).catch(() => {});
   }, [accountNumber]);
 
   return (

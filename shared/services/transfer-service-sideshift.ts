@@ -268,9 +268,8 @@ export class SideshiftTransferService implements ITransferService {
 export function mapSideshiftStatus(ssStatus: SideshiftShiftStatus): TransferStatus {
   switch (ssStatus) {
     case 'waiting':
-      return 'waiting';
     case 'pending':
-      return 'pending';
+      return ssStatus;
     case 'processing':
     case 'review':
     case 'settling':
@@ -282,7 +281,7 @@ export function mapSideshiftStatus(ssStatus: SideshiftShiftStatus): TransferStat
     case 'refunded':
       return 'refunded';
     case 'expired':
-      return 'expired';
+      return ssStatus;
     case 'multiple':
     default:
       return 'failed';

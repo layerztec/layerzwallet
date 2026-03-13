@@ -4,6 +4,7 @@ import { SideshiftShiftStatus } from '../../services/sideshift-api';
 import { toSideshiftAsset, isSideshiftSupported, toSideshiftMethodId } from '../../services/sideshift-mappings';
 import { SideshiftTransferService, mapSideshiftStatus } from '../../services/transfer-service-sideshift';
 import { STORAGE_KEY_SIDESHIFT_TRANSFERS } from '../../types/IStorage';
+import { AssetId } from '../../types/asset';
 import { TransferExecution, TransferQuote } from '../../types/transfer';
 
 const BTC_ASSET = 'native:bitcoin' as const;
@@ -352,18 +353,18 @@ describe('sideshift-mappings', () => {
     ['native:rootstock', { coin: 'RBTC', network: 'rootstock' }],
     ['token:stacks:stx', { coin: 'STX', network: 'stacks' }],
   ])('toSideshiftAsset(%s)', (assetId, expected) => {
-    expect(toSideshiftAsset(assetId)).toEqual(expected);
+    expect(toSideshiftAsset(assetId as AssetId)).toEqual(expected);
   });
 
   it('toSideshiftAsset throws for unknown asset', () => {
-    expect(() => toSideshiftAsset('native:citrea')).toThrow('not supported by SideShift');
+    expect(() => toSideshiftAsset('native:citrea' as AssetId)).toThrow('not supported by SideShift');
   });
 
   it('isSideshiftSupported', () => {
-    expect(isSideshiftSupported('native:bitcoin')).toBe(true);
-    expect(isSideshiftSupported('native:liquid')).toBe(true);
-    expect(isSideshiftSupported('native:citrea')).toBe(false);
-    expect(isSideshiftSupported('native:spark')).toBe(false);
+    expect(isSideshiftSupported('native:bitcoin' as AssetId)).toBe(true);
+    expect(isSideshiftSupported('native:liquid' as AssetId)).toBe(true);
+    expect(isSideshiftSupported('native:citrea' as AssetId)).toBe(false);
+    expect(isSideshiftSupported('native:spark' as AssetId)).toBe(false);
   });
 
   it('toSideshiftMethodId', () => {

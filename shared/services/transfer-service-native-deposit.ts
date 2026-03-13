@@ -7,8 +7,7 @@ import { ITransferService, TimelineStep, TransferExecution, TransferPair, Transf
 
 const SEND_ASSET: AssetId = 'native:bitcoin';
 const RECEIVE_ASSETS: AssetId[] = ['native:arkade', 'native:spark'];
-
-let nextId = 1;
+const QUOTE_EXPIRY_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 export type NativeDepositSwapsFetcher = (network: Networks, accountNumber: number) => Promise<CommonSwap[]>;
 
@@ -32,7 +31,7 @@ export class NativeDepositTransferService implements ITransferService {
 
   async getQuote(sendAsset: AssetId, receiveAsset: AssetId, sendAmount: string): Promise<TransferQuote> {
     return {
-      id: `nd-quote-${nextId++}`,
+      id: crypto.randomUUID(),
       sendAsset,
       receiveAsset,
       sendAmount,
@@ -41,13 +40,13 @@ export class NativeDepositTransferService implements ITransferService {
       fee: '0',
       feeTicker: 'BTC',
       estimatedTime: 3600,
-      expiresAt: Math.floor(Date.now() / 1000) + 7 * 24 * 3600,
+      expiresAt: Math.floor(Date.now() / 1000) + QUOTE_EXPIRY_SECONDS,
     };
   }
 
   async executeTransfer(quote: TransferQuote, settleAddress: string): Promise<TransferExecution> {
     return {
-      id: `nd-exec-${nextId++}`,
+      id: crypto.randomUUID(),
       status: 'waiting',
       sendAmount: quote.sendAmount,
       receiveAmount: quote.receiveAmount,
