@@ -267,9 +267,14 @@ export class BreezWallet implements InterfaceLightningWallet, InterfaceSendQuota
   async getSendQuote(request: SendQuoteRequest): Promise<SendQuote> {
     const isToken = request.tokenId && !Object.values(LBTC_ASSET_IDS).includes(request.tokenId);
 
-    const prepareRequest: PrepareSendRequest = isToken
-      ? { destination: request.toAddress, amount: { type: 'asset', toAsset: request.tokenId!, receiverAmount: Number(request.amount) } }
-      : { destination: request.toAddress, amount: { type: 'bitcoin', receiverAmountSat: Number(request.amount) } };
+    let prepareRequest: PrepareSendRequest;
+    if (isToken) {
+      const token = getTokenInfo(request.tokenId!);
+      const receiverAmount = Number(request.amount) / Math.pow(10, token.decimals);
+      prepareRequest = { destination: request.toAddress, amount: { type: 'asset', toAsset: request.tokenId!, receiverAmount } };
+    } else {
+      prepareRequest = { destination: request.toAddress, amount: { type: 'bitcoin', receiverAmountSat: Number(request.amount) } };
+    }
 
     const prepareResponse = await this.prepareSendPayment(prepareRequest);
 
