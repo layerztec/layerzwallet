@@ -54,6 +54,7 @@ export class FakeTransferService implements ITransferService {
       feeTicker: sendAssetInfo.ticker,
       estimatedTime: 300,
       expiresAt: Math.floor(Date.now() / 1000) + 60,
+      serviceName: this.name,
     };
   }
 
@@ -68,6 +69,7 @@ export class FakeTransferService implements ITransferService {
       sendAsset: quote.sendAsset,
       receiveAsset: quote.receiveAsset,
       createdAt: Math.floor(Date.now() / 1000),
+      updatedAt: Math.floor(Date.now() / 1000),
       depositAddress: 'fake-deposit-address',
       settleAddress: _settleAddress,
       accountNumber: 0,

@@ -30,6 +30,7 @@ function makeExecution(overrides: Partial<TransferExecution> = {}): TransferExec
     sendAsset: BTC_ASSET,
     receiveAsset: LBTC_ASSET,
     createdAt: 0,
+    updatedAt: 0,
     accountNumber: 0,
     serviceName: 'SideShift',
     ...overrides,
@@ -124,6 +125,7 @@ describe('SideshiftTransferService', () => {
       feeTicker: 'BTC',
       estimatedTime: 600,
       expiresAt: Math.floor(Date.now() / 1000) + 900,
+      serviceName: 'Test',
     });
 
     it('creates a shift but does not persist until commitTransfer', async () => {
@@ -195,6 +197,7 @@ describe('SideshiftTransferService', () => {
             sendAsset: BTC_ASSET,
             receiveAsset: LBTC_ASSET,
             createdAt: Math.floor(Date.now() / 1000),
+            updatedAt: 0,
             accountNumber: 0,
             serviceName: 'SideShift',
           },
@@ -232,6 +235,7 @@ describe('SideshiftTransferService', () => {
             sendAsset: BTC_ASSET,
             receiveAsset: LBTC_ASSET,
             createdAt: Math.floor(Date.now() / 1000),
+            updatedAt: 0,
             accountNumber: 0,
             serviceName: 'SideShift',
           },
@@ -271,6 +275,7 @@ describe('SideshiftTransferService', () => {
             sendAsset: BTC_ASSET,
             receiveAsset: LBTC_ASSET,
             createdAt: oldTimestamp,
+            updatedAt: 0,
             accountNumber: 0,
             serviceName: 'SideShift',
           },
@@ -302,6 +307,7 @@ describe('SideshiftTransferService', () => {
             sendAsset: BTC_ASSET,
             receiveAsset: LBTC_ASSET,
             createdAt: Math.floor(Date.now() / 1000),
+            updatedAt: 0,
             accountNumber: 0,
             serviceName: 'SideShift',
           },

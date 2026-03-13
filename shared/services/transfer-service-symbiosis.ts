@@ -73,7 +73,7 @@ export class SymbiosisTransferService implements ITransferService {
     };
 
     const resp = await this.api.swap(request);
-    return buildQuoteFromResponse(resp, sendAsset, receiveAsset, sendAmount, sendInfo.ticker, receiveInfo.ticker, receiveInfo.decimals);
+    return buildQuoteFromResponse(resp, sendAsset, receiveAsset, sendAmount, sendInfo.ticker, receiveInfo.ticker, receiveInfo.decimals, this.name);
   }
 
   async executeTransfer(quote: TransferQuote, settleAddress: string, fromAddress?: string): Promise<TransferExecution> {
@@ -240,7 +240,8 @@ function buildQuoteFromResponse(
   sendAmount: string,
   sendTicker: string,
   receiveTicker: string,
-  receiveDecimals: number
+  receiveDecimals: number,
+  serviceName: string
 ): TransferQuote {
   const receiveAmount = new BigNumber(resp.tokenAmountOut.amount).div(new BigNumber(10).pow(resp.tokenAmountOut.decimals)).toFixed(receiveDecimals);
   const feeAmount = resp.fee ? new BigNumber(resp.fee.amount).div(new BigNumber(10).pow(resp.fee.decimals)).toFixed(8) : '0';
@@ -258,6 +259,7 @@ function buildQuoteFromResponse(
     feeTicker: resp.fee?.symbol || sendTicker,
     estimatedTime: resp.estimatedTime || 600,
     expiresAt,
+    serviceName,
   };
 }
 

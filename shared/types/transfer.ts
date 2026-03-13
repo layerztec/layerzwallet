@@ -34,7 +34,7 @@ export interface TransferQuote {
   /** Provider-specific quote ID (e.g., SideShift quoteId for creating fixed shifts) */
   providerQuoteId?: string;
   /** Which transfer service created this quote. Used by TransferServiceManager for routing. */
-  serviceName?: string;
+  serviceName: string;
   /** Services that failed while fetching this quote (partial failures) */
   serviceErrors?: { service: string; message: string }[];
 }
@@ -101,7 +101,7 @@ export interface TransferExecution {
   /** Provider-specific ID for status polling (e.g. SideShift shift ID, Garden order ID) */
   providerId?: string;
   /** Timestamp of last status update */
-  updatedAt?: number;
+  updatedAt: number;
   /** Which account created this transfer. */
   accountNumber: number;
   /** Which transfer service owns this execution. Used by TransferServiceManager for routing. */

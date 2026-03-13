@@ -11,7 +11,19 @@ const SEND = 'native:bitcoin' as const;
 const RECEIVE = 'native:rootstock' as const;
 
 function makeExecution(overrides: Partial<TransferExecution> = {}): TransferExecution {
-  return { id: 'e1', status: 'pending', sendAmount: '0.01', receiveAmount: '0.0099', sendAsset: SEND, receiveAsset: RECEIVE, createdAt: 0, accountNumber: 0, serviceName: 'Symbiosis', ...overrides };
+  return {
+    id: 'e1',
+    status: 'pending',
+    sendAmount: '0.01',
+    receiveAmount: '0.0099',
+    sendAsset: SEND,
+    receiveAsset: RECEIVE,
+    createdAt: 0,
+    updatedAt: 0,
+    accountNumber: 0,
+    serviceName: 'Symbiosis',
+    ...overrides,
+  };
 }
 
 function makeSwapResponse(overrides?: Partial<any>) {
@@ -110,6 +122,7 @@ describe('SymbiosisTransferService', () => {
         feeTicker: 'BTC',
         estimatedTime: 48,
         expiresAt: Math.floor(Date.now() / 1000) + 3600,
+        serviceName: 'Test',
       };
 
       const execution = await service.executeTransfer(quote, '0xSettleAddr', 'bc1qRefundAddr');
@@ -139,6 +152,7 @@ describe('SymbiosisTransferService', () => {
         feeTicker: 'BTC',
         estimatedTime: 48,
         expiresAt: Math.floor(Date.now() / 1000) + 3600,
+        serviceName: 'Test',
       };
 
       await expect(service.executeTransfer(quote, '0xAddr')).rejects.toThrow('unsupported swap type');
@@ -163,6 +177,7 @@ describe('SymbiosisTransferService', () => {
         feeTicker: 'BTC',
         estimatedTime: 48,
         expiresAt: Math.floor(Date.now() / 1000) + 3600,
+        serviceName: 'Test',
       };
 
       const execution = await service.executeTransfer(quote, '0xAddr');
@@ -192,6 +207,7 @@ describe('SymbiosisTransferService', () => {
             sendAsset: SEND,
             receiveAsset: RECEIVE,
             createdAt: Math.floor(Date.now() / 1000),
+            updatedAt: 0,
             relatedTxids: ['txhash123'],
             accountNumber: 0,
             serviceName: 'Symbiosis',
@@ -221,6 +237,7 @@ describe('SymbiosisTransferService', () => {
             sendAsset: SEND,
             receiveAsset: RECEIVE,
             createdAt: Math.floor(Date.now() / 1000),
+            updatedAt: 0,
             accountNumber: 0,
             serviceName: 'Symbiosis',
           },
@@ -284,6 +301,7 @@ describe('SymbiosisTransferService', () => {
             sendAsset: SEND,
             receiveAsset: RECEIVE,
             createdAt: pastExpiry - 600,
+            updatedAt: 0,
             accountNumber: 0,
             serviceName: 'Symbiosis',
           },
@@ -309,6 +327,7 @@ describe('SymbiosisTransferService', () => {
             sendAsset: SEND,
             receiveAsset: RECEIVE,
             createdAt: Math.floor(Date.now() / 1000),
+            updatedAt: 0,
             accountNumber: 0,
             serviceName: 'Symbiosis',
           },

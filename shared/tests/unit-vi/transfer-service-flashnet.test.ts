@@ -19,6 +19,7 @@ function makeExecution(overrides: Partial<TransferExecution> = {}): TransferExec
     sendAsset: BTC_SPARK,
     receiveAsset: USDB,
     createdAt: 0,
+    updatedAt: 0,
     accountNumber: 0,
     serviceName: 'Flashnet',
     ...overrides,
@@ -119,6 +120,7 @@ describe('FlashnetTransferService', () => {
         feeTicker: 'BTC',
         estimatedTime: 5,
         expiresAt: Math.floor(Date.now() / 1000) + 60,
+        serviceName: 'Test',
       };
 
       const execution = await service.executeTransfer(quote, 'spark-address');
@@ -160,6 +162,7 @@ describe('FlashnetTransferService', () => {
             sendAsset: BTC_SPARK,
             receiveAsset: USDB,
             createdAt: Math.floor(Date.now() / 1000),
+            updatedAt: 0,
             accountNumber: 0,
             serviceName: 'Flashnet',
           },
@@ -184,6 +187,7 @@ describe('FlashnetTransferService', () => {
             sendAsset: BTC_SPARK,
             receiveAsset: USDB,
             createdAt: oldTime,
+            updatedAt: 0,
             accountNumber: 0,
             serviceName: 'Flashnet',
           },

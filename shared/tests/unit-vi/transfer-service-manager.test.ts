@@ -6,7 +6,7 @@ const BTC = 'native:bitcoin' as const;
 const LBTC = 'native:liquid' as const;
 const USDT = 'token:liquid:usdt' as const;
 
-function makeQuote(receiveAmount: string, serviceName?: string): TransferQuote {
+function makeQuote(receiveAmount: string, serviceName: string = 'Test'): TransferQuote {
   return {
     id: `quote-${Math.random()}`,
     sendAsset: BTC,
@@ -31,6 +31,7 @@ function makeExecution(id: string, createdAt: number, serviceName: string = 'Tes
     sendAsset: BTC,
     receiveAsset: LBTC,
     createdAt,
+    updatedAt: 0,
     accountNumber: 0,
     serviceName,
   };
@@ -174,12 +175,12 @@ describe('TransferServiceManager', () => {
       expect(result.serviceName).toBe('B');
     });
 
-    it('throws when serviceName is missing', async () => {
+    it('throws when serviceName does not match any service', async () => {
       const s1 = createMockService('A', [BTC, LBTC], []);
       const manager = new TransferServiceManager([s1]);
-      const quote = makeQuote('0.0098'); // no serviceName
+      const quote = makeQuote('0.0098', 'NonExistent');
 
-      await expect(manager.executeTransfer(quote, 'addr123')).rejects.toThrow('Missing serviceName');
+      await expect(manager.executeTransfer(quote, 'addr123')).rejects.toThrow('Unknown serviceName');
     });
   });
 

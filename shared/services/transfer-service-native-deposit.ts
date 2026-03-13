@@ -42,6 +42,7 @@ export class NativeDepositTransferService implements ITransferService {
       feeTicker: 'BTC',
       estimatedTime: 3600,
       expiresAt: Math.floor(Date.now() / 1000) + QUOTE_EXPIRY_SECONDS,
+      serviceName: this.name,
     };
   }
 
@@ -54,6 +55,7 @@ export class NativeDepositTransferService implements ITransferService {
       sendAsset: quote.sendAsset,
       receiveAsset: quote.receiveAsset,
       createdAt: Math.floor(Date.now() / 1000),
+      updatedAt: Math.floor(Date.now() / 1000),
       depositAddress: settleAddress,
       settleAddress,
       accountNumber: 0,

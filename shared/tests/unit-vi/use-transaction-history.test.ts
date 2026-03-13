@@ -16,6 +16,7 @@ function makeTx(overrides: Partial<CommonTransaction> = {}): CommonTransaction {
 }
 
 function makeTransfer(overrides: Partial<TransferExecution> = {}): TransferExecution {
+  const createdAt = overrides.createdAt ?? 200;
   return {
     id: 'shift-1',
     serviceName: 'SideShift',
@@ -25,7 +26,8 @@ function makeTransfer(overrides: Partial<TransferExecution> = {}): TransferExecu
     receiveAmount: '0.0098',
     sendAsset: 'native:bitcoin',
     receiveAsset: 'native:liquid',
-    createdAt: 200,
+    createdAt,
+    updatedAt: createdAt,
     accountNumber: 0,
     relatedTxids: ['deposit-1'],
     ...overrides,

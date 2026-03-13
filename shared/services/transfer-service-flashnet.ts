@@ -81,6 +81,7 @@ export class FlashnetTransferService implements ITransferService {
       feeTicker: sendInfo.ticker,
       estimatedTime: 5,
       expiresAt: Math.floor(Date.now() / 1000) + 60,
+      serviceName: this.name,
     };
   }
 

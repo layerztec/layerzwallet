@@ -105,6 +105,7 @@ export class SideshiftTransferService implements ITransferService {
       feeTicker: receiveAssetInfo.ticker,
       estimatedTime: 600,
       expiresAt: Math.floor(new Date(quoteResponse.expiresAt).getTime() / 1000),
+      serviceName: this.name,
     };
   }
 

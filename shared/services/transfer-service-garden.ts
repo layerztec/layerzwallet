@@ -110,6 +110,7 @@ export class GardenTransferService implements ITransferService {
       feeTicker: sendInfo.ticker,
       estimatedTime: quote.estimated_time,
       expiresAt: Math.floor(Date.now() / 1000) + 300, // Garden quotes are short-lived
+      serviceName: this.name,
     };
   }
 

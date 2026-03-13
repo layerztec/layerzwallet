@@ -174,10 +174,8 @@ export class TransferServiceManager {
   }
 
   private resolveServiceForQuote(quote: TransferQuote): ITransferService {
-    if (quote.serviceName) {
-      const service = this.services.find((s) => s.name === quote.serviceName);
-      if (service) return service;
-    }
-    throw new Error(`Cannot determine which provider owns quote ${quote.id}. Missing serviceName.`);
+    const service = this.services.find((s) => s.name === quote.serviceName);
+    if (service) return service;
+    throw new Error(`Cannot determine which provider owns quote ${quote.id}. Unknown serviceName: ${quote.serviceName}`);
   }
 }

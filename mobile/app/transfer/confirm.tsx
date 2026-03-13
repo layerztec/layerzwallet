@@ -105,6 +105,7 @@ export default function TransferConfirm() {
         const fromAddress = isFakeProvider ? 'fake-address' : await BackgroundExecutor.getAddress(sendAssetInfo.network, accountNumber);
         const execution = await transferService.executeTransfer(quote, settleAddress, fromAddress);
         if (cancelled) return;
+        execution.accountNumber = accountNumber;
         executionRef.current = execution;
 
         // Fake provider or no deposit address: skip send quote

@@ -15,6 +15,7 @@ function makeTransfer(overrides: Partial<TransferExecution> = {}): TransferExecu
     sendAsset: 'native:bitcoin',
     receiveAsset: 'native:spark',
     createdAt: 1700000000,
+    updatedAt: 0,
     accountNumber: 0,
     depositAddress: 'bc1q...',
     settleAddress: 'bc1q...',

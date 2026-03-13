@@ -28,6 +28,7 @@ function makeExecution(overrides: Partial<TransferExecution> = {}): TransferExec
     sendAsset: BTC_ASSET,
     receiveAsset: BOTANIX_ASSET,
     createdAt: 0,
+    updatedAt: 0,
     accountNumber: 0,
     serviceName: 'Garden',
     ...overrides,
@@ -154,6 +155,7 @@ describe('GardenTransferService', () => {
       feeTicker: 'BTC',
       estimatedTime: 600,
       expiresAt: Math.floor(Date.now() / 1000) + 300,
+      serviceName: 'Test',
     });
 
     it('creates an order and returns execution with deposit address', async () => {
@@ -217,6 +219,7 @@ describe('GardenTransferService', () => {
             sendAsset: BTC_ASSET,
             receiveAsset: BOTANIX_ASSET,
             createdAt: Math.floor(Date.now() / 1000),
+            updatedAt: 0,
             accountNumber: 0,
             serviceName: 'Garden',
           },
@@ -251,6 +254,7 @@ describe('GardenTransferService', () => {
             sendAsset: BTC_ASSET,
             receiveAsset: BOTANIX_ASSET,
             createdAt: Math.floor(Date.now() / 1000),
+            updatedAt: 0,
             accountNumber: 0,
             serviceName: 'Garden',
           },
@@ -289,6 +293,7 @@ describe('GardenTransferService', () => {
             sendAsset: BTC_ASSET,
             receiveAsset: BOTANIX_ASSET,
             createdAt: oldTimestamp,
+            updatedAt: 0,
             accountNumber: 0,
             serviceName: 'Garden',
           },
@@ -316,6 +321,7 @@ describe('GardenTransferService', () => {
             sendAsset: BTC_ASSET,
             receiveAsset: BOTANIX_ASSET,
             createdAt: Math.floor(Date.now() / 1000),
+            updatedAt: 0,
             accountNumber: 0,
             serviceName: 'Garden',
           },
