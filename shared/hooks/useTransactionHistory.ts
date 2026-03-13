@@ -196,7 +196,7 @@ export function aggregateTransactionHistory(network: Networks, transactions: Com
 
 export async function txHistoryFetcher(arg: TxHistoryFetcherArg): Promise<CommonTransaction[]> {
   const { accountNumber, network, backgroundCaller, transferService } = arg;
-  const [transactions, transfers] = await Promise.all([txFetcher({ cacheKey: 'txFetcher', accountNumber, network, backgroundCaller }), transferService.getOngoingTransfers()]);
+  const [transactions, transfers] = await Promise.all([txFetcher({ cacheKey: 'txFetcher', accountNumber, network, backgroundCaller }), transferService.getOngoingTransfers(accountNumber)]);
   return aggregateTransactionHistory(network, transactions, transfers);
 }
 

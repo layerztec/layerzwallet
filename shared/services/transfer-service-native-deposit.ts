@@ -68,14 +68,14 @@ export class NativeDepositTransferService implements ITransferService {
     await this.saveTransfers(existing);
   }
 
-  async refreshTransferStatus(executionId: string): Promise<TransferExecution> {
-    const transfers = await this.getOngoingTransfers();
+  async refreshTransferStatus(executionId: string, accountNumber: number): Promise<TransferExecution> {
+    const transfers = await this.getOngoingTransfers(accountNumber);
     const transfer = transfers.find((t) => t.id === executionId);
     if (!transfer) throw new Error(`Transfer ${executionId} not found`);
     return transfer;
   }
 
-  async getOngoingTransfers(): Promise<TransferExecution[]> {
+  async getOngoingTransfers(accountNumber: number): Promise<TransferExecution[]> {
     const transfers = await this.loadTransfers();
     if (!this.swapsFetcher) return transfers;
 
@@ -86,7 +86,7 @@ export class NativeDepositTransferService implements ITransferService {
 
       const network = getAssetInfo(transfer.receiveAsset).network as Networks;
       try {
-        const swaps = await this.swapsFetcher(network, 0);
+        const swaps = await this.swapsFetcher(network, accountNumber);
         const match = swaps.find((s: CommonSwap) =>
           transfer.relatedTxids!.some((txid) => s.id === txid || s.id.includes(txid) || (s.depositTxid && (s.depositTxid === txid || s.depositTxid.includes(txid))))
         );

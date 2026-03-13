@@ -1,7 +1,7 @@
 import { AntDesign, MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Platform, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import DetachedSheet from '@/components/DetachedSheet';
 import Pressable from '@/components/Pressable';
 import { ThemedText } from '@/components/ThemedText';
 import { LayerzStorage } from '@/src/class/layerz-storage';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useTransferService } from '@shared/hooks/useTransferService';
 import { getAssetInfo } from '@shared/models/asset-info';
 import { getStatusLabel, isActiveStatus, isTerminalStatus, TransferExecution } from '@shared/types/transfer';
@@ -26,6 +27,7 @@ export default function TransferDetails() {
   const sendLabel = sameTicker ? sendAssetInfo.name : sendAssetInfo.ticker;
   const receiveLabel = sameTicker ? receiveAssetInfo.name : receiveAssetInfo.ticker;
   const router = useRouter();
+  const { accountNumber } = useContext(AccountNumberContext);
   const transferService = useTransferService(LayerzStorage);
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -84,7 +86,7 @@ export default function TransferDetails() {
     const poll = async () => {
       try {
         if (transferService.refreshTransferStatus) {
-          const updated = await transferService.refreshTransferStatus(execution.id);
+          const updated = await transferService.refreshTransferStatus(execution.id, accountNumber);
           setExecution(updated);
         }
       } catch {

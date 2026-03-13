@@ -122,7 +122,7 @@ export class FlashnetTransferService implements ITransferService {
     await this.saveTransfers(transfers);
   }
 
-  async getOngoingTransfers(): Promise<TransferExecution[]> {
+  async getOngoingTransfers(_accountNumber: number): Promise<TransferExecution[]> {
     const transfers = await this.loadTransfers();
     const now = Math.floor(Date.now() / 1000);
     const active: FlashnetPersistedTransfer[] = [];

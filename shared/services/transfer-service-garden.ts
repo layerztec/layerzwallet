@@ -176,7 +176,7 @@ export class GardenTransferService implements ITransferService {
     this.uncommitted.delete(execution.id);
   }
 
-  async getOngoingTransfers(): Promise<TransferExecution[]> {
+  async getOngoingTransfers(_accountNumber: number): Promise<TransferExecution[]> {
     const transfers = await this.loadTransfers();
     const now = Math.floor(Date.now() / 1000);
     const active: GardenPersistedTransfer[] = [];
@@ -208,7 +208,7 @@ export class GardenTransferService implements ITransferService {
     return active.map((t) => t.execution);
   }
 
-  async refreshTransferStatus(executionId: string): Promise<TransferExecution> {
+  async refreshTransferStatus(executionId: string, _accountNumber: number): Promise<TransferExecution> {
     const transfers = await this.loadTransfers();
     const transfer = transfers.find((t) => t.execution.id === executionId);
     if (!transfer) throw new Error(`Transfer ${executionId} not found`);

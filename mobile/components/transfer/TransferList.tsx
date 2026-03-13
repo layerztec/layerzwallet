@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { TransferServiceManager } from '@shared/services/transfer-service-manager';
 import { isActiveStatus, TransferExecution } from '@shared/types/transfer';
 import { ThemedText } from '../ThemedText';
@@ -13,12 +14,13 @@ interface TransferListProps {
 }
 
 export default function TransferList({ transferService, onTransferPress, activeOnly = false }: TransferListProps) {
+  const { accountNumber } = useContext(AccountNumberContext);
   const [executions, setExecutions] = useState<TransferExecution[]>([]);
 
   const fetchExecutions = useCallback(async () => {
-    const transfers = await transferService.getOngoingTransfers();
+    const transfers = await transferService.getOngoingTransfers(accountNumber);
     setExecutions(activeOnly ? transfers.filter((execution) => isActiveStatus(execution.status)) : transfers);
-  }, [transferService, activeOnly]);
+  }, [transferService, accountNumber, activeOnly]);
 
   useEffect(() => {
     fetchExecutions();

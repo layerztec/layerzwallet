@@ -117,10 +117,10 @@ export class TransferServiceManager {
     }
   }
 
-  async getOngoingTransfers(): Promise<TransferExecution[]> {
+  async getOngoingTransfers(accountNumber: number): Promise<TransferExecution[]> {
     const results = await Promise.allSettled(
       this.services.map(async (service) => {
-        const transfers = await service.getOngoingTransfers();
+        const transfers = await service.getOngoingTransfers(accountNumber);
         return transfers.map((t) => ({ ...t, serviceName: t.serviceName || service.name }));
       })
     );
@@ -136,11 +136,11 @@ export class TransferServiceManager {
     return allTransfers;
   }
 
-  async refreshTransferStatus(executionId: string): Promise<TransferExecution> {
+  async refreshTransferStatus(executionId: string, accountNumber: number): Promise<TransferExecution> {
     for (const service of this.services) {
       if (service.refreshTransferStatus) {
         try {
-          return await service.refreshTransferStatus(executionId);
+          return await service.refreshTransferStatus(executionId, accountNumber);
         } catch {
           continue;
         }

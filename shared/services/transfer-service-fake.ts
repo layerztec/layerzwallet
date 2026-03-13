@@ -86,7 +86,7 @@ export class FakeTransferService implements ITransferService {
     return execution;
   }
 
-  async getOngoingTransfers(): Promise<TransferExecution[]> {
+  async getOngoingTransfers(_accountNumber: number): Promise<TransferExecution[]> {
     return this.ongoingTransfers;
   }
 

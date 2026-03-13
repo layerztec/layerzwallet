@@ -155,10 +155,10 @@ export interface ITransferService {
   commitTransfer?(execution: TransferExecution): Promise<void>;
 
   /** Get ongoing transfers */
-  getOngoingTransfers(): Promise<TransferExecution[]>;
+  getOngoingTransfers(accountNumber: number): Promise<TransferExecution[]>;
 
   /** Refresh the status of a specific transfer by polling the provider */
-  refreshTransferStatus?(executionId: string): Promise<TransferExecution>;
+  refreshTransferStatus?(executionId: string, accountNumber: number): Promise<TransferExecution>;
 
   /** Return timeline steps for rendering the transfer progress UI */
   getTimelineSteps(execution: TransferExecution): TimelineStep[];
