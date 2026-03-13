@@ -19,6 +19,7 @@ vi.mock('../../models/network-getters', () => {
   };
 });
 
+// @ts-ignore - injected by vi.mock above
 import { __setMockProvider } from '../../models/network-getters';
 
 function createWallet(): EvmWallet {

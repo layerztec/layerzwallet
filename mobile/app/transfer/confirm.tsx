@@ -146,6 +146,10 @@ export default function TransferConfirm() {
 
   // Single confirm: commit + broadcast
   const handleConfirm = async () => {
+    if (isExpired) {
+      setError('Quote has expired. Please go back and get a new quote.');
+      return;
+    }
     setIsConfirming(true);
     setError('');
 
@@ -252,7 +256,8 @@ export default function TransferConfirm() {
   const sendFiat = sendRate && sendAmount ? `$${new BigNumber(sendAmount).multipliedBy(sendRate).toFixed(2)}` : '';
   const receiveFiat = receiveRate && receiveAmount ? `$${new BigNumber(receiveAmount).multipliedBy(receiveRate).toFixed(2)}` : '';
 
-  const isReady = !isPreparing && !error;
+  const isExpired = !isNativeDeposit && expirySeconds <= 0;
+  const isReady = !isPreparing && !error && !isExpired;
 
   if (!sendAsset || !receiveAsset || !quote) {
     router.back();
