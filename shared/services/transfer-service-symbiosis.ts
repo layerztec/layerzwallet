@@ -3,7 +3,7 @@ import BigNumber from 'bignumber.js';
 import { getAssetInfo, toAssetId } from '../models/asset-info';
 import { IStorage, STORAGE_KEY_SYMBIOSIS_TRANSFERS } from '../types/IStorage';
 import { AssetId } from '../types/asset';
-import { isTerminalStatus, ITransferService, normalizeRelatedTxids, TimelineStep, TransferExecution, TransferPair, TransferQuote, TransferStatus } from '../types/transfer';
+import { EXECUTION_DEPOSIT, isTerminalStatus, ITransferService, normalizeRelatedTxids, TimelineStep, TransferExecution, TransferPair, TransferQuote, TransferStatus } from '../types/transfer';
 import { SymbiosisApi, SymbiosisApiError, SymbiosisSwapRequest, SymbiosisSwapResponse } from './symbiosis-api';
 import { getExchangeTimelineSteps } from './transfer-service-sideshift';
 
@@ -104,6 +104,7 @@ export class SymbiosisTransferService implements ITransferService {
     const expiresAt = resp.tx.expiresAt ? Math.floor(new Date(resp.tx.expiresAt).getTime() / 1000) : now + 3600;
 
     const execution: TransferExecution = {
+      type: EXECUTION_DEPOSIT,
       id: `symbiosis-${now}-${Math.random().toString(36).slice(2, 8)}`,
       status: 'waiting',
       sendAmount: quote.sendAmount,

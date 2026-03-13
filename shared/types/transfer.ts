@@ -56,7 +56,7 @@ export function getStatusLabel(status: TransferStatus, execution?: TransferExecu
     case 'pending':
       return 'Pending';
     case 'confirming':
-      if (execution?.confirmations !== undefined) {
+      if (execution?.type === EXECUTION_CLAIM && execution.confirmations !== undefined) {
         return `${execution.confirmations}/${execution.targetConfirmations} confirmations`;
       }
       return 'Confirming';
@@ -85,36 +85,66 @@ export interface TimelineStep {
   timestamp?: number;
 }
 
-export interface TransferExecution {
+export const EXECUTION_DEPOSIT = 'deposit-address' as const;
+export const EXECUTION_CLAIM = 'native-claim' as const;
+export const EXECUTION_INSTANT = 'instant' as const;
+export type TransferExecutionType = typeof EXECUTION_DEPOSIT | typeof EXECUTION_CLAIM | typeof EXECUTION_INSTANT;
+
+interface BaseTransferExecution {
+  /** Discriminant: determines which execution variant this is */
+  type: TransferExecutionType;
+  /** Unique execution ID (provider-specific format, e.g. shift ID, order ID, or generated) */
   id: string;
+  /** Current lifecycle status of this transfer */
   status: TransferStatus;
+  /** Amount being sent, in human-readable units (e.g. "0.001") */
   sendAmount: string;
+  /** Amount being received, in human-readable units */
   receiveAmount: string;
+  /** Asset being sent */
   sendAsset: AssetId;
+  /** Asset being received */
   receiveAsset: AssetId;
-  /** Unix timestamp in seconds */
+  /** Unix timestamp (seconds) when this transfer was created */
   createdAt: number;
-  /** Address where the user must send the deposit */
+  /** Unix timestamp (seconds) of last status update */
+  updatedAt: number;
+  /** Which wallet account created this transfer */
+  accountNumber: number;
+  /** Which transfer service owns this execution (e.g. "SideShift", "Garden", "Native") */
+  serviceName: string;
+  /** Address where the user must send the deposit (set by deposit-address and native-claim providers) */
   depositAddress?: string;
   /** Address where the user will receive the settlement */
   settleAddress?: string;
-  /** Provider-specific ID for status polling (e.g. SideShift shift ID, Garden order ID) */
+  /** Provider-specific ID for status polling and tracking URLs (e.g. SideShift shift ID, Garden order ID) */
   providerId?: string;
-  /** Timestamp of last status update */
-  updatedAt: number;
-  /** Which account created this transfer. */
-  accountNumber: number;
-  /** Which transfer service owns this execution. Used by TransferServiceManager for routing. */
-  serviceName: string;
-  /** Related on-chain txids for this transfer (deposit, settlement, or other lifecycle txs). */
+  /** Related on-chain txids for deduplication in transaction history and status polling */
   relatedTxids?: string[];
-  /** Current on-chain confirmations (native deposit only) */
+}
+
+/** User deposits to an external address, provider settles to user. Used by SideShift, Garden, Symbiosis. */
+export interface DepositAddressExecution extends BaseTransferExecution {
+  type: typeof EXECUTION_DEPOSIT;
+}
+
+/** On-chain BTC deposit to ARK/Spark with confirmation tracking and manual claim step. Used by NativeDeposit. */
+export interface NativeClaimExecution extends BaseTransferExecution {
+  type: typeof EXECUTION_CLAIM;
+  /** Current on-chain confirmations of the deposit tx */
   confirmations?: number;
-  /** Target confirmations needed to process (native deposit only) */
+  /** Number of confirmations needed before the deposit can be claimed */
   targetConfirmations?: number;
-  /** JSON-serialized CommonSwap — set when status becomes claimable (native deposit only) */
+  /** JSON-serialized CommonSwap — set when status becomes 'claimable', passed to the claim screen */
   claimSwapJson?: string;
 }
+
+/** Instant in-wallet swap with no deposit address or confirmation step. Used by Flashnet. */
+export interface InstantSwapExecution extends BaseTransferExecution {
+  type: typeof EXECUTION_INSTANT;
+}
+
+export type TransferExecution = DepositAddressExecution | NativeClaimExecution | InstantSwapExecution;
 
 /** Normalize related txids: deduplicate, lowercase, trim, remove blanks */
 export function normalizeRelatedTxids(relatedTxids?: string[]): string[] | undefined {

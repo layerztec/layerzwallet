@@ -2,7 +2,7 @@ import BigNumber from 'bignumber.js';
 
 import { getAssetInfo } from '../models/asset-info';
 import { AssetId } from '../types/asset';
-import { ITransferService, TimelineStep, TransferExecution, TransferPair, TransferQuote } from '../types/transfer';
+import { EXECUTION_DEPOSIT, ITransferService, TimelineStep, TransferExecution, TransferPair, TransferQuote } from '../types/transfer';
 import { getExchangeTimelineSteps } from './transfer-service-sideshift';
 
 const LBTC_TESTNET: AssetId = 'native:liquid_testnet';
@@ -62,6 +62,7 @@ export class FakeTransferService implements ITransferService {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const execution: TransferExecution = {
+      type: EXECUTION_DEPOSIT,
       id: `exec-${nextId++}`,
       status: 'pending',
       sendAmount: quote.sendAmount,

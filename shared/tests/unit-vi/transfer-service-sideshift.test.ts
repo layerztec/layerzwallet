@@ -5,7 +5,7 @@ import { toSideshiftAsset, isSideshiftSupported, toSideshiftMethodId } from '../
 import { SideshiftTransferService, mapSideshiftStatus } from '../../services/transfer-service-sideshift';
 import { STORAGE_KEY_SIDESHIFT_TRANSFERS } from '../../types/IStorage';
 import { AssetId } from '../../types/asset';
-import { TransferExecution, TransferQuote } from '../../types/transfer';
+import { DepositAddressExecution, EXECUTION_DEPOSIT, TransferQuote } from '../../types/transfer';
 
 const BTC_ASSET = 'native:bitcoin' as const;
 const LBTC_ASSET = 'native:liquid' as const;
@@ -21,8 +21,9 @@ function createMockStorage() {
   };
 }
 
-function makeExecution(overrides: Partial<TransferExecution> = {}): TransferExecution {
+function makeExecution(overrides: Partial<DepositAddressExecution> = {}): DepositAddressExecution {
   return {
+    type: EXECUTION_DEPOSIT,
     id: 'e1',
     status: 'pending',
     sendAmount: '0.01',
@@ -188,6 +189,7 @@ describe('SideshiftTransferService', () => {
       storage._store[STORAGE_KEY_SIDESHIFT_TRANSFERS] = JSON.stringify([
         {
           execution: {
+            type: EXECUTION_DEPOSIT,
             id: 'shift-1',
             providerId: 'shift-1',
             status: 'waiting',
@@ -226,6 +228,7 @@ describe('SideshiftTransferService', () => {
       storage._store[STORAGE_KEY_SIDESHIFT_TRANSFERS] = JSON.stringify([
         {
           execution: {
+            type: EXECUTION_DEPOSIT,
             id: 'shift-1',
             providerId: 'shift-1',
             status: 'waiting',
@@ -265,6 +268,7 @@ describe('SideshiftTransferService', () => {
       storage._store[STORAGE_KEY_SIDESHIFT_TRANSFERS] = JSON.stringify([
         {
           execution: {
+            type: EXECUTION_DEPOSIT,
             id: 'shift-old',
             providerId: 'shift-old',
             status: 'completed',
@@ -297,6 +301,7 @@ describe('SideshiftTransferService', () => {
       storage._store[STORAGE_KEY_SIDESHIFT_TRANSFERS] = JSON.stringify([
         {
           execution: {
+            type: EXECUTION_DEPOSIT,
             id: 'shift-1',
             providerId: 'shift-1',
             status: 'pending',

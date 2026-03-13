@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { aggregateTransactionHistory } from '../../hooks/useTransactionHistory';
 import { CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_ROOTSTOCK } from '../../types/networks';
-import { TransferExecution } from '../../types/transfer';
+import { DepositAddressExecution, EXECUTION_DEPOSIT } from '../../types/transfer';
 
 function makeTx(overrides: Partial<CommonTransaction> = {}): CommonTransaction {
   return {
@@ -15,9 +15,10 @@ function makeTx(overrides: Partial<CommonTransaction> = {}): CommonTransaction {
   };
 }
 
-function makeTransfer(overrides: Partial<TransferExecution> = {}): TransferExecution {
+function makeTransfer(overrides: Partial<DepositAddressExecution> = {}): DepositAddressExecution {
   const createdAt = overrides.createdAt ?? 200;
   return {
+    type: EXECUTION_DEPOSIT,
     id: 'shift-1',
     serviceName: 'SideShift',
     status: 'pending',

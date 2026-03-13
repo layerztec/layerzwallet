@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FlashnetTransferService } from '../../services/transfer-service-flashnet';
-import { TransferExecution } from '../../types/transfer';
+import { EXECUTION_INSTANT, InstantSwapExecution } from '../../types/transfer';
 
 const mockStorage = {
   getItem: vi.fn().mockResolvedValue(''),
@@ -10,8 +10,9 @@ const mockStorage = {
 const BTC_SPARK = 'native:spark' as const;
 const USDB = 'token:spark:usdb' as const;
 
-function makeExecution(overrides: Partial<TransferExecution> = {}): TransferExecution {
+function makeExecution(overrides: Partial<InstantSwapExecution> = {}): InstantSwapExecution {
   return {
+    type: EXECUTION_INSTANT,
     id: 'flashnet-1',
     status: 'completed',
     sendAmount: '0.001',
@@ -155,6 +156,7 @@ describe('FlashnetTransferService', () => {
       const stored = [
         {
           execution: {
+            type: EXECUTION_INSTANT,
             id: 'flashnet-1',
             status: 'completed',
             sendAmount: '0.001',
@@ -180,6 +182,7 @@ describe('FlashnetTransferService', () => {
       const stored = [
         {
           execution: {
+            type: EXECUTION_INSTANT,
             id: 'flashnet-old',
             status: 'completed',
             sendAmount: '0.001',

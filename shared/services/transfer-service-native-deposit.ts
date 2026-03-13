@@ -3,7 +3,7 @@ import { IStorage, STORAGE_KEY_NATIVE_DEPOSIT_TRANSFERS } from '../types/IStorag
 import { AssetId } from '../types/asset';
 import { CommonSwap } from '../types/common-swap';
 import { Networks } from '../types/networks';
-import { isTerminalStatus, ITransferService, TimelineStep, TransferExecution, TransferPair, TransferPairInfo, TransferQuote } from '../types/transfer';
+import { EXECUTION_CLAIM, isTerminalStatus, ITransferService, NativeClaimExecution, TimelineStep, TransferExecution, TransferPair, TransferPairInfo, TransferQuote } from '../types/transfer';
 
 const SEND_ASSET: AssetId = 'native:bitcoin';
 const RECEIVE_ASSETS: AssetId[] = ['native:arkade', 'native:spark'];
@@ -48,6 +48,7 @@ export class NativeDepositTransferService implements ITransferService {
 
   async executeTransfer(quote: TransferQuote, settleAddress: string): Promise<TransferExecution> {
     return {
+      type: EXECUTION_CLAIM,
       id: `nd-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       status: 'waiting',
       sendAmount: quote.sendAmount,
@@ -64,7 +65,7 @@ export class NativeDepositTransferService implements ITransferService {
   }
 
   async commitTransfer(execution: TransferExecution): Promise<void> {
-    const stored: TransferExecution = { ...execution };
+    const stored: NativeClaimExecution = { ...execution, type: EXECUTION_CLAIM };
     if (stored.relatedTxids?.length) {
       stored.status = 'confirming';
     }
@@ -133,6 +134,7 @@ export class NativeDepositTransferService implements ITransferService {
   }
 
   getTimelineSteps(execution: TransferExecution): TimelineStep[] {
+    if (execution.type !== EXECUTION_CLAIM) return [];
     const { status, createdAt, updatedAt, confirmations, targetConfirmations } = execution;
 
     const step1Done = status === 'claimable' || status === 'completed' || status === 'refunded';
@@ -165,16 +167,16 @@ export class NativeDepositTransferService implements ITransferService {
     return [step1, step2, step3];
   }
 
-  private async loadTransfers(): Promise<TransferExecution[]> {
+  private async loadTransfers(): Promise<NativeClaimExecution[]> {
     try {
       const raw = await this.storage.getItem(STORAGE_KEY_NATIVE_DEPOSIT_TRANSFERS);
-      return raw ? (JSON.parse(raw) as TransferExecution[]) : [];
+      return raw ? (JSON.parse(raw) as NativeClaimExecution[]) : [];
     } catch {
       return [];
     }
   }
 
-  private async saveTransfers(transfers: TransferExecution[]): Promise<void> {
+  private async saveTransfers(transfers: NativeClaimExecution[]): Promise<void> {
     await this.storage.setItem(STORAGE_KEY_NATIVE_DEPOSIT_TRANSFERS, JSON.stringify(transfers));
   }
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { TransferServiceManager } from '../../services/transfer-service-manager';
-import { ITransferService, TransferExecution, TransferNoRouteError, TransferPair, TransferQuote } from '../../types/transfer';
+import { DepositAddressExecution, EXECUTION_DEPOSIT, ITransferService, TransferNoRouteError, TransferPair, TransferQuote } from '../../types/transfer';
 
 const BTC = 'native:bitcoin' as const;
 const LBTC = 'native:liquid' as const;
@@ -22,8 +22,9 @@ function makeQuote(receiveAmount: string, serviceName: string = 'Test'): Transfe
   };
 }
 
-function makeExecution(id: string, createdAt: number, serviceName: string = 'Test'): TransferExecution {
+function makeExecution(id: string, createdAt: number, serviceName: string = 'Test'): DepositAddressExecution {
   return {
+    type: EXECUTION_DEPOSIT,
     id,
     status: 'pending',
     sendAmount: '0.01',

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SymbiosisTransferService, mapSymbiosisStatus } from '../../services/transfer-service-symbiosis';
-import { TransferExecution } from '../../types/transfer';
+import { DepositAddressExecution, EXECUTION_DEPOSIT } from '../../types/transfer';
 
 const mockStorage = {
   getItem: vi.fn().mockResolvedValue(''),
@@ -10,8 +10,9 @@ const mockStorage = {
 const SEND = 'native:bitcoin' as const;
 const RECEIVE = 'native:rootstock' as const;
 
-function makeExecution(overrides: Partial<TransferExecution> = {}): TransferExecution {
+function makeExecution(overrides: Partial<DepositAddressExecution> = {}): DepositAddressExecution {
   return {
+    type: EXECUTION_DEPOSIT,
     id: 'e1',
     status: 'pending',
     sendAmount: '0.01',
@@ -200,6 +201,7 @@ describe('SymbiosisTransferService', () => {
       const stored = [
         {
           execution: {
+            type: EXECUTION_DEPOSIT,
             id: 'sym-1',
             status: 'waiting',
             sendAmount: '0.01',
@@ -230,6 +232,7 @@ describe('SymbiosisTransferService', () => {
       const stored = [
         {
           execution: {
+            type: EXECUTION_DEPOSIT,
             id: 'sym-2',
             status: 'waiting',
             sendAmount: '0.01',
@@ -294,6 +297,7 @@ describe('SymbiosisTransferService', () => {
       const stored = [
         {
           execution: {
+            type: EXECUTION_DEPOSIT,
             id: 'sym-exp',
             status: 'waiting',
             sendAmount: '0.01',
@@ -320,6 +324,7 @@ describe('SymbiosisTransferService', () => {
       const stored = [
         {
           execution: {
+            type: EXECUTION_DEPOSIT,
             id: 'sym-notexp',
             status: 'waiting',
             sendAmount: '0.01',

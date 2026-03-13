@@ -3,7 +3,18 @@ import BigNumber from 'bignumber.js';
 import { getAssetInfo, toAssetId } from '../models/asset-info';
 import { IStorage, STORAGE_KEY_GARDEN_TRANSFERS } from '../types/IStorage';
 import { AssetId } from '../types/asset';
-import { isTerminalStatus, ITransferService, normalizeRelatedTxids, TimelineStep, TransferExecution, TransferPair, TransferPairInfo, TransferQuote, TransferStatus } from '../types/transfer';
+import {
+  EXECUTION_DEPOSIT,
+  isTerminalStatus,
+  ITransferService,
+  normalizeRelatedTxids,
+  TimelineStep,
+  TransferExecution,
+  TransferPair,
+  TransferPairInfo,
+  TransferQuote,
+  TransferStatus,
+} from '../types/transfer';
 import { GardenApi, GardenApiError, GardenOrder } from './garden-api';
 import { isGardenSupported, toGardenAsset } from './garden-mappings';
 import { getExchangeTimelineSteps } from './transfer-service-sideshift';
@@ -134,6 +145,7 @@ export class GardenTransferService implements ITransferService {
     const now = Math.floor(Date.now() / 1000);
 
     const execution: TransferExecution = {
+      type: EXECUTION_DEPOSIT,
       id: orderId,
       providerId: orderId,
       status: 'waiting',

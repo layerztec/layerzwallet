@@ -4,7 +4,7 @@ import type { SparkSDKWallet } from '../class/wallets/spark-wallet';
 import { getAssetInfo } from '../models/asset-info';
 import { IStorage, STORAGE_KEY_FLASHNET_TRANSFERS } from '../types/IStorage';
 import { AssetId } from '../types/asset';
-import { isTerminalStatus, ITransferService, TimelineStep, TransferExecution, TransferPair, TransferQuote } from '../types/transfer';
+import { EXECUTION_INSTANT, isTerminalStatus, ITransferService, TimelineStep, TransferExecution, TransferPair, TransferQuote } from '../types/transfer';
 
 const PRUNE_AGE_SECONDS = 7 * 24 * 60 * 60;
 
@@ -110,6 +110,7 @@ export class FlashnetTransferService implements ITransferService {
     const now = Math.floor(Date.now() / 1000);
 
     return {
+      type: EXECUTION_INSTANT,
       id: `flashnet-${now}-${Math.random().toString(36).slice(2, 8)}`,
       status: 'completed',
       sendAmount: quote.sendAmount,

@@ -1,7 +1,18 @@
 import { getAssetInfo, toAssetId } from '../models/asset-info';
 import { IStorage, STORAGE_KEY_SIDESHIFT_TRANSFERS } from '../types/IStorage';
 import { AssetId } from '../types/asset';
-import { ITransferService, isTerminalStatus, normalizeRelatedTxids, TimelineStep, TransferExecution, TransferPair, TransferPairInfo, TransferQuote, TransferStatus } from '../types/transfer';
+import {
+  EXECUTION_DEPOSIT,
+  ITransferService,
+  isTerminalStatus,
+  normalizeRelatedTxids,
+  TimelineStep,
+  TransferExecution,
+  TransferPair,
+  TransferPairInfo,
+  TransferQuote,
+  TransferStatus,
+} from '../types/transfer';
 import { SideshiftApi, SideshiftApiError, SideshiftShiftStatus } from './sideshift-api';
 import { isSideshiftSupported, toSideshiftAsset, toSideshiftMethodId } from './sideshift-mappings';
 
@@ -126,6 +137,7 @@ export class SideshiftTransferService implements ITransferService {
 
     const now = Math.floor(Date.now() / 1000);
     const execution: TransferExecution = {
+      type: EXECUTION_DEPOSIT,
       id: shiftResponse.id,
       providerId: shiftResponse.id,
       status: mapSideshiftStatus(shiftResponse.status),

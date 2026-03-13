@@ -14,7 +14,7 @@ import { LayerzStorage } from '@/src/class/layerz-storage';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useTransferService } from '@shared/hooks/useTransferService';
 import { getAssetInfo } from '@shared/models/asset-info';
-import { getStatusLabel, isActiveStatus, isTerminalStatus, TransferExecution } from '@shared/types/transfer';
+import { EXECUTION_CLAIM, getStatusLabel, isActiveStatus, isTerminalStatus, TransferExecution } from '@shared/types/transfer';
 
 const POLL_INTERVAL = 10_000;
 
@@ -53,7 +53,7 @@ export default function TransferDetails() {
   }));
 
   const isActive = isActiveStatus(execution.status);
-  const isNativeDeposit = execution.serviceName === 'Native' || execution.serviceName === 'NativeDeposit';
+  const isNativeDeposit = execution.type === EXECUTION_CLAIM;
   const isClaimable = execution.status === 'claimable';
   const trackingUrl = transferService.getTrackingUrl(execution);
 
@@ -257,7 +257,7 @@ export default function TransferDetails() {
           </Pressable>
 
           {/* Claim button for NativeDeposit claimable transfers */}
-          {isNativeDeposit && isClaimable && (
+          {execution.type === EXECUTION_CLAIM && isClaimable && (
             <Pressable style={styles.claimButton} onPress={() => router.push({ pathname: '/SwapXArkClaim', params: { swapJson: execution.claimSwapJson } })}>
               <ThemedText style={styles.claimButtonText}>Claim</ThemedText>
             </Pressable>

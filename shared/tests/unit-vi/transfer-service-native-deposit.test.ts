@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NativeDepositTransferService } from '../../services/transfer-service-native-deposit';
 import { STORAGE_KEY_NATIVE_DEPOSIT_TRANSFERS } from '../../types/IStorage';
-import { TransferExecution } from '../../types/transfer';
+import { EXECUTION_CLAIM, NativeClaimExecution } from '../../types/transfer';
 import { CommonSwap } from '../../types/common-swap';
 
 const TXID = 'abc123deadbeef';
 
-function makeTransfer(overrides: Partial<TransferExecution> = {}): TransferExecution {
+function makeTransfer(overrides: Partial<NativeClaimExecution> = {}): NativeClaimExecution {
   return {
+    type: EXECUTION_CLAIM,
     id: 'nd-exec-1',
     status: 'confirming',
     sendAmount: '0.001',
@@ -37,7 +38,7 @@ function makeSwap(overrides: Partial<CommonSwap> = {}): CommonSwap {
   };
 }
 
-function createMockStorage(transfers: TransferExecution[] = []) {
+function createMockStorage(transfers: NativeClaimExecution[] = []) {
   const data: Record<string, string> = {};
   if (transfers.length) {
     data[STORAGE_KEY_NATIVE_DEPOSIT_TRANSFERS] = JSON.stringify(transfers);
@@ -58,7 +59,7 @@ describe('NativeDepositTransferService', () => {
       const service = new NativeDepositTransferService(storage);
       service.setSwapsFetcher(async () => [makeSwap({ status: 'claimable' })]);
 
-      const result = await service.getOngoingTransfers(0);
+      const result = (await service.getOngoingTransfers(0)) as NativeClaimExecution[];
 
       expect(result[0].status).toBe('claimable');
       expect(result[0].claimSwapJson).toBeDefined();
@@ -107,7 +108,7 @@ describe('NativeDepositTransferService', () => {
       const service = new NativeDepositTransferService(storage);
       service.setSwapsFetcher(async () => [makeSwap({ status: 'pending', confirmations: 1, targetConfirmations: 3 })]);
 
-      const result = await service.getOngoingTransfers(0);
+      const result = (await service.getOngoingTransfers(0)) as NativeClaimExecution[];
 
       expect(result[0].status).toBe('confirming');
       expect(result[0].confirmations).toBe(1);

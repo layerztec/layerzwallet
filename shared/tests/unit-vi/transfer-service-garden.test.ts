@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GardenOrder, GardenSwap } from '../../services/garden-api';
 import { GardenTransferService, deriveGardenStatus } from '../../services/transfer-service-garden';
 import { STORAGE_KEY_GARDEN_TRANSFERS } from '../../types/IStorage';
-import { TransferExecution, TransferQuote } from '../../types/transfer';
+import { DepositAddressExecution, EXECUTION_DEPOSIT, TransferQuote } from '../../types/transfer';
 
 const BTC_ASSET = 'native:bitcoin' as const;
 const BOTANIX_ASSET = 'native:botanix' as const;
@@ -19,8 +19,9 @@ function createMockStorage() {
   };
 }
 
-function makeExecution(overrides: Partial<TransferExecution> = {}): TransferExecution {
+function makeExecution(overrides: Partial<DepositAddressExecution> = {}): DepositAddressExecution {
   return {
+    type: EXECUTION_DEPOSIT,
     id: 'e1',
     status: 'pending',
     sendAmount: '0.0005',
@@ -211,6 +212,7 @@ describe('GardenTransferService', () => {
       storage._store[STORAGE_KEY_GARDEN_TRANSFERS] = JSON.stringify([
         {
           execution: {
+            type: EXECUTION_DEPOSIT,
             id: 'order-1',
             providerId: 'order-1',
             status: 'waiting',
@@ -246,6 +248,7 @@ describe('GardenTransferService', () => {
       storage._store[STORAGE_KEY_GARDEN_TRANSFERS] = JSON.stringify([
         {
           execution: {
+            type: EXECUTION_DEPOSIT,
             id: 'order-1',
             providerId: 'order-1',
             status: 'confirming',
@@ -285,6 +288,7 @@ describe('GardenTransferService', () => {
       storage._store[STORAGE_KEY_GARDEN_TRANSFERS] = JSON.stringify([
         {
           execution: {
+            type: EXECUTION_DEPOSIT,
             id: 'order-old',
             providerId: 'order-old',
             status: 'completed',
@@ -313,6 +317,7 @@ describe('GardenTransferService', () => {
       storage._store[STORAGE_KEY_GARDEN_TRANSFERS] = JSON.stringify([
         {
           execution: {
+            type: EXECUTION_DEPOSIT,
             id: 'order-1',
             providerId: 'order-1',
             status: 'pending',
