@@ -242,7 +242,7 @@ export class GardenTransferService implements ITransferService {
 
   getTrackingUrl(execution: TransferExecution): string | undefined {
     if (execution.providerId) {
-      return `https://garden.finance/explorer/?order=${execution.providerId}`;
+      return `https://explorer.garden.finance/order/${execution.providerId}`;
     }
     return undefined;
   }
