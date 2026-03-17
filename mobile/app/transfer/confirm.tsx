@@ -28,7 +28,7 @@ const CLAIM_OPTIONS_HEIGHT = 40 * 2; // 2 option rows
 export default function TransferConfirm() {
   const router = useRouter();
   const { height: screenHeight } = useWindowDimensions();
-  const { sendAsset, receiveAsset, quote, setQuote, transferService } = useTransferFlow();
+  const { sendAsset, receiveAsset, quote, setQuote, setCommitted, transferService } = useTransferFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const { exchangeRate: sendRate } = useAssetExchangeRate(sendAsset);
   const { exchangeRate: receiveRate } = useAssetExchangeRate(receiveAsset);
@@ -162,6 +162,7 @@ export default function TransferConfirm() {
         if (execution && transferService.commitTransfer) {
           await transferService.commitTransfer(execution).catch(() => {});
         }
+        setCommitted(true);
         router.replace('/transfer/success');
         return;
       }
@@ -182,6 +183,7 @@ export default function TransferConfirm() {
         await transferService.commitTransfer(execution).catch(() => {});
       }
 
+      setCommitted(true);
       router.replace('/transfer/success');
     } catch (e: any) {
       setError(e.message || 'Failed to send funds');

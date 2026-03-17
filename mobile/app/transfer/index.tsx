@@ -22,7 +22,7 @@ import { useTransferFlow } from './_layout';
 
 export default function TransferInput() {
   const router = useRouter();
-  const { sendAsset, receiveAsset, quote, setQuote, transferService } = useTransferFlow();
+  const { sendAsset, receiveAsset, quote, committed, setQuote, setCommitted, transferService } = useTransferFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance: sendBalance } = useAssetBalance(sendAsset, accountNumber, BackgroundExecutor);
   const [sendAmount, setSendAmount] = useState<string>('');
@@ -169,9 +169,18 @@ export default function TransferInput() {
     }
   }, [sendAsset, receiveAsset]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Clear input state after a successful transfer so the user can't accidentally re-submit
+  useEffect(() => {
+    if (committed) {
+      setSendAmount('');
+      setReceiveAmount('');
+      setCommitted(false);
+    }
+  }, [committed]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Auto-refetch quote when returning from confirm (quote cleared on confirm unmount)
   useEffect(() => {
-    if (!quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && sendAmount && parseFloat(sendAmount) > 0) {
+    if (!committed && !quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && sendAmount && parseFloat(sendAmount) > 0) {
       fetchQuoteFromSend(sendAmount);
     }
   }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
