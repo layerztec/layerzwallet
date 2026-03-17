@@ -7,4 +7,5 @@ declare global {
   var breezAdapter: IBreezAdapter;
   var sparkAdapter: ISparkAdapter;
   var handleError: ((error: unknown, context?: string) => void | Promise<void>) | undefined;
+  var __DEV__: boolean | undefined;
 }

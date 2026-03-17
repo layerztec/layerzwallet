@@ -3,17 +3,23 @@
  * LICENSE: MIT
  */
 import BIP32Factory from 'bip32';
+import * as bip39 from 'bip39';
 import * as bitcoin from 'bitcoinjs-lib';
 import ecc from '@bitcoinerlab/secp256k1';
+import { ECPairFactory } from 'ecpair';
 
+import * as BlueElectrum from '../../blue_modules/BlueElectrum';
 import { CommonTransaction } from '../../types/common-transaction';
+import { SendQuote, SendQuoteRequest } from '../../types/send-quote';
 import { AbstractWallet } from './abstract-wallet';
 import { HDSegwitBech32Wallet } from './hd-segwit-bech32-wallet';
+import { InterfaceSendQuotable } from './interface-send-quotable';
 import { LegacyWallet } from './legacy-wallet';
 
 const bip32 = BIP32Factory(ecc);
+const ECPair = ECPairFactory(ecc);
 
-export class WatchOnlyWallet extends LegacyWallet {
+export class WatchOnlyWallet extends LegacyWallet implements InterfaceSendQuotable {
   static readonly type = 'watchOnly';
   static readonly typeReadable = 'Watch-only';
   // @ts-ignore: override
@@ -325,5 +331,51 @@ export class WatchOnlyWallet extends LegacyWallet {
       return this._hdWalletInstance.getCommonTransactions(afterTxid, limit);
     }
     return [];
+  }
+
+  async getSendQuote(request: SendQuoteRequest): Promise<SendQuote> {
+    if (!this._hdWalletInstance) this.init();
+    if (!this._hdWalletInstance) throw new Error('WatchOnlyWallet not initialized');
+
+    if (!BlueElectrum.mainConnected) await BlueElectrum.connectMain();
+    await this.fetchBalance();
+    await this.fetchUtxo();
+
+    const feeRate = request.feeRate ?? (await BlueElectrum.estimateFee(6));
+    const changeAddress = await this.getChangeAddressAsync();
+    const targets = [{ address: request.toAddress, value: Number(request.amount) }];
+
+    const { fee, psbt } = this.createTransaction(this.getUtxo(), targets, feeRate, changeAddress);
+
+    return {
+      request,
+      fee: String(fee),
+      feeTicker: 'BTC',
+      _prepared: { psbt },
+    };
+  }
+
+  async executeSendQuote(quote: SendQuote, mnemonic?: string, _accountNumber?: number): Promise<string> {
+    if (!mnemonic) throw new Error('mnemonic is required for Bitcoin executeSendQuote');
+
+    const { psbt } = quote._prepared as { psbt: bitcoin.Psbt };
+    const seed = bip39.mnemonicToSeedSync(mnemonic);
+    const root = bip32.fromSeed(seed as Buffer);
+
+    for (let i = 0; i < psbt.inputCount; i++) {
+      for (const der of psbt.data.inputs[i].bip32Derivation ?? []) {
+        try {
+          const child = root.derivePath(der.path);
+          if (!child.privateKey) continue;
+          psbt.signInput(i, ECPair.fromPrivateKey(child.privateKey));
+        } catch (_) {}
+      }
+    }
+
+    psbt.finalizeAllInputs();
+    const tx = psbt.extractTransaction();
+    if (!BlueElectrum.mainConnected) await BlueElectrum.connectMain();
+    await BlueElectrum.broadcastV2(tx.toHex());
+    return tx.getId();
   }
 }

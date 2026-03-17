@@ -2,13 +2,13 @@ import { Networks, NETWORK_BITCOIN, NETWORK_CITREA_TESTNET, NETWORK_BOTANIX, NET
 import { PartnerInfo } from '../types/partner-info';
 
 const partnersList: PartnerInfo[] = [
-  {
+  /*   {
     name: 'HodlHodl',
     network: NETWORK_BITCOIN,
     url: 'https://hodlhodl.com/join/NPH2J',
     imgUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRAejGlNwvmchVooYPpUquqzQ7z0KahArwSVw&s',
     description: 'Buy & sell bitcoin non-custodially, p2p',
-  },
+  }, */
   {
     name: 'BTC Map',
     network: NETWORK_BITCOIN,
@@ -85,6 +85,13 @@ const partnersList: PartnerInfo[] = [
     url: 'https://app.citrea.xyz',
     imgUrl: '',
     description: 'Your Citrea mainnet usage tiers, reflected in the progress bars.',
+  },
+  {
+    name: 'Citrea Ecosystem',
+    network: NETWORK_CITREA,
+    url: 'https://citrea.xyz/ecosystem',
+    imgUrl: '',
+    description: 'Built for Bitcoin, Powered by Citrea',
   },
 ];
 

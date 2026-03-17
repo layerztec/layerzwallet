@@ -3,6 +3,7 @@ import useSWR from 'swr';
 import { getIsTestnet } from '../models/network-getters';
 import { USDT_TOKENS } from '../models/token-list';
 import { NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT, Networks } from '../types/networks';
+import { getFiatRate } from '../models/fiatUnit';
 
 export type TFiat = 'USD';
 
@@ -22,7 +23,7 @@ function middleware(useSWRNext: any) {
 }
 
 export const tokenExchangeRateFetcher = async (arg: tokenExchangeRateFetcherArg): Promise<number> => {
-  const { network, tokenId } = arg;
+  const { network, tokenId, fiat } = arg;
 
   if (getIsTestnet(network)) {
     return 0;
@@ -73,6 +74,17 @@ export const tokenExchangeRateFetcher = async (arg: tokenExchangeRateFetcherArg)
     }
   }
 
+  switch (tokenId) {
+    // different kinds of wrapped BTC:
+    // TODO: maybe worth configuring somewhere; also, think about the case of de-peg
+    case '0x21EdC56532b6E92E676aA260B2a1f968B20EB1F5':
+    case '0x0D2437F93Fed6EA64Ef01cCde385FB1263910C56':
+    case '0xF4586028FFdA7Eca636864F80f8a3f2589E33795':
+    case '0x321f90864fb21cdcddd0d67fe5e4cbc812ec9e64':
+    case '0x542FDA317318eBf1d3DeAF76E0B632741a7e677d':
+      return await getFiatRate(fiat);
+  }
+
   console.log(`dont know how to get exchange rate for token ${tokenId} on ${network}`);
   return 0;
 };
@@ -90,7 +102,7 @@ export function useTokenExchangeRate(network: Networks, tokenId: string, fiat: T
     [network, tokenId, fiat]
   );
 
-  const { data, error, isLoading } = useSWR(arg, tokenExchangeRateFetcher, {
+  const { data, error, isLoading } = useSWR(tokenId ? arg : null, tokenExchangeRateFetcher, {
     use: [middleware],
     refreshInterval,
     refreshWhenHidden: false,

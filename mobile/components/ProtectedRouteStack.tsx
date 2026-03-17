@@ -167,36 +167,7 @@ export function ProtectedRouteStack() {
           }}
         />
         <Stack.Screen name="send" options={{ headerShown: false }} />
-        <Stack.Screen name="Swap" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="SwapTarget"
-          options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.6, 1.0],
-            sheetGrabberVisible: true,
-            headerTransparent: false,
-            gestureEnabled: true,
-            headerShown: false,
-            contentStyle: {
-              height: '100%',
-              backgroundColor: 'rgb(24, 32, 82)',
-            },
-          }}
-        />
-        <Stack.Screen
-          name="SwapDetails"
-          options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.8],
-            sheetGrabberVisible: true,
-            headerTransparent: false,
-            gestureEnabled: true,
-            headerShown: false,
-            contentStyle: {
-              height: '100%',
-            },
-          }}
-        />
+        <Stack.Screen name="transfer" options={{ headerShown: false }} />
         <Stack.Screen name="Onramp" options={{ headerShown: true }} />
         <Stack.Screen name="AskPassword" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen
@@ -248,6 +219,18 @@ export function ProtectedRouteStack() {
         />
         <Stack.Screen
           name="TransactionDetails"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            headerShown: false,
+            gestureEnabled: true,
+            contentStyle: {
+              backgroundColor: 'transparent',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="TransferDetails"
           options={{
             presentation: 'transparentModal',
             animation: 'fade',

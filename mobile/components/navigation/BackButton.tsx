@@ -12,7 +12,7 @@ interface BackButtonProps {
 const BackButton: React.FC<BackButtonProps> = ({ onPress, style }) => {
   const router = useRouter();
   return (
-    <Pressable style={[styles.backButton, style]} onPress={onPress ? onPress : () => router.back()} accessibilityLabel="Go back">
+    <Pressable style={[styles.backButton, style]} onPress={onPress ? onPress : () => router.back()} accessibilityLabel="Go back" testID="BackButton">
       <Ionicons name="chevron-back" size={24} color="#fff" />
     </Pressable>
   );

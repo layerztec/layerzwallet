@@ -1,5 +1,6 @@
 import assert from 'assert';
-import { describe, it } from 'vitest';
+import BigNumber from 'bignumber.js';
+import { describe, expect, it, test } from 'vitest';
 import { EvmWallet } from '../../class/evm-wallet';
 import { NETWORK_ROOTSTOCK } from '../../types/networks';
 import { AllNetworkInfos } from '../../models/all-network-infos';
@@ -246,5 +247,47 @@ describe('EvmWallet getHistory', () => {
     ];
 
     assert.deepEqual(combined, expected);
+  });
+});
+
+describe('EvmWallet getSendQuote', () => {
+  test('returns quote with fee on Rootstock', async (context) => {
+    if (!process.env.TEST_MNEMONIC) {
+      console.warn('TEST_MNEMONIC not set, skipping');
+      context.skip();
+      return;
+    }
+
+    const e = new EvmWallet();
+    e.network = NETWORK_ROOTSTOCK;
+    const fromAddress = EvmWallet.xpubToAddress(EvmWallet.mnemonicToXpub(process.env.TEST_MNEMONIC), 0);
+
+    const quote = await e.getSendQuote({
+      fromAddress,
+      toAddress: '0x0000000000000000000000000000000000000001',
+      amount: '10000000000000', // 0.00001 RBTC in wei
+    });
+
+    assert.ok(quote.fee, 'fee should be set');
+    assert.ok(new BigNumber(quote.fee).gt(0), 'fee should be > 0');
+    assert.equal(quote.feeTicker, 'RBTC');
+    assert.ok(quote._prepared, '_prepared should be set');
+    assert.equal(quote.request.toAddress, '0x0000000000000000000000000000000000000001');
+    assert.equal(quote.request.amount, '10000000000000');
+  });
+
+  test('throws on insufficient balance', async () => {
+    const e = new EvmWallet();
+    e.network = NETWORK_ROOTSTOCK;
+    const dummyMnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+    const fromAddress = EvmWallet.xpubToAddress(EvmWallet.mnemonicToXpub(dummyMnemonic), 9999);
+
+    await expect(
+      e.getSendQuote({
+        fromAddress,
+        toAddress: '0x0000000000000000000000000000000000000001',
+        amount: '1000000000000000000', // 1 RBTC — way more than 0 balance
+      })
+    ).rejects.toThrow('Insufficient RBTC balance');
   });
 });

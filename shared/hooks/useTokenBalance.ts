@@ -24,7 +24,7 @@ interface tokenBalanceFetcherArg {
 function keyCleanupMiddleware(useSWRNext: any) {
   return (key: any, fetcher: any, config: any) => {
     let newKey = key;
-    if (typeof key === 'object' && key.backgroundCaller) {
+    if (key && typeof key === 'object' && key.backgroundCaller) {
       newKey = Object.assign({}, key);
       delete newKey.backgroundCaller;
     }
@@ -122,7 +122,7 @@ export function useTokenBalance(network: Networks, accountNumber: number, tokenC
   }
 
   const arg: tokenBalanceFetcherArg = { cacheKey: 'tokenBalanceFetcher', accountNumber, network, tokenContractAddress, backgroundCaller };
-  const { data, error, isLoading } = useSWR(arg, tokenBalanceFetcher, {
+  const { data, error, isLoading } = useSWR(tokenContractAddress ? arg : null, tokenBalanceFetcher, {
     use: [keyCleanupMiddleware],
     refreshInterval,
     refreshWhenHidden: false,

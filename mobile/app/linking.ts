@@ -5,15 +5,7 @@ export default {
   config: {
     screens: {
       index: '',
-      home: {
-        path: 'home',
-        parse: {
-          showSwapInterface: (val: string) => val === 'true',
-          fromNetwork: (fromNetwork: string) => fromNetwork,
-          toNetwork: (toNetwork: string) => toNetwork,
-          amount: (amount: string) => amount,
-        },
-      },
+      home: 'home',
       SendBtc: [
         {
           path: 'send/btc',

@@ -1,6 +1,9 @@
 import React, { useContext, useImperativeHandle, forwardRef, useState, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import YieldRow from './YieldRow';
+import Pressable from './Pressable';
 
 import { ThemedText } from '@/components/ThemedText';
 import SectionContainer from '@/components/SectionContainer';
@@ -38,19 +41,40 @@ const YieldView = forwardRef<{ refresh: () => void }, { onYieldPress: (token: Yi
     },
   }));
 
-  // Don't render anything if no tokens discovered
-  if (safeYieldList.length === 0) {
-    return null;
+  if (hasVisibleTokens) {
+    return (
+      <SectionContainer title="Earn">
+        <View style={styles.tokensList}>
+          {safeYieldList.map((yieldToken) => (
+            <YieldRow key={yieldToken.id} token={yieldToken} onPress={onYieldPress} selected={selectedToken === yieldToken.id} onVisible={handleYieldVisible} network={network} />
+          ))}
+        </View>
+        {error ? <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText> : null}
+      </SectionContainer>
+    );
   }
 
   return (
-    <SectionContainer title="Earn" style={!hasVisibleTokens ? styles.hiddenSection : undefined}>
-      <View style={styles.tokensList}>
-        {safeYieldList.map((yieldToken) => (
-          <YieldRow key={yieldToken.id} token={yieldToken} onPress={onYieldPress} selected={selectedToken === yieldToken.id} onVisible={handleYieldVisible} network={network} />
-        ))}
-      </View>
-      {error ? <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText> : null}
+    <SectionContainer title="Earn">
+      <Pressable style={styles.promoContainer} onPress={() => router.push('/YieldList')} activeOpacity={0.7}>
+        <View style={styles.promoContent}>
+          <View style={styles.promoIconContainer}>
+            <Ionicons name="trending-up" size={22} color="#00ff6e" />
+          </View>
+          <View style={styles.promoTextContainer}>
+            <ThemedText style={styles.promoTitle}>Put your Bitcoin to work</ThemedText>
+            <ThemedText style={styles.promoSubtitle}>Earn yield across layers</ThemedText>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="rgba(255, 255, 255, 0.4)" />
+        </View>
+      </Pressable>
+      {safeYieldList.length > 0 && (
+        <View style={styles.hiddenSection}>
+          {safeYieldList.map((yieldToken) => (
+            <YieldRow key={yieldToken.id} token={yieldToken} onPress={onYieldPress} selected={selectedToken === yieldToken.id} onVisible={handleYieldVisible} network={network} />
+          ))}
+        </View>
+      )}
     </SectionContainer>
   );
 });
@@ -63,13 +87,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 100, 100, 0.8)',
     textAlign: 'center',
   },
-  emptyText: {
-    fontSize: 14,
-    color: 'white',
-    textAlign: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-  },
   tokensList: {
     gap: 16,
   },
@@ -79,6 +96,37 @@ const styles = StyleSheet.create({
     height: 0,
     width: 0,
     marginBottom: 0,
+  },
+  promoContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  promoContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  promoIconContainer: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(0, 255, 110, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  promoTextContainer: {
+    flex: 1,
+  },
+  promoTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  promoSubtitle: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: 'rgba(255, 255, 255, 0.4)',
+    marginTop: 2,
   },
 });
 
