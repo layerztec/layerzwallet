@@ -1,11 +1,11 @@
 import React from 'react';
-import { Platform, View, ViewStyle, StyleSheet } from 'react-native';
+import { Platform, View, ViewStyle, StyleProp, StyleSheet } from 'react-native';
 import { BlurView } from '@sbaiahmed1/react-native-blur';
 
 interface PlatformBlurViewProps {
   intensity?: number;
   tint?: 'light' | 'dark' | 'default' | 'systemChromeMaterial';
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   children?: React.ReactNode;
 }
 
@@ -40,8 +40,9 @@ const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({ intensity = 50, tin
   // Library default is 10, but we allow 0-100 range
   const blurAmount = Math.max(0, Math.min(100, intensity));
 
+  const flattenedStyle = StyleSheet.flatten(style) || {};
   // Extract style properties that need special handling
-  const { overflow, borderRadius, ...restStyle } = style || {};
+  const { overflow, borderRadius, ...restStyle } = flattenedStyle;
 
   // Android: Use simple transparency fallback to avoid hardware bitmap crashes
   // The library may work on Android with hardware acceleration, but we use fallback for safety
