@@ -87,6 +87,7 @@ export default function Home() {
     setNativeDepositSwapsFetcher((n, acc) => swapFetcher({ cacheKey: 'ndSwapFetcher', accountNumber: acc, network: n, backgroundCaller: BackgroundExecutor }));
   }, []);
   const { transactions, error: transactionsError, mutate: mutateTransactions } = useTransactionHistory(network, accountNumber, BackgroundExecutor, transferService);
+  const { balance: cachedBalance } = useCachedBalance(network, accountNumber);
   const scrollY = useSharedValue(0); // Scroll animation for sticky header
   const modalTranslateY = useSharedValue(0); // Modal state and animations
   const currentModalPosition = useSharedValue(0); // Track current modal position using shared value
@@ -100,7 +101,6 @@ export default function Home() {
   const [refreshOptions, setRefreshOptions] = useState<Partial<RefreshControlProps>>({});
   const settingsContext = useSettings();
   const hasBackedUpSeed = settingsContext.settings.seedBackedUp === 'ON';
-  const { balance: cachedBalance } = useCachedBalance(network, accountNumber);
 
   // Initialize modal position based on whether coming from onboarding
   useEffect(() => {

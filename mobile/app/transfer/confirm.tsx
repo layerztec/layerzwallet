@@ -16,6 +16,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useAssetExchangeRate } from '@shared/hooks/useAssetExchangeRate';
 import { AllNetworkInfos } from '@shared/models/all-network-infos';
 import { getAssetInfo } from '@shared/models/asset-info';
+import { sleep } from '@shared/modules/sleep';
 import { TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 import type { AssetId } from '@shared/types/asset';
 import type { SendQuote } from '@shared/types/send-quote';
@@ -153,6 +154,7 @@ export default function TransferConfirm() {
     }
     setIsConfirming(true);
     setError('');
+    await sleep(10);
 
     const execution = executionRef.current;
 

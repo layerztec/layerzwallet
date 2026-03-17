@@ -12,6 +12,7 @@ import TransferList from '@/components/transfer/TransferList';
 import TransferAmountSection from '@/components/transfer/TransferAmountSection';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Colors } from '@shared/constants/Colors';
+import { sleep } from '@shared/modules/sleep';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useAssetBalance } from '@shared/hooks/useAssetBalance';
 import { useAssetExchangeRate } from '@shared/hooks/useAssetExchangeRate';
@@ -35,6 +36,7 @@ export default function TransferInput() {
   const [quoteError, setQuoteError] = useState('');
   const [serviceWarnings, setServiceWarnings] = useState<{ service: string; message: string }[]>([]);
   const [pairInfo, setPairInfo] = useState<TransferPairInfo | undefined>();
+  const [isContinuing, setIsContinuing] = useState(false);
 
   const handleClose = () => {
     router.back();
@@ -180,6 +182,7 @@ export default function TransferInput() {
 
   // Auto-refetch quote when returning from confirm (quote cleared on confirm unmount)
   useEffect(() => {
+    if (!quote) setIsContinuing(false);
     if (!committed && !quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && sendAmount && parseFloat(sendAmount) > 0) {
       fetchQuoteFromSend(sendAmount);
     }
@@ -221,10 +224,11 @@ export default function TransferInput() {
 
   const canContinue = !!sendAsset && !!receiveAsset && !!quote && parseFloat(sendAmount) > 0 && !isQuoteLoading && !limitsError && !balanceError;
 
-  const handleContinue = () => {
-    if (canContinue) {
-      router.push('/transfer/confirm');
-    }
+  const handleContinue = async () => {
+    if (!canContinue || isContinuing) return;
+    setIsContinuing(true);
+    await sleep(10);
+    router.push('/transfer/confirm');
   };
 
   const handleTransferPress = (execution: TransferExecution) => {
