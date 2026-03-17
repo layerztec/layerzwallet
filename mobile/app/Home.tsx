@@ -1,20 +1,19 @@
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter, useSegments } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Dimensions, Platform, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
+import { Alert, Dimensions, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import Pressable from '../components/Pressable';
 
-import { ActionPopupButton } from '@/components/ActionPopupButton';
+import ActionButtons from '@/components/ActionButtons';
 import BackupWarning from '@/components/BackupWarning';
 import Balance from '@/components/Balance';
-import Button from '@/components/Button';
 import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
+import LiquidGlassView from '@/components/LiquidGlassView';
 import NftsView from '@/components/NftsView';
-import PlatformBlurView from '@/components/PlatformBlurView';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
 import StickyHeader from '@/components/StickyHeader';
 import { LayerzStorage } from '@/src/class/layerz-storage';
@@ -34,16 +33,13 @@ import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useSettings } from '@shared/hooks/useSettings';
 import { useTransactionHistory } from '@shared/hooks/useTransactionHistory';
 import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
-import { USDT_TOKENS } from '@shared/models/token-list';
 import { sleep } from '@shared/modules/sleep';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { NETWORK_ARK, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
-import { ReceiveTokenProps } from './Receive';
-import { SendTokenEvmProps } from './SendTokenEvm';
-import { SendParams } from './send';
 import { YieldBearingCachedTokenInfo } from '@shared/hooks/useYieldDiscovery';
+import { OnrampProps } from './Onramp';
 
 const Action = ({ network, text }: { network?: Networks; text: string }) => {
   const networkImage = network ? getNetworkImageAsset(network) : null;
@@ -68,6 +64,7 @@ export default function Home() {
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const router = useRouter();
+  const segments = useSegments();
   const params = useLocalSearchParams<HomeProps>();
   const transferService = useTransferService(LayerzStorage);
   useEffect(() => {
@@ -87,6 +84,21 @@ export default function Home() {
   const [refreshOptions, setRefreshOptions] = useState<Partial<RefreshControlProps>>({});
   const settingsContext = useSettings();
   const hasBackedUpSeed = settingsContext.settings.seedBackedUp === 'ON';
+
+  // Redirect to tabs if accessed via Stack route instead of Tabs route
+  useEffect(() => {
+    const isInTabs = segments.some((seg) => seg === '(tabs)');
+    if (!isInTabs && segments[0] === 'Home') {
+      router.replace('/(tabs)/home');
+    }
+  }, [segments, router]);
+
+  const handleFund = useCallback(() => {
+    BackgroundExecutor.getAddress(network, accountNumber).then((address) => {
+      const onrampParams: OnrampProps = { address, network };
+      router.push({ pathname: '/Onramp', params: onrampParams });
+    });
+  }, [network, accountNumber, router]);
 
   // Initialize modal position based on whether coming from onboarding
   useEffect(() => {
@@ -127,25 +139,6 @@ export default function Home() {
     });
   }, [networks, network]);
 
-  const handleSend = () => {
-    switch (network) {
-      case NETWORK_LIGHTNING:
-      case NETWORK_LIGHTNING_TESTNET:
-        router.push('/send/send-address-lightning');
-        break;
-      default:
-        router.push('/send');
-    }
-  };
-
-  const handleReceive = () => {
-    router.push('/Receive');
-  };
-
-  const handleNewTransfer = () => {
-    router.push('/transfer');
-  };
-
   const handleNetworkCardPress = (index: number) => {
     if (index >= 0 && index < networks.length) {
       const selectedNetwork = networks[index];
@@ -175,10 +168,6 @@ export default function Home() {
 
   const handleTransactionHistory = () => {
     router.push('/Transactions');
-  };
-
-  const handleExplorer = () => {
-    router.push('/DAppBrowser');
   };
 
   const handleTokenPress = (token: CachedTokenInfo) => {
@@ -222,10 +211,11 @@ export default function Home() {
   ];
 
   const handleTransactionDetails = (transaction: CommonTransaction) => {
-    if (transaction.transferExecution) {
+    const transferExecution = (transaction as any).transferExecution;
+    if (transferExecution) {
       router.push({
         pathname: '/TransferDetails',
-        params: { execution: JSON.stringify(transaction.transferExecution) },
+        params: { execution: JSON.stringify(transferExecution) },
       });
       return;
     }
@@ -257,53 +247,6 @@ export default function Home() {
       setRefreshing(false);
     }
   }, [mutateTransactions]);
-
-  const handleSendUSDTViaRootstock = (contractAddress: string) => () => {
-    const params: SendTokenEvmProps = { contractAddress, network: NETWORK_ROOTSTOCK };
-    router.push({ pathname: '/SendTokenEvm', params });
-  };
-
-  const handleSendUSDTViaLiquid = () => {
-    const params: SendParams = { token: USDT_TOKENS[NETWORK_LIQUID][0], network: NETWORK_LIQUID };
-    router.push({ pathname: '/send', params });
-  };
-
-  const handleSendUSDBViaSpark = () => {
-    const params: SendParams = { token: USDT_TOKENS[NETWORK_SPARK][0], network: NETWORK_SPARK };
-    router.push({ pathname: '/send', params });
-  };
-
-  // USDT send and receive actions
-  const usdtSendActions = [
-    { children: <Action network={NETWORK_ROOTSTOCK} text="Send USDT via Rootstock" />, onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][0]) },
-    { children: <Action network={NETWORK_ROOTSTOCK} text="Send USDT0 via Rootstock" />, onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][1]) },
-    { children: <Action network={NETWORK_ROOTSTOCK} text="Send rUSDT via Rootstock" />, onClick: handleSendUSDTViaRootstock(USDT_TOKENS[NETWORK_ROOTSTOCK][2]) },
-    { children: <Action network={NETWORK_LIQUID} text="Send USDT via Liquid" />, onClick: handleSendUSDTViaLiquid },
-    { children: <Action network={NETWORK_SPARK} text="Send USDB via Spark" />, onClick: handleSendUSDBViaSpark },
-    { children: <Action text="Cancel" />, onClick: () => {} },
-  ];
-
-  const handleReceiveTokenViaRootstock = () => {
-    const params: ReceiveTokenProps = { network: NETWORK_ROOTSTOCK };
-    router.push({ pathname: '/Receive', params });
-  };
-
-  const handleReceiveTokenViaLiquid = () => {
-    const params: ReceiveTokenProps = { network: NETWORK_LIQUID };
-    router.push({ pathname: '/Receive', params });
-  };
-
-  const handleReceiveTokenViaSpark = () => {
-    const params: ReceiveTokenProps = { network: NETWORK_SPARK };
-    router.push({ pathname: '/Receive', params });
-  };
-
-  const usdtReceiveActions = [
-    { children: <Action network={NETWORK_ROOTSTOCK} text="Receive via Rootstock" />, onClick: handleReceiveTokenViaRootstock },
-    { children: <Action network={NETWORK_LIQUID} text="Receive via Liquid" />, onClick: handleReceiveTokenViaLiquid },
-    { children: <Action network={NETWORK_SPARK} text="Receive via Spark" />, onClick: handleReceiveTokenViaSpark },
-    { children: <Action text="Cancel" />, onClick: () => {} },
-  ];
 
   // Handle scroll events for sticky header animation
   const handleScroll = useAnimatedScrollHandler({
@@ -388,14 +331,18 @@ export default function Home() {
           <View style={[styles.root, styles.contentWithHeader]}>
             {/* Network Selector */}
             <View style={styles.networkSelectorContainer}>
-              <Pressable testID="NetworkSwitcherTrigger" style={styles.networkSelector} onPress={handleNetworkSelect} activeOpacity={0.8}>
-                <View testID={`selectedNetwork-${network}`} style={styles.networkIcon}>
-                  {networkIconContent}
-                </View>
-                <ThemedText style={styles.networkName}>{capitalizeFirstLetter(network)}</ThemedText>
-                <Pressable onPress={handleNetworkSelect} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
-                  <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.8)" />
-                </Pressable>
+              <Pressable testID="NetworkSwitcherTrigger" onPress={handleNetworkSelect} activeOpacity={0.8}>
+                <LiquidGlassView tint="light" glassStyle="clear" intensity={1} borderIntensity={0.2} style={styles.networkSelectorGlass}>
+                  <View style={styles.networkSelector}>
+                    <View testID={`selectedNetwork-${network}`} style={styles.networkIcon}>
+                      {networkIconContent}
+                    </View>
+                    <ThemedText style={styles.networkName}>{capitalizeFirstLetter(network)}</ThemedText>
+                    <Pressable onPress={handleNetworkSelect} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
+                      <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.8)" />
+                    </Pressable>
+                  </View>
+                </LiquidGlassView>
               </Pressable>
             </View>
 
@@ -408,6 +355,9 @@ export default function Home() {
 
             {/* Balance Section */}
             <Balance ref={balanceRef} />
+
+            {/* Action Buttons Section */}
+            <ActionButtons onFundPress={handleFund} />
 
             {/* Seed Backup Warning */}
             {hasBackedUpSeed === false && <BackupWarning onPress={handleBackupSeed} />}
@@ -423,62 +373,11 @@ export default function Home() {
 
             {/* Transactions Section */}
             <TransactionsList transactions={latestTransactions} error={transactionsError} onTransactionPress={handleTransactionDetails} onViewHistory={handleTransactionHistory} />
-
-            {/* Explorer Button */}
-            <Button title="Explore" onPress={handleExplorer} variant="lighter" style={styles.explorerButton} testID="ExplorerButton" />
           </View>
         </RadialGradientScreen>
 
         {/* White Flash Overlay for Network Transition */}
         <Animated.View style={[styles.whiteFlashOverlayAnimated, whiteFlashAnimatedStyle]} />
-
-        {/* Bottom Navigation - Fixed to modal bottom */}
-        <View style={styles.bottomNavigationContainer}>
-          <View style={styles.bottomNavigation}>
-            <View style={styles.navContainer}>
-              <PlatformBlurView intensity={40} tint="light" style={styles.navBlur} />
-
-              {network === NETWORK_USDT ? (
-                <Pressable style={styles.navButtonLarge} testID="SendButton" onPress={() => router.push({ pathname: '/send/send-address-usdt' } as any)} activeOpacity={0.8}>
-                  <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
-                  <ThemedText style={styles.navButtonText}>Send</ThemedText>
-                </Pressable>
-              ) : (
-                <Pressable style={styles.navButtonLarge} testID="SendButton" onPress={handleSend} activeOpacity={0.8}>
-                  <MaterialIcons name="call-made" size={24} color="rgba(255, 255, 255, 0.8)" />
-                  <ThemedText style={styles.navButtonText}>Send</ThemedText>
-                </Pressable>
-              )}
-
-              {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
-                <Pressable style={styles.navButtonLarge} testID="ReceiveButton" onPress={() => router.push('/ReceiveOnLightningAddress')} activeOpacity={0.8}>
-                  <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
-                  <ThemedText style={styles.navButtonText}>Receive</ThemedText>
-                </Pressable>
-              ) : network === NETWORK_USDT ? (
-                <ActionPopupButton actions={usdtReceiveActions} title="Layer to receive">
-                  <Pressable style={styles.navButtonLarge} testID="ReceiveButton" activeOpacity={0.8}>
-                    <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
-                    <ThemedText style={styles.navButtonText}>Receive</ThemedText>
-                  </Pressable>
-                </ActionPopupButton>
-              ) : (
-                <Pressable style={styles.navButtonLarge} testID="ReceiveButton" onPress={handleReceive} activeOpacity={0.8}>
-                  <MaterialIcons name="call-received" size={24} color="rgba(255, 255, 255, 0.8)" />
-                  <ThemedText style={styles.navButtonText}>Receive</ThemedText>
-                </Pressable>
-              )}
-            </View>
-
-            <View style={styles.swapButton}>
-              <PlatformBlurView intensity={40} tint="light" style={styles.navBlur} />
-              <Pressable style={styles.swapButtonInner} onPress={handleNewTransfer} activeOpacity={0.8} testID="SwapButton">
-                <Ionicons name="swap-horizontal" size={22} color="rgba(255, 255, 255, 0.8)" />
-                <ThemedText style={styles.navButtonText}>Transfer</ThemedText>
-              </Pressable>
-            </View>
-          </View>
-        </View>
       </Animated.View>
     </GestureHandlerRootView>
   );
@@ -515,7 +414,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     paddingHorizontal: 18,
-    paddingBottom: 180, // Account for bottom nav (68px) + safe area (34px) + Android navbar + extra scroll space
+    paddingBottom: 100, // Safe area + extra scroll space
   },
   contentWithHeader: {
     paddingTop: 80,
@@ -523,15 +422,19 @@ const styles = StyleSheet.create({
   networkSelectorContainer: {
     alignSelf: 'flex-start',
     marginTop: 0,
+    marginBottom: 16,
+  },
+  networkSelectorGlass: {
+    borderRadius: 16,
+    backgroundColor: 'transparent',
   },
   networkSelector: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 11,
-    paddingVertical: 9,
-    borderRadius: 16,
-    marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 56,
+    backgroundColor: 'transparent',
   },
   networkIcon: {
     width: 36,
@@ -550,61 +453,6 @@ const styles = StyleSheet.create({
   networkImage: {
     width: 24,
     height: 24,
-  },
-  explorerButton: {
-    marginBottom: 20,
-  },
-  bottomNavigationContainer: {
-    position: 'absolute',
-    bottom: Platform.OS === 'android' ? 54 : 34, // Extra padding on Android for system navbar
-    left: 0,
-    right: 0,
-  },
-  bottomNavigation: {
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  navContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    borderRadius: 40,
-    height: 68,
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingHorizontal: 20,
-    overflow: 'hidden',
-  },
-  navButtonLarge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    justifyContent: 'center',
-    height: '100%',
-  },
-  navButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  swapButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 40,
-    height: 68,
-    width: 121,
-    overflow: 'hidden',
-  },
-  swapButtonInner: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  navBlur: {
-    ...StyleSheet.absoluteFillObject,
   },
   testnetWarning: {
     backgroundColor: 'rgba(245, 158, 11, 0.15)',

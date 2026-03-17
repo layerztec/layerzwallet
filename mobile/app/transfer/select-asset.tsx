@@ -12,7 +12,7 @@ import { useSetting } from '@shared/hooks/useSettings';
 import { getAssetInfo } from '@shared/models/asset-info';
 import { getIsTestnet } from '@shared/models/network-getters';
 import { AssetId } from '@shared/types/asset';
-import { useTransferFlow } from './_layout';
+import { useTransferFlow } from '@/src/transfer/TransferFlowContext';
 
 export type SelectAssetParams = {
   side: 'send' | 'receive';

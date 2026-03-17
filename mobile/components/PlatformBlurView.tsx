@@ -76,9 +76,8 @@ const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({ intensity = 50, tin
         restStyle,
       ]}
     >
-      <BlurView blurType={blurType} blurAmount={blurAmount} style={StyleSheet.absoluteFill} ignoreSafeArea={false}>
-        {children}
-      </BlurView>
+      <BlurView blurType={blurType} blurAmount={blurAmount} style={StyleSheet.absoluteFill} ignoreSafeArea={false} />
+      {children}
     </View>
   );
 };

@@ -351,7 +351,7 @@ const DAppBrowser: React.FC = () => {
   useEffect(() => {
     navigation.setOptions({
       headerShown: showTabsOverview,
-      title: 'Tabs',
+      title: 'Explorer',
       headerBackVisible: false,
       headerTransparent: true,
       headerBlurEffect: 'dark',

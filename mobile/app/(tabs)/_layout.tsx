@@ -24,7 +24,7 @@ export default function TabsLayout() {
           <Icon sf="house.fill" src={require('@/assets/images/ui/layerz.png')} drawable="home" />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="swaps">
-          <Label>Swaps</Label>
+          <Label>Transfer</Label>
           <Icon sf="arrow.triangle.2.circlepath" src={require('@/assets/images/ui/swap.png')} drawable="swap_horiz" />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="explorer">
@@ -57,7 +57,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="swaps"
         options={{
-          title: 'Swaps',
+          title: 'Transfer',
           tabBarIcon: ({ size }) => <Image source={require('@/assets/images/ui/swap.png')} style={{ width: size, height: size }} contentFit="contain" />,
         }}
       />

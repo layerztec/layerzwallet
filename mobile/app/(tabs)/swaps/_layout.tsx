@@ -3,7 +3,7 @@ import React from 'react';
 
 import { TransferFlowProvider } from '@/src/transfer/TransferFlowContext';
 
-export default function TransferLayout() {
+export default function SwapsTabLayout() {
   return (
     <TransferFlowProvider>
       <Stack

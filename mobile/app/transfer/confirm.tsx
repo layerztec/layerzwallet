@@ -20,7 +20,7 @@ import { TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 import type { AssetId } from '@shared/types/asset';
 import type { SendQuote } from '@shared/types/send-quote';
 import type { TransferExecution } from '@shared/types/transfer';
-import { useTransferFlow } from './_layout';
+import { useTransferFlow } from '@/src/transfer/TransferFlowContext';
 
 const DISMISS_THRESHOLD = 150;
 const CLAIM_OPTIONS_HEIGHT = 40 * 2; // 2 option rows
@@ -162,7 +162,7 @@ export default function TransferConfirm() {
         if (execution && transferService.commitTransfer) {
           await transferService.commitTransfer(execution).catch(() => {});
         }
-        router.replace('/transfer/success');
+        router.replace('/(tabs)/swaps/success');
         return;
       }
 
@@ -182,7 +182,7 @@ export default function TransferConfirm() {
         await transferService.commitTransfer(execution).catch(() => {});
       }
 
-      router.replace('/transfer/success');
+      router.replace('/(tabs)/swaps/success');
     } catch (e: any) {
       setError(e.message || 'Failed to send funds');
     } finally {
