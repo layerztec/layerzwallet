@@ -13,7 +13,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { getDecimalsByNetwork, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
-import { getTokenIconColor, getTokenInfoSafe } from '@shared/models/token-list';
+import { getTokenIconColor, getTokenInfo } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
@@ -33,6 +33,14 @@ export default function TransactionDetails() {
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const [confirmationEta, setConfirmationEta] = useState<string>('');
   const router = useRouter();
+
+  const getTokenInfoSafe = (id: string | undefined) => {
+    try {
+      return getTokenInfo(id);
+    } catch {
+      return undefined;
+    }
+  };
 
   // Animation values
   const descriptionOpacity = useSharedValue(0);

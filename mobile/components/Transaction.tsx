@@ -9,7 +9,7 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { getTokenIconColor, getTokenInfoSafe } from '@shared/models/token-list';
+import { getTokenIconColor, getTokenInfo } from '@shared/models/token-list';
 
 interface TransactionProps {
   transaction: CommonTransaction;
@@ -26,6 +26,14 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
   const isZeroAmountWithSingleToken = useMemo(() => {
     return !transaction.amount && transaction.tokenTransfers?.length === 1;
   }, [transaction.amount, transaction.tokenTransfers]);
+
+  const getTokenInfoSafe = (id: string | undefined) => {
+    try {
+      return getTokenInfo(id);
+    } catch {
+      return undefined;
+    }
+  };
 
   const singleTokenInfo = useMemo(() => {
     if (isZeroAmountWithSingleToken && transaction.tokenTransfers?.[0]) {
