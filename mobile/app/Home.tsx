@@ -167,10 +167,8 @@ export default function Home() {
 
     const hasBalance = cachedBalance !== undefined && parseInt(cachedBalance) > 0;
     if (hasBalance) {
-      console.log('hasBalance', hasBalance);
       router.push({ pathname: '/transfer', params: { sendAsset: nativeId } });
     } else {
-      console.log('no balance', hasBalance);
       router.push({ pathname: '/transfer', params: { receiveAsset: nativeId } });
     }
   };
