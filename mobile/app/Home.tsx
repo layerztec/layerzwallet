@@ -32,13 +32,26 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useSettings } from '@shared/hooks/useSettings';
+import { useCachedBalance } from '@shared/hooks/useCachedBalance';
 import { useTransactionHistory } from '@shared/hooks/useTransactionHistory';
 import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { USDT_TOKENS } from '@shared/models/token-list';
 import { sleep } from '@shared/modules/sleep';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { NETWORK_ARK, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
+import { isAssetId } from '@shared/models/asset-info';
+import {
+  NETWORK_ARK,
+  NETWORK_BITCOIN,
+  NETWORK_LIGHTNING,
+  NETWORK_LIGHTNING_TESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_ROOTSTOCK,
+  NETWORK_SPARK,
+  NETWORK_USDT,
+  Networks,
+} from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { ReceiveTokenProps } from './Receive';
 import { SendTokenEvmProps } from './SendTokenEvm';
@@ -87,6 +100,7 @@ export default function Home() {
   const [refreshOptions, setRefreshOptions] = useState<Partial<RefreshControlProps>>({});
   const settingsContext = useSettings();
   const hasBackedUpSeed = settingsContext.settings.seedBackedUp === 'ON';
+  const { balance: cachedBalance } = useCachedBalance(network, accountNumber);
 
   // Initialize modal position based on whether coming from onboarding
   useEffect(() => {
@@ -143,7 +157,22 @@ export default function Home() {
   };
 
   const handleNewTransfer = () => {
-    router.push('/transfer');
+    const nativeId = `native:${network}`;
+    const hasNativeAsset = isAssetId(nativeId);
+
+    if (network === NETWORK_BITCOIN || !hasNativeAsset) {
+      router.push('/transfer');
+      return;
+    }
+
+    const hasBalance = cachedBalance !== undefined && parseInt(cachedBalance) > 0;
+    if (hasBalance) {
+      console.log('hasBalance', hasBalance);
+      router.push({ pathname: '/transfer', params: { sendAsset: nativeId } });
+    } else {
+      console.log('no balance', hasBalance);
+      router.push({ pathname: '/transfer', params: { receiveAsset: nativeId } });
+    }
   };
 
   const handleNetworkCardPress = (index: number) => {

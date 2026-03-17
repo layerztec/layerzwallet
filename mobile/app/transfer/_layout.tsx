@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 import { LayerzStorage } from '@/src/class/layerz-storage';
@@ -36,8 +36,10 @@ export function useTransferFlow() {
 }
 
 function TransferFlowProvider({ children }: { children: ReactNode }) {
-  const [sendAsset, setSendAsset] = useState<AssetId | undefined>('native:bitcoin');
-  const [receiveAsset, setReceiveAsset] = useState<AssetId | undefined>(undefined);
+  const params = useLocalSearchParams<{ sendAsset?: string; receiveAsset?: string }>();
+
+  const [sendAsset, setSendAsset] = useState<AssetId | undefined>((params.sendAsset as AssetId) || 'native:bitcoin');
+  const [receiveAsset, setReceiveAsset] = useState<AssetId | undefined>((params.receiveAsset as AssetId) || undefined);
   const [quote, setQuote] = useState<TransferQuote | undefined>(undefined);
   const [committed, setCommitted] = useState(false);
   const transferService = useTransferService(LayerzStorage);
