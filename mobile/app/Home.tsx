@@ -6,7 +6,6 @@ import { Alert, Dimensions, Platform, RefreshControl, RefreshControlProps, Style
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import Pressable from '../components/Pressable';
 
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import BackupWarning from '@/components/BackupWarning';
@@ -39,7 +38,6 @@ import { USDT_TOKENS } from '@shared/models/token-list';
 import { sleep } from '@shared/modules/sleep';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { isAssetId } from '@shared/models/asset-info';
 import {
   NETWORK_ARK,
   NETWORK_BITCOIN,
@@ -56,7 +54,9 @@ import { CachedTokenInfo } from '@shared/types/token-info';
 import { ReceiveTokenProps } from './Receive';
 import { SendTokenEvmProps } from './SendTokenEvm';
 import { SendParams } from './send';
+import Pressable from '../components/Pressable';
 import { YieldBearingCachedTokenInfo } from '@shared/hooks/useYieldDiscovery';
+import { AssetId } from '@shared/types/asset';
 
 const Action = ({ network, text }: { network?: Networks; text: string }) => {
   const networkImage = network ? getNetworkImageAsset(network) : null;
@@ -157,10 +157,9 @@ export default function Home() {
   };
 
   const handleNewTransfer = () => {
-    const nativeId = `native:${network}`;
-    const hasNativeAsset = isAssetId(nativeId);
+    const nativeId: AssetId = `native:${network}`;
 
-    if (network === NETWORK_BITCOIN || !hasNativeAsset) {
+    if (network === NETWORK_BITCOIN) {
       router.push('/transfer');
       return;
     }
