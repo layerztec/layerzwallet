@@ -6,7 +6,6 @@ import { Alert, Dimensions, Platform, RefreshControl, RefreshControlProps, Style
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import Pressable from '../components/Pressable';
 
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import BackupWarning from '@/components/BackupWarning';
@@ -32,18 +31,32 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useSettings } from '@shared/hooks/useSettings';
+import { useCachedBalance } from '@shared/hooks/useCachedBalance';
 import { useTransactionHistory } from '@shared/hooks/useTransactionHistory';
 import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { USDT_TOKENS } from '@shared/models/token-list';
 import { sleep } from '@shared/modules/sleep';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { NETWORK_ARK, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
+import {
+  NETWORK_ARK,
+  NETWORK_BITCOIN,
+  NETWORK_LIGHTNING,
+  NETWORK_LIGHTNING_TESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_ROOTSTOCK,
+  NETWORK_SPARK,
+  NETWORK_USDT,
+  Networks,
+} from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { ReceiveTokenProps } from './Receive';
 import { SendTokenEvmProps } from './SendTokenEvm';
 import { SendParams } from './send';
+import Pressable from '../components/Pressable';
 import { YieldBearingCachedTokenInfo } from '@shared/hooks/useYieldDiscovery';
+import { AssetId } from '@shared/types/asset';
 
 const Action = ({ network, text }: { network?: Networks; text: string }) => {
   const networkImage = network ? getNetworkImageAsset(network) : null;
@@ -74,6 +87,7 @@ export default function Home() {
     setNativeDepositSwapsFetcher((n, acc) => swapFetcher({ cacheKey: 'ndSwapFetcher', accountNumber: acc, network: n, backgroundCaller: BackgroundExecutor }));
   }, []);
   const { transactions, error: transactionsError, mutate: mutateTransactions } = useTransactionHistory(network, accountNumber, BackgroundExecutor, transferService);
+  const { balance: cachedBalance } = useCachedBalance(network, accountNumber);
   const scrollY = useSharedValue(0); // Scroll animation for sticky header
   const modalTranslateY = useSharedValue(0); // Modal state and animations
   const currentModalPosition = useSharedValue(0); // Track current modal position using shared value
@@ -143,7 +157,19 @@ export default function Home() {
   };
 
   const handleNewTransfer = () => {
-    router.push('/transfer');
+    const nativeId: AssetId = `native:${network}`;
+
+    if (network === NETWORK_BITCOIN) {
+      router.push('/transfer');
+      return;
+    }
+
+    const hasBalance = cachedBalance !== undefined && parseInt(cachedBalance) > 0;
+    if (hasBalance) {
+      router.push({ pathname: '/transfer', params: { sendAsset: nativeId } });
+    } else {
+      router.push({ pathname: '/transfer', params: { receiveAsset: nativeId } });
+    }
   };
 
   const handleNetworkCardPress = (index: number) => {
