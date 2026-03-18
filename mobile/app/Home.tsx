@@ -451,8 +451,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   networkImage: {
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
   },
   testnetWarning: {
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
@@ -546,6 +546,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     color: 'white',
+    alignSelf: 'center',
   },
   maestroSettingsButton: {
     position: 'absolute',

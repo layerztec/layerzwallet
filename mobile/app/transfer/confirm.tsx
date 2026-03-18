@@ -162,7 +162,7 @@ export default function TransferConfirm() {
         if (execution && transferService.commitTransfer) {
           await transferService.commitTransfer(execution).catch(() => {});
         }
-        router.replace('/(tabs)/swaps/success');
+        router.replace('/modals/transfer-success');
         return;
       }
 
@@ -182,7 +182,7 @@ export default function TransferConfirm() {
         await transferService.commitTransfer(execution).catch(() => {});
       }
 
-      router.replace('/(tabs)/swaps/success');
+      router.replace('/modals/transfer-success');
     } catch (e: any) {
       setError(e.message || 'Failed to send funds');
     } finally {

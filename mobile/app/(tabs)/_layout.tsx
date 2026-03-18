@@ -52,6 +52,8 @@ export default function TabsLayout() {
         options={{
           title: 'Layerz',
           tabBarIcon: ({ size }) => <Image source={require('@/assets/images/ui/layerz.png')} style={{ width: size, height: size }} contentFit="contain" />,
+          tabBarButtonTestID: 'Tab-home',
+          tabBarAccessibilityLabel: 'Tab-home',
         }}
       />
       <Tabs.Screen
@@ -59,6 +61,8 @@ export default function TabsLayout() {
         options={{
           title: 'Transfer',
           tabBarIcon: ({ size }) => <Image source={require('@/assets/images/ui/swap.png')} style={{ width: size, height: size }} contentFit="contain" />,
+          tabBarButtonTestID: 'Tab-swaps',
+          tabBarAccessibilityLabel: 'Tab-swaps',
         }}
       />
       <Tabs.Screen
@@ -66,6 +70,8 @@ export default function TabsLayout() {
         options={{
           title: 'Explorer',
           tabBarIcon: ({ size }) => <Image source={require('@/assets/images/ui/explorer.png')} style={{ width: size, height: size }} contentFit="contain" />,
+          tabBarButtonTestID: 'Tab-explorer',
+          tabBarAccessibilityLabel: 'Tab-explorer',
         }}
       />
     </Tabs>

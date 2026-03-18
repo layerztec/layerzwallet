@@ -15,9 +15,13 @@ appId: com.layerzwallet.mobile
     id: 'NetworkSwitcherTrigger'
 - waitForAnimationToEnd
 
-# Navigate to Explorer tab (3rd tab: Layerz | Swaps | Explorer). Native tab bar does not expose testID.
+# Navigate to Explorer tab (3rd tab: Layerz | Transfer | Explorer).
 - tapOn:
-    point: '83%, 95%'
+    id: 'Tab-explorer'
+    optional: true
+- tapOn:
+    text: 'Explorer'
+    optional: true
 - waitForAnimationToEnd
 - waitForAnimationToEnd
 # Wait for browser to fully load (JS loaded)

@@ -27,6 +27,7 @@ import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
 import { ProtectedRouteStack } from '@/components/ProtectedRouteStack';
 import { ActionPopupProvider } from '@/contexts/ActionPopupContext';
 import { appendLog, applogFilePath, handleError } from '@/src/modules/error-handler';
+import { TransferFlowProvider } from '@/src/transfer/TransferFlowContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -113,7 +114,9 @@ export default function RootLayout() {
                     <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                       <ActionPopupProvider>
                         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                          <ProtectedRouteStack />
+                          <TransferFlowProvider>
+                            <ProtectedRouteStack />
+                          </TransferFlowProvider>
                           <StatusBar style="light" />
                         </ThemeProvider>
                       </ActionPopupProvider>

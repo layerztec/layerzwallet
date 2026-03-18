@@ -36,11 +36,11 @@ export default function TransferInput() {
   const [pairInfo, setPairInfo] = useState<TransferPairInfo | undefined>();
 
   const handleSendAssetPress = () => {
-    router.push({ pathname: '/(tabs)/swaps/select-asset', params: { side: 'send' } });
+    router.push({ pathname: '/modals/transfer-select-asset', params: { side: 'send' } });
   };
 
   const handleReceiveAssetPress = () => {
-    router.push({ pathname: '/(tabs)/swaps/select-asset', params: { side: 'receive' } });
+    router.push({ pathname: '/modals/transfer-select-asset', params: { side: 'receive' } });
   };
 
   const fetchQuoteFromSend = useCallback(
@@ -209,7 +209,7 @@ export default function TransferInput() {
 
   const handleContinue = () => {
     if (canContinue) {
-      router.push('/(tabs)/swaps/confirm');
+      router.push('/modals/transfer-confirm');
     }
   };
 

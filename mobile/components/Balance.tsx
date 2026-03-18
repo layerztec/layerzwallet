@@ -408,10 +408,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   balanceNetworkImage: {
-    width: 20,
-    height: 20,
+    width: 18,
+    height: 18,
     alignSelf: 'center',
-    marginTop: 4,
   },
   balanceNetworkIcon: {
     width: 30,
