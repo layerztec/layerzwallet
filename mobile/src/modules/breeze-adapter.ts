@@ -1,6 +1,7 @@
 import type * as JSAPI from '@breeztech/breez-sdk-liquid';
 import * as RNAPI from '@breeztech/breez-sdk-liquid-react-native';
 import * as Crypto from 'expo-crypto';
+import { Directory, Paths } from 'expo-file-system';
 
 import { BreezConnection, IBreezAdapter, getAssertMetadata } from '@shared/class/wallets/breez-wallet';
 
@@ -342,6 +343,14 @@ const sha256 = async (mnemonic: string): Promise<string> => {
   return await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, mnemonic);
 };
 
+const toFileSystemPath = (uri: string): string => uri.replace(/^file:\/\//, '');
+
+const getWorkingDir = async (mnemonic: string): Promise<string> => {
+  const walletDir = new Directory(Paths.document, 'breez-liquid', await sha256(mnemonic));
+  walletDir.create({ idempotent: true, intermediates: true });
+  return toFileSystemPath(walletDir.uri);
+};
+
 class BreezAdapter implements IBreezAdapter {
   private cc: BreezConnection | undefined;
   private sdk?: RNAPI.BindingLiquidSdkInterface;
@@ -374,9 +383,8 @@ class BreezAdapter implements IBreezAdapter {
     this.sdk = undefined;
 
     const config = RNAPI.defaultConfig(LIQUID_NETWORK_TO_RN[connection.network], API_KEY);
-    config.workingDir = `${config.workingDir}/${await sha256(connection.mnemonic)}`;
+    config.workingDir = await getWorkingDir(connection.mnemonic);
     config.assetMetadata = getAssertMetadata(connection.network).map(convertAssetMetadataToRn);
-
     this.sdk = RNAPI.connect({
       mnemonic: connection.mnemonic,
       passphrase: undefined,
