@@ -1,5 +1,5 @@
-import { ArkadeLightning, BoltzSwapProvider, decodeInvoice } from '@arkade-os/boltz-swap';
-import { ArkAddress, Ramps, SingleKey, TxType, VtxoManager, Wallet } from '@arkade-os/sdk';
+import { ArkadeSwaps, BoltzSwapProvider, PendingSwap, decodeInvoice } from '@arkade-os/boltz-swap';
+import { ArkAddress, ArkTransaction, ExtendedCoin, ExtendedVirtualCoin, Ramps, SingleKey, TxType, VtxoManager, Wallet } from '@arkade-os/sdk';
 import { ExpoArkProvider, ExpoIndexerProvider } from '@arkade-os/sdk/adapters/expo';
 import ecc from '@bitcoinerlab/secp256k1';
 import assert from 'assert';
@@ -17,14 +17,400 @@ import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 
 const bip32 = BIP32Factory(ecc);
 
+const ARK_STORAGE_PREFIX = 'ark-sdk-v2';
+
+type StoredContract = {
+  label?: string;
+  type: string;
+  params: Record<string, string>;
+  script: string;
+  address: string;
+  state: 'active' | 'inactive';
+  createdAt: number;
+  expiresAt?: number;
+  metadata?: Record<string, unknown>;
+};
+
+type ContractFilter = {
+  script?: string | string[];
+  state?: StoredContract['state'] | StoredContract['state'][];
+  type?: string | string[];
+};
+
+type WalletState = {
+  lastSyncTime?: number;
+  settings?: Record<string, any>;
+};
+
+type PendingSwapFilter = {
+  id?: string | string[];
+  status?: PendingSwap['status'] | PendingSwap['status'][];
+  type?: PendingSwap['type'] | PendingSwap['type'][];
+  orderBy?: 'createdAt';
+  orderDirection?: 'asc' | 'desc';
+};
+
+/**
+ * Merge persisted and freshly fetched SDK records without creating duplicates.
+ *
+ * the SDK writes data over time as wallet state changes. We need one place that
+ * says "keep the latest value for each logical record" so our simple storage
+ * does not accumulate duplicate VTXOs, UTXOs or transactions forever.
+ */
+const mergeByKey = <T>(existing: T[], incoming: T[], toKey: (value: T) => string): T[] => {
+  const next = new Map<string, T>();
+
+  existing.forEach((value) => next.set(toKey(value), value));
+  incoming.forEach((value) => next.set(toKey(value), value));
+
+  return [...next.values()];
+};
+
+/**
+ * Small helper that scopes app storage to one Ark wallet instance.
+ *
+ * the same app can hold multiple Ark accounts and even different Ark servers.
+ * This wrapper prevents their persisted SDK state from overwriting each other.
+ */
+class NamespacedStorage {
+  private readonly namespace: string;
+
+  constructor(
+    private readonly storage: IStorage,
+    serverUrl: string,
+    accountNumber: number
+  ) {
+    const networkId = serverUrl.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'ark';
+    this.namespace = `${ARK_STORAGE_PREFIX}:${networkId}:account_${accountNumber}`;
+  }
+
+  private key(suffix: string) {
+    return `${this.namespace}:${suffix}`;
+  }
+
+  async readJson<T>(suffix: string, fallback: T): Promise<T> {
+    const raw = await this.storage.getItem(this.key(suffix));
+    if (!raw) return fallback;
+
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return fallback;
+    }
+  }
+
+  async writeJson(suffix: string, value: unknown): Promise<void> {
+    await this.storage.setItem(this.key(suffix), JSON.stringify(value));
+  }
+}
+
+/**
+ * Minimal wallet repository implementation expected by the Ark SDK.
+ *
+ * the SDK wants repository objects, while this app stores data in a simpler
+ * key-value backend. This class bridges that mismatch just enough for the SDK
+ * to persist new wallet state going forward.
+ */
+class LayerzWalletRepository {
+  readonly version = 1 as const;
+
+  constructor(private readonly storage: NamespacedStorage) {}
+
+  /**
+   * Clear all cached SDK wallet state for this Ark wallet only.
+   *
+   * a reset should wipe just this account/server combination, not unrelated
+   * wallets stored elsewhere in the app.
+   */
+  async clear(): Promise<void> {
+    const addresses = await this.getTrackedAddresses();
+    await Promise.all(
+      addresses.flatMap((address) => [
+        this.storage.writeJson(`wallet:vtxos:${address}`, []),
+        this.storage.writeJson(`wallet:utxos:${address}`, []),
+        this.storage.writeJson(`wallet:txs:${address}`, []),
+      ])
+    );
+    await this.storage.writeJson('wallet:addresses', []);
+    await this.storage.writeJson('wallet:state', null);
+  }
+
+  async getVtxos(address: string): Promise<ExtendedVirtualCoin[]> {
+    return this.storage.readJson<ExtendedVirtualCoin[]>(`wallet:vtxos:${address}`, []);
+  }
+
+  async saveVtxos(address: string, vtxos: ExtendedVirtualCoin[]): Promise<void> {
+    const existing = await this.getVtxos(address);
+    await this.trackAddress(address);
+    await this.storage.writeJson(
+      `wallet:vtxos:${address}`,
+      mergeByKey(existing, vtxos, (item) => `${item.txid}:${item.vout}`)
+    );
+  }
+
+  async deleteVtxos(address: string): Promise<void> {
+    await this.storage.writeJson(`wallet:vtxos:${address}`, []);
+  }
+
+  async getUtxos(address: string): Promise<ExtendedCoin[]> {
+    return this.storage.readJson<ExtendedCoin[]>(`wallet:utxos:${address}`, []);
+  }
+
+  async saveUtxos(address: string, utxos: ExtendedCoin[]): Promise<void> {
+    const existing = await this.getUtxos(address);
+    await this.trackAddress(address);
+    await this.storage.writeJson(
+      `wallet:utxos:${address}`,
+      mergeByKey(existing, utxos, (item) => `${item.txid}:${item.vout}`)
+    );
+  }
+
+  async deleteUtxos(address: string): Promise<void> {
+    await this.storage.writeJson(`wallet:utxos:${address}`, []);
+  }
+
+  async getTransactionHistory(address: string): Promise<ArkTransaction[]> {
+    return this.storage.readJson<ArkTransaction[]>(`wallet:txs:${address}`, []);
+  }
+
+  /**
+   * Merge new transaction snapshots into persisted history for one address.
+   *
+   * the same Ark transaction may be seen many times as its status evolves.
+   * We want an upsert behavior, not duplicate entries in local history.
+   */
+  async saveTransactions(address: string, txs: ArkTransaction[]): Promise<void> {
+    const existing = await this.getTransactionHistory(address);
+    await this.trackAddress(address);
+    await this.storage.writeJson(
+      `wallet:txs:${address}`,
+      mergeByKey(existing, txs, (tx) => `${tx.key.boardingTxid}:${tx.key.commitmentTxid}:${tx.key.arkTxid}`)
+    );
+  }
+
+  async deleteTransactions(address: string): Promise<void> {
+    await this.storage.writeJson(`wallet:txs:${address}`, []);
+  }
+
+  async getWalletState(): Promise<WalletState | null> {
+    return this.storage.readJson<WalletState | null>('wallet:state', null);
+  }
+
+  async saveWalletState(state: WalletState): Promise<void> {
+    await this.storage.writeJson('wallet:state', state);
+  }
+
+  async [Symbol.asyncDispose](): Promise<void> {
+    // no-op
+  }
+
+  private async getTrackedAddresses(): Promise<string[]> {
+    return this.storage.readJson<string[]>('wallet:addresses', []);
+  }
+
+  private async trackAddress(address: string): Promise<void> {
+    const addresses = await this.getTrackedAddresses();
+    if (addresses.includes(address)) return;
+    await this.storage.writeJson('wallet:addresses', [...addresses, address]);
+  }
+}
+
+/**
+ * Minimal swap repository for Ark <-> Lightning swap state.
+ *
+ * the Boltz swap library needs persistence for in-flight swaps.
+ */
+class LayerzSwapRepository {
+  readonly version = 1 as const;
+
+  constructor(private readonly storage: NamespacedStorage) {}
+
+  /**
+   * Save or update a swap in the bucket that matches its type.
+   *
+   * swap records change status over time, so later writes should replace the
+   * earlier version with the same id instead of appending duplicates.
+   */
+  async saveSwap<T extends PendingSwap>(swap: T): Promise<void> {
+    const swaps = await this.readSwaps<T>(swap.type);
+    const index = swaps.findIndex((existingSwap) => existingSwap.id === swap.id);
+
+    if (index === -1) {
+      swaps.push(swap);
+    } else {
+      swaps[index] = swap;
+    }
+
+    await this.writeSwaps(swap.type, swaps);
+  }
+
+  /**
+   * Delete a swap by id without requiring the caller to know its type first.
+   *
+   * many call sites only know the id and should not need extra bookkeeping for
+   * whether the swap was reverse, submarine or chain.
+   */
+  async deleteSwap(id: string): Promise<void> {
+    for (const type of this.allSwapTypes()) {
+      const swaps = await this.readSwaps(type);
+      await this.writeSwaps(
+        type,
+        swaps.filter((swap) => swap.id !== id)
+      );
+    }
+  }
+
+  /**
+   * Recreate the small subset of query behavior the swap SDK expects.
+   *
+   * we replaced a heavier repository implementation with key-value storage, so
+   * this method preserves only the filtering/sorting behavior the wallet uses.
+   */
+  async getAllSwaps<T extends PendingSwap>(filter?: PendingSwapFilter): Promise<T[]> {
+    let swaps: PendingSwap[] = [...(await this.readSwaps('reverse')), ...(await this.readSwaps('submarine')), ...(await this.readSwaps('chain'))];
+
+    if (filter?.id) {
+      const ids = Array.isArray(filter.id) ? filter.id : [filter.id];
+      swaps = swaps.filter((swap) => ids.includes(swap.id));
+    }
+
+    if (filter?.status) {
+      const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
+      swaps = swaps.filter((swap) => statuses.includes(swap.status));
+    }
+
+    if (filter?.type) {
+      const types = Array.isArray(filter.type) ? filter.type : [filter.type];
+      swaps = swaps.filter((swap) => types.includes(swap.type));
+    }
+
+    if (filter?.orderBy === 'createdAt') {
+      swaps.sort((a, b) => a.createdAt - b.createdAt);
+      if (filter.orderDirection !== 'asc') swaps.reverse();
+    }
+
+    return swaps as T[];
+  }
+
+  async clear(): Promise<void> {
+    for (const type of this.allSwapTypes()) {
+      await this.writeSwaps(type, []);
+    }
+  }
+
+  async [Symbol.asyncDispose](): Promise<void> {
+    // no-op
+  }
+
+  /**
+   * Read one swap bucket and discard anything that does not look like a swap.
+   *
+   * bad persisted data should not crash swap recovery or invoice checks.
+   */
+  private async readSwaps<T extends PendingSwap>(type: PendingSwap['type']): Promise<T[]> {
+    const parsed = await this.storage.readJson<PendingSwap[]>(`swaps:${type}`, []);
+    return parsed.filter((swap): swap is T => !!swap && typeof swap === 'object' && 'id' in swap && 'type' in swap);
+  }
+
+  private async writeSwaps(type: PendingSwap['type'], swaps: PendingSwap[]): Promise<void> {
+    await this.storage.writeJson(`swaps:${type}`, swaps);
+  }
+
+  private allSwapTypes(): PendingSwap['type'][] {
+    return ['reverse', 'submarine', 'chain'];
+  }
+}
+
+/**
+ * Small contract repository used by the Ark SDK contract manager.
+ *
+ * Ark Lightning and contract watching rely on persisted contracts, but this
+ * project does not use the SDK's heavier storage backends here.
+ */
+class LayerzContractRepository {
+  readonly version = 1 as const;
+
+  constructor(private readonly storage: NamespacedStorage) {}
+
+  async clear(): Promise<void> {
+    await this.writeContracts([]);
+  }
+
+  /**
+   * Return saved contracts with optional filtering.
+   *
+   * the SDK contract manager loads all contracts at startup and also asks for
+   * narrower subsets when updating or deleting specific entries.
+   */
+  async getContracts(filter?: ContractFilter): Promise<StoredContract[]> {
+    const contracts = await this.readContracts();
+    if (!filter) return contracts;
+
+    return contracts.filter((contract) => {
+      return this.matches(contract.script, filter.script) && this.matches(contract.state, filter.state) && this.matches(contract.type, filter.type);
+    });
+  }
+
+  /**
+   * Upsert a contract using its script as the stable identifier.
+   *
+   * scripts uniquely identify contracts in the SDK, so updates need to replace
+   * by script rather than creating multiple copies of the same contract.
+   */
+  async saveContract(contract: StoredContract): Promise<void> {
+    const contracts = await this.readContracts();
+    const nextContracts = contracts.filter((existingContract) => existingContract.script !== contract.script);
+    nextContracts.push(contract);
+    await this.writeContracts(nextContracts);
+  }
+
+  async deleteContract(script: string): Promise<void> {
+    const contracts = await this.readContracts();
+    await this.writeContracts(contracts.filter((contract) => contract.script !== script));
+  }
+
+  async [Symbol.asyncDispose](): Promise<void> {
+    // no-op
+  }
+
+  private matches<T>(value: T, criterion?: T | T[]): boolean {
+    if (criterion === undefined) return true;
+    return Array.isArray(criterion) ? criterion.includes(value) : value === criterion;
+  }
+
+  /**
+   * Read all persisted contracts and keep only structurally valid entries.
+   *
+   * if cached storage contains junk, we prefer to skip it and let the wallet
+   * rebuild useful state rather than fail during startup.
+   */
+  private async readContracts(): Promise<StoredContract[]> {
+    const parsed = await this.storage.readJson<StoredContract[]>('contracts', []);
+    return parsed.filter(
+      (contract): contract is StoredContract =>
+        !!contract &&
+        typeof contract === 'object' &&
+        typeof contract.script === 'string' &&
+        typeof contract.address === 'string' &&
+        typeof contract.type === 'string' &&
+        typeof contract.createdAt === 'number'
+    );
+  }
+
+  private async writeContracts(contracts: StoredContract[]): Promise<void> {
+    await this.storage.writeJson('contracts', contracts);
+  }
+}
+
 export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet {
   private _wallet: Wallet | undefined = undefined;
-  private _arkadeLightning: ArkadeLightning | undefined = undefined;
+  private _arkadeLightning: ArkadeSwaps | undefined = undefined;
   private _arkServerUrl: string = 'https://mutinynet.arkade.sh';
   private _arkServerPublicKey: string = '03fa73c6e4876ffb2dfc961d763cca9abc73d4b88efcb8f5e7ff92dc55e9aa553d';
   private _boltzApiUrl: string = '';
   protected _accountNumber: number = 0;
   private _manager: VtxoManager | undefined = undefined;
+  private _arkStorage: IStorage | undefined = undefined;
 
   setAccountNumber(value: number) {
     this._accountNumber = value;
@@ -63,31 +449,20 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   }
 
   async init(layerzStorage: IStorage) {
+    this._arkStorage = layerzStorage;
+    this._arkadeLightning = undefined;
+
     const identity = this._getIdentity();
-
-    class ArkCustomStorage {
-      async getItem(key: string): Promise<string | null> {
-        return await layerzStorage.getItem(key);
-      }
-
-      async setItem(key: string, value: string): Promise<void> {
-        return await layerzStorage.setItem(key, value);
-      }
-
-      async removeItem(key: string): Promise<void> {
-        // nop
-      }
-
-      async clear(): Promise<void> {
-        // nop
-      }
-    }
-
-    const storage = new ArkCustomStorage();
+    const storage = new NamespacedStorage(layerzStorage, this._arkServerUrl, this._accountNumber);
+    const walletRepository = new LayerzWalletRepository(storage);
+    const contractRepository = new LayerzContractRepository(storage);
 
     const wallet = await Wallet.create({
-      storage,
       identity,
+      storage: {
+        walletRepository,
+        contractRepository,
+      },
       arkProvider: new ExpoArkProvider(this._arkServerUrl),
       indexerProvider: new ExpoIndexerProvider(this._arkServerUrl),
       arkServerPublicKey: this._arkServerPublicKey,
@@ -101,18 +476,19 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
 
   async initLightningSwaps() {
     assert(this._wallet, 'Ark wallet must be initialized first');
+    assert(this._arkStorage, 'Ark wallet storage is not initialized');
     assert(this._boltzApiUrl, 'Boltz Api Url is not set');
 
-    // Initialize the Lightning swap provider
     const swapProvider = new BoltzSwapProvider({
       apiUrl: this._boltzApiUrl,
-      network: 'bitcoin',
+      network: this._arkServerUrl.includes('mutiny') ? 'mutinynet' : 'bitcoin',
     });
 
-    // Create the ArkadeLightning instance
-    this._arkadeLightning = new ArkadeLightning({
+    this._arkadeLightning = await ArkadeSwaps.create({
       wallet: this._wallet,
       swapProvider,
+      swapRepository: new LayerzSwapRepository(new NamespacedStorage(this._arkStorage, this._arkServerUrl, this._accountNumber)),
+      swapManager: false,
     });
   }
 
