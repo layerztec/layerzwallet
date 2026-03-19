@@ -361,7 +361,7 @@ describe('getTrackingUrl', () => {
 
   it('returns Garden explorer URL when providerId exists', () => {
     const url = service.getTrackingUrl(makeExecution({ providerId: 'order-xyz' }));
-    expect(url).toBe('https://garden.finance/explorer/?order=order-xyz');
+    expect(url).toBe('https://explorer.garden.finance/order/order-xyz');
   });
 
   it('returns undefined when providerId is missing', () => {

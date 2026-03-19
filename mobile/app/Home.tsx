@@ -6,7 +6,6 @@ import { Alert, Dimensions, RefreshControl, RefreshControlProps, StyleSheet, Vie
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import Pressable from '../components/Pressable';
 
 import ActionButtons from '@/components/ActionButtons';
 import BackupWarning from '@/components/BackupWarning';
@@ -40,6 +39,7 @@ import { NETWORK_ARK, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { YieldBearingCachedTokenInfo } from '@shared/hooks/useYieldDiscovery';
 import { OnrampProps } from './Onramp';
+import Pressable from '../components/Pressable';
 
 const Action = ({ network, text }: { network?: Networks; text: string }) => {
   const networkImage = network ? getNetworkImageAsset(network) : null;

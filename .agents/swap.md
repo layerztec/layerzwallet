@@ -54,7 +54,7 @@ getTrackingUrl?(execution): string | undefined
 - **API**: `shared/services/garden-api.ts` — `api.garden.finance/v2`, auth via `garden-app-id` header
 - **Mappings**: `shared/services/garden-mappings.ts`
 - **Decimals**: bitcoin=8, botanix=18 (BigNumber.js conversion)
-- **Tracking**: `garden.finance/explorer/?order={providerId}`
+- **Tracking**: `explorer.garden.finance/order/{providerId}`
 - Conditional on `EXPO_PUBLIC_GARDEN_APP_ID` env var
 
 ### Symbiosis (`shared/services/transfer-service-symbiosis.ts`)

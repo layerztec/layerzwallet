@@ -11,6 +11,7 @@ import TransferList from '@/components/transfer/TransferList';
 import TransferAmountSection from '@/components/transfer/TransferAmountSection';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Colors } from '@shared/constants/Colors';
+import { sleep } from '@shared/modules/sleep';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useAssetBalance } from '@shared/hooks/useAssetBalance';
 import { useAssetExchangeRate } from '@shared/hooks/useAssetExchangeRate';
@@ -21,7 +22,7 @@ import { useTransferFlow } from '@/src/transfer/TransferFlowContext';
 
 export default function TransferInput() {
   const router = useRouter();
-  const { sendAsset, receiveAsset, quote, setQuote, transferService } = useTransferFlow();
+  const { sendAsset, receiveAsset, quote, committed, setQuote, setCommitted, transferService } = useTransferFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance: sendBalance } = useAssetBalance(sendAsset, accountNumber, BackgroundExecutor);
   const [sendAmount, setSendAmount] = useState<string>('');
@@ -34,6 +35,7 @@ export default function TransferInput() {
   const [quoteError, setQuoteError] = useState('');
   const [serviceWarnings, setServiceWarnings] = useState<{ service: string; message: string }[]>([]);
   const [pairInfo, setPairInfo] = useState<TransferPairInfo | undefined>();
+  const [isContinuing, setIsContinuing] = useState(false);
 
   const handleSendAssetPress = () => {
     router.push({ pathname: '/modals/transfer-select-asset', params: { side: 'send' } });
@@ -164,9 +166,19 @@ export default function TransferInput() {
     }
   }, [sendAsset, receiveAsset]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Clear input state after a successful transfer so the user can't accidentally re-submit
+  useEffect(() => {
+    if (committed) {
+      setSendAmount('');
+      setReceiveAmount('');
+      setCommitted(false);
+    }
+  }, [committed]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Auto-refetch quote when returning from confirm (quote cleared on confirm unmount)
   useEffect(() => {
-    if (!quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && sendAmount && parseFloat(sendAmount) > 0) {
+    if (!quote) setIsContinuing(false);
+    if (!committed && !quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && sendAmount && parseFloat(sendAmount) > 0) {
       fetchQuoteFromSend(sendAmount);
     }
   }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -207,10 +219,11 @@ export default function TransferInput() {
 
   const canContinue = !!sendAsset && !!receiveAsset && !!quote && parseFloat(sendAmount) > 0 && !isQuoteLoading && !limitsError && !balanceError;
 
-  const handleContinue = () => {
-    if (canContinue) {
-      router.push('/modals/transfer-confirm');
-    }
+  const handleContinue = async () => {
+    if (!canContinue || isContinuing) return;
+    setIsContinuing(true);
+    await sleep(10);
+    router.push('/modals/transfer-confirm');
   };
 
   const handleTransferPress = (execution: TransferExecution) => {

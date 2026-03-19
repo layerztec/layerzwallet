@@ -8,6 +8,9 @@
 # - Verify confirm details: Rate, Fee, Est. time, Expiry, Provider=Fake
 # - Confirm transfer
 # - Verify success screen
+# - Dismiss success → verify inputs are cleared (no accidental double-submit)
+# - Error case: amount=1 triggers TestError
+# - Second swap with 0.02: verify full flow works again after state reset
 
 appId: com.layerzwallet.mobile
 ---
@@ -166,10 +169,16 @@ appId: com.layerzwallet.mobile
     point: '50%,10%'
 - waitForAnimationToEnd
 
+# --- Verify inputs are cleared after successful transfer (no double-submit) ---
+- extendedWaitUntil:
+    visible:
+      id: 'TransferContinueButton'
+      enabled: false
+    timeout: 5000
+
 # --- Error case: amount=1 triggers TestError ---
 - tapOn:
     id: 'TransferSend-input'
-- eraseText: 4
 - inputText: '1'
 
 # Dismiss keyboard
@@ -186,3 +195,52 @@ appId: com.layerzwallet.mobile
 - assertVisible:
     id: 'TransferContinueButton'
     enabled: false
+
+# --- Second swap: verify full flow works again after state reset ---
+- tapOn:
+    id: 'TransferSend-input'
+- eraseText: 1
+- inputText: '0.02'
+
+# Dismiss keyboard
+- tapOn: 'Receive'
+
+# Wait for quote and Continue to become enabled
+- extendedWaitUntil:
+    visible:
+      id: 'TransferContinueButton'
+      enabled: true
+    timeout: 15000
+
+# Continue to confirm
+- tapOn:
+    id: 'TransferContinueButton'
+- waitForAnimationToEnd
+
+# Wait for confirm screen
+- extendedWaitUntil:
+    visible:
+      id: 'TransferConfirmButton'
+    timeout: 15000
+
+# Confirm transfer
+- tapOn:
+    id: 'TransferConfirmButton'
+
+# Verify success
+- extendedWaitUntil:
+    visible:
+      id: 'TransferSuccessText'
+    timeout: 15000
+
+# Dismiss success
+- tapOn:
+    point: '50%,10%'
+- waitForAnimationToEnd
+
+# Verify inputs cleared again
+- extendedWaitUntil:
+    visible:
+      id: 'TransferContinueButton'
+      enabled: false
+    timeout: 5000
