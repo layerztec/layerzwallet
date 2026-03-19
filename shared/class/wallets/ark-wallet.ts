@@ -2,6 +2,8 @@ import { ArkadeSwaps, BoltzSwapProvider, PendingSwap, decodeInvoice } from '@ark
 import { ArkAddress, ArkTransaction, ExtendedCoin, ExtendedVirtualCoin, Ramps, SingleKey, TxType, VtxoManager, Wallet } from '@arkade-os/sdk';
 import { ExpoArkProvider, ExpoIndexerProvider } from '@arkade-os/sdk/adapters/expo';
 import ecc from '@bitcoinerlab/secp256k1';
+import { sha256 } from '@noble/hashes/sha256';
+import { bytesToHex } from '@noble/hashes/utils';
 import assert from 'assert';
 import BIP32Factory from 'bip32';
 import * as bip39 from 'bip39';
@@ -80,7 +82,7 @@ class NamespacedStorage {
     serverUrl: string,
     accountNumber: number
   ) {
-    const networkId = serverUrl.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'ark';
+    const networkId = bytesToHex(sha256(serverUrl)).slice(0, 16);
     this.namespace = `${ARK_STORAGE_PREFIX}:${networkId}:account_${accountNumber}`;
   }
 
