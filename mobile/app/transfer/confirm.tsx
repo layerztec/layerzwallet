@@ -16,6 +16,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useAssetExchangeRate } from '@shared/hooks/useAssetExchangeRate';
 import { AllNetworkInfos } from '@shared/models/all-network-infos';
 import { getAssetInfo } from '@shared/models/asset-info';
+import { sleep } from '@shared/modules/sleep';
 import { TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 import type { AssetId } from '@shared/types/asset';
 import type { SendQuote } from '@shared/types/send-quote';
@@ -28,7 +29,7 @@ const CLAIM_OPTIONS_HEIGHT = 40 * 2; // 2 option rows
 export default function TransferConfirm() {
   const router = useRouter();
   const { height: screenHeight } = useWindowDimensions();
-  const { sendAsset, receiveAsset, quote, setQuote, transferService } = useTransferFlow();
+  const { sendAsset, receiveAsset, quote, setQuote, setCommitted, transferService } = useTransferFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const { exchangeRate: sendRate } = useAssetExchangeRate(sendAsset);
   const { exchangeRate: receiveRate } = useAssetExchangeRate(receiveAsset);
@@ -153,6 +154,7 @@ export default function TransferConfirm() {
     }
     setIsConfirming(true);
     setError('');
+    await sleep(10);
 
     const execution = executionRef.current;
 
@@ -162,6 +164,7 @@ export default function TransferConfirm() {
         if (execution && transferService.commitTransfer) {
           await transferService.commitTransfer(execution).catch(() => {});
         }
+        setCommitted(true);
         router.replace('/transfer/success');
         return;
       }
@@ -182,6 +185,7 @@ export default function TransferConfirm() {
         await transferService.commitTransfer(execution).catch(() => {});
       }
 
+      setCommitted(true);
       router.replace('/transfer/success');
     } catch (e: any) {
       setError(e.message || 'Failed to send funds');

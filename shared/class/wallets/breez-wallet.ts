@@ -152,7 +152,7 @@ export class BreezWallet implements InterfaceLightningWallet, InterfaceSendQuota
   async createLightningInvoice(amountSats: number, memo: string): Promise<createLightningInvoiceResponse> {
     // Step 1: Prepare receive payment to get fee information
     const prepareRequest: PrepareReceiveRequest = {
-      paymentMethod: 'lightning',
+      paymentMethod: 'bolt11Invoice',
       amount: { type: 'bitcoin', payerAmountSat: amountSats },
     };
 
