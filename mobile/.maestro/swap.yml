@@ -101,14 +101,13 @@ appId: com.layerzwallet.mobile
 # Try search first, then fall back to scrolling the list.
 - tapOn:
     id: 'SelectAssetSearch'
-    optional: true
+  optional: true
 - inputText: 'botanix'
-    optional: true
 - extendedWaitUntil:
     visible:
       id: 'TransferAsset-native:botanix_testnet'
     timeout: 4000
-    optional: true
+  optional: true
 - scrollUntilVisible:
     element:
       id: 'TransferAsset-native:botanix_testnet'
