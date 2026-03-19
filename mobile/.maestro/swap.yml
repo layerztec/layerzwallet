@@ -97,17 +97,6 @@ appId: com.layerzwallet.mobile
 - extendedWaitUntil:
     visible: 'Select'
     timeout: 5000
-# Some iOS builds don't expose TextInput testIDs reliably inside this sheet.
-# Try search first, then fall back to scrolling the list.
-- tapOn:
-    id: 'SelectAssetSearch'
-  optional: true
-- inputText: 'botanix'
-- extendedWaitUntil:
-    visible:
-      id: 'TransferAsset-native:botanix_testnet'
-    timeout: 4000
-  optional: true
 - scrollUntilVisible:
     element:
       id: 'TransferAsset-native:botanix_testnet'
