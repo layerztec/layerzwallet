@@ -20,7 +20,7 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useFocusEffect } from '@react-navigation/native';
-import { NETWORK_BITCOIN, NETWORK_CITREA } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_ROOTSTOCK } from '@shared/types/networks';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import { DAppBrowserTabs } from './DAppBrowserTabs';
@@ -1353,7 +1353,7 @@ const DAppBrowser: React.FC = () => {
 
                           // Otherwise treat it as an app search and open the first match.
                           const q = raw.toLowerCase();
-                          const partners = [...getPartnersList(NETWORK_BITCOIN), ...getPartnersList(NETWORK_CITREA)];
+                          const partners = [...getPartnersList(NETWORK_BITCOIN), ...getPartnersList(NETWORK_BOTANIX), ...getPartnersList(NETWORK_ROOTSTOCK), ...getPartnersList(NETWORK_CITREA)];
                           const first = partners.find((p) => `${p.name} ${p.description ?? ''}`.toLowerCase().includes(q));
                           if (first?.url) {
                             void openWebAppInNewTab(first.url);

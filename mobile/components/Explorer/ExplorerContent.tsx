@@ -12,10 +12,10 @@ import type { PartnerInfo } from '@shared/types/partner-info';
 import { getTokenInfo } from '@shared/models/token-list';
 import { YIELD_TOKEN_DEFINITIONS_BY_NETWORK } from '@shared/hooks/useYieldDiscovery';
 import type { Networks } from '@shared/types/networks';
-import { NETWORK_BITCOIN, NETWORK_CITREA } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_ROOTSTOCK } from '@shared/types/networks';
 import type { TokenInfo } from '@shared/types/token-info';
 
-export type ExplorerCategory = 'all' | 'bitcoin' | 'lightning' | 'arkade' | 'citrea';
+export type ExplorerCategory = 'all' | 'bitcoin' | 'botanix' | 'rootstock' | 'citrea';
 
 const getCategoryLabel = (category: ExplorerCategory): string => {
   switch (category) {
@@ -23,10 +23,10 @@ const getCategoryLabel = (category: ExplorerCategory): string => {
       return 'All';
     case 'bitcoin':
       return 'Bitcoin';
-    case 'lightning':
-      return 'Lightning';
-    case 'arkade':
-      return 'Arkade';
+    case 'botanix':
+      return 'Botanix';
+    case 'rootstock':
+      return 'Rootstock';
     case 'citrea':
       return 'Citrea';
     default:
@@ -38,15 +38,14 @@ const getPartnersForCategory = (category: ExplorerCategory): PartnerInfo[] => {
   switch (category) {
     case 'bitcoin':
       return getPartnersList(NETWORK_BITCOIN);
-    // MVP: match website behavior for `network=lightning` which returns the same as bitcoin partners.
-    case 'lightning':
-      return getPartnersList(NETWORK_BITCOIN);
-    case 'arkade':
-      return [];
+    case 'botanix':
+      return getPartnersList(NETWORK_BOTANIX);
+    case 'rootstock':
+      return getPartnersList(NETWORK_ROOTSTOCK);
     case 'citrea':
       return getPartnersList(NETWORK_CITREA);
     case 'all':
-      return [...getPartnersForCategory('bitcoin'), ...getPartnersForCategory('citrea')];
+      return [...getPartnersForCategory('bitcoin'), ...getPartnersForCategory('botanix'), ...getPartnersForCategory('rootstock'), ...getPartnersForCategory('citrea')];
     default:
       return [];
   }
@@ -62,7 +61,7 @@ export type ExplorerContentProps = {
 export default function ExplorerContent({ category, query, onChangeCategory, onOpenWebApp }: ExplorerContentProps) {
   const router = useRouter();
   const basePartners = useMemo(() => getPartnersForCategory(category), [category]);
-  const allPartners = useMemo(() => [...getPartnersList(NETWORK_BITCOIN), ...getPartnersList(NETWORK_CITREA)], []);
+  const allPartners = useMemo(() => [...getPartnersList(NETWORK_BITCOIN), ...getPartnersList(NETWORK_BOTANIX), ...getPartnersList(NETWORK_ROOTSTOCK), ...getPartnersList(NETWORK_CITREA)], []);
 
   const filteredPartners = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -148,8 +147,8 @@ export default function ExplorerContent({ category, query, onChangeCategory, onO
             [
               { key: 'all', label: 'See all' },
               { key: 'bitcoin', label: 'Bitcoin' },
-              { key: 'lightning', label: 'Lightning' },
-              { key: 'arkade', label: 'Arkade' },
+              { key: 'botanix', label: 'Botanix' },
+              { key: 'rootstock', label: 'Rootstock' },
               { key: 'citrea', label: 'Citrea' },
             ] as const
           ).map((c) => (
