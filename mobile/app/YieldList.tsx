@@ -13,8 +13,16 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useYieldDiscovery, YieldBearingCachedTokenInfo, YIELD_TOKEN_DEFINITIONS_BY_NETWORK } from '@shared/hooks/useYieldDiscovery';
 import { getTokenInfo } from '@shared/models/token-list';
+import { AssetId } from '@shared/types/asset';
 import { NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { router } from 'expo-router';
+
+const USDB_YIELD_TOKEN_ID = 'btkn1xgrvjwey5ngcagvap2dzzvsy4uk8ua9x69k82dwvt5e7ef9drm9qztux87';
+/** Transfer screen: BTC-Spark → Spark USDB (Flashnet) */
+const TRANSFER_TO_USDB: { sendAsset: AssetId; receiveAsset: AssetId } = {
+  sendAsset: 'native:spark',
+  receiveAsset: 'token:spark:usdb',
+};
 
 type YieldWithNetwork = YieldBearingCachedTokenInfo & { network: Networks };
 
@@ -52,11 +60,10 @@ export default function YieldListScreen() {
 
   const filteredAvailableYields = useMemo(() => availableYields.filter((def) => !visibleAllocatedIds.has(def.tokenId.toLowerCase())), [visibleAllocatedIds]);
 
-  const handleYieldPress = async (_token: YieldBearingCachedTokenInfo) => {
-    console.log('handleYieldPress', _token);
+  // Extract all possible yielding tokens into one flat array
+  const allYieldTokens = Object.values(YIELD_TOKEN_DEFINITIONS_BY_NETWORK).flatMap((defs) => defs ?? []);
 
-    // TODO: configure somewhere once the list grows and we have better idea how we gona handle
-    // swaps to yield-bearing tokens
+  const handleYieldPress = async (_token: YieldBearingCachedTokenInfo) => {
     switch (_token.id) {
       case '0xF4586028FFdA7Eca636864F80f8a3f2589E33795':
         // botanix yield
@@ -64,18 +71,20 @@ export default function YieldListScreen() {
         await new Promise((res) => setTimeout(res, 100)); // propagate network change
         router.push({ pathname: '/DAppBrowser', params: { url: 'https://yield.botanixlabs.com' } });
         break;
-      case 'btkn1xgrvjwey5ngcagvap2dzzvsy4uk8ua9x69k82dwvt5e7ef9drm9qztux87':
-        // USDB from Flashnet
-        // TODO: trigger swap to USDB when implemented
+      case USDB_YIELD_TOKEN_ID:
+        router.push({
+          pathname: '/transfer',
+          params: { sendAsset: TRANSFER_TO_USDB.sendAsset, receiveAsset: TRANSFER_TO_USDB.receiveAsset },
+        });
         break;
     }
   };
 
   return (
     <RadialGradientScreen network={network} scroll={true}>
-      <ScreenHeader title="Yield" />
+      <ScreenHeader title="Earn" />
       <View style={styles.list}>
-        <SectionContainer title="Allocated">
+        <SectionContainer title="Allocated" contentStyle={styles.sectionRows}>
           {allYields.map((yieldToken) => (
             <YieldRow
               key={yieldToken.id}
@@ -86,10 +95,11 @@ export default function YieldListScreen() {
               onVisible={() => handleYieldVisible(yieldToken.id.toLowerCase())}
             />
           ))}
+          {filteredAvailableYields.length === allYieldTokens.length && <ThemedText style={styles.noAllocatedYields}>Nothing allocated yet</ThemedText>}
         </SectionContainer>
 
         {filteredAvailableYields.length > 0 && (
-          <SectionContainer title="Available">
+          <SectionContainer title="Available" contentStyle={styles.sectionRows}>
             {filteredAvailableYields.map((def) => {
               const networkIcon = getNetworkImageAsset(def.network);
               return (
@@ -118,9 +128,15 @@ export default function YieldListScreen() {
 }
 
 const styles = StyleSheet.create({
+  noAllocatedYields: {
+    paddingLeft: 16,
+  },
   list: {
     paddingTop: 16,
     paddingHorizontal: 16,
+    gap: 16,
+  },
+  sectionRows: {
     gap: 16,
   },
   availableRow: {
