@@ -20,12 +20,15 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useFocusEffect } from '@react-navigation/native';
-import { NETWORK_BITCOIN } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_CITREA } from '@shared/types/networks';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import { DAppBrowserTabs } from './DAppBrowserTabs';
 import { useWebViewPreviewManager } from './hooks/useWebViewPreviewManager';
 import PlatformBlurView from '@/components/PlatformBlurView';
+import ExplorerContent, { ExplorerCategory } from '@/components/Explorer/ExplorerContent';
+import { getPartnersList } from '@shared/models/partners-list';
+import type { PartnerInfo } from '@shared/types/partner-info';
 
 export const BROWSER_CONSTANTS = {
   ANIMATION: {
@@ -153,11 +156,18 @@ const DAppBrowser: React.FC = () => {
   const [js, setJs] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const params = useLocalSearchParams<DappBrowserProps>();
+  const [viewMode, setViewMode] = useState<'explorer' | 'browser'>(() => (params.url ? 'browser' : 'explorer'));
+  const [explorerCategory, setExplorerCategory] = useState<ExplorerCategory>('bitcoin');
+  const viewModeRef = useRef(viewMode);
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+  }, [viewMode]);
+  const explorerPlaceholder = 'Search on Bitcoin';
   const initialUrl = params.url || getHomeUrl(network);
   const [tabs, setTabs] = useState<BrowserTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string>('');
   const [isRestoringTabs, setIsRestoringTabs] = useState<boolean>(true);
-  const [addressInput, setAddressInput] = useState<string>(initialUrl);
+  const [addressInput, setAddressInput] = useState<string>(() => (params.url ? initialUrl : ''));
   const [showTabsOverview, setShowTabsOverview] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isAddressInputFocused, setIsAddressInputFocused] = useState(false);
@@ -402,6 +412,7 @@ const DAppBrowser: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (viewMode !== 'browser') return;
     (async () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -476,7 +487,7 @@ const DAppBrowser: React.FC = () => {
         setError('Failed to load DApp browser script: ' + error.message);
       }
     })();
-  }, [network, setAddressBarValue]);
+  }, [viewMode, network, setAddressBarValue]);
 
   const isPurgingRef = useRef(false);
   const hasPurgedRef = useRef(false);
@@ -713,13 +724,21 @@ const DAppBrowser: React.FC = () => {
         setActiveTabId(restored.activeTabId);
         const activeTab = restored.tabs.find((t) => t.id === restored.activeTabId);
         if (activeTab) {
-          setAddressBarValue(activeTab.url, { ensureStartVisible: true });
+          if (viewModeRef.current === 'browser') {
+            setAddressBarValue(activeTab.url, { ensureStartVisible: true });
+          } else {
+            setAddressInput('');
+          }
         }
       } else {
         const initialTab = createHomeTab(network);
         setTabs([initialTab]);
         setActiveTabId(initialTab.id);
-        setAddressBarValue(initialTab.url, { ensureStartVisible: true });
+        if (viewModeRef.current === 'browser') {
+          setAddressBarValue(initialTab.url, { ensureStartVisible: true });
+        } else {
+          setAddressInput('');
+        }
       }
 
       setIsRestoringTabs(false);
@@ -755,6 +774,7 @@ const DAppBrowser: React.FC = () => {
 
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      if (viewMode !== 'browser') return;
       if (nextAppState === 'background' || nextAppState === 'inactive') {
         if (activeTabId) {
           await captureTabScreenshot(activeTabId);
@@ -764,7 +784,7 @@ const DAppBrowser: React.FC = () => {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
-  }, [activeTabId, captureTabScreenshot]);
+  }, [activeTabId, captureTabScreenshot, viewMode]);
 
   useEffect(() => {
     if (params.url && !isRestoringTabs && tabs.length > 0 && lastHandledUrl.current !== params.url) {
@@ -784,22 +804,50 @@ const DAppBrowser: React.FC = () => {
     }
   }, [params.url, isRestoringTabs, tabs, setAddressBarValue]);
 
-  const redirectActiveTabToHome = () => {
-    const homeUrl = getHomeUrl(network);
-    const homeTitle = 'layerztec.github.io';
+  const handleHomePress = () => {
+    // "Home" should always go to Explorer-only.
+    setViewMode('explorer');
+    setAddressInput('');
+    setShowTabsOverview(false);
+    setShowAddressSuggestions(false);
+    setIsAddressInputFocused(false);
+    addressInputRef.current?.blur();
+  };
 
-    updateActiveTab({
-      url: homeUrl,
-      title: homeTitle,
-      history: [{ url: homeUrl, title: homeTitle }],
-      historyIndex: 0,
-      canGoBack: false,
-      canGoForward: false,
-    });
-    setAddressBarValue(homeUrl, { ensureStartVisible: true });
+  const openWebAppInNewTab = async (url: string) => {
+    if (!url) return;
+
+    // Explorer UX: submitting/opening should dismiss keyboard.
+    if (addressInputRef.current?.isFocused()) {
+      addressInputRef.current.blur();
+    }
+    setIsAddressInputFocused(false);
+    setShowAddressSuggestions(false);
+
+    // If we're already in browser mode, capture the current tab preview before switching.
+    if (viewMode === 'browser' && activeTabId) {
+      await captureTabScreenshot(activeTabId, 50).catch((error) => globalThis.handleError?.(error, 'captureTabScreenshot'));
+    }
+
+    const newTab = createBrowserTab(url);
+    setTabs((prev) => [...prev, newTab]);
+    setActiveTabId(newTab.id);
+    setShowAddressSuggestions(false);
+    setShowTabsOverview(false);
+
+    setAddressBarValue(newTab.url, { ensureStartVisible: true });
+    setViewMode('browser');
   };
 
   const createNewTab = async () => {
+    if (viewModeRef.current !== 'browser') {
+      setViewMode('browser');
+    }
+    if (addressInputRef.current?.isFocused()) {
+      addressInputRef.current.blur();
+    }
+    setIsAddressInputFocused(false);
+    setShowAddressSuggestions(false);
     if (activeTabId) {
       await captureTabScreenshot(activeTabId, 50).catch((error) => globalThis.handleError?.(error, 'captureTabScreenshot'));
     }
@@ -816,6 +864,14 @@ const DAppBrowser: React.FC = () => {
   };
 
   const closeTab = (tabId: string) => {
+    if (viewModeRef.current !== 'browser') {
+      setViewMode('browser');
+    }
+    if (addressInputRef.current?.isFocused()) {
+      addressInputRef.current.blur();
+    }
+    setIsAddressInputFocused(false);
+    setShowAddressSuggestions(false);
     screenshots.remove(tabId);
 
     if (tabs.length === 1) {
@@ -842,6 +898,14 @@ const DAppBrowser: React.FC = () => {
   };
 
   const switchTab = async (tabId: string) => {
+    if (viewModeRef.current !== 'browser') {
+      setViewMode('browser');
+    }
+    if (addressInputRef.current?.isFocused()) {
+      addressInputRef.current.blur();
+    }
+    setIsAddressInputFocused(false);
+    setShowAddressSuggestions(false);
     if (activeTabId === tabId) {
       hideTabsOverview();
       return;
@@ -934,6 +998,9 @@ const DAppBrowser: React.FC = () => {
         text: 'Close All',
         style: 'destructive',
         onPress: () => {
+          if (viewModeRef.current !== 'browser') {
+            setViewMode('browser');
+          }
           const newTab = createHomeTab(network);
 
           setTabs([newTab]);
@@ -981,6 +1048,7 @@ const DAppBrowser: React.FC = () => {
   };
 
   const goBack = () => {
+    if (viewMode !== 'browser') return;
     const tab = tabs.find((t) => t.id === activeTabId);
     if (!tab || tab.historyIndex <= 0) return;
 
@@ -1206,7 +1274,7 @@ const DAppBrowser: React.FC = () => {
     [activeTabId, isAddressInputFocused, setAddressBarValue]
   );
 
-  if (error) {
+  if (error && viewMode === 'browser') {
     return (
       <SafeAreaView style={styles.blackScreen} edges={['top', 'left', 'right']}>
         <View style={styles.errorContainer}>
@@ -1216,7 +1284,7 @@ const DAppBrowser: React.FC = () => {
     );
   }
 
-  if (!js) {
+  if (!js && viewMode === 'browser') {
     return (
       <SafeAreaView style={styles.blackScreen} edges={['top', 'left', 'right']}>
         <View style={styles.loadingContainer} testID="DappBrowserLoading">
@@ -1235,12 +1303,17 @@ const DAppBrowser: React.FC = () => {
           <GestureDetector gesture={panGesture}>
             <Animated.View style={[styles.addressBarContainer, addressBarAnimatedStyle]} pointerEvents={showTabsOverview ? 'none' : 'auto'}>
               <View style={styles.addressContainer}>
-                <Pressable style={styles.networkButton} onPress={redirectActiveTabToHome} testID="BrowserHomeButton">
+                <Pressable style={styles.networkButton} onPress={handleHomePress} testID="BrowserHomeButton">
                   <ExpoImage source={homeIcon} style={styles.homeIcon} contentFit="contain" />
                 </Pressable>
                 <View style={styles.addressBarWrapper}>
                   <View style={styles.addressBar}>
-                    <Pressable style={styles.addressBackButton} onPress={goBack} disabled={!activeTab?.canGoBack || showTabsOverview || isAddressInputFocused} testID="BrowserBackButton">
+                    <Pressable
+                      style={styles.addressBackButton}
+                      onPress={goBack}
+                      disabled={viewMode !== 'browser' || !activeTab?.canGoBack || showTabsOverview || isAddressInputFocused}
+                      testID="BrowserBackButton"
+                    >
                       <Ionicons name="arrow-back" size={18} color={activeTab?.canGoBack && !showTabsOverview && !isAddressInputFocused ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.3)'} />
                     </Pressable>
                     <TextInput
@@ -1259,11 +1332,35 @@ const DAppBrowser: React.FC = () => {
                       onBlur={() => {
                         setIsAddressInputFocused(false);
                         setShowAddressSuggestions(false);
-                        if (activeTab?.url) {
+                        if (viewMode === 'browser' && activeTab?.url) {
                           setAddressBarValue(activeTab.url, { ensureStartVisible: true });
                         }
                       }}
                       onSubmitEditing={() => {
+                        if (viewMode === 'explorer') {
+                          const raw = addressInput.trim();
+                          if (!raw) return;
+
+                          // If the user typed a URL, open it directly (keeps browser behavior intact).
+                          let urlCandidate = raw;
+                          if (!urlCandidate.startsWith('http://') && !urlCandidate.startsWith('https://')) {
+                            urlCandidate = 'https://' + urlCandidate;
+                          }
+                          if (isValidUrl(urlCandidate)) {
+                            void openWebAppInNewTab(urlCandidate);
+                            return;
+                          }
+
+                          // Otherwise treat it as an app search and open the first match.
+                          const q = raw.toLowerCase();
+                          const partners = [...getPartnersList(NETWORK_BITCOIN), ...getPartnersList(NETWORK_CITREA)];
+                          const first = partners.find((p) => `${p.name} ${p.description ?? ''}`.toLowerCase().includes(q));
+                          if (first?.url) {
+                            void openWebAppInNewTab(first.url);
+                          }
+                          return;
+                        }
+
                         let url = addressInput.trim();
                         if (!url) return;
 
@@ -1280,16 +1377,24 @@ const DAppBrowser: React.FC = () => {
                         }
                       }}
                       returnKeyType="go"
-                      keyboardType="url"
+                      keyboardType={viewMode === 'explorer' ? 'default' : 'url'}
                       autoCapitalize="none"
                       autoCorrect={false}
-                      placeholder="Enter URL"
+                      placeholder={viewMode === 'explorer' ? explorerPlaceholder : 'Enter URL'}
                       placeholderTextColor="rgba(255, 255, 255, 0.5)"
                       selectTextOnFocus={true}
                       testID="DappBrowserAddressBar"
                     />
                     {isAddressInputFocused ? (
-                      <Pressable style={styles.stopButton} onPress={() => setAddressInput('')}>
+                      <Pressable
+                        style={styles.stopButton}
+                        onPress={() => {
+                          setAddressInput('');
+                          setIsAddressInputFocused(false);
+                          setShowAddressSuggestions(false);
+                          addressInputRef.current?.blur();
+                        }}
+                      >
                         <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
                       </Pressable>
                     ) : isLoading ? (
@@ -1374,14 +1479,23 @@ const DAppBrowser: React.FC = () => {
                   <Animated.View style={[styles.progressBar, progressBarAnimatedStyle]} />
                 </View>
                 {!isAddressInputFocused && (
-                  <Pressable style={styles.topRightButton} onPress={toggleTabsOverview} onLongPress={handleCloseAllTabs} testID="BrowserTabsOverviewButton">
+                  <Pressable
+                    style={styles.topRightButton}
+                    onPress={() => {
+                      toggleTabsOverview();
+                    }}
+                    onLongPress={() => {
+                      handleCloseAllTabs();
+                    }}
+                    testID="BrowserTabsOverviewButton"
+                  >
                     <View style={styles.tabsOverviewIcon}>
                       <ThemedText style={styles.tabsCount}>{tabs.length}</ThemedText>
                     </View>
                   </Pressable>
                 )}
               </View>
-              {!isAddressInputFocused && showAddressSuggestions && addressSuggestions.length > 0 && (
+              {viewMode === 'browser' && !isAddressInputFocused && showAddressSuggestions && addressSuggestions.length > 0 && (
                 <View style={styles.suggestionsContainer}>
                   {addressSuggestions.map((suggestion, index) => (
                     <Pressable
@@ -1397,73 +1511,97 @@ const DAppBrowser: React.FC = () => {
             </Animated.View>
           </GestureDetector>
 
+          {isAddressInputFocused && (
+            <Pressable
+              style={styles.dismissKeyboardOverlay}
+              onPress={() => {
+                setIsAddressInputFocused(false);
+                setShowAddressSuggestions(false);
+                addressInputRef.current?.blur();
+              }}
+            />
+          )}
+
           <View style={styles.contentContainer}>
-            <Animated.View style={[styles.webviewContainer, webviewContainerAnimatedStyle, styles.flex1]} {...panResponder.panHandlers}>
-              <Animated.View style={[styles.absoluteFill, swipeOverlayAnimatedStyle, styles.swipeOverlayStyle]} />
-              <Animated.View style={[styles.swipeIndicator, swipeIndicatorAnimatedStyle]}>
-                <Ionicons name="arrow-back" size={32} color="rgba(255, 255, 255, 0.9)" />
-              </Animated.View>
-              <Animated.View style={[styles.flex1, swipeContentAnimatedStyle]}>
-                {tabs.map((tab) => {
-                  const isActive = tab.id === activeTabId;
-                  const containerStyles: StyleProp<ViewStyle>[] = [styles.tabContainer];
+            <Animated.View style={[styles.webviewContainer, webviewContainerAnimatedStyle, styles.flex1]} {...(viewMode === 'browser' ? panResponder.panHandlers : {})}>
+              {viewMode === 'browser' ? (
+                <>
+                  <Animated.View style={[styles.absoluteFill, swipeOverlayAnimatedStyle, styles.swipeOverlayStyle]} />
+                  <Animated.View style={[styles.swipeIndicator, swipeIndicatorAnimatedStyle]}>
+                    <Ionicons name="arrow-back" size={32} color="rgba(255, 255, 255, 0.9)" />
+                  </Animated.View>
+                  <Animated.View style={[styles.flex1, swipeContentAnimatedStyle]}>
+                    {tabs.map((tab) => {
+                      const isActive = tab.id === activeTabId;
+                      const containerStyles: StyleProp<ViewStyle>[] = [styles.tabContainer];
 
-                  if (isActive) {
-                    containerStyles.push(styles.tabContainerActive);
-                  } else {
-                    containerStyles.push(styles.tabContainerHidden);
-                  }
+                      if (isActive) {
+                        containerStyles.push(styles.tabContainerActive);
+                      } else {
+                        containerStyles.push(styles.tabContainerHidden);
+                      }
 
-                  return (
-                    <View
-                      key={`tab-container-${tab.id}`}
-                      ref={(ref) => {
-                        if (ref) {
-                          const wasPresent = !!tabContainerRefs.current[tab.id];
-                          tabContainerRefs.current[tab.id] = { current: ref };
-                          if (!wasPresent) {
-                          }
-                        }
-                      }}
-                      collapsable={false}
-                      style={containerStyles}
-                    >
-                      {tab.screenshot && <Image source={{ uri: tab.screenshot }} style={styles.absoluteFill} resizeMode="cover" />}
-                      <WebView
-                        key={`webview-${tab.id}`}
-                        ref={(ref) => {
-                          if (ref) {
-                            if (!tabWebViewRefs.current[tab.id]) {
-                              tabWebViewRefs.current[tab.id] = { current: ref };
-                            }
-                            if (isActive) {
-                              webviewRef.current = ref;
-                              browserBridgeRef.current = new BrowserBridge(ref);
-                            }
-                          }
-                        }}
-                        originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
-                        allowsInlineMediaPlayback={true}
-                        source={{ uri: tab.url }}
-                        onMessage={isActive ? handleMessage : undefined}
-                        onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
-                        onLoadProgress={isActive ? handleLoadProgress : undefined}
-                        onLoadEnd={
-                          isActive
-                            ? handleActiveTabLoadEnd
-                            : () => {
-                                handleInactiveTabLoad(tab.id);
+                      return (
+                        <View
+                          key={`tab-container-${tab.id}`}
+                          ref={(ref) => {
+                            if (ref) {
+                              const wasPresent = !!tabContainerRefs.current[tab.id];
+                              tabContainerRefs.current[tab.id] = { current: ref };
+                              if (!wasPresent) {
                               }
-                        }
-                        injectedJavaScriptBeforeContentLoaded={js}
-                        style={styles.webviewVisible}
-                        incognito={false}
-                        scrollEnabled={!isAddressInputFocused}
-                      />
-                    </View>
-                  );
-                })}
-              </Animated.View>
+                            }
+                          }}
+                          collapsable={false}
+                          style={containerStyles}
+                        >
+                          {tab.screenshot && <Image source={{ uri: tab.screenshot }} style={styles.absoluteFill} resizeMode="cover" />}
+                          <WebView
+                            key={`webview-${tab.id}`}
+                            ref={(ref) => {
+                              if (ref) {
+                                if (!tabWebViewRefs.current[tab.id]) {
+                                  tabWebViewRefs.current[tab.id] = { current: ref };
+                                }
+                                if (isActive) {
+                                  webviewRef.current = ref;
+                                  browserBridgeRef.current = new BrowserBridge(ref);
+                                }
+                              }
+                            }}
+                            originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
+                            allowsInlineMediaPlayback={true}
+                            source={{ uri: tab.url }}
+                            onMessage={isActive ? handleMessage : undefined}
+                            onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
+                            onLoadProgress={isActive ? handleLoadProgress : undefined}
+                            onLoadEnd={
+                              isActive
+                                ? handleActiveTabLoadEnd
+                                : () => {
+                                    handleInactiveTabLoad(tab.id);
+                                  }
+                            }
+                            injectedJavaScriptBeforeContentLoaded={js ?? undefined}
+                            style={styles.webviewVisible}
+                            incognito={false}
+                            scrollEnabled={!isAddressInputFocused}
+                          />
+                        </View>
+                      );
+                    })}
+                  </Animated.View>
+                </>
+              ) : (
+                <ExplorerContent
+                  category={explorerCategory}
+                  query={addressInput}
+                  onChangeCategory={setExplorerCategory}
+                  onOpenWebApp={(url) => {
+                    void openWebAppInNewTab(url);
+                  }}
+                />
+              )}
             </Animated.View>
           </View>
 
@@ -1577,6 +1715,12 @@ const styles = StyleSheet.create({
   },
   addressBarContainer: {
     position: 'relative',
+    zIndex: 2,
+  },
+  dismissKeyboardOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+    zIndex: 1,
   },
   addressBarWrapper: {
     flex: 1,
