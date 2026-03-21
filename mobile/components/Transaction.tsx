@@ -10,6 +10,7 @@ import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { getTokenIconColor, getTokenInfo } from '@shared/models/token-list';
+import { TokenInfo } from '@shared/types/token-info';
 
 interface TransactionProps {
   transaction: CommonTransaction;
@@ -145,7 +146,19 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
     return (
       <View style={styles.tokenTransfers}>
         {transaction.tokenTransfers.map((transfer, index) => {
-          const tokenInfo = getTokenInfo(transfer.tokenId);
+          let tokenInfo: TokenInfo | undefined;
+          try {
+            tokenInfo = getTokenInfo(transfer.tokenId);
+          } catch (error) {
+            console.log('No info about the token in transaction, fallback to dummy data', error);
+            tokenInfo = {
+              id: transfer.tokenId,
+              chainId: 0,
+              name: 'Unknown',
+              decimals: 0,
+              symbol: 'UNK',
+            };
+          }
           const iconColor = getTokenIconColor(tokenInfo.name);
           let formattedAmount = '';
           if (transfer.amount) {
