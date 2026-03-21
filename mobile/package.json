@@ -28,7 +28,8 @@
     "lint": "prettier '**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' --config ./.prettierrc --check && tsc --noEmit && expo lint",
     "lint:write": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' '../shared/**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' --config ./.prettierrc; expo lint --fix",
     "lint:fix": "npm run lint:write",
-    "buildbridge": "cd scripts/inpage-bridge && ./build.sh"
+    "buildbridge": "cd scripts/inpage-bridge && ./build.sh",
+    "eas-build-on-success": "npx bugsnag-eas-build-on-success"
   },
   "jest": {
     "preset": "jest-expo"
@@ -128,6 +129,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@bugsnag/plugin-expo-eas-sourcemaps": "^54.0.0",
+    "@bugsnag/source-maps": "^2.3.3",
     "@types/bs58check": "^2.1.2",
     "@types/chrome": "^0.1.36",
     "@types/create-hash": "^1.2.6",
