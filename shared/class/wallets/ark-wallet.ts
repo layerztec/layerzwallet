@@ -1,5 +1,5 @@
 import { ArkadeSwaps, BoltzSwapProvider, PendingSwap, decodeInvoice } from '@arkade-os/boltz-swap';
-import { ArkAddress, ArkTransaction, ExtendedCoin, ExtendedVirtualCoin, Ramps, SingleKey, TxType, VtxoManager, Wallet } from '@arkade-os/sdk';
+import { ArkAddress, ArkTransaction, ExtendedCoin, ExtendedVirtualCoin, Ramps, SingleKey, TxType, VtxoManager, Wallet, type WalletBalance } from '@arkade-os/sdk';
 import { ExpoArkProvider, ExpoIndexerProvider } from '@arkade-os/sdk/adapters/expo';
 import ecc from '@bitcoinerlab/secp256k1';
 import { sha256 } from '@noble/hashes/sha256';
@@ -13,9 +13,11 @@ import { CommonSwap } from '@shared/types/common-swap';
 import * as BlueElectrum from '../../blue_modules/BlueElectrum';
 import { CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET } from '../../types/networks';
+import { CachedTokenInfo } from '../../types/token-info';
 import { AbstractHDElectrumWallet } from './abstract-hd-electrum-wallet';
 import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
+import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
 
 const bip32 = BIP32Factory(ecc);
 
@@ -404,7 +406,7 @@ class LayerzContractRepository {
   }
 }
 
-export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet {
+export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet, InterfaceCanHaveTokens {
   private _wallet: Wallet | undefined = undefined;
   private _arkadeLightning: ArkadeSwaps | undefined = undefined;
   private _arkServerUrl: string = 'https://mutinynet.arkade.sh';
@@ -413,6 +415,8 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   protected _accountNumber: number = 0;
   private _manager: VtxoManager | undefined = undefined;
   private _arkStorage: IStorage | undefined = undefined;
+  private _arkTokenBalances: CachedTokenInfo[] = [];
+  _lastTokensFetch: number = 0;
 
   setAccountNumber(value: number) {
     this._accountNumber = value;
@@ -516,7 +520,78 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     }
 
     const balance = await this._wallet.getBalance();
+    await this._populateArkTokenCacheFromWalletBalance(balance);
+    this._lastBalanceFetch = Date.now();
     return balance.available;
+  }
+
+  private async _populateArkTokenCacheFromWalletBalance(balance: WalletBalance): Promise<void> {
+    assert(this._wallet, 'Ark wallet not initialized');
+    const assets = balance.assets ?? [];
+    const cached: CachedTokenInfo[] = [];
+
+    for (const { assetId, amount } of assets) {
+      if (amount <= 0) continue;
+
+      let name = `${assetId.slice(0, 16)}…`;
+      let symbol = '';
+      let decimals = 0;
+      let logoURI: string | undefined;
+
+      try {
+        const details = await this._wallet.assetManager.getAssetDetails(assetId);
+        const m = details?.metadata;
+        if (m) {
+          if (typeof m.name === 'string' && m.name.length > 0) name = m.name;
+          if (typeof m.ticker === 'string' && m.ticker.length > 0) symbol = m.ticker;
+          if (typeof m.decimals === 'number') decimals = m.decimals;
+          if (typeof m.icon === 'string' && m.icon.length > 0) logoURI = m.icon;
+        }
+      } catch (error) {
+        globalThis.handleError?.(error, 'ark-wallet.ts');
+      }
+
+      if (!symbol) symbol = 'ASSET';
+
+      cached.push({
+        id: assetId,
+        chainId: 0,
+        name,
+        decimals,
+        symbol,
+        logoURI,
+        balance: String(amount),
+      });
+    }
+
+    this._arkTokenBalances = cached;
+    this._lastTokensFetch = Date.now();
+  }
+
+  async fetchTokenBalances(): Promise<void> {
+    if (this._lastBalanceFetch > 0 && Date.now() - this._lastBalanceFetch > 5_000) {
+      // tokens are fetched in `getOffchainBalance`, but since it was called a long time ago lets call it again
+      // so we wont have stale data
+      await this.getOffchainBalance();
+    }
+  }
+
+  getTokenBalances(): CachedTokenInfo[] {
+    if (!this._wallet) throw new Error('Ark wallet not initialized');
+    return this._arkTokenBalances;
+  }
+
+  async transferToken(tokenId: string, amount: bigint, address: string, _memo?: string): Promise<string> {
+    assert(this._wallet, 'Ark wallet not initialized');
+    if (amount < 0n) throw new Error('Invalid amount');
+    if (amount > BigInt(Number.MAX_SAFE_INTEGER)) {
+      throw new Error('Amount too large');
+    }
+
+    return await this._wallet.send({
+      address,
+      assets: [{ assetId: tokenId, amount: Number(amount) }],
+    });
   }
 
   async _attemptToClaimPendingVHTLCs() {
@@ -545,10 +620,9 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     if (!this._wallet) throw new Error('Ark wallet not initialized');
 
     console.log(`paying ${amount} sat...`);
-    return await this._wallet.sendBitcoin({
+    return await this._wallet.send({
       address,
       amount,
-      // feeRate: 1,
     });
   }
 
@@ -573,12 +647,20 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
       const isPending = rawCreatedAt === 0;
       const createdAt = isPending ? new Date().getTime() : rawCreatedAt;
       const timestamp = Math.floor(createdAt / 1000);
+      const tokenTransfers =
+        transaction.assets && transaction.assets.length > 0
+          ? transaction.assets.map((a) => ({
+              tokenId: a.assetId,
+              amount: a.amount,
+            }))
+          : undefined;
       commonTransactions.push({
         network: this._arkServerUrl.includes('mutiny') ? NETWORK_ARK_MUTINYNET : NETWORK_ARK, // hacky
         txid: transaction.key.arkTxid,
         timestamp,
         direction: transaction.type === TxType.TxSent ? 'send' : 'receive',
         amount: transaction.amount,
+        tokenTransfers,
         status: isPending ? 'pending' : 'confirmed',
         confirmations: isPending ? 0 : 1,
       });

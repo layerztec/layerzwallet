@@ -11,7 +11,7 @@ import BigNumber from 'bignumber.js';
 import { useNavigate } from 'react-router';
 import { formatBalance } from '@shared/modules/string-utils';
 import { ThemedText } from '../../components/ThemedText';
-import { NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { walletCanHaveTokens } from '@shared/class/wallets/interface-can-have-tokens';
 
 const Receive: React.FC = () => {
@@ -67,9 +67,9 @@ const Receive: React.FC = () => {
     });
   }, [accountNumber, network]);
 
-  // Stacks token polling: cache initial holdings and detect increases
+  // Account-based token polling: cache initial holdings and detect increases
   useEffect(() => {
-    if (network !== NETWORK_STACKS && network !== NETWORK_SPARK) {
+    if (network !== NETWORK_STACKS && network !== NETWORK_SPARK && network !== NETWORK_ARK && network !== NETWORK_ARK_MUTINYNET) {
       return;
     }
 
@@ -125,8 +125,8 @@ const Receive: React.FC = () => {
     };
   }, [accountNumber, network]);
 
-  // If a STACKS or SPARK token was received, show dedicated success block (separate from native balance success)
-  if ((network === NETWORK_STACKS || network === NETWORK_SPARK) && stacksTokenReceiveInfo) {
+  // If an account-based token was received, show dedicated success block (separate from native balance success)
+  if ((network === NETWORK_STACKS || network === NETWORK_SPARK || network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET) && stacksTokenReceiveInfo) {
     return (
       <div style={{ position: 'relative' }}>
         <ThemedText type="headline">Receive on {network.charAt(0).toUpperCase() + network.slice(1)}</ThemedText>
