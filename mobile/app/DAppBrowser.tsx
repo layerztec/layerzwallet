@@ -20,7 +20,7 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useFocusEffect } from '@react-navigation/native';
-import { NETWORK_BITCOIN, NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_ROOTSTOCK } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_ROOTSTOCK, NETWORK_LIGHTNING, NETWORK_SPARK, NETWORK_ARK } from '@shared/types/networks';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import { DAppBrowserTabs } from './DAppBrowserTabs';
@@ -63,8 +63,6 @@ export const BROWSER_CONSTANTS = {
 
 const homeIcon = require('@/assets/images/home.svg');
 
-const getHomeUrl = (network: string): string => `https://layerztec.github.io/website/explore/?network=${network}`; // to test: https://metamask.github.io/test-dapp/ & https://eip6963.org/
-
 const getTabTitle = (url: string): string => {
   try {
     const { hostname } = new URL(url);
@@ -73,6 +71,8 @@ const getTabTitle = (url: string): string => {
     return url.length > 30 ? url.substring(0, 30) + '...' : url;
   }
 };
+
+const BLANK_TAB_URL = 'https://google.com';
 
 const isValidUrl = (urlString: string): boolean => {
   try {
@@ -115,8 +115,6 @@ const createBrowserTab = (url: string, id?: string): BrowserTab => ({
   timestamp: Date.now(),
 });
 
-const createHomeTab = (network: string, id?: string): BrowserTab => createBrowserTab(getHomeUrl(network), id);
-
 export type DappBrowserProps = {
   url?: string;
 };
@@ -157,13 +155,13 @@ const DAppBrowser: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const params = useLocalSearchParams<DappBrowserProps>();
   const [viewMode, setViewMode] = useState<'explorer' | 'browser'>(() => (params.url ? 'browser' : 'explorer'));
-  const [explorerCategory, setExplorerCategory] = useState<ExplorerCategory>('bitcoin');
+  const [explorerCategory, setExplorerCategory] = useState<ExplorerCategory>('all');
   const viewModeRef = useRef(viewMode);
   useEffect(() => {
     viewModeRef.current = viewMode;
   }, [viewMode]);
   const explorerPlaceholder = 'Search on Bitcoin';
-  const initialUrl = params.url || getHomeUrl(network);
+  const initialUrl = params.url || '';
   const [tabs, setTabs] = useState<BrowserTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string>('');
   const [isRestoringTabs, setIsRestoringTabs] = useState<boolean>(true);
@@ -511,10 +509,10 @@ const DAppBrowser: React.FC = () => {
           }
         } catch (e) {}
 
-        const newTab = createHomeTab(network);
-        setTabs([newTab]);
-        setActiveTabId(newTab.id);
-        setAddressBarValue(newTab.url, { ensureStartVisible: true });
+        setTabs([]);
+        setActiveTabId('');
+        setAddressInput('');
+        setViewMode('explorer');
         setShowTabsOverview(false);
 
         hasPurgedRef.current = true;
@@ -522,7 +520,7 @@ const DAppBrowser: React.FC = () => {
         isPurgingRef.current = false;
       }
     },
-    [network, setAddressBarValue]
+    [setAddressBarValue]
   );
 
   const saveTabs = useCallback(
@@ -731,26 +729,24 @@ const DAppBrowser: React.FC = () => {
           }
         }
       } else {
-        const initialTab = createHomeTab(network);
-        setTabs([initialTab]);
-        setActiveTabId(initialTab.id);
-        if (viewModeRef.current === 'browser') {
-          setAddressBarValue(initialTab.url, { ensureStartVisible: true });
-        } else {
-          setAddressInput('');
-        }
+        setTabs([]);
+        setActiveTabId('');
+        setAddressInput('');
       }
 
       setIsRestoringTabs(false);
     };
 
     restoreTabs();
-  }, [network, loadTabs, setAddressBarValue]);
+  }, [loadTabs, setAddressBarValue]);
 
   useEffect(() => {
-    if (!isRestoringTabs && tabs.length > 0 && activeTabId) {
+    if (isRestoringTabs) return;
+    if (tabs.length > 0 && activeTabId) {
       saveTabs(tabs, activeTabId);
+      return;
     }
+    void AsyncStorage.multiRemove([BROWSER_CONSTANTS.STORAGE.TABS_KEY, BROWSER_CONSTANTS.STORAGE.ACTIVE_TAB_KEY]);
   }, [tabs, activeTabId, isRestoringTabs, saveTabs]);
 
   useEffect(() => {
@@ -787,7 +783,7 @@ const DAppBrowser: React.FC = () => {
   }, [activeTabId, captureTabScreenshot, viewMode]);
 
   useEffect(() => {
-    if (params.url && !isRestoringTabs && tabs.length > 0 && lastHandledUrl.current !== params.url) {
+    if (params.url && !isRestoringTabs && lastHandledUrl.current !== params.url) {
       lastHandledUrl.current = params.url;
 
       if (!isValidUrl(params.url)) {
@@ -852,7 +848,7 @@ const DAppBrowser: React.FC = () => {
       await captureTabScreenshot(activeTabId, 50).catch((error) => globalThis.handleError?.(error, 'captureTabScreenshot'));
     }
 
-    const newTab = createHomeTab(network);
+    const newTab = createBrowserTab(BLANK_TAB_URL);
 
     setTabs((prev) => [...prev, newTab]);
     setActiveTabId(newTab.id);
@@ -875,10 +871,13 @@ const DAppBrowser: React.FC = () => {
     screenshots.remove(tabId);
 
     if (tabs.length === 1) {
-      const newTab = createHomeTab(network);
-      setTabs([newTab]);
-      setActiveTabId(newTab.id);
-      setAddressBarValue(newTab.url, { ensureStartVisible: true });
+      setTabs([]);
+      setActiveTabId('');
+      setAddressInput('');
+      setViewMode('explorer');
+      if (showTabsOverview) {
+        hideTabsOverview();
+      }
       return;
     }
 
@@ -1001,11 +1000,10 @@ const DAppBrowser: React.FC = () => {
           if (viewModeRef.current !== 'browser') {
             setViewMode('browser');
           }
-          const newTab = createHomeTab(network);
-
-          setTabs([newTab]);
-          setActiveTabId(newTab.id);
-          setAddressBarValue(newTab.url, { ensureStartVisible: true });
+          setTabs([]);
+          setActiveTabId('');
+          setAddressInput('');
+          setViewMode('explorer');
           if (showTabsOverview) {
             hideTabsOverview();
           }
@@ -1353,7 +1351,15 @@ const DAppBrowser: React.FC = () => {
 
                           // Otherwise treat it as an app search and open the first match.
                           const q = raw.toLowerCase();
-                          const partners = [...getPartnersList(NETWORK_BITCOIN), ...getPartnersList(NETWORK_BOTANIX), ...getPartnersList(NETWORK_ROOTSTOCK), ...getPartnersList(NETWORK_CITREA)];
+                          const partners = [
+                            ...getPartnersList(NETWORK_BITCOIN),
+                            ...getPartnersList(NETWORK_BOTANIX),
+                            ...getPartnersList(NETWORK_ROOTSTOCK),
+                            ...getPartnersList(NETWORK_CITREA),
+                            ...getPartnersList(NETWORK_LIGHTNING),
+                            ...getPartnersList(NETWORK_SPARK),
+                            ...getPartnersList(NETWORK_ARK),
+                          ];
                           const first = partners.find((p) => `${p.name} ${p.description ?? ''}`.toLowerCase().includes(q));
                           if (first?.url) {
                             void openWebAppInNewTab(first.url);
@@ -1616,7 +1622,7 @@ const DAppBrowser: React.FC = () => {
             getTabTitle={getTabTitle}
             onEnsurePreview={ensureTabPreview}
             onInvalidatePreview={invalidateTabPreview}
-            onCloseAllTabs={handleCloseAllTabs}
+            onCloseOverview={hideTabsOverview}
           />
 
           {showTabsOverview && (
@@ -1633,8 +1639,8 @@ const DAppBrowser: React.FC = () => {
                   <View style={styles.navigationCenter} />
 
                   <View style={styles.navigationRight}>
-                    <Pressable style={styles.closeOverviewButton} onPress={hideTabsOverview} testID="BrowserTabsCloseOverviewButton">
-                      <Ionicons name="close" size={24} color="rgba(255, 255, 255, 0.9)" />
+                    <Pressable style={styles.closeOverviewButton} onPress={handleCloseAllTabs} testID="BrowserTabsOverflowButton">
+                      <Ionicons name="ellipsis-horizontal" size={24} color="rgba(255, 255, 255, 0.9)" />
                     </Pressable>
                   </View>
                 </View>

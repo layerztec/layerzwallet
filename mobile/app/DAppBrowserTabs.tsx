@@ -1,5 +1,5 @@
-import React, { useCallback, useRef } from 'react';
-import { View, ScrollView, StyleSheet, Platform, ActionSheetIOS, UIManager, findNodeHandle } from 'react-native';
+import React from 'react';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,7 +32,7 @@ interface DAppBrowserTabsProps {
   getTabTitle: (url: string) => string;
   onEnsurePreview: (tabId: string, forceReload?: boolean) => void | Promise<void>;
   onInvalidatePreview: (tabId: string) => void;
-  onCloseAllTabs: () => void;
+  onCloseOverview: () => void;
 }
 
 export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({
@@ -45,51 +45,17 @@ export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({
   getTabTitle,
   onEnsurePreview,
   onInvalidatePreview,
-  onCloseAllTabs,
+  onCloseOverview,
 }) => {
   const insets = useSafeAreaInsets();
-  const menuAnchorRef = useRef<View>(null);
-
-  const openTabsMenu = useCallback(() => {
-    const node = findNodeHandle(menuAnchorRef.current);
-    const popup = (UIManager as any).showPopupMenu as undefined | ((reactTag: number, items: string[], error: () => void, success: (eventName: string, index?: number) => void) => void);
-
-    if (node && typeof popup === 'function') {
-      popup(
-        node,
-        ['Close all tabs'],
-        () => {},
-        (eventName: string, index?: number) => {
-          if (eventName !== 'itemSelected') return;
-          if (index === 0) onCloseAllTabs();
-        }
-      );
-      return;
-    }
-
-    // Fallback (should be rare): use system action sheet if popup menu isn't available.
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ['Cancel', 'Close all tabs'],
-          cancelButtonIndex: 0,
-          destructiveButtonIndex: 1,
-          userInterfaceStyle: 'dark',
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 1) onCloseAllTabs();
-        }
-      );
-    }
-  }, [onCloseAllTabs]);
 
   return (
     <Animated.View style={[styles.tabsOverviewContainer, animatedStyle, styles.tabsOverviewAbsolute]} pointerEvents={pointerEvents}>
       <SafeAreaView style={styles.tabsOverviewBackground} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <ThemedText style={styles.title}>Tabs</ThemedText>
-          <Pressable ref={menuAnchorRef} style={styles.headerMenuButton} onPress={openTabsMenu} testID="BrowserTabsOverflowButton">
-            <Ionicons name="ellipsis-horizontal" size={22} color="rgba(255, 255, 255, 0.9)" />
+          <Pressable style={styles.headerMenuButton} onPress={onCloseOverview} testID="BrowserTabsCloseOverviewButton">
+            <Ionicons name="close" size={22} color="rgba(255, 255, 255, 0.9)" />
           </Pressable>
         </View>
         <ScrollView style={styles.tabsOverviewContent} contentContainerStyle={[styles.tabsGridContainer, { paddingBottom: insets.bottom + 140 }]}>
@@ -156,6 +122,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },

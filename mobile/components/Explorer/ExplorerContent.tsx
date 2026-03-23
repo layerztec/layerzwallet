@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -9,13 +9,13 @@ import { Image as ExpoImage } from 'expo-image';
 
 import { getPartnersList } from '@shared/models/partners-list';
 import type { PartnerInfo } from '@shared/types/partner-info';
-import { getTokenInfo } from '@shared/models/token-list';
+import { getTokenIconColor, getTokenInfo } from '@shared/models/token-list';
 import { YIELD_TOKEN_DEFINITIONS_BY_NETWORK } from '@shared/hooks/useYieldDiscovery';
 import type { Networks } from '@shared/types/networks';
-import { NETWORK_BITCOIN, NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_ROOTSTOCK } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_ROOTSTOCK, NETWORK_LIGHTNING, NETWORK_SPARK, NETWORK_ARK } from '@shared/types/networks';
 import type { TokenInfo } from '@shared/types/token-info';
 
-export type ExplorerCategory = 'all' | 'bitcoin' | 'botanix' | 'rootstock' | 'citrea';
+export type ExplorerCategory = 'all' | 'bitcoin' | 'botanix' | 'rootstock' | 'citrea' | 'lightning' | 'spark' | 'arkade';
 
 const getCategoryLabel = (category: ExplorerCategory): string => {
   switch (category) {
@@ -23,12 +23,18 @@ const getCategoryLabel = (category: ExplorerCategory): string => {
       return 'All';
     case 'bitcoin':
       return 'Bitcoin';
+    case 'lightning':
+      return 'Lightning';
     case 'botanix':
       return 'Botanix';
     case 'rootstock':
       return 'Rootstock';
     case 'citrea':
       return 'Citrea';
+    case 'spark':
+      return 'Spark';
+    case 'arkade':
+      return 'Arkade';
     default:
       return 'Bitcoin';
   }
@@ -44,12 +50,35 @@ const getPartnersForCategory = (category: ExplorerCategory): PartnerInfo[] => {
       return getPartnersList(NETWORK_ROOTSTOCK);
     case 'citrea':
       return getPartnersList(NETWORK_CITREA);
+    case 'lightning':
+      return getPartnersList(NETWORK_LIGHTNING);
+    case 'spark':
+      return getPartnersList(NETWORK_SPARK);
+    case 'arkade':
+      return getPartnersList(NETWORK_ARK);
     case 'all':
-      return [...getPartnersForCategory('bitcoin'), ...getPartnersForCategory('botanix'), ...getPartnersForCategory('rootstock'), ...getPartnersForCategory('citrea')];
+      return [
+        ...getPartnersForCategory('bitcoin'),
+        ...getPartnersForCategory('botanix'),
+        ...getPartnersForCategory('rootstock'),
+        ...getPartnersForCategory('citrea'),
+        ...getPartnersForCategory('lightning'),
+        ...getPartnersForCategory('spark'),
+        ...getPartnersForCategory('arkade'),
+      ];
     default:
       return [];
   }
 };
+
+function shuffleArray<T>(input: readonly T[]): T[] {
+  const arr = [...input];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 export type ExplorerContentProps = {
   category: ExplorerCategory;
@@ -60,8 +89,23 @@ export type ExplorerContentProps = {
 
 export default function ExplorerContent({ category, query, onChangeCategory, onOpenWebApp }: ExplorerContentProps) {
   const router = useRouter();
-  const basePartners = useMemo(() => getPartnersForCategory(category), [category]);
-  const allPartners = useMemo(() => [...getPartnersList(NETWORK_BITCOIN), ...getPartnersList(NETWORK_BOTANIX), ...getPartnersList(NETWORK_ROOTSTOCK), ...getPartnersList(NETWORK_CITREA)], []);
+  const basePartners = useMemo(() => {
+    const partners = getPartnersForCategory(category);
+    // "See all" should show a randomized ordering (only affects non-search view).
+    return category === 'all' ? shuffleArray(partners) : partners;
+  }, [category]);
+  const allPartners = useMemo(
+    () => [
+      ...getPartnersList(NETWORK_BITCOIN),
+      ...getPartnersList(NETWORK_BOTANIX),
+      ...getPartnersList(NETWORK_ROOTSTOCK),
+      ...getPartnersList(NETWORK_CITREA),
+      ...getPartnersList(NETWORK_LIGHTNING),
+      ...getPartnersList(NETWORK_SPARK),
+      ...getPartnersList(NETWORK_ARK),
+    ],
+    []
+  );
 
   const filteredPartners = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -72,13 +116,16 @@ export default function ExplorerContent({ category, query, onChangeCategory, onO
     });
   }, [allPartners, basePartners, query]);
 
-  // Improvement: highlight is random and must not depend on category/pill.
-  const highlightPartnerRef = useRef<PartnerInfo | null>(null);
-  if (highlightPartnerRef.current === null && allPartners.length > 0) {
-    const idx = Math.floor(Math.random() * allPartners.length);
-    highlightPartnerRef.current = allPartners[idx] ?? null;
-  }
-  const highlightPartner = highlightPartnerRef.current;
+  // Highlight is random and must not depend on category/pill.
+  // Only partners with a `highlight` image are eligible.
+  const highlightCandidates = useMemo(() => allPartners.filter((p) => !!p.highlight), [allPartners]);
+  const highlightPartner = useMemo(() => {
+    if (highlightCandidates.length === 0) return null;
+    if (highlightCandidates.length === 1) return highlightCandidates[0] ?? null;
+    const idx = Math.floor(Math.random() * highlightCandidates.length);
+    return highlightCandidates[idx] ?? null;
+  }, [highlightCandidates]);
+  const highlightImageUri = highlightPartner?.highlight ?? null;
 
   const availableEarnItems = useMemo(() => {
     const entries = Object.entries(YIELD_TOKEN_DEFINITIONS_BY_NETWORK) as [Networks, { tokenId: string; apr: string; url: string }[]][];
@@ -108,8 +155,12 @@ export default function ExplorerContent({ category, query, onChangeCategory, onO
           <View style={styles.earnList}>
             {availableEarnItems.slice(0, 3).map((item) => (
               <View key={item.token.id} style={styles.earnRow}>
-                <View style={styles.earnTokenIconWrap}>
-                  {item.token.logoURI ? <ExpoImage source={{ uri: item.token.logoURI }} style={styles.earnTokenIcon} contentFit="cover" /> : <View style={styles.earnTokenIconPlaceholder} />}
+                <View style={[styles.earnTokenIconWrap, { backgroundColor: getTokenIconColor(item.token.name) }]}>
+                  {item.token.logoURI ? (
+                    <ExpoImage source={{ uri: item.token.logoURI }} style={styles.earnTokenIcon} contentFit="cover" />
+                  ) : (
+                    <ThemedText style={styles.earnTokenIconText}>{item.token.symbol?.charAt(0) || '?'}</ThemedText>
+                  )}
                 </View>
                 <View style={styles.earnRowInfo}>
                   <ThemedText style={styles.earnTokenSymbol}>{item.token.symbol}</ThemedText>
@@ -124,9 +175,18 @@ export default function ExplorerContent({ category, query, onChangeCategory, onO
       </View>
 
       <View style={styles.sectionGap}>
-        <SectionContainer title="Highlight">
-          <View style={styles.highlightCard}>
+        <SectionContainer title="Highlight" contentStyle={{ paddingVertical: 0 }}>
+          <Pressable
+            style={styles.highlightCard}
+            disabled={!highlightPartner?.url}
+            onPress={() => {
+              if (!highlightPartner?.url) return;
+              onOpenWebApp(highlightPartner.url);
+            }}
+            activeOpacity={0.9}
+          >
             <View style={styles.highlightMap}>
+              {highlightImageUri && <ExpoImage source={{ uri: highlightImageUri }} style={styles.highlightBackgroundImage} contentFit="cover" />}
               <View style={styles.highlightGrid} />
               <View style={styles.highlightOverlay}>
                 <ThemedText style={styles.highlightTitle}>{highlightPartner?.name ?? 'Explore partners'}</ThemedText>
@@ -135,7 +195,7 @@ export default function ExplorerContent({ category, query, onChangeCategory, onO
                 </ThemedText>
               </View>
             </View>
-          </View>
+          </Pressable>
         </SectionContainer>
       </View>
 
@@ -147,9 +207,12 @@ export default function ExplorerContent({ category, query, onChangeCategory, onO
             [
               { key: 'all', label: 'See all' },
               { key: 'bitcoin', label: 'Bitcoin' },
+              { key: 'lightning', label: 'Lightning' },
               { key: 'botanix', label: 'Botanix' },
               { key: 'rootstock', label: 'Rootstock' },
               { key: 'citrea', label: 'Citrea' },
+              { key: 'spark', label: 'Spark' },
+              { key: 'arkade', label: 'Arkade' },
             ] as const
           ).map((c) => (
             <Pressable key={c.key} onPress={() => onChangeCategory(c.key)} style={[styles.chip, c.key === category ? styles.chipSelected : styles.chipUnselected]} hitSlop={8} activeOpacity={0.85}>
@@ -195,8 +258,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   contentContainer: {
-    paddingHorizontal: 14,
-    paddingBottom: 40,
+    paddingHorizontal: 16,
+    paddingBottom: 60,
     paddingTop: 12,
   },
   sectionGap: {
@@ -208,14 +271,21 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   highlightMap: {
-    height: 130,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    height: 200,
+    backgroundColor: '#000',
     position: 'relative',
+    overflow: 'hidden',
+  },
+  highlightBackgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 1,
+    zIndex: 0,
   },
   highlightGrid: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(255,255,255,0.05)',
     opacity: 0.18,
+    zIndex: 1,
   },
   highlightOverlay: {
     position: 'absolute',
@@ -225,6 +295,8 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 12,
     backgroundColor: 'rgba(0,0,0,0.55)',
+    zIndex: 2,
+    elevation: 2,
   },
   highlightTitle: {
     color: 'rgba(255,255,255,0.95)',
@@ -288,7 +360,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 10,
     paddingVertical: 12,
     borderRadius: 16,
     backgroundColor: 'transparent',
@@ -339,16 +410,15 @@ const styles = StyleSheet.create({
   earnRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 16,
     paddingVertical: 4,
     gap: 10,
   },
   earnTokenIconWrap: {
     width: 34,
     height: 34,
-    borderRadius: 12,
+    borderRadius: 40,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -356,11 +426,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  earnTokenIconPlaceholder: {
-    width: '60%',
-    height: '60%',
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+  earnTokenIconText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '700',
   },
   earnRowInfo: {
     flex: 1,
