@@ -11,4 +11,5 @@ export interface PartnerInfo {
   readonly url: string;
   readonly imgUrl: string;
   readonly description?: string;
+  readonly highlight?: string;
 }
