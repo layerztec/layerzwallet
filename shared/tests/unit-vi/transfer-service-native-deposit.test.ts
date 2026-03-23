@@ -19,9 +19,10 @@ function makeTransfer(overrides: Partial<NativeClaimExecution> = {}): NativeClai
     updatedAt: 0,
     accountNumber: 0,
     depositAddress: 'bc1q...',
-    settleAddress: 'bc1q...',
     serviceName: 'Native',
-    relatedTxids: [TXID],
+    depositTxid: TXID,
+    autoClaim: false,
+    autoClaimAttempts: 0,
     ...overrides,
   };
 }
@@ -126,17 +127,30 @@ describe('NativeDepositTransferService', () => {
       expect(storage.setItem).toHaveBeenCalledWith(STORAGE_KEY_NATIVE_DEPOSIT_TRANSFERS, expect.stringContaining('"completed"'));
     });
 
-    it('skips transfers without relatedTxids', async () => {
-      const transfer = makeTransfer({ status: 'confirming', relatedTxids: undefined });
+    it('does not change status for non-waiting transfers without depositTxid', async () => {
+      const transfer = makeTransfer({ status: 'confirming', depositTxid: undefined });
       const storage = createMockStorage([transfer]);
-      const fetcher = vi.fn(async () => []);
       const service = new NativeDepositTransferService(storage);
-      service.setSwapsFetcher(fetcher);
+      service.setSwapsFetcher(async () => [makeSwap()]);
 
       const result = await service.getOngoingTransfers(0);
 
       expect(result[0].status).toBe('confirming');
-      expect(fetcher).not.toHaveBeenCalled();
+      expect(result[0].depositTxid).toBeUndefined();
+    });
+
+    it('discovers swap for waiting transfer without depositTxid', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const transfer = makeTransfer({ status: 'waiting', depositTxid: undefined, createdAt: now });
+      const storage = createMockStorage([transfer]);
+      const service = new NativeDepositTransferService(storage);
+      const swapTxid = 'discovered-txid';
+      service.setSwapsFetcher(async () => [makeSwap({ id: swapTxid, status: 'pending', timestamp: now * 1000, confirmations: 1, targetConfirmations: 3 })]);
+
+      const result = (await service.getOngoingTransfers(0)) as NativeClaimExecution[];
+
+      expect(result[0].status).toBe('confirming');
+      expect(result[0].depositTxid).toBe(swapTxid);
     });
 
     it('keeps last state on fetcher error', async () => {
@@ -232,6 +246,201 @@ describe('NativeDepositTransferService', () => {
       await service.getOngoingTransfers(0);
 
       expect(storage.setItem).toHaveBeenCalledWith(STORAGE_KEY_NATIVE_DEPOSIT_TRANSFERS, expect.stringContaining('"refunded"'));
+    });
+  });
+
+  describe('auto-claim', () => {
+    it('triggers claim executor when autoClaim=true and status becomes claimable', async () => {
+      const transfer = makeTransfer({ status: 'confirming', autoClaim: true });
+      const storage = createMockStorage([transfer]);
+      const claimExecutor = vi.fn(async () => ({ receiveTransferId: 'claim-txid-123', creditAmountSats: 95000 }));
+      const service = new NativeDepositTransferService(storage);
+      service.setSwapsFetcher(async () => [makeSwap({ status: 'claimable' })]);
+      service.setClaimExecutor(claimExecutor);
+
+      const result = (await service.getOngoingTransfers(0)) as NativeClaimExecution[];
+
+      expect(claimExecutor).toHaveBeenCalledOnce();
+      expect(result[0].status).toBe('completed');
+      expect(result[0].receiveTransferId).toBe('claim-txid-123');
+    });
+
+    it('does not trigger claim executor when autoClaim=false', async () => {
+      const transfer = makeTransfer({ status: 'confirming', autoClaim: false });
+      const storage = createMockStorage([transfer]);
+      const claimExecutor = vi.fn(async () => ({ receiveTransferId: 'txid' }));
+      const service = new NativeDepositTransferService(storage);
+      service.setSwapsFetcher(async () => [makeSwap({ status: 'claimable' })]);
+      service.setClaimExecutor(claimExecutor);
+
+      const result = (await service.getOngoingTransfers(0)) as NativeClaimExecution[];
+
+      expect(claimExecutor).not.toHaveBeenCalled();
+      expect(result[0].status).toBe('claimable');
+    });
+
+    it('increments autoClaimAttempts and sets autoClaimError on failure', async () => {
+      const transfer = makeTransfer({ status: 'confirming', autoClaim: true });
+      const storage = createMockStorage([transfer]);
+      const claimExecutor = vi.fn(async () => {
+        throw new Error('SDK timeout');
+      });
+      const service = new NativeDepositTransferService(storage);
+      service.setSwapsFetcher(async () => [makeSwap({ status: 'claimable' })]);
+      service.setClaimExecutor(claimExecutor);
+
+      const result = (await service.getOngoingTransfers(0)) as NativeClaimExecution[];
+
+      expect(result[0].status).toBe('claimable');
+      expect(result[0].autoClaimAttempts).toBe(1);
+      expect(result[0].autoClaimError).toBe('SDK timeout');
+    });
+
+    it('stops retrying after MAX_ATTEMPTS', async () => {
+      const transfer = makeTransfer({ status: 'confirming', autoClaim: true, autoClaimAttempts: 5 });
+      const storage = createMockStorage([transfer]);
+      const claimExecutor = vi.fn(async () => ({ receiveTransferId: 'txid' }));
+      const service = new NativeDepositTransferService(storage);
+      service.setSwapsFetcher(async () => [makeSwap({ status: 'claimable' })]);
+      service.setClaimExecutor(claimExecutor);
+
+      const result = (await service.getOngoingTransfers(0)) as NativeClaimExecution[];
+
+      expect(claimExecutor).not.toHaveBeenCalled();
+      expect(result[0].status).toBe('claimable');
+    });
+
+    it('does not trigger when claim executor is not set', async () => {
+      const transfer = makeTransfer({ status: 'confirming', autoClaim: true });
+      const storage = createMockStorage([transfer]);
+      const service = new NativeDepositTransferService(storage);
+      service.setSwapsFetcher(async () => [makeSwap({ status: 'claimable' })]);
+
+      const result = (await service.getOngoingTransfers(0)) as NativeClaimExecution[];
+
+      expect(result[0].status).toBe('claimable');
+    });
+
+    it('persists completed status after successful auto-claim', async () => {
+      const transfer = makeTransfer({ status: 'confirming', autoClaim: true });
+      const storage = createMockStorage([transfer]);
+      const service = new NativeDepositTransferService(storage);
+      service.setSwapsFetcher(async () => [makeSwap({ status: 'claimable' })]);
+      service.setClaimExecutor(async () => ({ receiveTransferId: 'txid' }));
+
+      await service.getOngoingTransfers(0);
+
+      expect(storage.setItem).toHaveBeenCalledWith(STORAGE_KEY_NATIVE_DEPOSIT_TRANSFERS, expect.stringContaining('"completed"'));
+    });
+
+    it('processAutoClaims polls accounts with pending auto-claim transfers', async () => {
+      const transfer = makeTransfer({ status: 'confirming', autoClaim: true, accountNumber: 2 });
+      const storage = createMockStorage([transfer]);
+      const claimExecutor = vi.fn(async () => ({ receiveTransferId: 'txid' }));
+      const service = new NativeDepositTransferService(storage);
+      service.setSwapsFetcher(async () => [makeSwap({ status: 'claimable' })]);
+      service.setClaimExecutor(claimExecutor);
+
+      await service.processAutoClaims();
+
+      expect(claimExecutor).toHaveBeenCalledOnce();
+    });
+
+    it('does not increment attempts on transient "not enough confirmations" error', async () => {
+      const transfer = makeTransfer({ status: 'confirming', autoClaim: true });
+      const storage = createMockStorage([transfer]);
+      const claimExecutor = vi.fn(async () => {
+        throw new Error("deposit tx doesn't have enough confirmations: confirmation height: 941335 current block height: 941336");
+      });
+      const service = new NativeDepositTransferService(storage);
+      service.setSwapsFetcher(async () => [makeSwap({ status: 'claimable' })]);
+      service.setClaimExecutor(claimExecutor);
+
+      const result = (await service.getOngoingTransfers(0)) as NativeClaimExecution[];
+
+      expect(result[0].autoClaimAttempts).toBe(0);
+      expect(result[0].autoClaimError).toBeUndefined();
+      expect(result[0].lastAutoClaimAt).toBeUndefined();
+    });
+
+    it('skips auto-claim during cooldown period', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const transfer = makeTransfer({ status: 'confirming', autoClaim: true, lastAutoClaimAt: now - 60 }); // 60s ago, within 300s cooldown
+      const storage = createMockStorage([transfer]);
+      const claimExecutor = vi.fn(async () => ({ receiveTransferId: 'txid' }));
+      const service = new NativeDepositTransferService(storage);
+      service.setSwapsFetcher(async () => [makeSwap({ status: 'claimable' })]);
+      service.setClaimExecutor(claimExecutor);
+
+      const result = (await service.getOngoingTransfers(0)) as NativeClaimExecution[];
+
+      expect(claimExecutor).not.toHaveBeenCalled();
+      expect(result[0].status).toBe('claimable');
+    });
+
+    it('stores receiveTransferId on successful Spark auto-claim', async () => {
+      const transfer = makeTransfer({ status: 'confirming', autoClaim: true });
+      const storage = createMockStorage([transfer]);
+      const service = new NativeDepositTransferService(storage);
+      service.setSwapsFetcher(async () => [makeSwap({ status: 'claimable' })]);
+      service.setClaimExecutor(async () => ({ receiveTransferId: 'spark-transfer-uuid-123' }));
+
+      const result = (await service.getOngoingTransfers(0)) as NativeClaimExecution[];
+
+      expect(result[0].status).toBe('completed');
+      expect(result[0].receiveTransferId).toBe('spark-transfer-uuid-123');
+    });
+
+    it('updates receiveAmount from creditAmountSats on successful claim', async () => {
+      const transfer = makeTransfer({ status: 'confirming', autoClaim: true, sendAmount: '0.001', receiveAmount: '0.001' });
+      const storage = createMockStorage([transfer]);
+      const service = new NativeDepositTransferService(storage);
+      service.setSwapsFetcher(async () => [makeSwap({ status: 'claimable' })]);
+      service.setClaimExecutor(async () => ({ receiveTransferId: 'spark-id', creditAmountSats: 95000 }));
+
+      const result = (await service.getOngoingTransfers(0)) as NativeClaimExecution[];
+
+      expect(result[0].status).toBe('completed');
+      expect(result[0].receiveAmount).toBe('0.00095000');
+    });
+
+    it('processAutoClaims skips when no autoClaim transfers exist', async () => {
+      const transfer = makeTransfer({ status: 'confirming', autoClaim: false });
+      const storage = createMockStorage([transfer]);
+      const claimExecutor = vi.fn(async () => ({ receiveTransferId: 'txid' }));
+      const service = new NativeDepositTransferService(storage);
+      service.setSwapsFetcher(async () => [makeSwap({ status: 'claimable' })]);
+      service.setClaimExecutor(claimExecutor);
+
+      await service.processAutoClaims();
+
+      expect(claimExecutor).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('auto-claim timeline', () => {
+    let service: NativeDepositTransferService;
+
+    beforeEach(() => {
+      service = new NativeDepositTransferService(createMockStorage());
+    });
+
+    it('shows Auto-claiming title when autoClaim=true and claimable', () => {
+      const steps = service.getTimelineSteps(makeTransfer({ status: 'claimable', autoClaim: true }));
+      expect(steps[1].title).toBe('Auto-claiming');
+      expect(steps[1].description).toBe('Will be claimed automatically');
+    });
+
+    it('shows error in description when auto-claim failed', () => {
+      const steps = service.getTimelineSteps(makeTransfer({ status: 'claimable', autoClaim: true, autoClaimError: 'Network error' }));
+      expect(steps[1].title).toBe('Auto-claiming');
+      expect(steps[1].description).toBe('Network error');
+    });
+
+    it('shows manual claim text when autoClaim=false', () => {
+      const steps = service.getTimelineSteps(makeTransfer({ status: 'claimable', autoClaim: false }));
+      expect(steps[1].title).toBe('Ready to Claim');
+      expect(steps[1].description).toBe('Tap Claim to receive your funds');
     });
   });
 });

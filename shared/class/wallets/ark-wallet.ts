@@ -12,6 +12,7 @@ import { IStorage } from '@shared/types/IStorage';
 import { CommonSwap } from '@shared/types/common-swap';
 import * as BlueElectrum from '../../blue_modules/BlueElectrum';
 import { CommonTransaction } from '../../types/common-transaction';
+import { sleep } from '../../modules/sleep';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET } from '../../types/networks';
 import { AbstractHDElectrumWallet } from './abstract-hd-electrum-wallet';
 import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
@@ -712,13 +713,41 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     return swaps;
   }
 
-  async claimDepositArk(txid: string): Promise<void> {
+  async getSettledBoardingAmount(boardingTxid: string): Promise<{ txid: string; creditAmountSats: number } | null> {
+    if (!this._wallet) return null;
+    const txs = await this._wallet.getTransactionHistory();
+    const tx = txs.find((t) => t.key.boardingTxid === boardingTxid && t.settled);
+    if (!tx) return null;
+    return { txid: tx.key.arkTxid || tx.key.commitmentTxid, creditAmountSats: tx.amount };
+  }
+
+  async claimDepositArk(txid: string): Promise<{ txid: string; creditAmountSats?: number }> {
     if (!this._wallet) throw new Error('Ark wallet not initialized');
 
     const boardingUtxos = (await this._wallet.getBoardingUtxos()).filter((utxo) => utxo.txid === txid);
     const { fees } = await this._wallet.arkProvider.getInfo();
 
-    await new Ramps(this._wallet).onboard(fees, boardingUtxos);
+    const resultTxid = await new Ramps(this._wallet).onboard(fees, boardingUtxos);
+
+    // Look up the post-fee credited amount from the resulting VTXO
+    // Retry with delay — indexer may not have processed the new VTXO immediately
+    let creditAmountSats: number | undefined;
+    try {
+      for (let i = 0; i < 5; i++) {
+        await sleep(2000);
+        const txs = await this._wallet.getTransactionHistory();
+        const resultTx = txs.find((tx) => tx.key.arkTxid === resultTxid || tx.key.commitmentTxid === resultTxid);
+        if (resultTx) {
+          creditAmountSats = resultTx.amount;
+          break;
+        }
+      }
+    } catch (e) {
+      // Non-critical — dedup will still work via receiveTransferId
+      /* ignore */
+    }
+
+    return { txid: resultTxid, creditAmountSats };
   }
 
   /**

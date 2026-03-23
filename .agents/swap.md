@@ -20,13 +20,13 @@ Singleton via `useTransferService(storage)` hook (`shared/hooks/useTransferServi
 readonly name: string
 getSupportedPairs(): TransferPair[]
 getQuote(sendAsset, receiveAsset, amount): TransferQuote
-executeTransfer(quote, settleAddress, fromAddress?): TransferExecution
+executeTransfer(quote, accountNumber, settleAddress, fromAddress?): TransferExecution
+commitTransfer(execution): void
 getTimelineSteps(execution): TimelineStep[]
+getOngoingTransfers(accountNumber): TransferExecution[]
 // Optional:
 getPairInfo?(send, receive): TransferPairInfo (min/max)
-commitTransfer?(execution): void
-getOngoingTransfers?(): TransferExecution[]
-refreshTransferStatus?(execution): TransferExecution
+refreshTransferStatus?(executionId, accountNumber): TransferExecution
 getTrackingUrl?(execution): string | undefined
 ```
 
@@ -34,8 +34,10 @@ getTrackingUrl?(execution): string | undefined
 - **AssetId** — strict union: `native:bitcoin`, `token:spark:usdb`, etc.
 - **AssetInfo** — resolved metadata: network, ticker, decimals, tokenId
 - **TransferQuote** — quote with `serviceName`, `serviceErrors?`
-- **TransferExecution** — persisted transfer state with `depositAddress`, `relatedTxids`, `confirmations`, `claimSwapJson`, `providerId`
+- **TransferExecution** — persisted transfer state with `depositAddress`, `depositTxid`, `confirmations`, `claimSwapJson`, `providerId`. Three variants: `DepositAddressExecution`, `NativeClaimExecution`, `InstantSwapExecution`
+- **NativeClaimExecution** — extends base with `claimTxid`, `receiveTransferId`, `autoClaim`, `autoClaimAttempts`, `autoClaimError`, `lastAutoClaimAt`, `claimSwapJson`
 - **TransferStatus** — `waiting | pending | confirming | claimable | completed | failed | refunded | expired`
+- **getRelatedTxids(exec)** — collects `depositTxid` + `claimTxid` + `receiveTransferId` for tx history deduplication
 
 ## Providers
 
@@ -73,9 +75,14 @@ getTrackingUrl?(execution): string | undefined
 
 ### NativeDeposit (`shared/services/transfer-service-native-deposit.ts`)
 - **Pairs**: BTC → Ark, BTC → Spark
-- **Model**: 1:1 quotes. Wallet-driven status via `swapsFetcher`. Boarding address as deposit.
-- **Status flow**: waiting → confirming → claimable → completed
-- **Claim**: Routes to `SwapXArkClaim` screen with serialized CommonSwap
+- **Model**: 1:1 quotes. Wallet-driven status via `swapsFetcher`. Boarding/deposit address as deposit.
+- **Status flow**: `waiting → confirming → claimable → completed` (or `→ refunded`)
+- **Auto-claim**: Monitors claimable transfers and claims automatically when enabled:
+  - `AutoClaimMonitor` component (`mobile/components/AutoClaimMonitor.tsx`) — renderless, mounts in root provider tree. Defers startup 5s + `requestIdleCallback`. Triggers on: app start, app foreground, 60s interval.
+  - ARK: passive — SDK `VtxoManager` auto-settles boarding UTXOs; executor polls `getSettledBoardingAmount()` and returns result when ready (no manual claim in auto path). Claim toggle hidden for ARK (always auto).
+  - Spark: active — executor calls `getDepositQuote()` + `claimDepositSpark()` and returns `{ receiveTransferId, creditAmountSats }`
+  - Retry: max 5 attempts, 5min cooldown. Transient errors (429, timeouts, fetch failures) don't count against limit.
+- **Manual claim**: `SwapXArkClaim` screen with serialized CommonSwap (when `autoClaim=false` on Spark)
 - No tracking URL
 
 ### Fake (`shared/services/transfer-service-fake.ts`)
@@ -90,7 +97,7 @@ getTrackingUrl?(execution): string | undefined
 ### Screens (`mobile/app/transfer/`)
 1. **`index.tsx`** — Input screen. Bidirectional quote (type in either field). 500ms debounce. Min/max validation via `getPairInfo`. Balance check before confirm (skipped for testnets). Shows `serviceErrors` warnings for partial provider failures.
 2. **`select-asset.tsx`** — Asset picker modal. Filters testnet assets via settings.
-3. **`confirm.tsx`** — Auto-prepares on mount (`executeTransfer` + `getSendQuote`). Shows rate, fee, est. time, expiry countdown, provider. Single "Confirm" tap. NativeDeposit: uses boarding address, skips auto-send. Flashnet: no deposit address, instant swap on prepare.
+3. **`confirm.tsx`** — Auto-prepares on mount (`executeTransfer` + `getSendQuote`). Shows rate, fee, est. time, expiry countdown, provider. Single "Confirm" tap. NativeDeposit: uses boarding address, auto/manual claim toggle (hidden for ARK — always auto). Flashnet: no deposit address, instant swap on prepare.
 4. **`success.tsx`** — Pull-to-dismiss modal with checkmark animation.
 
 ### Components (`mobile/components/transfer/`)
@@ -102,10 +109,10 @@ getTrackingUrl?(execution): string | undefined
 - `OngoingTransferItem.tsx` — status display with fiat values
 
 ### Detail Screen
-- `mobile/app/TransferDetails.tsx` — Timeline from `getTimelineSteps()`. Detail rows: provider, status, transfer ID, addresses. Claim button for NativeDeposit. "View Online" button when tracking URL available.
+- `mobile/app/TransferDetails.tsx` — Timeline from `getTimelineSteps()`. Detail rows: provider, status, transfer ID, addresses, deposit/claim txids. Claim button for NativeDeposit (disabled during auto-claim). "View Online" button when tracking URL available.
 
 ## Shared Hooks
-- `useTransferService(storage)` — singleton TransferServiceManager (`shared/hooks/useTransferService.ts`)
+- `useTransferService(storage)` — singleton TransferServiceManager (`shared/hooks/useTransferService.ts`). Also exports: `setNativeDepositSwapsFetcher`, `setNativeDepositClaimExecutor`, `startAutoClaimMonitor`, `stopAutoClaimMonitor`, `processAutoClaimsNow`
 - `useTransactionHistory(network, account)` — merges transfers into tx list, deduplicates (`shared/hooks/useTransactionHistory.ts`)
 - `useAssetExchangeRate(assetId)` — fiat rate for transfer assets (`shared/hooks/useAssetExchangeRate.ts`)
 - `useAssetBalance(assetId, account, bg)` — unified native/token balance (`shared/hooks/useAssetBalance.ts`)
@@ -117,17 +124,17 @@ getTrackingUrl?(execution): string | undefined
 - **Implementations**: `EvmWallet`, `BreezWallet`
 
 ## Tests
-- `shared/tests/unit-vi/transfer-service-sideshift.test.ts` (23 tests)
-- `shared/tests/unit-vi/transfer-service-garden.test.ts` (20 tests)
-- `shared/tests/unit-vi/transfer-service-symbiosis.test.ts` (18 tests)
-- `shared/tests/unit-vi/transfer-service-flashnet.test.ts` (11 tests)
-- `shared/tests/unit-vi/transfer-service-manager.test.ts` (15 tests)
-- `shared/tests/unit-vi/transfer-service-native-deposit.test.ts` (16 tests)
-- `shared/tests/unit-vi/sideshift-mappings.test.ts` (9 tests)
-- `shared/tests/unit-vi/use-transaction-history.test.ts` (8 tests)
-- `shared/tests/unit-vi/use-asset-balance.test.ts` (6 tests)
-- `shared/tests/integration-vi/sideshift-transfer.test.ts` (5 tests)
-- `shared/tests/integration-vi/garden-transfer.test.ts` (5 tests)
+- `shared/tests/unit-vi/transfer-service-sideshift.test.ts`
+- `shared/tests/unit-vi/transfer-service-garden.test.ts`
+- `shared/tests/unit-vi/transfer-service-symbiosis.test.ts`
+- `shared/tests/unit-vi/transfer-service-flashnet.test.ts`
+- `shared/tests/unit-vi/transfer-service-manager.test.ts`
+- `shared/tests/unit-vi/transfer-service-native-deposit.test.ts`
+- `shared/tests/unit-vi/sideshift-mappings.test.ts`
+- `shared/tests/unit-vi/use-transaction-history.test.ts`
+- `shared/tests/unit-vi/use-asset-balance.test.ts`
+- `shared/tests/integration-vi/sideshift-transfer.test.ts`
+- `shared/tests/integration-vi/garden-transfer.test.ts`
 - `mobile/.maestro/swap.yml` — e2e flow with Fake service
 
 ## Adding a New Transfer Service

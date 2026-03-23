@@ -61,6 +61,9 @@ export function getStatusLabel(status: TransferStatus, execution?: TransferExecu
       }
       return 'Confirming';
     case 'claimable':
+      if (execution?.type === EXECUTION_CLAIM && execution.autoClaim) {
+        return execution.autoClaimError ? 'Auto-claim failed' : 'Auto-claiming...';
+      }
       return 'Ready to claim';
     case 'completed':
       return 'Completed';
@@ -119,8 +122,8 @@ interface BaseTransferExecution {
   settleAddress?: string;
   /** Provider-specific ID for status polling and tracking URLs (e.g. SideShift shift ID, Garden order ID) */
   providerId?: string;
-  /** Related on-chain txids for deduplication in transaction history and status polling */
-  relatedTxids?: string[];
+  /** On-chain deposit txid (user's send transaction) */
+  depositTxid?: string;
 }
 
 /** User deposits to an external address, provider settles to user. Used by SideShift, Garden, Symbiosis. */
@@ -137,6 +140,18 @@ export interface NativeClaimExecution extends BaseTransferExecution {
   targetConfirmations?: number;
   /** JSON-serialized CommonSwap — set when status becomes 'claimable', passed to the claim screen */
   claimSwapJson?: string;
+  /** Whether to automatically claim the deposit when it becomes claimable */
+  autoClaim: boolean;
+  /** Number of failed auto-claim attempts (capped at MAX_ATTEMPTS) */
+  autoClaimAttempts: number;
+  /** Timestamp (epoch seconds) of the last auto-claim attempt — enforces cooldown between retries */
+  lastAutoClaimAt?: number;
+  /** Last auto-claim error message, undefined when no error */
+  autoClaimError?: string;
+  /** Transaction ID from the claim operation (ARK round txid). Not set for Spark (off-chain claim). */
+  claimTxid?: string;
+  /** Spark-internal transfer ID from claimStaticDeposit(). Used to deduplicate Spark receive txs in history. */
+  receiveTransferId?: string;
 }
 
 /** Instant in-wallet swap with no deposit address or confirmation step. Used by Flashnet. */
@@ -146,11 +161,13 @@ export interface InstantSwapExecution extends BaseTransferExecution {
 
 export type TransferExecution = DepositAddressExecution | NativeClaimExecution | InstantSwapExecution;
 
-/** Normalize related txids: deduplicate, lowercase, trim, remove blanks */
-export function normalizeRelatedTxids(relatedTxids?: string[]): string[] | undefined {
-  if (!Array.isArray(relatedTxids)) return undefined;
-  const normalized = Array.from(new Set(relatedTxids.map((txid) => txid.trim().toLowerCase()).filter(Boolean)));
-  return normalized.length > 0 ? normalized : undefined;
+/** Collect all on-chain txids for a transfer (for deduplication in transaction history) */
+export function getRelatedTxids(exec: TransferExecution): string[] {
+  const txids: string[] = [];
+  if (exec.depositTxid) txids.push(exec.depositTxid);
+  if (exec.type === EXECUTION_CLAIM && exec.claimTxid) txids.push(exec.claimTxid);
+  if (exec.type === EXECUTION_CLAIM && exec.receiveTransferId) txids.push(exec.receiveTransferId);
+  return txids;
 }
 
 /** Thrown when no provider can service a given asset pair */
@@ -181,10 +198,10 @@ export interface ITransferService {
   getQuote(sendAsset: AssetId, receiveAsset: AssetId, sendAmount: string): Promise<TransferQuote>;
 
   /** Execute a transfer based on a quote. settleAddress is the user's receive address on the target network. fromAddress is the user's send-side address (needed by atomic-swap providers like Garden). */
-  executeTransfer(quote: TransferQuote, settleAddress: string, fromAddress?: string): Promise<TransferExecution>;
+  executeTransfer(quote: TransferQuote, accountNumber: number, settleAddress: string, fromAddress?: string): Promise<TransferExecution>;
 
   /** Persist a transfer so it appears in ongoing transfers. Called after the user commits to sending funds. */
-  commitTransfer?(execution: TransferExecution): Promise<void>;
+  commitTransfer(execution: TransferExecution): Promise<void>;
 
   /** Get ongoing transfers */
   getOngoingTransfers(accountNumber: number): Promise<TransferExecution[]>;
