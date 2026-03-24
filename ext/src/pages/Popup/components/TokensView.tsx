@@ -6,7 +6,7 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
-import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 
@@ -37,7 +37,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; setShow: (show: boolean) => v
       return;
     }
 
-    if (network === NETWORK_STACKS || network === NETWORK_SPARK) {
+    if (network === NETWORK_STACKS || network === NETWORK_SPARK || network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET) {
       console.log('send token', token);
       const state: SendTokenStacksProps = { tokenPublicKey: token.id };
       navigate('/send-token-stacks', { state });

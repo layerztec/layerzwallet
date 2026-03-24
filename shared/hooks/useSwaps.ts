@@ -33,20 +33,19 @@ export const swapFetcher = async (arg: swapFetcherArg): Promise<CommonSwap[]> =>
   const { accountNumber, network, backgroundCaller } = arg;
 
   try {
+    let swaps: CommonSwap[] = [];
+
     if (network === NETWORK_SPARK) {
       const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
       assert(wallet instanceof SparkWallet, 'Not a Spark wallet');
-      return await wallet.getCommonSwaps();
-    }
-
-    if (network === NETWORK_ARK_MUTINYNET || network === NETWORK_ARK) {
+      swaps = await wallet.getCommonSwaps();
+    } else if (network === NETWORK_ARK_MUTINYNET || network === NETWORK_ARK) {
       const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
       assert(wallet instanceof ArkWallet, 'Not an Ark wallet');
-      return await wallet.getCommonSwaps();
+      swaps = await wallet.getCommonSwaps();
     }
 
-    // For now, only Spark wallet is supported
-    return [];
+    return swaps;
   } catch (error) {
     globalThis.handleError?.(error, 'useSwaps.ts');
     console.error('swap fetch error', error);

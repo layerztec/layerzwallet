@@ -1,12 +1,13 @@
 import assert from 'assert';
 import useSWR from 'swr';
 
-import { SparkWallet } from '../class/wallets/spark-wallet';
+import { ArkWallet } from '../class/wallets/ark-wallet';
 import { StacksWallet } from '../class/wallets/stacks-wallet';
+import { walletCanHaveTokens } from '../class/wallets/interface-can-have-tokens';
 import { getTokenList } from '../models/token-list';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { IStorage } from '../types/IStorage';
-import { NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
 import { CachedTokenInfo } from '../types/token-info';
 
 const STORAGE_KEY_CACHED_TOKEN_LIST = 'STORAGE_KEY_CACHED_TOKEN_LIST_V2';
@@ -38,16 +39,15 @@ export const tokenDiscoveryFetcher = async (arg: tokenDiscoveryFetcherArg): Prom
 
   const cacheKey = STORAGE_KEY_CACHED_TOKEN_LIST + network + accountNumber;
 
-  if (network === NETWORK_SPARK) {
+  if (network === NETWORK_SPARK || network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET) {
     if (!backgroundCaller.lazyInitWalletReady(network, accountNumber)) {
       // wallet not ready, definitely can use cached tokens (if any)
       const cachedTokens = await restoreCachedTokens(cacheKey, storage);
       if (cachedTokens) return cachedTokens;
     }
 
-    // Lazy initialize Spark wallet
     const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
-    assert(wallet instanceof SparkWallet, 'Not a Spark wallet');
+    assert(walletCanHaveTokens(wallet), 'Not a wallet that can have tokens');
 
     // we do NOT fetch from network, we rely on cached value inside wallet internals
     if (!wallet._lastBalanceFetch) {
@@ -102,8 +102,7 @@ export const tokenDiscoveryFetcher = async (arg: tokenDiscoveryFetcherArg): Prom
 };
 
 export function useTokenDiscovery(network: Networks, accountNumber: number, backgroundCaller: IBackgroundCaller, storage: IStorage, refreshInterval = 5_000) {
-  // Only enable refresh interval for NETWORK_SPARK & NETWORK_STACKS
-  const shouldRefresh = network === NETWORK_SPARK || network === NETWORK_STACKS;
+  const shouldRefresh = network === NETWORK_SPARK || network === NETWORK_STACKS || network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET;
 
   const arg: tokenDiscoveryFetcherArg = {
     cacheKey: 'tokenDiscoveryFetcher',

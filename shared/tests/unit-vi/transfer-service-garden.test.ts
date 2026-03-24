@@ -172,7 +172,7 @@ describe('GardenTransferService', () => {
         })
       );
 
-      const execution = await service.executeTransfer(makeQuote(), '0xSettleBotanix', 'bc1qsource...');
+      const execution = await service.executeTransfer(makeQuote(), 0, '0xSettleBotanix', 'bc1qsource...');
       expect(execution.id).toBe('order-xyz');
       expect(execution.status).toBe('waiting');
       expect(execution.depositAddress).toBe('bc1qdeposit...');
@@ -182,23 +182,23 @@ describe('GardenTransferService', () => {
       expect(storage._store[STORAGE_KEY_GARDEN_TRANSFERS]).toBeUndefined();
 
       // Commit persists to storage
-      execution.relatedTxids = ['TXID123', 'txid123', ''];
+      execution.depositTxid = 'txid123';
       await service.commitTransfer(execution);
       const stored = JSON.parse(storage._store[STORAGE_KEY_GARDEN_TRANSFERS]);
       expect(stored).toHaveLength(1);
       expect(stored[0].gardenOrderId).toBe('order-xyz');
-      expect(stored[0].execution.relatedTxids).toEqual(['txid123']);
+      expect(stored[0].execution.depositTxid).toBe('txid123');
     });
 
     it('throws when fromAddress is missing', async () => {
-      await expect(service.executeTransfer(makeQuote(), '0xSettleBotanix')).rejects.toThrow('Garden requires a source address');
+      await expect(service.executeTransfer(makeQuote(), 0, '0xSettleBotanix')).rejects.toThrow('Garden requires a source address');
     });
 
     it('throws on expired quote', async () => {
       const expiredQuote = makeQuote();
       expiredQuote.expiresAt = Math.floor(Date.now() / 1000) - 100;
 
-      await expect(service.executeTransfer(expiredQuote, '0xSettleBotanix', 'bc1qsource...')).rejects.toThrow('Quote has expired');
+      await expect(service.executeTransfer(expiredQuote, 0, '0xSettleBotanix', 'bc1qsource...')).rejects.toThrow('Quote has expired');
     });
   });
 

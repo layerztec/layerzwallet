@@ -124,7 +124,7 @@ describe('FlashnetTransferService', () => {
         serviceName: 'Test',
       };
 
-      const execution = await service.executeTransfer(quote, 'spark-address');
+      const execution = await service.executeTransfer(quote, 0, 'spark-address');
 
       expect(execution.status).toBe('completed');
       expect(execution.depositAddress).toBeUndefined();
