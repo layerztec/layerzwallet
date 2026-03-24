@@ -85,7 +85,7 @@ export class FlashnetTransferService implements ITransferService {
     };
   }
 
-  async executeTransfer(quote: TransferQuote, _settleAddress: string, _fromAddress?: string): Promise<TransferExecution> {
+  async executeTransfer(quote: TransferQuote, accountNumber: number, _settleAddress: string, _fromAddress?: string): Promise<TransferExecution> {
     const sendInfo = getAssetInfo(quote.sendAsset);
     const receiveInfo = getAssetInfo(quote.receiveAsset);
     const { assetIn, assetOut } = this.resolveDirection(quote.sendAsset);
@@ -119,7 +119,7 @@ export class FlashnetTransferService implements ITransferService {
       receiveAsset: quote.receiveAsset,
       createdAt: now,
       updatedAt: now,
-      accountNumber: 0,
+      accountNumber,
       serviceName: this.name,
       // No depositAddress — UI will skip the send step
     };
@@ -127,7 +127,12 @@ export class FlashnetTransferService implements ITransferService {
 
   async commitTransfer(execution: TransferExecution): Promise<void> {
     const transfers = await this.loadTransfers();
-    transfers.push({ execution });
+    const idx = transfers.findIndex((t) => t.execution.id === execution.id);
+    if (idx >= 0) {
+      transfers[idx].execution = { ...transfers[idx].execution, ...execution };
+    } else {
+      transfers.push({ execution });
+    }
     await this.saveTransfers(transfers);
   }
 

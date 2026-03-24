@@ -103,16 +103,16 @@ export class TransferServiceManager {
     return best.quote;
   }
 
-  async executeTransfer(quote: TransferQuote, settleAddress: string, fromAddress?: string): Promise<TransferExecution> {
+  async executeTransfer(quote: TransferQuote, accountNumber: number, settleAddress: string, fromAddress?: string): Promise<TransferExecution> {
     const service = this.resolveServiceForQuote(quote);
-    const execution = await service.executeTransfer(quote, settleAddress, fromAddress);
+    const execution = await service.executeTransfer(quote, accountNumber, settleAddress, fromAddress);
     execution.serviceName = service.name;
     return execution;
   }
 
   async commitTransfer(execution: TransferExecution): Promise<void> {
     const service = this.resolveServiceByName(execution.serviceName);
-    if (service?.commitTransfer) {
+    if (service) {
       await service.commitTransfer(execution);
     }
   }
@@ -121,14 +121,14 @@ export class TransferServiceManager {
     const results = await Promise.allSettled(
       this.services.map(async (service) => {
         const transfers = await service.getOngoingTransfers(accountNumber);
-        return transfers;
+        return { name: service.name, transfers };
       })
     );
 
     const allTransfers: TransferExecution[] = [];
     for (const result of results) {
       if (result.status === 'fulfilled') {
-        allTransfers.push(...result.value);
+        allTransfers.push(...result.value.transfers);
       }
     }
 
@@ -140,7 +140,8 @@ export class TransferServiceManager {
     for (const service of this.services) {
       if (service.refreshTransferStatus) {
         try {
-          return await service.refreshTransferStatus(executionId, accountNumber);
+          const result = await service.refreshTransferStatus(executionId, accountNumber);
+          return result;
         } catch {
           continue;
         }

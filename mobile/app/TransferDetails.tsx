@@ -53,7 +53,7 @@ export default function TransferDetails() {
   }));
 
   const isActive = isActiveStatus(execution.status);
-  const isNativeDeposit = execution.type === EXECUTION_CLAIM;
+
   const isClaimable = execution.status === 'claimable';
   const trackingUrl = transferService.getTrackingUrl(execution);
 
@@ -81,7 +81,8 @@ export default function TransferDetails() {
 
   // Poll for status updates on non-terminal transfers
   useEffect(() => {
-    if (isTerminalStatus(execution.status) || execution.status === 'claimable') return;
+    const skipPolling = isTerminalStatus(execution.status) || (execution.status === 'claimable' && !(execution.type === EXECUTION_CLAIM && execution.autoClaim));
+    if (skipPolling) return;
 
     const poll = async () => {
       try {
@@ -169,9 +170,15 @@ export default function TransferDetails() {
     if (execution.depositAddress) {
       rows.push({ label: 'Deposit Address', value: execution.depositAddress, copyable: true });
     }
-
     if (execution.settleAddress) {
       rows.push({ label: 'Settle Address', value: execution.settleAddress, copyable: true });
+    }
+
+    if (execution.depositTxid) {
+      rows.push({ label: 'Deposit Txid', value: execution.depositTxid, copyable: true });
+    }
+    if (execution.type === EXECUTION_CLAIM && execution.claimTxid) {
+      rows.push({ label: 'Claim Txid', value: execution.claimTxid, copyable: true });
     }
 
     return rows;
@@ -258,8 +265,14 @@ export default function TransferDetails() {
 
           {/* Claim button for NativeDeposit claimable transfers */}
           {execution.type === EXECUTION_CLAIM && isClaimable && (
-            <Pressable style={styles.claimButton} onPress={() => router.push({ pathname: '/SwapXArkClaim', params: { swapJson: execution.claimSwapJson } })}>
-              <ThemedText style={styles.claimButtonText}>Claim</ThemedText>
+            <Pressable
+              style={[styles.claimButton, execution.autoClaim && !execution.autoClaimError && styles.claimButtonDisabled]}
+              disabled={execution.autoClaim && !execution.autoClaimError}
+              onPress={() => {
+                router.push({ pathname: '/SwapXArkClaim', params: { swapJson: execution.claimSwapJson } });
+              }}
+            >
+              <ThemedText style={styles.claimButtonText}>{execution.autoClaim && !execution.autoClaimError ? 'Claiming...' : 'Claim'}</ThemedText>
             </Pressable>
           )}
 
@@ -449,6 +462,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(33, 150, 243, 0.5)',
     alignItems: 'center',
+  },
+  claimButtonDisabled: {
+    opacity: 0.5,
   },
   claimButtonText: {
     fontSize: 16,
