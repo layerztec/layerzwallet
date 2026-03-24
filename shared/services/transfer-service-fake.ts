@@ -58,7 +58,7 @@ export class FakeTransferService implements ITransferService {
     };
   }
 
-  async executeTransfer(quote: TransferQuote, _settleAddress: string): Promise<TransferExecution> {
+  async executeTransfer(quote: TransferQuote, accountNumber: number, _settleAddress: string): Promise<TransferExecution> {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const execution: TransferExecution = {
@@ -73,7 +73,7 @@ export class FakeTransferService implements ITransferService {
       updatedAt: Math.floor(Date.now() / 1000),
       depositAddress: 'fake-deposit-address',
       settleAddress: _settleAddress,
-      accountNumber: 0,
+      accountNumber,
       serviceName: this.name,
     };
 
@@ -89,6 +89,13 @@ export class FakeTransferService implements ITransferService {
     }, 5000);
 
     return execution;
+  }
+
+  async commitTransfer(execution: TransferExecution): Promise<void> {
+    const idx = this.ongoingTransfers.findIndex((t) => t.id === execution.id);
+    if (idx >= 0) {
+      this.ongoingTransfers[idx] = { ...this.ongoingTransfers[idx], ...execution };
+    }
   }
 
   async getOngoingTransfers(_accountNumber: number): Promise<TransferExecution[]> {

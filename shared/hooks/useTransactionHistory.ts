@@ -4,7 +4,7 @@ import { getAssetInfo } from '../models/asset-info';
 import { CommonTransaction } from '../types/common-transaction';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { Networks } from '../types/networks';
-import { ITransferService, TransferExecution, TransferStatus } from '../types/transfer';
+import { getRelatedTxids, ITransferService, TransferExecution, TransferStatus } from '../types/transfer';
 import { txFetcher } from './useTransactions';
 
 interface TxHistoryFetcherArg {
@@ -15,22 +15,6 @@ interface TxHistoryFetcherArg {
 }
 
 const TRANSFER_TXID_PREFIX = 'transfer';
-
-export function normalizeTxid(txid: string): string {
-  const normalized = txid.trim().toLowerCase();
-  if (normalized.startsWith('0x')) {
-    const stripped = normalized.slice(2);
-    if (/^[0-9a-f]+$/.test(stripped)) {
-      return stripped;
-    }
-  }
-  return normalized;
-}
-
-function toUniqueNormalizedTxids(relatedTxids?: string[]): string[] {
-  if (!Array.isArray(relatedTxids)) return [];
-  return Array.from(new Set(relatedTxids.map(normalizeTxid).filter(Boolean)));
-}
 
 function mapTransferStatusToTransactionStatus(status: TransferStatus): CommonTransaction['status'] {
   switch (status) {
@@ -96,42 +80,57 @@ function inferTransferMatchRules(execution: TransferExecution, network: Networks
   return rules;
 }
 
+/**
+ * For transfers without a depositTxid (created before the field existed, or send threw after broadcast),
+ * try to match them to wallet transactions by counterparty address or (amount + timestamp).
+ * Matched txids are "covered" so they don't show as duplicate rows in the history.
+ */
 function inferCoveredTxidsFromLegacyTransfers(network: Networks, transfers: TransferExecution[], transactions: CommonTransaction[], alreadyCoveredTxids: Set<string>): Set<string> {
   const inferred = new Set<string>();
   const usedTxids = new Set<string>();
-  const txCandidates = transactions.filter((tx) => tx.network === network && !alreadyCoveredTxids.has(normalizeTxid(tx.txid)));
+
+  // Only consider wallet txs on this network that aren't already covered by a depositTxid/claimTxid
+  const txCandidates = transactions.filter((tx) => tx.network === network && !alreadyCoveredTxids.has(tx.txid));
+
+  // Build match rules for transfers whose related txids don't cover any tx on this network
+  // (e.g. BTC→Spark transfer has depositTxid covering BTC side but nothing covering Spark side)
   const rules = transfers
-    .filter((execution) => toUniqueNormalizedTxids(execution.relatedTxids).length === 0)
+    .filter((execution) => {
+      const relatedTxids = getRelatedTxids(execution);
+      return !relatedTxids.some((txid) => txCandidates.some((tx) => tx.txid === txid));
+    })
     .flatMap((execution) => inferTransferMatchRules(execution, network))
     .sort((a, b) => b.transferTimestamp - a.transferTimestamp);
 
   for (const rule of rules) {
+    // Best signal: match by deposit/settle address (counterparty)
     const matchingByCounterparty = txCandidates.filter((tx) => {
-      if (usedTxids.has(normalizeTxid(tx.txid))) return false;
+      if (usedTxids.has(tx.txid)) return false;
       if (tx.direction !== rule.expectedDirection) return false;
       if (!rule.expectedCounterparty) return false;
       return normalizeCounterparty(tx.counterparty) === rule.expectedCounterparty;
     });
 
+    // Fallback: match by amount + direction within a 2-hour window
     const source =
       matchingByCounterparty.length > 0
         ? matchingByCounterparty
         : txCandidates.filter((tx) => {
-            if (usedTxids.has(normalizeTxid(tx.txid))) return false;
+            if (usedTxids.has(tx.txid)) return false;
             if (tx.direction !== rule.expectedDirection) return false;
             if (rule.expectedAmount === undefined || tx.amount === undefined) return false;
             if (tx.amount !== rule.expectedAmount) return false;
             const delta = Math.abs(tx.timestamp - rule.transferTimestamp);
-            return delta <= 2 * 60 * 60; // 2 hours
+            return delta <= 2 * 60 * 60;
           });
 
     if (source.length === 0) continue;
 
+    // Pick the closest match by timestamp; mark as used so it can't match another transfer
     source.sort((a, b) => Math.abs(a.timestamp - rule.transferTimestamp) - Math.abs(b.timestamp - rule.transferTimestamp));
     const selected = source[0];
-    const selectedTxid = normalizeTxid(selected.txid);
-    usedTxids.add(selectedTxid);
-    inferred.add(selectedTxid);
+    usedTxids.add(selected.txid);
+    inferred.add(selected.txid);
   }
 
   return inferred;
@@ -143,6 +142,7 @@ function isTransferVisibleOnNetwork(execution: TransferExecution, network: Netwo
   return sendNetwork === network || receiveNetwork === network;
 }
 
+/** Converts a TransferExecution into a CommonTransaction for display in the unified history. */
 export function transferToCommonTransaction(execution: TransferExecution, network: Networks): CommonTransaction {
   const sendAssetInfo = getAssetInfo(execution.sendAsset);
   const receiveAssetInfo = getAssetInfo(execution.receiveAsset);
@@ -169,13 +169,18 @@ export function transferToCommonTransaction(execution: TransferExecution, networ
   };
 }
 
+/**
+ * Merges wallet transactions with transfer executions into a single timeline.
+ * Wallet txids that belong to a transfer (depositTxid/claimTxid) are removed
+ * so each transfer shows as one rich row instead of a raw tx + a transfer row.
+ */
 export function aggregateTransactionHistory(network: Networks, transactions: CommonTransaction[], transfers: TransferExecution[]): CommonTransaction[] {
   const keptTransfers = transfers.filter((execution) => isTransferVisibleOnNetwork(execution, network));
+
   const coveredTxids = new Set<string>();
 
   for (const execution of keptTransfers) {
-    const relatedTxids = toUniqueNormalizedTxids(execution.relatedTxids);
-    for (const txid of relatedTxids) {
+    for (const txid of getRelatedTxids(execution)) {
       coveredTxids.add(txid);
     }
   }
@@ -184,9 +189,8 @@ export function aggregateTransactionHistory(network: Networks, transactions: Com
   for (const txid of inferredCoveredTxids) {
     coveredTxids.add(txid);
   }
-
   const mappedTransfers = keptTransfers.map((execution) => transferToCommonTransaction(execution, network));
-  const filteredTransactions = transactions.filter((tx) => !coveredTxids.has(normalizeTxid(tx.txid)));
+  const filteredTransactions = transactions.filter((tx) => !coveredTxids.has(tx.txid));
 
   return [...mappedTransfers, ...filteredTransactions].sort((a, b) => {
     if (b.timestamp !== a.timestamp) return b.timestamp - a.timestamp;

@@ -20,7 +20,8 @@ import { sleep } from '@shared/modules/sleep';
 import { TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 import type { AssetId } from '@shared/types/asset';
 import type { SendQuote } from '@shared/types/send-quote';
-import type { TransferExecution } from '@shared/types/transfer';
+import { EXECUTION_CLAIM, type TransferExecution } from '@shared/types/transfer';
+import { NETWORK_SPARK } from '@shared/types/networks';
 import { useTransferFlow } from './_layout';
 
 const DISMISS_THRESHOLD = 150;
@@ -47,6 +48,7 @@ export default function TransferConfirm() {
   const executionRef = useRef<TransferExecution | undefined>(undefined);
   const isFakeProvider = quote?.serviceName === 'Fake';
   const isNativeDeposit = quote?.serviceName === 'Native';
+  const isSparkDeposit = isNativeDeposit && receiveAsset ? getAssetInfo(receiveAsset).network === NETWORK_SPARK : false;
 
   useEffect(() => {
     if (!quote) return;
@@ -104,9 +106,8 @@ export default function TransferConfirm() {
             ? await getOnchainDepositAddress(receiveAssetInfo.network, accountNumber)
             : await BackgroundExecutor.getAddress(receiveAssetInfo.network, accountNumber);
         const fromAddress = isFakeProvider ? 'fake-address' : await BackgroundExecutor.getAddress(sendAssetInfo.network, accountNumber);
-        const execution = await transferService.executeTransfer(quote, settleAddress, fromAddress);
+        const execution = await transferService.executeTransfer(quote, accountNumber, settleAddress, fromAddress);
         if (cancelled) return;
-        execution.accountNumber = accountNumber;
         executionRef.current = execution;
 
         // Fake provider or no deposit address: skip send quote
@@ -148,46 +149,48 @@ export default function TransferConfirm() {
 
   // Single confirm: commit + broadcast
   const handleConfirm = async () => {
-    if (isExpired) {
-      setError('Quote has expired. Please go back and get a new quote.');
-      return;
-    }
     setIsConfirming(true);
     setError('');
     await sleep(10);
 
-    const execution = executionRef.current;
-
     try {
-      // Fake provider or no send quote needed: commit and go straight to success
-      if (isFakeProvider || !sendQuote) {
-        if (execution && transferService.commitTransfer) {
-          await transferService.commitTransfer(execution).catch(() => {});
-        }
+      if (isExpired) throw new Error('Quote has expired. Please go back and get a new quote.');
+      const execution = executionRef.current;
+      if (!execution) throw new Error('Transfer not ready. Please go back and try again.');
+
+      if (execution.type === EXECUTION_CLAIM) {
+        execution.autoClaim = !isSparkDeposit || claimMode === 'auto';
+      }
+
+      // Fake provider: commit and go straight to success
+      if (isFakeProvider) {
+        await transferService.commitTransfer(execution);
         setCommitted(true);
         router.replace('/transfer/success');
         return;
       }
 
-      const wallet = quotableWalletRef.current || (sendAsset ? await getQuotableWallet(sendAsset) : undefined);
-      if (!wallet) throw new Error('Wallet does not support send quote');
+      if (!sendQuote) throw new Error('Send quote not available. Please go back and try again.');
 
+      await transferService.commitTransfer(execution);
+
+      const wallet = quotableWalletRef.current;
+      if (!wallet) throw new Error('Wallet does not support send quote');
       const mnemonic = await BackgroundExecutor.getMasterSeed();
       const txid = await wallet.executeSendQuote(sendQuote, mnemonic, accountNumber);
 
-      if (execution) {
-        const existingRelatedTxids = Array.isArray(execution.relatedTxids) ? execution.relatedTxids : [];
-        const normalizedTxid = txid.trim().toLowerCase();
-        execution.relatedTxids = Array.from(new Set([...existingRelatedTxids, normalizedTxid].filter(Boolean)));
-      }
-
-      if (execution && transferService.commitTransfer) {
-        await transferService.commitTransfer(execution).catch(() => {});
-      }
+      // Update with deposit txid after successful send
+      execution.depositTxid = txid;
+      await transferService.commitTransfer(execution);
 
       setCommitted(true);
       router.replace('/transfer/success');
     } catch (e: any) {
+      // If send was already broadcast, update transfer with txid
+      const execution = executionRef.current;
+      if (execution?.depositTxid) {
+        await transferService.commitTransfer(execution);
+      }
       setError(e.message || 'Failed to send funds');
     } finally {
       setIsConfirming(false);
@@ -363,26 +366,27 @@ export default function TransferConfirm() {
                         </View>
                       )}
 
-                      {/* Claim section — hidden until claim flow is integrated */}
-                      {/* <View>
-                        <Pressable style={[styles.detailRow, styles.claimRow, !claimExpanded && styles.detailRowLast]} onPress={toggleClaim} activeOpacity={0.7} testID="ConfirmClaim">
-                          <ThemedText style={styles.detailLabel}>Claim</ThemedText>
-                          <View style={styles.detailValueRow}>
-                            <ThemedText style={styles.detailValue}>{claimMode}</ThemedText>
-                            <Ionicons name={claimExpanded ? 'chevron-down' : 'chevron-forward'} size={10} color="rgba(255, 255, 255, 0.4)" />
-                          </View>
-                        </Pressable>
-                        <Animated.View style={claimOptionsStyle}>
-                          <Pressable style={[styles.detailRow, styles.claimRow]} onPress={() => selectClaim('auto')} activeOpacity={0.7} testID="ConfirmClaimAuto">
-                            <ThemedText style={styles.claimOptionText}>auto</ThemedText>
-                            {claimMode === 'auto' && <Ionicons name="checkmark" size={14} color="rgba(255, 255, 255, 0.9)" />}
-                          </Pressable>
-                          <Pressable style={[styles.detailRow, styles.claimRow, styles.detailRowLast]} onPress={() => selectClaim('manual')} activeOpacity={0.7} testID="ConfirmClaimManual">
-                            <ThemedText style={styles.claimOptionText}>manual</ThemedText>
-                            {claimMode === 'manual' && <Ionicons name="checkmark" size={14} color="rgba(255, 255, 255, 0.9)" />}
-                          </Pressable>
-                        </Animated.View>
-                      </View> */}
+                      {isSparkDeposit && (
+                        <View style={styles.claimContainer}>
+                          <RNPressable style={[styles.detailRow, claimExpanded && styles.claimOptionRow, !claimExpanded && styles.detailRowLast]} onPress={toggleClaim} testID="ConfirmClaim">
+                            <ThemedText style={styles.detailLabel}>Claim</ThemedText>
+                            <View style={styles.detailValueRow}>
+                              <ThemedText style={styles.detailValue}>{claimMode}</ThemedText>
+                              <Ionicons name={claimExpanded ? 'chevron-down' : 'chevron-forward'} size={10} color="rgba(255, 255, 255, 0.4)" />
+                            </View>
+                          </RNPressable>
+                          <Animated.View style={claimOptionsStyle}>
+                            <RNPressable style={[styles.detailRow, styles.claimOptionRow]} onPress={() => selectClaim('auto')} testID="ConfirmClaimAuto">
+                              <ThemedText style={styles.claimOptionText}>auto</ThemedText>
+                              {claimMode === 'auto' && <Ionicons name="checkmark" size={16} color="rgba(255, 255, 255, 0.9)" />}
+                            </RNPressable>
+                            <RNPressable style={[styles.detailRow, styles.claimOptionRow, styles.detailRowLast]} onPress={() => selectClaim('manual')} testID="ConfirmClaimManual">
+                              <ThemedText style={styles.claimOptionText}>manual</ThemedText>
+                              {claimMode === 'manual' && <Ionicons name="checkmark" size={16} color="rgba(255, 255, 255, 0.9)" />}
+                            </RNPressable>
+                          </Animated.View>
+                        </View>
+                      )}
                     </View>
 
                     {/* Error */}
@@ -533,7 +537,10 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
   },
-  claimRow: {
+  claimContainer: {
+    gap: 0,
+  },
+  claimOptionRow: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   detailLabel: {
