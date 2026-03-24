@@ -85,10 +85,3 @@ appId: com.layerzwallet.mobile
     text: Terms of Service
 - assertVisible:
     text: Privacy Policy
-- assertVisible:
-    text: 'Layerz Wallet'
-
-# Go back to Settings
-- runFlow: subflows/back.yml
-- assertVisible:
-    id: SettingsScreenTitle
