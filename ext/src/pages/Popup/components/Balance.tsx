@@ -7,6 +7,8 @@ import { useAccountBalance } from '@shared/hooks/useAccountBalance';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
+import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
+import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
@@ -48,7 +50,8 @@ const BalanceDefault = forwardRef<{ refresh: () => void }, BalanceProps>(({ netw
       mutate();
     },
   }));
-  const { exchangeRate } = useExchangeRate(network, 'USD');
+  const fiat = useSelectedFiat();
+  const { exchangeRate } = useExchangeRate(network, fiat);
   const availableNetworks = useAvailableNetworks();
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
   const ticker = getTickerByNetwork(network);
@@ -81,7 +84,7 @@ const BalanceDefault = forwardRef<{ refresh: () => void }, BalanceProps>(({ netw
 
       <h1>
         <span id="home-balance">{displayBalance}</span> {ticker}
-        &nbsp;<span style={{ fontSize: 14 }}>{displaySubBalance !== '—' ? `$${displaySubBalance}` : ''}</span>
+        &nbsp;<span style={{ fontSize: 14 }}>{displaySubBalance !== '—' ? formatFiatDisplay(displaySubBalance, fiat) : ''}</span>
         {canBuyWithFiat ? (
           <span style={{ paddingLeft: '15px' }}>
             <Button onClick={handleBuyClick}>
@@ -103,6 +106,7 @@ BalanceDefault.displayName = 'BalanceDefault';
 const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceProps>(({ network, accountNumber, BackgroundCaller }, ref) => {
   const availableNetworks = useAvailableNetworks();
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
+  const fiat = useSelectedFiat();
 
   // Lightning network aggregates balances from Spark, Ark, and Liquid networks
   // Each underlying network has its own balance and exchange rate
@@ -119,9 +123,9 @@ const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceProps>(({ ne
       mutateLiquid();
     },
   }));
-  const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK, 'USD');
-  const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARK, 'USD');
-  const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, 'USD');
+  const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK, fiat);
+  const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARK, fiat);
+  const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, fiat);
 
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);
@@ -168,7 +172,10 @@ const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceProps>(({ ne
       }
 
       const formattedBalance = balance !== undefined ? formatBalance(balance, Number(getDecimalsByNetwork(net)), 8) : '—';
-      const formattedFiatBalance = exchangeRate !== undefined && balance !== undefined ? '$' + formatFiatBalance(balance, Number(getDecimalsByNetwork(net)), Number(exchangeRate)) : '$—';
+      const formattedFiatBalance =
+        exchangeRate !== undefined && balance !== undefined
+          ? formatFiatDisplay(formatFiatBalance(balance, Number(getDecimalsByNetwork(net)), Number(exchangeRate)), fiat)
+          : formatFiatDisplay('—', fiat);
       const networkTicker = getTickerByNetwork(net);
       const networkName = capitalizeFirstLetter(net);
 
@@ -178,7 +185,7 @@ const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceProps>(({ ne
           <td style={{ textAlign: 'right', padding: '8px', fontSize: '14px' }}>
             {formattedBalance} {networkTicker}
           </td>
-          <td style={{ textAlign: 'right', padding: '8px', fontSize: '14px' }}>{formattedFiatBalance} USD</td>
+          <td style={{ textAlign: 'right', padding: '8px', fontSize: '14px' }}>{formattedFiatBalance}</td>
         </tr>
       );
     });
@@ -203,7 +210,7 @@ const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceProps>(({ ne
       <h1>
         <span id="home-balance">{displayBalance}</span> {ticker}
         <div style={{ width: '100%', marginBottom: '15px' }}>
-          <span style={{ fontSize: 14 }}>{displaySubBalance !== '—' ? `$${displaySubBalance}` : ''}</span>
+          <span style={{ fontSize: 14 }}>{displaySubBalance !== '—' ? formatFiatDisplay(displaySubBalance, fiat) : ''}</span>
         </div>
       </h1>
 

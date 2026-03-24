@@ -3,8 +3,8 @@ import { useMemo } from 'react';
 import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT, Networks } from '../types/networks';
 import { getFiatRate } from '../models/fiatUnit';
 import { getIsTestnet } from '../models/network-getters';
-
-export type TFiat = 'USD';
+import { TFiat } from '../types/fiat';
+export type { TFiat } from '../types/fiat';
 
 interface exchangeRateFetcherArg {
   cacheKey: string;

@@ -77,7 +77,7 @@ const SettingsPage: React.FC = () => {
                 <Select id={`setting-${key}`} value={currentValue} onChange={(e) => handleSettingChange(key, e.target.value)}>
                   {config.options.map((option: string) => (
                     <option key={option} value={option}>
-                      {option === 'never' ? 'Never' : option === 'ON' ? 'On' : option === 'OFF' ? 'Off' : option.length === 2 ? option.toUpperCase() : option.charAt(0).toUpperCase() + option.slice(1)}
+                      {option === 'never' ? 'Never' : option === 'ON' ? 'On' : option === 'OFF' ? 'Off' : option === option.toUpperCase() ? option : option.charAt(0).toUpperCase() + option.slice(1)}
                     </option>
                   ))}
                 </Select>

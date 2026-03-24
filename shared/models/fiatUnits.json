@@ -2,7 +2,7 @@
   "USD": {
     "endPointKey": "USD",
     "locale": "en-US",
-    "source": "Kraken",
+    "source": "CoinGecko",
     "symbol": "$",
     "country": "United States (US Dollar)"
   },
@@ -107,14 +107,14 @@
   "EUR": {
     "endPointKey": "EUR",
     "locale": "en-IE",
-    "source": "Kraken",
+    "source": "CoinGecko",
     "symbol": "€",
     "country": "European Union (Euro)"
   },
   "GBP": {
     "endPointKey": "GBP",
     "locale": "en-GB",
-    "source": "Kraken",
+    "source": "CoinGecko",
     "symbol": "£",
     "country": "United Kingdom (British Pound)"
   },
@@ -184,7 +184,7 @@
   "KES": {
     "endPointKey": "KES",
     "locale": "en-KE",
-    "source": "CoinDesk",
+    "source": "CoinGecko",
     "symbol": "Ksh",
     "country": "Kenya (Kenyan Shilling)"
   },

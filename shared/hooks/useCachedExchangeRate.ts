@@ -19,7 +19,7 @@ import { StringNumber } from '../types/string-number';
  * This hook gets exchange rate from SWR cache instead of doing network request
  *
  * @param network - the network for which to get the rate
- * @param fiat - currently only 'USD'
+ * @param fiat - fiat code, e.g. 'USD'
  */
 export function useCachedExchangeRate(network: Networks, fiat: TFiat): { exchangeRate: StringNumber | undefined } {
   const { cache } = useSWRConfig();
@@ -53,7 +53,7 @@ export function useCachedExchangeRate(network: Networks, fiat: TFiat): { exchang
   //
 
   for (const key of cache.keys()) {
-    if (key.includes(`exchangeRateFetcher`) && key.includes(`network:"${network2use}"`)) {
+    if (key.includes(`exchangeRateFetcher`) && key.includes(`network:"${network2use}"`) && key.includes(`fiat:"${fiat}"`)) {
       const rate = cache.get(key);
       if (rate?.data) {
         return {

@@ -4,8 +4,7 @@ import { getIsTestnet } from '../models/network-getters';
 import { USDT_TOKENS } from '../models/token-list';
 import { NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT, Networks } from '../types/networks';
 import { getFiatRate } from '../models/fiatUnit';
-
-export type TFiat = 'USD';
+import { TFiat } from '../types/fiat';
 
 interface tokenExchangeRateFetcherArg {
   cacheKey: string;

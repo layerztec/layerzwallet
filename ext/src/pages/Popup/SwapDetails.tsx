@@ -4,7 +4,9 @@ import { ArrowLeftIcon, Copy, ExternalLink } from 'lucide-react';
 
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
+import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonSwap } from '@shared/types/common-swap';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK } from '@shared/types/networks';
@@ -21,10 +23,11 @@ const SwapDetails: React.FC = () => {
   const location = useLocation();
   const { network } = useContext(NetworkContext);
   const { swap } = location.state as SwapDetailsParams;
+  const fiat = useSelectedFiat();
 
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);
-  const { exchangeRate } = useExchangeRate(network, 'USD');
+  const { exchangeRate } = useExchangeRate(network, fiat);
 
   const [formattedDate, formattedDateWithTime] = useMemo(() => {
     if (!swap.timestamp) return ['—', '—'];
@@ -48,8 +51,8 @@ const SwapDetails: React.FC = () => {
 
   const amountUsd = useMemo(() => {
     if (!exchangeRate) return '';
-    return `${formatFiatBalance(Math.abs(swap.amount).toString(), decimals, exchangeRate)} USD`;
-  }, [swap.amount, decimals, exchangeRate]);
+    return formatFiatDisplay(formatFiatBalance(Math.abs(swap.amount).toString(), decimals, exchangeRate), fiat);
+  }, [swap.amount, decimals, exchangeRate, fiat]);
 
   const statusText = useMemo(() => {
     switch (swap.status) {
