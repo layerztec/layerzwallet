@@ -103,6 +103,17 @@ jobs:
       flow_path:
         - .maestro/send-spark.yml
 
+  settings:
+    needs: [build_android_for_e2e]
+    type: maestro
+    runs_on: linux-large-nested-virtualization
+    params:
+      retries: 5
+      build_id: ${{ needs.build_android_for_e2e.outputs.build_id }}
+      device_identifier: 'pixel_9'
+      flow_path:
+        - .maestro/settings.yml
+
   send_token:
     needs: [build_android_for_e2e]
     type: maestro

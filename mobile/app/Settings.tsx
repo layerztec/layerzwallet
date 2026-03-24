@@ -179,7 +179,7 @@ export default function SettingsScreen() {
         { id: 'currency', title: 'Currency', onPress: handleCurrencyPress, testID: 'CurrencyButton' },
         { id: 'tools', title: 'Tools', onPress: handleToolsPress, testID: 'ToolsButton' },
         { id: 'support', title: 'Support', onPress: handleSupportPress },
-        { id: 'about', title: 'About', onPress: handleAboutPress },
+        { id: 'about', title: 'About', onPress: handleAboutPress, testID: 'AboutButton' },
       ],
     },
   ];
