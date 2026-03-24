@@ -3,18 +3,7 @@ import BigNumber from 'bignumber.js';
 import { getAssetInfo, toAssetId } from '../models/asset-info';
 import { IStorage, STORAGE_KEY_GARDEN_TRANSFERS } from '../types/IStorage';
 import { AssetId } from '../types/asset';
-import {
-  EXECUTION_DEPOSIT,
-  isTerminalStatus,
-  ITransferService,
-  normalizeRelatedTxids,
-  TimelineStep,
-  TransferExecution,
-  TransferPair,
-  TransferPairInfo,
-  TransferQuote,
-  TransferStatus,
-} from '../types/transfer';
+import { EXECUTION_DEPOSIT, isTerminalStatus, ITransferService, TimelineStep, TransferExecution, TransferPair, TransferPairInfo, TransferQuote, TransferStatus } from '../types/transfer';
 import { GardenApi, GardenApiError, GardenOrder } from './garden-api';
 import { isGardenSupported, toGardenAsset } from './garden-mappings';
 import { getExchangeTimelineSteps } from './transfer-service-sideshift';
@@ -125,7 +114,7 @@ export class GardenTransferService implements ITransferService {
     };
   }
 
-  async executeTransfer(quote: TransferQuote, settleAddress: string, fromAddress?: string): Promise<TransferExecution> {
+  async executeTransfer(quote: TransferQuote, accountNumber: number, settleAddress: string, fromAddress?: string): Promise<TransferExecution> {
     if (Date.now() / 1000 > quote.expiresAt) {
       throw new Error('Quote has expired. Please get a new quote.');
     }
@@ -157,7 +146,7 @@ export class GardenTransferService implements ITransferService {
       settleAddress,
       createdAt: now,
       updatedAt: now,
-      accountNumber: 0,
+      accountNumber,
       serviceName: this.name,
     };
 
@@ -172,14 +161,24 @@ export class GardenTransferService implements ITransferService {
   }
 
   async commitTransfer(execution: TransferExecution): Promise<void> {
+    const transfers = await this.loadTransfers();
+    const existingIdx = transfers.findIndex((t) => t.execution.id === execution.id);
+
+    if (existingIdx >= 0) {
+      transfers[existingIdx].execution = {
+        ...transfers[existingIdx].execution,
+        ...execution,
+      };
+      await this.saveTransfers(transfers);
+      return;
+    }
+
     const uncommitted = this.uncommitted.get(execution.id);
     if (!uncommitted) return;
 
-    const transfers = await this.loadTransfers();
     const persistedExecution: TransferExecution = {
       ...uncommitted.execution,
       ...execution,
-      relatedTxids: normalizeRelatedTxids(execution.relatedTxids ?? uncommitted.execution.relatedTxids),
     };
     transfers.push({
       execution: persistedExecution,
@@ -259,7 +258,7 @@ export class GardenTransferService implements ITransferService {
         if (!sendAsset || !receiveAsset) continue;
         result.push({
           ...transfer,
-          execution: { ...transfer.execution, sendAsset, receiveAsset, relatedTxids: normalizeRelatedTxids(transfer.execution.relatedTxids) },
+          execution: { ...transfer.execution, sendAsset, receiveAsset },
         });
       }
       return result;

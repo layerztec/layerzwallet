@@ -145,7 +145,7 @@ describe('SideshiftTransferService', () => {
         })
       );
 
-      const execution = await service.executeTransfer(makeQuote(), 'lq1settle...');
+      const execution = await service.executeTransfer(makeQuote(), 0, 'lq1settle...');
       expect(execution.id).toBe('shift-xyz');
       expect(execution.status).toBe('waiting');
       expect(execution.depositAddress).toBe('bc1qdeposit...');
@@ -155,26 +155,26 @@ describe('SideshiftTransferService', () => {
       expect(storage._store[STORAGE_KEY_SIDESHIFT_TRANSFERS]).toBeUndefined();
 
       // Commit persists to storage
-      execution.relatedTxids = ['ABC123', 'abc123', ''];
+      execution.depositTxid = 'abc123';
       await service.commitTransfer(execution);
       const stored = JSON.parse(storage._store[STORAGE_KEY_SIDESHIFT_TRANSFERS]);
       expect(stored).toHaveLength(1);
       expect(stored[0].sideshiftShiftId).toBe('shift-xyz');
-      expect(stored[0].execution.relatedTxids).toEqual(['abc123']);
+      expect(stored[0].execution.depositTxid).toBe('abc123');
     });
 
     it('throws on expired quote', async () => {
       const expiredQuote = makeQuote();
       expiredQuote.expiresAt = Math.floor(Date.now() / 1000) - 100;
 
-      await expect(service.executeTransfer(expiredQuote, 'lq1settle...')).rejects.toThrow('Quote has expired');
+      await expect(service.executeTransfer(expiredQuote, 0, 'lq1settle...')).rejects.toThrow('Quote has expired');
     });
 
     it('throws when quote has no providerQuoteId', async () => {
       const quote = makeQuote();
       delete (quote as any).providerQuoteId;
 
-      await expect(service.executeTransfer(quote, 'lq1settle...')).rejects.toThrow('Quote is missing provider quote ID');
+      await expect(service.executeTransfer(quote, 0, 'lq1settle...')).rejects.toThrow('Quote is missing provider quote ID');
     });
   });
 

@@ -126,7 +126,7 @@ describe('SymbiosisTransferService', () => {
         serviceName: 'Test',
       };
 
-      const execution = await service.executeTransfer(quote, '0xSettleAddr', 'bc1qRefundAddr');
+      const execution = await service.executeTransfer(quote, 0, '0xSettleAddr', 'bc1qRefundAddr');
 
       expect(execution.status).toBe('waiting');
       expect(execution.depositAddress).toBe('bc1pexample');
@@ -156,7 +156,7 @@ describe('SymbiosisTransferService', () => {
         serviceName: 'Test',
       };
 
-      await expect(service.executeTransfer(quote, '0xAddr')).rejects.toThrow('unsupported swap type');
+      await expect(service.executeTransfer(quote, 0, '0xAddr')).rejects.toThrow('unsupported swap type');
     });
   });
 
@@ -181,13 +181,13 @@ describe('SymbiosisTransferService', () => {
         serviceName: 'Test',
       };
 
-      const execution = await service.executeTransfer(quote, '0xAddr');
-      await service.commitTransfer({ ...execution, relatedTxids: ['abc123'] });
+      const execution = await service.executeTransfer(quote, 0, '0xAddr');
+      await service.commitTransfer({ ...execution, depositTxid: 'abc123' });
 
       expect(mockStorage.setItem).toHaveBeenCalled();
       const saved = JSON.parse(mockStorage.setItem.mock.calls[0][1]);
       expect(saved).toHaveLength(1);
-      expect(saved[0].execution.relatedTxids).toEqual(['abc123']);
+      expect(saved[0].execution.depositTxid).toEqual('abc123');
     });
   });
 
@@ -210,7 +210,7 @@ describe('SymbiosisTransferService', () => {
             receiveAsset: RECEIVE,
             createdAt: Math.floor(Date.now() / 1000),
             updatedAt: 0,
-            relatedTxids: ['txhash123'],
+            depositTxid: 'txhash123',
             accountNumber: 0,
             serviceName: 'Symbiosis',
           },
@@ -256,18 +256,18 @@ describe('SymbiosisTransferService', () => {
   });
 
   describe('getTrackingUrl', () => {
-    it('returns Symbiosis explorer URL when relatedTxids has txHash', () => {
-      const url = service.getTrackingUrl(makeExecution({ relatedTxids: ['abc123def'] }));
+    it('returns Symbiosis explorer URL when depositTxid has txHash', () => {
+      const url = service.getTrackingUrl(makeExecution({ depositTxid: 'abc123def' }));
       expect(url).toBe('https://explorer.symbiosis.finance/transactions/3652501241/abc123def');
     });
 
-    it('returns undefined when no relatedTxids', () => {
+    it('returns undefined when no depositTxid', () => {
       const url = service.getTrackingUrl(makeExecution());
       expect(url).toBeUndefined();
     });
 
-    it('returns undefined when relatedTxids is empty', () => {
-      const url = service.getTrackingUrl(makeExecution({ relatedTxids: [] }));
+    it('returns undefined when depositTxid is empty', () => {
+      const url = service.getTrackingUrl(makeExecution({ depositTxid: '' }));
       expect(url).toBeUndefined();
     });
   });
