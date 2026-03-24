@@ -3,7 +3,7 @@ import BigNumber from 'bignumber.js';
 import { getAssetInfo, toAssetId } from '../models/asset-info';
 import { IStorage, STORAGE_KEY_SYMBIOSIS_TRANSFERS } from '../types/IStorage';
 import { AssetId } from '../types/asset';
-import { EXECUTION_DEPOSIT, isTerminalStatus, ITransferService, normalizeRelatedTxids, TimelineStep, TransferExecution, TransferPair, TransferQuote, TransferStatus } from '../types/transfer';
+import { EXECUTION_DEPOSIT, isTerminalStatus, ITransferService, TimelineStep, TransferExecution, TransferPair, TransferQuote, TransferStatus } from '../types/transfer';
 import { SymbiosisApi, SymbiosisApiError, SymbiosisSwapRequest, SymbiosisSwapResponse } from './symbiosis-api';
 import { getExchangeTimelineSteps } from './transfer-service-sideshift';
 
@@ -76,7 +76,7 @@ export class SymbiosisTransferService implements ITransferService {
     return buildQuoteFromResponse(resp, sendAsset, receiveAsset, sendAmount, sendInfo.ticker, receiveInfo.ticker, receiveInfo.decimals, this.name);
   }
 
-  async executeTransfer(quote: TransferQuote, settleAddress: string, fromAddress?: string): Promise<TransferExecution> {
+  async executeTransfer(quote: TransferQuote, accountNumber: number, settleAddress: string, fromAddress?: string): Promise<TransferExecution> {
     const receiveInfo = getAssetInfo(quote.receiveAsset);
     const receiveChainId = CHAIN_IDS[receiveInfo.network];
     if (!receiveChainId) {
@@ -115,7 +115,7 @@ export class SymbiosisTransferService implements ITransferService {
       settleAddress,
       createdAt: now,
       updatedAt: now,
-      accountNumber: 0,
+      accountNumber,
       serviceName: this.name,
     };
 
@@ -124,14 +124,24 @@ export class SymbiosisTransferService implements ITransferService {
   }
 
   async commitTransfer(execution: TransferExecution): Promise<void> {
+    const transfers = await this.loadTransfers();
+    const existingIdx = transfers.findIndex((t) => t.execution.id === execution.id);
+
+    if (existingIdx >= 0) {
+      transfers[existingIdx].execution = {
+        ...transfers[existingIdx].execution,
+        ...execution,
+      };
+      await this.saveTransfers(transfers);
+      return;
+    }
+
     const uncommitted = this.uncommitted.get(execution.id);
     if (!uncommitted) return;
 
-    const transfers = await this.loadTransfers();
     const persistedExecution: TransferExecution = {
       ...uncommitted.execution,
       ...execution,
-      relatedTxids: normalizeRelatedTxids(execution.relatedTxids ?? uncommitted.execution.relatedTxids),
     };
     transfers.push({ execution: persistedExecution, expiresAt: uncommitted.expiresAt });
     await this.saveTransfers(transfers);
@@ -151,15 +161,15 @@ export class SymbiosisTransferService implements ITransferService {
       }
 
       if (!isTerminal) {
-        if (t.execution.relatedTxids?.[0]) {
+        if (t.execution.depositTxid) {
           // BTC was sent — poll Symbiosis for swap status
           try {
-            const statusResp = await this.api.getTxStatus(BITCOIN_CHAIN_ID, t.execution.relatedTxids[0]);
+            const statusResp = await this.api.getTxStatus(BITCOIN_CHAIN_ID, t.execution.depositTxid);
             t.execution.status = mapSymbiosisStatus(statusResp.status.code, statusResp.status.text);
             t.execution.updatedAt = now;
           } catch (e) {
             if (e instanceof SymbiosisApiError) {
-              console.warn(`Failed to poll Symbiosis tx ${t.execution.relatedTxids[0]}: ${e.message}`);
+              console.warn(`Failed to poll Symbiosis tx ${t.execution.depositTxid}: ${e.message}`);
             }
           }
         } else if (t.expiresAt && now > t.expiresAt) {
@@ -182,7 +192,7 @@ export class SymbiosisTransferService implements ITransferService {
     if (!transfer) throw new Error(`Transfer ${executionId} not found`);
 
     const now = Math.floor(Date.now() / 1000);
-    const txHash = transfer.execution.relatedTxids?.[0];
+    const txHash = transfer.execution.depositTxid;
     if (txHash) {
       const statusResp = await this.api.getTxStatus(BITCOIN_CHAIN_ID, txHash);
       transfer.execution.status = mapSymbiosisStatus(statusResp.status.code, statusResp.status.text);
@@ -201,7 +211,7 @@ export class SymbiosisTransferService implements ITransferService {
   }
 
   getTrackingUrl(execution: TransferExecution): string | undefined {
-    const txHash = execution.relatedTxids?.[0];
+    const txHash = execution.depositTxid;
     if (txHash) {
       return `https://explorer.symbiosis.finance/transactions/${BITCOIN_CHAIN_ID}/${txHash}`;
     }
@@ -220,7 +230,7 @@ export class SymbiosisTransferService implements ITransferService {
         if (!sendAsset || !receiveAsset) continue;
         result.push({
           ...transfer,
-          execution: { ...transfer.execution, sendAsset, receiveAsset, relatedTxids: normalizeRelatedTxids(transfer.execution.relatedTxids) },
+          execution: { ...transfer.execution, sendAsset, receiveAsset },
         });
       }
       return result;
