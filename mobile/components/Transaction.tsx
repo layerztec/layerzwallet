@@ -6,6 +6,8 @@ import Pressable from './Pressable';
 
 import { ThemedText } from '@/components/ThemedText';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
+import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
@@ -17,7 +19,8 @@ interface TransactionProps {
 }
 
 export default function Transaction({ transaction, onPress }: TransactionProps) {
-  const { exchangeRate } = useExchangeRate(transaction.network, 'USD');
+  const fiat = useSelectedFiat();
+  const { exchangeRate } = useExchangeRate(transaction.network, fiat);
   const decimals = getDecimalsByNetwork(transaction.network);
   const ticker = getTickerByNetwork(transaction.network);
   const [imageLoadError, setImageLoadError] = useState(false);
@@ -66,10 +69,10 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
 
     if (transaction.amount !== undefined && exchangeRate) {
       const usdAmount = formatFiatBalance(Math.abs(transaction.amount).toString(), decimals, exchangeRate);
-      return `$${usdAmount}`;
+      return formatFiatDisplay(usdAmount, fiat);
     }
-    return '$0.00';
-  }, [isZeroAmountWithSingleToken, transaction.amount, exchangeRate, decimals]);
+    return formatFiatDisplay('0.00', fiat);
+  }, [isZeroAmountWithSingleToken, transaction.amount, exchangeRate, decimals, fiat]);
 
   const formattedTransactionDate = useMemo(() => {
     if (transaction.status === 'pending') {

@@ -92,6 +92,9 @@ export default function SettingsScreen() {
   const handleToolsPress = () => {
     router.push('/Tools');
   };
+  const handleCurrencyPress = () => {
+    router.push('/Currency');
+  };
 
   const handleSupportPress = async () => {
     try {
@@ -173,6 +176,7 @@ export default function SettingsScreen() {
       key: 'options',
       hasBackground: false,
       data: [
+        { id: 'currency', title: 'Currency', onPress: handleCurrencyPress, testID: 'CurrencyButton' },
         { id: 'tools', title: 'Tools', onPress: handleToolsPress, testID: 'ToolsButton' },
         { id: 'support', title: 'Support', onPress: handleSupportPress },
         { id: 'about', title: 'About', onPress: handleAboutPress },

@@ -57,7 +57,8 @@ const styles = StyleSheet.create({
   title: {
     textAlign: 'center',
     color: 'white',
-    opacity: 0.8,
+    fontSize: 18,
+    fontWeight: '600',
   },
 });
 

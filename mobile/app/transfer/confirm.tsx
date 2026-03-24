@@ -14,8 +14,10 @@ import { EvmWallet } from '@shared/class/evm-wallet';
 import { InterfaceSendQuotable, walletCanSendQuote } from '@shared/class/wallets/interface-send-quotable';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useAssetExchangeRate } from '@shared/hooks/useAssetExchangeRate';
+import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
 import { AllNetworkInfos } from '@shared/models/all-network-infos';
 import { getAssetInfo } from '@shared/models/asset-info';
+import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 import { sleep } from '@shared/modules/sleep';
 import { TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 import type { AssetId } from '@shared/types/asset';
@@ -31,6 +33,7 @@ export default function TransferConfirm() {
   const { height: screenHeight } = useWindowDimensions();
   const { sendAsset, receiveAsset, quote, setQuote, setCommitted, transferService } = useTransferFlow();
   const { accountNumber } = useContext(AccountNumberContext);
+  const fiat = useSelectedFiat();
   const { exchangeRate: sendRate } = useAssetExchangeRate(sendAsset);
   const { exchangeRate: receiveRate } = useAssetExchangeRate(receiveAsset);
 
@@ -258,8 +261,8 @@ export default function TransferConfirm() {
 
   const sendAmount = quote?.sendAmount ?? '';
   const receiveAmount = quote?.receiveAmount ?? '';
-  const sendFiat = sendRate && sendAmount ? `$${new BigNumber(sendAmount).multipliedBy(sendRate).toFixed(2)}` : '';
-  const receiveFiat = receiveRate && receiveAmount ? `$${new BigNumber(receiveAmount).multipliedBy(receiveRate).toFixed(2)}` : '';
+  const sendFiat = sendRate && sendAmount ? formatFiatDisplay(new BigNumber(sendAmount).multipliedBy(sendRate).toFixed(2), fiat) : '';
+  const receiveFiat = receiveRate && receiveAmount ? formatFiatDisplay(new BigNumber(receiveAmount).multipliedBy(receiveRate).toFixed(2), fiat) : '';
 
   const isExpired = !isNativeDeposit && expirySeconds <= 0;
   const isReady = !isPreparing && !error && !isExpired;
@@ -303,7 +306,7 @@ export default function TransferConfirm() {
                         <ThemedText style={styles.amountValue}>
                           {sendAmount} {sendAssetInfo.ticker}
                         </ThemedText>
-                        <ThemedText style={styles.amountFiat}>{sendFiat || '$0.00'}</ThemedText>
+                        <ThemedText style={styles.amountFiat}>{sendFiat || formatFiatDisplay('0.00', fiat)}</ThemedText>
                       </View>
                       <TransferAssetIcon asset={sendAsset} size={44} />
                     </View>
@@ -321,7 +324,7 @@ export default function TransferConfirm() {
                         <ThemedText style={styles.amountValue}>
                           {receiveAmount} {receiveAssetInfo.ticker}
                         </ThemedText>
-                        <ThemedText style={styles.amountFiat}>{receiveFiat || '$0.00'}</ThemedText>
+                        <ThemedText style={styles.amountFiat}>{receiveFiat || formatFiatDisplay('0.00', fiat)}</ThemedText>
                       </View>
                       <TransferAssetIcon asset={receiveAsset} size={44} />
                     </View>

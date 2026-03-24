@@ -12,6 +12,8 @@ import { getIsTestnet, getTickerByNetwork, getDecimalsByNetwork } from '@shared/
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useCachedBalance } from '@shared/hooks/useCachedBalance';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
+import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
+import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { ThemedText } from '@/components/ThemedText';
 
@@ -49,9 +51,10 @@ interface LayerCardTileProps extends DashboardTileProps {
 
 const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, disableNavigation = false, accountNumber }: LayerCardTileProps & { accountNumber?: number }) => {
   const router = useRouter();
+  const fiat = useSelectedFiat();
 
   const { balance } = useCachedBalance(card.networkId, accountNumber || 0);
-  const { exchangeRate } = useCachedExchangeRate(card.networkId, 'USD');
+  const { exchangeRate } = useCachedExchangeRate(card.networkId, fiat);
   const [hasTimedOut, setHasTimedOut] = useState(false);
 
   // Animation for squeeze effect
@@ -65,7 +68,7 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
   const displayCard = useMemo(() => {
     const isTestnet = getIsTestnet(card.networkId as any);
     let formattedBalance = '0.00000';
-    let formattedUsdValue = '$0.00';
+    let formattedUsdValue = formatFiatDisplay('0.00', fiat);
 
     if (balance !== undefined && balance !== null) {
       formattedBalance = formatBalance(balance, getDecimalsByNetwork(card.networkId as any), 8);
@@ -76,7 +79,7 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
     if (isTestnet) {
       formattedUsdValue = 'Testnet';
     } else if (balance !== undefined && balance !== null && exchangeRate) {
-      formattedUsdValue = `$${formatFiatBalance(balance, getDecimalsByNetwork(card.networkId as any), +exchangeRate)}`;
+      formattedUsdValue = formatFiatDisplay(formatFiatBalance(balance, getDecimalsByNetwork(card.networkId as any), +exchangeRate), fiat);
     } else {
       formattedUsdValue = '...';
     }
@@ -89,7 +92,7 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
     }
 
     return { ...card, balance: formattedBalance, usdValue: formattedUsdValue };
-  }, [card, balance, exchangeRate, hasTimedOut]);
+  }, [card, balance, exchangeRate, hasTimedOut, fiat]);
   const gradientColors = useMemo(() => {
     let gradKey: keyof typeof sharedGradients = 'base';
     for (const key of Object.keys(sharedGradients)) {
@@ -209,7 +212,7 @@ const useNetworkCards = (accountNumber: number): LayerCard[] => {
         name: capitalizeFirstLetter(network),
         ticker: ticker,
         balance: '0.00000',
-        usdValue: isTestnet ? 'Testnet' : '$0.00',
+        usdValue: isTestnet ? 'Testnet' : formatFiatDisplay('0.00', 'USD'),
         color: gradientColors[0],
         icon: null,
         tags: isTestnet ? ['Testnet'] : [],

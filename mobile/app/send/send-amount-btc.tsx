@@ -16,7 +16,9 @@ import { CreateTransactionTarget } from '@shared/class/wallets/types';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
+import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 import { sleep } from '@shared/modules/sleep';
 import { formatBalance } from '@shared/modules/string-utils';
 import { validateAddress } from '@shared/modules/wallet-utils';
@@ -40,7 +42,8 @@ const SendAmountBtc: React.FC = () => {
   const { network, address, amount: contextAmount, setAmount: setContextAmount, setCreatedTransaction, bitcoin, denomination, setDenomination } = useSendFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
-  const { exchangeRate } = useCachedExchangeRate(network, 'USD');
+  const fiat = useSelectedFiat();
+  const { exchangeRate } = useCachedExchangeRate(network, fiat);
 
   const [localAmount, setLocalAmount] = useState(contextAmount);
   const [selectedFeeRate, setSelectedFeeRate] = useState<number | undefined>();
@@ -67,7 +70,7 @@ const SendAmountBtc: React.FC = () => {
     if (denomination === 'Fiat' && exchangeRate) {
       const feeInNative = new BigNumber(feeInSats).dividedBy(new BigNumber(10).pow(getDecimalsByNetwork(network)));
       const feeInFiat = feeInNative.multipliedBy(Number(exchangeRate));
-      return `$${feeInFiat.toFixed(2)}`;
+      return formatFiatDisplay(feeInFiat.toFixed(2), fiat);
     } else {
       return `${formatBalance(feeInSats.toString(), getDecimalsByNetwork(network))} ${getTickerByNetwork(network)}`;
     }
