@@ -27,7 +27,7 @@ const SwapDetails: React.FC = () => {
 
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);
-  const { exchangeRate } = useExchangeRate(network, fiat);
+  const { exchangeRate } = useExchangeRate(network);
 
   const [formattedDate, formattedDateWithTime] = useMemo(() => {
     if (!swap.timestamp) return ['—', '—'];

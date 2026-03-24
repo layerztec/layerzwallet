@@ -6,7 +6,6 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
-import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
@@ -29,10 +28,9 @@ export const withAsset = <P extends object>(Component: React.ComponentType<P & S
   const WithAssetWrapper = (props: P) => {
     const { network, token } = useSendFlow();
     const { accountNumber } = useContext(AccountNumberContext);
-    const fiat = useSelectedFiat();
     const { balance: tokenBalance } = useTokenBalance(network, accountNumber, token!, BackgroundExecutor);
     const { tokenList } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
-    const { tokenExchangeRate } = useTokenExchangeRate(network, token ?? '', fiat);
+    const { tokenExchangeRate } = useTokenExchangeRate(network, token ?? '');
     const tokenInfo = tokenList.find((t) => t.id === token);
 
     if (!tokenInfo) {
@@ -45,10 +43,9 @@ export const withAsset = <P extends object>(Component: React.ComponentType<P & S
   const WithoutTokenWrapper = (props: P) => {
     const { network } = useSendFlow();
     const { accountNumber } = useContext(AccountNumberContext);
-    const fiat = useSelectedFiat();
 
     const { balance: networkBalance } = useBalance(network, accountNumber, BackgroundExecutor);
-    const { exchangeRate: networkExchangeRate } = useExchangeRate(network, fiat);
+    const { exchangeRate: networkExchangeRate } = useExchangeRate(network);
 
     return <Component {...props} balance={networkBalance} exchangeRate={networkExchangeRate} ticker={getTickerByNetwork(network)} token={undefined} decimals={getDecimalsByNetwork(network)} />;
   };

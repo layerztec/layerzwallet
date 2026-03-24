@@ -17,7 +17,6 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
-import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
@@ -31,8 +30,7 @@ const SendAmountLightning: React.FC = () => {
   assert(lightning && lightning.layer, 'Lightning context not found');
   const { layer } = lightning;
   const { balance } = useBalance(layer, accountNumber, BackgroundExecutor);
-  const fiat = useSelectedFiat();
-  const { exchangeRate } = useCachedExchangeRate(NETWORK_BITCOIN, fiat);
+  const { exchangeRate } = useCachedExchangeRate(NETWORK_BITCOIN);
 
   const [localAmount, setLocalAmount] = useState(amount);
   const [localMemo, setLocalMemo] = useState('');

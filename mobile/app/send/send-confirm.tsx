@@ -36,7 +36,7 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const { network, address, amount, createdTransaction, memo, liquidPrepareResult } = useSendFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const fiat = useSelectedFiat();
-  const { exchangeRate } = useCachedExchangeRate(network, fiat);
+  const { exchangeRate } = useCachedExchangeRate(network);
 
   const displayNetwork = contextNetwork === NETWORK_USDT ? contextNetwork : network;
 

@@ -20,7 +20,7 @@ interface TransactionProps {
 
 export default function Transaction({ transaction, onPress }: TransactionProps) {
   const fiat = useSelectedFiat();
-  const { exchangeRate } = useExchangeRate(transaction.network, fiat);
+  const { exchangeRate } = useExchangeRate(transaction.network);
   const decimals = getDecimalsByNetwork(transaction.network);
   const ticker = getTickerByNetwork(transaction.network);
   const [imageLoadError, setImageLoadError] = useState(false);

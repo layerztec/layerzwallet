@@ -12,16 +12,16 @@ import {
   NETWORK_USDT,
   Networks,
 } from '../types/networks';
-import { TFiat } from './useExchangeRate';
 import { StringNumber } from '../types/string-number';
+import { useSelectedFiat } from './useSelectedFiat';
 
 /**
  * This hook gets exchange rate from SWR cache instead of doing network request
  *
  * @param network - the network for which to get the rate
- * @param fiat - fiat code, e.g. 'USD'
  */
-export function useCachedExchangeRate(network: Networks, fiat: TFiat): { exchangeRate: StringNumber | undefined } {
+export function useCachedExchangeRate(network: Networks): { exchangeRate: StringNumber | undefined } {
+  const fiat = useSelectedFiat();
   const { cache } = useSWRConfig();
 
   if (network === NETWORK_USDT) {

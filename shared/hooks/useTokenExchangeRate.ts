@@ -5,6 +5,7 @@ import { USDT_TOKENS } from '../models/token-list';
 import { NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT, Networks } from '../types/networks';
 import { getFiatRate } from '../models/fiatUnit';
 import { TFiat } from '../types/fiat';
+import { useSelectedFiat } from './useSelectedFiat';
 
 interface tokenExchangeRateFetcherArg {
   cacheKey: string;
@@ -88,7 +89,8 @@ export const tokenExchangeRateFetcher = async (arg: tokenExchangeRateFetcherArg)
   return 0;
 };
 
-export function useTokenExchangeRate(network: Networks, tokenId: string, fiat: TFiat) {
+export function useTokenExchangeRate(network: Networks, tokenId: string) {
+  const fiat = useSelectedFiat();
   let refreshInterval = 60_000;
 
   const arg: tokenExchangeRateFetcherArg = useMemo(

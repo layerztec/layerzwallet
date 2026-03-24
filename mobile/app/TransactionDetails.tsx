@@ -29,7 +29,7 @@ export default function TransactionDetails() {
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);
   const fiat = useSelectedFiat();
-  const { exchangeRate } = useExchangeRate(network, fiat);
+  const { exchangeRate } = useExchangeRate(network);
   const networkImage = getNetworkImageAsset(network);
   const networkIconContent = networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null;
   const [imageLoadErrors, setImageLoadErrors] = useState<{ [key: string]: boolean }>({});

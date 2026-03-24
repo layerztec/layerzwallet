@@ -51,7 +51,7 @@ const BalanceDefault = forwardRef<{ refresh: () => void }, BalanceProps>(({ netw
     },
   }));
   const fiat = useSelectedFiat();
-  const { exchangeRate } = useExchangeRate(network, fiat);
+  const { exchangeRate } = useExchangeRate(network);
   const availableNetworks = useAvailableNetworks();
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
   const ticker = getTickerByNetwork(network);
@@ -123,9 +123,9 @@ const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceProps>(({ ne
       mutateLiquid();
     },
   }));
-  const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK, fiat);
-  const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARK, fiat);
-  const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, fiat);
+  const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK);
+  const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARK);
+  const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork);
 
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);

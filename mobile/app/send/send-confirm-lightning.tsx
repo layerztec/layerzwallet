@@ -33,7 +33,7 @@ const SendConfirmLightning: React.FC = () => {
   const { lightning, network } = useSendFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const fiat = useSelectedFiat();
-  const { exchangeRate } = useCachedExchangeRate(NETWORK_BITCOIN, fiat);
+  const { exchangeRate } = useCachedExchangeRate(NETWORK_BITCOIN);
 
   assert(lightning && lightning.layer && lightning.invoice, 'No lightning data available');
   const decoded = lightning.decodedInvoice;

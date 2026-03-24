@@ -4,7 +4,7 @@ import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_
 import { getFiatRate } from '../models/fiatUnit';
 import { getIsTestnet } from '../models/network-getters';
 import { TFiat } from '../types/fiat';
-export type { TFiat } from '../types/fiat';
+import { useSelectedFiat } from './useSelectedFiat';
 
 interface exchangeRateFetcherArg {
   cacheKey: string;
@@ -34,7 +34,8 @@ export const exchangeRateFetcher = async (arg: exchangeRateFetcherArg): Promise<
   return await getFiatRate(fiat);
 };
 
-export function useExchangeRate(network: Networks, fiat: TFiat) {
+export function useExchangeRate(network: Networks) {
+  const fiat = useSelectedFiat();
   let refreshInterval = 60_000;
 
   let network2use: Networks = network;

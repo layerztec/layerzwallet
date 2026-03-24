@@ -2,7 +2,6 @@ import { getAssetInfo } from '../models/asset-info';
 import { AssetId } from '../types/asset';
 import { NETWORK_BITCOIN, Networks } from '../types/networks';
 import { useExchangeRate } from './useExchangeRate';
-import { useSelectedFiat } from './useSelectedFiat';
 import { useTokenExchangeRate } from './useTokenExchangeRate';
 
 /**
@@ -14,10 +13,9 @@ export function useAssetExchangeRate(assetId: AssetId | undefined): { exchangeRa
   const assetInfo = assetId ? getAssetInfo(assetId) : undefined;
   const network: Networks = assetInfo?.network ?? NETWORK_BITCOIN;
   const isToken = !!assetInfo?.tokenId;
-  const fiat = useSelectedFiat();
 
-  const { exchangeRate: nativeRate } = useExchangeRate(network, fiat);
-  const { tokenExchangeRate } = useTokenExchangeRate(network, assetInfo?.tokenId ?? '', fiat);
+  const { exchangeRate: nativeRate } = useExchangeRate(network);
+  const { tokenExchangeRate } = useTokenExchangeRate(network, assetInfo?.tokenId ?? '');
 
   if (!assetInfo) return { exchangeRate: undefined };
 

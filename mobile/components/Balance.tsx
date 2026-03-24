@@ -33,7 +33,7 @@ const Balance = forwardRef<{ refresh: () => void }>((props, ref) => {
   const { accountNumber } = useContext(AccountNumberContext);
   const fiat = useSelectedFiat();
   const { balance, mutate } = useBalance(network, accountNumber, BackgroundExecutor);
-  const { exchangeRate } = useExchangeRate(network, fiat);
+  const { exchangeRate } = useExchangeRate(network);
   const ticker = getTickerByNetwork(network);
   const canBuyWithFiat = fiatOnRamp?.[network]?.canBuyWithFiat;
 
@@ -98,9 +98,9 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
   const { balance: sparkBalance, mutate: mutateSpark } = useBalance(NETWORK_SPARK, accountNumber, BackgroundExecutor);
   const { balance: arkBalance, mutate: mutateArk } = useBalance(NETWORK_ARK, accountNumber, BackgroundExecutor);
   const { balance: liquidBalance, mutate: mutateLiquid } = useBalance(liquidNetwork, accountNumber, BackgroundExecutor);
-  const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK, fiat);
-  const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARK, fiat);
-  const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, fiat);
+  const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK);
+  const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARK);
+  const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork);
 
   // delay rendering of adjustsFontSizeToFit to avoid layout issues on Android
   const [adjustsFontSizeToFit, setAdjustsFontSizeToFit] = useState(false);

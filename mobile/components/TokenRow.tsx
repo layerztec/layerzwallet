@@ -32,7 +32,7 @@ const TokenRow: React.FC<{ token: CachedTokenInfo; onPress: (token: CachedTokenI
   const { accountNumber } = useContext(AccountNumberContext);
   const fiat = useSelectedFiat();
   const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundExecutor);
-  const { tokenExchangeRate } = useTokenExchangeRate(network, token.id, fiat);
+  const { tokenExchangeRate } = useTokenExchangeRate(network, token.id);
 
   // Calculate formatted balance to determine visibility
   const effectiveBalance = balance ?? token.balance ?? '0';

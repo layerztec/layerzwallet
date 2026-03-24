@@ -43,7 +43,7 @@ const SendAmountBtc: React.FC = () => {
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const fiat = useSelectedFiat();
-  const { exchangeRate } = useCachedExchangeRate(network, fiat);
+  const { exchangeRate } = useCachedExchangeRate(network);
 
   const [localAmount, setLocalAmount] = useState(contextAmount);
   const [selectedFeeRate, setSelectedFeeRate] = useState<number | undefined>();

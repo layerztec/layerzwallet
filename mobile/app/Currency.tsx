@@ -14,7 +14,7 @@ const CURRENCY_OPTIONS = SUPPORTED_FIAT_CURRENCIES;
 
 export default function CurrencyScreen() {
   const { settings, updateSetting } = useSettings();
-  const selectedCurrency = (settings as any).currency as TFiat;
+  const selectedCurrency = settings.currency;
 
   return (
     <View style={[styles.container, { backgroundColor: globalDarkBackground }]}>
@@ -32,7 +32,7 @@ export default function CurrencyScreen() {
                 <View key={item}>
                   <View style={styles.rowContainer}>
                     <View style={styles.rowContent}>
-                      <SettingsRow title={item} onPress={() => updateSetting('currency' as any, item as any)} hideChevron testID={`CurrencyOption-${item}`} />
+                      <SettingsRow title={item} onPress={() => updateSetting('currency', item)} hideChevron testID={`CurrencyOption-${item}`} />
                     </View>
                     {isSelected && (
                       <View style={styles.selectedIconContainer}>

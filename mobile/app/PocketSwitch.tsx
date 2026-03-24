@@ -22,7 +22,7 @@ import { overlayBackgroundSections } from '@shared/constants/Colors';
 const TotalBalanceSection = () => {
   const availableNetworks = useAvailableNetworks();
   const fiat = useSelectedFiat();
-  const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN, fiat);
+  const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN);
 
   // Get balances for all accounts (hooks must be called unconditionally)
   const { accountBalance: balance0 } = useAccountBalance(0, availableNetworks);
@@ -52,7 +52,7 @@ const ListItem = ({ item, onPress, accountNumber, currentAccountNumber }: { item
   const IconComponent = item.iconCollection === 'ion' ? Ionicons : Foundation;
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
   const fiat = useSelectedFiat();
-  const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN, fiat);
+  const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN);
 
   const active = accountNumber === currentAccountNumber;
 

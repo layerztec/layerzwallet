@@ -54,7 +54,7 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
   const fiat = useSelectedFiat();
 
   const { balance } = useCachedBalance(card.networkId, accountNumber || 0);
-  const { exchangeRate } = useCachedExchangeRate(card.networkId, fiat);
+  const { exchangeRate } = useCachedExchangeRate(card.networkId);
   const [hasTimedOut, setHasTimedOut] = useState(false);
 
   // Animation for squeeze effect
