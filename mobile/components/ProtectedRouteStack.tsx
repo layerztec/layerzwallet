@@ -109,7 +109,12 @@ export function ProtectedRouteStack() {
             animation: 'none',
           }}
         />
-        <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'fade' }} />
+        <Stack.Screen
+          name="(tabs)"
+          options={{
+            headerShown: false,
+          }}
+        />
         <Stack.Screen name="Receive" />
         <Stack.Screen name="Settings" options={{ headerShown: false }} />
         <Stack.Screen
@@ -162,6 +167,36 @@ export function ProtectedRouteStack() {
         />
         <Stack.Screen name="send" options={{ headerShown: false }} />
         <Stack.Screen name="transfer" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="modals/transfer-select-asset"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            headerShown: false,
+            gestureEnabled: true,
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+        <Stack.Screen
+          name="modals/transfer-confirm"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            headerShown: false,
+            gestureEnabled: true,
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
+        <Stack.Screen
+          name="modals/transfer-success"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            headerShown: false,
+            gestureEnabled: true,
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
         <Stack.Screen name="Onramp" options={{ headerShown: true }} />
         <Stack.Screen name="AskPassword" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen

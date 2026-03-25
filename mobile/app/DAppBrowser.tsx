@@ -362,10 +362,18 @@ const DAppBrowser: React.FC = () => {
 
   useEffect(() => {
     navigation.setOptions({
-      // Tabs overlay has its own header; keep native header hidden to avoid double headers.
-      headerShown: false,
+      // Native header only while tab overview is open; hidden during browsing / explorer to avoid double headers.
+      headerShown: showTabsOverview,
+      title: 'Explorer',
+      headerBackVisible: false,
+      headerTransparent: true,
+      headerBlurEffect: 'dark',
+      headerTintColor: 'white',
+      headerStyle: {
+        backgroundColor: 'transparent',
+      },
     });
-  }, [navigation]);
+  }, [showTabsOverview, navigation]);
 
   useFocusEffect(
     useCallback(() => {

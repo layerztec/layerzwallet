@@ -9,7 +9,7 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { getTokenIconColor, getTokenInfo } from '@shared/models/token-list';
+import { getTokenIconColor, getTokenInfoSafe, shortenTokenId } from '@shared/models/token-list';
 import { TokenInfo } from '@shared/types/token-info';
 
 interface TransactionProps {
@@ -30,7 +30,7 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
 
   const singleTokenInfo = useMemo(() => {
     if (isZeroAmountWithSingleToken && transaction.tokenTransfers?.[0]) {
-      return getTokenInfo(transaction.tokenTransfers[0].tokenId);
+      return getTokenInfoSafe(transaction.tokenTransfers[0].tokenId);
     }
     return null;
   }, [isZeroAmountWithSingleToken, transaction.tokenTransfers]);
@@ -147,52 +147,48 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
       <View style={styles.tokenTransfers}>
         {transaction.tokenTransfers.map((transfer, index) => {
           let tokenInfo: TokenInfo | undefined;
-          try {
-            if (transfer.symbol && transfer.decimals) {
-              // metadata is present in transfer itself
-              tokenInfo = {
-                symbol: transfer.symbol,
-                decimals: transfer.decimals,
-                name: transfer?.name || transfer.symbol,
-                chainId: 0,
-                id: transfer.tokenId,
-                logoURI: transfer?.logoURI,
-              };
-            } else {
-              // fallback to hardcoded token-list
-              tokenInfo = getTokenInfo(transfer.tokenId);
-            }
-          } catch (error) {
-            console.log('No info about the token in transaction, fallback to dummy data', error);
+          if (transfer.symbol) {
             tokenInfo = {
               id: transfer.tokenId,
               chainId: 0,
-              name: 'Unknown',
-              decimals: 0,
-              symbol: 'UNK',
+              name: transfer.name ?? transfer.symbol,
+              decimals: transfer.decimals,
+              symbol: transfer.symbol,
+              logoURI: transfer.logoURI,
             };
+          } else {
+            tokenInfo = getTokenInfoSafe(transfer.tokenId);
           }
-          const iconColor = getTokenIconColor(tokenInfo.name);
+          const iconColor = getTokenIconColor(tokenInfo?.name);
           let formattedAmount = '';
-          if (transfer.amount) {
-            formattedAmount = formatBalance(transfer.amount.toString(), tokenInfo.decimals);
-          }
+          if (transfer.amount && tokenInfo) formattedAmount = formatBalance(transfer.amount.toString(), tokenInfo.decimals);
           const isNegative = !transfer.amount && transaction.direction === 'send';
           const sign = isNegative ? '-' : '';
 
           return (
             <View key={index} style={styles.tokenTransfer}>
-              {tokenInfo.logoURI ? (
-                <Image source={{ uri: tokenInfo.logoURI }} style={styles.tokenTransferLogo} contentFit="contain" />
+              {tokenInfo ? (
+                <>
+                  {tokenInfo.logoURI ? (
+                    <Image source={{ uri: tokenInfo.logoURI }} style={styles.tokenTransferLogo} contentFit="contain" />
+                  ) : (
+                    <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
+                      <ThemedText style={styles.tokenIconText}>{tokenInfo.symbol?.charAt(0).toUpperCase() || '?'}</ThemedText>
+                    </View>
+                  )}
+                  <ThemedText style={styles.tokenAmount}>
+                    {sign}
+                    {formattedAmount} {tokenInfo.symbol}
+                  </ThemedText>
+                </>
               ) : (
-                <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
-                  <ThemedText style={styles.tokenIconText}>{tokenInfo.symbol?.charAt(0).toUpperCase() || '?'}</ThemedText>
-                </View>
+                <>
+                  <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
+                    <ThemedText style={styles.tokenIconText}>?</ThemedText>
+                  </View>
+                  <ThemedText style={styles.tokenAmount}>Unknown token ({shortenTokenId(transfer.tokenId)})</ThemedText>
+                </>
               )}
-              <ThemedText style={styles.tokenAmount}>
-                {sign}
-                {formattedAmount} {tokenInfo.symbol}
-              </ThemedText>
             </View>
           );
         })}

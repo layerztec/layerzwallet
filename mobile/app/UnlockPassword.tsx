@@ -74,7 +74,7 @@ export default function UnlockPassword() {
       // Navigate to home
       setStep(EStep.READY);
 
-      router.replace('/Home');
+      router.replace('/(tabs)/home');
     } catch (error: any) {
       Alert.alert('Unlock Failed', 'Incorrect password. Please try again.');
     } finally {
