@@ -162,7 +162,7 @@ export default function TransferConfirm() {
       // Fake provider or no send quote needed: commit and go straight to success
       if (isFakeProvider || !sendQuote) {
         if (execution && transferService.commitTransfer) {
-          await transferService.commitTransfer(execution).catch(() => {});
+          await transferService.commitTransfer(execution);
         }
         setCommitted(true);
         router.replace('/modals/transfer-success');
@@ -182,7 +182,7 @@ export default function TransferConfirm() {
       }
 
       if (execution && transferService.commitTransfer) {
-        await transferService.commitTransfer(execution).catch(() => {});
+        await transferService.commitTransfer(execution);
       }
 
       setCommitted(true);

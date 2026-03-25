@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RadialGradient } from '@/components/RadialGradient';
 import { getNetworkPrimaryColor } from '@shared/constants/Colors';
 import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_USDT } from '@shared/types/networks';
-import { BlurView } from '@sbaiahmed1/react-native-blur';
+import PlatformBlurView from './PlatformBlurView';
 
 const BLUR_EXTEND_BOTTOM = Platform.OS === 'ios' ? 80 : 0;
 
@@ -95,7 +95,7 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
         backgroundComponent={({ style: backgroundStyle }) => (
           <View style={[backgroundStyle, styles.gradientContainer]}>
             <View style={[styles.blurOverlay, BLUR_EXTEND_BOTTOM > 0 && styles.blurOverlayExtended]}>
-              <BlurView blurType="light" blurAmount={50} style={StyleSheet.absoluteFill} ignoreSafeArea={false} />
+              <PlatformBlurView intensity={50} tint="light" style={StyleSheet.absoluteFill} />
             </View>
             <View style={styles.radialGradientWrapper}>
               <RadialGradient colorList={radialColorList} x="48.63%" y="-24.14%" rx="163.06%" ry="75.01%" />

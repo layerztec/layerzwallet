@@ -115,7 +115,6 @@ export function ProtectedRouteStack() {
             headerShown: false,
           }}
         />
-        <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'fade' }} />
         <Stack.Screen name="Receive" />
         <Stack.Screen name="Settings" options={{ headerShown: false }} />
         <Stack.Screen

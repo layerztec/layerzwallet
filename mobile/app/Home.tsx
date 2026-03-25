@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter, useSegments } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Dimensions, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import ActionButtons from '@/components/ActionButtons';
+import ActionButtons, { Action } from '@/components/ActionButtons';
 import BackupWarning from '@/components/BackupWarning';
 import Balance from '@/components/Balance';
 import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
@@ -35,22 +35,11 @@ import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters
 import { sleep } from '@shared/modules/sleep';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { NETWORK_ARK, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { YieldBearingCachedTokenInfo } from '@shared/hooks/useYieldDiscovery';
 import { OnrampProps } from './Onramp';
 import Pressable from '../components/Pressable';
-
-const Action = ({ network, text }: { network?: Networks; text: string }) => {
-  const networkImage = network ? getNetworkImageAsset(network) : null;
-  const networkIconContent = networkImage ? <Image source={networkImage} style={styles.actionIconImage} contentFit="contain" /> : null;
-  return (
-    <View style={styles.action}>
-      {networkIconContent && <View style={styles.actionIcon}>{networkIconContent}</View>}
-      <ThemedText style={styles.actionText}>{text}</ThemedText>
-    </View>
-  );
-};
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const MODAL_MIN_HEIGHT = 120; // Height when dragged down (header + some content)
@@ -64,7 +53,6 @@ export default function Home() {
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const router = useRouter();
-  const segments = useSegments();
   const params = useLocalSearchParams<HomeProps>();
   const transferService = useTransferService(LayerzStorage);
   useEffect(() => {
@@ -84,14 +72,6 @@ export default function Home() {
   const [refreshOptions, setRefreshOptions] = useState<Partial<RefreshControlProps>>({});
   const settingsContext = useSettings();
   const hasBackedUpSeed = settingsContext.settings.seedBackedUp === 'ON';
-
-  // Redirect to tabs if accessed via Stack route instead of Tabs route
-  useEffect(() => {
-    const isInTabs = segments.some((seg) => seg === '(tabs)');
-    if (!isInTabs && segments[0] === 'Home') {
-      router.replace('/(tabs)/home');
-    }
-  }, [segments, router]);
 
   const handleFund = useCallback(() => {
     BackgroundExecutor.getAddress(network, accountNumber).then((address) => {
@@ -470,83 +450,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#F59E0B',
     fontWeight: '500',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  lockScreenOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1000,
-  },
-  lockScreenBlur: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  lockScreenContent: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  lockIconContainer: {
-    marginBottom: 20,
-    transform: [{ scale: 1 }],
-  },
-  lockScreenTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  lockScreenSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 22,
-  },
-  unlockButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 8,
-  },
-  unlockButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  action: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  actionText: {
-    fontSize: 16,
-    color: 'white',
-  },
-  actionIcon: {
-    width: 36,
-    height: 36,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionIconImage: {
-    width: 24,
-    height: 24,
-    color: 'white',
-    alignSelf: 'center',
   },
   maestroSettingsButton: {
     position: 'absolute',

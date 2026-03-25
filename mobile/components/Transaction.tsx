@@ -9,7 +9,7 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { getTokenIconColor, getTokenInfo } from '@shared/models/token-list';
+import { getTokenIconColor, getTokenInfoSafe, shortenTokenId } from '@shared/models/token-list';
 
 interface TransactionProps {
   transaction: CommonTransaction;
@@ -27,26 +27,12 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
     return !transaction.amount && transaction.tokenTransfers?.length === 1;
   }, [transaction.amount, transaction.tokenTransfers]);
 
-  const getTokenInfoSafe = (id: string | undefined) => {
-    try {
-      return getTokenInfo(id);
-    } catch {
-      return undefined;
-    }
-  };
-
   const singleTokenInfo = useMemo(() => {
     if (isZeroAmountWithSingleToken && transaction.tokenTransfers?.[0]) {
       return getTokenInfoSafe(transaction.tokenTransfers[0].tokenId);
     }
     return null;
   }, [isZeroAmountWithSingleToken, transaction.tokenTransfers]);
-
-  const shortenTokenId = (id: string) => {
-    const s = id.trim();
-    if (s.length <= 14) return s;
-    return `${s.slice(0, 6)}…${s.slice(-4)}`;
-  };
 
   useEffect(() => {
     setImageLoadError(false);
