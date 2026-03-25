@@ -3,7 +3,7 @@ import Pressable from '../components/Pressable';
 import * as FileSystem from 'expo-file-system';
 import { File as ExpoFsFile, Directory } from 'expo-file-system';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
-import { StyleSheet, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions, BackHandler } from 'react-native';
+import { StyleSheet, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions, BackHandler, Platform } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import type { WebViewErrorEvent, WebViewNavigationEvent } from 'react-native-webview/lib/WebViewTypes';
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
@@ -59,6 +59,7 @@ export const BROWSER_CONSTANTS = {
 } as const;
 
 const homeIcon = require('@/assets/images/home.svg');
+const safeAreaEdges: ('top' | 'left' | 'right')[] = Platform.OS === 'ios' ? ['top', 'left', 'right'] : ['left', 'right'];
 
 const getHomeUrl = (network: string): string => `https://layerztec.github.io/website/explore/?network=${network}`; // to test: https://metamask.github.io/test-dapp/ & https://eip6963.org/
 
@@ -1163,7 +1164,7 @@ const DAppBrowser: React.FC = () => {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.blackScreen} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={styles.blackScreen} edges={safeAreaEdges}>
         <View style={styles.errorContainer}>
           <ThemedText style={styles.errorText}>{error}</ThemedText>
         </View>
@@ -1173,7 +1174,7 @@ const DAppBrowser: React.FC = () => {
 
   if (!js) {
     return (
-      <SafeAreaView style={styles.blackScreen} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={styles.blackScreen} edges={safeAreaEdges}>
         <View style={styles.loadingContainer} testID="DappBrowserLoading">
           <ThemedText style={styles.loadingText}>Loading DApp browser...</ThemedText>
         </View>
@@ -1186,7 +1187,7 @@ const DAppBrowser: React.FC = () => {
       <Stack.Screen options={{ headerShown: false }} />
 
       <Animated.View style={[styles.modalContainer, styles.modalMaxHeight, modalAnimatedStyle]}>
-        <SafeAreaView style={styles.blackScreen} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={styles.blackScreen} edges={safeAreaEdges}>
           <GestureDetector gesture={panGesture}>
             <Animated.View style={[styles.addressBarContainer, addressBarAnimatedStyle]} pointerEvents={showTabsOverview ? 'none' : 'auto'}>
               <View style={styles.addressContainer}>
