@@ -6,7 +6,7 @@ import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } 
 import { StyleSheet, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions, BackHandler } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import type { WebViewErrorEvent, WebViewNavigationEvent } from 'react-native-webview/lib/WebViewTypes';
-import { Stack, useLocalSearchParams, useRouter, Link, useNavigation } from 'expo-router';
+import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,11 +21,11 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
-import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import { DAppBrowserTabs } from './DAppBrowserTabs';
 import { useWebViewPreviewManager } from './hooks/useWebViewPreviewManager';
 import PlatformBlurView from '@/components/PlatformBlurView';
+import { sleep } from '@shared/modules/sleep';
 
 export const BROWSER_CONSTANTS = {
   ANIMATION: {
@@ -80,12 +80,11 @@ const isValidUrl = (urlString: string): boolean => {
   }
 };
 
-interface BrowserTab {
+export interface BrowserTab {
   id: string;
   url: string;
   title: string;
   canGoBack: boolean;
-  canGoForward: boolean;
   history: { url: string; title: string }[];
   historyIndex: number;
   screenshot?: string;
@@ -106,7 +105,6 @@ const createBrowserTab = (url: string, id?: string): BrowserTab => ({
   url,
   title: getTabTitle(url),
   canGoBack: false,
-  canGoForward: false,
   history: [{ url, title: getTabTitle(url) }],
   historyIndex: 0,
   timestamp: Date.now(),
@@ -143,7 +141,6 @@ const getScreenshotDir = (): string | null => {
 const DAppBrowser: React.FC = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
-  const router = useRouter();
   const navigation = useNavigation();
   const webviewRef = useRef<WebView>(null);
   const tabWebViewRefs = useRef<{ [key: string]: React.RefObject<WebView | null> }>({});
@@ -578,7 +575,6 @@ const DAppBrowser: React.FC = () => {
             url: history[historyIndex]?.url || t.url,
             title: history[historyIndex]?.title || t.title || getTabTitle(t.url),
             canGoBack: historyIndex > 0,
-            canGoForward: historyIndex < history.length - 1,
             history,
             historyIndex,
             timestamp: t.timestamp || Date.now(),
@@ -601,7 +597,7 @@ const DAppBrowser: React.FC = () => {
     async (tabId: string, delay: number = BROWSER_CONSTANTS.TIMEOUTS.SCREENSHOT_DELAY): Promise<string | null> => {
       // Wait for delay before attempting capture
       if (delay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await sleep(delay);
       }
 
       // Check if ref is ready, with small bounded retry (mount/layout race)
@@ -610,7 +606,7 @@ const DAppBrowser: React.FC = () => {
       for (let attempt = 0; attempt <= retryDelaysMs.length; attempt++) {
         if (containerRef?.current) break;
         if (attempt === retryDelaysMs.length) return null;
-        await new Promise((resolve) => setTimeout(resolve, retryDelaysMs[attempt]));
+        await sleep(retryDelaysMs[attempt]);
         containerRef = tabContainerRefs.current[tabId];
       }
 
@@ -699,10 +695,6 @@ const DAppBrowser: React.FC = () => {
     },
     [screenshots, captureTabScreenshot]
   );
-
-  const invalidateTabPreview = useCallback((tabId: string) => {
-    setTabs((prev) => prev.map((t) => (t.id === tabId ? { ...t, screenshot: undefined, timestamp: Date.now() } : t)));
-  }, []);
 
   useEffect(() => {
     const restoreTabs = async () => {
@@ -794,7 +786,6 @@ const DAppBrowser: React.FC = () => {
       history: [{ url: homeUrl, title: homeTitle }],
       historyIndex: 0,
       canGoBack: false,
-      canGoForward: false,
     });
     setAddressBarValue(homeUrl, { ensureStartVisible: true });
   };
@@ -893,8 +884,8 @@ const DAppBrowser: React.FC = () => {
       );
     });
 
-    // Ensure all tabs have screenshots (stagger to avoid overwhelming the system)
-    tabs.forEach((tab, index) => {
+    // Ensure remaining tabs have screenshots (stagger to avoid overwhelming the system)
+    tabs.slice(topN).forEach((tab, index) => {
       if (!tab.screenshot) {
         setTimeout(
           () => {
@@ -998,7 +989,6 @@ const DAppBrowser: React.FC = () => {
               url: historyItem.url,
               title: historyItem.title,
               canGoBack: newIndex > 0,
-              canGoForward: newIndex < t.history.length - 1,
             }
           : t
       )
@@ -1006,39 +996,6 @@ const DAppBrowser: React.FC = () => {
 
     setAddressBarValue(historyItem.url, { ensureStartVisible: true });
     webviewRef.current?.injectJavaScript(`window.location.href = '${historyItem.url}';`);
-  };
-
-  const goToHistoryItem = (index: number) => {
-    const tab = tabs.find((t) => t.id === activeTabId);
-    if (!tab || index < 0 || index >= tab.history.length) return;
-
-    const historyItem = tab.history[index];
-
-    isManualNavigation.current = true;
-    lastManualNavigationUrl.current = historyItem.url;
-    setTabs((prev) =>
-      prev.map((t) =>
-        t.id === activeTabId
-          ? {
-              ...t,
-              historyIndex: index,
-              url: historyItem.url,
-              title: historyItem.title,
-              canGoBack: index > 0,
-              canGoForward: index < t.history.length - 1,
-            }
-          : t
-      )
-    );
-
-    setAddressBarValue(historyItem.url, { ensureStartVisible: true });
-    webviewRef.current?.injectJavaScript(`window.location.href = '${historyItem.url}';`);
-  };
-
-  const getBackHistory = () => {
-    const tab = tabs.find((t) => t.id === activeTabId);
-    if (!tab) return [];
-    return tab.history.slice(0, tab.historyIndex).reverse();
   };
 
   const injectAutofillScript = useCallback((address: string) => {
@@ -1153,7 +1110,7 @@ const DAppBrowser: React.FC = () => {
       if (tabsNeedingScreenshotsRef.current.has(tabId)) {
         tabsNeedingScreenshotsRef.current.delete(tabId);
         // Wait a bit for the page to render
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await sleep(1500);
         await captureTabScreenshot(tabId, 0);
       }
     },
@@ -1191,10 +1148,8 @@ const DAppBrowser: React.FC = () => {
             url: navState.url,
             title,
             canGoBack: newHistoryIndex > 0,
-            canGoForward: false,
             history: newHistory,
             historyIndex: newHistoryIndex,
-            needsScreenshotUpdate: true,
           };
         })
       );
@@ -1469,15 +1424,12 @@ const DAppBrowser: React.FC = () => {
 
           <DAppBrowserTabs
             tabs={tabs}
-            activeTabId={activeTabId}
             animatedStyle={tabsOverviewAnimatedStyle}
             pointerEvents={showTabsOverview ? 'auto' : 'none'}
             isVisible={showTabsOverview}
             onSwitchTab={switchTab}
             onCloseTab={closeTab}
-            getTabTitle={getTabTitle}
             onEnsurePreview={ensureTabPreview}
-            onInvalidatePreview={invalidateTabPreview}
             onCloseAllTabs={handleCloseAllTabs}
           />
 
@@ -1487,7 +1439,7 @@ const DAppBrowser: React.FC = () => {
                 <View style={styles.bottomNavigation}>
                   <View style={styles.navigationLeft}>
                     <Pressable style={styles.addTabButton} onPress={createNewTab} testID="BrowserAddTabButton">
-                      <Ionicons name="add" size={18} color="white" style={styles.addTabButtonIcon} />
+                      <Ionicons name="add" size={18} color="white" />
                       <ThemedText style={styles.addTabButtonText}>Add new</ThemedText>
                     </Pressable>
                   </View>
@@ -1637,15 +1589,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     transformOrigin: 'left',
   },
-  addressInput: {
-    flex: 1,
-    height: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
   topRightButton: {
     width: 40,
     height: 40,
@@ -1698,9 +1641,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'black',
     pointerEvents: 'none',
   },
-  webviewHidden: {
-    opacity: 0,
-  },
   webviewVisible: {
     opacity: 1,
   },
@@ -1746,19 +1686,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     flex: 1,
   },
-  navButtonContainer: {
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 4,
-  },
-  navButton: {
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   addTabButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -1767,10 +1694,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 4,
-  },
-  addTabButtonIcon: {
-    marginRight: 6,
+    gap: 8,
   },
   addTabButtonText: {
     fontSize: 14,

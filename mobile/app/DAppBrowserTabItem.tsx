@@ -2,33 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { View, Image, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
-import { BROWSER_CONSTANTS } from './DAppBrowser';
 import Pressable from '../components/Pressable';
-
-interface BrowserTab {
-  id: string;
-  url: string;
-  title: string;
-  canGoBack: boolean;
-  canGoForward: boolean;
-  history: { url: string; title: string }[];
-  historyIndex: number;
-  screenshot?: string;
-  timestamp: number;
-}
+import type { BrowserTab } from './DAppBrowser';
 
 interface DAppBrowserTabItemProps {
   tab: BrowserTab;
-  index: number;
   isVisible: boolean;
   onPress: () => void;
   onClose: () => void;
-  getTabTitle: (url: string) => string;
   onEnsurePreview: (forceReload?: boolean) => void;
-  onInvalidatePreview?: () => void;
 }
 
-export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, index, isVisible, onPress, onClose, onEnsurePreview, onInvalidatePreview }) => {
+export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, isVisible, onPress, onClose, onEnsurePreview }) => {
   const [imageError, setImageError] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
@@ -87,13 +72,15 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, ind
     return () => clearTimeout(timeout);
   }, [tab.screenshot, imageError, hasLoaded]);
 
+  const faviconUrl = getFaviconUrl(tab.url);
+
   return (
     <Pressable style={styles.tabCard} onPress={onPress}>
       <View style={styles.tabCardHeader}>
         <View style={styles.tabCardTitleContainer}>
           <View style={styles.faviconWrapper}>
-            {getFaviconUrl(tab.url) ? (
-              <Image source={{ uri: getFaviconUrl(tab.url) as string }} style={styles.favicon} />
+            {faviconUrl ? (
+              <Image source={{ uri: faviconUrl }} style={styles.favicon} />
             ) : (
               <View style={styles.faviconFallback}>
                 <ThemedText style={styles.faviconFallbackText}>{getDomainName(tab.url).charAt(0).toUpperCase()}</ThemedText>
@@ -159,12 +146,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
-  tabCardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'white',
-    flex: 1,
-  },
   faviconWrapper: {
     width: 18,
     height: 18,
@@ -210,15 +191,6 @@ const styles = StyleSheet.create({
   tabCardScreenshot: {
     width: '100%',
     height: '100%',
-  },
-  tabCardContent: {
-    flex: 1,
-    padding: 12,
-  },
-  tabCardUrl: {
-    fontSize: 12,
-    color: '#666',
-    lineHeight: 16,
   },
   placeholderContainer: {
     flex: 1,

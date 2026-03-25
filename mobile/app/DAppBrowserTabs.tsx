@@ -6,47 +6,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
 import { DAppBrowserTabItem } from './DAppBrowserTabItem';
 import Pressable from '../components/Pressable';
-
-interface BrowserTab {
-  id: string;
-  url: string;
-  title: string;
-  canGoBack: boolean;
-  canGoForward: boolean;
-  history: { url: string; title: string }[];
-  historyIndex: number;
-  screenshot?: string;
-  timestamp: number;
-  needsScreenshotUpdate?: boolean;
-  isCapturingScreenshot?: boolean;
-}
+import type { BrowserTab } from './DAppBrowser';
 
 interface DAppBrowserTabsProps {
   tabs: BrowserTab[];
-  activeTabId: string;
   animatedStyle: any;
   pointerEvents: 'auto' | 'none';
   isVisible: boolean;
   onSwitchTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
-  getTabTitle: (url: string) => string;
   onEnsurePreview: (tabId: string, forceReload?: boolean) => void | Promise<void>;
-  onInvalidatePreview: (tabId: string) => void;
   onCloseAllTabs: () => void;
 }
 
-export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({
-  tabs,
-  animatedStyle,
-  pointerEvents,
-  isVisible,
-  onSwitchTab,
-  onCloseTab,
-  getTabTitle,
-  onEnsurePreview,
-  onInvalidatePreview,
-  onCloseAllTabs,
-}) => {
+export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({ tabs, animatedStyle, pointerEvents, isVisible, onSwitchTab, onCloseTab, onEnsurePreview, onCloseAllTabs }) => {
   const insets = useSafeAreaInsets();
   const menuAnchorRef = useRef<View>(null);
 
@@ -94,11 +67,10 @@ export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({
         </View>
         <ScrollView style={styles.tabsOverviewContent} contentContainerStyle={[styles.tabsGridContainer, { paddingBottom: insets.bottom + 140 }]}>
           <View style={styles.tabsGrid}>
-            {tabs.map((tab, index) => (
+            {tabs.map((tab) => (
               <DAppBrowserTabItem
                 key={`tab-card-${tab.id}`}
                 tab={tab}
-                index={index}
                 isVisible={isVisible}
                 onPress={() => {
                   onSwitchTab(tab.id);
@@ -106,12 +78,8 @@ export const DAppBrowserTabs: React.FC<DAppBrowserTabsProps> = ({
                 onClose={() => {
                   onCloseTab(tab.id);
                 }}
-                getTabTitle={getTabTitle}
                 onEnsurePreview={(forceReload) => {
                   void onEnsurePreview(tab.id, forceReload);
-                }}
-                onInvalidatePreview={() => {
-                  onInvalidatePreview(tab.id);
                 }}
               />
             ))}
