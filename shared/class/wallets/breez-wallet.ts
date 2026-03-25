@@ -248,7 +248,7 @@ export class BreezWallet implements InterfaceLightningWallet, InterfaceSendQuota
           const tokenInfo = getTokenInfo(tokenId);
           amount = Math.abs(amount * Math.pow(10, tokenInfo.decimals));
           newTx.tokenTransfers = newTx.tokenTransfers ?? [];
-          newTx.tokenTransfers.push({ amount, tokenId, address });
+          newTx.tokenTransfers.push({ amount, tokenId, address, decimals: 0 });
         }
       }
 
