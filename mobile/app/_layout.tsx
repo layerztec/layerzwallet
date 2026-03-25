@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -28,6 +28,7 @@ import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
 import { ProtectedRouteStack } from '@/components/ProtectedRouteStack';
 import { ActionPopupProvider } from '@/contexts/ActionPopupContext';
 import { appendLog, applogFilePath, handleError } from '@/src/modules/error-handler';
+import { TransferFlowProvider } from '@/src/transfer/TransferFlowContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -114,8 +115,10 @@ export default function RootLayout() {
                     <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                       <ActionPopupProvider>
                         <AutoClaimMonitor />
-                        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                          <ProtectedRouteStack />
+                        <ThemeProvider value={DarkTheme}>
+                          <TransferFlowProvider>
+                            <ProtectedRouteStack />
+                          </TransferFlowProvider>
                           <StatusBar style="light" />
                         </ThemeProvider>
                       </ActionPopupProvider>

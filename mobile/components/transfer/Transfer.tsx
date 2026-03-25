@@ -41,7 +41,6 @@ export default function Transfer({ execution, isLast, onPress }: TransferProps) 
           {fiatText ? <ThemedText style={styles.fiat}>{fiatText}</ThemedText> : null}
         </View>
       </Pressable>
-      {!isLast && <View style={styles.divider} />}
     </>
   );
 }

@@ -17,7 +17,7 @@ export default function IndexScreen() {
   } else if (step === EStep.TOS) {
     return <Redirect href="/onboarding/tos" />;
   } else {
-    // If the app is ready, redirect to Home - the protected routes will handle auth
-    return <Redirect href="/Home" />;
+    // If the app is ready, redirect to tabs - the protected routes will handle auth
+    return <Redirect href="/(tabs)/home" />;
   }
 }

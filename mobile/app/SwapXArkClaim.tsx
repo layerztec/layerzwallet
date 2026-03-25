@@ -105,7 +105,7 @@ const SwapXArkClaim = () => {
   };
 
   const handleBack = () => {
-    router.replace('/Home');
+    router.replace('/(tabs)/home');
   };
 
   const disabled = isClaiming || isRefunding;

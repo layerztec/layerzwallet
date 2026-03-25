@@ -6,7 +6,6 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Button from '@/components/Button';
-import Pressable from '@/components/Pressable';
 import { ThemedText } from '@/components/ThemedText';
 import TransferList from '@/components/transfer/TransferList';
 import TransferAmountSection from '@/components/transfer/TransferAmountSection';
@@ -19,7 +18,7 @@ import { useAssetExchangeRate } from '@shared/hooks/useAssetExchangeRate';
 import { AllNetworkInfos } from '@shared/models/all-network-infos';
 import { getAssetInfo } from '@shared/models/asset-info';
 import { Denomination, TransferExecution, TransferNoRouteError, TransferPairInfo } from '@shared/types/transfer';
-import { useTransferFlow } from './_layout';
+import { useTransferFlow } from '@/src/transfer/TransferFlowContext';
 
 export default function TransferInput() {
   const router = useRouter();
@@ -38,16 +37,12 @@ export default function TransferInput() {
   const [pairInfo, setPairInfo] = useState<TransferPairInfo | undefined>();
   const [isContinuing, setIsContinuing] = useState(false);
 
-  const handleClose = () => {
-    router.back();
-  };
-
   const handleSendAssetPress = () => {
-    router.push({ pathname: '/transfer/select-asset', params: { side: 'send' } });
+    router.push({ pathname: '/modals/transfer-select-asset', params: { side: 'send' } });
   };
 
   const handleReceiveAssetPress = () => {
-    router.push({ pathname: '/transfer/select-asset', params: { side: 'receive' } });
+    router.push({ pathname: '/modals/transfer-select-asset', params: { side: 'receive' } });
   };
 
   const fetchQuoteFromSend = useCallback(
@@ -228,7 +223,7 @@ export default function TransferInput() {
     if (!canContinue || isContinuing) return;
     setIsContinuing(true);
     await sleep(10);
-    router.push('/transfer/confirm');
+    router.push('/modals/transfer-confirm');
   };
 
   const handleTransferPress = (execution: TransferExecution) => {
@@ -247,9 +242,6 @@ export default function TransferInput() {
             {/* Header */}
             <View style={styles.header}>
               <ThemedText style={styles.title}>Transfer</ThemedText>
-              <Pressable style={styles.closeButton} onPress={handleClose} testID="TransferCloseButton">
-                <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.8)" />
-              </Pressable>
             </View>
 
             {/* Send Section */}
@@ -317,14 +309,14 @@ export default function TransferInput() {
               </View>
             )}
 
-            {/* Ongoing Transfers */}
-            <View style={styles.ongoingContainer}>
-              <TransferList transferService={transferService} onTransferPress={handleTransferPress} activeOnly />
-            </View>
-
             {/* Continue Button */}
             <View style={styles.buttonContainer}>
               <Button testID="TransferContinueButton" title="Continue" onPress={handleContinue} style={[styles.continueButton, !canContinue && styles.disabledButton]} disabled={!canContinue} />
+            </View>
+
+            {/* Ongoing Transfers */}
+            <View style={styles.ongoingContainer}>
+              <TransferList transferService={transferService} onTransferPress={handleTransferPress} activeOnly title="Ongoing" />
             </View>
           </View>
         </SafeAreaView>
@@ -352,10 +344,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
   },
   header: {
-    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
     marginTop: 16,
     marginBottom: 24,
   },
@@ -365,16 +355,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     fontWeight: '500',
-  },
-  closeButton: {
-    position: 'absolute',
-    right: 0,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   arrowContainer: {
     alignItems: 'center',
@@ -403,7 +383,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
   },
   errorContainer: {
-    marginTop: 12,
+    marginTop: 16,
     paddingHorizontal: 4,
   },
   errorText: {
@@ -417,12 +397,10 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   ongoingContainer: {
-    marginTop: 24,
+    marginTop: 32,
   },
   buttonContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    paddingBottom: 40,
+    marginTop: 32,
   },
   continueButton: {
     height: 56,

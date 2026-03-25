@@ -80,6 +80,20 @@ export function getTokenInfo(id: string | undefined): TokenInfo {
   throw new Error(`Token not found: ${id}`);
 }
 
+export function getTokenInfoSafe(id: string | undefined): TokenInfo | undefined {
+  try {
+    return getTokenInfo(id);
+  } catch {
+    return undefined;
+  }
+}
+
+export function shortenTokenId(id: string): string {
+  const s = id.trim();
+  if (s.length <= 14) return s;
+  return `${s.slice(0, 6)}…${s.slice(-4)}`;
+}
+
 // Unified function for getting token/asset icon colors
 export const getTokenIconColor = (name?: string): string => {
   const colorMap: { [key: string]: string } = {
