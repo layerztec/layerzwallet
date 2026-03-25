@@ -1,6 +1,15 @@
 import React from 'react';
-import { Platform, View, ViewStyle, StyleProp, StyleSheet } from 'react-native';
+import { Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+
+import type { BlurType } from '@sbaiahmed1/react-native-blur';
 import { BlurView } from '@sbaiahmed1/react-native-blur';
+
+const tintToBlurType: Record<string, BlurType> = {
+  light: 'light',
+  dark: 'dark',
+  systemChromeMaterial: 'systemChromeMaterial',
+  default: 'systemMaterial',
+};
 
 interface PlatformBlurViewProps {
   intensity?: number;
@@ -10,31 +19,7 @@ interface PlatformBlurViewProps {
 }
 
 const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({ intensity = 50, tint = 'dark', style, children }) => {
-  // Map tint to blurType according to library documentation
-  // Valid types: 'xlight' | 'light' | 'dark' | 'extraDark' | 'regular' | 'prominent' |
-  // 'systemUltraThinMaterial' | 'systemThinMaterial' | 'systemMaterial' | 'systemThickMaterial' |
-  // 'systemChromeMaterial' | etc.
-  let blurType:
-    | 'xlight'
-    | 'light'
-    | 'dark'
-    | 'extraDark'
-    | 'regular'
-    | 'prominent'
-    | 'systemUltraThinMaterial'
-    | 'systemThinMaterial'
-    | 'systemMaterial'
-    | 'systemThickMaterial'
-    | 'systemChromeMaterial' = 'systemMaterial';
-  if (tint === 'light') {
-    blurType = 'light';
-  } else if (tint === 'dark') {
-    blurType = 'dark';
-  } else if (tint === 'systemChromeMaterial') {
-    blurType = 'systemChromeMaterial';
-  } else if (tint === 'default') {
-    blurType = 'systemMaterial';
-  }
+  const blurType = tintToBlurType[tint] ?? 'systemMaterial';
 
   // Map intensity (0-100) to blurAmount (0-100)
   // Library default is 10, but we allow 0-100 range
