@@ -1,18 +1,7 @@
 import { getAssetInfo, toAssetId } from '../models/asset-info';
 import { IStorage, STORAGE_KEY_SIDESHIFT_TRANSFERS } from '../types/IStorage';
 import { AssetId } from '../types/asset';
-import {
-  EXECUTION_DEPOSIT,
-  ITransferService,
-  isTerminalStatus,
-  normalizeRelatedTxids,
-  TimelineStep,
-  TransferExecution,
-  TransferPair,
-  TransferPairInfo,
-  TransferQuote,
-  TransferStatus,
-} from '../types/transfer';
+import { EXECUTION_DEPOSIT, ITransferService, isTerminalStatus, TimelineStep, TransferExecution, TransferPair, TransferPairInfo, TransferQuote, TransferStatus } from '../types/transfer';
 import { SideshiftApi, SideshiftApiError, SideshiftShiftStatus } from './sideshift-api';
 import { isSideshiftSupported, toSideshiftAsset, toSideshiftMethodId } from './sideshift-mappings';
 
@@ -120,7 +109,7 @@ export class SideshiftTransferService implements ITransferService {
     };
   }
 
-  async executeTransfer(quote: TransferQuote, settleAddress: string): Promise<TransferExecution> {
+  async executeTransfer(quote: TransferQuote, accountNumber: number, settleAddress: string): Promise<TransferExecution> {
     if (Date.now() / 1000 > quote.expiresAt) {
       throw new Error('Quote has expired. Please get a new quote.');
     }
@@ -149,7 +138,7 @@ export class SideshiftTransferService implements ITransferService {
       settleAddress: shiftResponse.settleAddress,
       createdAt: now,
       updatedAt: now,
-      accountNumber: 0,
+      accountNumber,
       serviceName: this.name,
     };
 
@@ -166,14 +155,24 @@ export class SideshiftTransferService implements ITransferService {
   }
 
   async commitTransfer(execution: TransferExecution): Promise<void> {
-    const uncommitted = this.uncommitted.get(execution.id);
-    if (!uncommitted) return; // already committed or unknown
-
     const transfers = await this.loadTransfers();
+    const existingIdx = transfers.findIndex((t) => t.execution.id === execution.id);
+
+    if (existingIdx >= 0) {
+      transfers[existingIdx].execution = {
+        ...transfers[existingIdx].execution,
+        ...execution,
+      };
+      await this.saveTransfers(transfers);
+      return;
+    }
+
+    const uncommitted = this.uncommitted.get(execution.id);
+    if (!uncommitted) return;
+
     const persistedExecution: TransferExecution = {
       ...uncommitted.execution,
       ...execution,
-      relatedTxids: normalizeRelatedTxids(execution.relatedTxids ?? uncommitted.execution.relatedTxids),
     };
     transfers.push({
       execution: persistedExecution,
@@ -266,7 +265,7 @@ export class SideshiftTransferService implements ITransferService {
         if (!sendAsset || !receiveAsset) continue;
         result.push({
           ...transfer,
-          execution: { ...transfer.execution, sendAsset, receiveAsset, relatedTxids: normalizeRelatedTxids(transfer.execution.relatedTxids) },
+          execution: { ...transfer.execution, sendAsset, receiveAsset },
         });
       }
       return result;

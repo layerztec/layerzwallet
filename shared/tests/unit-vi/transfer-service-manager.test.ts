@@ -44,6 +44,7 @@ function createMockService(name: string, _assets: string[], pairs: TransferPair[
     getSupportedPairs: vi.fn(() => pairs),
     getQuote: vi.fn(),
     executeTransfer: vi.fn(),
+    commitTransfer: vi.fn(async () => {}),
     getOngoingTransfers: vi.fn(async () => []),
     getTimelineSteps: vi.fn(() => []),
   };
@@ -169,9 +170,9 @@ describe('TransferServiceManager', () => {
 
       const manager = new TransferServiceManager([s1, s2]);
       const quote = makeQuote('0.0098', 'B');
-      const result = await manager.executeTransfer(quote, 'addr123');
+      const result = await manager.executeTransfer(quote, 0, 'addr123');
 
-      expect(s2.executeTransfer).toHaveBeenCalledWith(quote, 'addr123', undefined);
+      expect(s2.executeTransfer).toHaveBeenCalledWith(quote, 0, 'addr123', undefined);
       expect(s1.executeTransfer).not.toHaveBeenCalled();
       expect(result.serviceName).toBe('B');
     });
@@ -181,7 +182,7 @@ describe('TransferServiceManager', () => {
       const manager = new TransferServiceManager([s1]);
       const quote = makeQuote('0.0098', 'NonExistent');
 
-      await expect(manager.executeTransfer(quote, 'addr123')).rejects.toThrow('Unknown serviceName');
+      await expect(manager.executeTransfer(quote, 0, 'addr123')).rejects.toThrow('Unknown serviceName');
     });
   });
 

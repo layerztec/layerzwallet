@@ -3,7 +3,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as NavigationBar from 'expo-navigation-bar';
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect } from 'react';
 import { AppState, AppStateStatus, LogBox, Platform } from 'react-native';
 import 'react-native-reanimated';
 import { SWRConfig } from 'swr';
@@ -11,6 +11,7 @@ import { SWRConfig } from 'swr';
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
 
+import AutoClaimMonitor from '@/components/AutoClaimMonitor';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { LayerzStorage } from '@/src/class/layerz-storage';
@@ -113,6 +114,7 @@ export default function RootLayout() {
                   <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                     <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                       <ActionPopupProvider>
+                        <AutoClaimMonitor />
                         <ThemeProvider value={DarkTheme}>
                           <TransferFlowProvider>
                             <ProtectedRouteStack />

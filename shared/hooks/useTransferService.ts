@@ -3,7 +3,7 @@ import { FakeTransferService } from '../services/transfer-service-fake';
 import { FlashnetTransferService } from '../services/transfer-service-flashnet';
 import { GardenTransferService } from '../services/transfer-service-garden';
 import { TransferServiceManager } from '../services/transfer-service-manager';
-import { NativeDepositSwapsFetcher, NativeDepositTransferService } from '../services/transfer-service-native-deposit';
+import { NativeDepositClaimExecutor, NativeDepositSwapsFetcher, NativeDepositTransferService } from '../services/transfer-service-native-deposit';
 import { SideshiftTransferService } from '../services/transfer-service-sideshift';
 import { SymbiosisTransferService } from '../services/transfer-service-symbiosis';
 import { IStorage } from '../types/IStorage';
@@ -15,6 +15,22 @@ let _flashnetService: FlashnetTransferService | undefined;
 
 export function setNativeDepositSwapsFetcher(fn: NativeDepositSwapsFetcher): void {
   _nativeDepositService?.setSwapsFetcher(fn);
+}
+
+export function setNativeDepositClaimExecutor(fn: NativeDepositClaimExecutor): void {
+  _nativeDepositService?.setClaimExecutor(fn);
+}
+
+export function startAutoClaimMonitor(): void {
+  _nativeDepositService?.startAutoClaimMonitor();
+}
+
+export function stopAutoClaimMonitor(): void {
+  _nativeDepositService?.stopAutoClaimMonitor();
+}
+
+export function processAutoClaimsNow(): void {
+  _nativeDepositService?.processAutoClaims().catch(() => {});
 }
 
 export function setFlashnetAccountNumber(accountNumber: number): void {
