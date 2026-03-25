@@ -186,6 +186,7 @@ describe('EvmWallet getHistory', () => {
           {
             amount: Number('1000000000000000000'),
             address: '0x62174765444ddf44ee2058f593d0267e38709092',
+            decimals: 0,
             tokenId: '0xef213441a85df4d7acbdae0cf78004e1e486bb96',
           },
         ],
@@ -206,6 +207,7 @@ describe('EvmWallet getHistory', () => {
           {
             amount: Number('1000000000000000000'),
             address: '0x62174765444ddf44ee2058f593d0267e38709092',
+            decimals: 0,
             tokenId: '0xef213441a85df4d7acbdae0cf78004e1e486bb96',
           },
         ],

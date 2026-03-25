@@ -10,6 +10,7 @@ import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { getTokenIconColor, getTokenInfoSafe, shortenTokenId } from '@shared/models/token-list';
+import { TokenInfo } from '@shared/types/token-info';
 
 interface TransactionProps {
   transaction: CommonTransaction;
@@ -145,7 +146,19 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
     return (
       <View style={styles.tokenTransfers}>
         {transaction.tokenTransfers.map((transfer, index) => {
-          const tokenInfo = getTokenInfoSafe(transfer.tokenId);
+          let tokenInfo: TokenInfo | undefined;
+          if (transfer.symbol) {
+            tokenInfo = {
+              id: transfer.tokenId,
+              chainId: 0,
+              name: transfer.name ?? transfer.symbol,
+              decimals: transfer.decimals,
+              symbol: transfer.symbol,
+              logoURI: transfer.logoURI,
+            };
+          } else {
+            tokenInfo = getTokenInfoSafe(transfer.tokenId);
+          }
           const iconColor = getTokenIconColor(tokenInfo?.name);
           let formattedAmount = '';
           if (transfer.amount && tokenInfo) formattedAmount = formatBalance(transfer.amount.toString(), tokenInfo.decimals);
@@ -154,17 +167,27 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
 
           return (
             <View key={index} style={styles.tokenTransfer}>
-              <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
-                <ThemedText style={styles.tokenIconText}>{tokenInfo?.symbol?.charAt(0).toUpperCase() || '?'}</ThemedText>
-              </View>
               {tokenInfo ? (
-                <ThemedText style={styles.tokenAmount}>
-                  {sign}
-                  {tokenInfo.symbol}
-                  {formattedAmount}
-                </ThemedText>
+                <>
+                  {tokenInfo.logoURI ? (
+                    <Image source={{ uri: tokenInfo.logoURI }} style={styles.tokenTransferLogo} contentFit="contain" />
+                  ) : (
+                    <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
+                      <ThemedText style={styles.tokenIconText}>{tokenInfo.symbol?.charAt(0).toUpperCase() || '?'}</ThemedText>
+                    </View>
+                  )}
+                  <ThemedText style={styles.tokenAmount}>
+                    {sign}
+                    {formattedAmount} {tokenInfo.symbol}
+                  </ThemedText>
+                </>
               ) : (
-                <ThemedText style={styles.tokenAmount}>Unknown token ({shortenTokenId(transfer.tokenId)})</ThemedText>
+                <>
+                  <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
+                    <ThemedText style={styles.tokenIconText}>?</ThemedText>
+                  </View>
+                  <ThemedText style={styles.tokenAmount}>Unknown token ({shortenTokenId(transfer.tokenId)})</ThemedText>
+                </>
               )}
             </View>
           );
@@ -259,5 +282,10 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+  },
+  tokenTransferLogo: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
   },
 });
