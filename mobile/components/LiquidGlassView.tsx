@@ -1,9 +1,7 @@
 import React from 'react';
 import { Platform, View, ViewStyle, StyleSheet, StyleProp } from 'react-native';
 import { LiquidGlassView as NativeLiquidGlassView } from '@sbaiahmed1/react-native-blur';
-
-// Native LiquidGlassView is iOS 26+. On iOS 18 we use a styled fallback so buttons/sheets look good.
-const isIOS26OrNewer = Platform.OS === 'ios' && (typeof Platform.Version === 'string' ? parseInt(String(Platform.Version), 10) : Number(Platform.Version)) >= 26;
+import { isIOS26OrNewer } from '@/src/utils/platform';
 
 interface LiquidGlassViewProps {
   intensity?: number;
@@ -22,10 +20,10 @@ interface LiquidGlassViewProps {
  * Android: Simple transparency (no blur)
  */
 const LiquidGlassView: React.FC<LiquidGlassViewProps> = ({ intensity = 8, tint = 'light', glassStyle = 'clear', borderIntensity = 0.3, style, children }) => {
-  const styleObj = StyleSheet.flatten(style) || {};
-  const { borderRadius, overflow, ...restStyle } = styleObj as ViewStyle;
+  const styleObj: ViewStyle = StyleSheet.flatten(style) || {};
+  const { borderRadius, overflow, ...restStyle } = styleObj;
   const containerStyle: ViewStyle = {
-    ...(restStyle as ViewStyle),
+    ...restStyle,
     backgroundColor: 'transparent',
   };
 

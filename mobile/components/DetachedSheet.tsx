@@ -12,9 +12,9 @@ const BLUR_EXTEND_BOTTOM = Platform.OS === 'ios' ? 80 : 0;
 
 interface DetachedSheetProps {
   children: React.ReactNode;
-  variant?: string;
+  variant: string;
   layerNetwork?: string;
-  onClose?: () => void;
+  onClose: () => void;
   style?: ViewStyle;
   enableDynamicSizing?: boolean;
   enablePanDownToClose?: boolean;
@@ -25,7 +25,7 @@ interface DetachedSheetProps {
 
 const DetachedSheet: React.FC<DetachedSheetProps> = ({
   children,
-  variant = 'base',
+  variant,
   layerNetwork,
   onClose,
   style,

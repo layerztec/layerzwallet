@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from 'react';
+import React, { useContext } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -7,12 +7,9 @@ import LiquidGlassButton from './LiquidGlassButton';
 import { ThemedText } from './ThemedText';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { USDT_TOKENS } from '@shared/models/token-list';
 import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
-import { OnrampProps } from '@/app/Onramp';
 import { ReceiveTokenProps } from '@/app/Receive';
 import { SendTokenEvmProps } from '@/app/SendTokenEvm';
 import { SendParams } from '@/app/send';
@@ -29,13 +26,12 @@ const Action = ({ network, text }: { network?: Networks; text: string }) => {
 };
 
 interface ActionButtonsProps {
-  onFundPress?: () => void;
+  onFundPress: () => void;
 }
 
 export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
-  const { accountNumber } = useContext(AccountNumberContext);
 
   const canBuyWithFiat = fiatOnRamp?.[network]?.canBuyWithFiat;
 
@@ -55,15 +51,7 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
   };
 
   const handleFund = () => {
-    if (onFundPress) {
-      onFundPress();
-    } else {
-      // Fallback: use the same logic from Balance component
-      BackgroundExecutor.getAddress(network, accountNumber).then((address) => {
-        const params: OnrampProps = { address, network };
-        router.push({ pathname: '/Onramp', params });
-      });
-    }
+    onFundPress();
   };
 
   const handleReceiveOnLightningAddress = () => {

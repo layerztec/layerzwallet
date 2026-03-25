@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, ActivityIndicator, View, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet, ActivityIndicator, View, TextStyle, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Pressable, { PressableProps } from './Pressable';
 import LiquidGlassView from './LiquidGlassView';
@@ -31,15 +31,15 @@ export default function LiquidGlassButton({
   glassStyle = 'clear',
   ...restProps
 }: LiquidGlassButtonProps) {
-  const getButtonStyle = (): ViewStyle[] => {
-    let baseStyle: ViewStyle[] = [styles.button];
+  const getButtonStyle = (): StyleProp<ViewStyle> => {
+    const baseStyle: ViewStyle[] = [styles.button];
 
     if (disabled) {
       baseStyle.push(styles.disabled);
     }
 
     if (style) {
-      baseStyle = StyleSheet.compose(baseStyle, style) as ViewStyle[];
+      return StyleSheet.compose(baseStyle, style);
     }
 
     return baseStyle;
