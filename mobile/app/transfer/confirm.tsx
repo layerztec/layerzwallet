@@ -22,7 +22,7 @@ import type { AssetId } from '@shared/types/asset';
 import type { SendQuote } from '@shared/types/send-quote';
 import { EXECUTION_CLAIM, type TransferExecution } from '@shared/types/transfer';
 import { NETWORK_SPARK } from '@shared/types/networks';
-import { useTransferFlow } from './_layout';
+import { useTransferFlow } from '@/src/transfer/TransferFlowContext';
 
 const DISMISS_THRESHOLD = 150;
 const CLAIM_OPTIONS_HEIGHT = 40 * 2; // 2 option rows
@@ -166,7 +166,7 @@ export default function TransferConfirm() {
       if (isFakeProvider) {
         await transferService.commitTransfer(execution);
         setCommitted(true);
-        router.replace('/transfer/success');
+        router.replace('/modals/transfer-success');
         return;
       }
 
@@ -184,7 +184,7 @@ export default function TransferConfirm() {
       await transferService.commitTransfer(execution);
 
       setCommitted(true);
-      router.replace('/transfer/success');
+      router.replace('/modals/transfer-success');
     } catch (e: any) {
       // If send was already broadcast, update transfer with txid
       const execution = executionRef.current;

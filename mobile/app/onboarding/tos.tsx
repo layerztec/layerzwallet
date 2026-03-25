@@ -39,7 +39,7 @@ export default function TermsOfServiceScreen() {
 
       // Navigate to the main home screen with onboarding parameter
       setStep(EStep.READY);
-      router.replace('/Home?fromOnboarding=true');
+      router.replace('/(tabs)/home?fromOnboarding=true');
     } catch (error) {
       console.error('Error accepting terms:', error);
       Alert.alert('Error', (await getErrorMessage(error)) || 'Failed to accept terms. Please try again.');

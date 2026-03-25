@@ -164,7 +164,7 @@ export default function SendTokenStacksScreen() {
   }, [balance, token]);
 
   const resetToInit = () => {
-    router.replace('/Home');
+    router.replace('/(tabs)/home');
   };
 
   // Validate required parameters after all hooks

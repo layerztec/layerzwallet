@@ -11,9 +11,10 @@ interface TransferListProps {
   transferService: TransferServiceManager;
   onTransferPress?: (execution: TransferExecution) => void;
   activeOnly?: boolean;
+  title?: string;
 }
 
-export default function TransferList({ transferService, onTransferPress, activeOnly = false }: TransferListProps) {
+export default function TransferList({ transferService, onTransferPress, activeOnly = false, title }: TransferListProps) {
   const { accountNumber } = useContext(AccountNumberContext);
   const [executions, setExecutions] = useState<TransferExecution[]>([]);
 
@@ -33,41 +34,37 @@ export default function TransferList({ transferService, onTransferPress, activeO
   }
 
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.header}>
-        <ThemedText style={styles.headerText}>{activeOnly ? 'Ongoing Transfers' : 'Recent Transfers'}</ThemedText>
-      </View>
-      <View style={styles.list}>
-        {executions.map((execution, index) => (
-          <Transfer key={execution.id} execution={execution} isLast={index === executions.length - 1} onPress={onTransferPress} />
-        ))}
+    <View style={styles.section}>
+      {title ? <ThemedText style={styles.title}>{title}</ThemedText> : null}
+      <View style={styles.card}>
+        <View style={styles.list}>
+          {executions.map((execution, index) => (
+            <Transfer key={execution.id} execution={execution} isLast={index === executions.length - 1} onPress={onTransferPress} />
+          ))}
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 18,
-    paddingVertical: 2,
-    paddingHorizontal: 16,
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 2,
-  },
-  headerText: {
+  section: {},
+  title: {
     fontSize: 16,
-    fontFamily: 'Inter',
     fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.6)',
-    letterSpacing: -0.32,
-    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 12,
+  },
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   list: {
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
   },
 });

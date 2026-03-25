@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet, ActivityIndicator, ViewStyle, TextStyle, StyleProp } from 'react-native';
 import Pressable, { PressableProps } from './Pressable';
 import PlatformBlurView from './PlatformBlurView';
 import { ThemedText } from './ThemedText';
@@ -12,15 +12,15 @@ export interface ButtonProps extends PressableProps {
 }
 
 export default function Button({ title, onPress, variant = 'normal', disabled = false, loading = false, style, textStyle, activeOpacity = 0.8, ...restProps }: ButtonProps) {
-  const getButtonStyle = (): ViewStyle[] => {
-    let baseStyle: ViewStyle[] = [styles.button];
+  const getButtonStyle = (): StyleProp<ViewStyle> => {
+    const baseStyle: ViewStyle[] = [styles.button];
 
     if (disabled) {
       baseStyle.push(styles.disabled);
     }
 
     if (style) {
-      baseStyle = StyleSheet.compose(baseStyle, style) as ViewStyle[];
+      return StyleSheet.compose(baseStyle, style);
     }
 
     return baseStyle;
@@ -66,7 +66,11 @@ export default function Button({ title, onPress, variant = 'normal', disabled = 
       return <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" />;
     }
 
-    return <ThemedText style={getTextStyle()}>{title}</ThemedText>;
+    return (
+      <ThemedText type="button" style={getTextStyle()}>
+        {title}
+      </ThemedText>
+    );
   };
 
   if (variant === 'secondary') {
@@ -137,6 +141,8 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     letterSpacing: -0.32,
     textAlign: 'center',
+    lineHeight: 20,
+    includeFontPadding: false,
   },
   secondaryText: {
     fontWeight: '500',

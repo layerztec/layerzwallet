@@ -36,7 +36,7 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
         isBiometricEnabled,
       });
 
-      router.replace('/Home');
+      router.replace('/(tabs)/home');
     }
   }, [isBiometricEnabled, router]);
 
@@ -107,7 +107,7 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
           if (router.canDismiss()) {
             router.dismiss();
           } else {
-            router.replace('/Home');
+            router.replace('/(tabs)/home');
           }
         } else {
           const error = 'error' in result ? result.error : 'unknown';

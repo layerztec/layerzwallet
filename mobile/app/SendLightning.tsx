@@ -255,7 +255,7 @@ const SendLightning: React.FC = () => {
           <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
           <ThemedText style={styles.successMessage}>Payment Sent!</ThemedText>
           <ThemedText style={styles.successSubMessage}>{amountToSend ? formatBalance(amountToSend, 8, 8) : ''} sats</ThemedText>
-          <Pressable style={styles.backButton} onPress={() => router.replace('/Home')}>
+          <Pressable style={styles.backButton} onPress={() => router.replace('/(tabs)/home')}>
             <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
           </Pressable>
         </View>

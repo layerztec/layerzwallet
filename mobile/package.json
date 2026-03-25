@@ -74,7 +74,7 @@
     "ethers": "6.16.0",
     "expo": "~54.0.31",
     "expo-application": "~7.0.8",
-    "expo-blur": "~15.0.8",
+    "@sbaiahmed1/react-native-blur": "^4.5.3",
     "expo-camera": "~17.0.10",
     "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.13",
