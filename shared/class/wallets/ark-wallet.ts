@@ -11,8 +11,8 @@ import * as bip39 from 'bip39';
 import { IStorage } from '@shared/types/IStorage';
 import { CommonSwap } from '@shared/types/common-swap';
 import * as BlueElectrum from '../../blue_modules/BlueElectrum';
-import { CommonTransaction } from '../../types/common-transaction';
 import { sleep } from '../../modules/sleep';
+import { CommonTokenTransfer, CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET } from '../../types/networks';
 import { CachedTokenInfo } from '../../types/token-info';
 import { AbstractHDElectrumWallet } from './abstract-hd-electrum-wallet';
@@ -648,13 +648,21 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
       const isPending = rawCreatedAt === 0;
       const createdAt = isPending ? new Date().getTime() : rawCreatedAt;
       const timestamp = Math.floor(createdAt / 1000);
-      const tokenTransfers =
-        transaction.assets && transaction.assets.length > 0
-          ? transaction.assets.map((a) => ({
-              tokenId: a.assetId,
-              amount: a.amount,
-            }))
-          : undefined;
+
+      const tokenTransfers: CommonTokenTransfer[] = [];
+
+      for (const a of transaction.assets || []) {
+        const aDetails = await this._wallet.assetManager.getAssetDetails(a.assetId);
+        tokenTransfers.push({
+          tokenId: a.assetId,
+          amount: a.amount,
+          decimals: aDetails.metadata?.decimals || 0,
+          name: aDetails.metadata?.name,
+          symbol: aDetails.metadata?.ticker,
+          logoURI: aDetails.metadata?.icon,
+        });
+      }
+
       commonTransactions.push({
         network: this._arkServerUrl.includes('mutiny') ? NETWORK_ARK_MUTINYNET : NETWORK_ARK, // hacky
         txid: transaction.key.arkTxid,
