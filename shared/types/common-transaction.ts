@@ -6,7 +6,13 @@ import { TransferExecution } from './transfer';
  */
 export interface CommonTokenTransfer {
   /** Token symbol (e.g., 'USDT', 'DAI') */
-  // symbol: string;
+  symbol?: string;
+  /* full token name (NOT ticker) */
+  name?: string;
+  /* link to token icon if we are lucky */
+  logoURI?: string;
+  /* token decimals (like, amount of sats in bitcoin). default 0 cause when this data is absent we treat it like 0 */
+  decimals: number | 0;
   /** Transfer amount in token's base units */
   amount?: number;
   /** Address the transfer is from (for receives) or to (for sends) */

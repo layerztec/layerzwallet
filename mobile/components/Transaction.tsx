@@ -148,7 +148,20 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
         {transaction.tokenTransfers.map((transfer, index) => {
           let tokenInfo: TokenInfo | undefined;
           try {
-            tokenInfo = getTokenInfo(transfer.tokenId);
+            if (transfer.symbol && transfer.decimals) {
+              // metadata is present in transfer itself
+              tokenInfo = {
+                symbol: transfer.symbol,
+                decimals: transfer.decimals,
+                name: transfer?.name || transfer.symbol,
+                chainId: 0,
+                id: transfer.tokenId,
+                logoURI: transfer?.logoURI,
+              };
+            } else {
+              // fallback to hardcoded token-list
+              tokenInfo = getTokenInfo(transfer.tokenId);
+            }
           } catch (error) {
             console.log('No info about the token in transaction, fallback to dummy data', error);
             tokenInfo = {
@@ -169,13 +182,16 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
 
           return (
             <View key={index} style={styles.tokenTransfer}>
-              <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
-                <ThemedText style={styles.tokenIconText}>{tokenInfo.symbol?.charAt(0).toUpperCase() || '?'}</ThemedText>
-              </View>
+              {tokenInfo.logoURI ? (
+                <Image source={{ uri: tokenInfo.logoURI }} style={styles.tokenTransferLogo} contentFit="contain" />
+              ) : (
+                <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
+                  <ThemedText style={styles.tokenIconText}>{tokenInfo.symbol?.charAt(0).toUpperCase() || '?'}</ThemedText>
+                </View>
+              )}
               <ThemedText style={styles.tokenAmount}>
                 {sign}
-                {tokenInfo.symbol}
-                {formattedAmount}
+                {formattedAmount} {tokenInfo.symbol}
               </ThemedText>
             </View>
           );
@@ -270,5 +286,10 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+  },
+  tokenTransferLogo: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
   },
 });
