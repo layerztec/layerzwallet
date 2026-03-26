@@ -3,11 +3,6 @@ import { AssetId } from '../types/asset';
 import { ITransferService, TimelineStep, TransferExecution, TransferNoRouteError, TransferPair, TransferPairInfo, TransferQuote } from '../types/transfer';
 import { getExchangeTimelineSteps } from './transfer-service-sideshift';
 
-function assetLabel(assetId: AssetId): string {
-  const { ticker, networkDisplayName } = getAssetInfo(assetId);
-  return `${ticker} (${networkDisplayName})`;
-}
-
 function humanizeError(error: any): string {
   if (error?.statusCode === 403 || error?.message?.includes('Access denied')) return 'access denied';
   if (error?.name === 'AbortError' || error?.message?.includes('aborted')) return 'timed out';

@@ -72,7 +72,7 @@ export class NativeDepositTransferService implements ITransferService {
   }
 
   async getPairInfo(_send: AssetId, _receive: AssetId): Promise<TransferPairInfo> {
-    return { min: '0.0001', max: '1', rate: '1:1 (fees at claim)' };
+    return { min: '0.0001', max: '1', rate: '1' };
   }
 
   async getQuote(sendAsset: AssetId, receiveAsset: AssetId, sendAmount: string): Promise<TransferQuote> {

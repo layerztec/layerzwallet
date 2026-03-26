@@ -2,7 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import BigNumber from 'bignumber.js';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Button from '@/components/Button';
@@ -81,7 +83,7 @@ export default function TransferInput() {
 
   const fetchQuoteFromReceive = useCallback(
     async (amount: string) => {
-      if (!sendAsset || !receiveAsset || !amount || parseFloat(amount) <= 0) {
+      if (!sendAsset || !receiveAsset || !pairInfo || !amount || parseFloat(amount) <= 0) {
         setSendAmount('');
         setQuote(undefined);
         setIsQuoteLoading(false);
@@ -93,16 +95,11 @@ export default function TransferInput() {
       setQuoteError('');
       setServiceWarnings([]);
       try {
-        // Reverse quote: we want to receive `amount`, so calculate how much to send
-        const newQuote = await transferService.getQuote(receiveAsset, sendAsset, amount);
-        setQuote({
-          ...newQuote,
-          sendAsset,
-          receiveAsset,
-          sendAmount: newQuote.receiveAmount,
-          receiveAmount: amount,
-        });
-        setSendAmount(newQuote.receiveAmount);
+        const rate = new BigNumber(pairInfo.rate);
+        const estimatedSend = new BigNumber(amount).div(rate);
+        const newQuote = await transferService.getQuote(sendAsset, receiveAsset, estimatedSend.toFixed(8));
+        setQuote(newQuote);
+        setSendAmount(new BigNumber(newQuote.sendAmount).toFixed());
         setQuoteError('');
         setServiceWarnings(newQuote.serviceErrors || []);
       } catch (e: any) {
@@ -117,7 +114,7 @@ export default function TransferInput() {
         setIsQuoteLoading(false);
       }
     },
-    [sendAsset, receiveAsset, transferService, setSendAmount, setQuote, setIsQuoteLoading]
+    [sendAsset, receiveAsset, transferService, pairInfo, setSendAmount, setQuote, setIsQuoteLoading]
   );
 
   const debouncedFetch = useCallback(
@@ -234,6 +231,11 @@ export default function TransferInput() {
     setDenomination(denomination === 'Native' ? 'Fiat' : 'Native');
   };
 
+  const handleErrorLongPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Clipboard.setStringAsync(limitsError || balanceError || quoteError);
+  };
+
   return (
     <View style={styles.backgroundContainer}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -291,11 +293,11 @@ export default function TransferInput() {
 
             {/* Limits / Balance / Quote Error */}
             {!isQuoteLoading && (limitsError || balanceError || quoteError) ? (
-              <View style={styles.errorContainer}>
+              <Pressable style={({ pressed }) => [styles.errorContainer, pressed && { opacity: 0.5 }]} onLongPress={handleErrorLongPress}>
                 <ThemedText testID="TransferQuoteError" style={styles.errorText}>
                   {limitsError || balanceError || quoteError}
                 </ThemedText>
-              </View>
+              </Pressable>
             ) : null}
 
             {/* Service Warnings (partial failures — quote still valid) */}
