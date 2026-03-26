@@ -47,7 +47,7 @@ export class TransferServiceManager {
   async getPairInfo(sendAsset: AssetId, receiveAsset: AssetId): Promise<TransferPairInfo> {
     const candidates = this.getServicesForPair(sendAsset, receiveAsset);
     if (candidates.length === 0) {
-      throw new TransferNoRouteError(`No route for ${assetLabel(sendAsset)} → ${assetLabel(receiveAsset)}`);
+      throw new TransferNoRouteError(this.buildNoRouteMessage(sendAsset, receiveAsset));
     }
 
     for (const service of candidates) {
@@ -59,13 +59,13 @@ export class TransferServiceManager {
         }
       }
     }
-    throw new TransferNoRouteError(`No route for ${assetLabel(sendAsset)} → ${assetLabel(receiveAsset)}`);
+    throw new TransferNoRouteError(this.buildNoRouteMessage(sendAsset, receiveAsset));
   }
 
   async getQuote(sendAsset: AssetId, receiveAsset: AssetId, sendAmount: string): Promise<TransferQuote> {
     const candidates = this.getServicesForPair(sendAsset, receiveAsset);
     if (candidates.length === 0) {
-      throw new TransferNoRouteError(`No route for ${assetLabel(sendAsset)} → ${assetLabel(receiveAsset)}`);
+      throw new TransferNoRouteError(this.buildNoRouteMessage(sendAsset, receiveAsset));
     }
 
     const results = await Promise.allSettled(
@@ -172,6 +172,16 @@ export class TransferServiceManager {
 
   private getServicesForPair(sendAssetId: AssetId, receiveAssetId: AssetId): ITransferService[] {
     return this.services.filter((s) => s.getSupportedPairs().some((p) => p.sendAssetId === sendAssetId && p.receiveAssetId === receiveAssetId));
+  }
+
+  private buildNoRouteMessage(sendAsset: AssetId, receiveAsset: AssetId): string {
+    const sendInfo = getAssetInfo(sendAsset);
+    const receiveInfo = getAssetInfo(receiveAsset);
+    const base = `${sendInfo.ticker} → ${receiveInfo.ticker} is unavailable`;
+    const alt = this.getSupportedPairs().find((p) => p.receiveAssetId === receiveAsset && p.sendAssetId !== sendAsset);
+    if (!alt) return base;
+    const altSendInfo = getAssetInfo(alt.sendAssetId);
+    return `${base}. Try ${altSendInfo.networkDisplayName}:${altSendInfo.ticker} → ${receiveInfo.ticker}`;
   }
 
   private resolveServiceForQuote(quote: TransferQuote): ITransferService {
