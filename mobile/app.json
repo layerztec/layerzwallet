@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "scheme": ["bitcoin", "liquidnetwork", "layerzwallet"],
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.layerzwallet.mobile",
@@ -21,7 +20,6 @@
       "icon": "./assets/appicon.icon"
     },
     "android": {
-      "edgeToEdgeEnabled": true,
       "permissions": ["android.permission.CAMERA"],
       "blockedPermissions": ["android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE", "android.permission.READ_MEDIA_IMAGES", "android.permission.READ_MEDIA_VIDEO"],
       "package": "com.layerzwallet.mobile",
@@ -76,6 +74,17 @@
         }
       ],
       [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraGradleProperties": {
+              "Rive_RiveRuntimeAndroidVersion": "11.3.1",
+              "org.gradle.jvmargs": "-Xmx2048m -XX:MaxMetaspaceSize=512m -Djava.net.preferIPv4Stack=true"
+            }
+          }
+        }
+      ],
+      [
         "expo-camera",
         {
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to scan QR codes with addresses"
@@ -85,7 +94,6 @@
         "expo-asset",
         {
           "assets": [
-            "assets/js/inpage-bridge.jstxt",
             "assets/animations/selfcustody.riv",
             "assets/animations/lightning.riv",
             "assets/animations/bars.riv",

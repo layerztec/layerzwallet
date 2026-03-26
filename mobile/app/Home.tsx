@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Dimensions, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
+import { Alert, Dimensions, Platform, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -50,6 +50,12 @@ export type HomeProps = {
 };
 
 export default function Home() {
+  // Match native tabs layout behavior (iOS 18–25 uses custom tab bar, iOS 26+ and Android use native tabs).
+  const iosVersion = Platform.OS === 'ios' ? (typeof Platform.Version === 'string' ? parseInt(String(Platform.Version), 10) : Number(Platform.Version)) : 0;
+  const useCustomTabBar = Platform.OS === 'ios' && iosVersion >= 18 && iosVersion < 26;
+  const androidNativeTabBarPadding = Platform.OS === 'android' ? 56 : 0;
+  const contentBottomPadding = (useCustomTabBar ? 100 : 24) + androidNativeTabBarPadding;
+
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const router = useRouter();
@@ -308,7 +314,7 @@ export default function Home() {
         <Pressable style={styles.maestroSettingsButton} onPress={goToSettings} testID="SettingsButton" accessibilityLabel="Settings" />
 
         <RadialGradientScreen network={network} scroll={true} onScroll={handleScroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} {...refreshOptions} />}>
-          <View style={[styles.root, styles.contentWithHeader]}>
+          <View style={[styles.root, { paddingBottom: contentBottomPadding }, styles.contentWithHeader]}>
             {/* Network Selector */}
             <View style={styles.networkSelectorContainer}>
               <Pressable testID="NetworkSwitcherTrigger" onPress={handleNetworkSelect} activeOpacity={0.8}>
@@ -371,10 +377,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   modalContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',
@@ -394,7 +396,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     paddingHorizontal: 18,
-    paddingBottom: 100, // Safe area + extra scroll space
   },
   contentWithHeader: {
     paddingTop: 80,

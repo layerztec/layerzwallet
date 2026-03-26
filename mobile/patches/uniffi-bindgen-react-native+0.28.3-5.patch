@@ -1,0 +1,35 @@
+diff --git a/node_modules/uniffi-bindgen-react-native/typescript/src/ffi-converters.ts b/node_modules/uniffi-bindgen-react-native/typescript/src/ffi-converters.ts
+index b757e3d..eda2904 100644
+--- a/node_modules/uniffi-bindgen-react-native/typescript/src/ffi-converters.ts
++++ b/node_modules/uniffi-bindgen-react-native/typescript/src/ffi-converters.ts
+@@ -332,7 +332,7 @@ export const FfiConverterArrayBuffer = (() => {
+     // Typed arrays are accepted by TS as array buffers,
+     // even though they are really ArrayBufferViews.
+     if (ArrayBuffer.isView(value)) {
+-      const ab = value.buffer;
++      const ab = value.buffer as ArrayBuffer;
+       const start = value.byteOffset;
+       const length = value.byteLength;
+       if (start === 0 && ab.byteLength === length) {
+diff --git a/node_modules/uniffi-bindgen-react-native/typescript/src/ffi-types.ts b/node_modules/uniffi-bindgen-react-native/typescript/src/ffi-types.ts
+index d4612b4..abb7edc 100644
+--- a/node_modules/uniffi-bindgen-react-native/typescript/src/ffi-types.ts
++++ b/node_modules/uniffi-bindgen-react-native/typescript/src/ffi-types.ts
+@@ -32,7 +32,7 @@ export class RustBuffer {
+   }
+ 
+   static fromByteArray(buf: UniffiByteArray): RustBuffer {
+-    return new RustBuffer(buf.buffer);
++    return new RustBuffer(buf.buffer as ArrayBuffer);
+   }
+ 
+   get length(): number {
+@@ -43,7 +43,7 @@ export class RustBuffer {
+     return new Uint8Array(this.arrayBuffer);
+   }
+ 
+-  readArrayBuffer(numBytes: number): ArrayBufferLike {
++  readArrayBuffer(numBytes: number): ArrayBuffer {
+     const start = this.readOffset;
+     const end = this.checkOverflow(start, numBytes);
+     const value = this.arrayBuffer.slice(start, end);

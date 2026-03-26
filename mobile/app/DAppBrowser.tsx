@@ -3,7 +3,7 @@ import Pressable from '../components/Pressable';
 import * as FileSystem from 'expo-file-system';
 import { File as ExpoFsFile, Directory } from 'expo-file-system';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
-import { StyleSheet, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions, BackHandler } from 'react-native';
+import { StyleSheet, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions, BackHandler, Platform } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import type { WebViewErrorEvent, WebViewNavigationEvent } from 'react-native-webview/lib/WebViewTypes';
 import { Stack, useLocalSearchParams, useRouter, Link, useNavigation } from 'expo-router';
@@ -138,6 +138,9 @@ const getScreenshotDir = (): string | null => {
 };
 
 const DAppBrowser: React.FC = () => {
+  const iosVersion = Platform.OS === 'ios' ? (typeof Platform.Version === 'string' ? parseInt(String(Platform.Version), 10) : Number(Platform.Version)) : 0;
+  const useCustomTabBar = Platform.OS === 'ios' && iosVersion >= 18 && iosVersion < 26;
+  const androidNativeTabBarPadding = Platform.OS === 'android' && !useCustomTabBar ? 56 : 0;
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const router = useRouter();
@@ -408,7 +411,7 @@ const DAppBrowser: React.FC = () => {
     (async () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const [{ localUri }] = await Asset.loadAsync(require('assets/js/inpage-bridge.jstxt'));
+        const [{ localUri }] = await Asset.loadAsync(require('assets/js/inpage_bridge.jstxt'));
 
         if (!localUri) {
           throw new Error('Bridge asset URI is undefined');
@@ -1466,7 +1469,7 @@ const DAppBrowser: React.FC = () => {
             />
           </View>
 
-          <View style={styles.bottomNavigation}>
+          <View style={[styles.bottomNavigation, { paddingBottom: 16 + androidNativeTabBarPadding }]}>
             <View style={styles.navigationLeft}>
               {!showTabsOverview && (
                 <>
@@ -1559,10 +1562,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   modalContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',

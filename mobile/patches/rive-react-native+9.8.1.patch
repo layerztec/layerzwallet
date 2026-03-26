@@ -1,0 +1,119 @@
+diff --git a/node_modules/rive-react-native/android/src/main/java/com/rivereactnative/RiveReactNativeView.kt b/node_modules/rive-react-native/android/src/main/java/com/rivereactnative/RiveReactNativeView.kt
+index 4078d65..2a46ad7 100644
+--- a/node_modules/rive-react-native/android/src/main/java/com/rivereactnative/RiveReactNativeView.kt
++++ b/node_modules/rive-react-native/android/src/main/java/com/rivereactnative/RiveReactNativeView.kt
+@@ -30,6 +30,9 @@ import com.facebook.react.bridge.WritableMap
+ import com.facebook.react.modules.core.DeviceEventManagerModule
+ import com.facebook.react.modules.core.ExceptionsManagerModule
+ import com.facebook.react.uimanager.ThemedReactContext
++import com.facebook.react.uimanager.UIManagerHelper
++import com.facebook.react.uimanager.events.Event
++import com.facebook.react.uimanager.events.EventDispatcher
+ import com.facebook.react.uimanager.events.RCTEventEmitter
+ import kotlinx.coroutines.CoroutineScope
+ import kotlinx.coroutines.Dispatchers
+@@ -212,58 +215,62 @@ class RiveReactNativeView(private val context: ThemedReactContext) : FrameLayout
+     referencedAssets = null
+   }
+ 
+-  fun onPlay(animationName: String, isStateMachine: Boolean = false) {
++  private fun dispatchViewEvent(eventName: String, payload: WritableMap) {
+     val reactContext = context as ReactContext
++    val dispatcher: EventDispatcher? = UIManagerHelper.getEventDispatcherForReactTag(reactContext, id)
++    if (dispatcher != null) {
++      dispatcher.dispatchEvent(RiveViewEvent(id, eventName, payload))
++      return
++    }
++
++    reactContext.getJSModule(RCTEventEmitter::class.java).receiveEvent(id, eventName, payload)
++  }
++
++  private class RiveViewEvent(
++    private val targetViewTag: Int,
++    private val targetEventName: String,
++    private val payload: WritableMap,
++  ) : Event<RiveViewEvent>(targetViewTag) {
++    override fun getEventName(): String = targetEventName
+ 
++    override fun dispatch(rctEventEmitter: RCTEventEmitter) {
++      rctEventEmitter.receiveEvent(targetViewTag, targetEventName, payload)
++    }
++  }
++
++  fun onPlay(animationName: String, isStateMachine: Boolean = false) {
+     val data = Arguments.createMap()
+     data.putString("animationName", animationName)
+     data.putBoolean("isStateMachine", isStateMachine)
+-
+-    reactContext.getJSModule(RCTEventEmitter::class.java)
+-      .receiveEvent(id, Events.PLAY.toString(), data)
++    dispatchViewEvent(Events.PLAY.toString(), data)
+   }
+ 
+   fun onPause(animationName: String, isStateMachine: Boolean = false) {
+-    val reactContext = context as ReactContext
+-
+     val data = Arguments.createMap()
+     data.putString("animationName", animationName)
+     data.putBoolean("isStateMachine", isStateMachine)
+-
+-    reactContext.getJSModule(RCTEventEmitter::class.java)
+-      .receiveEvent(id, Events.PAUSE.toString(), data)
++    dispatchViewEvent(Events.PAUSE.toString(), data)
+   }
+ 
+   fun onStop(animationName: String, isStateMachine: Boolean = false) {
+-    val reactContext = context as ReactContext
+-
+     val data = Arguments.createMap()
+     data.putString("animationName", animationName)
+     data.putBoolean("isStateMachine", isStateMachine)
+-
+-    reactContext.getJSModule(RCTEventEmitter::class.java)
+-      .receiveEvent(id, Events.STOP.toString(), data)
++    dispatchViewEvent(Events.STOP.toString(), data)
+   }
+ 
+   fun onLoopEnd(animationName: String, loopMode: RNLoopMode) {
+-    val reactContext = context as ReactContext
+-
+     val data = Arguments.createMap()
+     data.putString("animationName", animationName)
+     data.putString("loopMode", loopMode.toString())
+-
+-    reactContext.getJSModule(RCTEventEmitter::class.java)
+-      .receiveEvent(id, Events.LOOP_END.toString(), data)
++    dispatchViewEvent(Events.LOOP_END.toString(), data)
+   }
+ 
+   fun onStateChanged(stateMachineName: String, stateName: String) {
+-    val reactContext = context as ReactContext
+     val data = Arguments.createMap()
+     data.putString("stateMachineName", stateMachineName)
+     data.putString("stateName", stateName)
+-
+-    reactContext.getJSModule(RCTEventEmitter::class.java)
+-      .receiveEvent(id, Events.STATE_CHANGED.toString(), data)
++    dispatchViewEvent(Events.STATE_CHANGED.toString(), data)
+   }
+ 
+   private fun convertHashMapToWritableMap(hashMap: HashMap<String, Any>): WritableMap {
+@@ -283,7 +290,6 @@ class RiveReactNativeView(private val context: ThemedReactContext) : FrameLayout
+   }
+ 
+   fun onRiveEventReceived(event: RiveEvent) {
+-    val reactContext = context as ReactContext
+     val topLevelDict = Arguments.createMap()
+ 
+     val eventProperties = Arguments.createMap().apply {
+@@ -300,9 +306,7 @@ class RiveReactNativeView(private val context: ThemedReactContext) : FrameLayout
+     topLevelDict.putMap(
+       "riveEvent", eventProperties
+     )
+-
+-    reactContext.getJSModule(RCTEventEmitter::class.java)
+-      .receiveEvent(id, Events.RIVE_EVENT.toString(), topLevelDict)
++    dispatchViewEvent(Events.RIVE_EVENT.toString(), topLevelDict)
+   }
+ 
+   fun play(

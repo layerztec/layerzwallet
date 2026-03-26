@@ -4,6 +4,7 @@
     "noEmit": false,
     "moduleResolution": "bundler",
     "strict": true,
+    "skipLibCheck": true,
     "jsx": "react-native",
     "baseUrl": ".",
     "paths": {
@@ -12,5 +13,22 @@
     },
     "typeRoots": ["./node_modules/@types"]
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "contexts/**/*.ts",
+    "contexts/**/*.tsx",
+    "constants/**/*.ts",
+    "constants/**/*.tsx",
+    "hooks/**/*.ts",
+    "hooks/**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "utils/**/*.ts",
+    "utils/**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
 }
