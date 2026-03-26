@@ -1,9 +1,28 @@
+import { encodeBech32mTokenIdentifier, encodeSparkAddress } from '@buildonspark/spark-sdk';
 import { describe, it, vi, assert } from 'vitest';
 import { SparkWallet } from '../../class/wallets/spark-wallet';
-import { DeepPartial } from '../../class/wallets/types';
 
-type WalletTransferOrig = Awaited<ReturnType<NonNullable<SparkWallet['_sdkWallet']>['getTransfers']>>['transfers'][number];
-type WalletTransfer = DeepPartial<WalletTransferOrig>;
+const ownIdentityPublicKey = '036b1448c1b77fea99943c36c4ebed2de121ad98349f249949a1c43817fe26c2e2';
+const inboundIdentityPublicKey = '033421a67a60cc7cb51de4422fc35e6db05f20fd8f3f2769a2e7e7061d19da191e';
+const outboundIdentityPublicKey = '023e33e2920326f64ea31058d44777442d97d7d5cbfcf54e3060bc1695e5261c93';
+const ownSparkAddress = encodeSparkAddress({ identityPublicKey: ownIdentityPublicKey, network: 'MAINNET' });
+const inboundSparkAddress = encodeSparkAddress({ identityPublicKey: inboundIdentityPublicKey, network: 'MAINNET' });
+const outboundSparkAddress = encodeSparkAddress({ identityPublicKey: outboundIdentityPublicKey, network: 'MAINNET' });
+const tokenIdentifierBytes = Uint8Array.from([1, 2, 3, 4]);
+const tokenIdentifier = encodeBech32mTokenIdentifier({ tokenIdentifier: tokenIdentifierBytes, network: 'MAINNET' });
+const mixedReceivePrevHash = Uint8Array.from([0x11]);
+const sendPrevHash = Uint8Array.from([0x22]);
+const receiveTokenHash = Uint8Array.from([0xa1]);
+const mixedReceiveTokenHash = Uint8Array.from([0xa2]);
+const sendTokenHash = Uint8Array.from([0xb2]);
+const cachedSparkTokenMetadata = JSON.stringify({
+  metadata: {
+    tokenName: 'Historic Token',
+    tokenTicker: 'HIST',
+    decimals: 6,
+    iconUrl: 'https://example.com/historic-token.png',
+  },
+});
 
 const storageMock = {
   async setItem(key: string, value: string) {},
@@ -12,142 +31,167 @@ const storageMock = {
   },
 };
 
-// a couple of Lightning and regular transfers
-const transfers: WalletTransfer[] = [
+const tokenTransactions = [
   {
-    id: '0198cc01-ee9a-7af1-b54c-b1fb836ad9a6',
-    senderIdentityPublicKey: '033421a67a60cc7cb51de4422fc35e6db05f20fd8f3f2769a2e7e7061d19da191e',
-    receiverIdentityPublicKey: '036b1448c1b77fea99943c36c4ebed2de121ad98349f249949a1c43817fe26c2e2',
-    status: 'TRANSFER_STATUS_COMPLETED',
-    totalValue: 20,
-    expiryTime: new Date('1970-01-01T00:00:00.000Z'),
-    createdTime: new Date('2025-08-21T09:42:17.512Z'),
-    updatedTime: new Date('2025-08-21T09:42:29.578Z'),
-    type: 'TRANSFER',
-    transferDirection: 'INCOMING',
+    tokenTransactionHash: receiveTokenHash,
+    status: 2,
+    tokenTransaction: {
+      clientCreatedTimestamp: new Date('2025-08-21T09:20:00.000Z'),
+      tokenOutputs: [{ ownerPublicKey: Uint8Array.from(Buffer.from(ownIdentityPublicKey, 'hex')), tokenIdentifier: tokenIdentifierBytes, tokenAmount: Uint8Array.from([0xf4]) }],
+    },
   },
   {
-    id: '0198cc00-ff50-767a-8c21-bb258b4a903e',
-    senderIdentityPublicKey: '036b1448c1b77fea99943c36c4ebed2de121ad98349f249949a1c43817fe26c2e2',
-    receiverIdentityPublicKey: '033421a67a60cc7cb51de4422fc35e6db05f20fd8f3f2769a2e7e7061d19da191e',
-    status: 'TRANSFER_STATUS_COMPLETED',
-    totalValue: 20,
-    expiryTime: new Date('1970-01-01T00:00:00.000Z'),
-    createdTime: new Date('2025-08-21T09:41:16.531Z'),
-    updatedTime: new Date('2025-08-21T09:41:25.587Z'),
-    type: 'TRANSFER',
-    transferDirection: 'OUTGOING',
+    tokenTransactionHash: mixedReceiveTokenHash,
+    status: 2,
+    tokenTransaction: {
+      clientCreatedTimestamp: new Date('2025-08-21T09:19:00.000Z'),
+      tokenInputs: {
+        $case: 'transferInput' as const,
+        transferInput: {
+          outputsToSpend: [{ prevTokenTransactionHash: mixedReceivePrevHash, prevTokenTransactionVout: 0 }],
+        },
+      },
+      tokenOutputs: [
+        { ownerPublicKey: Uint8Array.from(Buffer.from(ownIdentityPublicKey, 'hex')), tokenIdentifier: tokenIdentifierBytes, tokenAmount: Uint8Array.from([0x64]) },
+        { ownerPublicKey: Uint8Array.from(Buffer.from(outboundIdentityPublicKey, 'hex')), tokenIdentifier: tokenIdentifierBytes, tokenAmount: Uint8Array.from([0x2c]) },
+      ],
+    },
   },
   {
-    id: '0198cbfe-d2b4-7a29-869b-cbd58c78a7cb',
-    senderIdentityPublicKey: '036b1448c1b77fea99943c36c4ebed2de121ad98349f249949a1c43817fe26c2e2',
-    receiverIdentityPublicKey: '036b1448c1b77fea99943c36c4ebed2de121ad98349f249949a1c43817fe26c2e2',
-    status: 'TRANSFER_STATUS_COMPLETED',
-    totalValue: 10,
-    expiryTime: new Date('1970-01-01T00:00:00.000Z'),
-    createdTime: new Date('2025-08-21T09:38:53.885Z'),
-    updatedTime: new Date('2025-08-21T09:38:57.071Z'),
-    type: 'TRANSFER',
-    transferDirection: 'INCOMING',
-  },
-  {
-    id: '0198cbfc-66c1-76ed-8196-2e21576fcb00',
-    senderIdentityPublicKey: '036b1448c1b77fea99943c36c4ebed2de121ad98349f249949a1c43817fe26c2e2',
-    receiverIdentityPublicKey: '023e33e2920326f64ea31058d44777442d97d7d5cbfcf54e3060bc1695e5261c93',
-    status: 'TRANSFER_STATUS_COMPLETED',
-    totalValue: 51,
-    expiryTime: new Date('2025-08-21T09:38:12.993Z'),
-    createdTime: new Date('2025-08-21T09:36:13.263Z'),
-    updatedTime: new Date('2025-08-21T09:36:22.735Z'),
-    type: 'PREIMAGE_SWAP',
-    transferDirection: 'OUTGOING',
-  },
-  {
-    id: '0198cbfa-9b0b-774c-8426-a6951af9177d',
-    senderIdentityPublicKey: '023e33e2920326f64ea31058d44777442d97d7d5cbfcf54e3060bc1695e5261c93',
-    receiverIdentityPublicKey: '036b1448c1b77fea99943c36c4ebed2de121ad98349f249949a1c43817fe26c2e2',
-    status: 'TRANSFER_STATUS_COMPLETED',
-    totalValue: 100,
-    expiryTime: new Date('1970-01-01T00:00:00.000Z'),
-    createdTime: new Date('2025-08-21T09:34:15.335Z'),
-    updatedTime: new Date('2025-08-21T09:34:26.042Z'),
-    type: 'PREIMAGE_SWAP',
-    transferDirection: 'INCOMING',
+    tokenTransactionHash: sendTokenHash,
+    status: 2,
+    tokenTransaction: {
+      clientCreatedTimestamp: new Date('2025-08-21T09:18:00.000Z'),
+      tokenInputs: {
+        $case: 'transferInput' as const,
+        transferInput: {
+          outputsToSpend: [{ prevTokenTransactionHash: sendPrevHash, prevTokenTransactionVout: 0 }],
+        },
+      },
+      tokenOutputs: [
+        { ownerPublicKey: Uint8Array.from(Buffer.from(outboundIdentityPublicKey, 'hex')), tokenIdentifier: tokenIdentifierBytes, tokenAmount: Uint8Array.from([0x90]) },
+        { ownerPublicKey: Uint8Array.from(Buffer.from(ownIdentityPublicKey, 'hex')), tokenIdentifier: tokenIdentifierBytes, tokenAmount: Uint8Array.from([0x64]) },
+      ],
+    },
   },
 ];
 
+const previousTokenTransactions = new Map([
+  [
+    '11',
+    {
+      tokenTransactionHash: mixedReceivePrevHash,
+      status: 2,
+      tokenTransaction: {
+        tokenOutputs: [{ ownerPublicKey: Uint8Array.from(Buffer.from(inboundIdentityPublicKey, 'hex')), tokenIdentifier: tokenIdentifierBytes, tokenAmount: Uint8Array.from([0xc8]) }],
+      },
+    },
+  ],
+  [
+    '22',
+    {
+      tokenTransactionHash: sendPrevHash,
+      status: 2,
+      tokenTransaction: {
+        tokenOutputs: [{ ownerPublicKey: Uint8Array.from(Buffer.from(ownIdentityPublicKey, 'hex')), tokenIdentifier: tokenIdentifierBytes, tokenAmount: Uint8Array.from([0xf4]) }],
+      },
+    },
+  ],
+]);
+
 describe('Spark Wallet', () => {
-  it('getCommonTransactions - should return transactions', async () => {
+  it('getCommonTransactions returns token history with direction and cached metadata', async () => {
     const wallet = new SparkWallet();
+    (wallet as any)._storage = {
+      async setItem() {},
+      async getItem(key: string) {
+        return key === `SPARK_TOKEN_METADATA-${tokenIdentifier}` ? cachedSparkTokenMetadata : '';
+      },
+    };
 
     (wallet as any)._sdkWallet = {
-      getTransfers: vi.fn().mockImplementation((limit: number, offset: number) => {
-        return {
-          transfers: transfers.slice(offset, offset + limit),
-        };
+      getTransfers: vi.fn().mockResolvedValue({ transfers: [] }),
+      getSparkAddress: vi.fn().mockResolvedValue(ownSparkAddress),
+      getIdentityPublicKey: vi.fn().mockResolvedValue(ownIdentityPublicKey),
+      queryTokenTransactionsWithFilters: vi.fn().mockResolvedValue({
+        tokenTransactionsWithStatus: tokenTransactions,
+        pageResponse: undefined,
       }),
+      queryTokenTransactionsByTxHashes: vi.fn().mockImplementation((hashes: string[]) => ({
+        tokenTransactionsWithStatus: hashes.map((hash) => previousTokenTransactions.get(hash)),
+      })),
     };
 
     const result = await wallet.getCommonTransactions();
 
     assert.deepEqual(result, [
       {
-        amount: 20,
+        amount: undefined,
+        counterparty: undefined,
         direction: 'receive',
-        explorerUrl: 'https://sparkscan.io/tx/0198cc01-ee9a-7af1-b54c-b1fb836ad9a6',
+        explorerUrl: 'https://sparkscan.io/tx/a1',
         network: 'spark',
         status: 'confirmed',
-        timestamp: 1755769349,
-        txid: '0198cc01-ee9a-7af1-b54c-b1fb836ad9a6',
-        counterparty: 'spark1pgssxdpp5eaxpnruk5w7gs30cd0xmvzlyr7c70e8dx3w0ecxr5va5xg7gchkxp',
+        timestamp: 1755768000,
+        tokenTransfers: [
+          {
+            address: undefined,
+            amount: 244,
+            decimals: 6,
+            logoURI: 'https://example.com/historic-token.png',
+            name: 'Historic Token',
+            symbol: 'HIST',
+            tokenId: tokenIdentifier,
+          },
+        ],
+        txid: 'a1',
       },
       {
-        amount: 20,
+        amount: undefined,
+        counterparty: inboundSparkAddress,
+        direction: 'receive',
+        explorerUrl: 'https://sparkscan.io/tx/a2',
+        network: 'spark',
+        status: 'confirmed',
+        timestamp: 1755767940,
+        tokenTransfers: [
+          {
+            address: undefined,
+            amount: 100,
+            decimals: 6,
+            logoURI: 'https://example.com/historic-token.png',
+            name: 'Historic Token',
+            symbol: 'HIST',
+            tokenId: tokenIdentifier,
+          },
+        ],
+        txid: 'a2',
+      },
+      {
+        amount: undefined,
+        counterparty: outboundSparkAddress,
         direction: 'send',
-        explorerUrl: 'https://sparkscan.io/tx/0198cc00-ff50-767a-8c21-bb258b4a903e',
+        explorerUrl: 'https://sparkscan.io/tx/b2',
         network: 'spark',
         status: 'confirmed',
-        timestamp: 1755769285,
-        txid: '0198cc00-ff50-767a-8c21-bb258b4a903e',
-        counterparty: 'spark1pgssxdpp5eaxpnruk5w7gs30cd0xmvzlyr7c70e8dx3w0ecxr5va5xg7gchkxp',
-      },
-      {
-        amount: 10,
-        direction: 'receive',
-        explorerUrl: 'https://sparkscan.io/tx/0198cbfe-d2b4-7a29-869b-cbd58c78a7cb',
-        network: 'spark',
-        status: 'confirmed',
-        timestamp: 1755769137,
-        txid: '0198cbfe-d2b4-7a29-869b-cbd58c78a7cb',
-        counterparty: 'spark1pgssx6c5frqmwll2nx2rcdkya0kjmcfp4kvrf8eyn9y6r3pczllzdshz90tad0',
-      },
-      {
-        amount: 51,
-        direction: 'send',
-        explorerUrl: 'https://sparkscan.io/tx/0198cbfc-66c1-76ed-8196-2e21576fcb00',
-        network: 'spark',
-        status: 'confirmed',
-        timestamp: 1755768982,
-        txid: '0198cbfc-66c1-76ed-8196-2e21576fcb00',
-        counterparty: 'spark1pgssy03nu2fqxfhkf633qkx5gam5gtvh6l2uhl84fccxp0qkjhjjv8ynvflju3',
-      },
-      {
-        amount: 100,
-        direction: 'receive',
-        explorerUrl: 'https://sparkscan.io/tx/0198cbfa-9b0b-774c-8426-a6951af9177d',
-        network: 'spark',
-        status: 'confirmed',
-        timestamp: 1755768866,
-        txid: '0198cbfa-9b0b-774c-8426-a6951af9177d',
-        counterparty: 'spark1pgssy03nu2fqxfhkf633qkx5gam5gtvh6l2uhl84fccxp0qkjhjjv8ynvflju3',
+        timestamp: 1755767880,
+        tokenTransfers: [
+          {
+            address: outboundSparkAddress,
+            amount: 144,
+            decimals: 6,
+            logoURI: 'https://example.com/historic-token.png',
+            name: 'Historic Token',
+            symbol: 'HIST',
+            tokenId: tokenIdentifier,
+          },
+        ],
+        txid: 'b2',
       },
     ]);
 
-    const getTransfersMock = (wallet as any)._sdkWallet.getTransfers as any;
-    const calls = getTransfersMock.mock.calls;
-    assert.strictEqual(calls.length, 2);
-    assert.deepEqual(calls[0], [100, 0]);
-    assert.deepEqual(calls[1], [100, 100]);
+    const previousTransactionsMock = (wallet as any)._sdkWallet.queryTokenTransactionsByTxHashes as any;
+    assert.deepEqual(previousTransactionsMock.mock.calls[0], [['11', '22']]);
   });
 
   it('can get offchain receive address (no account set)', async () => {

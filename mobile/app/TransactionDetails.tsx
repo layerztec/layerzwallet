@@ -13,7 +13,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { getDecimalsByNetwork, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
-import { getTokenIconColor, getTokenInfoSafe, shortenTokenId } from '@shared/models/token-list';
+import { getTokenIconColor, resolveTokenInfo, shortenTokenId } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
@@ -270,7 +270,7 @@ export default function TransactionDetails() {
 
   const singleTokenInfo = useMemo(() => {
     if (isZeroAmountWithTokens && transaction.tokenTransfers?.length === 1) {
-      return getTokenInfoSafe(transaction.tokenTransfers[0].tokenId);
+      return resolveTokenInfo(transaction.tokenTransfers[0]);
     }
     return null;
   }, [isZeroAmountWithTokens, transaction.tokenTransfers]);
@@ -493,9 +493,9 @@ export default function TransactionDetails() {
     return (
       <View style={styles.tokenTransfersBlock}>
         {transaction.tokenTransfers.map((transfer, index) => {
-          const tokenInfo = getTokenInfoSafe(transfer.tokenId);
-          const iconColor = getTokenIconColor(tokenInfo?.name);
-          const formattedAmount = transfer.amount && tokenInfo ? formatBalance(transfer.amount.toString(), tokenInfo.decimals) : '0';
+          const tokenInfo = resolveTokenInfo(transfer);
+          const iconColor = getTokenIconColor(tokenInfo.name);
+          const formattedAmount = transfer.amount ? formatBalance(transfer.amount.toString(), tokenInfo.decimals) : '0';
           const isNegative = !transfer.amount && transaction.direction === 'send';
           const sign = isNegative ? '-' : '';
           const imageErrorKey = `${transfer.tokenId}-${index}`;
