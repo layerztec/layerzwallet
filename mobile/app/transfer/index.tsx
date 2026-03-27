@@ -100,6 +100,7 @@ export default function TransferInput() {
         const newQuote = await transferService.getQuote(sendAsset, receiveAsset, estimatedSend.toFixed(8));
         setQuote(newQuote);
         setSendAmount(new BigNumber(newQuote.sendAmount).toFixed());
+        setReceiveAmount(new BigNumber(newQuote.receiveAmount).toFixed());
         setQuoteError('');
         setServiceWarnings(newQuote.serviceErrors || []);
       } catch (e: any) {
@@ -162,6 +163,13 @@ export default function TransferInput() {
       }
     }
   }, [sendAsset, receiveAsset]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Retry receive quote when pairInfo arrives (fetchQuoteFromReceive requires pairInfo)
+  useEffect(() => {
+    if (pairInfo && !quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && receiveAmount && parseFloat(receiveAmount) > 0 && !sendAmount) {
+      fetchQuoteFromReceive(receiveAmount);
+    }
+  }, [pairInfo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Clear input state after a successful transfer so the user can't accidentally re-submit
   useEffect(() => {
