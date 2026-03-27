@@ -22,7 +22,7 @@ import { useTransferFlow } from '@/src/transfer/TransferFlowContext';
 
 export default function TransferInput() {
   const router = useRouter();
-  const { sendAsset, receiveAsset, quote, committed, setQuote, setCommitted, transferService } = useTransferFlow();
+  const { sendAsset, receiveAsset, quote, committed, setQuote, setCommitted, setPreparedExecution, transferService } = useTransferFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance: sendBalance } = useAssetBalance(sendAsset, accountNumber, BackgroundExecutor);
   const [sendAmount, setSendAmount] = useState<string>('');
@@ -36,6 +36,7 @@ export default function TransferInput() {
   const [serviceWarnings, setServiceWarnings] = useState<{ service: string; message: string }[]>([]);
   const [pairInfo, setPairInfo] = useState<TransferPairInfo | undefined>();
   const [isContinuing, setIsContinuing] = useState(false);
+  const isContinuingRef = useRef(false);
 
   const handleSendAssetPress = () => {
     router.push({ pathname: '/modals/transfer-select-asset', params: { side: 'send' } });
@@ -58,6 +59,7 @@ export default function TransferInput() {
       setIsQuoteLoading(true);
       setQuoteError('');
       setServiceWarnings([]);
+      setPreparedExecution(undefined);
       try {
         const newQuote = await transferService.getQuote(sendAsset, receiveAsset, amount);
         setQuote(newQuote);
@@ -92,6 +94,7 @@ export default function TransferInput() {
       setIsQuoteLoading(true);
       setQuoteError('');
       setServiceWarnings([]);
+      setPreparedExecution(undefined);
       try {
         // Reverse quote: we want to receive `amount`, so calculate how much to send
         const newQuote = await transferService.getQuote(receiveAsset, sendAsset, amount);
@@ -177,7 +180,10 @@ export default function TransferInput() {
 
   // Auto-refetch quote when returning from confirm (quote cleared on confirm unmount)
   useEffect(() => {
-    if (!quote) setIsContinuing(false);
+    if (!quote) {
+      setIsContinuing(false);
+      isContinuingRef.current = false;
+    }
     if (!committed && !quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && sendAmount && parseFloat(sendAmount) > 0) {
       fetchQuoteFromSend(sendAmount);
     }
@@ -220,7 +226,8 @@ export default function TransferInput() {
   const canContinue = !!sendAsset && !!receiveAsset && !!quote && parseFloat(sendAmount) > 0 && !isQuoteLoading && !limitsError && !balanceError;
 
   const handleContinue = async () => {
-    if (!canContinue || isContinuing) return;
+    if (!canContinue || isContinuingRef.current) return;
+    isContinuingRef.current = true;
     setIsContinuing(true);
     await sleep(10);
     router.push('/modals/transfer-confirm');
