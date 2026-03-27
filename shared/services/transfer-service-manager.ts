@@ -110,6 +110,14 @@ export class TransferServiceManager {
     return execution;
   }
 
+  async executeInstantSwap(executionId: string, serviceName: string): Promise<TransferExecution> {
+    const service = this.resolveServiceByName(serviceName);
+    if (!service || typeof (service as any).executeInstantSwap !== 'function') {
+      throw new Error(`Service "${serviceName}" does not support instant swap execution`);
+    }
+    return (service as any).executeInstantSwap(executionId);
+  }
+
   async commitTransfer(execution: TransferExecution): Promise<void> {
     const service = this.resolveServiceByName(execution.serviceName);
     if (service) {
