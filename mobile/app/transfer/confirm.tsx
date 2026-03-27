@@ -20,7 +20,7 @@ import { sleep } from '@shared/modules/sleep';
 import { TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 import type { AssetId } from '@shared/types/asset';
 import type { SendQuote } from '@shared/types/send-quote';
-import { EXECUTION_CLAIM, type TransferExecution } from '@shared/types/transfer';
+import { EXECUTION_CLAIM, EXECUTION_INSTANT, type TransferExecution } from '@shared/types/transfer';
 import { NETWORK_SPARK } from '@shared/types/networks';
 import { useTransferFlow } from '@/src/transfer/TransferFlowContext';
 
@@ -162,8 +162,8 @@ export default function TransferConfirm() {
         execution.autoClaim = !isSparkDeposit || claimMode === 'auto';
       }
 
-      // Fake provider: commit and go straight to success
-      if (isFakeProvider) {
+      // Fake provider or instant swap (e.g. Flashnet): commit and go straight to success
+      if (isFakeProvider || execution.type === EXECUTION_INSTANT) {
         await transferService.commitTransfer(execution);
         setCommitted(true);
         router.replace('/modals/transfer-success');
