@@ -159,6 +159,42 @@ describe('TransferServiceManager', () => {
 
       await expect(manager.getQuote(BTC, USDT, '0.01')).rejects.toThrow(TransferNoRouteError);
     });
+
+    it('suggests alternative pair when receive asset is available via different send', async () => {
+      const s1 = createMockService(
+        'A',
+        [BTC, LBTC],
+        [
+          { sendAssetId: BTC, receiveAssetId: LBTC },
+          { sendAssetId: USDT, receiveAssetId: LBTC },
+        ]
+      );
+      const manager = new TransferServiceManager([s1]);
+
+      // LBTC as receive IS available via BTC and USDT, so requesting from a different send should suggest
+      try {
+        await manager.getQuote(LBTC, LBTC, '0.01');
+        expect.unreachable('should have thrown');
+      } catch (e: any) {
+        expect(e).toBeInstanceOf(TransferNoRouteError);
+        expect(e.message).toContain('is unavailable');
+        expect(e.message).toContain('Try');
+      }
+    });
+
+    it('shows no suggestion when receive asset has no available pairs', async () => {
+      const s1 = createMockService('A', [BTC, LBTC], [{ sendAssetId: BTC, receiveAssetId: LBTC }]);
+      const manager = new TransferServiceManager([s1]);
+
+      try {
+        await manager.getQuote(BTC, USDT, '0.01');
+        expect.unreachable('should have thrown');
+      } catch (e: any) {
+        expect(e).toBeInstanceOf(TransferNoRouteError);
+        expect(e.message).toContain('is unavailable');
+        expect(e.message).not.toContain('Try');
+      }
+    });
   });
 
   describe('executeTransfer', () => {

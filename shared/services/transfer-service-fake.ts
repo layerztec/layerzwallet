@@ -2,7 +2,7 @@ import BigNumber from 'bignumber.js';
 
 import { getAssetInfo } from '../models/asset-info';
 import { AssetId } from '../types/asset';
-import { EXECUTION_DEPOSIT, ITransferService, TimelineStep, TransferExecution, TransferPair, TransferQuote } from '../types/transfer';
+import { EXECUTION_DEPOSIT, ITransferService, TimelineStep, TransferExecution, TransferPair, TransferPairInfo, TransferQuote } from '../types/transfer';
 import { getExchangeTimelineSteps } from './transfer-service-sideshift';
 
 const LBTC_TESTNET: AssetId = 'native:liquid_testnet';
@@ -19,6 +19,10 @@ export class FakeTransferService implements ITransferService {
       { sendAssetId: LBTC_TESTNET, receiveAssetId: BTC_BOTANIX_TESTNET },
       { sendAssetId: BTC_BOTANIX_TESTNET, receiveAssetId: LBTC_TESTNET },
     ];
+  }
+
+  async getPairInfo(_sendAsset: AssetId, _receiveAsset: AssetId): Promise<TransferPairInfo> {
+    return { min: '0.001', max: '10', rate: '0.996' };
   }
 
   async getQuote(sendAsset: AssetId, receiveAsset: AssetId, sendAmount: string): Promise<TransferQuote> {
