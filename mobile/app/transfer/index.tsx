@@ -80,7 +80,7 @@ export default function TransferInput() {
         setIsQuoteLoading(false);
       }
     },
-    [sendAsset, receiveAsset, transferService, setReceiveAmount, setQuote, setIsQuoteLoading]
+    [sendAsset, receiveAsset, transferService, setReceiveAmount, setQuote, setIsQuoteLoading, setPreparedExecution]
   );
 
   const fetchQuoteFromReceive = useCallback(
@@ -118,7 +118,7 @@ export default function TransferInput() {
         setIsQuoteLoading(false);
       }
     },
-    [sendAsset, receiveAsset, transferService, pairInfo, setSendAmount, setQuote, setIsQuoteLoading]
+    [sendAsset, receiveAsset, transferService, pairInfo, setSendAmount, setQuote, setIsQuoteLoading, setPreparedExecution]
   );
 
   const debouncedFetch = useCallback(
