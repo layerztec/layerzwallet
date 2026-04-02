@@ -22,7 +22,7 @@
     },
     "android": {
       "edgeToEdgeEnabled": true,
-      "permissions": ["android.permission.CAMERA"],
+      "permissions": ["android.permission.INTERNET", "android.permission.CAMERA"],
       "blockedPermissions": ["android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE", "android.permission.READ_MEDIA_IMAGES", "android.permission.READ_MEDIA_VIDEO"],
       "package": "com.layerzwallet.mobile",
       "allowBackup": false,

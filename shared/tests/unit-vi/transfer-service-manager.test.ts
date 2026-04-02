@@ -22,11 +22,11 @@ function makeQuote(receiveAmount: string, serviceName: string = 'Test'): Transfe
   };
 }
 
-function makeExecution(id: string, createdAt: number, serviceName: string = 'Test'): DepositAddressExecution {
+function makeExecution(id: string, createdAt: number, serviceName: string = 'Test', status: DepositAddressExecution['status'] = 'pending'): DepositAddressExecution {
   return {
     type: EXECUTION_DEPOSIT,
     id,
-    status: 'pending',
+    status,
     sendAmount: '0.01',
     receiveAmount: '0.0098',
     sendAsset: BTC,
@@ -250,6 +250,69 @@ describe('TransferServiceManager', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('e2');
+    });
+
+    it('tracks completion only when a known transfer transitions to completed', async () => {
+      const s1 = createMockService('A', [], []);
+      const onTransferCompleted = vi.fn();
+      vi.mocked(s1.getOngoingTransfers)
+        .mockResolvedValueOnce([makeExecution('e1', 100, 'A', 'pending')])
+        .mockResolvedValueOnce([makeExecution('e1', 100, 'A', 'completed')]);
+
+      const manager = new TransferServiceManager([s1]);
+      manager.onTransferCompleted = onTransferCompleted;
+
+      await manager.getOngoingTransfers(0);
+      expect(onTransferCompleted).not.toHaveBeenCalled();
+
+      await manager.getOngoingTransfers(0);
+      expect(onTransferCompleted).toHaveBeenCalledTimes(1);
+      expect(onTransferCompleted).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1', status: 'completed' }));
+    });
+
+    it('does not track already-completed transfers on first sight', async () => {
+      const s1 = createMockService('A', [], []);
+      const onTransferCompleted = vi.fn();
+      vi.mocked(s1.getOngoingTransfers).mockResolvedValue([makeExecution('e1', 100, 'A', 'completed')]);
+
+      const manager = new TransferServiceManager([s1]);
+      manager.onTransferCompleted = onTransferCompleted;
+
+      await manager.getOngoingTransfers(0);
+      expect(onTransferCompleted).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('refreshTransferStatus', () => {
+    it('tracks completion when refresh moves a known transfer to completed', async () => {
+      const s1 = createMockService('A', [], []);
+      const onTransferCompleted = vi.fn();
+      vi.mocked(s1.getOngoingTransfers).mockResolvedValue([makeExecution('e1', 100, 'A', 'pending')]);
+      s1.refreshTransferStatus = vi.fn(async () => makeExecution('e1', 100, 'A', 'completed'));
+
+      const manager = new TransferServiceManager([s1]);
+      manager.onTransferCompleted = onTransferCompleted;
+
+      await manager.getOngoingTransfers(0);
+      await manager.refreshTransferStatus('e1', 0);
+
+      expect(onTransferCompleted).toHaveBeenCalledTimes(1);
+      expect(onTransferCompleted).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1', status: 'completed' }));
+    });
+  });
+
+  describe('commitTransfer', () => {
+    it('tracks completion when a transfer is first committed as completed', async () => {
+      const s1 = createMockService('A', [], []);
+      const onTransferCompleted = vi.fn();
+      const manager = new TransferServiceManager([s1]);
+      manager.onTransferCompleted = onTransferCompleted;
+
+      await manager.commitTransfer(makeExecution('e1', 100, 'A', 'completed'));
+
+      expect(s1.commitTransfer).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1', status: 'completed' }));
+      expect(onTransferCompleted).toHaveBeenCalledTimes(1);
+      expect(onTransferCompleted).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1', status: 'completed' }));
     });
   });
 

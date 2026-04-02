@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { AppState, AppStateStatus, LogBox, Platform } from 'react-native';
 import 'react-native-reanimated';
 import { SWRConfig } from 'swr';
+import BigNumber from 'bignumber.js';
 
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
@@ -21,14 +22,19 @@ import { AuthStateContextProvider } from '@/src/hooks/AuthStateContext';
 import { ScanQrContextProvider } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Messenger } from '@/src/modules/messenger';
+import { AnalyticsEvents, trackAnalyticsEvent } from '@/src/modules/analytics';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
 import { InitializationContextProvider } from '@shared/hooks/InitializationContext';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
+import { useTransferService } from '@shared/hooks/useTransferService';
 import { ProtectedRouteStack } from '@/components/ProtectedRouteStack';
 import { ActionPopupProvider } from '@/contexts/ActionPopupContext';
 import { appendLog, applogFilePath, handleError } from '@/src/modules/error-handler';
 import { TransferFlowProvider } from '@/src/transfer/TransferFlowContext';
+import { TransferExecution } from '@shared/types/transfer';
+import { AllNetworkInfos } from '@shared/models/all-network-infos';
+import { Networks } from '@shared/types/networks';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -48,10 +54,62 @@ if (!__DEV__) {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const transferService = useTransferService(LayerzStorage);
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     'SF-Pro-Rounded-Semibold': require('../assets/fonts/SF-Pro-Rounded-Semibold.ttf'),
   });
+
+  useEffect(() => {
+    transferService.onTransferCompleted = (execution: TransferExecution) => {
+      let sat = 0;
+
+      // trying to decypher satoshi amount of the swap:
+      // if one of the assets in pair is pegged to btc we use that, with SEND being a priority, so
+      // its later in code
+      switch (execution.receiveAsset) {
+        case 'native:arkade':
+        case 'native:bitcoin':
+        case 'native:citrea':
+        case 'native:lightning':
+        case 'native:botanix':
+        case 'native:liquid':
+        case 'native:spark':
+          const networkName = execution.receiveAsset.split(':')[1];
+          const decimals = AllNetworkInfos[networkName as Networks]?.decimals;
+          sat = new BigNumber(execution.receiveAmount).multipliedBy(Math.pow(10, decimals)).toNumber();
+          break;
+      }
+
+      switch (execution.sendAsset) {
+        case 'native:arkade':
+        case 'native:bitcoin':
+        case 'native:citrea':
+        case 'native:lightning':
+        case 'native:botanix':
+        case 'native:liquid':
+        case 'native:spark':
+          const networkName = execution.sendAsset.split(':')[1];
+          const decimals = AllNetworkInfos[networkName as Networks]?.decimals;
+          sat = new BigNumber(execution.sendAmount).multipliedBy(Math.pow(10, decimals)).toNumber();
+          break;
+      }
+
+      // if we ever have token-to-token swaps we will have to decide how to resolve sat equivalent here
+
+      trackAnalyticsEvent(AnalyticsEvents.SwapCompleted, {
+        provider: execution.serviceName,
+        sendAsset: execution.sendAsset,
+        receiveAsset: execution.receiveAsset,
+        id: execution.id,
+        sat,
+      });
+    };
+
+    return () => {
+      transferService.onTransferCompleted = undefined;
+    };
+  }, [transferService]);
 
   useEffect(() => {
     if (Platform.OS === 'android') {

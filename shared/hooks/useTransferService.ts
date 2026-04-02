@@ -55,6 +55,9 @@ export function useTransferService(storage: IStorage): TransferServiceManager {
     services.push(new FakeTransferService());
 
     _instance = new TransferServiceManager(services);
+    _nativeDepositService.onTransferCompleted = (execution) => {
+      _instance?.onTransferCompleted?.(execution);
+    };
   }
   return _instance;
 }
