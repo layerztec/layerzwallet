@@ -33,8 +33,6 @@ import { ActionPopupProvider } from '@/contexts/ActionPopupContext';
 import { appendLog, applogFilePath, handleError } from '@/src/modules/error-handler';
 import { TransferFlowProvider } from '@/src/transfer/TransferFlowContext';
 import { TransferExecution } from '@shared/types/transfer';
-import { AllNetworkInfos } from '@shared/models/all-network-infos';
-import { Networks } from '@shared/types/networks';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -75,9 +73,7 @@ export default function RootLayout() {
         case 'native:botanix':
         case 'native:liquid':
         case 'native:spark':
-          const networkName = execution.receiveAsset.split(':')[1];
-          const decimals = AllNetworkInfos[networkName as Networks]?.decimals;
-          sat = new BigNumber(execution.receiveAmount).multipliedBy(Math.pow(10, decimals)).toNumber();
+          sat = new BigNumber(execution.receiveAmount).multipliedBy(1e8).toNumber();
           break;
       }
 
@@ -89,9 +85,7 @@ export default function RootLayout() {
         case 'native:botanix':
         case 'native:liquid':
         case 'native:spark':
-          const networkName = execution.sendAsset.split(':')[1];
-          const decimals = AllNetworkInfos[networkName as Networks]?.decimals;
-          sat = new BigNumber(execution.sendAmount).multipliedBy(Math.pow(10, decimals)).toNumber();
+          sat = new BigNumber(execution.sendAmount).multipliedBy(1e8).toNumber();
           break;
       }
 
