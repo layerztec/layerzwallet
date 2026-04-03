@@ -42,6 +42,7 @@
     "preset": "jest-expo"
   },
   "dependencies": {
+    "@aptabase/react-native": "^0.4.0",
     "@arkade-os/boltz-swap": "0.3.9",
     "@arkade-os/sdk": "0.4.10",
     "@bitcoinerlab/secp256k1": "1.2.0",

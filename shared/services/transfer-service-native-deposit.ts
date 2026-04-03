@@ -23,6 +23,7 @@ export type NativeDepositClaimExecutor = (network: Networks, accountNumber: numb
 
 export class NativeDepositTransferService implements ITransferService {
   readonly name = 'Native';
+  onTransferCompleted?: (execution: TransferExecution) => void;
   private swapsFetcher?: NativeDepositSwapsFetcher;
   private claimExecutor?: NativeDepositClaimExecutor;
   private claimingIds = new Set<string>();
@@ -60,7 +61,7 @@ export class NativeDepositTransferService implements ITransferService {
     const pendingAccounts = new Set(transfers.filter((t) => t.autoClaim && !isTerminalStatus(t.status) && t.depositTxid).map((t) => t.accountNumber));
     for (const acct of pendingAccounts) {
       try {
-        await this.getOngoingTransfers(acct);
+        await this._runSerializedTransferProcessing(acct, true);
       } catch {
         /* ignore */
       }
@@ -135,24 +136,12 @@ export class NativeDepositTransferService implements ITransferService {
   }
 
   async getOngoingTransfers(accountNumber: number): Promise<TransferExecution[]> {
-    // Serialize processing — wait for any in-flight call to finish and save before starting
-    while (this.processingPromise) {
-      try {
-        await this.processingPromise;
-      } catch {
-        /* ignore */
-      }
-    }
-    this.processingPromise = this._processTransfers(accountNumber);
-    try {
-      return await this.processingPromise;
-    } finally {
-      this.processingPromise = null;
-    }
+    return this._runSerializedTransferProcessing(accountNumber, false);
   }
 
-  private async _processTransfers(accountNumber: number): Promise<TransferExecution[]> {
+  private async _processTransfers(accountNumber: number, emitCompletionCallbacks: boolean): Promise<TransferExecution[]> {
     const transfers = await this.loadTransfers();
+    const previousStatuses = new Map(transfers.map((transfer) => [transfer.id, transfer.status]));
 
     // Prune old terminal transfers from the full list
     const now = Math.floor(Date.now() / 1000);
@@ -279,7 +268,33 @@ export class NativeDepositTransferService implements ITransferService {
     }
 
     const result = active.filter((t) => t.accountNumber === accountNumber);
+    if (emitCompletionCallbacks) {
+      for (const transfer of result) {
+        const previousStatus = previousStatuses.get(transfer.id);
+        if (transfer.status === 'completed' && previousStatus !== 'completed') {
+          this.onTransferCompleted?.(transfer);
+        }
+      }
+    }
     return result;
+  }
+
+  private async _runSerializedTransferProcessing(accountNumber: number, emitCompletionCallbacks: boolean): Promise<TransferExecution[]> {
+    // Serialize processing — wait for any in-flight call to finish and save before starting.
+    while (this.processingPromise) {
+      try {
+        await this.processingPromise;
+      } catch {
+        /* ignore */
+      }
+    }
+
+    this.processingPromise = this._processTransfers(accountNumber, emitCompletionCallbacks);
+    try {
+      return await this.processingPromise;
+    } finally {
+      this.processingPromise = null;
+    }
   }
 
   getTimelineSteps(execution: TransferExecution): TimelineStep[] {
