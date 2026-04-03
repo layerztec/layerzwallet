@@ -1,6 +1,6 @@
 import { getAssetInfo } from '../models/asset-info';
 import { AssetId } from '../types/asset';
-import { ITransferService, TimelineStep, TransferExecution, TransferNoRouteError, TransferPair, TransferPairInfo, TransferQuote } from '../types/transfer';
+import { ITransferService, TimelineStep, TransferExecution, TransferNoRouteError, TransferPair, TransferPairInfo, TransferQuote, TransferStatus } from '../types/transfer';
 import { getExchangeTimelineSteps } from './transfer-service-sideshift';
 
 function humanizeError(error: any): string {
@@ -19,6 +19,8 @@ function humanizeError(error: any): string {
 export class TransferServiceManager {
   readonly name = 'TransferServiceManager';
   private services: ITransferService[];
+  onTransferCompleted?: (execution: TransferExecution) => void;
+  private lastSeenStatuses = new Map<string, TransferStatus>();
 
   constructor(services: ITransferService[]) {
     this.services = services;
@@ -116,7 +118,14 @@ export class TransferServiceManager {
   async commitTransfer(execution: TransferExecution): Promise<void> {
     const service = this.resolveServiceByName(execution.serviceName);
     if (service) {
+      const key = `${execution.accountNumber}:${execution.serviceName}:${execution.id}`;
+      const previousStatus = this.lastSeenStatuses.get(key);
       await service.commitTransfer(execution);
+      this.lastSeenStatuses.set(key, execution.status);
+
+      if (execution.status === 'completed' && previousStatus !== 'completed') {
+        this.onTransferCompleted?.(execution);
+      }
     }
   }
 
@@ -135,6 +144,10 @@ export class TransferServiceManager {
       }
     }
 
+    allTransfers.forEach((execution) => {
+      this.observeTransferStatus(execution);
+    });
+
     allTransfers.sort((a, b) => b.createdAt - a.createdAt);
     return allTransfers;
   }
@@ -144,6 +157,7 @@ export class TransferServiceManager {
       if (service.refreshTransferStatus) {
         try {
           const result = await service.refreshTransferStatus(executionId, accountNumber);
+          this.observeTransferStatus(result);
           return result;
         } catch {
           continue;
@@ -191,5 +205,22 @@ export class TransferServiceManager {
     const service = this.services.find((s) => s.name === quote.serviceName);
     if (service) return service;
     throw new Error(`Cannot determine which provider owns quote ${quote.id}. Unknown serviceName: ${quote.serviceName}`);
+  }
+
+  /**
+   * Emits completion only on a real status transition.
+   * We poll and reload transfers repeatedly, so without remembering the last
+   * seen status we would re-fire the callback for transfers that were already
+   * completed, including historical ones loaded after app start.
+   */
+  private observeTransferStatus(execution: TransferExecution) {
+    const key = `${execution.accountNumber}:${execution.serviceName}:${execution.id}`;
+    const previousStatus = this.lastSeenStatuses.get(key);
+
+    this.lastSeenStatuses.set(key, execution.status);
+
+    if (execution.status === 'completed' && previousStatus !== undefined && previousStatus !== 'completed') {
+      this.onTransferCompleted?.(execution);
+    }
   }
 }
