@@ -163,9 +163,9 @@ export function ProtectedRouteStack() {
           }}
         />
         <Stack.Screen name="send" options={{ headerShown: false }} />
-        <Stack.Screen name="transfer" options={{ headerShown: false }} />
+        <Stack.Screen name="Swap" options={{ headerShown: false }} />
         <Stack.Screen
-          name="modals/transfer-select-asset"
+          name="SwapTarget"
           options={{
             presentation: 'formSheet',
             sheetAllowedDetents: [0.6, 1.0],
@@ -180,21 +180,7 @@ export function ProtectedRouteStack() {
           }}
         />
         <Stack.Screen
-          name="modals/transfer-confirm"
-          options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.8],
-            sheetGrabberVisible: true,
-            headerTransparent: false,
-            gestureEnabled: true,
-            headerShown: false,
-            contentStyle: {
-              height: '100%',
-            },
-          }}
-        />
-        <Stack.Screen
-          name="modals/transfer-success"
+          name="SwapDetails"
           options={{
             presentation: 'formSheet',
             sheetAllowedDetents: [0.8],
