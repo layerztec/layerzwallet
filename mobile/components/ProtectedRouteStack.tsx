@@ -196,15 +196,11 @@ export function ProtectedRouteStack() {
         <Stack.Screen
           name="modals/transfer-success"
           options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.8],
-            sheetGrabberVisible: true,
-            headerTransparent: false,
-            gestureEnabled: true,
+            presentation: 'transparentModal',
+            animation: 'fade',
             headerShown: false,
-            contentStyle: {
-              height: '100%',
-            },
+            gestureEnabled: true,
+            contentStyle: { backgroundColor: 'transparent' },
           }}
         />
         <Stack.Screen name="Onramp" options={{ headerShown: true }} />
@@ -258,6 +254,18 @@ export function ProtectedRouteStack() {
         />
         <Stack.Screen
           name="TransactionDetails"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            headerShown: false,
+            gestureEnabled: true,
+            contentStyle: {
+              backgroundColor: 'transparent',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="TransferDetails"
           options={{
             presentation: 'transparentModal',
             animation: 'fade',
