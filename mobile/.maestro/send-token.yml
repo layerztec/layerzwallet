@@ -36,8 +36,26 @@ jsEngine: graaljs
     id: 'token-row-btkn1mjpzcvak0mk9xv4kjdztwl6udk5rkgzetyz4qdz8375mk0wpvpqqe0alhv'
 - tapOn:
     id: 'send-address-input'
-- setClipboard: 'spark1pgssyjcyyypuufme5g6n4rg7avcxkx029am5ccpfn63d5ryr6d308m0j4akqhx'
-- pasteText
+- inputText: 'spark1pgssyjcyyyp'
+- runFlow:
+    file: subflows/sleep.yml
+    env:
+      TIMEOUT: 1000
+- inputText: 'uufme5g6n4rg7avcx'
+- runFlow:
+    file: subflows/sleep.yml
+    env:
+      TIMEOUT: 1000
+- inputText: 'kx029am5ccpfn63d5'
+- runFlow:
+    file: subflows/sleep.yml
+    env:
+      TIMEOUT: 1000
+- inputText: 'ryr6d308m0j4akqhx'
+- runFlow:
+    file: subflows/sleep.yml
+    env:
+      TIMEOUT: 1000
 - tapOn:
     id: 'send-address-next-button'
 - waitForAnimationToEnd
