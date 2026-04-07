@@ -18,7 +18,7 @@ jobs:
   home:
     needs: [build_ios_for_e2e]
     type: maestro
-    image: macos-sequoia-15.6-xcode-16.4
+    image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
       device_identifier: iPhone 16 Plus
@@ -29,7 +29,7 @@ jobs:
   wallet_creation_and_selftest:
     needs: [build_ios_for_e2e]
     type: maestro
-    image: macos-sequoia-15.6-xcode-16.4
+    image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
       device_identifier: iPhone 16 Plus
@@ -40,7 +40,7 @@ jobs:
   receive:
     needs: [build_ios_for_e2e]
     type: maestro
-    image: macos-sequoia-15.6-xcode-16.4
+    image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
       device_identifier: iPhone 16 Plus
@@ -51,7 +51,7 @@ jobs:
   restore:
     needs: [build_ios_for_e2e]
     type: maestro
-    image: macos-sequoia-15.6-xcode-16.4
+    image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
       device_identifier: iPhone 16 Plus
@@ -62,7 +62,7 @@ jobs:
   swap:
     needs: [build_ios_for_e2e]
     type: maestro
-    image: macos-sequoia-15.6-xcode-16.4
+    image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
       device_identifier: iPhone 16 Plus
@@ -73,7 +73,7 @@ jobs:
   biometric_toggle:
     needs: [build_ios_for_e2e]
     type: maestro
-    image: macos-sequoia-15.6-xcode-16.4
+    image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
       device_identifier: iPhone 16 Plus
@@ -84,7 +84,7 @@ jobs:
   send_spark:
     needs: [build_ios_for_e2e]
     type: maestro
-    image: macos-sequoia-15.6-xcode-16.4
+    image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
       device_identifier: iPhone 16 Plus
@@ -95,7 +95,7 @@ jobs:
   send_token:
     needs: [build_ios_for_e2e]
     type: maestro
-    image: macos-sequoia-15.6-xcode-16.4
+    image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
       device_identifier: iPhone 16 Plus
