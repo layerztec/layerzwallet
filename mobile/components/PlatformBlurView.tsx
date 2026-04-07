@@ -1,15 +1,6 @@
 import React from 'react';
-import { Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
-
-import type { BlurType } from '@sbaiahmed1/react-native-blur';
-import { BlurView } from '@sbaiahmed1/react-native-blur';
-
-const tintToBlurType: Record<string, BlurType> = {
-  light: 'light',
-  dark: 'dark',
-  systemChromeMaterial: 'systemChromeMaterial',
-  default: 'systemMaterial',
-};
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 interface PlatformBlurViewProps {
   intensity?: number;
@@ -19,39 +10,14 @@ interface PlatformBlurViewProps {
 }
 
 const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({ intensity = 50, tint = 'dark', style, children }) => {
-  const blurType = tintToBlurType[tint] ?? 'systemMaterial';
+  const expoTint: React.ComponentProps<typeof BlurView>['tint'] = tint === 'light' ? 'light' : tint === 'dark' ? 'dark' : 'default';
 
-  // Map intensity (0-100) to blurAmount (0-100)
-  // Library default is 10, but we allow 0-100 range
-  const blurAmount = Math.max(0, Math.min(100, intensity));
+  const blurIntensity = Math.max(0, Math.min(100, intensity));
 
   const flattenedStyle = StyleSheet.flatten(style) || {};
   // Extract style properties that need special handling
   const { overflow, borderRadius, ...restStyle } = flattenedStyle;
 
-  // Android: Use simple transparency fallback to avoid hardware bitmap crashes
-  // The library may work on Android with hardware acceleration, but we use fallback for safety
-  if (Platform.OS === 'android') {
-    const backgroundColor = tint === 'light' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.3)';
-
-    return (
-      <View
-        style={[
-          restStyle,
-          {
-            backgroundColor,
-            borderRadius,
-            overflow: overflow || 'hidden',
-          },
-        ]}
-      >
-        {children}
-      </View>
-    );
-  }
-
-  // iOS: Use native BlurView
-  // Ensure proper layout constraints to prevent blur from extending beyond bounds
   return (
     <View
       style={[
@@ -62,7 +28,7 @@ const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({ intensity = 50, tin
         restStyle,
       ]}
     >
-      <BlurView blurType={blurType} blurAmount={blurAmount} style={StyleSheet.absoluteFill} ignoreSafeArea={false} />
+      <BlurView intensity={blurIntensity} tint={expoTint} style={StyleSheet.absoluteFill} />
       {children}
     </View>
   );
