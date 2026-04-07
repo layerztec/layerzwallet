@@ -346,6 +346,21 @@ describe('NativeDepositTransferService', () => {
       expect(claimExecutor).toHaveBeenCalledOnce();
     });
 
+    it('processAutoClaims emits completion callback when auto-claim completes', async () => {
+      const transfer = makeTransfer({ status: 'confirming', autoClaim: true, accountNumber: 2 });
+      const storage = createMockStorage([transfer]);
+      const onTransferCompleted = vi.fn();
+      const service = new NativeDepositTransferService(storage);
+      service.onTransferCompleted = onTransferCompleted;
+      service.setSwapsFetcher(async () => [makeSwap({ status: 'claimable' })]);
+      service.setClaimExecutor(async () => ({ receiveTransferId: 'txid' }));
+
+      await service.processAutoClaims();
+
+      expect(onTransferCompleted).toHaveBeenCalledOnce();
+      expect(onTransferCompleted).toHaveBeenCalledWith(expect.objectContaining({ id: transfer.id, status: 'completed' }));
+    });
+
     it('does not increment attempts on transient "not enough confirmations" error', async () => {
       const transfer = makeTransfer({ status: 'confirming', autoClaim: true });
       const storage = createMockStorage([transfer]);

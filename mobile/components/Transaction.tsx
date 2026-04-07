@@ -1,5 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import Pressable from './Pressable';
@@ -9,7 +9,7 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { getTokenIconColor, getTokenInfoSafe, shortenTokenId } from '@shared/models/token-list';
+import { getTokenIconColor, getTokenInfo, resolveTokenInfo, shortenTokenId } from '@shared/models/token-list';
 import { TokenInfo } from '@shared/types/token-info';
 
 interface TransactionProps {
@@ -30,7 +30,7 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
 
   const singleTokenInfo = useMemo(() => {
     if (isZeroAmountWithSingleToken && transaction.tokenTransfers?.[0]) {
-      return getTokenInfoSafe(transaction.tokenTransfers[0].tokenId);
+      return resolveTokenInfo(transaction.tokenTransfers[0]);
     }
     return null;
   }, [isZeroAmountWithSingleToken, transaction.tokenTransfers]);
@@ -46,7 +46,7 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
         const isNegative = !transfer.amount && transaction.direction === 'send';
         const sign = isNegative ? '-' : '';
         const formattedAmount = transfer.amount ? formatBalance(transfer.amount.toString(), singleTokenInfo.decimals) : '0';
-        return `${sign} ${singleTokenInfo.symbol}${formattedAmount}`;
+        return `${sign} ${singleTokenInfo.symbol} ${formattedAmount}`;
       }
     }
 
@@ -146,19 +146,7 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
     return (
       <View style={styles.tokenTransfers}>
         {transaction.tokenTransfers.map((transfer, index) => {
-          let tokenInfo: TokenInfo | undefined;
-          if (transfer.symbol) {
-            tokenInfo = {
-              id: transfer.tokenId,
-              chainId: 0,
-              name: transfer.name ?? transfer.symbol,
-              decimals: transfer.decimals,
-              symbol: transfer.symbol,
-              logoURI: transfer.logoURI,
-            };
-          } else {
-            tokenInfo = getTokenInfoSafe(transfer.tokenId);
-          }
+          const tokenInfo = resolveTokenInfo(transfer);
           const iconColor = getTokenIconColor(tokenInfo?.name);
           let formattedAmount = '';
           if (transfer.amount && tokenInfo) formattedAmount = formatBalance(transfer.amount.toString(), tokenInfo.decimals);

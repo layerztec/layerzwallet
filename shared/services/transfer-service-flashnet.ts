@@ -23,6 +23,20 @@ interface FlashnetPersistedTransfer {
   execution: TransferExecution;
 }
 
+interface PendingSwapParams {
+  poolId: string;
+  assetIn: string;
+  assetOut: string;
+  amountInSmallest: string;
+  minAmountOut: string;
+  receiveDecimals: number;
+  quote: TransferQuote;
+  accountNumber: number;
+  createdAt: number;
+}
+
+const PENDING_SWAP_TTL = 5 * 60; // 5 minutes
+
 export class FlashnetTransferService implements ITransferService {
   readonly name = 'Flashnet';
   private storage: IStorage;
@@ -31,6 +45,7 @@ export class FlashnetTransferService implements ITransferService {
   private clientWallet: SparkSDKWallet | undefined;
   private poolId: string | undefined;
   private currentAccountNumber: number = 0;
+  private pendingSwaps: Map<string, PendingSwapParams> = new Map();
 
   constructor(storage: IStorage, getSparkWallet: (accountNumber: number) => SparkSDKWallet | undefined) {
     this.storage = storage;
@@ -90,31 +105,42 @@ export class FlashnetTransferService implements ITransferService {
     const receiveInfo = getAssetInfo(quote.receiveAsset);
     const { assetIn, assetOut } = this.resolveDirection(quote.sendAsset);
 
+    // Validate pool exists (non-destructive — no funds move yet)
     const client = await this.ensureClient();
     const poolId = await this.findPool(client);
 
     const amountInSmallest = new BigNumber(quote.sendAmount).times(new BigNumber(10).pow(sendInfo.decimals)).integerValue(BigNumber.ROUND_FLOOR).toFixed(0);
     const minAmountOut = new BigNumber(quote.receiveAmount).times(new BigNumber(10).pow(receiveInfo.decimals)).times(0.97).integerValue(BigNumber.ROUND_FLOOR).toFixed(0);
 
-    const swap = await client.executeSwap({
-      poolId,
-      assetInAddress: assetIn,
-      assetOutAddress: assetOut,
-      amountIn: amountInSmallest,
-      minAmountOut,
-      maxSlippageBps: 300,
-    });
-
-    const actualReceiveAmount = swap.amountOut ? new BigNumber(swap.amountOut).div(new BigNumber(10).pow(receiveInfo.decimals)).toFixed(receiveInfo.decimals) : quote.receiveAmount;
-
     const now = Math.floor(Date.now() / 1000);
+    const executionId = `flashnet-${now}-${Math.random().toString(36).slice(2, 8)}`;
+
+    // Prune stale pending swaps to prevent memory leaks from dismissed modals
+    for (const [id, p] of this.pendingSwaps) {
+      if (now - p.createdAt > PENDING_SWAP_TTL) {
+        this.pendingSwaps.delete(id);
+      }
+    }
+
+    // Store swap params for deferred execution via executeInstantSwap()
+    this.pendingSwaps.set(executionId, {
+      poolId,
+      assetIn,
+      assetOut,
+      amountInSmallest,
+      minAmountOut,
+      receiveDecimals: receiveInfo.decimals,
+      quote,
+      accountNumber,
+      createdAt: now,
+    });
 
     return {
       type: EXECUTION_INSTANT,
-      id: `flashnet-${now}-${Math.random().toString(36).slice(2, 8)}`,
-      status: 'completed',
+      id: executionId,
+      status: 'pending',
       sendAmount: quote.sendAmount,
-      receiveAmount: actualReceiveAmount,
+      receiveAmount: quote.receiveAmount,
       sendAsset: quote.sendAsset,
       receiveAsset: quote.receiveAsset,
       createdAt: now,
@@ -122,6 +148,46 @@ export class FlashnetTransferService implements ITransferService {
       accountNumber,
       serviceName: this.name,
       // No depositAddress — UI will skip the send step
+    };
+  }
+
+  /** Execute the actual swap. Must be called after executeTransfer() — only when the user confirms. */
+  async executeInstantSwap(executionId: string): Promise<TransferExecution> {
+    const params = this.pendingSwaps.get(executionId);
+    if (!params) {
+      throw new Error('No pending swap found for this execution. It may have expired or already been executed.');
+    }
+
+    // Remove immediately to prevent concurrent execution (double-tap safety)
+    this.pendingSwaps.delete(executionId);
+
+    const client = await this.ensureClient();
+
+    const swap = await client.executeSwap({
+      poolId: params.poolId,
+      assetInAddress: params.assetIn,
+      assetOutAddress: params.assetOut,
+      amountIn: params.amountInSmallest,
+      minAmountOut: params.minAmountOut,
+      maxSlippageBps: 300,
+    });
+
+    const actualReceiveAmount = swap.amountOut ? new BigNumber(swap.amountOut).div(new BigNumber(10).pow(params.receiveDecimals)).toFixed(params.receiveDecimals) : params.quote.receiveAmount;
+
+    const now = Math.floor(Date.now() / 1000);
+
+    return {
+      type: EXECUTION_INSTANT,
+      id: executionId,
+      status: 'completed',
+      sendAmount: params.quote.sendAmount,
+      receiveAmount: actualReceiveAmount,
+      sendAsset: params.quote.sendAsset,
+      receiveAsset: params.quote.receiveAsset,
+      createdAt: params.createdAt,
+      updatedAt: now,
+      accountNumber: params.accountNumber,
+      serviceName: this.name,
     };
   }
 

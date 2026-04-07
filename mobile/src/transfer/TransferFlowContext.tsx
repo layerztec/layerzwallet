@@ -10,18 +10,20 @@ import { swapFetcher } from '@shared/hooks/useSwaps';
 import { TransferServiceManager } from '@shared/services/transfer-service-manager';
 import { AssetId } from '@shared/types/asset';
 import { NETWORK_SPARK } from '@shared/types/networks';
-import { TransferQuote } from '@shared/types/transfer';
+import { TransferExecution, TransferQuote } from '@shared/types/transfer';
 
 export interface TransferFlowContextData {
   sendAsset: AssetId | undefined;
   receiveAsset: AssetId | undefined;
   quote: TransferQuote | undefined;
   committed: boolean;
+  preparedExecution: TransferExecution | undefined;
 
   setSendAsset: (asset: AssetId | undefined) => void;
   setReceiveAsset: (asset: TransferFlowContextData['receiveAsset']) => void;
   setQuote: (quote: TransferQuote | undefined) => void;
   setCommitted: (committed: boolean) => void;
+  setPreparedExecution: (exec: TransferExecution | undefined) => void;
 
   transferService: TransferServiceManager;
 }
@@ -43,6 +45,7 @@ export function TransferFlowProvider({ children }: { children: ReactNode }) {
   const [receiveAsset, setReceiveAsset] = useState<AssetId | undefined>((params.receiveAsset as AssetId) || undefined);
   const [quote, setQuote] = useState<TransferQuote | undefined>(undefined);
   const [committed, setCommitted] = useState(false);
+  const [preparedExecution, setPreparedExecution] = useState<TransferExecution | undefined>(undefined);
   const transferService = useTransferService(LayerzStorage);
   const { accountNumber } = useContext(AccountNumberContext);
   const { step } = useContext(InitializationContext);
@@ -66,10 +69,12 @@ export function TransferFlowProvider({ children }: { children: ReactNode }) {
         receiveAsset,
         quote,
         committed,
+        preparedExecution,
         setSendAsset,
         setReceiveAsset,
         setQuote,
         setCommitted,
+        setPreparedExecution,
         transferService,
       }}
     >

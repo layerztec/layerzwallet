@@ -2,7 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import BigNumber from 'bignumber.js';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Button from '@/components/Button';
@@ -22,7 +24,7 @@ import { useTransferFlow } from '@/src/transfer/TransferFlowContext';
 
 export default function TransferInput() {
   const router = useRouter();
-  const { sendAsset, receiveAsset, quote, committed, setQuote, setCommitted, transferService } = useTransferFlow();
+  const { sendAsset, receiveAsset, quote, committed, setQuote, setCommitted, setPreparedExecution, transferService } = useTransferFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance: sendBalance } = useAssetBalance(sendAsset, accountNumber, BackgroundExecutor);
   const [sendAmount, setSendAmount] = useState<string>('');
@@ -36,6 +38,7 @@ export default function TransferInput() {
   const [serviceWarnings, setServiceWarnings] = useState<{ service: string; message: string }[]>([]);
   const [pairInfo, setPairInfo] = useState<TransferPairInfo | undefined>();
   const [isContinuing, setIsContinuing] = useState(false);
+  const isContinuingRef = useRef(false);
 
   const handleSendAssetPress = () => {
     router.push({ pathname: '/modals/transfer-select-asset', params: { side: 'send' } });
@@ -58,6 +61,7 @@ export default function TransferInput() {
       setIsQuoteLoading(true);
       setQuoteError('');
       setServiceWarnings([]);
+      setPreparedExecution(undefined);
       try {
         const newQuote = await transferService.getQuote(sendAsset, receiveAsset, amount);
         setQuote(newQuote);
@@ -76,12 +80,12 @@ export default function TransferInput() {
         setIsQuoteLoading(false);
       }
     },
-    [sendAsset, receiveAsset, transferService, setReceiveAmount, setQuote, setIsQuoteLoading]
+    [sendAsset, receiveAsset, transferService, setReceiveAmount, setQuote, setIsQuoteLoading, setPreparedExecution]
   );
 
   const fetchQuoteFromReceive = useCallback(
     async (amount: string) => {
-      if (!sendAsset || !receiveAsset || !amount || parseFloat(amount) <= 0) {
+      if (!sendAsset || !receiveAsset || !pairInfo || !amount || parseFloat(amount) <= 0) {
         setSendAmount('');
         setQuote(undefined);
         setIsQuoteLoading(false);
@@ -92,17 +96,14 @@ export default function TransferInput() {
       setIsQuoteLoading(true);
       setQuoteError('');
       setServiceWarnings([]);
+      setPreparedExecution(undefined);
       try {
-        // Reverse quote: we want to receive `amount`, so calculate how much to send
-        const newQuote = await transferService.getQuote(receiveAsset, sendAsset, amount);
-        setQuote({
-          ...newQuote,
-          sendAsset,
-          receiveAsset,
-          sendAmount: newQuote.receiveAmount,
-          receiveAmount: amount,
-        });
-        setSendAmount(newQuote.receiveAmount);
+        const rate = new BigNumber(pairInfo.rate);
+        const estimatedSend = new BigNumber(amount).div(rate);
+        const newQuote = await transferService.getQuote(sendAsset, receiveAsset, estimatedSend.toFixed(8));
+        setQuote(newQuote);
+        setSendAmount(new BigNumber(newQuote.sendAmount).toFixed());
+        setReceiveAmount(new BigNumber(newQuote.receiveAmount).toFixed());
         setQuoteError('');
         setServiceWarnings(newQuote.serviceErrors || []);
       } catch (e: any) {
@@ -117,7 +118,7 @@ export default function TransferInput() {
         setIsQuoteLoading(false);
       }
     },
-    [sendAsset, receiveAsset, transferService, setSendAmount, setQuote, setIsQuoteLoading]
+    [sendAsset, receiveAsset, transferService, pairInfo, setSendAmount, setQuote, setIsQuoteLoading, setPreparedExecution]
   );
 
   const debouncedFetch = useCallback(
@@ -166,6 +167,13 @@ export default function TransferInput() {
     }
   }, [sendAsset, receiveAsset]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Retry receive quote when pairInfo arrives (fetchQuoteFromReceive requires pairInfo)
+  useEffect(() => {
+    if (pairInfo && !quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && receiveAmount && parseFloat(receiveAmount) > 0 && !sendAmount) {
+      fetchQuoteFromReceive(receiveAmount);
+    }
+  }, [pairInfo]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Clear input state after a successful transfer so the user can't accidentally re-submit
   useEffect(() => {
     if (committed) {
@@ -177,7 +185,10 @@ export default function TransferInput() {
 
   // Auto-refetch quote when returning from confirm (quote cleared on confirm unmount)
   useEffect(() => {
-    if (!quote) setIsContinuing(false);
+    if (!quote) {
+      setIsContinuing(false);
+      isContinuingRef.current = false;
+    }
     if (!committed && !quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && sendAmount && parseFloat(sendAmount) > 0) {
       fetchQuoteFromSend(sendAmount);
     }
@@ -220,7 +231,8 @@ export default function TransferInput() {
   const canContinue = !!sendAsset && !!receiveAsset && !!quote && parseFloat(sendAmount) > 0 && !isQuoteLoading && !limitsError && !balanceError;
 
   const handleContinue = async () => {
-    if (!canContinue || isContinuing) return;
+    if (!canContinue || isContinuingRef.current) return;
+    isContinuingRef.current = true;
     setIsContinuing(true);
     await sleep(10);
     router.push('/modals/transfer-confirm');
@@ -232,6 +244,11 @@ export default function TransferInput() {
 
   const handleDenominationSwitch = () => {
     setDenomination(denomination === 'Native' ? 'Fiat' : 'Native');
+  };
+
+  const handleErrorLongPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Clipboard.setStringAsync(limitsError || balanceError || quoteError);
   };
 
   return (
@@ -291,11 +308,11 @@ export default function TransferInput() {
 
             {/* Limits / Balance / Quote Error */}
             {!isQuoteLoading && (limitsError || balanceError || quoteError) ? (
-              <View style={styles.errorContainer}>
+              <Pressable style={({ pressed }) => [styles.errorContainer, pressed && { opacity: 0.5 }]} onLongPress={handleErrorLongPress}>
                 <ThemedText testID="TransferQuoteError" style={styles.errorText}>
                   {limitsError || balanceError || quoteError}
                 </ThemedText>
-              </View>
+              </Pressable>
             ) : null}
 
             {/* Service Warnings (partial failures — quote still valid) */}

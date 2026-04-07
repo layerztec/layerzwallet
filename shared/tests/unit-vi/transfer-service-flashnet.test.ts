@@ -109,7 +109,7 @@ describe('FlashnetTransferService', () => {
   });
 
   describe('executeTransfer', () => {
-    it('returns completed execution without depositAddress', async () => {
+    it('returns pending execution without moving funds', async () => {
       const quote = {
         id: 'test-quote',
         sendAsset: BTC_SPARK,
@@ -126,12 +126,70 @@ describe('FlashnetTransferService', () => {
 
       const execution = await service.executeTransfer(quote, 0, 'spark-address');
 
-      expect(execution.status).toBe('completed');
+      expect(execution.status).toBe('pending');
       expect(execution.depositAddress).toBeUndefined();
       expect(execution.sendAmount).toBe('0.001');
       expect(execution.sendAsset).toBe(BTC_SPARK);
       expect(execution.receiveAsset).toBe(USDB);
       expect(execution.id).toMatch(/^flashnet-/);
+
+      // Core safety: no funds should move during prepare
+      const { FlashnetClient } = await import('@flashnet/sdk');
+      const mockClient = (FlashnetClient as any).mock.results[0].value;
+      expect(mockClient.executeSwap).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('executeInstantSwap', () => {
+    it('executes the real swap and returns completed execution', async () => {
+      const quote = {
+        id: 'test-quote',
+        sendAsset: BTC_SPARK,
+        receiveAsset: USDB,
+        sendAmount: '0.001',
+        receiveAmount: '99.500000',
+        rate: '1 BTC = 99500 USDB',
+        fee: '0',
+        feeTicker: 'BTC',
+        estimatedTime: 5,
+        expiresAt: Math.floor(Date.now() / 1000) + 60,
+        serviceName: 'Test',
+      };
+
+      const pending = await service.executeTransfer(quote, 0, 'spark-address');
+      expect(pending.status).toBe('pending');
+
+      const completed = await service.executeInstantSwap(pending.id);
+      expect(completed.status).toBe('completed');
+      expect(completed.id).toBe(pending.id);
+      // 99400000 / 1e6 = 99.400000
+      expect(parseFloat(completed.receiveAmount)).toBeCloseTo(99.4, 1);
+    });
+
+    it('throws for unknown execution ID', async () => {
+      await expect(service.executeInstantSwap('unknown-id')).rejects.toThrow('No pending swap found');
+    });
+
+    it('cannot be called twice for the same execution', async () => {
+      const quote = {
+        id: 'test-quote',
+        sendAsset: BTC_SPARK,
+        receiveAsset: USDB,
+        sendAmount: '0.001',
+        receiveAmount: '99.500000',
+        rate: '1 BTC = 99500 USDB',
+        fee: '0',
+        feeTicker: 'BTC',
+        estimatedTime: 5,
+        expiresAt: Math.floor(Date.now() / 1000) + 60,
+        serviceName: 'Test',
+      };
+
+      const pending = await service.executeTransfer(quote, 0, 'spark-address');
+      await service.executeInstantSwap(pending.id);
+
+      // Second call should fail — params removed after first execution
+      await expect(service.executeInstantSwap(pending.id)).rejects.toThrow('No pending swap found');
     });
   });
 

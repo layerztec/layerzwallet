@@ -1,0 +1,28 @@
+diff --git a/node_modules/@breeztech/breez-sdk-liquid-react-native/android/CMakeLists.txt b/node_modules/@breeztech/breez-sdk-liquid-react-native/android/CMakeLists.txt
+index 3c3e974..5b857d6 100644
+--- a/node_modules/@breeztech/breez-sdk-liquid-react-native/android/CMakeLists.txt
++++ b/node_modules/@breeztech/breez-sdk-liquid-react-native/android/CMakeLists.txt
+@@ -75,3 +75,9 @@ target_link_libraries(
+   ${LOGCAT}
+   my_rust_lib
+ )
++
++# Fallback if CMake is invoked without -DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON (matches NDK flags.cmake).
++if((ANDROID_ABI STREQUAL "arm64-v8a" OR ANDROID_ABI STREQUAL "x86_64") AND NOT ANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES)
++  target_compile_definitions(breeztech-breez-sdk-liquid-react-native PRIVATE __BIONIC_NO_PAGE_SIZE_MACRO)
++  target_link_options(breeztech-breez-sdk-liquid-react-native PRIVATE "-Wl,-z,max-page-size=16384")
++endif()
+diff --git a/node_modules/@breeztech/breez-sdk-liquid-react-native/android/build.gradle b/node_modules/@breeztech/breez-sdk-liquid-react-native/android/build.gradle
+index e547167..e9c6d94 100644
+--- a/node_modules/@breeztech/breez-sdk-liquid-react-native/android/build.gradle
++++ b/node_modules/@breeztech/breez-sdk-liquid-react-native/android/build.gradle
+@@ -73,7 +73,8 @@ android {
+     }
+     externalNativeBuild {
+       cmake {
+-        arguments '-DANDROID_STL=c++_shared'
++        // 16 KB page size: NDK links arm64/x86_64 with -Wl,-z,max-page-size=16384 (Google Play requirement)
++        arguments '-DANDROID_STL=c++_shared', '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
+         abiFilters (*reactNativeArchitectures())
+       }
+     }
