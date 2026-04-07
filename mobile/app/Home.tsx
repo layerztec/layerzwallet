@@ -11,7 +11,6 @@ import ActionButtons, { Action } from '@/components/ActionButtons';
 import BackupWarning from '@/components/BackupWarning';
 import Balance from '@/components/Balance';
 import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
-import LiquidGlassView from '@/components/LiquidGlassView';
 import NftsView from '@/components/NftsView';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
 import StickyHeader from '@/components/StickyHeader';
@@ -312,7 +311,7 @@ export default function Home() {
             {/* Network Selector */}
             <View style={styles.networkSelectorContainer}>
               <Pressable testID="NetworkSwitcherTrigger" onPress={handleNetworkSelect} activeOpacity={0.8}>
-                <LiquidGlassView tint="light" glassStyle="clear" intensity={1} borderIntensity={0.2} style={styles.networkSelectorGlass}>
+                <View style={styles.networkSelectorSurface}>
                   <View style={styles.networkSelector}>
                     <View testID={`selectedNetwork-${network}`} style={styles.networkIcon}>
                       {networkIconContent}
@@ -322,7 +321,7 @@ export default function Home() {
                       <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.8)" />
                     </Pressable>
                   </View>
-                </LiquidGlassView>
+                </View>
               </Pressable>
             </View>
 
@@ -404,9 +403,11 @@ const styles = StyleSheet.create({
     marginTop: 0,
     marginBottom: 16,
   },
-  networkSelectorGlass: {
+  networkSelectorSurface: {
     borderRadius: 16,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
   },
   networkSelector: {
     flexDirection: 'row',
