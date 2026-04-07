@@ -1,4 +1,4 @@
-import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { Tabs } from 'expo-router';
 import { Image } from 'expo-image';
 import { Platform, StyleSheet } from 'react-native';
@@ -19,17 +19,17 @@ export default function TabsLayout() {
         labelStyle={{ color: 'white' }}
         tintColor="white"
       >
-        <NativeTabs.Trigger name="home">
-          <Label>Layerz</Label>
-          <Icon sf="house.fill" src={require('@/assets/images/ui/layerz.png')} drawable="home" />
+        <NativeTabs.Trigger name="home" disableAutomaticContentInsets={Platform.OS === 'android'}>
+          <NativeTabs.Trigger.Label>Layerz</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/layerz.png')} />
         </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="swaps">
-          <Label>Transfer</Label>
-          <Icon sf="arrow.triangle.2.circlepath" src={require('@/assets/images/ui/swap.png')} drawable="swap_horiz" />
+        <NativeTabs.Trigger name="swaps" disableAutomaticContentInsets={Platform.OS === 'android'}>
+          <NativeTabs.Trigger.Label>Transfer</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/swap.png')} />
         </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="explorer">
-          <Label>Explorer</Label>
-          <Icon sf="globe" src={require('@/assets/images/ui/explorer.png')} drawable="public" />
+        <NativeTabs.Trigger name="explorer" disableAutomaticContentInsets={Platform.OS === 'android'}>
+          <NativeTabs.Trigger.Label>Explorer</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/explorer.png')} />
         </NativeTabs.Trigger>
       </NativeTabs>
     );

@@ -3,6 +3,7 @@ import { TokenInfo, EVMTokenInfo, LiquidTokenInfo, SparkTokenInfo } from '../typ
 import { getChainIdByNetwork } from './network-getters';
 import { hexToDec } from '../modules/string-utils';
 import { overlayBackground } from '../constants/Colors';
+import { CommonTokenTransfer } from '../types/common-transaction';
 
 // kept as a separate json just because in evm world token list is standard by itself and
 // json files can be shared, imported etc
@@ -69,6 +70,37 @@ export function getTokenList(network: Networks): TokenInfo[] {
   return ret;
 }
 
+/**
+ * tries to get token info from the Token Transfer object. If its populated in Token Transfer it will return it,
+ * if not - will fallback to getting data from bundled token-list, if its absent - dummy data ("UNK" token)
+ */
+export function resolveTokenInfo(transfer: CommonTokenTransfer): TokenInfo {
+  try {
+    if (transfer.symbol) {
+      return {
+        symbol: transfer.symbol,
+        decimals: transfer.decimals,
+        name: transfer.name || transfer.symbol,
+        chainId: 0,
+        id: transfer.tokenId,
+        logoURI: transfer.logoURI,
+      };
+    }
+
+    return getTokenInfo(transfer.tokenId);
+  } catch (error) {
+    globalThis.handleError?.(error, 'token-list.ts');
+    console.log('No info about the token in transaction, fallback to dummy data', error, 'transfer =', JSON.stringify(transfer));
+    return {
+      id: transfer.tokenId,
+      chainId: 0,
+      name: 'Unknown',
+      decimals: 0,
+      symbol: 'UNK',
+    };
+  }
+}
+
 export function getTokenInfo(id: string | undefined): TokenInfo {
   if (!id) {
     throw new Error('Token id is required');
@@ -78,14 +110,6 @@ export function getTokenInfo(id: string | undefined): TokenInfo {
     return token;
   }
   throw new Error(`Token not found: ${id}`);
-}
-
-export function getTokenInfoSafe(id: string | undefined): TokenInfo | undefined {
-  try {
-    return getTokenInfo(id);
-  } catch {
-    return undefined;
-  }
 }
 
 export function shortenTokenId(id: string): string {

@@ -1,4 +1,4 @@
-import { encodeSparkAddress, isValidSparkAddress, SparkWallet as SDK, TokenBalanceMap } from '@buildonspark/spark-sdk';
+import { encodeBech32mTokenIdentifier, encodeSparkAddress, isValidSparkAddress, SparkWallet as SDK, TokenBalanceMap } from '@buildonspark/spark-sdk';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import bolt11 from 'bolt11';
@@ -6,7 +6,7 @@ import bolt11 from 'bolt11';
 import * as BlueElectrum from '../../blue_modules/BlueElectrum';
 import { AllNetworkInfos } from '../../models/all-network-infos';
 import { CommonSwap } from '../../types/common-swap';
-import { CommonTransaction } from '../../types/common-transaction';
+import { CommonTokenTransfer, CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_BITCOIN, NETWORK_SPARK } from '../../types/networks';
 import { CachedTokenInfo, NftInfo } from '../../types/token-info';
 import { IStorage, STORAGE_KEY_SPARK_REFUNDED_DEPOSITS } from '../../types/IStorage';
@@ -14,7 +14,7 @@ import { ArkWallet } from './ark-wallet';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
 import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
-import { uint8ArrayToString } from '../../modules/uint8array-extras';
+import { uint8ArrayToHex, uint8ArrayToString } from '../../modules/uint8array-extras';
 import { InterfaceCanHaveNfts } from './interface-can-have-nfts';
 
 // copypasted from `node_modules/@buildonspark/spark-sdk/dist/...` since its not exported
@@ -30,6 +30,11 @@ const STORAGE_KEY = 'SPARK_TOKEN_METADATA';
 
 // Static cache for token icon URLs that we fetched from the API
 const _tokenIconCache: Record<string, string> = {};
+
+function uint8ArrayToBigInt(value: Uint8Array | undefined): bigint {
+  if (!value || value.length === 0) return 0n;
+  return BigInt(`0x${uint8ArrayToHex(value)}`);
+}
 
 // not exposed in the SDK
 export type StaticDepositQuoteOutput = Awaited<ReturnType<SDK['getClaimStaticDepositQuote']>>;
@@ -240,6 +245,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
     type WalletTransfer = Awaited<ReturnType<typeof this._sdkWallet.getTransfers>>['transfers'][number];
+    type WalletTokenTransaction = Awaited<ReturnType<typeof this._sdkWallet.queryTokenTransactionsWithFilters>>['tokenTransactionsWithStatus'][number];
 
     // fetch all transfers in chunks of 100
     const transfers: WalletTransfer[] = [];
@@ -287,6 +293,177 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
       });
     }
 
+    console.log('fetching spark tokens...');
+    const startTokensFetch = Date.now();
+
+    const ownSparkAddress = await this._sdkWallet.getSparkAddress();
+    const ownIdentityPublicKey = await this._sdkWallet.getIdentityPublicKey();
+    const tokenTransactions: WalletTokenTransaction[] = [];
+    let cursor: string | undefined;
+
+    while (true) {
+      const response = await this._sdkWallet.queryTokenTransactionsWithFilters({
+        sparkAddresses: [ownSparkAddress],
+        pageSize: 100,
+        cursor,
+        direction: 'NEXT',
+      });
+      tokenTransactions.push(...response.tokenTransactionsWithStatus);
+
+      if (!response.pageResponse?.hasNextPage || !response.pageResponse.nextCursor) break;
+      cursor = response.pageResponse.nextCursor;
+    }
+
+    const ambiguousTokenTransactions = tokenTransactions.filter((entry) => {
+      const tx = entry.tokenTransaction;
+      if (!tx || tx.tokenInputs?.$case !== 'transferInput') return false;
+
+      let ownOutputsCount = 0;
+      let externalOutputsCount = 0;
+      for (const output of tx.tokenOutputs) {
+        if (uint8ArrayToHex(output.ownerPublicKey) === ownIdentityPublicKey) ownOutputsCount++;
+        else externalOutputsCount++;
+      }
+
+      return ownOutputsCount > 0 && externalOutputsCount > 0;
+    });
+
+    const previousHashes = [
+      ...new Set(
+        ambiguousTokenTransactions.flatMap((entry) => {
+          const tx = entry.tokenTransaction;
+          if (!tx || tx.tokenInputs?.$case !== 'transferInput') return [];
+          return tx.tokenInputs.transferInput.outputsToSpend.map((input) => uint8ArrayToHex(input.prevTokenTransactionHash));
+        })
+      ),
+    ];
+
+    const previousTransactions = new Map<string, WalletTokenTransaction>();
+    for (let i = 0; i < previousHashes.length; i += 100) {
+      const chunk = previousHashes.slice(i, i + 100);
+      if (chunk.length === 0) continue;
+
+      const response = await this._sdkWallet.queryTokenTransactionsByTxHashes(chunk);
+      for (const entry of response.tokenTransactionsWithStatus) {
+        if (!entry) continue;
+        previousTransactions.set(uint8ArrayToHex(entry.tokenTransactionHash), entry);
+      }
+    }
+
+    for (const entry of tokenTransactions) {
+      const tx = entry.tokenTransaction;
+      if (!tx) continue;
+
+      const txid = uint8ArrayToHex(entry.tokenTransactionHash);
+      const timestamp = Math.floor((tx.clientCreatedTimestamp ?? tx.expiryTime ?? new Date(0)).getTime() / 1000);
+      const ownOutputs = tx.tokenOutputs.filter((output) => uint8ArrayToHex(output.ownerPublicKey) === ownIdentityPublicKey);
+      const externalOutputs = tx.tokenOutputs.filter((output) => uint8ArrayToHex(output.ownerPublicKey) !== ownIdentityPublicKey);
+      const hasMixedOutputs = ownOutputs.length > 0 && externalOutputs.length > 0;
+      let inputOwners: Array<string | undefined> = [];
+      if (hasMixedOutputs && tx.tokenInputs?.$case === 'transferInput') {
+        inputOwners = tx.tokenInputs.transferInput.outputsToSpend.map((input) => {
+          const previousTx = previousTransactions.get(uint8ArrayToHex(input.prevTokenTransactionHash))?.tokenTransaction;
+          const spentOutput = previousTx?.tokenOutputs[input.prevTokenTransactionVout];
+          return spentOutput ? uint8ArrayToHex(spentOutput.ownerPublicKey) : undefined;
+        });
+      }
+
+      const isOutgoing = inputOwners.some((owner) => owner === ownIdentityPublicKey);
+      const direction = hasMixedOutputs ? (isOutgoing ? 'send' : 'receive') : externalOutputs.length > 0 ? 'send' : ownOutputs.length > 0 ? 'receive' : 'other';
+      const relevantOutputs = direction === 'send' ? externalOutputs : ownOutputs;
+      if (relevantOutputs.length === 0) continue;
+
+      const tokenTransfers: CommonTokenTransfer[] = [];
+      for (const output of relevantOutputs) {
+        if (!output.tokenIdentifier) continue;
+
+        const tokenId = encodeBech32mTokenIdentifier({
+          tokenIdentifier: output.tokenIdentifier,
+          network: 'MAINNET',
+        });
+
+        let address: string | undefined;
+        const ownerPublicKey = uint8ArrayToHex(output.ownerPublicKey);
+        if (ownerPublicKey !== ownIdentityPublicKey) {
+          address = encodeSparkAddress({
+            identityPublicKey: ownerPublicKey,
+            network: 'MAINNET',
+          });
+        }
+
+        const tokenMetadata = this.tokenBalances.get(tokenId)?.tokenMetadata;
+        let remoteMetadata: any;
+        if (!tokenMetadata) {
+          const cacheKey = `${STORAGE_KEY}-${tokenId}`;
+          if (!this._storage) console.warn('Warning: no storage available, no caching for tokens image URLs');
+
+          const cachedTokenMetadata = await this._storage?.getItem(cacheKey);
+          if (cachedTokenMetadata) {
+            try {
+              remoteMetadata = JSON.parse(cachedTokenMetadata) as unknown;
+            } catch {}
+          }
+
+          if (!remoteMetadata) {
+            try {
+              const response = await fetch(`https://api.sparkscan.io/v1/tokens/${tokenId}`);
+              if (!response.ok) throw new Error(`Failed to fetch Spark token metadata: ${response.status}`);
+              remoteMetadata = await response.json();
+              await this._storage?.setItem(cacheKey, JSON.stringify(remoteMetadata));
+            } catch (error) {
+              globalThis.handleError?.(error, 'spark-wallet.ts');
+              console.warn(`Failed to fetch Spark token metadata for ${tokenId}:`, error);
+            }
+          }
+
+          remoteMetadata = remoteMetadata?.metadata ?? remoteMetadata;
+          if (remoteMetadata?.iconUrl) {
+            _tokenIconCache[tokenId] = String(remoteMetadata.iconUrl);
+          }
+        }
+
+        tokenTransfers.push({
+          tokenId,
+          amount: Number(uint8ArrayToBigInt(output.tokenAmount)),
+          address,
+          decimals: tokenMetadata?.decimals ?? remoteMetadata?.decimals ?? 0,
+          name: tokenMetadata?.tokenName ?? remoteMetadata?.tokenName ?? remoteMetadata?.name,
+          symbol: tokenMetadata?.tokenTicker ?? remoteMetadata?.tokenTicker ?? remoteMetadata?.ticker ?? remoteMetadata?.symbol,
+          logoURI: _tokenIconCache[tokenId] ?? remoteMetadata?.iconUrl ?? remoteMetadata?.logoURI,
+        });
+      }
+      if (tokenTransfers.length === 0) continue;
+
+      let counterparty: string | undefined;
+      if (direction === 'send') {
+        counterparty = tokenTransfers.find((transfer) => transfer.address)?.address;
+      } else if (direction === 'receive') {
+        const senderPublicKey = inputOwners.find((owner) => owner && owner !== ownIdentityPublicKey);
+        if (senderPublicKey) {
+          counterparty = encodeSparkAddress({
+            identityPublicKey: senderPublicKey,
+            network: 'MAINNET',
+          });
+        }
+      }
+
+      commonTransactions.push({
+        network: NETWORK_SPARK,
+        txid,
+        amount: undefined,
+        tokenTransfers,
+        timestamp,
+        status: entry.status === 2 ? 'confirmed' : entry.status === 3 || entry.status === 4 ? 'cancelled' : 'pending',
+        direction,
+        counterparty,
+        explorerUrl: `${AllNetworkInfos[NETWORK_SPARK].explorerUrl}/tx/${txid}`,
+      });
+    }
+
+    const endTokensFetch = Date.now();
+    console.log('spark token transactions fetch took', (endTokensFetch - startTokensFetch) / 1000, 'sec');
+
+    commonTransactions.sort((a, b) => b.timestamp - a.timestamp);
     return commonTransactions;
   }
 

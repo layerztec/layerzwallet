@@ -24,6 +24,7 @@
     },
     "simulator": {
       "extends": "base",
+      "distribution": "internal",
       "ios": {
         "simulator": true
       }
