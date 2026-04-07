@@ -15,7 +15,7 @@ appId: com.layerzwallet.mobile
 
 # Wait for navigation to complete and the mnemonic screen to appear
 - extendedWaitUntil:
-    visible: 'This is your \nrecovery phrase'
+    visible: 'Your recovery phrase'
     timeout: 60000
 
 # Verify we see the instruction text
