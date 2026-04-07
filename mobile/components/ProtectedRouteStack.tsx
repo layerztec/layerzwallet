@@ -32,7 +32,8 @@ export function ProtectedRouteStack() {
   // Show fullscreen biometric login only on first authentication attempt (never been to main app)
   const shouldShowBiometricLogin = isBiometricEnabled && isInitialized && !isAuthenticated && !hasCompletedInitialAuth;
   // Show main app if biometrics are disabled, user is authenticated, or user has been to main app before
-  const shouldShowMainApp = !isBiometricEnabled || isAuthenticated || hasCompletedInitialAuth;
+  // Must also check isInitialized to prevent showing main app before initialization completes (e.g. on fresh install)
+  const shouldShowMainApp = isInitialized && (!isBiometricEnabled || isAuthenticated || hasCompletedInitialAuth);
 
   return (
     <Stack
@@ -109,12 +110,8 @@ export function ProtectedRouteStack() {
             animation: 'none',
           }}
         />
-        <Stack.Screen
-          name="(tabs)"
-          options={{
-            headerShown: false,
-          }}
-        />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="Home" options={{ headerShown: false, title: 'Home', animation: 'fade' }} />
         <Stack.Screen name="Receive" />
         <Stack.Screen name="Settings" options={{ headerShown: false }} />
         <Stack.Screen
@@ -180,11 +177,15 @@ export function ProtectedRouteStack() {
         <Stack.Screen
           name="modals/transfer-confirm"
           options={{
-            presentation: 'transparentModal',
-            animation: 'fade',
-            headerShown: false,
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.8],
+            sheetGrabberVisible: true,
+            headerTransparent: false,
             gestureEnabled: true,
-            contentStyle: { backgroundColor: 'transparent' },
+            headerShown: false,
+            contentStyle: {
+              height: '100%',
+            },
           }}
         />
         <Stack.Screen

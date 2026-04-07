@@ -2,11 +2,10 @@
   "expo": {
     "name": "Layerz Wallet",
     "slug": "layerzwallet",
-    "version": "1.4.4",
+    "version": "1.5.3",
     "orientation": "portrait",
     "scheme": ["bitcoin", "liquidnetwork", "layerzwallet"],
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.layerzwallet.mobile",
@@ -21,8 +20,7 @@
       "icon": "./assets/appicon.icon"
     },
     "android": {
-      "edgeToEdgeEnabled": true,
-      "permissions": ["android.permission.CAMERA"],
+      "permissions": ["android.permission.INTERNET", "android.permission.CAMERA"],
       "blockedPermissions": ["android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE", "android.permission.READ_MEDIA_IMAGES", "android.permission.READ_MEDIA_VIDEO"],
       "package": "com.layerzwallet.mobile",
       "allowBackup": false,
@@ -66,6 +64,23 @@
       "backgroundColor": "#000000"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "androidGradlePluginVersion": "8.6.0",
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0",
+            "ndkVersion": "29.0.13113456",
+            "packagingOptions": {
+              "jniLibs": {
+                "useLegacyPackaging": false
+              }
+            }
+          }
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
@@ -99,7 +114,9 @@
       ],
       "expo-secure-store",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-image",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true

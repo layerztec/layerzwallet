@@ -1,6 +1,6 @@
 {
   "name": "layerzwallet",
-  "version": "1.4.4",
+  "version": "1.5.3",
   "description": "Manage your Bitcoin across multiple Layer 2 solutions",
   "repository": {
     "type": "git",
@@ -24,7 +24,7 @@
     "@arkade-os/boltz-swap": "0.3.9",
     "@arkade-os/sdk": "0.4.10",
     "@bitcoinerlab/secp256k1": "1.2.0",
-    "@breeztech/breez-sdk-liquid": "0.12.1",
+    "@breeztech/breez-sdk-liquid": "0.12.2",
     "@buildonspark/spark-sdk": "0.7.1",
     "@flashnet/sdk": "0.5.7",
     "@metamask/eth-sig-util": "8.2.0",
