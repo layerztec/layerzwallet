@@ -21,7 +21,7 @@ jobs:
     image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
-      device_identifier: iPhone 16 Plus
+      device_identifier: iPhone 17
       build_id: ${{ needs.build_ios_for_e2e.outputs.build_id }}
       flow_path:
         - .maestro/home.yml
@@ -32,7 +32,7 @@ jobs:
     image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
-      device_identifier: iPhone 16 Plus
+      device_identifier: iPhone 17
       build_id: ${{ needs.build_ios_for_e2e.outputs.build_id }}
       flow_path:
         - .maestro/wallet-creation-and-selftest.yml
@@ -43,7 +43,7 @@ jobs:
     image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
-      device_identifier: iPhone 16 Plus
+      device_identifier: iPhone 17
       build_id: ${{ needs.build_ios_for_e2e.outputs.build_id }}
       flow_path:
         - .maestro/receive.yml
@@ -54,7 +54,7 @@ jobs:
     image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
-      device_identifier: iPhone 16 Plus
+      device_identifier: iPhone 17
       build_id: ${{ needs.build_ios_for_e2e.outputs.build_id }}
       flow_path:
         - .maestro/restore.yml
@@ -65,7 +65,7 @@ jobs:
     image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
-      device_identifier: iPhone 16 Plus
+      device_identifier: iPhone 17
       build_id: ${{ needs.build_ios_for_e2e.outputs.build_id }}
       flow_path:
         - .maestro/swap.yml
@@ -76,7 +76,7 @@ jobs:
     image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
-      device_identifier: iPhone 16 Plus
+      device_identifier: iPhone 17
       build_id: ${{ needs.build_ios_for_e2e.outputs.build_id }}
       flow_path:
         - .maestro/biometric-toggle-test.yml
@@ -87,7 +87,7 @@ jobs:
     image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
-      device_identifier: iPhone 16 Plus
+      device_identifier: iPhone 17
       build_id: ${{ needs.build_ios_for_e2e.outputs.build_id }}
       flow_path:
         - .maestro/send-spark.yml
@@ -98,7 +98,7 @@ jobs:
     image: macos-sequoia-15.6-xcode-26.2
     params:
       retries: 5
-      device_identifier: iPhone 16 Plus
+      device_identifier: iPhone 17
       build_id: ${{ needs.build_ios_for_e2e.outputs.build_id }}
       flow_path:
         - .maestro/send-token.yml
