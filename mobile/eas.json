@@ -26,7 +26,8 @@
       "extends": "base",
       "distribution": "internal",
       "ios": {
-        "simulator": true
+        "simulator": true,
+        "image": "macos-sequoia-15.6-xcode-16.4"
       }
     },
     "development-simulator": {
