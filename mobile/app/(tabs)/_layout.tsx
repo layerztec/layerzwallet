@@ -12,22 +12,16 @@ const useCustomTabBar = Platform.OS === 'ios' && iosVersion >= 18 && iosVersion 
 export default function TabsLayout() {
   if (!useCustomTabBar) {
     return (
-      <NativeTabs
-        backgroundColor={Platform.OS === 'android' ? '#111111' : undefined}
-        iconColor="white"
-        indicatorColor={Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.1)' : undefined}
-        labelStyle={{ color: 'white' }}
-        tintColor="white"
-      >
-        <NativeTabs.Trigger name="home" disableAutomaticContentInsets={Platform.OS === 'android'}>
+      <NativeTabs backgroundColor="#111111" iconColor="white" indicatorColor={Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.1)' : undefined} labelStyle={{ color: 'white' }} tintColor="white">
+        <NativeTabs.Trigger name="home" disableAutomaticContentInsets={Platform.OS === 'android'} contentStyle={{ backgroundColor: '#000' }}>
           <NativeTabs.Trigger.Label>Layerz</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/layerz.png')} />
         </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="swaps" disableAutomaticContentInsets={Platform.OS === 'android'}>
+        <NativeTabs.Trigger name="swaps" disableAutomaticContentInsets={Platform.OS === 'android'} contentStyle={{ backgroundColor: '#000' }}>
           <NativeTabs.Trigger.Label>Transfer</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/swap.png')} />
         </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="explorer" disableAutomaticContentInsets={Platform.OS === 'android'}>
+        <NativeTabs.Trigger name="explorer" disableAutomaticContentInsets={Platform.OS === 'android'} contentStyle={{ backgroundColor: '#000' }}>
           <NativeTabs.Trigger.Label>Explorer</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/explorer.png')} />
         </NativeTabs.Trigger>

@@ -60,6 +60,7 @@ export const BROWSER_CONSTANTS = {
 
 const homeIcon = require('@/assets/images/home.svg');
 const safeAreaEdges: ('top' | 'left' | 'right')[] = Platform.OS === 'ios' ? ['top', 'left', 'right'] : ['left', 'right'];
+const iosVersion = Platform.OS === 'ios' ? (typeof Platform.Version === 'string' ? parseInt(String(Platform.Version), 10) : Number(Platform.Version)) : 0;
 
 const getHomeUrl = (network: string): string => `https://layerztec.github.io/website/explore/?network=${network}`; // to test: https://metamask.github.io/test-dapp/ & https://eip6963.org/
 
@@ -1421,6 +1422,8 @@ const DAppBrowser: React.FC = () => {
                 })}
               </Animated.View>
             </Animated.View>
+
+            {Platform.OS === 'ios' && iosVersion >= 26 ? <View pointerEvents="none" style={styles.nativeTabBarBackdrop} /> : null}
           </View>
 
           <DAppBrowserTabs
@@ -1613,6 +1616,14 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     position: 'relative',
+  },
+  nativeTabBarBackdrop: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 140,
+    backgroundColor: '#000',
   },
   webviewContainer: {
     flex: 1,
