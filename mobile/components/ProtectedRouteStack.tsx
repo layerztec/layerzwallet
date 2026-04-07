@@ -167,16 +167,11 @@ export function ProtectedRouteStack() {
         <Stack.Screen
           name="modals/transfer-select-asset"
           options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.6, 1.0],
-            sheetGrabberVisible: true,
-            headerTransparent: false,
-            gestureEnabled: true,
+            presentation: 'transparentModal',
+            animation: 'fade',
             headerShown: false,
-            contentStyle: {
-              height: '100%',
-              backgroundColor: 'rgb(24, 32, 82)',
-            },
+            gestureEnabled: true,
+            contentStyle: { backgroundColor: 'transparent' },
           }}
         />
         <Stack.Screen
