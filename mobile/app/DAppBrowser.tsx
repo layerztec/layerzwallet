@@ -3,7 +3,7 @@ import Pressable from '../components/Pressable';
 import * as FileSystem from 'expo-file-system';
 import { File as ExpoFsFile, Directory } from 'expo-file-system';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
-import { StyleSheet, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions, BackHandler, Platform } from 'react-native';
+import { StyleSheet, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions, BackHandler, Platform, Modal } from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import type { WebViewErrorEvent, WebViewNavigationEvent } from 'react-native-webview/lib/WebViewTypes';
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
@@ -13,7 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image as ExpoImage } from 'expo-image';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, withSpring, interpolate, runOnJS } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -40,10 +40,6 @@ export const BROWSER_CONSTANTS = {
     POST_LOAD_CAPTURE: 1500,
     LOADING_TIMEOUT: 10000,
   },
-  MODAL: {
-    MIN_HEIGHT: 120,
-    MAX_HEIGHT: Dimensions.get('window').height,
-  },
   GESTURE: {
     SWIPE_THRESHOLD: 100,
     SWIPE_VELOCITY: 0.3,
@@ -59,10 +55,22 @@ export const BROWSER_CONSTANTS = {
 } as const;
 
 const homeIcon = require('@/assets/images/home.svg');
-const safeAreaEdges: ('top' | 'left' | 'right')[] = Platform.OS === 'ios' ? ['top', 'left', 'right'] : ['left', 'right'];
 const iosVersion = Platform.OS === 'ios' ? (typeof Platform.Version === 'string' ? parseInt(String(Platform.Version), 10) : Number(Platform.Version)) : 0;
+const usesNativeTabBar = Platform.OS === 'android' || (Platform.OS === 'ios' && iosVersion >= 26);
 
 const getHomeUrl = (network: string): string => `https://layerztec.github.io/website/explore/?network=${network}`; // to test: https://metamask.github.io/test-dapp/ & https://eip6963.org/
+
+const normalizeLayerzExploreUrlToNetwork = (urlString: string, network: string): string => {
+  try {
+    const url = new URL(urlString);
+    if (url.hostname !== 'layerztec.github.io') return urlString;
+    if (!url.pathname.startsWith('/website/explore/')) return urlString;
+    url.searchParams.set('network', network);
+    return url.toString();
+  } catch {
+    return urlString;
+  }
+};
 
 const getTabTitle = (url: string): string => {
   try {
@@ -141,6 +149,7 @@ const getScreenshotDir = (): string | null => {
 };
 
 const DAppBrowser: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const navigation = useNavigation();
@@ -172,10 +181,6 @@ const DAppBrowser: React.FC = () => {
 
   const swipeProgress = useSharedValue(0);
   const swipeOverlayOpacity = useSharedValue(0);
-
-  const modalTranslateY = useSharedValue(0);
-  const currentModalPosition = useSharedValue(0);
-  const gestureStartPosition = useSharedValue(0);
   const lastHandledUrl = useRef<string | undefined>(undefined);
   const isManualNavigation = useRef<boolean>(false);
   const lastManualNavigationUrl = useRef<string | undefined>(undefined);
@@ -219,10 +224,6 @@ const DAppBrowser: React.FC = () => {
       .filter((url) => url.toLowerCase().includes(query))
       .slice(0, 6);
   }, [addressInput, tabs]);
-
-  const modalAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: modalTranslateY.value }],
-  }));
 
   const addressBarAnimatedStyle = useAnimatedStyle(() => ({
     opacity: interpolate(tabsOpacity.value, [0, 1], [1, 0]),
@@ -272,42 +273,7 @@ const DAppBrowser: React.FC = () => {
     ],
   }));
 
-  const panGesture = Gesture.Pan()
-    .enabled(false)
-    .onStart(() => {
-      gestureStartPosition.value = modalTranslateY.value;
-    })
-    .onUpdate((event) => {
-      const { translationY } = event;
-      const maxTranslate = BROWSER_CONSTANTS.MODAL.MAX_HEIGHT - BROWSER_CONSTANTS.MODAL.MIN_HEIGHT;
-
-      const newPosition = gestureStartPosition.value + translationY;
-
-      let constrainedPosition = newPosition;
-      if (newPosition < 0) {
-        constrainedPosition = 0;
-      } else if (newPosition > maxTranslate) {
-        constrainedPosition = maxTranslate;
-      }
-
-      modalTranslateY.value = constrainedPosition;
-    })
-    .onEnd((event) => {
-      const { translationY, velocityY } = event;
-      const maxTranslate = BROWSER_CONSTANTS.MODAL.MAX_HEIGHT - BROWSER_CONSTANTS.MODAL.MIN_HEIGHT;
-
-      const shouldSnapToMin = translationY > 100 || velocityY > 500;
-
-      if (shouldSnapToMin) {
-        currentModalPosition.value = maxTranslate;
-        modalTranslateY.value = withTiming(maxTranslate, { duration: 300 });
-      } else {
-        currentModalPosition.value = 0;
-        modalTranslateY.value = withTiming(0, { duration: 300 });
-      }
-    })
-    .activeOffsetY([-10, 10])
-    .failOffsetX([-50, 50]);
+  const panGesture = Gesture.Pan().enabled(false);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -703,9 +669,31 @@ const DAppBrowser: React.FC = () => {
       const restored = await loadTabs();
 
       if (restored && restored.tabs.length > 0) {
-        setTabs(restored.tabs);
+        const adjustedTabs = restored.tabs.map((t) => {
+          const adjustedUrl = normalizeLayerzExploreUrlToNetwork(t.url, network);
+          const adjustedHistory = (t.history || []).map((h) => {
+            const adjustedHistoryUrl = normalizeLayerzExploreUrlToNetwork(h.url, network);
+            return adjustedHistoryUrl === h.url ? h : { ...h, url: adjustedHistoryUrl };
+          });
+
+          const historyChanged =
+            adjustedHistory.length !== (t.history || []).length || adjustedHistory.some((h, idx) => h.url !== (t.history || [])[idx]?.url || h.title !== (t.history || [])[idx]?.title);
+
+          if (adjustedUrl === t.url && !historyChanged) {
+            return t;
+          }
+
+          return {
+            ...t,
+            url: adjustedUrl,
+            title: adjustedUrl !== t.url ? getTabTitle(adjustedUrl) : t.title,
+            history: adjustedHistory,
+          };
+        });
+
+        setTabs(adjustedTabs);
         setActiveTabId(restored.activeTabId);
-        const activeTab = restored.tabs.find((t) => t.id === restored.activeTabId);
+        const activeTab = adjustedTabs.find((t) => t.id === restored.activeTabId);
         if (activeTab) {
           setAddressBarValue(activeTab.url, { ensureStartVisible: true });
         }
@@ -940,6 +928,46 @@ const DAppBrowser: React.FC = () => {
     ]);
   };
 
+  // On Android the bottom tabs are native, so a regular absolute-positioned overlay cannot draw above it.
+  // When using native tabs (Android and iOS 26+), rendering this overlay inside a native `Modal` ensures it covers the tab bar as well.
+  const tabsOverlay = (
+    <View style={styles.tabsOverlayRoot}>
+      <DAppBrowserTabs
+        tabs={tabs}
+        animatedStyle={tabsOverviewAnimatedStyle}
+        pointerEvents={showTabsOverview ? 'auto' : 'none'}
+        isVisible={showTabsOverview}
+        onSwitchTab={switchTab}
+        onCloseTab={closeTab}
+        onEnsurePreview={ensureTabPreview}
+        onCloseOverview={hideTabsOverview}
+      />
+
+      {showTabsOverview && (
+        <View style={[styles.bottomSolid, styles.tabsOverlayBottomRow]}>
+          <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.bottomSafeArea}>
+            <View style={styles.bottomNavigation}>
+              <View style={styles.navigationLeft}>
+                <Pressable style={styles.addTabButton} onPress={createNewTab} testID="BrowserAddTabButton">
+                  <Ionicons name="add" size={18} color="white" />
+                  <ThemedText style={styles.addTabButtonText}>Add new</ThemedText>
+                </Pressable>
+              </View>
+
+              <View style={styles.navigationCenter} />
+
+              <View style={styles.navigationRight}>
+                <Pressable style={styles.overflowMenuButton} onPress={handleCloseAllTabs} testID="BrowserTabsOverflowButton">
+                  <Ionicons name="ellipsis-horizontal" size={22} color="rgba(255, 255, 255, 0.9)" />
+                </Pressable>
+              </View>
+            </View>
+          </SafeAreaView>
+        </View>
+      )}
+    </View>
+  );
+
   const updateActiveTab = (updates: Partial<BrowserTab>) => {
     setTabs((prev) =>
       prev.map((tab) =>
@@ -1165,7 +1193,7 @@ const DAppBrowser: React.FC = () => {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.blackScreen} edges={safeAreaEdges}>
+      <SafeAreaView style={styles.blackScreen} edges={['top', 'left', 'right', 'bottom']}>
         <View style={styles.errorContainer}>
           <ThemedText style={styles.errorText}>{error}</ThemedText>
         </View>
@@ -1175,7 +1203,7 @@ const DAppBrowser: React.FC = () => {
 
   if (!js) {
     return (
-      <SafeAreaView style={styles.blackScreen} edges={safeAreaEdges}>
+      <SafeAreaView style={styles.blackScreen} edges={['top', 'left', 'right', 'bottom']}>
         <View style={styles.loadingContainer} testID="DappBrowserLoading">
           <ThemedText style={styles.loadingText}>Loading DApp browser...</ThemedText>
         </View>
@@ -1187,11 +1215,11 @@ const DAppBrowser: React.FC = () => {
     <GestureHandlerRootView style={styles.gestureRootView}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <Animated.View style={[styles.modalContainer, styles.modalMaxHeight, modalAnimatedStyle]}>
-        <SafeAreaView style={styles.blackScreen} edges={safeAreaEdges}>
+      <View style={styles.screenContainer}>
+        <SafeAreaView style={styles.blackScreen} edges={['left', 'right', 'bottom']}>
           <GestureDetector gesture={panGesture}>
             <Animated.View style={[styles.addressBarContainer, addressBarAnimatedStyle]} pointerEvents={showTabsOverview ? 'none' : 'auto'}>
-              <View style={styles.addressContainer}>
+              <View style={[styles.addressContainer, { paddingTop: 12 + insets.top, paddingBottom: 12 }]}>
                 <Pressable style={styles.networkButton} onPress={redirectActiveTabToHome} testID="BrowserHomeButton">
                   <ExpoImage source={homeIcon} style={styles.homeIcon} contentFit="contain" />
                 </Pressable>
@@ -1423,44 +1451,18 @@ const DAppBrowser: React.FC = () => {
               </Animated.View>
             </Animated.View>
 
-            {Platform.OS === 'ios' && iosVersion >= 26 ? <View pointerEvents="none" style={styles.nativeTabBarBackdrop} /> : null}
+            {/* Avoid covering WebView content with a fixed-height backdrop on iOS native tabs */}
           </View>
 
-          <DAppBrowserTabs
-            tabs={tabs}
-            animatedStyle={tabsOverviewAnimatedStyle}
-            pointerEvents={showTabsOverview ? 'auto' : 'none'}
-            isVisible={showTabsOverview}
-            onSwitchTab={switchTab}
-            onCloseTab={closeTab}
-            onEnsurePreview={ensureTabPreview}
-            onCloseAllTabs={handleCloseAllTabs}
-          />
-
-          {showTabsOverview && (
-            <PlatformBlurView intensity={30} tint="dark" style={styles.bottomBlur}>
-              <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.bottomSafeArea}>
-                <View style={styles.bottomNavigation}>
-                  <View style={styles.navigationLeft}>
-                    <Pressable style={styles.addTabButton} onPress={createNewTab} testID="BrowserAddTabButton">
-                      <Ionicons name="add" size={18} color="white" />
-                      <ThemedText style={styles.addTabButtonText}>Add new</ThemedText>
-                    </Pressable>
-                  </View>
-
-                  <View style={styles.navigationCenter} />
-
-                  <View style={styles.navigationRight}>
-                    <Pressable style={styles.closeOverviewButton} onPress={hideTabsOverview} testID="BrowserTabsCloseOverviewButton">
-                      <Ionicons name="close" size={24} color="rgba(255, 255, 255, 0.9)" />
-                    </Pressable>
-                  </View>
-                </View>
-              </SafeAreaView>
-            </PlatformBlurView>
+          {usesNativeTabBar ? (
+            <Modal visible={showTabsOverview} transparent animationType="none" statusBarTranslucent onRequestClose={hideTabsOverview}>
+              {tabsOverlay}
+            </Modal>
+          ) : (
+            tabsOverlay
           )}
         </SafeAreaView>
-      </Animated.View>
+      </View>
     </GestureHandlerRootView>
   );
 };
@@ -1483,24 +1485,12 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   modalContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    // (deprecated) kept for backward compatibility in styles object
+    flex: 1,
   },
-  modalMaxHeight: {
-    height: BROWSER_CONSTANTS.MODAL.MAX_HEIGHT,
+  screenContainer: {
+    flex: 1,
+    backgroundColor: '#000',
   },
   errorContainer: {
     flex: 1,
@@ -1617,14 +1607,6 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-  nativeTabBarBackdrop: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 140,
-    backgroundColor: '#000',
-  },
   webviewContainer: {
     flex: 1,
     backgroundColor: 'black',
@@ -1679,8 +1661,17 @@ const styles = StyleSheet.create({
   bottomSafeArea: {
     backgroundColor: 'transparent',
   },
-  bottomBlur: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  bottomSolid: {
+    backgroundColor: '#111111',
+  },
+  tabsOverlayRoot: {
+    flex: 1,
+  },
+  tabsOverlayBottomRow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   navigationLeft: {
     flexDirection: 'row',
@@ -1722,6 +1713,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.12)',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255, 255, 255, 0.16)',
+  },
+  overflowMenuButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
   },
   tabsOverviewIcon: {
     width: 24,
