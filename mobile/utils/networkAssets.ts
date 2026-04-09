@@ -25,7 +25,7 @@ const TRANSFER_ASSET_COLORS: Partial<Record<AssetId, string>> = {
   'native:citrea': '#F7931A',
   'native:liquid': '#1BA9A4',
   'native:rootstock': '#3FCF54',
-  'native:arkade': '#D4A017',
+  'native:arkade': '#391998',
   'native:spark': '#7297A6',
   'token:liquid:usdt': '#26A17B',
   'token:stacks:stx': '#5546FF',
