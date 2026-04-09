@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@shared/constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Rive from 'rive-react-native';
+import { Alignment, Fit, RiveView, useRiveFile } from '@rive-app/react-native';
 import Pressable from '../../components/Pressable';
 import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, Easing } from 'react-native-reanimated';
@@ -142,13 +142,39 @@ interface SlideItemProps {
   item: (typeof SLIDES)[0];
 }
 
+const animationToRivSource = (animation: string) => {
+  switch (animation) {
+    case 'selfcustody':
+      return require('../../assets/animations/selfcustody.riv');
+    case 'lightning':
+      return require('../../assets/animations/lightning.riv');
+    case 'bars':
+      return require('../../assets/animations/bars.riv');
+    case 'swaps':
+      return require('../../assets/animations/swaps.riv');
+    case 'liquid':
+      return require('../../assets/animations/liquid.riv');
+    case 'nfts':
+      return require('../../assets/animations/nfts.riv');
+    case 'oss':
+      return require('../../assets/animations/oss.riv');
+    default:
+      return require('../../assets/animations/intro.riv');
+  }
+};
+
 const SlideItem: React.FC<SlideItemProps> = ({ item }) => {
   const isFullWidth = 'fullWidth' in item && item.fullWidth;
+  const { riveFile } = useRiveFile(animationToRivSource(item.animation));
 
   return (
     <View style={styles.slideContent}>
       <View style={[styles.animationContainer, isFullWidth && styles.animationContainerFullWidth]}>
-        <Rive autoplay={true} style={styles.riveAnimation} resourceName={item.animation} />
+        {riveFile ? (
+          <RiveView autoPlay={true} alignment={Alignment.Center} fit={Fit.Contain} file={riveFile} onError={(error) => console.log('Rive error:', error.message)} style={styles.riveAnimation} />
+        ) : (
+          <View style={styles.riveAnimation} />
+        )}
       </View>
       <View style={styles.textContainer}>
         <ThemedText style={styles.slideTitle} darkColor="#FFFFFF">

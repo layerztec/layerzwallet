@@ -5,7 +5,7 @@ import { Redirect, Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import Rive, { RiveRef } from 'rive-react-native';
+import { Alignment, Fit, RiveView, useRiveFile } from '@rive-app/react-native';
 import Pressable from '../../components/Pressable';
 
 import RadialGradientScreen from '@/components/RadialGradientScreen';
@@ -28,6 +28,12 @@ import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT } from '@shared/types/networks';
 import { useSendFlow } from './_layout';
 
+const SuccessRiveAnimation = () => {
+  const { riveFile } = useRiveFile(require('../../assets/animations/success.riv'));
+  if (!riveFile) return <View style={styles.riveAnimation} />;
+  return <RiveView autoPlay={true} alignment={Alignment.Center} fit={Fit.Contain} file={riveFile} onError={(error) => console.log('Rive error:', error.message)} style={styles.riveAnimation} />;
+};
+
 const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const router = useRouter();
   const { network: contextNetwork } = useContext(NetworkContext);
@@ -47,7 +53,6 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const detailsOpacity = useSharedValue(1);
   const sendToOpacity = useSharedValue(1);
   const totalTop = useSharedValue(32); // Initial top position for total section
-  const riveRef = useRef<RiveRef>(null);
 
   // Animated styles
   const detailsAnimatedStyle = useAnimatedStyle(() => ({ opacity: detailsOpacity.value }));
@@ -251,15 +256,7 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
             <View style={styles.container}>
               {showRiveAnimation && (
                 <View style={styles.riveContainer}>
-                  <Rive
-                    ref={riveRef}
-                    autoplay={true}
-                    style={styles.riveAnimation}
-                    resourceName="success"
-                    onError={(error) => {
-                      console.log('Rive animation error:', error);
-                    }}
-                  />
+                  <SuccessRiveAnimation />
                 </View>
               )}
 
