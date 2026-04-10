@@ -18,7 +18,7 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ transactions, error
   const hasTransactions = transactions.length > 0;
 
   return (
-    <SectionContainer title="Transactions" onViewAll={hasTransactions ? onViewHistory : undefined} contentStyle={styles.contentPadding}>
+    <SectionContainer title="Transactions" blurSurface onViewAll={hasTransactions ? onViewHistory : undefined} contentStyle={styles.contentPadding}>
       {hasTransactions ? (
         <View style={styles.transactionsList}>
           {transactions.map((transaction, index) =>

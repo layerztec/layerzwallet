@@ -192,23 +192,30 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
     });
   }, [network, sparkBalance, liquidBalance, sparkExchangeRate, liquidExchangeRate, arkBalance, arkExchangeRate, selectedNetwork, onSelectNetwork]);
 
+  const balanceHeader = showTotalBalance ? (
+    <View style={[styles.balanceSection, styles.balanceSectionInOverlay]} testID="LayerBalance">
+      <View style={styles.balanceContainer}>
+        <ThemedText onLayout={handleLayout} type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={adjustsFontSizeToFit} numberOfLines={1} testID="LayerActualBalance">
+          {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
+        </ThemedText>
+        <ThemedText style={styles.balanceUsd}>${displaySubBalance}</ThemedText>
+      </View>
+
+      <View style={styles.balanceNetworkIcons}>{icons}</View>
+    </View>
+  ) : null;
+
   return (
-    <>
-      {showTotalBalance && (
-        <View style={styles.balanceSection} testID="LayerBalance">
-          <View style={styles.balanceContainer}>
-            <ThemedText onLayout={handleLayout} type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={adjustsFontSizeToFit} numberOfLines={1} testID="LayerActualBalance">
-              {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
-            </ThemedText>
-            <ThemedText style={styles.balanceUsd}>${displaySubBalance}</ThemedText>
-          </View>
-
-          <View style={styles.balanceNetworkIcons}>{icons}</View>
+    <View style={styles.balanceStackRoot}>
+      <SectionContainer style={showTotalBalance ? styles.balanceSectionPaddingLightning : undefined} contentStyle={styles.listBalanceContent}>
+        {rows}
+      </SectionContainer>
+      {balanceHeader != null ? (
+        <View style={styles.balanceSectionOverlayWrap} pointerEvents="box-none">
+          {balanceHeader}
         </View>
-      )}
-
-      <SectionContainer contentStyle={styles.listBalanceContent}>{rows}</SectionContainer>
-    </>
+      ) : null}
+    </View>
   );
 });
 
@@ -350,22 +357,29 @@ export const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceUsdtProps>
     });
   }, []);
 
+  const balanceHeaderUsdt = showTotalBalance ? (
+    <View style={[styles.balanceSection, styles.balanceSectionInOverlay]} testID="LayerBalance">
+      <View style={styles.balanceContainer}>
+        <ThemedText onLayout={handleLayout} type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={adjustsFontSizeToFit} numberOfLines={1} testID="LayerActualBalance">
+          {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
+        </ThemedText>
+      </View>
+
+      <View style={styles.balanceNetworkIcons}>{icons}</View>
+    </View>
+  ) : null;
+
   return (
-    <>
-      {showTotalBalance && (
-        <View style={styles.balanceSection} testID="LayerBalance">
-          <View style={styles.balanceContainer}>
-            <ThemedText onLayout={handleLayout} type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={adjustsFontSizeToFit} numberOfLines={1} testID="LayerActualBalance">
-              {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
-            </ThemedText>
-          </View>
-
-          <View style={styles.balanceNetworkIcons}>{icons}</View>
+    <View style={styles.balanceStackRoot}>
+      <SectionContainer style={showTotalBalance ? styles.balanceSectionPaddingUsdt : undefined} contentStyle={styles.listBalanceContent}>
+        {rows}
+      </SectionContainer>
+      {balanceHeaderUsdt != null ? (
+        <View style={styles.balanceSectionOverlayWrap} pointerEvents="box-none">
+          {balanceHeaderUsdt}
         </View>
-      )}
-
-      <SectionContainer contentStyle={styles.listBalanceContent}>{rows}</SectionContainer>
-    </>
+      ) : null}
+    </View>
   );
 });
 
@@ -388,6 +402,26 @@ BalanceRoot.displayName = 'BalanceRoot';
 export default BalanceRoot;
 
 const styles = StyleSheet.create({
+  /** Section rows render first so BlurView on network icons mounts after list content (expo-blur). */
+  balanceStackRoot: {
+    position: 'relative',
+  },
+  balanceSectionPaddingLightning: {
+    paddingTop: 96,
+  },
+  balanceSectionPaddingUsdt: {
+    paddingTop: 88,
+  },
+  balanceSectionOverlayWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2,
+  },
+  balanceSectionInOverlay: {
+    marginBottom: 0,
+  },
   balanceSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
