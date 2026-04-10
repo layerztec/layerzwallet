@@ -1,12 +1,10 @@
 import BN from 'bignumber.js';
 import PlatformBlurView from '@/components/PlatformBlurView';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
 import React, { useContext, useEffect, useImperativeHandle, useMemo, useState, forwardRef } from 'react';
 import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import Pressable from './Pressable';
 
-import { OnrampProps } from '@/app/Onramp';
 import SectionContainer from '@/components/SectionContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { LayerzStorage } from '@/src/class/layerz-storage';
@@ -19,7 +17,6 @@ import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
-import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
@@ -28,14 +25,12 @@ import { CachedTokenInfo } from '@shared/types/token-info';
 import { USDT_TOKENS } from '@shared/models/token-list';
 
 const Balance = forwardRef<{ refresh: () => void }>((props, ref) => {
-  const router = useRouter();
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const fiat = useSelectedFiat();
   const { balance, mutate } = useBalance(network, accountNumber, BackgroundExecutor);
   const { exchangeRate } = useExchangeRate(network);
   const ticker = getTickerByNetwork(network);
-  const canBuyWithFiat = fiatOnRamp?.[network]?.canBuyWithFiat;
 
   useImperativeHandle(ref, () => ({
     refresh: () => {
@@ -52,13 +47,6 @@ const Balance = forwardRef<{ refresh: () => void }>((props, ref) => {
     return [formattedBalance, usdValue];
   }, [network, balance, exchangeRate]);
 
-  const handleBuyClick = () => {
-    BackgroundExecutor.getAddress(network, accountNumber).then((address) => {
-      const params: OnrampProps = { address, network };
-      router.push({ pathname: '/Onramp', params });
-    });
-  };
-
   return (
     <View style={styles.balanceSection} testID="LayerBalance">
       <View style={styles.balanceContainer}>
@@ -67,12 +55,6 @@ const Balance = forwardRef<{ refresh: () => void }>((props, ref) => {
         </ThemedText>
         <ThemedText style={styles.balanceUsd}>{formatFiatDisplay(displaySubBalance, fiat)}</ThemedText>
       </View>
-
-      {canBuyWithFiat && (
-        <Pressable style={styles.buyButton} onPress={handleBuyClick} activeOpacity={0.8}>
-          <ThemedText style={styles.buyButtonText}>Fund</ThemedText>
-        </Pressable>
-      )}
     </View>
   );
 });
@@ -430,11 +412,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignSelf: 'flex-start',
     marginLeft: 10,
-    marginTop: 4,
+    marginTop: 10,
   },
   balanceNetworkImage: {
-    width: 20,
-    height: 20,
+    width: 18,
+    height: 18,
+    alignSelf: 'center',
   },
   balanceNetworkIcon: {
     width: 30,
@@ -453,17 +436,6 @@ const styles = StyleSheet.create({
   balanceUsd: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.6)',
-  },
-  buyButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  buyButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.8)',
   },
   transactionsContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.25)',

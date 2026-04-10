@@ -4,6 +4,7 @@
 import 'react-native-get-random-values';
 
 import Bugsnag from '@bugsnag/expo';
+import { AnalyticsEvents, initializeAnalytics, trackAnalyticsEvent } from './src/modules/analytics';
 import { getDeviceIdentifier } from './src/utils/device-id';
 import { isMaestroMode } from './src/hooks/AuthStateContext';
 import { handleError } from './src/modules/error-handler';
@@ -12,7 +13,15 @@ let Buffer = require('buffer/').Buffer;
 global.Buffer = Buffer;
 global.process = require('process');
 
+const APTABASE_APP_KEY = process.env.EXPO_PUBLIC_APTABASE_KEY;
 const BUGSNAG_API_KEY = process.env.EXPO_PUBLIC_BUGSNAG_API_KEY;
+
+if (APTABASE_APP_KEY && !isMaestroMode()) {
+  initializeAnalytics(APTABASE_APP_KEY);
+  trackAnalyticsEvent(AnalyticsEvents.AppStarted, {});
+} else {
+  console.warn('Analytics not started');
+}
 
 if (BUGSNAG_API_KEY && !isMaestroMode()) {
   // Initialize Bugsnag with device identifier

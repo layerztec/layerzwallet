@@ -22,9 +22,9 @@ import { sleep } from '@shared/modules/sleep';
 import { TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 import type { AssetId } from '@shared/types/asset';
 import type { SendQuote } from '@shared/types/send-quote';
-import { EXECUTION_CLAIM, type TransferExecution } from '@shared/types/transfer';
+import { EXECUTION_CLAIM, EXECUTION_INSTANT, type TransferExecution } from '@shared/types/transfer';
 import { NETWORK_SPARK } from '@shared/types/networks';
-import { useTransferFlow } from './_layout';
+import { useTransferFlow } from '@/src/transfer/TransferFlowContext';
 
 const DISMISS_THRESHOLD = 150;
 const CLAIM_OPTIONS_HEIGHT = 40 * 2; // 2 option rows
@@ -32,7 +32,7 @@ const CLAIM_OPTIONS_HEIGHT = 40 * 2; // 2 option rows
 export default function TransferConfirm() {
   const router = useRouter();
   const { height: screenHeight } = useWindowDimensions();
-  const { sendAsset, receiveAsset, quote, setQuote, setCommitted, transferService } = useTransferFlow();
+  const { sendAsset, receiveAsset, quote, setQuote, setCommitted, preparedExecution, setPreparedExecution, transferService } = useTransferFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const fiat = useSelectedFiat();
   const { exchangeRate: sendRate } = useAssetExchangeRate(sendAsset);
@@ -49,6 +49,7 @@ export default function TransferConfirm() {
   const expiryInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const quotableWalletRef = useRef<InterfaceSendQuotable | undefined>(undefined);
   const executionRef = useRef<TransferExecution | undefined>(undefined);
+  const isConfirmingRef = useRef(false);
   const isFakeProvider = quote?.serviceName === 'Fake';
   const isNativeDeposit = quote?.serviceName === 'Native';
   const isSparkDeposit = isNativeDeposit && receiveAsset ? getAssetInfo(receiveAsset).network === NETWORK_SPARK : false;
@@ -103,15 +104,24 @@ export default function TransferConfirm() {
       const receiveAssetInfo = getAssetInfo(receiveAsset);
 
       try {
-        const settleAddress = isFakeProvider
-          ? 'fake-address'
-          : isNativeDeposit
-            ? await getOnchainDepositAddress(receiveAssetInfo.network, accountNumber)
-            : await BackgroundExecutor.getAddress(receiveAssetInfo.network, accountNumber);
         const fromAddress = isFakeProvider ? 'fake-address' : await BackgroundExecutor.getAddress(sendAssetInfo.network, accountNumber);
-        const execution = await transferService.executeTransfer(quote, accountNumber, settleAddress, fromAddress);
-        if (cancelled) return;
-        executionRef.current = execution;
+
+        if (preparedExecution) {
+          // Reuse previously prepared execution to avoid duplicate shifts/orders
+          executionRef.current = preparedExecution;
+        } else {
+          const settleAddress = isFakeProvider
+            ? 'fake-address'
+            : isNativeDeposit
+              ? await getOnchainDepositAddress(receiveAssetInfo.network, accountNumber)
+              : await BackgroundExecutor.getAddress(receiveAssetInfo.network, accountNumber);
+          const execution = await transferService.executeTransfer(quote, accountNumber, settleAddress, fromAddress);
+          if (cancelled) return;
+          executionRef.current = execution;
+          setPreparedExecution(execution);
+        }
+
+        const execution = executionRef.current!;
 
         // Fake provider or no deposit address: skip send quote
         if (isFakeProvider || !execution.depositAddress) {
@@ -152,6 +162,8 @@ export default function TransferConfirm() {
 
   // Single confirm: commit + broadcast
   const handleConfirm = async () => {
+    if (isConfirmingRef.current) return;
+    isConfirmingRef.current = true;
     setIsConfirming(true);
     setError('');
     await sleep(10);
@@ -168,8 +180,20 @@ export default function TransferConfirm() {
       // Fake provider: commit and go straight to success
       if (isFakeProvider) {
         await transferService.commitTransfer(execution);
+        setPreparedExecution(undefined);
         setCommitted(true);
-        router.replace('/transfer/success');
+        router.replace('/modals/transfer-success');
+        return;
+      }
+
+      // Instant swap (e.g. Flashnet): execute the actual swap now, then commit
+      if (execution.type === EXECUTION_INSTANT) {
+        const completed = await transferService.executeInstantSwap(execution.id, execution.serviceName);
+        executionRef.current = completed;
+        await transferService.commitTransfer(completed);
+        setPreparedExecution(undefined);
+        setCommitted(true);
+        router.replace('/modals/transfer-success');
         return;
       }
 
@@ -186,16 +210,20 @@ export default function TransferConfirm() {
       execution.depositTxid = txid;
       await transferService.commitTransfer(execution);
 
+      setPreparedExecution(undefined);
       setCommitted(true);
-      router.replace('/transfer/success');
+      router.replace('/modals/transfer-success');
     } catch (e: any) {
       // If send was already broadcast, update transfer with txid
       const execution = executionRef.current;
       if (execution?.depositTxid) {
         await transferService.commitTransfer(execution);
       }
+      // Clear prepared execution on failure so re-attempt starts fresh
+      setPreparedExecution(undefined);
       setError(e.message || 'Failed to send funds');
     } finally {
+      isConfirmingRef.current = false;
       setIsConfirming(false);
     }
   };

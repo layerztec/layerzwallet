@@ -489,6 +489,7 @@ export class EvmWallet implements InterfaceSendQuotable {
         amount: Number(t.value ?? 0), // base units
         address: from === address ? t.to || '' : t.from || '',
         tokenId: t.contractAddress || undefined,
+        decimals: 0,
       };
       item.tokenTransfers.push(transfer);
       if (from === address) item.tokenOut = true;

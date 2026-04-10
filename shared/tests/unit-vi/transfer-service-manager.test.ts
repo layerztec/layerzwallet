@@ -22,11 +22,11 @@ function makeQuote(receiveAmount: string, serviceName: string = 'Test'): Transfe
   };
 }
 
-function makeExecution(id: string, createdAt: number, serviceName: string = 'Test'): DepositAddressExecution {
+function makeExecution(id: string, createdAt: number, serviceName: string = 'Test', status: DepositAddressExecution['status'] = 'pending'): DepositAddressExecution {
   return {
     type: EXECUTION_DEPOSIT,
     id,
-    status: 'pending',
+    status,
     sendAmount: '0.01',
     receiveAmount: '0.0098',
     sendAsset: BTC,
@@ -159,6 +159,42 @@ describe('TransferServiceManager', () => {
 
       await expect(manager.getQuote(BTC, USDT, '0.01')).rejects.toThrow(TransferNoRouteError);
     });
+
+    it('suggests alternative pair when receive asset is available via different send', async () => {
+      const s1 = createMockService(
+        'A',
+        [BTC, LBTC],
+        [
+          { sendAssetId: BTC, receiveAssetId: LBTC },
+          { sendAssetId: USDT, receiveAssetId: LBTC },
+        ]
+      );
+      const manager = new TransferServiceManager([s1]);
+
+      // LBTC as receive IS available via BTC and USDT, so requesting from a different send should suggest
+      try {
+        await manager.getQuote(LBTC, LBTC, '0.01');
+        expect.unreachable('should have thrown');
+      } catch (e: any) {
+        expect(e).toBeInstanceOf(TransferNoRouteError);
+        expect(e.message).toContain('is unavailable');
+        expect(e.message).toContain('Try');
+      }
+    });
+
+    it('shows no suggestion when receive asset has no available pairs', async () => {
+      const s1 = createMockService('A', [BTC, LBTC], [{ sendAssetId: BTC, receiveAssetId: LBTC }]);
+      const manager = new TransferServiceManager([s1]);
+
+      try {
+        await manager.getQuote(BTC, USDT, '0.01');
+        expect.unreachable('should have thrown');
+      } catch (e: any) {
+        expect(e).toBeInstanceOf(TransferNoRouteError);
+        expect(e.message).toContain('is unavailable');
+        expect(e.message).not.toContain('Try');
+      }
+    });
   });
 
   describe('executeTransfer', () => {
@@ -214,6 +250,69 @@ describe('TransferServiceManager', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('e2');
+    });
+
+    it('tracks completion only when a known transfer transitions to completed', async () => {
+      const s1 = createMockService('A', [], []);
+      const onTransferCompleted = vi.fn();
+      vi.mocked(s1.getOngoingTransfers)
+        .mockResolvedValueOnce([makeExecution('e1', 100, 'A', 'pending')])
+        .mockResolvedValueOnce([makeExecution('e1', 100, 'A', 'completed')]);
+
+      const manager = new TransferServiceManager([s1]);
+      manager.onTransferCompleted = onTransferCompleted;
+
+      await manager.getOngoingTransfers(0);
+      expect(onTransferCompleted).not.toHaveBeenCalled();
+
+      await manager.getOngoingTransfers(0);
+      expect(onTransferCompleted).toHaveBeenCalledTimes(1);
+      expect(onTransferCompleted).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1', status: 'completed' }));
+    });
+
+    it('does not track already-completed transfers on first sight', async () => {
+      const s1 = createMockService('A', [], []);
+      const onTransferCompleted = vi.fn();
+      vi.mocked(s1.getOngoingTransfers).mockResolvedValue([makeExecution('e1', 100, 'A', 'completed')]);
+
+      const manager = new TransferServiceManager([s1]);
+      manager.onTransferCompleted = onTransferCompleted;
+
+      await manager.getOngoingTransfers(0);
+      expect(onTransferCompleted).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('refreshTransferStatus', () => {
+    it('tracks completion when refresh moves a known transfer to completed', async () => {
+      const s1 = createMockService('A', [], []);
+      const onTransferCompleted = vi.fn();
+      vi.mocked(s1.getOngoingTransfers).mockResolvedValue([makeExecution('e1', 100, 'A', 'pending')]);
+      s1.refreshTransferStatus = vi.fn(async () => makeExecution('e1', 100, 'A', 'completed'));
+
+      const manager = new TransferServiceManager([s1]);
+      manager.onTransferCompleted = onTransferCompleted;
+
+      await manager.getOngoingTransfers(0);
+      await manager.refreshTransferStatus('e1', 0);
+
+      expect(onTransferCompleted).toHaveBeenCalledTimes(1);
+      expect(onTransferCompleted).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1', status: 'completed' }));
+    });
+  });
+
+  describe('commitTransfer', () => {
+    it('tracks completion when a transfer is first committed as completed', async () => {
+      const s1 = createMockService('A', [], []);
+      const onTransferCompleted = vi.fn();
+      const manager = new TransferServiceManager([s1]);
+      manager.onTransferCompleted = onTransferCompleted;
+
+      await manager.commitTransfer(makeExecution('e1', 100, 'A', 'completed'));
+
+      expect(s1.commitTransfer).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1', status: 'completed' }));
+      expect(onTransferCompleted).toHaveBeenCalledTimes(1);
+      expect(onTransferCompleted).toHaveBeenCalledWith(expect.objectContaining({ id: 'e1', status: 'completed' }));
     });
   });
 

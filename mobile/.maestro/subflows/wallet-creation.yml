@@ -15,7 +15,7 @@ appId: com.layerzwallet.mobile
 
 # Wait for navigation to complete and the mnemonic screen to appear
 - extendedWaitUntil:
-    visible: 'This is your \nrecovery phrase'
+    visible: 'Your recovery phrase'
     timeout: 60000
 
 # Verify we see the instruction text
@@ -29,20 +29,10 @@ appId: com.layerzwallet.mobile
 - tapOn:
     id: 'SkipButton'
 
-- waitForAnimationToEnd
-
-# Now proceed to the enter password screen
-- repeat:
-    while:
-      notVisible: 'Wallet created\nsuccessfully'
-    commands:
-      - tapOn: 'Continue'
-      - waitForAnimationToEnd
-
-# Accept terms of service
+# Skip goes directly to ToS screen (no "Continue" screen). Wait for ToS to be ready.
 - extendedWaitUntil:
     visible: 'Wallet created\nsuccessfully'
-    timeout: 10000
+    timeout: 15000
 
 # Verify success message
 - assertVisible: 'Wallet created\nsuccessfully'

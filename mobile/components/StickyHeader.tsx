@@ -58,10 +58,10 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Linear Gradient Background */}
-      <LinearGradient colors={['rgba(0, 0, 0, 0.80)', 'rgba(0, 0, 0, 0.00)']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 0.8832 }} style={styles.gradientBackground} />
+      <LinearGradient colors={['rgba(0, 0, 0, 0.80)', 'rgba(0, 0, 0, 0.00)']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 0.8832 }} style={[styles.gradientBackground, { top: -insets.top }]} />
 
       {/* Platform-aware Blur Background */}
-      <Animated.View style={[styles.blurBackground, blurAnimatedStyle]}>
+      <Animated.View style={[styles.blurBackground, blurAnimatedStyle, { top: -insets.top, paddingTop: insets.top }]}>
         <PlatformBlurView intensity={50} tint="dark" style={styles.blurView} />
       </Animated.View>
 
@@ -112,13 +112,13 @@ const styles = StyleSheet.create({
   },
   blurBackground: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
     bottom: 0,
   },
   blurView: {
-    flex: 1,
+    width: '100%',
+    height: '100%',
   },
   border: {
     position: 'absolute',

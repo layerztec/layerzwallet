@@ -15,7 +15,7 @@ import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
 import { getDecimalsByNetwork, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatFiatDisplay } from '@shared/modules/fiat-utils';
-import { getTokenInfo, getTokenIconColor } from '@shared/models/token-list';
+import { getTokenIconColor, resolveTokenInfo, shortenTokenId } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
@@ -273,7 +273,7 @@ export default function TransactionDetails() {
 
   const singleTokenInfo = useMemo(() => {
     if (isZeroAmountWithTokens && transaction.tokenTransfers?.length === 1) {
-      return getTokenInfo(transaction.tokenTransfers[0].tokenId);
+      return resolveTokenInfo(transaction.tokenTransfers[0]);
     }
     return null;
   }, [isZeroAmountWithTokens, transaction.tokenTransfers]);
@@ -496,7 +496,7 @@ export default function TransactionDetails() {
     return (
       <View style={styles.tokenTransfersBlock}>
         {transaction.tokenTransfers.map((transfer, index) => {
-          const tokenInfo = getTokenInfo(transfer.tokenId);
+          const tokenInfo = resolveTokenInfo(transfer);
           const iconColor = getTokenIconColor(tokenInfo.name);
           const formattedAmount = transfer.amount ? formatBalance(transfer.amount.toString(), tokenInfo.decimals) : '0';
           const isNegative = !transfer.amount && transaction.direction === 'send';
@@ -505,6 +505,7 @@ export default function TransactionDetails() {
           const hasImageError = imageLoadErrors[imageErrorKey];
 
           const getTokenTransactionText = () => {
+            if (!tokenInfo) return `Unknown token (${shortenTokenId(transfer.tokenId)})`;
             switch (transaction.direction) {
               case 'send':
                 return `Sent ${tokenInfo.name}`;
@@ -520,11 +521,11 @@ export default function TransactionDetails() {
           return (
             <View key={index} style={styles.tokenTransferRow}>
               <View style={styles.tokenIconContainer}>
-                {tokenInfo.logoURI && !hasImageError ? (
+                {tokenInfo?.logoURI && !hasImageError ? (
                   <Image source={{ uri: tokenInfo.logoURI }} style={styles.tokenLogo} contentFit="contain" onError={() => setImageLoadErrors((prev) => ({ ...prev, [imageErrorKey]: true }))} />
                 ) : (
                   <View style={[styles.tokenIcon, { backgroundColor: iconColor }]}>
-                    <ThemedText style={styles.tokenIconText}>{tokenInfo.symbol?.charAt(0).toUpperCase() || '?'}</ThemedText>
+                    <ThemedText style={styles.tokenIconText}>{tokenInfo?.symbol?.charAt(0).toUpperCase() || '?'}</ThemedText>
                   </View>
                 )}
               </View>
@@ -532,11 +533,15 @@ export default function TransactionDetails() {
                 <ThemedText style={styles.tokenName}>{getTokenTransactionText()}</ThemedText>
               </View>
               <View style={styles.tokenAmountContainer}>
-                <ThemedText style={styles.tokenAmount}>
-                  {sign}
-                  {tokenInfo.symbol}
-                  {formattedAmount}
-                </ThemedText>
+                {tokenInfo ? (
+                  <ThemedText style={styles.tokenAmount}>
+                    {sign}
+                    {tokenInfo.symbol}
+                    {formattedAmount}
+                  </ThemedText>
+                ) : (
+                  <ThemedText style={styles.tokenAmount}>—</ThemedText>
+                )}
               </View>
             </View>
           );

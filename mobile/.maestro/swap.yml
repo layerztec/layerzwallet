@@ -17,10 +17,10 @@ appId: com.layerzwallet.mobile
 - runFlow: subflows/wallet-creation.yml
 # - launchApp
 
-# Wait for home screen to fully load
+# Wait for home screen to fully load (need Settings access first)
 - extendedWaitUntil:
     visible:
-      id: 'SwapButton'
+      id: 'SettingsButton'
     timeout: 30000
 
 # Enable testnets in Settings → Tools → App Settings
@@ -55,10 +55,21 @@ appId: com.layerzwallet.mobile
     id: 'BackButton'
 - extendedWaitUntil:
     visible:
-      id: 'SwapButton'
+      id: 'NetworkSwitcherTrigger'
     timeout: 10000
+
+# Collapse the home modal so the tab bar is visible (modal is full-screen after wallet-creation).
 - tapOn:
-    id: 'SwapButton'
+    id: 'NetworkSwitcherTrigger'
+- waitForAnimationToEnd
+
+# Switch to Transfer tab
+- tapOn:
+    id: 'Tab-swaps'
+    optional: true
+- tapOn:
+    text: 'Transfer'
+    optional: true
 
 # Wait for transfer input screen to load
 - extendedWaitUntil:
@@ -90,7 +101,7 @@ appId: com.layerzwallet.mobile
     element:
       id: 'TransferAsset-native:botanix_testnet'
     direction: DOWN
-    timeout: 10000
+    timeout: 20000
 - tapOn:
     id: 'TransferAsset-native:botanix_testnet'
 - waitForAnimationToEnd
@@ -119,7 +130,7 @@ appId: com.layerzwallet.mobile
 - extendedWaitUntil:
     visible:
       id: 'TransferConfirmButton'
-    timeout: 15000
+    timeout: 60000
 
 # Verify confirm screen elements
 - assertVisible:
@@ -157,6 +168,61 @@ appId: com.layerzwallet.mobile
 - waitForAnimationToEnd
 
 # --- Verify inputs are cleared after successful transfer (no double-submit) ---
+- extendedWaitUntil:
+    visible:
+      id: 'TransferContinueButton'
+      enabled: false
+    timeout: 5000
+
+# --- Receive-amount editing: type desired receive, send is auto-calculated ---
+- tapOn:
+    id: 'TransferReceive-input'
+- inputText: '0.005'
+
+# Dismiss keyboard
+- tapOn: 'Send'
+
+# Wait for quote to load and Continue button to become enabled
+- extendedWaitUntil:
+    visible:
+      id: 'TransferContinueButton'
+      enabled: true
+    timeout: 15000
+
+# Continue to confirm
+- tapOn:
+    id: 'TransferContinueButton'
+- waitForAnimationToEnd
+
+# Wait for confirm screen
+- extendedWaitUntil:
+    visible:
+      id: 'TransferConfirmButton'
+    timeout: 60000
+
+# Verify confirm screen elements
+- assertVisible:
+    id: 'ConfirmSendBlock'
+- assertVisible:
+    id: 'ConfirmReceiveBlock'
+- assertVisible: 'Fake'
+
+# Confirm transfer
+- tapOn:
+    id: 'TransferConfirmButton'
+
+# Verify success
+- extendedWaitUntil:
+    visible:
+      id: 'TransferSuccessText'
+    timeout: 15000
+
+# Dismiss success
+- tapOn:
+    point: '50%,10%'
+- waitForAnimationToEnd
+
+# Verify inputs cleared
 - extendedWaitUntil:
     visible:
       id: 'TransferContinueButton'

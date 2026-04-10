@@ -2,11 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import BigNumber from 'bignumber.js';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Button from '@/components/Button';
-import Pressable from '@/components/Pressable';
 import { ThemedText } from '@/components/ThemedText';
 import TransferList from '@/components/transfer/TransferList';
 import TransferAmountSection from '@/components/transfer/TransferAmountSection';
@@ -19,11 +20,11 @@ import { useAssetExchangeRate } from '@shared/hooks/useAssetExchangeRate';
 import { AllNetworkInfos } from '@shared/models/all-network-infos';
 import { getAssetInfo } from '@shared/models/asset-info';
 import { Denomination, TransferExecution, TransferNoRouteError, TransferPairInfo } from '@shared/types/transfer';
-import { useTransferFlow } from './_layout';
+import { useTransferFlow } from '@/src/transfer/TransferFlowContext';
 
 export default function TransferInput() {
   const router = useRouter();
-  const { sendAsset, receiveAsset, quote, committed, setQuote, setCommitted, transferService } = useTransferFlow();
+  const { sendAsset, receiveAsset, quote, committed, setQuote, setCommitted, setPreparedExecution, transferService } = useTransferFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance: sendBalance } = useAssetBalance(sendAsset, accountNumber, BackgroundExecutor);
   const [sendAmount, setSendAmount] = useState<string>('');
@@ -37,17 +38,14 @@ export default function TransferInput() {
   const [serviceWarnings, setServiceWarnings] = useState<{ service: string; message: string }[]>([]);
   const [pairInfo, setPairInfo] = useState<TransferPairInfo | undefined>();
   const [isContinuing, setIsContinuing] = useState(false);
-
-  const handleClose = () => {
-    router.back();
-  };
+  const isContinuingRef = useRef(false);
 
   const handleSendAssetPress = () => {
-    router.push({ pathname: '/transfer/select-asset', params: { side: 'send' } });
+    router.push({ pathname: '/modals/transfer-select-asset', params: { side: 'send' } });
   };
 
   const handleReceiveAssetPress = () => {
-    router.push({ pathname: '/transfer/select-asset', params: { side: 'receive' } });
+    router.push({ pathname: '/modals/transfer-select-asset', params: { side: 'receive' } });
   };
 
   const fetchQuoteFromSend = useCallback(
@@ -63,6 +61,7 @@ export default function TransferInput() {
       setIsQuoteLoading(true);
       setQuoteError('');
       setServiceWarnings([]);
+      setPreparedExecution(undefined);
       try {
         const newQuote = await transferService.getQuote(sendAsset, receiveAsset, amount);
         setQuote(newQuote);
@@ -81,12 +80,12 @@ export default function TransferInput() {
         setIsQuoteLoading(false);
       }
     },
-    [sendAsset, receiveAsset, transferService, setReceiveAmount, setQuote, setIsQuoteLoading]
+    [sendAsset, receiveAsset, transferService, setReceiveAmount, setQuote, setIsQuoteLoading, setPreparedExecution]
   );
 
   const fetchQuoteFromReceive = useCallback(
     async (amount: string) => {
-      if (!sendAsset || !receiveAsset || !amount || parseFloat(amount) <= 0) {
+      if (!sendAsset || !receiveAsset || !pairInfo || !amount || parseFloat(amount) <= 0) {
         setSendAmount('');
         setQuote(undefined);
         setIsQuoteLoading(false);
@@ -97,17 +96,14 @@ export default function TransferInput() {
       setIsQuoteLoading(true);
       setQuoteError('');
       setServiceWarnings([]);
+      setPreparedExecution(undefined);
       try {
-        // Reverse quote: we want to receive `amount`, so calculate how much to send
-        const newQuote = await transferService.getQuote(receiveAsset, sendAsset, amount);
-        setQuote({
-          ...newQuote,
-          sendAsset,
-          receiveAsset,
-          sendAmount: newQuote.receiveAmount,
-          receiveAmount: amount,
-        });
-        setSendAmount(newQuote.receiveAmount);
+        const rate = new BigNumber(pairInfo.rate);
+        const estimatedSend = new BigNumber(amount).div(rate);
+        const newQuote = await transferService.getQuote(sendAsset, receiveAsset, estimatedSend.toFixed(8));
+        setQuote(newQuote);
+        setSendAmount(new BigNumber(newQuote.sendAmount).toFixed());
+        setReceiveAmount(new BigNumber(newQuote.receiveAmount).toFixed());
         setQuoteError('');
         setServiceWarnings(newQuote.serviceErrors || []);
       } catch (e: any) {
@@ -122,7 +118,7 @@ export default function TransferInput() {
         setIsQuoteLoading(false);
       }
     },
-    [sendAsset, receiveAsset, transferService, setSendAmount, setQuote, setIsQuoteLoading]
+    [sendAsset, receiveAsset, transferService, pairInfo, setSendAmount, setQuote, setIsQuoteLoading, setPreparedExecution]
   );
 
   const debouncedFetch = useCallback(
@@ -171,6 +167,13 @@ export default function TransferInput() {
     }
   }, [sendAsset, receiveAsset]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Retry receive quote when pairInfo arrives (fetchQuoteFromReceive requires pairInfo)
+  useEffect(() => {
+    if (pairInfo && !quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && receiveAmount && parseFloat(receiveAmount) > 0 && !sendAmount) {
+      fetchQuoteFromReceive(receiveAmount);
+    }
+  }, [pairInfo]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Clear input state after a successful transfer so the user can't accidentally re-submit
   useEffect(() => {
     if (committed) {
@@ -182,7 +185,10 @@ export default function TransferInput() {
 
   // Auto-refetch quote when returning from confirm (quote cleared on confirm unmount)
   useEffect(() => {
-    if (!quote) setIsContinuing(false);
+    if (!quote) {
+      setIsContinuing(false);
+      isContinuingRef.current = false;
+    }
     if (!committed && !quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && sendAmount && parseFloat(sendAmount) > 0) {
       fetchQuoteFromSend(sendAmount);
     }
@@ -225,10 +231,11 @@ export default function TransferInput() {
   const canContinue = !!sendAsset && !!receiveAsset && !!quote && parseFloat(sendAmount) > 0 && !isQuoteLoading && !limitsError && !balanceError;
 
   const handleContinue = async () => {
-    if (!canContinue || isContinuing) return;
+    if (!canContinue || isContinuingRef.current) return;
+    isContinuingRef.current = true;
     setIsContinuing(true);
     await sleep(10);
-    router.push('/transfer/confirm');
+    router.push('/modals/transfer-confirm');
   };
 
   const handleTransferPress = (execution: TransferExecution) => {
@@ -239,6 +246,11 @@ export default function TransferInput() {
     setDenomination(denomination === 'Native' ? 'Fiat' : 'Native');
   };
 
+  const handleErrorLongPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Clipboard.setStringAsync(limitsError || balanceError || quoteError);
+  };
+
   return (
     <View style={styles.backgroundContainer}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -247,9 +259,6 @@ export default function TransferInput() {
             {/* Header */}
             <View style={styles.header}>
               <ThemedText style={styles.title}>Transfer</ThemedText>
-              <Pressable style={styles.closeButton} onPress={handleClose} testID="TransferCloseButton">
-                <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.8)" />
-              </Pressable>
             </View>
 
             {/* Send Section */}
@@ -299,11 +308,11 @@ export default function TransferInput() {
 
             {/* Limits / Balance / Quote Error */}
             {!isQuoteLoading && (limitsError || balanceError || quoteError) ? (
-              <View style={styles.errorContainer}>
+              <Pressable style={({ pressed }) => [styles.errorContainer, pressed && { opacity: 0.5 }]} onLongPress={handleErrorLongPress}>
                 <ThemedText testID="TransferQuoteError" style={styles.errorText}>
                   {limitsError || balanceError || quoteError}
                 </ThemedText>
-              </View>
+              </Pressable>
             ) : null}
 
             {/* Service Warnings (partial failures — quote still valid) */}
@@ -317,14 +326,14 @@ export default function TransferInput() {
               </View>
             )}
 
-            {/* Ongoing Transfers */}
-            <View style={styles.ongoingContainer}>
-              <TransferList transferService={transferService} onTransferPress={handleTransferPress} activeOnly />
-            </View>
-
             {/* Continue Button */}
             <View style={styles.buttonContainer}>
               <Button testID="TransferContinueButton" title="Continue" onPress={handleContinue} style={[styles.continueButton, !canContinue && styles.disabledButton]} disabled={!canContinue} />
+            </View>
+
+            {/* Ongoing Transfers */}
+            <View style={styles.ongoingContainer}>
+              <TransferList transferService={transferService} onTransferPress={handleTransferPress} activeOnly title="Ongoing" />
             </View>
           </View>
         </SafeAreaView>
@@ -352,10 +361,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
   },
   header: {
-    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
     marginTop: 16,
     marginBottom: 24,
   },
@@ -365,16 +372,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     fontWeight: '500',
-  },
-  closeButton: {
-    position: 'absolute',
-    right: 0,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   arrowContainer: {
     alignItems: 'center',
@@ -403,7 +400,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
   },
   errorContainer: {
-    marginTop: 12,
+    marginTop: 16,
     paddingHorizontal: 4,
   },
   errorText: {
@@ -417,12 +414,10 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   ongoingContainer: {
-    marginTop: 24,
+    marginTop: 32,
   },
   buttonContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    paddingBottom: 40,
+    marginTop: 32,
   },
   continueButton: {
     height: 56,

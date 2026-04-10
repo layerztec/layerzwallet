@@ -1,4 +1,3 @@
-import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -6,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { getNetworkImageAsset, getTransferAssetColor, getTransferAssetIcon } from '@/utils/networkAssets';
 import { getAssetInfo } from '@shared/models/asset-info';
 import { AssetId } from '@shared/types/asset';
+import PlatformBlurView from '../PlatformBlurView';
 import { ThemedText } from '../ThemedText';
 
 interface TransferAssetIconProps {
@@ -40,7 +40,7 @@ export default function TransferAssetIcon({ asset, size = 43 }: TransferAssetIco
       {mainIcon ? <Image source={mainIcon} style={{ width: iconSize, height: iconSize }} contentFit="contain" /> : <ThemedText style={styles.fallback}>{assetInfo.ticker[0]}</ThemedText>}
       {showBadge && networkIcon && (
         <View style={[styles.badge, { width: badgeSize, height: badgeSize, borderRadius: badgeSize / 2 }]}>
-          <BlurView intensity={20} tint="light" style={[styles.blurFill, { borderRadius: badgeSize / 2 }]} />
+          <PlatformBlurView intensity={20} tint="light" style={[styles.blurFill, { borderRadius: badgeSize / 2 }]} />
           <Image source={networkIcon} style={{ width: badgeImageSize, height: badgeImageSize }} contentFit="contain" />
         </View>
       )}

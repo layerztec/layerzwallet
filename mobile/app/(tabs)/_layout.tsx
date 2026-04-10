@@ -1,0 +1,91 @@
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { Tabs } from 'expo-router';
+import { Image } from 'expo-image';
+import { Platform, StyleSheet } from 'react-native';
+
+import CustomTabBarBackground from '@/components/ui/CustomTabBarBackground';
+
+// Use custom tab bar only on iOS 18–25 for a reliable background. iOS 26+ and Android use native tabs.
+const iosVersion = Platform.OS === 'ios' ? (typeof Platform.Version === 'string' ? parseInt(String(Platform.Version), 10) : Number(Platform.Version)) : 0;
+const useCustomTabBar = Platform.OS === 'ios' && iosVersion >= 18 && iosVersion < 26;
+
+export default function TabsLayout() {
+  if (!useCustomTabBar) {
+    return (
+      <NativeTabs
+        backgroundColor={Platform.OS === 'android' ? '#111111' : undefined}
+        iconColor="white"
+        indicatorColor={Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.1)' : undefined}
+        labelStyle={{ color: 'white' }}
+        tintColor="white"
+      >
+        <NativeTabs.Trigger name="home" disableAutomaticContentInsets={Platform.OS === 'android'}>
+          <NativeTabs.Trigger.Label>Layerz</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/layerz.png')} />
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="swaps" disableAutomaticContentInsets={Platform.OS === 'android'}>
+          <NativeTabs.Trigger.Label>Transfer</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/swap.png')} />
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="explorer" disableAutomaticContentInsets={Platform.OS === 'android'}>
+          <NativeTabs.Trigger.Label>Explorer</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/explorer.png')} />
+        </NativeTabs.Trigger>
+      </NativeTabs>
+    );
+  }
+
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: [styles.tabBar, { backgroundColor: 'transparent' }],
+        tabBarActiveTintColor: 'white',
+        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.6)',
+        tabBarLabelStyle: styles.tabBarLabel,
+        tabBarBackground: () => <CustomTabBarBackground />,
+      }}
+    >
+      <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: 'Layerz',
+          tabBarIcon: ({ size }) => <Image source={require('@/assets/images/ui/layerz.png')} style={{ width: size, height: size }} contentFit="contain" />,
+          tabBarButtonTestID: 'Tab-home',
+          tabBarAccessibilityLabel: 'Tab-home',
+        }}
+      />
+      <Tabs.Screen
+        name="swaps"
+        options={{
+          title: 'Transfer',
+          tabBarIcon: ({ size }) => <Image source={require('@/assets/images/ui/swap.png')} style={{ width: size, height: size }} contentFit="contain" />,
+          tabBarButtonTestID: 'Tab-swaps',
+          tabBarAccessibilityLabel: 'Tab-swaps',
+        }}
+      />
+      <Tabs.Screen
+        name="explorer"
+        options={{
+          title: 'Explorer',
+          tabBarIcon: ({ size }) => <Image source={require('@/assets/images/ui/explorer.png')} style={{ width: size, height: size }} contentFit="contain" />,
+          tabBarButtonTestID: 'Tab-explorer',
+          tabBarAccessibilityLabel: 'Tab-explorer',
+        }}
+      />
+    </Tabs>
+  );
+}
+
+const styles = StyleSheet.create({
+  tabBar: {
+    position: 'absolute',
+    borderTopWidth: 0,
+    elevation: 0,
+  },
+  tabBarLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+});

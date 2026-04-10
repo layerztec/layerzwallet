@@ -8,11 +8,13 @@ import { getNetworkPrimaryColor } from '@shared/constants/Colors';
 import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_USDT } from '@shared/types/networks';
 import PlatformBlurView from './PlatformBlurView';
 
+const BLUR_EXTEND_BOTTOM = Platform.OS === 'ios' ? 80 : 0;
+
 interface DetachedSheetProps {
   children: React.ReactNode;
-  variant?: string;
+  variant: string;
   layerNetwork?: string;
-  onClose?: () => void;
+  onClose: () => void;
   style?: ViewStyle;
   enableDynamicSizing?: boolean;
   enablePanDownToClose?: boolean;
@@ -23,7 +25,7 @@ interface DetachedSheetProps {
 
 const DetachedSheet: React.FC<DetachedSheetProps> = ({
   children,
-  variant = 'base',
+  variant,
   layerNetwork,
   onClose,
   style,
@@ -92,7 +94,9 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
         {...(accessible !== undefined ? { accessible } : {})}
         backgroundComponent={({ style: backgroundStyle }) => (
           <View style={[backgroundStyle, styles.gradientContainer]}>
-            <PlatformBlurView intensity={50} tint="light" style={styles.blurOverlay} />
+            <View style={[styles.blurOverlay, BLUR_EXTEND_BOTTOM > 0 && styles.blurOverlayExtended]}>
+              <PlatformBlurView intensity={50} tint="light" style={StyleSheet.absoluteFill} />
+            </View>
             <View style={styles.radialGradientWrapper}>
               <RadialGradient colorList={radialColorList} x="48.63%" y="-24.14%" rx="163.06%" ry="75.01%" />
             </View>
@@ -123,10 +127,14 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
+    bottom: 0,
     height: 800,
   },
   blurOverlay: {
     ...StyleSheet.absoluteFillObject,
+  },
+  blurOverlayExtended: {
+    bottom: -BLUR_EXTEND_BOTTOM,
   },
   borderOverlay: {
     ...StyleSheet.absoluteFillObject,
