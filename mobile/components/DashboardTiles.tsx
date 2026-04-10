@@ -12,6 +12,7 @@ import { getIsTestnet, getTickerByNetwork, getDecimalsByNetwork } from '@shared/
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useCachedBalance } from '@shared/hooks/useCachedBalance';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
+import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
 import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
@@ -54,8 +55,10 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
   const fiat = useSelectedFiat();
 
   const { balance } = useCachedBalance(card.networkId, accountNumber || 0);
-  const { exchangeRate } = useCachedExchangeRate(card.networkId);
+  const { exchangeRate: cachedExchangeRate } = useCachedExchangeRate(card.networkId);
+  const { exchangeRate } = useExchangeRate(card.networkId);
   const [hasTimedOut, setHasTimedOut] = useState(false);
+  const effectiveExchangeRate = exchangeRate ?? (cachedExchangeRate !== undefined ? Number(cachedExchangeRate) : undefined);
 
   // Animation for squeeze effect
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -78,21 +81,19 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
 
     if (isTestnet) {
       formattedUsdValue = 'Testnet';
-    } else if (balance !== undefined && balance !== null && exchangeRate) {
-      formattedUsdValue = formatFiatDisplay(formatFiatBalance(balance, getDecimalsByNetwork(card.networkId as any), +exchangeRate), fiat);
+    } else if (balance !== undefined && balance !== null && effectiveExchangeRate) {
+      formattedUsdValue = formatFiatDisplay(formatFiatBalance(balance, getDecimalsByNetwork(card.networkId as any), effectiveExchangeRate), fiat);
     } else {
       formattedUsdValue = '...';
     }
 
     if (card.networkId === NETWORK_USDT && !Number.isNaN(+formattedBalance)) {
-      // dont display usd which is basically same as tokens,
-      // and truncate to 2 digits after coma only
-      formattedUsdValue = '';
+      // Keep concise token display precision for USDT aggregate cards.
       formattedBalance = String(Math.floor(+formattedBalance * 100) / 100);
     }
 
     return { ...card, balance: formattedBalance, usdValue: formattedUsdValue };
-  }, [card, balance, exchangeRate, hasTimedOut, fiat]);
+  }, [card, balance, effectiveExchangeRate, hasTimedOut, fiat]);
   const gradientColors = useMemo(() => {
     let gradKey: keyof typeof sharedGradients = 'base';
     for (const key of Object.keys(sharedGradients)) {
