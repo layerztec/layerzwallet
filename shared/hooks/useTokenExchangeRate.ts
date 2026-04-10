@@ -24,28 +24,33 @@ function middleware(useSWRNext: any) {
 
 export const tokenExchangeRateFetcher = async (arg: tokenExchangeRateFetcherArg): Promise<number> => {
   const { network, tokenId, fiat } = arg;
+  const getUsdToSelectedFiatRate = async () => {
+    const btcToFiat = await getFiatRate(fiat);
+    const btcToUsd = await getFiatRate('USD');
+    return btcToFiat / btcToUsd;
+  };
 
   if (getIsTestnet(network)) {
     return 0;
   }
 
   if (network === NETWORK_USDT) {
-    return 1;
+    return await getUsdToSelectedFiatRate();
   }
 
   // USDT on Liquid network
   if (network === NETWORK_LIQUID && USDT_TOKENS[NETWORK_LIQUID].includes(tokenId as any)) {
-    return 1;
+    return await getUsdToSelectedFiatRate();
   }
 
   // USDT0 and rUSDT on Rootstock network
   if (network === NETWORK_ROOTSTOCK && USDT_TOKENS[NETWORK_ROOTSTOCK].includes(tokenId as any)) {
-    return 1;
+    return await getUsdToSelectedFiatRate();
   }
 
   // USDB on Spark network
   if (network === NETWORK_SPARK && USDT_TOKENS[NETWORK_SPARK]?.includes(tokenId as any)) {
-    return 1;
+    return await getUsdToSelectedFiatRate();
   }
 
   // Handle STX token on Stacks network
@@ -63,7 +68,9 @@ export const tokenExchangeRateFetcher = async (arg: tokenExchangeRateFetcherArg)
       const tickerData = data.result?.STXUSD;
       if (tickerData && tickerData.c && tickerData.c[0]) {
         // 'c' is the last trade closed array [price, lot volume]
-        return parseFloat(tickerData.c[0]);
+        const stxUsdRate = parseFloat(tickerData.c[0]);
+        const usdToFiatRate = await getUsdToSelectedFiatRate();
+        return stxUsdRate * usdToFiatRate;
       }
 
       return 0;

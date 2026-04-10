@@ -24,12 +24,6 @@ export function useCachedExchangeRate(network: Networks): { exchangeRate: String
   const fiat = useSelectedFiat();
   const { cache } = useSWRConfig();
 
-  if (network === NETWORK_USDT) {
-    return {
-      exchangeRate: '1',
-    };
-  }
-
   let network2use: Networks = network;
 
   if (network === NETWORK_LIGHTNING) {

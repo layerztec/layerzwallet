@@ -28,7 +28,9 @@ export const exchangeRateFetcher = async (arg: exchangeRateFetcherArg): Promise<
   }
 
   if (network === NETWORK_USDT) {
-    return 1;
+    const btcToFiat = await getFiatRate(fiat);
+    const btcToUsd = await getFiatRate('USD');
+    return btcToFiat / btcToUsd;
   }
 
   return await getFiatRate(fiat);
