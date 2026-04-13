@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { Alert, StyleSheet, View, Animated, ActivityIndicator, Image, FlatList, LayoutAnimation, Platform } from 'react-native';
+import { Alert, StyleSheet, View, Animated, ActivityIndicator, Image, FlatList, LayoutAnimation, Platform, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -332,7 +332,7 @@ export default function SeedBackupScreen() {
     <View style={styles.backgroundContainer}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
         <ScreenHeader title="Recovery Phrase" />
-        <View style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContentContainer} showsVerticalScrollIndicator={false} bounces={false}>
           <View style={styles.warningSection}>
             <Pressable style={styles.warningHeader} onPress={handleBadgeTap}>
               <Ionicons name="alert-circle-outline" size={28} color="rgba(255, 255, 255, 0.9)" />
@@ -372,7 +372,7 @@ export default function SeedBackupScreen() {
 
             <Button title="Verify Backup" variant="light" onPress={handleVerifyBackup} disabled={!mnemonic} style={styles.actionButton} />
           </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -386,15 +386,16 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  container: {
-    flex: 1,
+  scrollContentContainer: {
+    flexGrow: 1,
     padding: 20,
-    justifyContent: 'space-between',
+    paddingBottom: 32,
+    gap: 8,
   },
   warningSection: {
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
@@ -406,7 +407,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   warningTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
     color: 'rgba(255, 255, 255, 0.95)',
   },
@@ -414,7 +415,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
+    textAlign: 'left',
   },
   warningBold: {
     fontWeight: '700',
@@ -430,12 +431,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     minHeight: 280,
-    paddingVertical: 24,
-    overflow: 'hidden',
   },
   revealContainerRevealed: {
     backgroundColor: 'transparent',
     borderWidth: 0,
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
   },
   revealContent: {
     alignItems: 'center',
