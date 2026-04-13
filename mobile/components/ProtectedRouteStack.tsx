@@ -177,15 +177,11 @@ export function ProtectedRouteStack() {
         <Stack.Screen
           name="modals/transfer-confirm"
           options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.8],
-            sheetGrabberVisible: true,
-            headerTransparent: false,
-            gestureEnabled: true,
+            presentation: 'transparentModal',
+            animation: 'fade',
             headerShown: false,
-            contentStyle: {
-              height: '100%',
-            },
+            gestureEnabled: true,
+            contentStyle: { backgroundColor: 'transparent' },
           }}
         />
         <Stack.Screen

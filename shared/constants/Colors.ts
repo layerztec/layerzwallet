@@ -92,6 +92,51 @@ export const getNetworkPrimaryColor = (network: string): string => {
   return networkColors[network]?.primary || networkColors.base.primary;
 };
 
+function clampByte(n: number): number {
+  return Math.max(0, Math.min(255, Math.round(n)));
+}
+
+/**
+ * Darken a `#RRGGBB` toward black (solid, no alpha). Multiplies each channel by `factor`.
+ */
+export function darkenHex(hex: string, factor: number): string {
+  if (!hex.startsWith('#') || hex.length < 7) {
+    return hex;
+  }
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
+    return hex;
+  }
+  const toHex = (c: number) =>
+    clampByte(c * factor)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+/** Convert `#RRGGBB` to `rgba()` (invalid hex returns input unchanged). */
+export function hexToRgba(hex: string, opacity: number): string {
+  if (!hex.startsWith('#') || hex.length < 7) {
+    return hex;
+  }
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
+    return hex;
+  }
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
+/**
+ * Use for small UI chips on animated radial backgrounds (e.g. transfer arrow) where alpha is not viable.
+ */
+export function getNetworkPrimaryColorDarkened(network: string, factor = 0.4): string {
+  return darkenHex(getNetworkPrimaryColor(network), factor);
+}
+
 /**
  * Gradients export - derived from networkColors for backward compatibility
  */
