@@ -136,6 +136,7 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     marginHorizontal: 20,
+    marginBottom: 16,
   },
   button: {
     backgroundColor: Colors.dark.buttonPrimary,

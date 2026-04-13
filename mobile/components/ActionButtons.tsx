@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { ActionPopupButton } from './ActionPopupButton';
-import LiquidGlassButton from './LiquidGlassButton';
+import HomeActionButton from './HomeActionButton';
 import { ThemedText } from './ThemedText';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -110,30 +110,30 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
     if (network === NETWORK_USDT) {
       return (
         <ActionPopupButton actions={usdtSendActions} title="Choose network to send">
-          <LiquidGlassButton title="Send" icon={{ name: 'call-made', type: 'material', size: 24 }} onPress={() => {}} testID="SendButton" />
+          <HomeActionButton title="Send" icon={{ name: 'call-made', type: 'material', size: 24 }} onPress={() => {}} testID="SendButton" />
         </ActionPopupButton>
       );
     }
 
-    return <LiquidGlassButton title="Send" icon={{ name: 'call-made', type: 'material', size: 24 }} onPress={handleSend} testID="SendButton" />;
+    return <HomeActionButton title="Send" icon={{ name: 'call-made', type: 'material', size: 24 }} onPress={handleSend} testID="SendButton" />;
   };
 
   // Render Receive button
   const renderReceiveButton = () => {
     if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET) {
       // Default to Lightning Address receive on tap (as per master behavior)
-      return <LiquidGlassButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={handleReceiveOnLightningAddress} testID="ReceiveButton" />;
+      return <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={handleReceiveOnLightningAddress} testID="ReceiveButton" />;
     }
 
     if (network === NETWORK_USDT) {
       return (
         <ActionPopupButton actions={usdtReceiveActions} title="Layer to receive">
-          <LiquidGlassButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={() => {}} testID="ReceiveButton" />
+          <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={() => {}} testID="ReceiveButton" />
         </ActionPopupButton>
       );
     }
 
-    return <LiquidGlassButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={handleReceive} testID="ReceiveButton" />;
+    return <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={handleReceive} testID="ReceiveButton" />;
   };
 
   // Render Fund button (only if canBuyWithFiat is true)
@@ -142,7 +142,7 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
       return null;
     }
 
-    return <LiquidGlassButton title="Fund" icon={{ name: 'add', type: 'ionicons', size: 24 }} onPress={handleFund} testID="FundButton" />;
+    return <HomeActionButton title="Fund" icon={{ name: 'add', type: 'ionicons', size: 24 }} onPress={handleFund} testID="FundButton" />;
   };
 
   return (

@@ -87,7 +87,7 @@ export default function CreateWalletScreen() {
           <View style={styles.contentContainer}>
             <View style={styles.titleContainer}>
               <ThemedText type="title" style={styles.title}>
-                {`This is your \nrecovery phrase`}
+                {`Your recovery phrase`}
               </ThemedText>
               <ThemedText style={styles.subtitle}>Make sure to write it down as shown here.{'\n'}You have to verify this later.</ThemedText>
             </View>
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     alignItems: 'center',
-    marginVertical: 30,
+    marginVertical: 24,
   },
   title: {
     ...Typography.headline,
@@ -181,9 +181,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginBottom: 12,
+    marginBottom: 8,
     width: '48%',
-    minHeight: 50,
   },
   image: {
     alignSelf: 'center',

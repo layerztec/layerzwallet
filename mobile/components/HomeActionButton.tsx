@@ -1,36 +1,22 @@
-import React from 'react';
-import { StyleSheet, ActivityIndicator, View, TextStyle, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import React from 'react';
+import { ActivityIndicator, StyleProp, StyleSheet, TextStyle, View, ViewStyle } from 'react-native';
 import Pressable, { PressableProps } from './Pressable';
-import LiquidGlassView from './LiquidGlassView';
 import { ThemedText } from './ThemedText';
 
 type IconConfig =
   | { name: React.ComponentProps<typeof MaterialIcons>['name']; type: 'material'; size?: number }
   | { name: React.ComponentProps<typeof Ionicons>['name']; type?: 'ionicons'; size?: number };
 
-export interface LiquidGlassButtonProps extends PressableProps {
+export interface HomeActionButtonProps extends PressableProps {
   title: string;
   icon?: IconConfig;
   variant?: 'light' | 'dark';
   loading?: boolean;
   textStyle?: TextStyle;
-  glassStyle?: 'clear' | 'regular';
 }
 
-export default function LiquidGlassButton({
-  title,
-  icon,
-  onPress,
-  variant = 'light',
-  disabled = false,
-  loading = false,
-  style,
-  textStyle,
-  activeOpacity = 0.8,
-  glassStyle = 'clear',
-  ...restProps
-}: LiquidGlassButtonProps) {
+export default function HomeActionButton({ title, icon, onPress, variant = 'light', disabled = false, loading = false, style, textStyle, activeOpacity = 0.8, ...restProps }: HomeActionButtonProps) {
   const getButtonStyle = (): StyleProp<ViewStyle> => {
     const baseStyle: ViewStyle[] = [styles.button];
 
@@ -75,16 +61,13 @@ export default function LiquidGlassButton({
     return renderIcon();
   };
 
-  // Use 'light' for light variant to get a lighter appearance
-  const tint = variant === 'light' ? 'light' : 'dark';
+  const surfaceStyle = variant === 'light' ? styles.surfaceLight : styles.surfaceDark;
 
   return (
     <View style={styles.buttonContainer}>
       <View style={styles.buttonWrapper}>
         <Pressable style={getButtonStyle()} onPress={onPress} disabled={disabled || loading} activeOpacity={activeOpacity} {...restProps}>
-          <LiquidGlassView tint={tint} glassStyle={glassStyle} intensity={1} borderIntensity={0.2} style={styles.glassContainer}>
-            {renderContent()}
-          </LiquidGlassView>
+          <View style={[styles.surface, surfaceStyle]}>{renderContent()}</View>
         </Pressable>
       </View>
       <View style={styles.textContainer}>
@@ -97,9 +80,9 @@ export default function LiquidGlassButton({
 const styles = StyleSheet.create({
   buttonContainer: {
     flex: 1,
-    flexBasis: 0, // Critical: ensures equal starting size
-    minWidth: 0, // Critical: allows shrinking below content size
-    maxWidth: '100%', // Prevents growing beyond allocated space
+    flexBasis: 0,
+    minWidth: 0,
+    maxWidth: '100%',
     alignItems: 'center',
   },
   buttonWrapper: {
@@ -114,13 +97,22 @@ const styles = StyleSheet.create({
     marginTop: 8,
     alignItems: 'center',
   },
-  glassContainer: {
+  surface: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 28,
     overflow: 'hidden',
-    backgroundColor: 'transparent',
+  },
+  surfaceLight: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+  },
+  surfaceDark: {
+    backgroundColor: 'rgba(0, 0, 0, 0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
   },
   buttonText: {
     fontSize: 13,
