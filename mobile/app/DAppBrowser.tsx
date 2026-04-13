@@ -13,18 +13,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image as ExpoImage } from 'expo-image';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, withSpring, interpolate, runOnJS } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
-import GradientScreen from '@/components/GradientScreen';
 import { BrowserBridge } from '@/src/class/browser-bridge';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useFocusEffect } from '@react-navigation/native';
-import { NETWORK_BITCOIN } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_ROOTSTOCK, NETWORK_LIGHTNING, NETWORK_SPARK, NETWORK_ARK } from '@shared/types/networks';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import { DAppBrowserTabs } from './DAppBrowserTabs';
 import { useWebViewPreviewManager } from './hooks/useWebViewPreviewManager';
+import PlatformBlurView from '@/components/PlatformBlurView';
+import ExplorerContent, { ExplorerCategory } from '@/components/Explorer/ExplorerContent';
+import { getPartnersList } from '@shared/models/partners-list';
+import type { PartnerInfo } from '@shared/types/partner-info';
 
 export const BROWSER_CONSTANTS = {
   ANIMATION: {
@@ -36,7 +40,7 @@ export const BROWSER_CONSTANTS = {
   },
   TIMEOUTS: {
     SCREENSHOT_DELAY: 500,
-    POST_LOAD_CAPTURE: 1000,
+    POST_LOAD_CAPTURE: 1500,
     LOADING_TIMEOUT: 10000,
   },
   MODAL: {
@@ -57,7 +61,7 @@ export const BROWSER_CONSTANTS = {
   },
 } as const;
 
-const getHomeUrl = (network: string): string => `https://layerztec.github.io/website/explore/?network=${network}`; // to test: https://metamask.github.io/test-dapp/ & https://eip6963.org/
+const homeIcon = require('@/assets/images/home.svg');
 
 const getTabTitle = (url: string): string => {
   try {
@@ -67,6 +71,8 @@ const getTabTitle = (url: string): string => {
     return url.length > 30 ? url.substring(0, 30) + '...' : url;
   }
 };
+
+const BLANK_TAB_URL = 'https://google.com';
 
 const isValidUrl = (urlString: string): boolean => {
   try {
@@ -109,8 +115,6 @@ const createBrowserTab = (url: string, id?: string): BrowserTab => ({
   timestamp: Date.now(),
 });
 
-const createHomeTab = (network: string, id?: string): BrowserTab => createBrowserTab(getHomeUrl(network), id);
-
 export type DappBrowserProps = {
   url?: string;
 };
@@ -150,11 +154,18 @@ const DAppBrowser: React.FC = () => {
   const [js, setJs] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const params = useLocalSearchParams<DappBrowserProps>();
-  const initialUrl = params.url || getHomeUrl(network);
+  const [viewMode, setViewMode] = useState<'explorer' | 'browser'>(() => (params.url ? 'browser' : 'explorer'));
+  const [explorerCategory, setExplorerCategory] = useState<ExplorerCategory>('all');
+  const viewModeRef = useRef(viewMode);
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+  }, [viewMode]);
+  const explorerPlaceholder = 'Search on Bitcoin';
+  const initialUrl = params.url || '';
   const [tabs, setTabs] = useState<BrowserTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string>('');
   const [isRestoringTabs, setIsRestoringTabs] = useState<boolean>(true);
-  const [addressInput, setAddressInput] = useState<string>(initialUrl);
+  const [addressInput, setAddressInput] = useState<string>(() => (params.url ? initialUrl : ''));
   const [showTabsOverview, setShowTabsOverview] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isAddressInputFocused, setIsAddressInputFocused] = useState(false);
@@ -271,6 +282,7 @@ const DAppBrowser: React.FC = () => {
   }));
 
   const panGesture = Gesture.Pan()
+    .enabled(false)
     .onStart(() => {
       gestureStartPosition.value = modalTranslateY.value;
     })
@@ -350,6 +362,7 @@ const DAppBrowser: React.FC = () => {
 
   useEffect(() => {
     navigation.setOptions({
+      // Native header only while tab overview is open; hidden during browsing / explorer to avoid double headers.
       headerShown: showTabsOverview,
       title: 'Explorer',
       headerBackVisible: false,
@@ -405,6 +418,7 @@ const DAppBrowser: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (viewMode !== 'browser') return;
     (async () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -479,7 +493,7 @@ const DAppBrowser: React.FC = () => {
         setError('Failed to load DApp browser script: ' + error.message);
       }
     })();
-  }, [network, setAddressBarValue]);
+  }, [viewMode, network, setAddressBarValue]);
 
   const isPurgingRef = useRef(false);
   const hasPurgedRef = useRef(false);
@@ -503,10 +517,10 @@ const DAppBrowser: React.FC = () => {
           }
         } catch (e) {}
 
-        const newTab = createHomeTab(network);
-        setTabs([newTab]);
-        setActiveTabId(newTab.id);
-        setAddressBarValue(newTab.url, { ensureStartVisible: true });
+        setTabs([]);
+        setActiveTabId('');
+        setAddressInput('');
+        setViewMode('explorer');
         setShowTabsOverview(false);
 
         hasPurgedRef.current = true;
@@ -514,7 +528,7 @@ const DAppBrowser: React.FC = () => {
         isPurgingRef.current = false;
       }
     },
-    [network, setAddressBarValue]
+    [setAddressBarValue]
   );
 
   const saveTabs = useCallback(
@@ -607,16 +621,14 @@ const DAppBrowser: React.FC = () => {
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
 
-      // Check if ref is ready, with retry logic
+      // Check if ref is ready, with small bounded retry (mount/layout race)
+      const retryDelaysMs = [100, 200, 400];
       let containerRef = tabContainerRefs.current[tabId];
-      if (!containerRef?.current) {
-        // Wait a bit for ref to be set
-        await new Promise((resolve) => setTimeout(resolve, 100));
+      for (let attempt = 0; attempt <= retryDelaysMs.length; attempt++) {
+        if (containerRef?.current) break;
+        if (attempt === retryDelaysMs.length) return null;
+        await new Promise((resolve) => setTimeout(resolve, retryDelaysMs[attempt]));
         containerRef = tabContainerRefs.current[tabId];
-
-        if (!containerRef?.current) {
-          return null;
-        }
       }
 
       try {
@@ -672,16 +684,29 @@ const DAppBrowser: React.FC = () => {
               ? {
                   ...currentTab,
                   screenshot: storedScreenshot,
+                  timestamp: Date.now(),
                 }
               : currentTab
           );
         });
+        return;
       } else {
+        // If we already have a screenshot, don't force a reload/capture just because the manifest is missing.
+        // This avoids replacing a working image with a failing one.
+        if (hasScreenshot) {
+          return;
+        }
+
         // If no stored screenshot, mark tab as needing one and trigger reload
         if (!tabsNeedingScreenshotsRef.current.has(tabId)) {
           tabsNeedingScreenshotsRef.current.add(tabId);
 
-          // Try forcing the WebView to load by triggering a reload
+          // Try a short capture attempt first (sometimes reload isn't needed)
+          setTimeout(() => {
+            captureTabScreenshot(tabId, 0).catch(() => {});
+          }, 300);
+
+          // Then try forcing the WebView to load by triggering a reload (fallback)
           const webviewRef = tabWebViewRefs.current[tabId];
           if (webviewRef?.current) {
             webviewRef.current.reload();
@@ -689,8 +714,12 @@ const DAppBrowser: React.FC = () => {
         }
       }
     },
-    [screenshots]
+    [screenshots, captureTabScreenshot]
   );
+
+  const invalidateTabPreview = useCallback((tabId: string) => {
+    setTabs((prev) => prev.map((t) => (t.id === tabId ? { ...t, screenshot: undefined, timestamp: Date.now() } : t)));
+  }, []);
 
   useEffect(() => {
     const restoreTabs = async () => {
@@ -701,25 +730,31 @@ const DAppBrowser: React.FC = () => {
         setActiveTabId(restored.activeTabId);
         const activeTab = restored.tabs.find((t) => t.id === restored.activeTabId);
         if (activeTab) {
-          setAddressBarValue(activeTab.url, { ensureStartVisible: true });
+          if (viewModeRef.current === 'browser') {
+            setAddressBarValue(activeTab.url, { ensureStartVisible: true });
+          } else {
+            setAddressInput('');
+          }
         }
       } else {
-        const initialTab = createHomeTab(network);
-        setTabs([initialTab]);
-        setActiveTabId(initialTab.id);
-        setAddressBarValue(initialTab.url, { ensureStartVisible: true });
+        setTabs([]);
+        setActiveTabId('');
+        setAddressInput('');
       }
 
       setIsRestoringTabs(false);
     };
 
     restoreTabs();
-  }, [network, loadTabs, setAddressBarValue]);
+  }, [loadTabs, setAddressBarValue]);
 
   useEffect(() => {
-    if (!isRestoringTabs && tabs.length > 0 && activeTabId) {
+    if (isRestoringTabs) return;
+    if (tabs.length > 0 && activeTabId) {
       saveTabs(tabs, activeTabId);
+      return;
     }
+    void AsyncStorage.multiRemove([BROWSER_CONSTANTS.STORAGE.TABS_KEY, BROWSER_CONSTANTS.STORAGE.ACTIVE_TAB_KEY]);
   }, [tabs, activeTabId, isRestoringTabs, saveTabs]);
 
   useEffect(() => {
@@ -743,6 +778,7 @@ const DAppBrowser: React.FC = () => {
 
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      if (viewMode !== 'browser') return;
       if (nextAppState === 'background' || nextAppState === 'inactive') {
         if (activeTabId) {
           await captureTabScreenshot(activeTabId);
@@ -752,10 +788,10 @@ const DAppBrowser: React.FC = () => {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
-  }, [activeTabId, captureTabScreenshot]);
+  }, [activeTabId, captureTabScreenshot, viewMode]);
 
   useEffect(() => {
-    if (params.url && !isRestoringTabs && tabs.length > 0 && lastHandledUrl.current !== params.url) {
+    if (params.url && !isRestoringTabs && lastHandledUrl.current !== params.url) {
       lastHandledUrl.current = params.url;
 
       if (!isValidUrl(params.url)) {
@@ -772,27 +808,55 @@ const DAppBrowser: React.FC = () => {
     }
   }, [params.url, isRestoringTabs, tabs, setAddressBarValue]);
 
-  const redirectActiveTabToHome = () => {
-    const homeUrl = getHomeUrl(network);
-    const homeTitle = 'layerztec.github.io';
+  const handleHomePress = () => {
+    // "Home" should always go to Explorer-only.
+    setViewMode('explorer');
+    setAddressInput('');
+    setShowTabsOverview(false);
+    setShowAddressSuggestions(false);
+    setIsAddressInputFocused(false);
+    addressInputRef.current?.blur();
+  };
 
-    updateActiveTab({
-      url: homeUrl,
-      title: homeTitle,
-      history: [{ url: homeUrl, title: homeTitle }],
-      historyIndex: 0,
-      canGoBack: false,
-      canGoForward: false,
-    });
-    setAddressBarValue(homeUrl, { ensureStartVisible: true });
+  const openWebAppInNewTab = async (url: string) => {
+    if (!url) return;
+
+    // Explorer UX: submitting/opening should dismiss keyboard.
+    if (addressInputRef.current?.isFocused()) {
+      addressInputRef.current.blur();
+    }
+    setIsAddressInputFocused(false);
+    setShowAddressSuggestions(false);
+
+    // If we're already in browser mode, capture the current tab preview before switching.
+    if (viewMode === 'browser' && activeTabId) {
+      await captureTabScreenshot(activeTabId, 50).catch((error) => globalThis.handleError?.(error, 'captureTabScreenshot'));
+    }
+
+    const newTab = createBrowserTab(url);
+    setTabs((prev) => [...prev, newTab]);
+    setActiveTabId(newTab.id);
+    setShowAddressSuggestions(false);
+    setShowTabsOverview(false);
+
+    setAddressBarValue(newTab.url, { ensureStartVisible: true });
+    setViewMode('browser');
   };
 
   const createNewTab = async () => {
+    if (viewModeRef.current !== 'browser') {
+      setViewMode('browser');
+    }
+    if (addressInputRef.current?.isFocused()) {
+      addressInputRef.current.blur();
+    }
+    setIsAddressInputFocused(false);
+    setShowAddressSuggestions(false);
     if (activeTabId) {
       await captureTabScreenshot(activeTabId, 50).catch((error) => globalThis.handleError?.(error, 'captureTabScreenshot'));
     }
 
-    const newTab = createHomeTab(network);
+    const newTab = createBrowserTab(BLANK_TAB_URL);
 
     setTabs((prev) => [...prev, newTab]);
     setActiveTabId(newTab.id);
@@ -804,13 +868,24 @@ const DAppBrowser: React.FC = () => {
   };
 
   const closeTab = (tabId: string) => {
+    if (viewModeRef.current !== 'browser') {
+      setViewMode('browser');
+    }
+    if (addressInputRef.current?.isFocused()) {
+      addressInputRef.current.blur();
+    }
+    setIsAddressInputFocused(false);
+    setShowAddressSuggestions(false);
     screenshots.remove(tabId);
 
     if (tabs.length === 1) {
-      const newTab = createHomeTab(network);
-      setTabs([newTab]);
-      setActiveTabId(newTab.id);
-      setAddressBarValue(newTab.url, { ensureStartVisible: true });
+      setTabs([]);
+      setActiveTabId('');
+      setAddressInput('');
+      setViewMode('explorer');
+      if (showTabsOverview) {
+        hideTabsOverview();
+      }
       return;
     }
 
@@ -830,6 +905,14 @@ const DAppBrowser: React.FC = () => {
   };
 
   const switchTab = async (tabId: string) => {
+    if (viewModeRef.current !== 'browser') {
+      setViewMode('browser');
+    }
+    if (addressInputRef.current?.isFocused()) {
+      addressInputRef.current.blur();
+    }
+    setIsAddressInputFocused(false);
+    setShowAddressSuggestions(false);
     if (activeTabId === tabId) {
       hideTabsOverview();
       return;
@@ -861,10 +944,25 @@ const DAppBrowser: React.FC = () => {
     tabsOpacity.value = withTiming(1, { duration: BROWSER_CONSTANTS.ANIMATION.STANDARD });
     addressBarTranslateY.value = withTiming(-120, { duration: BROWSER_CONSTANTS.ANIMATION.STANDARD });
 
-    // Capture current tab screenshot
+    // Capture current tab screenshot only if missing (don't replace an existing preview on overlay open)
     if (activeTabId) {
-      captureTabScreenshot(activeTabId).catch((error) => globalThis.handleError?.(error, 'captureTabScreenshot'));
+      const active = tabs.find((t) => t.id === activeTabId);
+      if (!active?.screenshot) {
+        captureTabScreenshot(activeTabId).catch((error) => globalThis.handleError?.(error, 'captureTabScreenshot'));
+      }
     }
+
+    // Refresh previews for the first visible cards (helps after cache prune / restore)
+    const topN = 6;
+    tabs.slice(0, topN).forEach((tab, index) => {
+      if (tab.screenshot) return;
+      setTimeout(
+        () => {
+          ensureTabPreview(tab.id, false).catch((error) => globalThis.handleError?.(error, 'ensureTabPreview'));
+        },
+        250 + index * 200
+      );
+    });
 
     // Ensure all tabs have screenshots (stagger to avoid overwhelming the system)
     tabs.forEach((tab, index) => {
@@ -907,11 +1005,13 @@ const DAppBrowser: React.FC = () => {
         text: 'Close All',
         style: 'destructive',
         onPress: () => {
-          const newTab = createHomeTab(network);
-
-          setTabs([newTab]);
-          setActiveTabId(newTab.id);
-          setAddressBarValue(newTab.url, { ensureStartVisible: true });
+          if (viewModeRef.current !== 'browser') {
+            setViewMode('browser');
+          }
+          setTabs([]);
+          setActiveTabId('');
+          setAddressInput('');
+          setViewMode('explorer');
           if (showTabsOverview) {
             hideTabsOverview();
           }
@@ -954,38 +1054,11 @@ const DAppBrowser: React.FC = () => {
   };
 
   const goBack = () => {
+    if (viewMode !== 'browser') return;
     const tab = tabs.find((t) => t.id === activeTabId);
     if (!tab || tab.historyIndex <= 0) return;
 
     const newIndex = tab.historyIndex - 1;
-    const historyItem = tab.history[newIndex];
-
-    isManualNavigation.current = true;
-    lastManualNavigationUrl.current = historyItem.url;
-    setTabs((prev) =>
-      prev.map((t) =>
-        t.id === activeTabId
-          ? {
-              ...t,
-              historyIndex: newIndex,
-              url: historyItem.url,
-              title: historyItem.title,
-              canGoBack: newIndex > 0,
-              canGoForward: newIndex < t.history.length - 1,
-            }
-          : t
-      )
-    );
-
-    setAddressBarValue(historyItem.url, { ensureStartVisible: true });
-    webviewRef.current?.injectJavaScript(`window.location.href = '${historyItem.url}';`);
-  };
-
-  const goForward = () => {
-    const tab = tabs.find((t) => t.id === activeTabId);
-    if (!tab || tab.historyIndex >= tab.history.length - 1) return;
-
-    const newIndex = tab.historyIndex + 1;
     const historyItem = tab.history[newIndex];
 
     isManualNavigation.current = true;
@@ -1040,12 +1113,6 @@ const DAppBrowser: React.FC = () => {
     const tab = tabs.find((t) => t.id === activeTabId);
     if (!tab) return [];
     return tab.history.slice(0, tab.historyIndex).reverse();
-  };
-
-  const getForwardHistory = () => {
-    const tab = tabs.find((t) => t.id === activeTabId);
-    if (!tab) return [];
-    return tab.history.slice(tab.historyIndex + 1);
   };
 
   const injectAutofillScript = useCallback((address: string) => {
@@ -1213,23 +1280,23 @@ const DAppBrowser: React.FC = () => {
     [activeTabId, isAddressInputFocused, setAddressBarValue]
   );
 
-  if (error) {
+  if (error && viewMode === 'browser') {
     return (
-      <GradientScreen variant={network}>
+      <SafeAreaView style={styles.blackScreen} edges={['top', 'left', 'right']}>
         <View style={styles.errorContainer}>
           <ThemedText style={styles.errorText}>{error}</ThemedText>
         </View>
-      </GradientScreen>
+      </SafeAreaView>
     );
   }
 
-  if (!js) {
+  if (!js && viewMode === 'browser') {
     return (
-      <GradientScreen variant={network}>
+      <SafeAreaView style={styles.blackScreen} edges={['top', 'left', 'right']}>
         <View style={styles.loadingContainer} testID="DappBrowserLoading">
           <ThemedText style={styles.loadingText}>Loading DApp browser...</ThemedText>
         </View>
-      </GradientScreen>
+      </SafeAreaView>
     );
   }
 
@@ -1238,15 +1305,23 @@ const DAppBrowser: React.FC = () => {
       <Stack.Screen options={{ headerShown: false }} />
 
       <Animated.View style={[styles.modalContainer, styles.modalMaxHeight, modalAnimatedStyle]}>
-        <GradientScreen variant={network}>
+        <SafeAreaView style={styles.blackScreen} edges={['top', 'left', 'right']}>
           <GestureDetector gesture={panGesture}>
             <Animated.View style={[styles.addressBarContainer, addressBarAnimatedStyle]} pointerEvents={showTabsOverview ? 'none' : 'auto'}>
               <View style={styles.addressContainer}>
-                <Pressable style={styles.networkButton} onPress={redirectActiveTabToHome}>
-                  <ExpoImage source={getNetworkImageAsset(network)} style={styles.networkIcon} contentFit="contain" />
+                <Pressable style={styles.networkButton} onPress={handleHomePress} testID="BrowserHomeButton">
+                  <ExpoImage source={homeIcon} style={styles.homeIcon} contentFit="contain" />
                 </Pressable>
                 <View style={styles.addressBarWrapper}>
                   <View style={styles.addressBar}>
+                    <Pressable
+                      style={styles.addressBackButton}
+                      onPress={goBack}
+                      disabled={viewMode !== 'browser' || !activeTab?.canGoBack || showTabsOverview || isAddressInputFocused}
+                      testID="BrowserBackButton"
+                    >
+                      <Ionicons name="arrow-back" size={18} color={activeTab?.canGoBack && !showTabsOverview && !isAddressInputFocused ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.3)'} />
+                    </Pressable>
                     <TextInput
                       ref={addressInputRef}
                       style={styles.addressText}
@@ -1263,11 +1338,43 @@ const DAppBrowser: React.FC = () => {
                       onBlur={() => {
                         setIsAddressInputFocused(false);
                         setShowAddressSuggestions(false);
-                        if (activeTab?.url) {
+                        if (viewMode === 'browser' && activeTab?.url) {
                           setAddressBarValue(activeTab.url, { ensureStartVisible: true });
                         }
                       }}
                       onSubmitEditing={() => {
+                        if (viewMode === 'explorer') {
+                          const raw = addressInput.trim();
+                          if (!raw) return;
+
+                          // If the user typed a URL, open it directly (keeps browser behavior intact).
+                          let urlCandidate = raw;
+                          if (!urlCandidate.startsWith('http://') && !urlCandidate.startsWith('https://')) {
+                            urlCandidate = 'https://' + urlCandidate;
+                          }
+                          if (isValidUrl(urlCandidate)) {
+                            void openWebAppInNewTab(urlCandidate);
+                            return;
+                          }
+
+                          // Otherwise treat it as an app search and open the first match.
+                          const q = raw.toLowerCase();
+                          const partners = [
+                            ...getPartnersList(NETWORK_BITCOIN),
+                            ...getPartnersList(NETWORK_BOTANIX),
+                            ...getPartnersList(NETWORK_ROOTSTOCK),
+                            ...getPartnersList(NETWORK_CITREA),
+                            ...getPartnersList(NETWORK_LIGHTNING),
+                            ...getPartnersList(NETWORK_SPARK),
+                            ...getPartnersList(NETWORK_ARK),
+                          ];
+                          const first = partners.find((p) => `${p.name} ${p.description ?? ''}`.toLowerCase().includes(q));
+                          if (first?.url) {
+                            void openWebAppInNewTab(first.url);
+                          }
+                          return;
+                        }
+
                         let url = addressInput.trim();
                         if (!url) return;
 
@@ -1284,16 +1391,24 @@ const DAppBrowser: React.FC = () => {
                         }
                       }}
                       returnKeyType="go"
-                      keyboardType="url"
+                      keyboardType={viewMode === 'explorer' ? 'default' : 'url'}
                       autoCapitalize="none"
                       autoCorrect={false}
-                      placeholder="Enter URL"
+                      placeholder={viewMode === 'explorer' ? explorerPlaceholder : 'Enter URL'}
                       placeholderTextColor="rgba(255, 255, 255, 0.5)"
                       selectTextOnFocus={true}
                       testID="DappBrowserAddressBar"
                     />
                     {isAddressInputFocused ? (
-                      <Pressable style={styles.stopButton} onPress={() => setAddressInput('')}>
+                      <Pressable
+                        style={styles.stopButton}
+                        onPress={() => {
+                          setAddressInput('');
+                          setIsAddressInputFocused(false);
+                          setShowAddressSuggestions(false);
+                          addressInputRef.current?.blur();
+                        }}
+                      >
                         <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
                       </Pressable>
                     ) : isLoading ? (
@@ -1301,75 +1416,100 @@ const DAppBrowser: React.FC = () => {
                         <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
                       </Pressable>
                     ) : (
-                      <Pressable style={styles.stopButton} onPress={onRefresh} testID="BrowserRefreshButton">
-                        <Ionicons name="reload" size={18} color="rgba(255, 255, 255, 0.8)" />
-                      </Pressable>
+                      <View style={styles.stopButton} />
                     )}
-                    <ActionPopupButton
-                      title="Options"
-                      actions={[
-                        {
-                          onClick: () => {},
-                          variant: 'section',
-                          children: <ThemedText style={styles.menuSectionText}>Autofill</ThemedText>,
-                        },
-                        {
-                          onClick: async () => {
-                            const next = !autofillEnabled;
-                            setAutofillEnabled(next);
-                            await AsyncStorage.setItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_DISABLED_KEY, next ? '' : 'true');
-                            if (next && btcAddress) {
-                              injectAutofillScript(btcAddress);
-                            }
+                    {!isAddressInputFocused && (
+                      <ActionPopupButton
+                        title="Options"
+                        actions={[
+                          {
+                            onClick: () => {},
+                            variant: 'section',
+                            children: <ThemedText style={styles.menuSectionText}>Page</ThemedText>,
                           },
-                          children: (
-                            <View style={styles.menuItemContentColumn}>
-                              <View style={styles.menuItemContent}>
-                                <Ionicons name={autofillEnabled ? 'checkbox' : 'square-outline'} size={20} color="rgba(255, 255, 255, 0.9)" />
-                                <ThemedText style={styles.menuItemText}>Autofill Bitcoin Address</ThemedText>
+                          {
+                            onClick: onRefresh,
+                            children: (
+                              <View style={styles.menuItemContentColumn}>
+                                <View style={styles.menuItemContent}>
+                                  <Ionicons name="reload" size={20} color="rgba(255, 255, 255, 0.9)" />
+                                  <ThemedText style={styles.menuItemText}>Refresh</ThemedText>
+                                </View>
                               </View>
-                              <ThemedText style={styles.menuItemSubtitle}>Automatically fill BTC address fields on websites.</ThemedText>
-                            </View>
-                          ),
-                        },
-                        {
-                          onClick: () => {},
-                          variant: 'section',
-                          children: <ThemedText style={styles.menuSectionText}>Clipboard</ThemedText>,
-                        },
-                        {
-                          onClick: async () => {
-                            if (!btcAddress) return;
-                            await Clipboard.setStringAsync(btcAddress);
+                            ),
                           },
-                          children: (
-                            <View style={styles.menuItemContentColumn}>
-                              <View style={styles.menuItemContent}>
-                                <Ionicons name="copy-outline" size={20} color="rgba(255, 255, 255, 0.9)" />
-                                <ThemedText style={styles.menuItemText}>Copy Bitcoin Address</ThemedText>
+                          {
+                            onClick: () => {},
+                            variant: 'section',
+                            children: <ThemedText style={styles.menuSectionText}>Autofill</ThemedText>,
+                          },
+                          {
+                            onClick: async () => {
+                              const next = !autofillEnabled;
+                              setAutofillEnabled(next);
+                              await AsyncStorage.setItem(BROWSER_CONSTANTS.STORAGE.AUTOFILL_BTC_DISABLED_KEY, next ? '' : 'true');
+                              if (next && btcAddress) {
+                                injectAutofillScript(btcAddress);
+                              }
+                            },
+                            children: (
+                              <View style={styles.menuItemContentColumn}>
+                                <View style={styles.menuItemContent}>
+                                  <Ionicons name={autofillEnabled ? 'checkbox' : 'square-outline'} size={20} color="rgba(255, 255, 255, 0.9)" />
+                                  <ThemedText style={styles.menuItemText}>Autofill Bitcoin Address</ThemedText>
+                                </View>
+                                <ThemedText style={styles.menuItemSubtitle}>Automatically fill BTC address fields on websites.</ThemedText>
                               </View>
-                              {btcAddress ? <ThemedText style={styles.menuItemSubtitle}>{btcAddress}</ThemedText> : null}
-                            </View>
-                          ),
-                        },
-                      ]}
-                    >
-                      <Pressable
-                        style={[styles.stopButton, styles.autofillMenuButton, isAddressInputFocused ? { opacity: 0.4 } : null]}
-                        testID="BrowserAutofillMenuButton"
-                        disabled={isAddressInputFocused}
+                            ),
+                          },
+                          {
+                            onClick: () => {},
+                            variant: 'section',
+                            children: <ThemedText style={styles.menuSectionText}>Clipboard</ThemedText>,
+                          },
+                          {
+                            onClick: async () => {
+                              if (!btcAddress) return;
+                              await Clipboard.setStringAsync(btcAddress);
+                            },
+                            children: (
+                              <View style={styles.menuItemContentColumn}>
+                                <View style={styles.menuItemContent}>
+                                  <Ionicons name="copy-outline" size={20} color="rgba(255, 255, 255, 0.9)" />
+                                  <ThemedText style={styles.menuItemText}>Copy Bitcoin Address</ThemedText>
+                                </View>
+                                {btcAddress ? <ThemedText style={styles.menuItemSubtitle}>{btcAddress}</ThemedText> : null}
+                              </View>
+                            ),
+                          },
+                        ]}
                       >
-                        <Ionicons name="ellipsis-vertical" size={18} color="rgba(255, 255, 255, 0.8)" />
-                      </Pressable>
-                    </ActionPopupButton>
+                        <Pressable style={[styles.stopButton, styles.autofillMenuButton]} testID="BrowserAutofillMenuButton">
+                          <Ionicons name="ellipsis-vertical" size={18} color="rgba(255, 255, 255, 0.8)" />
+                        </Pressable>
+                      </ActionPopupButton>
+                    )}
                   </View>
                   <Animated.View style={[styles.progressBar, progressBarAnimatedStyle]} />
                 </View>
-                <Pressable style={styles.closeButton} onPress={() => router.back()} testID="BrowserCloseButton">
-                  <Ionicons name="close" size={20} color={isAddressInputFocused ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.9)'} />
-                </Pressable>
+                {!isAddressInputFocused && (
+                  <Pressable
+                    style={styles.topRightButton}
+                    onPress={() => {
+                      toggleTabsOverview();
+                    }}
+                    onLongPress={() => {
+                      handleCloseAllTabs();
+                    }}
+                    testID="BrowserTabsOverviewButton"
+                  >
+                    <View style={styles.tabsOverviewIcon}>
+                      <ThemedText style={styles.tabsCount}>{tabs.length}</ThemedText>
+                    </View>
+                  </Pressable>
+                )}
               </View>
-              {showAddressSuggestions && addressSuggestions.length > 0 && (
+              {viewMode === 'browser' && !isAddressInputFocused && showAddressSuggestions && addressSuggestions.length > 0 && (
                 <View style={styles.suggestionsContainer}>
                   {addressSuggestions.map((suggestion, index) => (
                     <Pressable
@@ -1385,162 +1525,137 @@ const DAppBrowser: React.FC = () => {
             </Animated.View>
           </GestureDetector>
 
-          <View style={styles.contentContainer}>
-            <Animated.View style={[styles.webviewContainer, webviewContainerAnimatedStyle, styles.flex1]} {...panResponder.panHandlers}>
-              <Animated.View style={[styles.absoluteFill, swipeOverlayAnimatedStyle, styles.swipeOverlayStyle]} />
-              <Animated.View style={[styles.swipeIndicator, swipeIndicatorAnimatedStyle]}>
-                <Ionicons name="arrow-back" size={32} color="rgba(255, 255, 255, 0.9)" />
-              </Animated.View>
-              <Animated.View style={[styles.flex1, swipeContentAnimatedStyle]}>
-                {tabs.map((tab) => {
-                  const isActive = tab.id === activeTabId;
-                  const containerStyles: StyleProp<ViewStyle>[] = [styles.tabContainer];
-
-                  if (isActive) {
-                    containerStyles.push(styles.tabContainerActive);
-                  } else {
-                    containerStyles.push(styles.tabContainerHidden);
-                  }
-
-                  return (
-                    <View
-                      key={`tab-container-${tab.id}`}
-                      ref={(ref) => {
-                        if (ref) {
-                          const wasPresent = !!tabContainerRefs.current[tab.id];
-                          tabContainerRefs.current[tab.id] = { current: ref };
-                          if (!wasPresent) {
-                          }
-                        }
-                      }}
-                      collapsable={false}
-                      style={containerStyles}
-                    >
-                      {tab.screenshot && <Image source={{ uri: tab.screenshot }} style={styles.absoluteFill} resizeMode="cover" />}
-                      <WebView
-                        key={`webview-${tab.id}`}
-                        ref={(ref) => {
-                          if (ref) {
-                            if (!tabWebViewRefs.current[tab.id]) {
-                              tabWebViewRefs.current[tab.id] = { current: ref };
-                            }
-                            if (isActive) {
-                              webviewRef.current = ref;
-                              browserBridgeRef.current = new BrowserBridge(ref);
-                            }
-                          }
-                        }}
-                        originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
-                        allowsInlineMediaPlayback={true}
-                        source={{ uri: tab.url }}
-                        onMessage={isActive ? handleMessage : undefined}
-                        onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
-                        onLoadProgress={isActive ? handleLoadProgress : undefined}
-                        onLoadEnd={
-                          isActive
-                            ? handleActiveTabLoadEnd
-                            : () => {
-                                handleInactiveTabLoad(tab.id);
-                              }
-                        }
-                        injectedJavaScriptBeforeContentLoaded={js}
-                        style={styles.webviewVisible}
-                        incognito={false}
-                        scrollEnabled={!isAddressInputFocused}
-                      />
-                    </View>
-                  );
-                })}
-              </Animated.View>
-            </Animated.View>
-
-            <DAppBrowserTabs
-              tabs={tabs}
-              activeTabId={activeTabId}
-              animatedStyle={tabsOverviewAnimatedStyle}
-              pointerEvents={showTabsOverview ? 'auto' : 'none'}
-              onSwitchTab={switchTab}
-              onCloseTab={closeTab}
-              getTabTitle={getTabTitle}
-              onEnsurePreview={ensureTabPreview}
+          {isAddressInputFocused && (
+            <Pressable
+              style={styles.dismissKeyboardOverlay}
+              onPress={() => {
+                setIsAddressInputFocused(false);
+                setShowAddressSuggestions(false);
+                addressInputRef.current?.blur();
+              }}
             />
-          </View>
+          )}
 
-          <View style={styles.bottomNavigation}>
-            <View style={styles.navigationLeft}>
-              {!showTabsOverview && (
+          <View style={styles.contentContainer}>
+            <Animated.View style={[styles.webviewContainer, webviewContainerAnimatedStyle, styles.flex1]} {...(viewMode === 'browser' ? panResponder.panHandlers : {})}>
+              {viewMode === 'browser' ? (
                 <>
-                  <View style={styles.navButtonContainer}>
-                    {activeTab?.canGoBack && getBackHistory().length > 0 ? (
-                      <Link href="/DAppBrowser" asChild>
-                        <Pressable style={styles.navButton} onPress={goBack}>
-                          <Link.Trigger>
-                            <View>
-                              <Ionicons name="arrow-back" size={24} color="white" />
-                            </View>
-                          </Link.Trigger>
-                          <Link.Menu>
-                            {getBackHistory().map((item, index) => {
-                              const historyIndex = (activeTab?.historyIndex || 0) - index - 1;
-                              return <Link.MenuAction key={`back-${historyIndex}`} title={item.title} icon="arrow.left" onPress={() => goToHistoryItem(historyIndex)} />;
-                            })}
-                          </Link.Menu>
-                        </Pressable>
-                      </Link>
-                    ) : (
-                      <Pressable style={styles.navButton} onPress={goBack} disabled={!activeTab?.canGoBack} testID="BrowserBackButton">
-                        <Ionicons name="arrow-back" size={24} color={activeTab?.canGoBack ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
-                      </Pressable>
-                    )}
-                  </View>
+                  <Animated.View style={[styles.absoluteFill, swipeOverlayAnimatedStyle, styles.swipeOverlayStyle]} />
+                  <Animated.View style={[styles.swipeIndicator, swipeIndicatorAnimatedStyle]}>
+                    <Ionicons name="arrow-back" size={32} color="rgba(255, 255, 255, 0.9)" />
+                  </Animated.View>
+                  <Animated.View style={[styles.flex1, swipeContentAnimatedStyle]}>
+                    {tabs.map((tab) => {
+                      const isActive = tab.id === activeTabId;
+                      const containerStyles: StyleProp<ViewStyle>[] = [styles.tabContainer];
 
-                  <View style={styles.navButtonContainer}>
-                    {activeTab?.canGoForward && getForwardHistory().length > 0 ? (
-                      <Link href="/DAppBrowser" asChild>
-                        <Pressable style={styles.navButton} onPress={goForward}>
-                          <Link.Trigger>
-                            <View>
-                              <Ionicons name="arrow-forward" size={24} color="white" />
-                            </View>
-                          </Link.Trigger>
-                          <Link.Menu>
-                            {getForwardHistory().map((item, index) => {
-                              const historyIndex = (activeTab?.historyIndex || 0) + index + 1;
-                              return <Link.MenuAction key={`forward-${historyIndex}`} title={item.title} icon="arrow.right" onPress={() => goToHistoryItem(historyIndex)} />;
-                            })}
-                          </Link.Menu>
-                        </Pressable>
-                      </Link>
-                    ) : (
-                      <Pressable style={styles.navButton} onPress={goForward} disabled={!activeTab?.canGoForward} testID="BrowserForwardButton">
-                        <Ionicons name="arrow-forward" size={24} color={activeTab?.canGoForward ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
-                      </Pressable>
-                    )}
-                  </View>
+                      if (isActive) {
+                        containerStyles.push(styles.tabContainerActive);
+                      } else {
+                        containerStyles.push(styles.tabContainerHidden);
+                      }
+
+                      return (
+                        <View
+                          key={`tab-container-${tab.id}`}
+                          ref={(ref) => {
+                            if (ref) {
+                              const wasPresent = !!tabContainerRefs.current[tab.id];
+                              tabContainerRefs.current[tab.id] = { current: ref };
+                              if (!wasPresent) {
+                              }
+                            }
+                          }}
+                          collapsable={false}
+                          style={containerStyles}
+                        >
+                          {tab.screenshot && <Image source={{ uri: tab.screenshot }} style={styles.absoluteFill} resizeMode="cover" />}
+                          <WebView
+                            key={`webview-${tab.id}`}
+                            ref={(ref) => {
+                              if (ref) {
+                                if (!tabWebViewRefs.current[tab.id]) {
+                                  tabWebViewRefs.current[tab.id] = { current: ref };
+                                }
+                                if (isActive) {
+                                  webviewRef.current = ref;
+                                  browserBridgeRef.current = new BrowserBridge(ref);
+                                }
+                              }
+                            }}
+                            originWhitelist={['https://*', 'http://*', 'about:blank', 'about:srcdoc']}
+                            allowsInlineMediaPlayback={true}
+                            source={{ uri: tab.url }}
+                            onMessage={isActive ? handleMessage : undefined}
+                            onNavigationStateChange={isActive ? handleNavigationStateChange : undefined}
+                            onLoadProgress={isActive ? handleLoadProgress : undefined}
+                            onLoadEnd={
+                              isActive
+                                ? handleActiveTabLoadEnd
+                                : () => {
+                                    handleInactiveTabLoad(tab.id);
+                                  }
+                            }
+                            injectedJavaScriptBeforeContentLoaded={js ?? undefined}
+                            style={styles.webviewVisible}
+                            incognito={false}
+                            scrollEnabled={!isAddressInputFocused}
+                          />
+                        </View>
+                      );
+                    })}
+                  </Animated.View>
                 </>
+              ) : (
+                <ExplorerContent
+                  category={explorerCategory}
+                  query={addressInput}
+                  onChangeCategory={setExplorerCategory}
+                  onOpenWebApp={(url) => {
+                    void openWebAppInNewTab(url);
+                  }}
+                />
               )}
-            </View>
-
-            <View style={styles.navigationCenter}>
-              <Pressable style={styles.addTabButton} onPress={createNewTab} testID="BrowserAddTabButton">
-                <Ionicons name="add" size={24} color="white" />
-              </Pressable>
-            </View>
-
-            <View style={styles.navigationRight}>
-              <View style={styles.navButtonContainer}>
-                <View style={styles.navButton} />
-              </View>
-              <View style={styles.navButtonContainer}>
-                <Pressable style={styles.navButton} onPress={toggleTabsOverview} onLongPress={handleCloseAllTabs} testID="BrowserTabsOverviewButton">
-                  <View style={styles.tabsOverviewIcon}>
-                    <ThemedText style={styles.tabsCount}>{tabs.length}</ThemedText>
-                  </View>
-                </Pressable>
-              </View>
-            </View>
+            </Animated.View>
           </View>
-        </GradientScreen>
+
+          <DAppBrowserTabs
+            tabs={tabs}
+            activeTabId={activeTabId}
+            animatedStyle={tabsOverviewAnimatedStyle}
+            pointerEvents={showTabsOverview ? 'auto' : 'none'}
+            isVisible={showTabsOverview}
+            onSwitchTab={switchTab}
+            onCloseTab={closeTab}
+            getTabTitle={getTabTitle}
+            onEnsurePreview={ensureTabPreview}
+            onInvalidatePreview={invalidateTabPreview}
+            onCloseOverview={hideTabsOverview}
+          />
+
+          {showTabsOverview && (
+            <PlatformBlurView intensity={30} tint="dark" style={styles.bottomBlur}>
+              <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.bottomSafeArea}>
+                <View style={styles.bottomNavigation}>
+                  <View style={styles.navigationLeft}>
+                    <Pressable style={styles.addTabButton} onPress={createNewTab} testID="BrowserAddTabButton">
+                      <Ionicons name="add" size={18} color="white" style={styles.addTabButtonIcon} />
+                      <ThemedText style={styles.addTabButtonText}>Add new</ThemedText>
+                    </Pressable>
+                  </View>
+
+                  <View style={styles.navigationCenter} />
+
+                  <View style={styles.navigationRight}>
+                    <Pressable style={styles.closeOverviewButton} onPress={handleCloseAllTabs} testID="BrowserTabsOverflowButton">
+                      <Ionicons name="ellipsis-horizontal" size={24} color="rgba(255, 255, 255, 0.9)" />
+                    </Pressable>
+                  </View>
+                </View>
+              </SafeAreaView>
+            </PlatformBlurView>
+          )}
+        </SafeAreaView>
       </Animated.View>
     </GestureHandlerRootView>
   );
@@ -1551,6 +1666,11 @@ export default DAppBrowser;
 const styles = StyleSheet.create({
   gestureRootView: {
     flex: 1,
+  },
+  blackScreen: {
+    flex: 1,
+    backgroundColor: '#000',
+    position: 'relative',
   },
   flex1: {
     flex: 1,
@@ -1609,7 +1729,12 @@ const styles = StyleSheet.create({
   },
   addressBarContainer: {
     position: 'relative',
-    zIndex: 10,
+    zIndex: 2,
+  },
+  dismissKeyboardOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+    zIndex: 1,
   },
   addressBarWrapper: {
     flex: 1,
@@ -1652,6 +1777,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.9)',
   },
+  addressBackButton: {
+    padding: 4,
+    marginRight: 8,
+  },
   stopButton: {
     padding: 4,
     marginLeft: 8,
@@ -1675,11 +1804,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.9)',
   },
-  closeButton: {
+  topRightButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1691,9 +1820,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  networkIcon: {
-    width: 24,
-    height: 24,
+  homeIcon: {
+    width: 16,
+    height: 16,
   },
   contentContainer: {
     flex: 1,
@@ -1701,7 +1830,7 @@ const styles = StyleSheet.create({
   },
   webviewContainer: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: 'black',
   },
   tabContainer: {
     flex: 1,
@@ -1752,6 +1881,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 24,
+  },
+  bottomSafeArea: {
+    backgroundColor: 'transparent',
+  },
+  bottomBlur: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   navigationLeft: {
@@ -1784,12 +1918,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   addTabButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
+    flexDirection: 'row',
+    gap: 4,
+  },
+  addTabButtonIcon: {
+    marginRight: 6,
+  },
+  addTabButtonText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.95)',
+    fontWeight: '600',
+  },
+  closeOverviewButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
   },
   tabsOverviewIcon: {
     width: 24,
