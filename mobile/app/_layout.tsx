@@ -11,6 +11,7 @@ import BigNumber from 'bignumber.js';
 
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
+import '../src/modules/rgb-adapter'; // needed to be imported before we can use RgbWallet
 
 import AutoClaimMonitor from '@/components/AutoClaimMonitor';
 import { ErrorBoundary } from '@/components/ErrorBoundary';

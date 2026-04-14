@@ -15,6 +15,8 @@ import {
   NETWORK_ARK,
   NETWORK_STACKS,
   NETWORK_CITREA,
+  NETWORK_RGB,
+  NETWORK_RGB_TESTNET,
 } from '@shared/types/networks';
 import { AssetId } from '@shared/types/asset';
 import { SO_LIQUID_USDT, SO_STACKS_STX } from '@shared/types/swap';
@@ -84,6 +86,10 @@ export const getNetworkImageAsset = (network: string): string | null => {
     case NETWORK_ARK_MUTINYNET:
     case NETWORK_ARK:
       return require('../assets/images/ui/network/ark.png');
+    case NETWORK_RGB:
+    case NETWORK_RGB_TESTNET:
+      // Reuse the Bitcoin icon until a dedicated RGB asset is added.
+      return require('../assets/images/ui/network/bitcoin.png');
     case NETWORK_CITREA:
     case NETWORK_CITREA_TESTNET:
       return require('../assets/images/ui/network/citrea.png');

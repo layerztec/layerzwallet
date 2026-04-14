@@ -18,6 +18,8 @@ import {
   NETWORK_USDT,
   NETWORK_STACKS,
   NETWORK_CITREA,
+  NETWORK_RGB,
+  NETWORK_RGB_TESTNET,
 } from '../types/networks';
 
 export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
@@ -224,5 +226,28 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     knowMoreUrl: 'https://stacks.org',
     isEVM: false,
     sortIndex: 70,
+  },
+  [NETWORK_RGB]: {
+    chainId: 20,
+    displayName: 'RGB',
+    ticker: 'BTC',
+    decimals: 8,
+    explorerUrl: 'https://layerz.mempool.space',
+    rpcUrl: '',
+    knowMoreUrl: 'https://rgb.tech',
+    isEVM: false,
+    sortIndex: 25,
+  },
+  [NETWORK_RGB_TESTNET]: {
+    chainId: 21,
+    displayName: 'RGB Testnet',
+    ticker: 'tBTC',
+    decimals: 8,
+    explorerUrl: 'https://mempool.space/testnet',
+    rpcUrl: '',
+    knowMoreUrl: 'https://rgb.tech',
+    isTestnet: true,
+    isEVM: false,
+    sortIndex: 85,
   },
 };

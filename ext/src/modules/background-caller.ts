@@ -3,7 +3,8 @@ import { GetBtcSendDataResponse, IBackgroundCaller, MessageType, GetCommonTransa
 import { ENCRYPTED_PREFIX, STORAGE_KEY_MNEMONIC, STORAGE_KEY_SEED_VERIFIED } from '@shared/types/IStorage';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
-import { NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_RGB, NETWORK_RGB_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import {
   lazyInitWallet as lazyInitWalletOrig,
@@ -69,6 +70,13 @@ export const BackgroundCaller: IBackgroundCaller = {
       const sp = await BackgroundCaller.lazyInitWallet(network, accountNumber);
       assert(sp instanceof SparkWallet);
       return String(await sp.getOffchainReceiveAddress());
+    }
+
+    if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+      // RGB SDK loads WASM + uses IndexedDB, both unavailable in the MV3 service worker.
+      const rw = await BackgroundCaller.lazyInitWallet(network, accountNumber);
+      assert(rw instanceof RgbWallet);
+      return await rw.getOffchainReceiveAddress();
     }
 
     return await Messenger.sendGenericMessageToBackground(MessageType.GET_ADDRESS, params);
