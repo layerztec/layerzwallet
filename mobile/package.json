@@ -41,6 +41,9 @@
   "jest": {
     "preset": "jest-expo"
   },
+  "overrides": {
+    "@utexo/rgb-sdk-core": "1.0.0-beta.3"
+  },
   "dependencies": {
     "@aptabase/react-native": "^0.4.0",
     "@arkade-os/boltz-swap": "0.3.9",
@@ -65,7 +68,7 @@
     "@stacks/blockchain-api-client": "8.13.6",
     "@stacks/transactions": "7.3.1",
     "@stacks/wallet-sdk": "7.2.0",
-    "@utexo/rgb-sdk-core": "1.0.0-beta.2",
+    "@utexo/rgb-sdk-core": "1.0.0-beta.3",
     "@utexo/rgb-sdk-rn": "1.0.0-beta.8",
     "assert": "2.1.0",
     "bignumber.js": "9.3.1",
