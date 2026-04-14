@@ -20,11 +20,20 @@ import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet } from '../../typ
  */
 
 const SHOULD_RUN = !!process.env.TEST_MNEMONIC && process.env.RGB_INTEGRATION === '1';
+const INSTALL_HINT = 'RGB_INTEGRATION=1 requires the Node SDK. Run: `npm i -D @utexo/rgb-sdk@1.0.0-beta.8` in ext/ or mobile/ before running this test.';
 
-async function installNodeAdapter(): Promise<void> {
-  // Lazy import — only pulled in when the test actually runs.
-  // @ts-expect-error optional devDependency (not declared in package.json)
-  const rgb = await import('@utexo/rgb-sdk');
+async function installNodeAdapter(): Promise<boolean> {
+  let rgb: any;
+  try {
+    // Dynamic import — the package is not a declared dependency (it ships native
+    // binaries, pulling it into production would bloat the wallet bundle).
+    // Contributors who opt in via RGB_INTEGRATION=1 are expected to install it
+    // locally; see INSTALL_HINT above.
+    rgb = await import(/* @vite-ignore */ '@utexo/rgb-sdk' as any);
+  } catch (e) {
+    console.warn(`RGB integration test cannot load @utexo/rgb-sdk — ${INSTALL_HINT}`);
+    return false;
+  }
   const { UTEXOWallet } = rgb;
 
   const adapter: IRgbAdapter = {
@@ -39,7 +48,6 @@ async function installNodeAdapter(): Promise<void> {
       return wallet as unknown as IRgbWallet;
     },
     async restoreFromVss({ mnemonic, network, vssServerUrl }: IRgbAdapterCreateParams): Promise<IRgbWallet> {
-      // @utexo/rgb-sdk exposes restoreUtxoWalletFromVss as a top-level helper
       const targetDir = `/tmp/rgb-integration-restore-${network}-${Date.now()}`;
       await rgb.restoreUtxoWalletFromVss({ mnemonic, targetDir, vssServerUrl });
       const wallet = new UTEXOWallet(mnemonic, { network, dataDir: targetDir, vssServerUrl });
@@ -49,20 +57,33 @@ async function installNodeAdapter(): Promise<void> {
   };
 
   (globalThis as any).rgbAdapter = adapter;
+  return true;
 }
+
+let adapterReady = false;
 
 describe('RgbWallet integration (testnet)', () => {
   beforeAll(async () => {
     if (!SHOULD_RUN) return;
-    await installNodeAdapter();
+    adapterReady = await installNodeAdapter();
   });
 
-  test('creates a wallet and fetches a taproot receive address', async (context) => {
+  function maybeSkip(context: { skip: () => void }): boolean {
     if (!SHOULD_RUN) {
       console.warn('TEST_MNEMONIC or RGB_INTEGRATION not set, skipping');
       context.skip();
-      return;
+      return true;
     }
+    if (!adapterReady) {
+      console.warn(INSTALL_HINT);
+      context.skip();
+      return true;
+    }
+    return false;
+  }
+
+  test('creates a wallet and fetches a taproot receive address', async (context) => {
+    if (maybeSkip(context)) return;
 
     const w = new RgbWallet(NETWORK_RGB_TESTNET);
     w.setSecret(process.env.TEST_MNEMONIC!);
@@ -73,11 +94,7 @@ describe('RgbWallet integration (testnet)', () => {
   });
 
   test('getOffchainBalance and fetchTokenBalances run against testnet', async (context) => {
-    if (!SHOULD_RUN) {
-      console.warn('TEST_MNEMONIC or RGB_INTEGRATION not set, skipping');
-      context.skip();
-      return;
-    }
+    if (maybeSkip(context)) return;
 
     const w = new RgbWallet(NETWORK_RGB_TESTNET);
     w.setSecret(process.env.TEST_MNEMONIC!);
@@ -92,11 +109,7 @@ describe('RgbWallet integration (testnet)', () => {
   });
 
   test('getCommonTransactions merges on-chain txs with RGB transfers', async (context) => {
-    if (!SHOULD_RUN) {
-      console.warn('TEST_MNEMONIC or RGB_INTEGRATION not set, skipping');
-      context.skip();
-      return;
-    }
+    if (maybeSkip(context)) return;
 
     const w = new RgbWallet(NETWORK_RGB_TESTNET);
     w.setSecret(process.env.TEST_MNEMONIC!);
@@ -111,11 +124,7 @@ describe('RgbWallet integration (testnet)', () => {
   });
 
   test('VSS restore-then-createWallet parity: same address from two fresh data dirs', async (context) => {
-    if (!SHOULD_RUN) {
-      console.warn('TEST_MNEMONIC or RGB_INTEGRATION not set, skipping');
-      context.skip();
-      return;
-    }
+    if (maybeSkip(context)) return;
 
     const w1 = new RgbWallet(NETWORK_RGB_TESTNET);
     w1.setSecret(process.env.TEST_MNEMONIC!);

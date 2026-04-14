@@ -154,6 +154,13 @@ export const BackgroundCaller: IBackgroundCaller = {
   },
 
   async getCommonTransactions(...params): Promise<GetCommonTransactionsResponse> {
+    const [network, accountNumber] = params;
+    if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+      // RGB SDK is WASM/IndexedDB-bound; has to run in Popup, not the SW.
+      const rw = await BackgroundCaller.lazyInitWallet(network, accountNumber);
+      assert(rw instanceof RgbWallet);
+      return await rw.getCommonTransactions();
+    }
     return await Messenger.sendGenericMessageToBackground(MessageType.GET_COMMON_TRANSACTIONS, params);
   },
 

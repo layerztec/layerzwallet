@@ -19,6 +19,9 @@ type AnyAsset = {
   media?: { filePath?: string; mime?: string } | null;
 };
 
+type SdkTransfer = Awaited<ReturnType<IRgbWallet['listTransfers']>>[number];
+type AnnotatedTransfer = SdkTransfer & { assetId?: string };
+
 export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveTokens {
   static readonly type = 'rgb';
   static readonly typeReadable = 'RGB';
@@ -33,7 +36,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   private _accountNumber: number = 0;
   private _sdkWallet: IRgbWallet | undefined;
   private _tokens: CachedTokenInfo[] = [];
-  private _address: string | false = false;
+  private _receiveAddress: string | undefined;
   public _lastTokensFetch: number = 0;
 
   constructor(network: Networks = NETWORK_RGB) {
@@ -58,22 +61,25 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   }
 
   /**
-   * Bring the SDK wallet online. Tries a VSS restore first (idempotent: no-op
-   * when no backup exists) so that a fresh install using an existing mnemonic
-   * picks up state created on another device.
+   * Bring the SDK wallet online. Tries a VSS restore first so a fresh install
+   * with an existing mnemonic picks up state created on another device. Any
+   * "backup not found" signal falls through to a fresh wallet; any other error
+   * rethrows so we don't silently overwrite remote backups with an empty
+   * local state on the next mutation.
    */
   async init(_storage: IStorage): Promise<void> {
     assert(this.secret, 'Cant init RGB wallet: secret is not set.');
     const params = { mnemonic: this.secret, network: this._sdkNetwork };
     try {
       this._sdkWallet = await this.adapter.restoreFromVss(params);
+      return;
     } catch (e) {
-      // First-run with no VSS backup; the adapter's restoreFromVss throws here.
-      // Fall back to a fresh wallet — vssBackup() after the first mutation will
-      // seed the backup.
-      globalThis.handleError?.(e, 'rgb-wallet.ts:init');
-      this._sdkWallet = await this.adapter.createWallet(params);
+      if (!isVssBackupMissing(e)) {
+        globalThis.handleError?.(e, 'rgb-wallet.ts:init:vss');
+        throw e;
+      }
     }
+    this._sdkWallet = await this.adapter.createWallet(params);
   }
 
   private sdk(): IRgbWallet {
@@ -82,14 +88,19 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   }
 
   async getOffchainReceiveAddress(): Promise<string> {
-    if (!this._address) this._address = await this.sdk().getAddress();
-    return this._address as string;
+    if (!this._receiveAddress) this._receiveAddress = await this.sdk().getAddress();
+    return this._receiveAddress;
   }
 
+  /**
+   * Returns the spendable **vanilla** BTC balance. Colored sats (the 1000-sat
+   * commitment outputs bound to each RGB allocation) are excluded: the user
+   * can't actually spend them as BTC without destroying an asset allocation.
+   */
   async getOffchainBalance(): Promise<number> {
-    const bal = await this.sdk().getBtcBalance();
+    const [bal] = await Promise.all([this.sdk().getBtcBalance(), this.fetchTokenBalances()]);
     this._lastBalanceFetch = Date.now();
-    return Number(bal.vanilla.spendable) + Number(bal.colored.spendable);
+    return Number(bal.vanilla.spendable);
   }
 
   async pay(receiverAddress: string, amountSats: number): Promise<string> {
@@ -103,10 +114,13 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   }
 
   /**
-   * For RGB, `address` is a full `rgb:` invoice. `tokenId` is the asset id.
-   * Amount is in the asset's base units.
+   * `invoice` must be a full `rgb:`/`utxob:` invoice. `tokenId` is the RGB asset id.
+   * Amount is in the asset's base units; the `_memo` parameter is accepted to
+   * satisfy InterfaceCanHaveTokens but is ignored — the RGB send API has no memo
+   * field.
    */
-  async transferToken(tokenId: string, amount: bigint, invoice: string): Promise<string> {
+  async transferToken(tokenId: string, amount: bigint, invoice: string, _memo?: string): Promise<string> {
+    assert(amount <= BigInt(Number.MAX_SAFE_INTEGER), 'RGB send amount exceeds 2^53 — not representable as JS number');
     const result = await this.sdk().send({
       invoice,
       assetId: tokenId,
@@ -138,9 +152,15 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
 
   async getCommonTransactions(): Promise<CommonTransaction[]> {
     const sdk = this.sdk();
-    const [txs, transfers] = await Promise.all([sdk.listTransactions(), sdk.listTransfers()]);
+    // Get on-chain tx metadata (fee, confirmation) and per-asset transfers.
+    // `listTransfers()` without an assetId yields transfers with no asset id
+    // attached, which is useless for UI attribution — we iterate the known
+    // assets and annotate each transfer with its assetId at the source.
+    const [txs, assetIds] = await Promise.all([sdk.listTransactions(), this.knownAssetIds()]);
+    const perAssetTransfers = await Promise.all(assetIds.map(async (aid) => (await sdk.listTransfers(aid)).map((t) => ({ ...t, assetId: aid }) as AnnotatedTransfer)));
+    const transfers: AnnotatedTransfer[] = perAssetTransfers.flat();
 
-    const transfersByTxid = new Map<string, typeof transfers>();
+    const transfersByTxid = new Map<string, AnnotatedTransfer[]>();
     for (const t of transfers) {
       if (!t.txid) continue;
       const arr = transfersByTxid.get(t.txid) ?? [];
@@ -150,13 +170,14 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
 
     const explorerBase = AllNetworkInfos[this._network].explorerUrl;
     const common: CommonTransaction[] = [];
-    const seen = new Set<string>();
+    const seenTxids = new Set<string>();
+    const seenTransferIds = new Set<string>();
 
     for (const tx of txs) {
-      seen.add(tx.txid);
+      seenTxids.add(tx.txid);
       const netSats = tx.received - tx.sent;
       const related = transfersByTxid.get(tx.txid) ?? [];
-      const tokenTransfers = this.assetTransfersToCommon(related);
+      const tokenTransfers = this.annotatedTransfersToCommon(related);
       const direction: CommonTransaction['direction'] = netSats === 0 && tokenTransfers.length > 0 ? (related.some((r) => r.kind === 'Send') ? 'send' : 'receive') : netSats > 0 ? 'receive' : 'send';
       common.push({
         network: this._network,
@@ -172,16 +193,18 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
       });
     }
 
-    // Transfers without a BTC txid (e.g., blind-receive pending, failed) — surface separately.
+    // Pending / failed transfers without a mined txid (blind-receive awaiting
+    // counterparty, etc.) — surface separately, keyed in a distinct namespace
+    // so we can't collide with raw txids.
     for (const t of transfers) {
-      if (t.txid && seen.has(t.txid)) continue;
-      const id = t.txid ?? t.invoiceString ?? String(t.idx);
-      if (seen.has(id)) continue;
-      seen.add(id);
-      const tokenTransfers = this.assetTransfersToCommon([t]);
+      if (t.txid && seenTxids.has(t.txid)) continue;
+      const key = `transfer:${t.txid ?? t.invoiceString ?? `idx-${t.idx}`}`;
+      if (seenTransferIds.has(key)) continue;
+      seenTransferIds.add(key);
+      const tokenTransfers = this.annotatedTransfersToCommon([t]);
       common.push({
         network: this._network,
-        txid: id,
+        txid: t.txid ?? key,
         timestamp: Math.floor((t.updatedAt || t.createdAt) / 1000),
         direction: t.kind === 'Send' ? 'send' : 'receive',
         status: transferStatusToCommon(t.status),
@@ -194,25 +217,30 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     return common;
   }
 
-  private assetTransfersToCommon(list: Array<{ assignments?: Array<{ type: string; amount?: number }>; recipientId?: string; kind: string }>): CommonTokenTransfer[] {
+  /**
+   * Returns asset ids known to the wallet. Populates `_tokens` as a side effect
+   * if the cache is empty, so that transfer attribution has metadata to join
+   * against.
+   */
+  private async knownAssetIds(): Promise<string[]> {
+    if (this._tokens.length === 0) await this.fetchTokenBalances();
+    return this._tokens.map((t) => t.id);
+  }
+
+  private annotatedTransfersToCommon(list: AnnotatedTransfer[]): CommonTokenTransfer[] {
     const out: CommonTokenTransfer[] = [];
     for (const t of list) {
+      const metadata = t.assetId ? this._tokens.find((m) => m.id === t.assetId) : undefined;
       for (const a of t.assignments ?? []) {
         if (a.type !== 'Fungible' && a.type !== 'NonFungible') continue;
-        // Per-transfer the asset id isn't on the transfer itself; the UI needs
-        // the token id to fetch metadata. RGB transfers are typically single-asset.
-        // We leave tokenId blank when not resolvable and let the caller look it up
-        // via assetId on the parent scope when needed. See fetchTokenBalances() for
-        // the asset list.
-        const matched = this._tokens[0];
         out.push({
-          tokenId: matched?.id ?? '',
+          tokenId: t.assetId ?? '',
           amount: a.amount,
-          decimals: matched?.decimals ?? 0,
-          name: matched?.name,
-          symbol: matched?.symbol,
+          decimals: metadata?.decimals ?? 0,
+          name: metadata?.name,
+          symbol: metadata?.symbol,
           address: t.recipientId,
-          logoURI: matched?.logoURI,
+          logoURI: metadata?.logoURI,
         });
       }
     }
@@ -220,8 +248,6 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   }
 
   private async defaultFeeRate(): Promise<number> {
-    // Conservative fallback; fee estimation UI can override by passing a higher rate
-    // through a future sendBtc/send parameter.
     return this._sdkNetwork === 'testnet' ? 1 : 5;
   }
 
@@ -235,19 +261,33 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
 
   /**
    * Validates either a Bitcoin taproot address or an `rgb:`/`utxob:` invoice.
-   * Used by shared `validateAddress(network, input)` for the RGB networks.
+   * The invoice shape check requires at least some payload after the scheme
+   * prefix — we leave deep decoding to `sdk().decodeRGBInvoice()` at send time.
    */
   static isAddressValid(input: string): boolean {
     const s = input.trim();
     if (!s) return false;
-    if (s.startsWith('rgb:') || s.startsWith('utxob:')) return true;
-    // taproot p2tr: bc1p... (mainnet) or tb1p... (testnet/signet)
+    if (/^rgb:[a-zA-Z0-9:_+$-]{10,}$/i.test(s)) return true;
+    if (/^utxob:[a-zA-Z0-9$!+_-]{10,}$/i.test(s)) return true;
+    // taproot p2tr: bc1p... / tb1p... / bcrt1p...
     return /^(bc1p|tb1p|bcrt1p)[0-9a-z]{40,}$/i.test(s);
   }
 
   isAddressValid(input: string): boolean {
     return RgbWallet.isAddressValid(input);
   }
+}
+
+function isVssBackupMissing(e: unknown): boolean {
+  // The SDK raises a NotFoundError (or wraps an HTTP 404) when the VSS bucket
+  // has no backup for this mnemonic yet. Matching by name — rather than
+  // `instanceof` — keeps us resilient to core version drift.
+  if (!e) return false;
+  const err = e as { name?: string; message?: string; statusCode?: number };
+  if (err.name === 'NotFoundError') return true;
+  if (err.statusCode === 404) return true;
+  if (typeof err.message === 'string' && /not.?found|no.?backup|does not exist/i.test(err.message)) return true;
+  return false;
 }
 
 function transferStatusToCommon(status: string): CommonTransaction['status'] {

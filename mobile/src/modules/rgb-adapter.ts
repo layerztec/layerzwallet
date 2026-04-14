@@ -1,3 +1,4 @@
+import { sha256 } from '@noble/hashes/sha256';
 import { UTEXOWallet } from '@utexo/rgb-sdk-rn';
 import { Directory, Paths } from 'expo-file-system';
 
@@ -5,8 +6,22 @@ import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet } from '@shared/t
 
 const RGB_DATA_ROOT = 'rgb';
 
-function dataDirFor(network: IRgbAdapterCreateParams['network']): string {
-  const root = new Directory(Paths.document, RGB_DATA_ROOT, network);
+function mnemonicFingerprint(mnemonic: string): string {
+  const digest = sha256(new TextEncoder().encode(mnemonic.trim().toLowerCase()));
+  let hex = '';
+  for (let i = 0; i < 8; i++) hex += digest[i].toString(16).padStart(2, '0');
+  return hex;
+}
+
+/**
+ * Returns a per-mnemonic data directory. Isolating state by mnemonic prevents
+ * the SDK from re-opening a previous wallet's rgb-lib sled store when the user
+ * wipes the app and imports a different seed — the pattern mirrors
+ * `breeze-adapter.ts` which uses `sha256(mnemonic)` for the same reason. Strips
+ * the `file://` URI prefix because the RN SDK expects a POSIX path.
+ */
+function dataDirFor(mnemonic: string, network: IRgbAdapterCreateParams['network']): string {
+  const root = new Directory(Paths.document, RGB_DATA_ROOT, network, mnemonicFingerprint(mnemonic));
   if (!root.exists) root.create({ intermediates: true });
   return root.uri.replace(/^file:\/\//, '');
 }
@@ -17,7 +32,7 @@ class RgbAdapter implements IRgbAdapter {
   async createWallet({ mnemonic, network, vssServerUrl }: IRgbAdapterCreateParams): Promise<IRgbWallet> {
     const wallet = new UTEXOWallet(mnemonic, {
       network,
-      dataDir: dataDirFor(network),
+      dataDir: dataDirFor(mnemonic, network),
       vssServerUrl,
     });
     await wallet.initialize();
@@ -25,9 +40,9 @@ class RgbAdapter implements IRgbAdapter {
   }
 
   async restoreFromVss({ mnemonic, network, vssServerUrl }: IRgbAdapterCreateParams): Promise<IRgbWallet> {
-    await UTEXOWallet.restoreFromVss(mnemonic, dataDirFor(network), vssServerUrl ? { serverUrl: vssServerUrl } : undefined);
+    await UTEXOWallet.restoreFromVss(mnemonic, dataDirFor(mnemonic, network), vssServerUrl ? { serverUrl: vssServerUrl } : undefined);
     return this.createWallet({ mnemonic, network, vssServerUrl });
   }
 }
 
-global.rgbAdapter = new RgbAdapter();
+globalThis.rgbAdapter = new RgbAdapter();

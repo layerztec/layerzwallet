@@ -76,6 +76,13 @@ describe('RgbWallet', () => {
       expect(RgbWallet.isAddressValid('tb1ppkpnr0m9avzkpzrra6q57zdsrtzcf39qrzhxag9m4lq30v7r6a3s29ukdd')).toBe(true);
     });
 
+    it('rejects bare prefixes (no payload)', () => {
+      installAdapter();
+      expect(RgbWallet.isAddressValid('rgb:')).toBe(false);
+      expect(RgbWallet.isAddressValid('utxob:')).toBe(false);
+      expect(RgbWallet.isAddressValid('rgb:abc')).toBe(false); // too short
+    });
+
     it('rejects plain bc1q (segwit v0)', () => {
       installAdapter();
       expect(RgbWallet.isAddressValid('bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq')).toBe(false);
@@ -113,11 +120,11 @@ describe('RgbWallet', () => {
   });
 
   describe('init', () => {
-    it('falls back to createWallet when VSS restore throws', async () => {
+    it('falls back to createWallet when VSS reports backup missing', async () => {
       const adapter: IRgbAdapter = {
         capabilities: { lightning: false },
         createWallet: vi.fn().mockResolvedValue({} as IRgbWallet),
-        restoreFromVss: vi.fn().mockRejectedValue(new Error('no vss backup yet')),
+        restoreFromVss: vi.fn().mockRejectedValue(Object.assign(new Error('not found'), { name: 'NotFoundError' })),
       };
       (globalThis as any).rgbAdapter = adapter;
       const w = new RgbWallet(NETWORK_RGB_TESTNET);
@@ -126,15 +133,28 @@ describe('RgbWallet', () => {
       expect(adapter.restoreFromVss).toHaveBeenCalledOnce();
       expect(adapter.createWallet).toHaveBeenCalledOnce();
     });
+
+    it('rethrows non-missing-backup errors from VSS', async () => {
+      const adapter: IRgbAdapter = {
+        capabilities: { lightning: false },
+        createWallet: vi.fn(),
+        restoreFromVss: vi.fn().mockRejectedValue(Object.assign(new Error('network unreachable'), { statusCode: 503 })),
+      };
+      (globalThis as any).rgbAdapter = adapter;
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await expect(w.init({} as any)).rejects.toThrow(/network unreachable/);
+      expect(adapter.createWallet).not.toHaveBeenCalled();
+    });
   });
 
   describe('balance + send', () => {
-    it('returns vanilla + colored spendable sats', async () => {
+    it('returns vanilla spendable sats only (excludes colored allocations)', async () => {
       installAdapter();
       const w = new RgbWallet(NETWORK_RGB_TESTNET);
       w.setSecret(MNEMONIC);
       await w.init({} as any);
-      expect(await w.getOffchainBalance()).toBe(125);
+      expect(await w.getOffchainBalance()).toBe(100);
     });
 
     it('pay() delegates to sendBtc and triggers a backup attempt', async () => {
@@ -146,6 +166,15 @@ describe('RgbWallet', () => {
       expect(txid).toBe('btc-txid-abc');
       expect(sdkWallet.sendBtc).toHaveBeenCalledWith(expect.objectContaining({ amount: 1000 }));
       expect(sdkWallet.vssBackup).toHaveBeenCalledOnce();
+    });
+
+    it('transferToken rejects amounts above Number.MAX_SAFE_INTEGER', async () => {
+      installAdapter();
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const huge = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
+      await expect(w.transferToken('nia-1', huge, 'rgb:abc')).rejects.toThrow(/exceeds 2\^53/);
     });
   });
 
@@ -174,39 +203,108 @@ describe('RgbWallet', () => {
   });
 
   describe('getCommonTransactions', () => {
-    it('merges listTransactions with listTransfers and flags pending state', async () => {
+    it('attributes per-transfer tokenId correctly across multiple assets', async () => {
       const { sdkWallet } = installAdapter();
+      // Two assets in the wallet
+      (sdkWallet.listAssets as any) = vi.fn().mockResolvedValue({
+        nia: [
+          { assetId: 'nia-A', name: 'Token A', ticker: 'A', precision: 2, balance: { settled: 0, future: 0, spendable: 0 } },
+          { assetId: 'nia-B', name: 'Token B', ticker: 'B', precision: 0, balance: { settled: 0, future: 0, spendable: 0 } },
+        ],
+        cfa: [],
+        ifa: [],
+        uda: [],
+      });
+      // On-chain txs
       (sdkWallet.listTransactions as any) = vi.fn().mockResolvedValue([
-        { transactionType: 'User', txid: 'tx1', received: 5000, sent: 0, fee: 0, confirmationTime: { height: 100, timestamp: 1700000000 } },
-        { transactionType: 'RgbSend', txid: 'tx2', received: 0, sent: 1200, fee: 200, confirmationTime: { height: 101, timestamp: 1700000100 } },
+        { transactionType: 'RgbSend', txid: 'txA', received: 0, sent: 0, fee: 50, confirmationTime: { height: 100, timestamp: 1700000000 } },
+        { transactionType: 'RgbSend', txid: 'txB', received: 0, sent: 0, fee: 50, confirmationTime: { height: 101, timestamp: 1700000100 } },
       ]);
-      (sdkWallet.listTransfers as any) = vi.fn().mockResolvedValue([
-        { idx: 1, batchTransferIdx: 1, createdAt: 1700000000000, updatedAt: 1700000000000, status: 'Settled', kind: 'ReceiveBlind', assignments: [], transportEndpoints: [], txid: 'tx1' },
-        {
-          idx: 2,
-          batchTransferIdx: 2,
-          createdAt: 1700000200000,
-          updatedAt: 1700000200000,
-          status: 'WaitingCounterparty',
-          kind: 'ReceiveBlind',
-          assignments: [],
-          transportEndpoints: [],
-          invoiceString: 'rgb:abc',
-        },
-      ]);
+      // Per-asset transfers: listTransfers is called once per asset id with that id passed in
+      (sdkWallet.listTransfers as any) = vi.fn().mockImplementation(async (assetId?: string) => {
+        if (assetId === 'nia-A') {
+          return [
+            {
+              idx: 1,
+              batchTransferIdx: 1,
+              createdAt: 1700000000000,
+              updatedAt: 1700000000000,
+              status: 'Settled',
+              kind: 'Send',
+              assignments: [{ type: 'Fungible', amount: 10 }],
+              transportEndpoints: [],
+              txid: 'txA',
+            },
+          ];
+        }
+        if (assetId === 'nia-B') {
+          return [
+            {
+              idx: 2,
+              batchTransferIdx: 2,
+              createdAt: 1700000100000,
+              updatedAt: 1700000100000,
+              status: 'Settled',
+              kind: 'ReceiveBlind',
+              assignments: [{ type: 'Fungible', amount: 7 }],
+              transportEndpoints: [],
+              txid: 'txB',
+            },
+          ];
+        }
+        return [];
+      });
 
       const w = new RgbWallet(NETWORK_RGB_TESTNET);
       w.setSecret(MNEMONIC);
       await w.init({} as any);
       const txs = await w.getCommonTransactions();
-      expect(txs).toHaveLength(3);
-      // sorted descending by timestamp
+      expect(txs).toHaveLength(2);
+      // sorted descending by timestamp → txB (nia-B) first
+      expect(txs[0].txid).toBe('txB');
+      expect(txs[0].tokenTransfers?.[0].tokenId).toBe('nia-B');
+      expect(txs[0].tokenTransfers?.[0].symbol).toBe('B');
+      expect(txs[0].tokenTransfers?.[0].amount).toBe(7);
+      expect(txs[1].txid).toBe('txA');
+      expect(txs[1].tokenTransfers?.[0].tokenId).toBe('nia-A');
+      expect(txs[1].tokenTransfers?.[0].symbol).toBe('A');
+      expect(txs[1].tokenTransfers?.[0].amount).toBe(10);
+    });
+
+    it('emits pending transfers (no mined txid) under a namespaced key', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listAssets as any) = vi.fn().mockResolvedValue({
+        nia: [{ assetId: 'nia-A', name: 'Token A', ticker: 'A', precision: 0, balance: { settled: 0, future: 0, spendable: 0 } }],
+        cfa: [],
+        ifa: [],
+        uda: [],
+      });
+      (sdkWallet.listTransactions as any) = vi.fn().mockResolvedValue([]);
+      (sdkWallet.listTransfers as any) = vi
+        .fn()
+        .mockResolvedValue([
+          {
+            idx: 99,
+            batchTransferIdx: 1,
+            createdAt: 1700000200000,
+            updatedAt: 1700000200000,
+            status: 'WaitingCounterparty',
+            kind: 'ReceiveBlind',
+            assignments: [{ type: 'Fungible', amount: 5 }],
+            transportEndpoints: [],
+            invoiceString: 'rgb:pending-invoice-xyz',
+          },
+        ]);
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const txs = await w.getCommonTransactions();
+      expect(txs).toHaveLength(1);
       expect(txs[0].status).toBe('pending');
-      expect(txs[0].txid).toBe('rgb:abc');
-      expect(txs[1].txid).toBe('tx2');
-      expect(txs[1].direction).toBe('send');
-      expect(txs[2].txid).toBe('tx1');
-      expect(txs[2].direction).toBe('receive');
+      expect(txs[0].direction).toBe('receive');
+      expect(txs[0].txid).toMatch(/^transfer:/);
+      expect(txs[0].tokenTransfers?.[0].tokenId).toBe('nia-A');
     });
   });
 });

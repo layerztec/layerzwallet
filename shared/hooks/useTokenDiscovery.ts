@@ -71,7 +71,14 @@ export const tokenDiscoveryFetcher = async (arg: tokenDiscoveryFetcherArg): Prom
     const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
     assert(wallet instanceof RgbWallet, 'Not an RGB wallet');
 
-    await wallet.fetchTokenBalances();
+    // Rely on the in-memory cache populated by `getOffchainBalance` (useBalance
+    // fires on a 30s interval and refreshes both BTC + asset balances in one
+    // round-trip). If balance has never been fetched yet, fall back to storage.
+    if (!wallet._lastBalanceFetch) {
+      const cachedTokens = await restoreCachedTokens(cacheKey, storage);
+      if (cachedTokens) return cachedTokens;
+    }
+
     const tokenInfos = wallet.getTokenBalances();
     if (tokenInfos.length > 0) {
       await storage.setItem(cacheKey, JSON.stringify(tokenInfos));
