@@ -7,6 +7,7 @@ import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } f
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Alignment, Fit, RiveView, useRiveFile } from '@rive-app/react-native';
 import Pressable from '../../components/Pressable';
+import successRiv from '../../assets/animations/success.riv';
 
 import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
@@ -29,7 +30,7 @@ import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NE
 import { useSendFlow } from './_layout';
 
 const SuccessRiveAnimation = () => {
-  const { riveFile } = useRiveFile(require('../../assets/animations/success.riv'));
+  const { riveFile } = useRiveFile(successRiv);
   if (!riveFile) return <View style={styles.riveAnimation} />;
   return <RiveView autoPlay={true} alignment={Alignment.Center} fit={Fit.Contain} file={riveFile} onError={(error) => console.log('Rive error:', error.message)} style={styles.riveAnimation} />;
 };

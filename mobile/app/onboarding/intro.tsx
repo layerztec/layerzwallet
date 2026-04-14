@@ -10,6 +10,14 @@ import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, Easing } from 'react-native-reanimated';
 import { RadialGradient } from '@/components/RadialGradient';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import selfCustodyRiv from '../../assets/animations/selfcustody.riv';
+import lightningRiv from '../../assets/animations/lightning.riv';
+import barsRiv from '../../assets/animations/bars.riv';
+import swapsRiv from '../../assets/animations/swaps.riv';
+import liquidRiv from '../../assets/animations/liquid.riv';
+import nftsRiv from '../../assets/animations/nfts.riv';
+import ossRiv from '../../assets/animations/oss.riv';
+import introRiv from '../../assets/animations/intro.riv';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -145,21 +153,21 @@ interface SlideItemProps {
 const animationToRivSource = (animation: string) => {
   switch (animation) {
     case 'selfcustody':
-      return require('../../assets/animations/selfcustody.riv');
+      return selfCustodyRiv;
     case 'lightning':
-      return require('../../assets/animations/lightning.riv');
+      return lightningRiv;
     case 'bars':
-      return require('../../assets/animations/bars.riv');
+      return barsRiv;
     case 'swaps':
-      return require('../../assets/animations/swaps.riv');
+      return swapsRiv;
     case 'liquid':
-      return require('../../assets/animations/liquid.riv');
+      return liquidRiv;
     case 'nfts':
-      return require('../../assets/animations/nfts.riv');
+      return nftsRiv;
     case 'oss':
-      return require('../../assets/animations/oss.riv');
+      return ossRiv;
     default:
-      return require('../../assets/animations/intro.riv');
+      return introRiv;
   }
 };
 
