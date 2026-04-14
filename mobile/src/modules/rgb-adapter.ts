@@ -6,8 +6,15 @@ import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet } from '@shared/t
 
 const RGB_DATA_ROOT = 'rgb';
 
+/**
+ * Hashes the raw mnemonic — no trim/lowercase — to match the normalization used
+ * by `mobile/src/modules/breeze-adapter.ts` (`sha256(mnemonic)`). Upstream,
+ * `sanitizeAndValidateMnemonic` in `shared/modules/wallet-utils.ts` canonicalises
+ * mnemonics before they reach storage, so by the time this runs the mnemonic
+ * string is already trimmed + lowercased.
+ */
 function mnemonicFingerprint(mnemonic: string): string {
-  const digest = sha256(new TextEncoder().encode(mnemonic.trim().toLowerCase()));
+  const digest = sha256(new TextEncoder().encode(mnemonic));
   let hex = '';
   for (let i = 0; i < 8; i++) hex += digest[i].toString(16).padStart(2, '0');
   return hex;

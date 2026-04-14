@@ -38,6 +38,8 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   private _tokens: CachedTokenInfo[] = [];
   private _receiveAddress: string | undefined;
   public _lastTokensFetch: number = 0;
+  /** Dedupes concurrent `fetchTokenBalances` calls from different hooks. */
+  private _tokensFetchInFlight: Promise<void> | undefined;
 
   constructor(network: Networks = NETWORK_RGB) {
     super();
@@ -96,10 +98,14 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    * Returns the spendable **vanilla** BTC balance. Colored sats (the 1000-sat
    * commitment outputs bound to each RGB allocation) are excluded: the user
    * can't actually spend them as BTC without destroying an asset allocation.
+   *
+   * Kicks off an opportunistic asset-list refresh but does not await it — a
+   * transient indexer failure on the asset side must not fail the BTC balance.
    */
   async getOffchainBalance(): Promise<number> {
-    const [bal] = await Promise.all([this.sdk().getBtcBalance(), this.fetchTokenBalances()]);
+    const bal = await this.sdk().getBtcBalance();
     this._lastBalanceFetch = Date.now();
+    this.fetchTokenBalances().catch((e) => globalThis.handleError?.(e, 'rgb-wallet.ts:fetchTokens'));
     return Number(bal.vanilla.spendable);
   }
 
@@ -120,7 +126,10 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    * field.
    */
   async transferToken(tokenId: string, amount: bigint, invoice: string, _memo?: string): Promise<string> {
-    assert(amount <= BigInt(Number.MAX_SAFE_INTEGER), 'RGB send amount exceeds 2^53 — not representable as JS number');
+    // The SDK's send API takes `amount: number`. High-precision assets (e.g.
+    // precision 18 + a large holding) can exceed JS's safe-integer range; the
+    // error surfaces here rather than producing a silently rounded send.
+    assert(amount <= BigInt(Number.MAX_SAFE_INTEGER), `RGB send amount ${amount} exceeds Number.MAX_SAFE_INTEGER (2^53). ` + 'Reduce the amount or wait for SDK bigint support.');
     const result = await this.sdk().send({
       invoice,
       assetId: tokenId,
@@ -132,18 +141,28 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   }
 
   async fetchTokenBalances(): Promise<void> {
-    const list = await this.sdk().listAssets();
-    const assets: AnyAsset[] = [...(list.nia ?? []), ...(list.cfa ?? []), ...(list.ifa ?? []), ...(list.uda ?? [])];
-    this._tokens = assets.map((a) => ({
-      id: a.assetId,
-      chainId: AllNetworkInfos[this._network].chainId,
-      name: a.name,
-      symbol: a.ticker ?? a.name,
-      decimals: a.precision,
-      balance: String(a.balance.spendable),
-      logoURI: a.media?.filePath,
-    }));
-    this._lastTokensFetch = Date.now();
+    // Dedupes concurrent callers (useBalance + useTransactions + useTokenDiscovery
+    // can all fire at once on cold start) and returns the same in-flight promise.
+    if (this._tokensFetchInFlight) return this._tokensFetchInFlight;
+    this._tokensFetchInFlight = (async () => {
+      try {
+        const list = await this.sdk().listAssets();
+        const assets: AnyAsset[] = [...(list.nia ?? []), ...(list.cfa ?? []), ...(list.ifa ?? []), ...(list.uda ?? [])];
+        this._tokens = assets.map((a) => ({
+          id: a.assetId,
+          chainId: AllNetworkInfos[this._network].chainId,
+          name: a.name,
+          symbol: a.ticker ?? a.name,
+          decimals: a.precision,
+          balance: String(a.balance.spendable),
+          logoURI: a.media?.filePath,
+        }));
+        this._lastTokensFetch = Date.now();
+      } finally {
+        this._tokensFetchInFlight = undefined;
+      }
+    })();
+    return this._tokensFetchInFlight;
   }
 
   getTokenBalances(): CachedTokenInfo[] {
@@ -229,10 +248,19 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
 
   private annotatedTransfersToCommon(list: AnnotatedTransfer[]): CommonTokenTransfer[] {
     const out: CommonTokenTransfer[] = [];
+    // Dedupe against the case where the SDK returns the same transfer (same
+    // assignments) for multiple per-asset `listTransfers(aid)` calls — e.g. a
+    // batch transfer that touches two assets might surface in both queries.
+    // Keying by (tokenId, amount, recipientId, kind) collapses exact repeats
+    // without masking legitimately-distinct assignments.
+    const seen = new Set<string>();
     for (const t of list) {
       const metadata = t.assetId ? this._tokens.find((m) => m.id === t.assetId) : undefined;
       for (const a of t.assignments ?? []) {
         if (a.type !== 'Fungible' && a.type !== 'NonFungible') continue;
+        const key = `${t.assetId ?? ''}|${a.amount ?? ''}|${t.recipientId ?? ''}|${t.kind}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
         out.push({
           tokenId: t.assetId ?? '',
           amount: a.amount,
@@ -260,16 +288,21 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   }
 
   /**
-   * Validates either a Bitcoin taproot address or an `rgb:`/`utxob:` invoice.
-   * The invoice shape check requires at least some payload after the scheme
-   * prefix — we leave deep decoding to `sdk().decodeRGBInvoice()` at send time.
+   * Cheap shape check: confirms the string *looks* like an RGB invoice or a
+   * taproot address so we don't submit obvious garbage to the SDK. Deep
+   * validation (invoice consistency, transport endpoint reachability,
+   * checksum) happens inside `sdk().decodeRGBInvoice()` and bech32m decoding
+   * at send time — there's no value in duplicating that here.
    */
   static isAddressValid(input: string): boolean {
     const s = input.trim();
     if (!s) return false;
-    if (/^rgb:[a-zA-Z0-9:_+$-]{10,}$/i.test(s)) return true;
-    if (/^utxob:[a-zA-Z0-9$!+_-]{10,}$/i.test(s)) return true;
-    // taproot p2tr: bc1p... / tb1p... / bcrt1p...
+    // RGB invoices: require the scheme prefix plus a reasonably-long payload.
+    // Invoice payloads can contain any base64url-like or URL-safe chars
+    // depending on encoding, so the permissive payload check is intentional.
+    if (/^rgb:\S{10,}$/i.test(s)) return true;
+    if (/^utxob:\S{10,}$/i.test(s)) return true;
+    // Taproot p2tr: bc1p / tb1p / bcrt1p bech32m.
     return /^(bc1p|tb1p|bcrt1p)[0-9a-z]{40,}$/i.test(s);
   }
 
@@ -279,14 +312,19 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
 }
 
 function isVssBackupMissing(e: unknown): boolean {
-  // The SDK raises a NotFoundError (or wraps an HTTP 404) when the VSS bucket
-  // has no backup for this mnemonic yet. Matching by name — rather than
-  // `instanceof` — keeps us resilient to core version drift.
+  // Only treat "VSS has no backup for this mnemonic" as an expected path into
+  // fresh-wallet creation. Every other error rethrows so we never silently
+  // overwrite a real remote backup with an empty local state.
+  //
+  // Prefer structured signals (error name, HTTP status) over message matching.
+  // String matches require whole phrases — `/not\s+found/i` intentionally does
+  // NOT match "host not found" (DNS) or "certificate does not exist" (TLS),
+  // which are transport errors that must rethrow.
   if (!e) return false;
-  const err = e as { name?: string; message?: string; statusCode?: number };
+  const err = e as { name?: string; message?: string; statusCode?: number; status?: number; code?: string };
   if (err.name === 'NotFoundError') return true;
-  if (err.statusCode === 404) return true;
-  if (typeof err.message === 'string' && /not.?found|no.?backup|does not exist/i.test(err.message)) return true;
+  if (err.statusCode === 404 || err.status === 404) return true;
+  if (typeof err.message === 'string' && /\bbackup\s+(not\s+found|does\s+not\s+exist|missing)\b/i.test(err.message)) return true;
   return false;
 }
 

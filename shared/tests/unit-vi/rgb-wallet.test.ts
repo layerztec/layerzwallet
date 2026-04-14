@@ -146,6 +146,33 @@ describe('RgbWallet', () => {
       await expect(w.init({} as any)).rejects.toThrow(/network unreachable/);
       expect(adapter.createWallet).not.toHaveBeenCalled();
     });
+
+    it('rethrows transport errors whose message contains "not found" (e.g. DNS/TLS)', async () => {
+      // The previous, looser regex `/not.?found/i` would have swallowed this.
+      const adapter: IRgbAdapter = {
+        capabilities: { lightning: false },
+        createWallet: vi.fn(),
+        restoreFromVss: vi.fn().mockRejectedValue(new Error('getaddrinfo ENOTFOUND vss.example.com — host not found')),
+      };
+      (globalThis as any).rgbAdapter = adapter;
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await expect(w.init({} as any)).rejects.toThrow(/host not found/);
+      expect(adapter.createWallet).not.toHaveBeenCalled();
+    });
+
+    it('falls back on HTTP 404 from VSS', async () => {
+      const adapter: IRgbAdapter = {
+        capabilities: { lightning: false },
+        createWallet: vi.fn().mockResolvedValue({} as IRgbWallet),
+        restoreFromVss: vi.fn().mockRejectedValue(Object.assign(new Error('vss bucket unavailable'), { statusCode: 404 })),
+      };
+      (globalThis as any).rgbAdapter = adapter;
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      expect(adapter.createWallet).toHaveBeenCalledOnce();
+    });
   });
 
   describe('balance + send', () => {
@@ -174,7 +201,7 @@ describe('RgbWallet', () => {
       w.setSecret(MNEMONIC);
       await w.init({} as any);
       const huge = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
-      await expect(w.transferToken('nia-1', huge, 'rgb:abc')).rejects.toThrow(/exceeds 2\^53/);
+      await expect(w.transferToken('nia-1', huge, 'rgb:abc')).rejects.toThrow(/MAX_SAFE_INTEGER/);
     });
   });
 
@@ -271,30 +298,39 @@ describe('RgbWallet', () => {
       expect(txs[1].tokenTransfers?.[0].amount).toBe(10);
     });
 
-    it('emits pending transfers (no mined txid) under a namespaced key', async () => {
+    it('emits pending transfers (no mined txid) under a namespaced key, with two assets in the wallet', async () => {
       const { sdkWallet } = installAdapter();
+      // Two assets in the wallet: the pending transfer belongs to one (nia-A)
+      // and listTransfers('nia-B') returns an empty array. This exercises the
+      // per-asset iteration actually filtering to the right asset.
       (sdkWallet.listAssets as any) = vi.fn().mockResolvedValue({
-        nia: [{ assetId: 'nia-A', name: 'Token A', ticker: 'A', precision: 0, balance: { settled: 0, future: 0, spendable: 0 } }],
+        nia: [
+          { assetId: 'nia-A', name: 'Token A', ticker: 'A', precision: 0, balance: { settled: 0, future: 0, spendable: 0 } },
+          { assetId: 'nia-B', name: 'Token B', ticker: 'B', precision: 0, balance: { settled: 0, future: 0, spendable: 0 } },
+        ],
         cfa: [],
         ifa: [],
         uda: [],
       });
       (sdkWallet.listTransactions as any) = vi.fn().mockResolvedValue([]);
-      (sdkWallet.listTransfers as any) = vi
-        .fn()
-        .mockResolvedValue([
-          {
-            idx: 99,
-            batchTransferIdx: 1,
-            createdAt: 1700000200000,
-            updatedAt: 1700000200000,
-            status: 'WaitingCounterparty',
-            kind: 'ReceiveBlind',
-            assignments: [{ type: 'Fungible', amount: 5 }],
-            transportEndpoints: [],
-            invoiceString: 'rgb:pending-invoice-xyz',
-          },
-        ]);
+      (sdkWallet.listTransfers as any) = vi.fn().mockImplementation(async (assetId?: string) => {
+        if (assetId === 'nia-A') {
+          return [
+            {
+              idx: 99,
+              batchTransferIdx: 1,
+              createdAt: 1700000200000,
+              updatedAt: 1700000200000,
+              status: 'WaitingCounterparty',
+              kind: 'ReceiveBlind',
+              assignments: [{ type: 'Fungible', amount: 5 }],
+              transportEndpoints: [],
+              invoiceString: 'rgb:pending-invoice-xyz',
+            },
+          ];
+        }
+        return [];
+      });
 
       const w = new RgbWallet(NETWORK_RGB_TESTNET);
       w.setSecret(MNEMONIC);
@@ -305,6 +341,77 @@ describe('RgbWallet', () => {
       expect(txs[0].direction).toBe('receive');
       expect(txs[0].txid).toMatch(/^transfer:/);
       expect(txs[0].tokenTransfers?.[0].tokenId).toBe('nia-A');
+    });
+
+    it('dedupes repeated assignments within a single transfer', async () => {
+      // Defense-in-depth: if the SDK (or a future pagination bug) returns the
+      // same assignment twice, our (assetId, amount, recipient, kind) key
+      // collapses the repeat rather than double-reporting the transfer.
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listAssets as any) = vi.fn().mockResolvedValue({
+        nia: [{ assetId: 'nia-A', name: 'Token A', ticker: 'A', precision: 0, balance: { settled: 0, future: 0, spendable: 0 } }],
+        cfa: [],
+        ifa: [],
+        uda: [],
+      });
+      (sdkWallet.listTransactions as any) = vi
+        .fn()
+        .mockResolvedValue([{ transactionType: 'RgbSend', txid: 'tx1', received: 0, sent: 0, fee: 10, confirmationTime: { height: 1, timestamp: 1700000000 } }]);
+      (sdkWallet.listTransfers as any) = vi.fn().mockResolvedValue([
+        {
+          idx: 1,
+          batchTransferIdx: 1,
+          createdAt: 1700000000000,
+          updatedAt: 1700000000000,
+          status: 'Settled',
+          kind: 'Send',
+          assignments: [
+            { type: 'Fungible', amount: 42 },
+            { type: 'Fungible', amount: 42 }, // duplicate entry
+          ],
+          transportEndpoints: [],
+          txid: 'tx1',
+          recipientId: 'rcp-1',
+        },
+      ]);
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const txs = await w.getCommonTransactions();
+      expect(txs).toHaveLength(1);
+      expect(txs[0].tokenTransfers).toHaveLength(1); // duplicate collapsed
+    });
+  });
+
+  describe('fetchTokenBalances', () => {
+    it('dedupes concurrent callers into a single SDK round-trip', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listAssets as any) = vi.fn().mockImplementation(async () => {
+        await new Promise((r) => setTimeout(r, 10));
+        return { nia: [], cfa: [], ifa: [], uda: [] };
+      });
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+
+      // Three concurrent callers, only one listAssets call should happen.
+      await Promise.all([w.fetchTokenBalances(), w.fetchTokenBalances(), w.fetchTokenBalances()]);
+      expect((sdkWallet.listAssets as any).mock.calls.length).toBe(1);
+    });
+
+    it('survives listAssets failure without nuking the wallet', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listAssets as any) = vi.fn().mockRejectedValueOnce(new Error('indexer down'));
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+
+      // getOffchainBalance kicks off fetchTokenBalances but must not propagate its error.
+      const bal = await w.getOffchainBalance();
+      expect(bal).toBe(100);
     });
   });
 });

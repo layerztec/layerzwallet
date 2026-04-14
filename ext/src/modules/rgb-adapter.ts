@@ -2,6 +2,10 @@ import { UTEXOWallet, restoreUtxoWalletFromVss } from '@utexo/rgb-sdk-web';
 
 import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet } from '@shared/types/rgb-adapter';
 
+// The web SDK persists wallet state in IndexedDB, which is scoped per-origin
+// by the browser — so a per-mnemonic subdirectory (as the mobile adapter uses)
+// isn't needed here. Switching mnemonic requires clearing the IndexedDB store
+// via the SDK's own dispose/restore flow, not a filesystem path trick.
 class RgbAdapter implements IRgbAdapter {
   readonly capabilities = { lightning: false } as const;
 
