@@ -20,7 +20,7 @@ const ScreenHeader: React.FC<ScreenHeaderProps> = ({ title, showBackButton = tru
 
         <View style={styles.centerContainer}>
           {title && (
-            <ThemedText style={styles.title} testID={testID}>
+            <ThemedText type="subtitle" style={styles.title} testID={testID}>
               {title}
             </ThemedText>
           )}

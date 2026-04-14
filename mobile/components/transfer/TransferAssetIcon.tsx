@@ -3,6 +3,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { getNetworkImageAsset, getTransferAssetColor, getTransferAssetIcon } from '@/utils/networkAssets';
+import { hexToRgba } from '@shared/constants/Colors';
 import { getAssetInfo } from '@shared/models/asset-info';
 import { AssetId } from '@shared/types/asset';
 import PlatformBlurView from '../PlatformBlurView';
@@ -14,14 +15,6 @@ interface TransferAssetIconProps {
   size?: number;
 }
 
-/** Convert hex color to rgba with given opacity */
-function hexToRgba(hex: string, opacity: number): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-}
-
 export default function TransferAssetIcon({ asset, size = 43 }: TransferAssetIconProps) {
   const assetInfo = getAssetInfo(asset);
   const mainIcon = getTransferAssetIcon(asset, assetInfo.network);
@@ -29,7 +22,7 @@ export default function TransferAssetIcon({ asset, size = 43 }: TransferAssetIco
   const showBadge = !!assetInfo.tokenId && mainIcon !== networkIcon;
 
   const brandColor = getTransferAssetColor(asset);
-  const bgColor = brandColor ? hexToRgba(brandColor, 0.25) : 'rgba(255, 255, 255, 0.1)';
+  const bgColor = brandColor ? hexToRgba(brandColor, 0.8) : 'rgba(255, 255, 255, 0.1)';
 
   const iconSize = size * 0.6;
   const badgeSize = size * 0.6;

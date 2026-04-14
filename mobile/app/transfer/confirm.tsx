@@ -5,6 +5,7 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from 'rea
 import { ActivityIndicator, Pressable as RNPressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Button from '@/components/Button';
 import { ThemedText } from '@/components/ThemedText';
@@ -32,6 +33,7 @@ const CLAIM_OPTIONS_HEIGHT = 40 * 2; // 2 option rows
 export default function TransferConfirm() {
   const router = useRouter();
   const { height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { sendAsset, receiveAsset, quote, setQuote, setCommitted, preparedExecution, setPreparedExecution, transferService } = useTransferFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const fiat = useSelectedFiat();
@@ -323,7 +325,7 @@ export default function TransferConfirm() {
             <View style={styles.grabber} />
 
             {isPreparing ? (
-              <View style={styles.preparingContainer}>
+              <View style={[styles.preparingContainer, { paddingBottom: 60 + insets.bottom }]}>
                 <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
                 <ThemedText style={styles.preparingText}>Preparing transfer...</ThemedText>
               </View>
@@ -430,7 +432,7 @@ export default function TransferConfirm() {
                 </ScrollView>
 
                 {/* Confirm Button */}
-                <View style={styles.buttonContainer}>
+                <View style={[styles.buttonContainer, { paddingBottom: 40 + insets.bottom }]}>
                   {isConfirming ? (
                     <View style={styles.loadingContainer} testID="ConfirmLoading">
                       <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.8)" />
@@ -617,7 +619,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 40,
   },
   confirmButton: {
     height: 56,
