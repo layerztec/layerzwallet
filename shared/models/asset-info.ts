@@ -1,6 +1,6 @@
 import { AllNetworkInfos } from './all-network-infos';
 import { getTokenInfo, USDT_TOKENS } from './token-list';
-import { NETWORK_BITCOIN, NETWORK_BOTANIX_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_BITCOIN, NETWORK_BOTANIX_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, Networks } from '../types/networks';
 import { ASSET_IDS, AssetId, AssetInfo } from '../types/asset';
 
 const ASSET_ID_SET = new Set<string>(ASSET_IDS);
@@ -33,6 +33,9 @@ function resolveTokenId(network: Networks, tokenRef: string): string {
   }
   if (tokenRef === 'usdb' && network === NETWORK_SPARK) {
     return USDT_TOKENS[NETWORK_SPARK][0];
+  }
+  if (tokenRef === 'usdt0' && network === NETWORK_ROOTSTOCK) {
+    return '0x779dED0C9e1022225F8e0630b35A9B54Be713736';
   }
   return tokenRef;
 }

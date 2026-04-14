@@ -85,6 +85,21 @@ getTrackingUrl?(execution): string | undefined
 - **Manual claim**: `SwapXArkClaim` screen with serialized CommonSwap (when `autoClaim=false` on Spark)
 - No tracking URL
 
+### Satora (`shared/services/transfer-service-satora.ts`)
+- **Pairs**: `native:lightning → token:rootstock:usdt0` (one-way, LN-only in v1). Arkade-as-source deferred.
+- **Model**: SDK returns a BOLT11; the wallet's internal LN wallet (user-picked) pays it; Satora server handles DEX swap + LayerZero USDT0 OFT bridge end-to-end. **No client-side claim/relay action**.
+- **SDK**: `@lendasat/lendaswap-sdk-pure` (npm, `preview` tag). Initialized lazily via `Client.builder().withSignerStorage().withSwapStorage().withBaseUrl('https://api.lendaswap.com').withApiKey(...)`. The SDK auto-generates a Satora-only mnemonic on first build (separate from the wallet's master seed) and persists it via the storage adapter.
+- **Storage adapters**: `shared/services/satora-storage-adapter.ts` — `SatoraWalletStorageAdapter` (mnemonic + key index) and `SatoraSwapStorageAdapter` (`StoredSwap[]`) backed by `IStorage`. Storage keys: `STORAGE_KEY_SATORA_WALLET`, `STORAGE_KEY_SATORA_SWAPS`.
+- **Asset**: `token:rootstock:usdt0` — registered in `shared/types/asset.ts`, resolved to USDT0 contract `0x779dED0C9e1022225F8e0630b35A9B54Be713736` (6 decimals) via `shared/models/asset-info.ts:resolveTokenId`. A `manuallyDefinedTokens` entry in `shared/models/token-list.ts` overrides the bundled evm tokenlist's `"$"` symbol with a clean `USDT0` — the manually-defined list is spread before the bundled lists so `getTokenInfo` returns it first.
+- **Bridge remap**: handled entirely by the SDK at runtime. When you pass `targetChain: '30'` + `targetToken: USDT0_ROOTSTOCK_ADDR` to `createSwap`, the SDK detects `isBridgeOnlyChain('30')` (`client.ts:3132-3149`), remaps the DEX swap to Arbitrum (`42161`), and populates `bridgeParams.targetChain='Rootstock'` + `bridgeParams.targetTokenAddress=USDT0_ROOTSTOCK_ADDR`. The SDK's declared `Chain` type omits '30' so we cast `ROOTSTOCK_CHAIN_ID as unknown as 'Lightning'` in the call site — a narrow escape hatch, documented inline.
+- **Status flow**: `pending → clientfundingseen → clientfunded → serverfunded → clientredeeming → clientredeemed → serverredeemed`. `clientredeemed` is the terminal success (USDT0 delivered to the user's Rootstock address).
+- **Auto-claim**: `getOngoingTransfers()` polls `getSwap()`. When the status reaches `serverfunded` it fires `client.claim(swapId)` exactly once (idempotency via per-transfer `claimCalled` flag). The SDK reads the stored swap from `SatoraSwapStorageAdapter`, extracts the target Rootstock address from the stored response, and internally delegates to `claimViaGasless` which POSTs to `/swap/{id}/claim-gasless`. The server then runs `coordinator.redeemAndExecute` which performs the DEX swap on Arbitrum and bridges USDT0 to Rootstock via LayerZero OFT. Status advances `serverfunded → clientredeeming → clientredeemed` (terminal). Failures (thrown network error or `ClaimResult.success === false`) retry on the next poll tick.
+- **Rootstock destination**: captured at create time via `BackgroundExecutor.getAddress(NETWORK_ROOTSTOCK, accountNumber)` (returns the user's EVM wallet address for Rootstock) and persisted on the `PersistedTransfer` record.
+- **Confirm-screen flow** (`mobile/app/transfer/confirm.tsx`): branches on `quote.serviceName === 'Satora'`. On mount, discovers LN-capable wallets via `BackgroundExecutor.lazyInitWallet` on `[NETWORK_LIQUID, NETWORK_SPARK, NETWORK_ARK]` + `walletSupportsLightning` type guard, default-selects the first. Renders a "Pay from" picker chip row. On confirm tap: `getAddress(NETWORK_ROOTSTOCK, accountNumber)` → `transferService.executeTransfer(quote, accountNumber, rootstockAddr)` → `lnWallet.payLightningInvoice(execution.depositAddress)` → `commitTransfer` → `router.replace('/TransferDetails')`.
+- **Quote**: 60-second TTL (informational; the actual swap is created at confirm time). BTC 8 decimals on the source side, USDT0 6 decimals on the target side.
+- Conditional on `EXPO_PUBLIC_SATORA_API_KEY` env var (threaded into `Client.builder().withApiKey(...)` — attached at the SDK client level so it flows into every outbound call, rather than being passed per-request).
+- No tracking URL exposed by Satora docs at time of writing.
+
 ### Fake (`shared/services/transfer-service-fake.ts`)
 - **Pairs**: Liquid Testnet BTC <-> Botanix Testnet BTC
 - **Model**: Dev/test stub. Instant completion. Throws error when amount=1.
@@ -128,6 +143,7 @@ getTrackingUrl?(execution): string | undefined
 - `shared/tests/unit-vi/transfer-service-garden.test.ts`
 - `shared/tests/unit-vi/transfer-service-symbiosis.test.ts`
 - `shared/tests/unit-vi/transfer-service-flashnet.test.ts`
+- `shared/tests/unit-vi/transfer-service-satora.test.ts`
 - `shared/tests/unit-vi/transfer-service-manager.test.ts`
 - `shared/tests/unit-vi/transfer-service-native-deposit.test.ts`
 - `shared/tests/unit-vi/sideshift-mappings.test.ts`

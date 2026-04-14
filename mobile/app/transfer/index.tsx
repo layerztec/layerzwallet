@@ -230,6 +230,10 @@ export default function TransferInput() {
     if (!sendAsset || !sendAmount || !sendBalance) return '';
     const amount = parseFloat(sendAmount);
     if (isNaN(amount) || amount <= 0) return '';
+    // `native:lightning` is a meta source asset — the actual funds live across
+    // individual LN-capable wallets (Breez/Spark/Ark) and the confirm screen picks
+    // which one pays. There is no unified balance to check here.
+    if (sendAsset === 'native:lightning') return '';
     const info = getAssetInfo(sendAsset);
     if (AllNetworkInfos[info.network]?.isTestnet) return '';
     const amountSmallest = new BigNumber(sendAmount).times(new BigNumber(10).pow(info.decimals));

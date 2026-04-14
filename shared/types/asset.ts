@@ -42,6 +42,7 @@ export const ASSET_IDS = [
   `token:${NETWORK_LIQUID}:usdt`,
   `token:${NETWORK_SPARK}:usdb`,
   `token:${NETWORK_STACKS}:stx`,
+  `token:${NETWORK_ROOTSTOCK}:usdt0`,
 ] as const;
 
 /** Strict asset identity — used as a universal identifier across the app */
