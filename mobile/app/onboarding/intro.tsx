@@ -4,12 +4,20 @@ import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@shared/constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Rive from 'rive-react-native';
+import { Alignment, Fit, RiveView, useRiveFile } from '@rive-app/react-native';
 import Pressable from '../../components/Pressable';
 import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, Easing } from 'react-native-reanimated';
 import { RadialGradient } from '@/components/RadialGradient';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import selfCustodyRiv from '../../assets/animations/selfcustody.riv';
+import lightningRiv from '../../assets/animations/lightning.riv';
+import barsRiv from '../../assets/animations/bars.riv';
+import swapsRiv from '../../assets/animations/swaps.riv';
+import liquidRiv from '../../assets/animations/liquid.riv';
+import nftsRiv from '../../assets/animations/nfts.riv';
+import ossRiv from '../../assets/animations/oss.riv';
+import introRiv from '../../assets/animations/intro.riv';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -142,13 +150,39 @@ interface SlideItemProps {
   item: (typeof SLIDES)[0];
 }
 
+const animationToRivSource = (animation: string) => {
+  switch (animation) {
+    case 'selfcustody':
+      return selfCustodyRiv;
+    case 'lightning':
+      return lightningRiv;
+    case 'bars':
+      return barsRiv;
+    case 'swaps':
+      return swapsRiv;
+    case 'liquid':
+      return liquidRiv;
+    case 'nfts':
+      return nftsRiv;
+    case 'oss':
+      return ossRiv;
+    default:
+      return introRiv;
+  }
+};
+
 const SlideItem: React.FC<SlideItemProps> = ({ item }) => {
   const isFullWidth = 'fullWidth' in item && item.fullWidth;
+  const { riveFile } = useRiveFile(animationToRivSource(item.animation));
 
   return (
     <View style={styles.slideContent}>
       <View style={[styles.animationContainer, isFullWidth && styles.animationContainerFullWidth]}>
-        <Rive autoplay={true} style={styles.riveAnimation} resourceName={item.animation} />
+        {riveFile ? (
+          <RiveView autoPlay={true} alignment={Alignment.Center} fit={Fit.Contain} file={riveFile} onError={(error) => console.log('Rive error:', error.message)} style={styles.riveAnimation} />
+        ) : (
+          <View style={styles.riveAnimation} />
+        )}
       </View>
       <View style={styles.textContainer}>
         <ThemedText style={styles.slideTitle} darkColor="#FFFFFF">
