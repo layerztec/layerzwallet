@@ -1,0 +1,22 @@
+diff --git a/node_modules/@utexo/rgb-sdk-rn/ios/Rgb.mm b/node_modules/@utexo/rgb-sdk-rn/ios/Rgb.mm
+index 8e2d685..7e82f8c 100644
+--- a/node_modules/@utexo/rgb-sdk-rn/ios/Rgb.mm
++++ b/node_modules/@utexo/rgb-sdk-rn/ios/Rgb.mm
+@@ -362,7 +362,7 @@ - (void)backupInfo:(double)walletId
+ - (void)blindReceive:(double)walletId
+               assetId:(NSString * _Nullable)assetId
+            assignment:(JS::NativeRgb::SpecBlindReceiveAssignment &)assignment
+-   expirationTimestamp:(NSNumber * _Nullable)expirationTimestamp
++   expirationTimestamp:(NSNumber *)expirationTimestamp
+    transportEndpoints:(NSArray<NSString *> *)transportEndpoints
+      minConfirmations:(double)minConfirmations
+               resolve:(RCTPromiseResolveBlock)resolve
+@@ -1736,7 +1736,7 @@ - (void)sync:(double)walletId
+ - (void)witnessReceive:(double)walletId
+                assetId:(NSString * _Nullable)assetId
+             assignment:(JS::NativeRgb::SpecWitnessReceiveAssignment &)assignment
+-   expirationTimestamp:(NSNumber * _Nullable)expirationTimestamp
++   expirationTimestamp:(NSNumber *)expirationTimestamp
+    transportEndpoints:(NSArray<NSString *> *)transportEndpoints
+      minConfirmations:(double)minConfirmations
+               resolve:(RCTPromiseResolveBlock)resolve
