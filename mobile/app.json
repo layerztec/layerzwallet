@@ -5,7 +5,7 @@
     "version": "1.5.3",
     "orientation": "portrait",
     "scheme": ["bitcoin", "liquidnetwork", "layerzwallet"],
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.layerzwallet.mobile",

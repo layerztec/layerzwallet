@@ -7,12 +7,14 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AnimatedLayerBackground } from '@/components/AnimatedLayerBackground';
 import Button from '@/components/Button';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import TransferList from '@/components/transfer/TransferList';
 import TransferAmountSection from '@/components/transfer/TransferAmountSection';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { Colors } from '@shared/constants/Colors';
+import { getNetworkPrimaryColorDarkened } from '@shared/constants/Colors';
 import { sleep } from '@shared/modules/sleep';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useAssetBalance } from '@shared/hooks/useAssetBalance';
@@ -39,6 +41,15 @@ export default function TransferInput() {
   const [pairInfo, setPairInfo] = useState<TransferPairInfo | undefined>();
   const [isContinuing, setIsContinuing] = useState(false);
   const isContinuingRef = useRef(false);
+
+  const sendNetwork = useMemo(() => {
+    if (!sendAsset) return 'base';
+    try {
+      return getAssetInfo(sendAsset).network;
+    } catch {
+      return 'base';
+    }
+  }, [sendAsset]);
 
   const handleSendAssetPress = () => {
     router.push({ pathname: '/modals/transfer-select-asset', params: { side: 'send' } });
@@ -253,14 +264,11 @@ export default function TransferInput() {
 
   return (
     <View style={styles.backgroundContainer}>
+      <AnimatedLayerBackground network={sendNetwork} />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+          <ScreenHeader title="Transfer" testID="TransferScreenTitle" style={styles.screenHeader} showBackButton={false} />
           <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-              <ThemedText style={styles.title}>Transfer</ThemedText>
-            </View>
-
             {/* Send Section */}
             <TransferAmountSection
               label="Send"
@@ -278,7 +286,7 @@ export default function TransferInput() {
 
             {/* Arrow Divider */}
             <View style={styles.arrowContainer}>
-              <View style={styles.arrowCircle}>
+              <View style={[styles.arrowCircle, { backgroundColor: getNetworkPrimaryColorDarkened(sendNetwork) }]}>
                 <Ionicons name="arrow-down" size={18} color="rgba(255, 255, 255, 0.6)" />
               </View>
             </View>
@@ -345,7 +353,6 @@ export default function TransferInput() {
 const styles = StyleSheet.create({
   backgroundContainer: {
     flex: 1,
-    backgroundColor: Colors.GlobalDarkBackground,
   },
   scrollView: {
     flex: 1,
@@ -355,23 +362,14 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   container: {
     flex: 1,
     marginHorizontal: 20,
   },
-  header: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  title: {
-    paddingTop: 4,
-    fontSize: 22,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
-    fontWeight: '500',
+  screenHeader: {
+    marginBottom: 8,
   },
   arrowContainer: {
     alignItems: 'center',
@@ -381,7 +379,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.GlobalDarkBackground,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: -16,

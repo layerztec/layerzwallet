@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, Pressable as RNPressable, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Pressable from '@/components/Pressable';
 import { ThemedText } from '@/components/ThemedText';
@@ -23,6 +24,7 @@ const DISMISS_THRESHOLD = 150;
 export default function SelectAsset() {
   const router = useRouter();
   const { height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<SelectAssetParams>();
   const { setSendAsset, setReceiveAsset, transferService } = useTransferFlow();
   const [searchText, setSearchText] = useState('');
@@ -156,7 +158,7 @@ export default function SelectAsset() {
                   data={filteredAssets}
                   renderItem={renderItem}
                   keyExtractor={(item) => item}
-                  contentContainerStyle={styles.listContent}
+                  contentContainerStyle={[styles.listContent, { paddingBottom: 40 + insets.bottom }]}
                   ItemSeparatorComponent={() => <View style={styles.separator} />}
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
@@ -262,7 +264,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     gap: 2,
-    paddingBottom: 40,
   },
   separator: {
     height: 2,

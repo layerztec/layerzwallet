@@ -2,32 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { View, Image, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
-import { BROWSER_CONSTANTS } from './DAppBrowser';
 import Pressable from '../components/Pressable';
-
-interface BrowserTab {
-  id: string;
-  url: string;
-  title: string;
-  canGoBack: boolean;
-  canGoForward: boolean;
-  history: { url: string; title: string }[];
-  historyIndex: number;
-  screenshot?: string;
-  timestamp: number;
-}
+import type { BrowserTab } from './DAppBrowser';
 
 interface DAppBrowserTabItemProps {
   tab: BrowserTab;
-  index: number;
+  isVisible: boolean;
   onPress: () => void;
   onClose: () => void;
-  getTabTitle: (url: string) => string;
   onEnsurePreview: (forceReload?: boolean) => void;
 }
 
-export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, index, onPress, onClose, onEnsurePreview }) => {
+export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, isVisible, onPress, onClose, onEnsurePreview }) => {
   const [imageError, setImageError] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const getDomainName = (url: string): string => {
     try {
@@ -38,12 +27,32 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, ind
     }
   };
 
+  const getFaviconUrl = (url: string): string | null => {
+    try {
+      const domain = getDomainName(url);
+      if (!domain) {
+        return null;
+      }
+      return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
+    } catch {
+      return null;
+    }
+  };
+
   useEffect(() => {
     // Reset error state when screenshot changes
     if (tab.screenshot) {
       setImageError(false);
+      setHasLoaded(false);
+      setReloadToken((v) => v + 1);
     }
   }, [tab.screenshot]);
+
+  useEffect(() => {
+    if (isVisible) {
+      setImageError(false);
+    }
+  }, [isVisible]);
 
   useEffect(() => {
     // Ensure preview is loaded for tabs without screenshots
@@ -53,16 +62,33 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, ind
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab.screenshot, tab.id]);
 
+  useEffect(() => {
+    if (!tab.screenshot || imageError || hasLoaded) return;
+    const timeout = setTimeout(() => {
+      if (!hasLoaded) {
+        setReloadToken((v) => v + 1);
+      }
+    }, 1500);
+    return () => clearTimeout(timeout);
+  }, [tab.screenshot, imageError, hasLoaded]);
+
+  const faviconUrl = getFaviconUrl(tab.url);
+
   return (
     <Pressable style={styles.tabCard} onPress={onPress}>
       <View style={styles.tabCardHeader}>
         <View style={styles.tabCardTitleContainer}>
-          <ThemedText style={styles.tabCardNumber}>#{index + 1}</ThemedText>
-          <ThemedText style={styles.tabCardTitle} numberOfLines={1}>
-            {tab.title}
-          </ThemedText>
+          <View style={styles.faviconWrapper}>
+            {faviconUrl ? (
+              <Image source={{ uri: faviconUrl }} style={styles.favicon} />
+            ) : (
+              <View style={styles.faviconFallback}>
+                <ThemedText style={styles.faviconFallbackText}>{getDomainName(tab.url).charAt(0).toUpperCase()}</ThemedText>
+              </View>
+            )}
+          </View>
         </View>
-        <Pressable style={styles.tabCardCloseButton} onPress={onClose}>
+        <Pressable style={styles.tabCardCloseButton} onPress={onClose} hitSlop={8}>
           <Ionicons name="close" size={16} color="rgba(255, 255, 255, 0.8)" />
         </Pressable>
       </View>
@@ -70,10 +96,13 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, ind
       <View style={styles.tabCardPreview}>
         {tab.screenshot && !imageError ? (
           <Image
-            key={tab.screenshot}
+            key={`${tab.screenshot}-${tab.timestamp}-${reloadToken}`}
             source={{ uri: tab.screenshot }}
             style={styles.tabCardScreenshot}
             resizeMode="cover"
+            onLoad={() => {
+              setHasLoaded(true);
+            }}
             onError={() => {
               setImageError(true);
               // Try to reload from storage if the screenshot URI is invalid
@@ -87,7 +116,7 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, ind
         )}
         <View style={styles.tabCardUrlOverlay}>
           <ThemedText style={styles.tabCardUrlText} numberOfLines={1} ellipsizeMode="middle">
-            {tab.url || 'Untitled Tab'}
+            {tab.title || getDomainName(tab.url) || 'Untitled Tab'}
           </ThemedText>
         </View>
       </View>
@@ -117,20 +146,41 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
-  tabCardNumber: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginRight: 6,
+  faviconWrapper: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  tabCardTitle: {
-    fontSize: 14,
+  favicon: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+  },
+  faviconFallback: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  faviconFallbackText: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '600',
-    color: 'white',
-    flex: 1,
   },
   tabCardCloseButton: {
-    padding: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabCardPreview: {
     flex: 1,
@@ -141,15 +191,6 @@ const styles = StyleSheet.create({
   tabCardScreenshot: {
     width: '100%',
     height: '100%',
-  },
-  tabCardContent: {
-    flex: 1,
-    padding: 12,
-  },
-  tabCardUrl: {
-    fontSize: 12,
-    color: '#666',
-    lineHeight: 16,
   },
   placeholderContainer: {
     flex: 1,
