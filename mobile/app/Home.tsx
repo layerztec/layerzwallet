@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Dimensions, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
+import { BlurTargetView } from 'expo-blur';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -39,6 +40,7 @@ import { CachedTokenInfo } from '@shared/types/token-info';
 import { YieldBearingCachedTokenInfo } from '@shared/hooks/useYieldDiscovery';
 import { OnrampProps } from './Onramp';
 import Pressable from '../components/Pressable';
+import { homeBlurTargetRef } from '@/src/hooks/homeBlurTargetRef';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const MODAL_MIN_HEIGHT = 120; // Height when dragged down (header + some content)
@@ -295,65 +297,67 @@ export default function Home() {
         <DashboardTiles cards={networkCards} onCardPress={handleNetworkCardPress} showLogo={true} />
       </View>
 
-      {/* Modal Container */}
+      {/* Modal: scroll + BlurTarget FIRST (Expo: BlurView that uses blurTarget must mount after the target). Header overlays on top. */}
       <Animated.View style={[styles.modalContainer, { height: MODAL_MAX_HEIGHT }, modalAnimatedStyle]}>
-        <GestureDetector gesture={panGesture}>
-          <Animated.View style={styles.draggableHeader}>
-            <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} />
-          </Animated.View>
-        </GestureDetector>
+        <BlurTargetView ref={homeBlurTargetRef} style={styles.blurScrollTarget} collapsable={false}>
+          <RadialGradientScreen network={network} scroll={true} onScroll={handleScroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} {...refreshOptions} />}>
+            <View style={[styles.root, styles.contentWithHeader]}>
+              {/* Network Selector */}
+              <View style={styles.networkSelectorContainer}>
+                <Pressable testID="NetworkSwitcherTrigger" onPress={handleNetworkSelect} activeOpacity={0.8}>
+                  <View style={styles.networkSelectorSurface}>
+                    <View style={styles.networkSelector}>
+                      <View testID={`selectedNetwork-${network}`} style={styles.networkIcon}>
+                        {networkIconContent}
+                      </View>
+                      <ThemedText style={styles.networkName}>{capitalizeFirstLetter(network)}</ThemedText>
+                      <Pressable onPress={handleNetworkSelect} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
+                        <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.8)" />
+                      </Pressable>
+                    </View>
+                  </View>
+                </Pressable>
+              </View>
+
+              {/* Testnet Warning */}
+              {getIsTestnet(network) && (
+                <View style={styles.testnetWarning}>
+                  <ThemedText style={styles.testnetWarningText}>Warning: You are using a testnet, coins have no value</ThemedText>
+                </View>
+              )}
+
+              {/* Balance Section */}
+              <Balance ref={balanceRef} />
+
+              {/* Action Buttons Section */}
+              <ActionButtons onFundPress={handleFund} />
+
+              {/* Seed Backup Warning */}
+              {hasBackedUpSeed === false && <BackupWarning onPress={handleBackupSeed} />}
+
+              {/* Yield Section */}
+              <YieldView ref={yieldViewRef} onYieldPress={handleYieldPress} />
+
+              {/* Tokens Section */}
+              <TokensView ref={tokensViewRef} onTokenPress={handleTokenPress} />
+
+              {/* NFTs Section */}
+              <NftsView ref={nftsViewRef} />
+
+              {/* Transactions Section */}
+              <TransactionsList transactions={latestTransactions} error={transactionsError} onTransactionPress={handleTransactionDetails} onViewHistory={handleTransactionHistory} />
+            </View>
+          </RadialGradientScreen>
+        </BlurTargetView>
 
         {/* Invisible Settings Button for Maestro Testing */}
         <Pressable style={styles.maestroSettingsButton} onPress={goToSettings} testID="SettingsButton" accessibilityLabel="Settings" />
 
-        <RadialGradientScreen network={network} scroll={true} onScroll={handleScroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} {...refreshOptions} />}>
-          <View style={[styles.root, styles.contentWithHeader]}>
-            {/* Network Selector */}
-            <View style={styles.networkSelectorContainer}>
-              <Pressable testID="NetworkSwitcherTrigger" onPress={handleNetworkSelect} activeOpacity={0.8}>
-                <View style={styles.networkSelectorSurface}>
-                  <View style={styles.networkSelector}>
-                    <View testID={`selectedNetwork-${network}`} style={styles.networkIcon}>
-                      {networkIconContent}
-                    </View>
-                    <ThemedText style={styles.networkName}>{capitalizeFirstLetter(network)}</ThemedText>
-                    <Pressable onPress={handleNetworkSelect} onLongPress={() => router.push('/BackdoorNetworkSwitcher')} testID="BackdoorNetworkSwitcher">
-                      <Ionicons name="chevron-down" size={20} color="rgba(255, 255, 255, 0.8)" />
-                    </Pressable>
-                  </View>
-                </View>
-              </Pressable>
-            </View>
-
-            {/* Testnet Warning */}
-            {getIsTestnet(network) && (
-              <View style={styles.testnetWarning}>
-                <ThemedText style={styles.testnetWarningText}>Warning: You are using a testnet, coins have no value</ThemedText>
-              </View>
-            )}
-
-            {/* Balance Section */}
-            <Balance ref={balanceRef} />
-
-            {/* Action Buttons Section */}
-            <ActionButtons onFundPress={handleFund} />
-
-            {/* Seed Backup Warning */}
-            {hasBackedUpSeed === false && <BackupWarning onPress={handleBackupSeed} />}
-
-            {/* Yield Section */}
-            <YieldView ref={yieldViewRef} onYieldPress={handleYieldPress} />
-
-            {/* Tokens Section */}
-            <TokensView ref={tokensViewRef} onTokenPress={handleTokenPress} />
-
-            {/* NFTs Section */}
-            <NftsView ref={nftsViewRef} />
-
-            {/* Transactions Section */}
-            <TransactionsList transactions={latestTransactions} error={transactionsError} onTransactionPress={handleTransactionDetails} onViewHistory={handleTransactionHistory} />
-          </View>
-        </RadialGradientScreen>
+        <GestureDetector gesture={panGesture}>
+          <Animated.View style={styles.modalHeaderOverlay}>
+            <StickyHeader scrollY={scrollY} onSettingsPress={goToSettings} />
+          </Animated.View>
+        </GestureDetector>
 
         {/* White Flash Overlay for Network Transition */}
         <Animated.View style={[styles.whiteFlashOverlayAnimated, whiteFlashAnimatedStyle]} />
@@ -386,9 +390,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  draggableHeader: {
-    width: '100%',
-    zIndex: 10,
+  modalHeaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    bottom: undefined,
+    zIndex: 20,
   },
   root: {
     flex: 1,
@@ -463,6 +468,10 @@ const styles = StyleSheet.create({
   },
   gestureHandlerRoot: {
     flex: 1,
+  },
+  blurScrollTarget: {
+    flex: 1,
+    minHeight: 0,
   },
   whiteFlashOverlayAnimated: {
     ...StyleSheet.absoluteFillObject,

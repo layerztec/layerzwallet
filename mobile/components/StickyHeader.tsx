@@ -30,7 +30,7 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
     return { opacity };
   });
 
-  // Animated blur opacity - starts at 0, becomes visible when scrolling
+  // Blur starts at 0 (invisible); only turns on as scroll passes ~0–50px.
   const blurAnimatedStyle = useAnimatedStyle(() => {
     const opacity = interpolate(scrollY.value, [0, 50], [0, 1], 'clamp');
     return { opacity };
@@ -57,13 +57,17 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Linear Gradient Background */}
-      <LinearGradient colors={['rgba(0, 0, 0, 0.80)', 'rgba(0, 0, 0, 0.00)']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 0.8832 }} style={[styles.gradientBackground, { top: -insets.top }]} />
-
-      {/* Platform-aware Blur Background */}
+      {/* Blur first (under tint) so Android blur samples read; gradient on top tint only — pointerEvents none so touches reach header */}
       <Animated.View style={[styles.blurBackground, blurAnimatedStyle, { top: -insets.top, paddingTop: insets.top }]}>
-        <PlatformBlurView intensity={50} tint="dark" style={styles.blurView} />
+        <PlatformBlurView intensity={55} tint="dark" style={styles.blurView} />
       </Animated.View>
+      <LinearGradient
+        pointerEvents="none"
+        colors={['rgba(0, 0, 0, 0.80)', 'rgba(0, 0, 0, 0.00)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 0.8832 }}
+        style={[styles.gradientBackground, { top: -insets.top }]}
+      />
 
       {/* Animated Border */}
       <Animated.View style={[styles.border, borderAnimatedStyle]} />
