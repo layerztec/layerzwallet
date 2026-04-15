@@ -206,7 +206,7 @@ const SendBtc: React.FC = () => {
 
   const handleBack = () => {
     if (xArkSwapTo) setNetwork(xArkSwapTo);
-    router.replace('/(tabs)/home');
+    router.replace('/home');
   };
 
   if (isSuccess) {

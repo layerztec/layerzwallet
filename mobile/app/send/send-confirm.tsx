@@ -204,7 +204,7 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   };
 
   const handleHome = () => {
-    router.replace('/(tabs)/home');
+    router.replace('/home');
   };
 
   const formatAddressWithOpacity = (addr: string) => {

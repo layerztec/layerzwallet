@@ -1,15 +1,28 @@
 import assert from 'assert';
 import { generateNewAccount, generateWallet, getStxAddress, Wallet as SdkWallet } from '@stacks/wallet-sdk';
 import { createClient } from '@stacks/blockchain-api-client';
-import { broadcastTransaction, makeContractCall, makeSTXTokenTransfer, noneCV, SignedTokenTransferOptions, standardPrincipalCV, uintCV, validateStacksAddress } from '@stacks/transactions';
+import {
+  broadcastTransaction,
+  getFee,
+  makeContractCall,
+  makeSTXTokenTransfer,
+  noneCV,
+  SignedTokenTransferOptions,
+  standardPrincipalCV,
+  StacksTransactionWire,
+  uintCV,
+  validateStacksAddress,
+} from '@stacks/transactions';
 
 import { CachedTokenInfo, NftInfo } from '../../types/token-info';
 import { CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_STACKS } from '../../types/networks';
 import { IStorage } from '../../types/IStorage';
+import { SendQuote, SendQuoteRequest } from '../../types/send-quote';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
 import { InterfaceCanHaveNfts } from './interface-can-have-nfts';
+import { InterfaceSendQuotable } from './interface-send-quotable';
 import { ArkWallet } from './ark-wallet';
 
 const sbtcId = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token::sbtc-token';
@@ -18,7 +31,7 @@ const baseUrl = 'https://api.mainnet.hiro.so';
 const STORAGE_KEY = 'STACKS_TOKEN_METADATA';
 const STORAGE_KEY_NFT = 'STACKS_NFT_METADATA_V2';
 
-export class StacksWallet extends ArkWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveTokens, InterfaceCanHaveNfts {
+export class StacksWallet extends ArkWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveTokens, InterfaceCanHaveNfts, InterfaceSendQuotable {
   protected _accountNumber: number = 0;
   private _sdkWallet: SdkWallet | undefined = undefined;
   public secret: string = '';
@@ -226,34 +239,82 @@ export class StacksWallet extends ArkWallet implements InterfaceAccountBasedWall
    * sending sBTC, not STX
    */
   async pay(address: string, amount: number): Promise<string> {
+    assert(Number.isFinite(amount) && amount > 0, 'Amount must be a positive number');
+    const { transaction } = await this._buildSendTransaction({ toAddress: address, amount: String(amount) });
+    return this._broadcastAndUnwrap(transaction, 'sBTC transfer');
+  }
+
+  /**
+   * sending native coin (STX)
+   */
+  async payStx(address: string, amount: number, memo?: string): Promise<string> {
+    const { transaction } = await this._buildSendTransaction({ toAddress: address, amount: String(amount), tokenId: 'STX', memo });
+    return this._broadcastAndUnwrap(transaction, 'STX transfer');
+  }
+
+  // makeContractCall / makeSTXTokenTransfer with our options always produce AuthType.Standard,
+  // so getFee(auth) below resolves via the Standard branch.
+  private async _buildSendTransaction(request: SendQuoteRequest): Promise<{ transaction: StacksTransactionWire; fee: bigint }> {
     assert(this._sdkWallet, 'Stacks wallet is not initialized');
     assert(this._sdkWallet.accounts[this._accountNumber], 'Stacks account not found');
-    assert(address, 'Recipient address is required');
-    assert(Number.isFinite(amount) && amount > 0, 'Amount must be a positive number');
+    assert(request.toAddress, 'Recipient address is required');
 
-    // Ensure cached sBTC balance is sufficient
-    const sbtcTokenId = sbtcId;
-    const sbtc = this._tokenBalances.find((t) => t.id === sbtcTokenId);
-    assert(sbtc && sbtc.balance != null, 'sBTC token balance is unavailable');
-    const available = BigInt(sbtc.balance);
-    assert(available >= BigInt(amount), `Insufficient sBTC balance. Have ${available}, need ${BigInt(amount)}`);
+    const amount = BigInt(request.amount);
+    assert(amount > 0n, 'Amount must be a positive number');
 
     const senderKey = this._sdkWallet.accounts[this._accountNumber].stxPrivateKey;
     const senderAddress = await this.getOffchainReceiveAddress();
 
-    const contractAddress = sbtcId.split('.')[0];
-    const contractName = 'sbtc-token';
+    let transaction: StacksTransactionWire;
 
-    const transaction = await makeContractCall({
-      contractAddress,
-      contractName,
-      functionName: 'transfer',
-      functionArgs: [uintCV(BigInt(amount)), standardPrincipalCV(senderAddress), standardPrincipalCV(address), noneCV()],
-      senderKey,
-      network: 'mainnet',
-      postConditionMode: 'allow',
-    });
+    if (!request.tokenId) {
+      // sBTC (treated as native for this wallet)
+      const sbtc = this._tokenBalances.find((t) => t.id === sbtcId);
+      assert(sbtc && sbtc.balance != null, 'sBTC token balance is unavailable');
+      assert(BigInt(sbtc.balance) >= amount, `Insufficient sBTC balance. Have ${sbtc.balance}, need ${amount}`);
 
+      transaction = await makeContractCall({
+        contractAddress: sbtcId.split('.')[0],
+        contractName: 'sbtc-token',
+        functionName: 'transfer',
+        functionArgs: [uintCV(amount), standardPrincipalCV(senderAddress), standardPrincipalCV(request.toAddress), noneCV()],
+        senderKey,
+        network: 'mainnet',
+        postConditionMode: 'allow',
+      });
+    } else if (request.tokenId === 'STX') {
+      const txOptions: SignedTokenTransferOptions = {
+        recipient: request.toAddress,
+        amount,
+        senderKey,
+        network: 'mainnet',
+        memo: request.memo,
+      };
+      transaction = await makeSTXTokenTransfer(txOptions);
+    } else {
+      const tokenBalance = this._tokenBalances.find((t) => t.id === request.tokenId);
+      assert(tokenBalance && tokenBalance.balance != null, 'token balance is unavailable');
+      assert(BigInt(tokenBalance.balance) >= amount, `Insufficient token balance. Have ${tokenBalance.balance}, need ${amount}`);
+
+      const contractAddress = request.tokenId.split('.')[0];
+      const contractName = request.tokenId.split('::')[0].split('.')[1];
+      assert(contractName, `Incorrect Stacks contract name for token ${request.tokenId}`);
+
+      transaction = await makeContractCall({
+        contractAddress,
+        contractName,
+        functionName: 'transfer',
+        functionArgs: [uintCV(amount), standardPrincipalCV(senderAddress), standardPrincipalCV(request.toAddress), noneCV()],
+        senderKey,
+        network: 'mainnet',
+        postConditionMode: 'allow',
+      });
+    }
+
+    return { transaction, fee: getFee(transaction.auth) };
+  }
+
+  private async _broadcastAndUnwrap(transaction: StacksTransactionWire, errorLabel: string): Promise<string> {
     const broadcastResponse: any = await broadcastTransaction({ transaction });
 
     if (broadcastResponse && typeof broadcastResponse.txid === 'string') {
@@ -264,31 +325,24 @@ export class StacksWallet extends ArkWallet implements InterfaceAccountBasedWall
       return broadcastResponse;
     }
 
-    throw new Error(`Failed to broadcast sBTC transfer: ${JSON.stringify(broadcastResponse)}`);
+    throw new Error(`Failed to broadcast ${errorLabel}: ${JSON.stringify(broadcastResponse)}`);
   }
 
-  /**
-   * sending native coin (STX)
-   */
-  async payStx(address: string, amount: number, memo?: string): Promise<string> {
-    assert(this._sdkWallet, 'Stacks wallet is not initialized');
-    assert(this._sdkWallet.accounts[this._accountNumber], 'Stacks account not found');
-
-    const txOptions: SignedTokenTransferOptions = {
-      recipient: address,
-      amount: BigInt(amount),
-      senderKey: this._sdkWallet.accounts[this._accountNumber].stxPrivateKey,
-      network: 'mainnet',
-      memo,
-      // nonce: 0n, // set a nonce manually if you don't want builder to fetch from a Stacks node
-      // fee: 200n, // set a tx fee if you don't want the builder to estimate
+  // The signed tx produced here is discarded — executeSendQuote rebuilds fresh so the baked-in
+  // nonce cannot go stale between quote display and broadcast. Fee remains a real estimate.
+  async getSendQuote(request: SendQuoteRequest): Promise<SendQuote> {
+    const { fee } = await this._buildSendTransaction(request);
+    return {
+      request,
+      fee: String(fee),
+      feeTicker: 'STX',
+      feeDecimals: 6,
     };
+  }
 
-    const transaction = await makeSTXTokenTransfer(txOptions);
-
-    // broadcasting transaction to the specified network
-    const broadcastResponse = await broadcastTransaction({ transaction });
-    return broadcastResponse.txid;
+  async executeSendQuote(quote: SendQuote, _mnemonic?: string, _accountNumber?: number): Promise<string> {
+    const { transaction } = await this._buildSendTransaction(quote.request);
+    return this._broadcastAndUnwrap(transaction, 'transfer');
   }
 
   async getCommonTransactions(): Promise<CommonTransaction[]> {
@@ -371,50 +425,8 @@ export class StacksWallet extends ArkWallet implements InterfaceAccountBasedWall
   }
 
   async transferToken(tokenId: string, amount: bigint, address: string, memo?: string): Promise<string> {
-    assert(this._sdkWallet, 'Stacks wallet is not initialized');
-    assert(this._sdkWallet.accounts[this._accountNumber], 'Stacks account not found');
-    assert(address, 'Recipient address is required');
-    assert(amount > 0, `Amount must be a positive number (got ${amount})`);
-
-    if (tokenId === 'STX') {
-      // its actually a native token
-      return this.payStx(address, Number(amount), memo);
-    }
-
-    // Ensure cached balance is sufficient
-    const tokenBalance = this._tokenBalances.find((t) => t.id === tokenId);
-    assert(tokenBalance && tokenBalance.balance != null, 'token balance is unavailable');
-    const available = BigInt(tokenBalance.balance);
-    assert(available >= BigInt(amount), `Insufficient token balance. Have ${available}, need ${BigInt(amount)}`);
-
-    const senderKey = this._sdkWallet.accounts[this._accountNumber].stxPrivateKey;
-    const senderAddress = await this.getOffchainReceiveAddress();
-
-    const contractAddress = tokenId.split('.')[0];
-    const contractName = tokenId.split('::')[0].split('.')[1];
-    assert(contractName, `Incorrect Stacks contract name for token ${tokenId}`);
-
-    const transaction = await makeContractCall({
-      contractAddress,
-      contractName,
-      functionName: 'transfer',
-      functionArgs: [uintCV(BigInt(amount)), standardPrincipalCV(senderAddress), standardPrincipalCV(address), noneCV()],
-      senderKey,
-      network: 'mainnet',
-      postConditionMode: 'allow',
-    });
-
-    const broadcastResponse: any = await broadcastTransaction({ transaction });
-
-    if (broadcastResponse && typeof broadcastResponse.txid === 'string') {
-      return broadcastResponse.txid;
-    }
-
-    if (typeof broadcastResponse === 'string') {
-      return broadcastResponse;
-    }
-
-    throw new Error(`Failed to broadcast sBTC transfer: ${JSON.stringify(broadcastResponse)}`);
+    const { transaction } = await this._buildSendTransaction({ toAddress: address, amount: String(amount), tokenId, memo });
+    return this._broadcastAndUnwrap(transaction, 'token transfer');
   }
 
   async transferNFT(nft: NftInfo, address: string): Promise<string> {

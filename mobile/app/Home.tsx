@@ -3,7 +3,6 @@ import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Dimensions, RefreshControl, RefreshControlProps, StyleSheet, View } from 'react-native';
-import { BlurTargetView } from 'expo-blur';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -299,7 +298,7 @@ export default function Home() {
 
       {/* Modal: scroll + BlurTarget FIRST (Expo: BlurView that uses blurTarget must mount after the target). Header overlays on top. */}
       <Animated.View style={[styles.modalContainer, { height: MODAL_MAX_HEIGHT }, modalAnimatedStyle]}>
-        <BlurTargetView ref={homeBlurTargetRef} style={styles.blurScrollTarget} collapsable={false}>
+        <View ref={homeBlurTargetRef} style={styles.blurScrollTarget} collapsable={false}>
           <RadialGradientScreen network={network} scroll={true} onScroll={handleScroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} {...refreshOptions} />}>
             <View style={[styles.root, styles.contentWithHeader]}>
               {/* Network Selector */}
@@ -348,7 +347,7 @@ export default function Home() {
               <TransactionsList transactions={latestTransactions} error={transactionsError} onTransactionPress={handleTransactionDetails} onViewHistory={handleTransactionHistory} />
             </View>
           </RadialGradientScreen>
-        </BlurTargetView>
+        </View>
 
         {/* Invisible Settings Button for Maestro Testing */}
         <Pressable style={styles.maestroSettingsButton} onPress={goToSettings} testID="SettingsButton" accessibilityLabel="Settings" />

@@ -10,10 +10,12 @@ import { CommonTokenTransfer, CommonTransaction } from '../../types/common-trans
 import { NETWORK_BITCOIN, NETWORK_SPARK } from '../../types/networks';
 import { CachedTokenInfo, NftInfo } from '../../types/token-info';
 import { IStorage, STORAGE_KEY_SPARK_REFUNDED_DEPOSITS } from '../../types/IStorage';
+import { SendQuote, SendQuoteRequest } from '../../types/send-quote';
 import { ArkWallet } from './ark-wallet';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
 import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
+import { InterfaceSendQuotable } from './interface-send-quotable';
 import { uint8ArrayToHex, uint8ArrayToString } from '../../modules/uint8array-extras';
 import { InterfaceCanHaveNfts } from './interface-can-have-nfts';
 
@@ -41,7 +43,7 @@ export type StaticDepositQuoteOutput = Awaited<ReturnType<SDK['getClaimStaticDep
 
 export type SparkSDKWallet = Awaited<ReturnType<typeof SDK.initialize>>['wallet'];
 
-export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet, InterfaceCanHaveTokens, InterfaceCanHaveNfts {
+export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet, InterfaceCanHaveTokens, InterfaceCanHaveNfts, InterfaceSendQuotable {
   private _sdkWallet: SparkSDKWallet | undefined = undefined;
   /** SDK wallets indexed by account number */
   private static _sdkWalletsByAccount: Map<number, SparkSDKWallet> = new Map();
@@ -471,6 +473,36 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
     return await this._sdkWallet.transferTokens({ receiverSparkAddress, tokenAmount, tokenIdentifier: tokenIdentifier as Bech32mTokenIdentifier });
+  }
+
+  async getSendQuote(request: SendQuoteRequest): Promise<SendQuote> {
+    assert(this._sdkWallet, 'Spark wallet not initialized');
+    assert(request.toAddress, 'toAddress is required');
+    const amountBig = BigInt(request.amount);
+    assert(amountBig > 0n, 'amount must be positive');
+
+    if (request.tokenId) {
+      const entry = this.tokenBalances.get(request.tokenId as Bech32mTokenIdentifier);
+      assert(entry, 'token balance is unavailable');
+      assert(entry.ownedBalance >= amountBig, `Insufficient ${entry.tokenMetadata.tokenTicker ?? 'token'} balance`);
+    } else {
+      assert(amountBig <= BigInt(Number.MAX_SAFE_INTEGER), 'Amount too large');
+    }
+
+    return {
+      request,
+      fee: '0',
+      feeTicker: 'BTC',
+      feeDecimals: 8,
+    };
+  }
+
+  async executeSendQuote(quote: SendQuote, _mnemonic?: string, _accountNumber?: number): Promise<string> {
+    const { toAddress, amount, tokenId } = quote.request;
+    if (tokenId) {
+      return await this.transferToken(tokenId, BigInt(amount), toAddress);
+    }
+    return await this.pay(toAddress, Number(amount));
   }
 
   async transferNFT(nft: NftInfo, address: string): Promise<string> {

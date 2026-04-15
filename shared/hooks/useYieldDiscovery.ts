@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { useTokenDiscovery } from './useTokenDiscovery';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { IStorage } from '../types/IStorage';
-import { NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_BOTANIX, NETWORK_SPARK, Networks } from '../types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 
 type YieldTokenDefinition = {

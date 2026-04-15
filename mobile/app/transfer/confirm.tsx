@@ -181,7 +181,7 @@ export default function TransferConfirm() {
         await transferService.commitTransfer(execution);
         setPreparedExecution(undefined);
         setCommitted(true);
-        router.replace('/modals/transfer-success');
+        router.replace({ pathname: '/modals/transfer-success' });
         return;
       }
 
@@ -192,7 +192,7 @@ export default function TransferConfirm() {
         await transferService.commitTransfer(completed);
         setPreparedExecution(undefined);
         setCommitted(true);
-        router.replace('/modals/transfer-success');
+        router.replace({ pathname: '/modals/transfer-success' });
         return;
       }
 
@@ -211,7 +211,7 @@ export default function TransferConfirm() {
 
       setPreparedExecution(undefined);
       setCommitted(true);
-      router.replace('/modals/transfer-success');
+      router.replace({ pathname: '/modals/transfer-success' });
     } catch (e: any) {
       // If send was already broadcast, update transfer with txid
       const execution = executionRef.current;
@@ -305,7 +305,7 @@ export default function TransferConfirm() {
   const sendAssetInfo = getAssetInfo(sendAsset);
   const receiveAssetInfo = getAssetInfo(receiveAsset);
   const feeDisplay = sendQuote
-    ? `${new BigNumber(sendQuote.fee).dividedBy(new BigNumber(10).pow(AllNetworkInfos[sendAssetInfo.network].decimals)).toFixed()} ${sendQuote.feeTicker}`
+    ? `${new BigNumber(sendQuote.fee).dividedBy(new BigNumber(10).pow(sendQuote.feeDecimals)).toFixed()} ${sendQuote.feeTicker}`
     : quote.feeTicker
       ? `${quote.fee} ${quote.feeTicker}`
       : quote.fee;

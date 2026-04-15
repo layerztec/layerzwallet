@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { test, vi } from 'vitest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { ArkTransaction, TxType } from '@arkade-os/sdk';
 
 import { ArkWallet } from '../../class/wallets/ark-wallet';
@@ -78,4 +78,83 @@ test('ark mainnet can getCommonTransactions', async (context) => {
       confirmations: 1,
     },
   ]);
+});
+
+describe('ArkWallet getSendQuote / executeSendQuote', () => {
+  const TO = 'ark1recipientaddress';
+  const TOKEN_ID = 'tokenAssetId';
+  const TXID = 'arktxid0001';
+
+  const createWallet = (): ArkWallet => {
+    const w = new ArkWallet();
+    (w as any)._wallet = {
+      send: vi.fn().mockResolvedValue(TXID),
+    };
+    return w;
+  };
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('native send: returns fee=0, feeTicker=BTC, feeDecimals=8, and execute calls _wallet.send with amount', async () => {
+    const w = createWallet();
+
+    const quote = await w.getSendQuote({ toAddress: TO, amount: '1000' });
+
+    expect(quote.fee).toBe('0');
+    expect(quote.feeTicker).toBe('BTC');
+    expect(quote.feeDecimals).toBe(8);
+    expect(quote.request.toAddress).toBe(TO);
+    expect(quote.request.amount).toBe('1000');
+
+    const txid = await w.executeSendQuote(quote);
+    expect(txid).toBe(TXID);
+    expect((w as any)._wallet.send).toHaveBeenCalledWith({ address: TO, amount: 1000 });
+  });
+
+  it('token send: checks cached balance and execute calls _wallet.send with assets[]', async () => {
+    const w = createWallet();
+    (w as any)._arkTokenBalances = [{ id: TOKEN_ID, symbol: 'TKN', balance: '5000' }];
+
+    const quote = await w.getSendQuote({ toAddress: TO, amount: '1000', tokenId: TOKEN_ID });
+    expect(quote.fee).toBe('0');
+
+    const txid = await w.executeSendQuote(quote);
+    expect(txid).toBe(TXID);
+    expect((w as any)._wallet.send).toHaveBeenCalledWith({
+      address: TO,
+      assets: [{ assetId: TOKEN_ID, amount: 1000 }],
+    });
+  });
+
+  it('token send: throws if token balance unavailable', async () => {
+    const w = createWallet();
+    (w as any)._arkTokenBalances = [];
+
+    await expect(w.getSendQuote({ toAddress: TO, amount: '1000', tokenId: TOKEN_ID })).rejects.toThrow(/token balance is unavailable/);
+  });
+
+  it('token send: throws if insufficient balance', async () => {
+    const w = createWallet();
+    (w as any)._arkTokenBalances = [{ id: TOKEN_ID, symbol: 'TKN', balance: '500' }];
+
+    await expect(w.getSendQuote({ toAddress: TO, amount: '1000', tokenId: TOKEN_ID })).rejects.toThrow(/Insufficient TKN balance/);
+  });
+
+  it('throws if wallet not initialized', async () => {
+    const w = new ArkWallet();
+    await expect(w.getSendQuote({ toAddress: TO, amount: '1000' })).rejects.toThrow(/not initialized/);
+  });
+
+  it('throws on non-positive amount', async () => {
+    const w = createWallet();
+    await expect(w.getSendQuote({ toAddress: TO, amount: '0' })).rejects.toThrow(/amount must be positive/);
+  });
+
+  it('throws when native amount exceeds MAX_SAFE_INTEGER', async () => {
+    const w = createWallet();
+    const overflow = String(BigInt(Number.MAX_SAFE_INTEGER) + 1n);
+    await expect(w.getSendQuote({ toAddress: TO, amount: overflow })).rejects.toThrow(/Amount too large/);
+  });
 });

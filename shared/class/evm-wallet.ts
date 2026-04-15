@@ -286,6 +286,7 @@ export class EvmWallet implements InterfaceSendQuotable {
       request,
       fee,
       feeTicker: AllNetworkInfos[this.network].ticker,
+      feeDecimals: AllNetworkInfos[this.network].decimals,
       _prepared: prepared,
     };
   }

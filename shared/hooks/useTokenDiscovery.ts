@@ -1,7 +1,6 @@
 import assert from 'assert';
 import useSWR from 'swr';
 
-import { ArkWallet } from '../class/wallets/ark-wallet';
 import { StacksWallet } from '../class/wallets/stacks-wallet';
 import { walletCanHaveTokens } from '../class/wallets/interface-can-have-tokens';
 import { getTokenList } from '../models/token-list';

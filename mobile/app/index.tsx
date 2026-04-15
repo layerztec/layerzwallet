@@ -18,6 +18,6 @@ export default function IndexScreen() {
     return <Redirect href="/onboarding/tos" />;
   } else {
     // If the app is ready, redirect to tabs - the protected routes will handle auth
-    return <Redirect href="/(tabs)/home" />;
+    return <Redirect href="/home" />;
   }
 }
