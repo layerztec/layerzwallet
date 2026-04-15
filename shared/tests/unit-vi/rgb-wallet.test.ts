@@ -173,6 +173,23 @@ describe('RgbWallet', () => {
       await w.init({} as any);
       expect(adapter.createWallet).toHaveBeenCalledOnce();
     });
+
+    it('falls back on RgbError code=VssBackupNotFound (RN SDK shape)', async () => {
+      // Shape emitted by @utexo/rgb-sdk-rn when the user has no prior VSS backup.
+      // This is the primary path for existing users opening an RGB wallet for
+      // the first time after an app update.
+      const err = Object.assign(new Error('Rgb.RgbLibError.VssBackupNotFound'), { code: 'VssBackupNotFound' });
+      const adapter: IRgbAdapter = {
+        capabilities: { lightning: false },
+        createWallet: vi.fn().mockResolvedValue({} as IRgbWallet),
+        restoreFromVss: vi.fn().mockRejectedValue(err),
+      };
+      (globalThis as any).rgbAdapter = adapter;
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      expect(adapter.createWallet).toHaveBeenCalledOnce();
+    });
   });
 
   describe('balance + send', () => {

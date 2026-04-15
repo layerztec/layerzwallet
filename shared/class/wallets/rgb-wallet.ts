@@ -316,15 +316,18 @@ function isVssBackupMissing(e: unknown): boolean {
   // fresh-wallet creation. Every other error rethrows so we never silently
   // overwrite a real remote backup with an empty local state.
   //
-  // Prefer structured signals (error name, HTTP status) over message matching.
-  // String matches require whole phrases — `/not\s+found/i` intentionally does
-  // NOT match "host not found" (DNS) or "certificate does not exist" (TLS),
-  // which are transport errors that must rethrow.
+  // Each platform SDK signals this differently:
+  //  • RN SDK throws an RgbError with `code === 'VssBackupNotFound'` and a
+  //    message like `Rgb.RgbLibError.VssBackupNotFound`.
+  //  • Web/Node SDKs tend to throw a NotFoundError or an HTTP 404.
+  // We check all three so existing users (no RGB state yet) get a fresh wallet
+  // on first unlock rather than a retry-loop error.
   if (!e) return false;
   const err = e as { name?: string; message?: string; statusCode?: number; status?: number; code?: string };
+  if (err.code === 'VssBackupNotFound') return true;
   if (err.name === 'NotFoundError') return true;
   if (err.statusCode === 404 || err.status === 404) return true;
-  if (typeof err.message === 'string' && /\bbackup\s+(not\s+found|does\s+not\s+exist|missing)\b/i.test(err.message)) return true;
+  if (typeof err.message === 'string' && /VssBackupNotFound|backup\s*not\s*found|backup\s+(does\s+not\s+exist|missing)/i.test(err.message)) return true;
   return false;
 }
 
