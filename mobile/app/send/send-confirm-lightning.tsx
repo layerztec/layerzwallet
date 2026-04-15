@@ -5,8 +5,9 @@ import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import Rive, { RiveRef } from 'rive-react-native';
+import { Alignment, Fit, RiveView, useRiveFile } from '@rive-app/react-native';
 import Pressable from '../../components/Pressable';
+import successRiv from '../../assets/animations/success.riv';
 
 import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
@@ -25,6 +26,12 @@ import { useSendFlow } from './_layout';
 import { sleep } from '@shared/modules/sleep';
 
 const maxFeePercent = 5; // hardcoded at the moment
+
+const SuccessRiveAnimation = () => {
+  const { riveFile } = useRiveFile(successRiv);
+  if (!riveFile) return <View style={styles.riveAnimation} />;
+  return <RiveView autoPlay={true} alignment={Alignment.Center} fit={Fit.Contain} file={riveFile} onError={(error) => console.log('Rive error:', error.message)} style={styles.riveAnimation} />;
+};
 
 const SendConfirmLightning: React.FC = () => {
   const router = useRouter();
@@ -49,7 +56,6 @@ const SendConfirmLightning: React.FC = () => {
   const detailsOpacity = useSharedValue(1);
   const sendToOpacity = useSharedValue(1);
   const totalTop = useSharedValue(32);
-  const riveRef = useRef<RiveRef>(null);
 
   // Animated styles
   const detailsAnimatedStyle = useAnimatedStyle(() => ({ opacity: detailsOpacity.value }));
@@ -177,15 +183,7 @@ const SendConfirmLightning: React.FC = () => {
             <View style={styles.container}>
               {showRiveAnimation && (
                 <View style={styles.riveContainer}>
-                  <Rive
-                    ref={riveRef}
-                    autoplay={true}
-                    style={styles.riveAnimation}
-                    resourceName="success"
-                    onError={(error) => {
-                      console.log('Rive animation error:', error);
-                    }}
-                  />
+                  <SuccessRiveAnimation />
                 </View>
               )}
 
