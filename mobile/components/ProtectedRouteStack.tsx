@@ -234,16 +234,6 @@ export function ProtectedRouteStack() {
           }}
         />
         <Stack.Screen
-          name="ScanQr"
-          options={{
-            presentation: 'fullScreenModal',
-            gestureEnabled: true,
-            fullScreenGestureEnabled: true,
-            animation: 'slide_from_bottom',
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
           name="TransactionDetails"
           options={{
             presentation: 'transparentModal',
@@ -285,6 +275,19 @@ export function ProtectedRouteStack() {
             presentation: 'formSheet',
             sheetAllowedDetents: 'fitToContents',
             sheetGrabberVisible: true,
+            headerShown: false,
+          }}
+        />
+      </Stack.Protected>
+
+      <Stack.Protected guard={!isInitialized || shouldShowMainApp}>
+        <Stack.Screen
+          name="ScanQr"
+          options={{
+            presentation: 'fullScreenModal',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+            animation: 'slide_from_bottom',
             headerShown: false,
           }}
         />
