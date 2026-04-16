@@ -10,6 +10,16 @@ jobs:
       platform: android
       profile: production
 
+  build_android_apk:
+    name: Build Android release APK
+    # Build the GitHub-release APK after the store build so both artifacts share the
+    # same remote Android version bump from the production profile's autoIncrement.
+    needs: [build_android]
+    type: build
+    params:
+      platform: android
+      profile: production-apk
+
   submit_android:
     name: Submit to Google Play Store
     needs: [build_android]
