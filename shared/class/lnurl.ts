@@ -339,4 +339,14 @@ export default class Lnurl {
     const splitted = address.split('@');
     return !!splitted[0].trim() && !!splitted[1].trim();
   }
+
+  static async isLnurlWithdrawRequest(lnurl: string): Promise<boolean> {
+    const url = Lnurl.getUrlFromLnurl(lnurl);
+    if (!url) throw new Error('Invalid LNURL');
+
+    const reply = await fetch(url, { method: 'GET' });
+    const payload = (await reply.json()) as LnurlPayServiceBolt11Payload;
+
+    return payload.tag === Lnurl.TAG_WITHDRAW_REQUEST;
+  }
 }

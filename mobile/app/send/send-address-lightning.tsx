@@ -212,7 +212,7 @@ const SendAddressLightning: React.FC = () => {
                 <TextInput
                   ref={inputRef}
                   style={styles.input}
-                  placeholder="Enter lightning invoice, LNURL, or address"
+                  placeholder="Enter lightning invoice or address"
                   placeholderTextColor="rgba(255, 255, 255, 0.8)"
                   autoCapitalize="none"
                   autoCorrect={false}
