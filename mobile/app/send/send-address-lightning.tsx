@@ -24,7 +24,7 @@ const SendAddressLightning: React.FC = () => {
   const { scanQr } = useContext(ScanQrContext);
   const router = useRouter();
   const { network } = useContext(NetworkContext);
-  const { lightning, address } = useSendFlow();
+  const { lightning, address, setAddress } = useSendFlow();
   assert(lightning, 'Lightning context not found');
   const { layer } = lightning;
 
@@ -174,6 +174,7 @@ const SendAddressLightning: React.FC = () => {
       if (lnurlPSPayload) {
         lightning.setLnurlPayServicePayload(lnurlPSPayload);
       }
+      setAddress(lnurlPSPayload && Lnurl.isLightningAddress(invoice) ? invoice : '');
       if (lnurlInst) {
         lightning.setLnurlInstance(lnurlInst);
       }

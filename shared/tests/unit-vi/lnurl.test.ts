@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import Lnurl from '../../class/lnurl';
 
 const { fetchMock } = vi.hoisted(() => ({
   fetchMock: vi.fn(),
@@ -7,8 +8,6 @@ const { fetchMock } = vi.hoisted(() => ({
 vi.mock('../../util/fetch', () => ({
   fetch: fetchMock,
 }));
-
-import Lnurl from '../../class/lnurl';
 
 const WITHDRAW_LNURL = 'LNURL1DP68GURN8GHJ7UMPW33XZUM99E3K7TN6VYHHWTE5V9NRSV35V33KVDRZV43NZENXXQ6XZVPNVVERVE3EVYEXVEPNXY8FZW5Q';
 const PAY_LNURL = 'LNURL1DP68GURN8GHJ7UMPW33XZUM99E3K7TN6VYHKVTE3V5EXZEF5VVCNGWPSXE3KGWPJVD3NJCFC8YMK2VFEXYURSVFSV54J6EE2';
