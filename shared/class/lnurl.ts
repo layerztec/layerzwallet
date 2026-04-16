@@ -101,6 +101,10 @@ export default class Lnurl {
     return Lnurl.findlnurl(url) !== null;
   }
 
+  static isLightningAddressOrLnurl(value: string): boolean {
+    return Lnurl.isLnurl(value) || Lnurl.isLightningAddress(value);
+  }
+
   static isOnionUrl(url: string): boolean {
     return Lnurl.parseOnionUrl(url) !== null;
   }
