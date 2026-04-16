@@ -35,7 +35,7 @@ const SuccessRiveAnimation = () => {
 
 const SendConfirmLightning: React.FC = () => {
   const router = useRouter();
-  const { lightning, network } = useSendFlow();
+  const { lightning, network, address } = useSendFlow();
   const { accountNumber } = useContext(AccountNumberContext);
   const { exchangeRate } = useCachedExchangeRate(NETWORK_BITCOIN, 'USD');
 
@@ -172,6 +172,12 @@ const SendConfirmLightning: React.FC = () => {
     invoiceDisplay = lightning.invoice.substring(0, 10) + '...' + lightning.invoice.substring(lightning.invoice.length - 10);
   }
 
+  const lightningAddress = address;
+  let lightningAddressDisplay = lightningAddress;
+  if (lightningAddress && lightningAddress.length > 40) {
+    lightningAddressDisplay = lightningAddress.substring(0, 20) + '...' + lightningAddress.substring(lightningAddress.length - 10);
+  }
+
   return (
     <RadialGradientScreen network={network} scroll={false}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -250,6 +256,17 @@ const SendConfirmLightning: React.FC = () => {
                       )}
                     </View>
                   </Animated.View>
+
+                  {lightningAddress && (
+                    <Animated.View style={[styles.sendToSection, sendToAnimatedStyle]}>
+                      <View style={styles.sectionHeader}>
+                        <ThemedText style={styles.sectionHeaderText}>Lightning Address</ThemedText>
+                      </View>
+                      <View style={styles.addressCard}>
+                        <ThemedText style={styles.invoiceDisplay}>{lightningAddressDisplay}</ThemedText>
+                      </View>
+                    </Animated.View>
+                  )}
 
                   {/* Send to Section */}
                   <Animated.View style={[styles.sendToSection, sendToAnimatedStyle]}>
