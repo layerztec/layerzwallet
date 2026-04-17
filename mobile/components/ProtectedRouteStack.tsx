@@ -234,16 +234,6 @@ export function ProtectedRouteStack() {
           }}
         />
         <Stack.Screen
-          name="ScanQr"
-          options={{
-            presentation: 'fullScreenModal',
-            gestureEnabled: true,
-            fullScreenGestureEnabled: true,
-            animation: 'slide_from_bottom',
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
           name="TransactionDetails"
           options={{
             presentation: 'transparentModal',
@@ -289,6 +279,17 @@ export function ProtectedRouteStack() {
           }}
         />
       </Stack.Protected>
+
+      <Stack.Screen
+        name="ScanQr"
+        options={{
+          presentation: 'fullScreenModal',
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
+          animation: 'slide_from_bottom',
+          headerShown: false,
+        }}
+      />
 
       <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
     </Stack>

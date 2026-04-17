@@ -69,7 +69,7 @@ export default function YieldListScreen() {
         // botanix yield
         setNetwork(NETWORK_BOTANIX);
         await new Promise((res) => setTimeout(res, 100)); // propagate network change
-        router.push({ pathname: '/DAppBrowser', params: { url: 'https://yield.botanixlabs.com' } });
+        router.push({ pathname: '/(tabs)/explorer', params: { url: 'https://yield.botanixlabs.com' } });
         break;
       case USDB_YIELD_TOKEN_ID:
         router.push({
