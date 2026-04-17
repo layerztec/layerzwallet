@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import BigNumber from 'bignumber.js';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 
 import Pressable from '../../components/Pressable';
 import { BalanceLightning } from '@/components/Balance';
@@ -34,25 +34,9 @@ type LnurlWithdrawRequestPayload = {
   tag: string;
 };
 
-const formatSatsFromMsats = (msats: number): string => {
-  const sats = new BigNumber(msats).dividedBy(1000);
+const msatsToSatsFloor = (msats: number): number => new BigNumber(msats).dividedBy(1000).integerValue(BigNumber.ROUND_DOWN).toNumber();
 
-  if (sats.isInteger()) {
-    return sats.toFormat(0);
-  }
-
-  return sats.toFixed(3).replace(/\.?0+$/, '');
-};
-
-const getWithdrawAmountSats = (payload: LnurlWithdrawRequestPayload): number => {
-  const sats = new BigNumber(payload.maxWithdrawable).dividedBy(1000);
-
-  if (!sats.isInteger()) {
-    throw new Error('LNURL withdraw amount must be a whole number of sats');
-  }
-
-  return sats.toNumber();
-};
+const msatsToSatsCeil = (msats: number): number => new BigNumber(msats).dividedBy(1000).integerValue(BigNumber.ROUND_UP).toNumber();
 
 const WithdrawLightning: React.FC = () => {
   const params = useLocalSearchParams<WithdrawLightningParams>();
@@ -66,6 +50,15 @@ const WithdrawLightning: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [isLoadingRequest, setIsLoadingRequest] = useState(false);
   const [withdrawState, setWithdrawState] = useState<'idle' | 'withdrawing' | 'success'>('idle');
+  const [customAmount, setCustomAmount] = useState<string>('');
+
+  const isFixedAmount = !!payload && payload.minWithdrawable === payload.maxWithdrawable;
+  const minSats = useMemo(() => (payload ? msatsToSatsCeil(payload.minWithdrawable) : 0), [payload]);
+  const maxSats = useMemo(() => (payload ? msatsToSatsFloor(payload.maxWithdrawable) : 0), [payload]);
+  // LNURL server requested an amount that cannot be represented in whole sats
+  // (e.g. fixed 1500 msats, or a tight [1500, 1999] msat range). Any invoice we
+  // could create would fall outside the server's [min, max] msat window.
+  const rangeIsUnsatisfiable = !!payload && minSats > maxSats;
 
   useEffect(() => {
     if (network !== requestedNetwork) {
@@ -127,8 +120,59 @@ const WithdrawLightning: React.FC = () => {
     });
   };
 
+  const resolveWithdrawAmountSats = (): number => {
+    if (!payload) {
+      throw new Error('Missing LNURL withdraw request');
+    }
+    if (rangeIsUnsatisfiable) {
+      throw new Error('Withdraw amount cannot be represented in whole sats');
+    }
+    if (isFixedAmount) {
+      return maxSats;
+    }
+
+    const trimmed = customAmount.trim();
+    if (!trimmed) {
+      throw new Error('Please enter an amount');
+    }
+    if (!/^\d+$/.test(trimmed)) {
+      throw new Error('Amount must be a whole number of sats');
+    }
+
+    const value = Number(trimmed);
+    if (!Number.isFinite(value) || value <= 0) {
+      throw new Error('Amount must be greater than 0');
+    }
+    if (value < minSats) {
+      throw new Error(`Amount must be at least ${minSats} sats`);
+    }
+    if (value > maxSats) {
+      throw new Error(`Amount must be at most ${maxSats} sats`);
+    }
+
+    return value;
+  };
+
+  const handleCustomAmountChange = (text: string) => {
+    setCustomAmount(text.replace(/[^0-9]/g, ''));
+    setError('');
+  };
+
+  const handleMaxPress = () => {
+    setCustomAmount(String(maxSats));
+    setError('');
+  };
+
   const handleWithdraw = async () => {
     if (!payload || !selectedLayer) {
+      return;
+    }
+
+    let amountSats: number;
+    try {
+      amountSats = resolveWithdrawAmountSats();
+    } catch (err: any) {
+      setError(err.message || 'Invalid amount');
       return;
     }
 
@@ -141,7 +185,6 @@ const WithdrawLightning: React.FC = () => {
         throw new Error('Selected network does not support Lightning withdrawals');
       }
 
-      const amountSats = getWithdrawAmountSats(payload);
       const invoiceResponse = await wallet.createLightningInvoice(amountSats, payload.defaultDescription || 'Layerzwallet LNURL withdraw');
       const separator = payload.callback.includes('?') ? '&' : '?';
       const callbackUrl = `${payload.callback}${separator}k1=${encodeURIComponent(payload.k1)}&pr=${encodeURIComponent(invoiceResponse.invoice)}`;
@@ -163,76 +206,98 @@ const WithdrawLightning: React.FC = () => {
     }
   };
 
-  const amountDisplay = useMemo(() => {
-    if (!payload) {
+  const fixedAmountDisplay = useMemo(() => {
+    if (!payload || rangeIsUnsatisfiable) {
       return '—';
     }
+    return new BigNumber(maxSats).toFormat(0);
+  }, [payload, maxSats, rangeIsUnsatisfiable]);
 
-    const minSats = formatSatsFromMsats(payload.minWithdrawable);
-    const maxSats = formatSatsFromMsats(payload.maxWithdrawable);
-
-    return maxSats ? maxSats : minSats; // for an edge case if no max provided (should never happen)
-  }, [payload]);
-
-  const withdrawDisabled = isLoadingRequest || withdrawState !== 'idle' || !payload || !selectedLayer || !!error;
+  const displayedError = error || (rangeIsUnsatisfiable ? 'Withdraw amount cannot be represented in whole sats' : '');
+  const withdrawDisabled = isLoadingRequest || withdrawState !== 'idle' || !payload || !selectedLayer || rangeIsUnsatisfiable || (!isFixedAmount && !customAmount);
 
   return (
     <RadialGradientScreen network={requestedNetwork} scroll={true}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenSendHeader network={requestedNetwork} title={`Withdraw ${getTickerByNetwork(requestedNetwork)}`} />
 
-      <View style={styles.container}>
-        <View style={styles.content}>
-          <View style={styles.amountCard}>
-            <ThemedText style={styles.amountLabel}>You will receive</ThemedText>
-            {isLoadingRequest ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" />
-                <ThemedText style={styles.loadingText}>Loading withdraw request...</ThemedText>
+      <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+        <View style={styles.container}>
+          <View style={styles.content}>
+            <View style={styles.amountCard}>
+              <ThemedText style={styles.amountLabel}>{isFixedAmount ? 'You will receive' : 'Enter amount'}</ThemedText>
+              {isLoadingRequest ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" />
+                  <ThemedText style={styles.loadingText}>Loading withdraw request...</ThemedText>
+                </View>
+              ) : isFixedAmount || !payload || rangeIsUnsatisfiable ? (
+                <>
+                  <ThemedText type="sfProRounded" style={styles.amountValue} adjustsFontSizeToFit={true} numberOfLines={1}>
+                    {fixedAmountDisplay}
+                  </ThemedText>
+                  <ThemedText style={styles.amountTicker}>sats</ThemedText>
+                </>
+              ) : (
+                <>
+                  <TextInput
+                    style={styles.amountInput}
+                    value={customAmount}
+                    onChangeText={handleCustomAmountChange}
+                    keyboardType="number-pad"
+                    placeholder="0"
+                    placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                    editable={withdrawState === 'idle'}
+                    testID="withdraw-lightning-amount-input"
+                  />
+                  <ThemedText style={styles.amountTicker}>sats</ThemedText>
+                  <View style={styles.rangeRow}>
+                    <ThemedText style={styles.rangeText}>{`Min ${minSats} • Max ${maxSats} sats`}</ThemedText>
+                    <Pressable style={styles.maxButton} onPress={handleMaxPress} disabled={withdrawState !== 'idle'} testID="withdraw-lightning-max-button">
+                      <ThemedText style={styles.maxButtonText}>MAX</ThemedText>
+                    </Pressable>
+                  </View>
+                </>
+              )}
+            </View>
+
+            {payload?.defaultDescription && (
+              <View style={styles.infoCard}>
+                <Ionicons name="information-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
+                <ThemedText style={styles.infoText}>{payload.defaultDescription}</ThemedText>
               </View>
-            ) : (
-              <>
-                <ThemedText type="sfProRounded" style={styles.amountValue} adjustsFontSizeToFit={true} numberOfLines={1}>
-                  {amountDisplay}
-                </ThemedText>
-                <ThemedText style={styles.amountTicker}>sats</ThemedText>
-              </>
             )}
+
+            {displayedError ? (
+              <View style={styles.errorContainer}>
+                <Ionicons name="close" size={16} color="white" />
+                <ThemedText style={styles.errorText}>{displayedError}</ThemedText>
+              </View>
+            ) : null}
+
+            <BalanceLightning onSelectNetwork={handleLayerSelect} selectedNetwork={selectedLayer} showTotalBalance={false} />
           </View>
 
-          {payload?.defaultDescription && (
-            <View style={styles.infoCard}>
-              <Ionicons name="information-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
-              <ThemedText style={styles.infoText}>{payload.defaultDescription}</ThemedText>
+          {withdrawState === 'success' ? (
+            <View style={styles.successState} testID="withdraw-lightning-success">
+              <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+              <ThemedText style={styles.successText}>Success!</ThemedText>
             </View>
+          ) : (
+            <Pressable style={[styles.withdrawButton, withdrawDisabled && styles.disabledButton]} onPress={handleWithdraw} disabled={withdrawDisabled} testID="withdraw-lightning-button">
+              {withdrawState === 'withdrawing' ? <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" /> : <ThemedText style={styles.withdrawButtonText}>Withdraw</ThemedText>}
+            </Pressable>
           )}
-
-          {error ? (
-            <View style={styles.errorContainer}>
-              <Ionicons name="close" size={16} color="white" />
-              <ThemedText style={styles.errorText}>{error}</ThemedText>
-            </View>
-          ) : null}
-
-          <BalanceLightning onSelectNetwork={handleLayerSelect} selectedNetwork={selectedLayer} showTotalBalance={false} />
         </View>
-
-        {withdrawState === 'success' ? (
-          <View style={styles.successState} testID="withdraw-lightning-success">
-            <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-            <ThemedText style={styles.successText}>Success!</ThemedText>
-          </View>
-        ) : (
-          <Pressable style={[styles.withdrawButton, withdrawDisabled && styles.disabledButton]} onPress={handleWithdraw} disabled={withdrawDisabled} testID="withdraw-lightning-button">
-            {withdrawState === 'withdrawing' ? <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.8)" /> : <ThemedText style={styles.withdrawButtonText}>Withdraw</ThemedText>}
-          </Pressable>
-        )}
-      </View>
+      </KeyboardAvoidingView>
     </RadialGradientScreen>
   );
 };
 
 const styles = StyleSheet.create({
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     paddingHorizontal: 16,
@@ -259,10 +324,41 @@ const styles = StyleSheet.create({
     width: '100%',
     textAlign: 'center',
   },
+  amountInput: {
+    color: 'rgba(255, 255, 255, 0.95)',
+    fontSize: 42,
+    width: '100%',
+    textAlign: 'center',
+    padding: 0,
+    margin: 0,
+  },
   amountTicker: {
     color: 'rgba(255, 255, 255, 0.65)',
     fontSize: 18,
     marginTop: 8,
+  },
+  rangeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 16,
+  },
+  rangeText: {
+    color: 'rgba(255, 255, 255, 0.55)',
+    fontSize: 13,
+  },
+  maxButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  maxButtonText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   loadingContainer: {
     alignItems: 'center',
