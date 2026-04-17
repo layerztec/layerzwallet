@@ -1456,6 +1456,7 @@ const DAppBrowser: React.FC = () => {
                         style={styles.webviewVisible}
                         incognito={false}
                         scrollEnabled={!isAddressInputFocused}
+                        setSupportMultipleWindows={false}
                       />
                     </View>
                   );
