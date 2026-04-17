@@ -7,8 +7,9 @@ import { useActionPopup } from '@/contexts/ActionPopupContext';
 import { Ionicons } from '@expo/vector-icons';
 import DetachedSheet from '@/components/DetachedSheet';
 
-const ACTION_ITEM_HEIGHT = 68;
-const ACTION_ITEM_GAP = 22;
+const ACTION_ITEM_MIN_HEIGHT = 56;
+const SECTION_ITEM_MIN_HEIGHT = 28;
+const ACTION_ITEM_GAP = 6;
 const TITLE_HEIGHT = 32;
 const ACTIONS_PADDING = 16;
 
@@ -79,7 +80,7 @@ export default function ActionPopupModal() {
                 activeOpacity={0.8}
                 disabled={action.disabled || isSection}
               >
-                <View style={styles.actionContent}>{action.children}</View>
+                <View style={[styles.actionContent, isSection ? styles.sectionContent : null]}>{action.children}</View>
               </Pressable>
             );
           })}
@@ -135,7 +136,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    height: ACTION_ITEM_HEIGHT,
+    minHeight: ACTION_ITEM_MIN_HEIGHT,
     paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  sectionContent: {
+    minHeight: SECTION_ITEM_MIN_HEIGHT,
+    paddingVertical: 4,
   },
 });

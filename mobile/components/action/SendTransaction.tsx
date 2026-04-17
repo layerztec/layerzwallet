@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View, Platform } from 'react-native';
 import Slider from '@react-native-community/slider';
 import Pressable from '../Pressable';
 
@@ -97,6 +97,7 @@ export function SendTransaction(args: SendTransactionArgs) {
       Alert.alert('Error', 'Cannot get transaction parameters');
       router.back();
     } catch (err: any) {
+      globalThis.handleError?.(err, 'DAppBrowser.SendTransaction.onAllowClick');
       setError((await getErrorMessage(err)) || 'Failed to get transaction parameters');
     } finally {
       setIsLoading(false);
@@ -137,8 +138,17 @@ export function SendTransaction(args: SendTransactionArgs) {
 
       router.back();
     } catch (error: any) {
+      globalThis.handleError?.(error, 'DAppBrowser.SendTransaction.broadcastTransaction');
       setError(error.message);
     }
+  };
+
+  const renderContractData = (params: any) => {
+    let ret = JSON.stringify(params, null, 2);
+    if (Platform.OS !== 'ios' && ret.length > 200) {
+      ret = ret.substring(0, 200) + '\n  ...\n}';
+    }
+    return ret;
   };
 
   const renderParams = () => {
@@ -148,7 +158,7 @@ export function SendTransaction(args: SendTransactionArgs) {
       return (
         <>
           <ScrollView style={styles.messageContainer} showsVerticalScrollIndicator={true} bounces={true}>
-            <ThemedText style={styles.messageText}>{JSON.stringify(params, null, 2)}</ThemedText>
+            <ThemedText style={styles.messageText}>{renderContractData(params)}</ThemedText>
           </ScrollView>
           <View>
             {params?.to ? <ThemedText style={styles.detailText}>To: {params.to}</ThemedText> : null}
@@ -209,6 +219,7 @@ export function SendTransaction(args: SendTransactionArgs) {
             style={[styles.button, styles.secondaryButton]}
             onPress={() => {
               setBytes('');
+              setError('');
               setMinFees(undefined);
               setMaxFees(undefined);
             }}
@@ -235,6 +246,16 @@ export function SendTransaction(args: SendTransactionArgs) {
     );
   };
 
+  const renderError = (error: string) => {
+    let ret = error;
+    if (error.length > 200) {
+      const start = error.substring(0, 100);
+      const end = error.substring(error.length - 120);
+      ret = start + '......\n......' + end;
+    }
+    return ret;
+  };
+
   return (
     <View style={styles.container} collapsable={true}>
       <View style={styles.contentContainer}>
@@ -247,7 +268,7 @@ export function SendTransaction(args: SendTransactionArgs) {
         {renderFeeInfo()}
         {error ? (
           <View style={styles.errorContainer}>
-            <ThemedText style={styles.errorText}>{error}</ThemedText>
+            <ThemedText style={styles.errorText}>Error: {renderError(error)}</ThemedText>
           </View>
         ) : null}
       </View>
