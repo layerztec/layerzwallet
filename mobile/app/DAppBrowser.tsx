@@ -1050,6 +1050,8 @@ const DAppBrowser: React.FC = () => {
               var type = (input.getAttribute('type') || 'text').toLowerCase();
               if (input.tagName === 'INPUT' && type && ['text', 'tel', 'url'].indexOf(type) === -1) return false;
               if (input.disabled || input.readOnly) return false;
+              var placeholder = input.placeholder || '';
+              if (/rBTC/.test(placeholder)) return false;
               return true;
             });
             return candidates.find(function(input) {
