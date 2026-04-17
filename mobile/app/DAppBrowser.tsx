@@ -58,6 +58,16 @@ const homeIcon = require('@/assets/images/home.svg');
 const iosVersion = Platform.OS === 'ios' ? (typeof Platform.Version === 'string' ? parseInt(String(Platform.Version), 10) : Number(Platform.Version)) : 0;
 const usesNativeTabBar = Platform.OS === 'android' || (Platform.OS === 'ios' && iosVersion >= 26);
 
+// Height (excluding system safe-area insets) that the parent tab bar visually overlaps this screen.
+// - iOS 26+: NativeTabs applies automatic content insets, so `useSafeAreaInsets().bottom` already covers the tab bar → 0 extra.
+// - Android: `NativeTabs.Trigger` sets `disableAutomaticContentInsets={true}`, so content renders behind the bottom nav → add Material bar height.
+// - iOS <26: the fallback `Tabs` layout uses `position: 'absolute'` for `tabBarStyle`, which does not inset children → add standard iOS tab bar height.
+const getExtraBottomTabBarPadding = (): number => {
+  if (Platform.OS === 'android') return 80;
+  if (Platform.OS === 'ios' && iosVersion > 0 && iosVersion < 26) return 49;
+  return 0;
+};
+
 const getHomeUrl = (network: string): string => `https://layerztec.github.io/website/explore/?network=${network}`; // to test: https://metamask.github.io/test-dapp/ & https://eip6963.org/
 
 const normalizeLayerzExploreUrlToNetwork = (urlString: string, network: string): string => {
@@ -1382,7 +1392,7 @@ const DAppBrowser: React.FC = () => {
             </Animated.View>
           </GestureDetector>
 
-          <View style={styles.contentContainer}>
+          <View style={[styles.contentContainer, { paddingBottom: getExtraBottomTabBarPadding() }]}>
             <Animated.View style={[styles.webviewContainer, webviewContainerAnimatedStyle, styles.flex1]} {...panResponder.panHandlers}>
               <Animated.View style={[styles.absoluteFill, swipeOverlayAnimatedStyle, styles.swipeOverlayStyle]} />
               <Animated.View style={[styles.swipeIndicator, swipeIndicatorAnimatedStyle]}>
