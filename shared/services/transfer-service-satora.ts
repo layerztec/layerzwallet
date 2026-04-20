@@ -280,6 +280,23 @@ export class SatoraTransferService implements ITransferService {
     const swap = await client.getSwap(transfer.satoraSwapId);
     transfer.execution.status = mapSatoraStatus(swap.status);
     transfer.execution.updatedAt = Math.floor(Date.now() / 1000);
+
+    // Same auto-claim logic as getOngoingTransfers — if the user is watching
+    // the details screen when the swap hits serverfunded, trigger the claim
+    // here too so it doesn't stall.
+    if (!transfer.claimCalled && shouldTriggerClaim(swap.status)) {
+      try {
+        const result = await client.claim(transfer.satoraSwapId);
+        if (result.success) {
+          transfer.claimCalled = true;
+        } else {
+          console.warn(`Satora claim reported failure for ${transfer.satoraSwapId}: ${result.message}`);
+        }
+      } catch (e) {
+        console.warn(`Satora claim threw for ${transfer.satoraSwapId}: ${(e as Error).message}`);
+      }
+    }
+
     await this.saveTransfers(transfers);
     return transfer.execution;
   }
