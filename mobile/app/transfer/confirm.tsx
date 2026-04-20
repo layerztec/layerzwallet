@@ -198,8 +198,7 @@ export default function TransferConfirm() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Satora flow confirm: fetch Rootstock address → executeTransfer (gets BOLT11) →
-  // commit immediately (so the swap is tracked even if the app dies) → pay invoice.
+  // Satora flow confirm: the service handles create → commit → pay via callback.
   const handleSatoraConfirm = async () => {
     if (isConfirmingRef.current) return;
     if (!quote || !sendAsset || !receiveAsset) return;
@@ -215,25 +214,14 @@ export default function TransferConfirm() {
       if (!rootstockAddress) {
         throw new Error('No Rootstock address available for this account');
       }
-      const execution = await transferService.executeTransfer(quote, accountNumber, rootstockAddress);
-      executionRef.current = execution;
 
-      // Persist BEFORE paying so the swap is tracked even if the app is killed mid-payment.
-      // The transfer starts in 'waiting' status; background polling will pick it up.
-      await transferService.commitTransfer(execution);
-
-      // Pay the BOLT11 from the picked LN wallet.
       const lnWallet = await BackgroundExecutor.lazyInitWallet(selectedLnPayNetwork as TSupportedLazyInitWalletNetworks, accountNumber);
       if (!walletSupportsLightning(lnWallet)) {
         throw new Error(`${selectedLnPayNetwork} wallet does not support Lightning`);
       }
-      if (!execution.depositAddress) {
-        throw new Error('Satora did not return a BOLT11 invoice');
-      }
-      const paid = await lnWallet.payLightningInvoice(execution.depositAddress);
-      if (!paid) {
-        throw new Error('Lightning payment failed — the invoice was not paid');
-      }
+
+      const execution = await transferService.executeAndPay(quote, accountNumber, rootstockAddress, (bolt11: string) => lnWallet.payLightningInvoice(bolt11));
+      executionRef.current = execution;
 
       setPreparedExecution(undefined);
       setCommitted(true);

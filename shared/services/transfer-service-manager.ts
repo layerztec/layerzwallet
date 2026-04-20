@@ -115,6 +115,14 @@ export class TransferServiceManager {
     return (service as any).executeInstantSwap(executionId);
   }
 
+  async executeAndPay(quote: TransferQuote, accountNumber: number, settleAddress: string, payInvoice: (bolt11: string) => Promise<boolean>): Promise<TransferExecution> {
+    const service = this.resolveServiceByName(quote.serviceName);
+    if (!service || typeof (service as any).executeAndPay !== 'function') {
+      throw new Error(`Service "${quote.serviceName}" does not support executeAndPay`);
+    }
+    return (service as any).executeAndPay(quote, accountNumber, settleAddress, payInvoice);
+  }
+
   async commitTransfer(execution: TransferExecution): Promise<void> {
     const service = this.resolveServiceByName(execution.serviceName);
     if (service) {

@@ -197,6 +197,36 @@ export class SatoraTransferService implements ITransferService {
     return execution;
   }
 
+  /**
+   * Full Satora swap flow: create swap → commit (persist) → pay the BOLT11 via callback.
+   *
+   * Commit happens BEFORE payment so the swap is tracked even if the app dies mid-payment.
+   * The callback receives the BOLT11 invoice string and must return true on success.
+   *
+   * @param quote - The TransferQuote from getQuote()
+   * @param accountNumber - Wallet account number
+   * @param settleAddress - User's Rootstock EVM address (where USDT0 lands)
+   * @param payInvoice - Callback that pays the BOLT11 (e.g. lnWallet.payLightningInvoice)
+   * @returns The committed TransferExecution
+   */
+  async executeAndPay(quote: TransferQuote, accountNumber: number, settleAddress: string, payInvoice: (bolt11: string) => Promise<boolean>): Promise<TransferExecution> {
+    const execution = await this.executeTransfer(quote, accountNumber, settleAddress);
+
+    // Persist BEFORE paying so the swap is tracked even if the app is killed mid-payment.
+    await this.commitTransfer(execution);
+
+    if (!execution.depositAddress) {
+      throw new Error('Satora did not return a BOLT11 invoice');
+    }
+
+    const paid = await payInvoice(execution.depositAddress);
+    if (!paid) {
+      throw new Error('Lightning payment failed — the invoice was not paid');
+    }
+
+    return execution;
+  }
+
   async commitTransfer(execution: TransferExecution): Promise<void> {
     const transfers = await this.loadTransfers();
     const existingIdx = transfers.findIndex((t) => t.execution.id === execution.id);
