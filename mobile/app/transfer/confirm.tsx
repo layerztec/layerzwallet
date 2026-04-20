@@ -115,8 +115,8 @@ export default function TransferConfirm() {
           if (walletSupportsLightning(w)) {
             found.push(network);
           }
-        } catch {
-          // wallet not initialized for this account — skip
+        } catch (e) {
+          globalThis.handleError?.(e, 'transfer-confirm-ln-discovery');
         }
       }
       if (cancelled) return;
