@@ -154,6 +154,12 @@ export class SatoraTransferService implements ITransferService {
     }
 
     const sats = new BigNumber(quote.sendAmount).multipliedBy(new BigNumber(10).pow(BTC_DECIMALS)).integerValue(BigNumber.ROUND_DOWN);
+    if (!sats.isFinite() || sats.lte(0)) {
+      throw new Error('Invalid send amount');
+    }
+    if (!sats.isLessThan(Number.MAX_SAFE_INTEGER)) {
+      throw new Error('Amount too large for Satora swap');
+    }
 
     const client = await this.getClient();
     const result = await client.createSwap({
