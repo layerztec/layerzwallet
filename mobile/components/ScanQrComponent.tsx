@@ -11,6 +11,7 @@ import GradientFormSheet from '@/components/GradientFormSheet';
 import PlatformBlurView from '@/components/PlatformBlurView';
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
+import { isMacCatalyst } from '@/src/utils/platform';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 
 const styles = StyleSheet.create({
@@ -44,6 +45,12 @@ const styles = StyleSheet.create({
   },
   gestureHandlerRoot: {
     flex: 1,
+  },
+  unsupportedWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
   },
 });
 
@@ -142,6 +149,17 @@ export default function ScanQrComponent() {
   }
 
   const renderCameraContent = () => {
+    if (isMacCatalyst) {
+      return (
+        <View style={styles.unsupportedWrapper}>
+          <ThemedText style={styles.message}>QR scanning is not supported in Mac Catalyst builds yet.</ThemedText>
+          <Pressable onPress={cancelCamera}>
+            <ThemedText style={styles.message}>Close</ThemedText>
+          </Pressable>
+        </View>
+      );
+    }
+
     if (!isCameraReady) {
       // Camera is not ready yet
       return (

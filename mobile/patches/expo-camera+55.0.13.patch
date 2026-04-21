@@ -1,0 +1,126 @@
+diff --git a/node_modules/expo-camera/ios/CameraViewModule.swift b/node_modules/expo-camera/ios/CameraViewModule.swift
+index 1291830..39b4810 100644
+--- a/node_modules/expo-camera/ios/CameraViewModule.swift
++++ b/node_modules/expo-camera/ios/CameraViewModule.swift
+@@ -2,7 +2,9 @@
+ 
+ import AVFoundation
+ import ExpoModulesCore
++#if !targetEnvironment(macCatalyst)
+ import VisionKit
++#endif
+ 
+ let cameraEvents = ["onCameraReady", "onMountError", "onPictureSaved", "onBarcodeScanned", "onResponsiveOrientationChanged", "onAvailableLensesChanged"]
+ 
+@@ -31,10 +33,14 @@ public final class CameraViewModule: Module, ScannerResultHandler {
+     }
+ 
+     Property("isModernBarcodeScannerAvailable") { () -> Bool in
++#if targetEnvironment(macCatalyst)
++      return false
++#else
+       if #available(iOS 16.0, *) {
+         return true
+       }
+       return false
++#endif
+     }
+ 
+     Property("toggleRecordingAsyncAvailable") { () -> Bool in
+@@ -339,6 +345,9 @@ public final class CameraViewModule: Module, ScannerResultHandler {
+     }
+ 
+     AsyncFunction("launchScanner") { (options: VisionScannerOptions?) in
++#if targetEnvironment(macCatalyst)
++      throw CameraScannerUnavailableException()
++#else
+       if #available(iOS 16.0, *) {
+         try await MainActor.run {
+           guard DataScannerViewController.isSupported, DataScannerViewController.isAvailable else {
+@@ -349,14 +358,17 @@ public final class CameraViewModule: Module, ScannerResultHandler {
+           launchScanner(with: options)
+         }
+       }
++#endif
+     }
+ 
+     AsyncFunction("dismissScanner") {
++#if !targetEnvironment(macCatalyst)
+       if #available(iOS 16.0, *) {
+         await MainActor.run {
+           dismissScanner()
+         }
+       }
++#endif
+     }
+ 
+     AsyncFunction("getCameraPermissionsAsync") { (promise: Promise) in
+@@ -400,6 +412,7 @@ public final class CameraViewModule: Module, ScannerResultHandler {
+     }
+   }
+ 
++  #if !targetEnvironment(macCatalyst)
+   @available(iOS 16.0, *)
+   @MainActor
+   private func launchScanner(with options: VisionScannerOptions?) {
+@@ -430,6 +443,7 @@ public final class CameraViewModule: Module, ScannerResultHandler {
+     controller.stopScanning()
+     controller.dismiss(animated: true)
+   }
++  #endif
+ 
+   func onItemScanned(result: [String: Any]) {
+     sendEvent("onModernBarcodeScanned", result)
+diff --git a/node_modules/expo-camera/ios/Current/BarcodeScannerUtils.swift b/node_modules/expo-camera/ios/Current/BarcodeScannerUtils.swift
+index 5f18d96..87d098f 100644
+--- a/node_modules/expo-camera/ios/Current/BarcodeScannerUtils.swift
++++ b/node_modules/expo-camera/ios/Current/BarcodeScannerUtils.swift
+@@ -2,8 +2,10 @@ import AVFoundation
+ #if canImport(ZXingObjC)
+ import ZXingObjC
+ #endif
++#if !targetEnvironment(macCatalyst)
+ import VisionKit
+ import Vision
++#endif
+ 
+ class BarcodeScannerUtils {
+   static func getDefaultSettings() -> [String: [AVMetadataObject.ObjectType]] {
+@@ -66,6 +68,7 @@ class BarcodeScannerUtils {
+     return result
+   }
+ 
++  #if !targetEnvironment(macCatalyst)
+   @available(iOS 16.0, *)
+   static func visionDataScannerObjectToDictionary(item: RecognizedItem.Barcode) -> [String: Any] {
+     var result = [String: Any]()
+@@ -90,6 +93,7 @@ class BarcodeScannerUtils {
+ 
+     return result
+   }
++  #endif
+ 
+   static func addEmptyCornerPoints(to result: inout [String: Any]) {
+     result["cornerPoints"] = []
+diff --git a/node_modules/expo-camera/ios/Current/VisionScannerDelegate.swift b/node_modules/expo-camera/ios/Current/VisionScannerDelegate.swift
+index e50439a..d0bc5d9 100644
+--- a/node_modules/expo-camera/ios/Current/VisionScannerDelegate.swift
++++ b/node_modules/expo-camera/ios/Current/VisionScannerDelegate.swift
+@@ -1,8 +1,10 @@
+ import ExpoModulesCore
+ 
+ protocol ScannerResultHandler {
+   func onItemScanned(result: [String: Any])
+ }
+ 
++#if !targetEnvironment(macCatalyst)
++import VisionKit
++
+ @available(iOS 16.0, *)
+ class VisionScannerDelegate: NSObject, DataScannerViewControllerDelegate {
+   private let handler: ScannerResultHandler
+@@ -27,3 +29,4 @@ class VisionScannerDelegate: NSObject, DataScannerViewControllerDelegate {
+     }
+   }
+ }
++#endif

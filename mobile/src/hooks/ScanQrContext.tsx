@@ -2,6 +2,7 @@ import React, { createContext, ReactNode, useState, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { useCameraPermissions } from 'expo-camera';
 import { Alert } from 'react-native';
+import { isMacCatalyst } from '@/src/utils/platform';
 
 interface IScanQrContext {
   scanQr: () => Promise<string>;
@@ -36,6 +37,12 @@ export const ScanQrContextProvider: React.FC<{ children: ReactNode }> = (props) 
 
       // Check and request camera permissions before showing the scanner
       try {
+        if (isMacCatalyst) {
+          Alert.alert('Camera Unsupported', 'QR scanning is not supported in Mac Catalyst builds yet.', [{ text: 'OK' }]);
+          resolve('');
+          return;
+        }
+
         if (!permission) {
           // Permissions are still loading
           console.debug('ScanQr: Camera permissions loading...');

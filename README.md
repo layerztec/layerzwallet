@@ -54,6 +54,15 @@ Shared code (anything that can be reused, cryptography, network fetchers, react 
 
 Development build for android (produces apk that has to load bundle remotely): `eas build --platform android --profile development-simulator --local`
 
+Mac Catalyst builds from `mobile/`:
+
+- Local debug build: `npm run mac`
+- Local release build: `npm run mac:release`
+- Local EAS custom build: `npm run mac:eas:local`
+- EAS cloud build: `eas build --platform ios --profile mac-catalyst`
+
+The Mac Catalyst path currently builds an unsigned `.app` artifact from the existing iOS native project. Local output is written under `mobile/ios/build/Build/Products`, and the EAS profile uploads `ios/build/Build/Products/Release-maccatalyst/LayerzWallet.app`.
+
 ## Tests
 
 TBD
@@ -79,4 +88,6 @@ We are also relying on Expo EAS for builds, so a generic workflow to run e2e tes
 ## Build
 
 * local android build: `eas build --platform android --profile preview --local`
+* local mac build: `cd mobile && npm run mac`
+* EAS mac build: `cd mobile && eas build --platform ios --profile mac-catalyst`
 * ext build: `npm run build`

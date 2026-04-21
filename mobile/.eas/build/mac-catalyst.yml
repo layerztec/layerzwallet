@@ -1,0 +1,28 @@
+build:
+  name: Build Mac Catalyst app
+  steps:
+    - eas/checkout
+
+    - eas/install_node_modules
+
+    - run:
+        name: Install CocoaPods for Mac Catalyst
+        working_directory: ./ios
+        command: EXPO_ENABLE_MAC_CATALYST=1 pod install
+
+    - run:
+        name: Build Mac Catalyst app
+        command: |
+          set -euo pipefail
+
+          EXPO_ENABLE_MAC_CATALYST=1 xcodebuild \
+            -workspace ios/LayerzWallet.xcworkspace \
+            -scheme LayerzWallet \
+            -configuration Release \
+            -destination 'platform=macOS,variant=Mac Catalyst' \
+            -derivedDataPath ios/build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+    - eas/find_and_upload_build_artifacts

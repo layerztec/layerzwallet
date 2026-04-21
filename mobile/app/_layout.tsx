@@ -9,8 +9,7 @@ import 'react-native-reanimated';
 import { SWRConfig } from 'swr';
 import BigNumber from 'bignumber.js';
 
-import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
-import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
+import { isMacCatalyst } from '@/src/utils/platform';
 
 import AutoClaimMonitor from '@/components/AutoClaimMonitor';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -33,6 +32,13 @@ import { ActionPopupProvider } from '@/contexts/ActionPopupContext';
 import { appendLog, applogFilePath, handleError } from '@/src/modules/error-handler';
 import { TransferFlowProvider } from '@/src/transfer/TransferFlowContext';
 import { TransferExecution } from '@shared/types/transfer';
+
+if (isMacCatalyst) {
+  void import('../src/modules/unsupported-network-adapters');
+} else {
+  void import('../src/modules/breeze-adapter');
+  void import('../src/modules/spark-adapter');
+}
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();

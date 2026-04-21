@@ -34,6 +34,15 @@
       "developmentClient": true,
       "distribution": "internal"
     },
+    "mac-catalyst": {
+      "extends": "base",
+      "withoutCredentials": true,
+      "ios": {
+        "config": "mac-catalyst.yml",
+        "buildConfiguration": "Release",
+        "applicationArchivePath": "ios/build/Build/Products/Release-maccatalyst/LayerzWallet.app"
+      }
+    },
     "production": {
       "extends": "base",
       "autoIncrement": true
