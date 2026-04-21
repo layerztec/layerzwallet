@@ -173,10 +173,7 @@ export async function handleQrIntent(rawInput: string, router: Pick<Router, 'pus
             lnurl: intent.invoice,
             network: NETWORK_LIGHTNING,
           };
-          router.push({
-            pathname: '/send/withdraw-lightning',
-            params,
-          });
+          router.push({ pathname: '/send/withdraw-lightning', params } as never);
           return true;
         }
       } catch (_) {}

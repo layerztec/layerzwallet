@@ -103,10 +103,11 @@ index 5f18d96..87d098f 100644
    static func addEmptyCornerPoints(to result: inout [String: Any]) {
      result["cornerPoints"] = []
 diff --git a/node_modules/expo-camera/ios/Current/VisionScannerDelegate.swift b/node_modules/expo-camera/ios/Current/VisionScannerDelegate.swift
-index e50439a..d0bc5d9 100644
+index e50439a..e217b6d 100644
 --- a/node_modules/expo-camera/ios/Current/VisionScannerDelegate.swift
 +++ b/node_modules/expo-camera/ios/Current/VisionScannerDelegate.swift
-@@ -1,8 +1,10 @@
+@@ -1,10 +1,12 @@
+-import VisionKit
  import ExpoModulesCore
  
  protocol ScannerResultHandler {
