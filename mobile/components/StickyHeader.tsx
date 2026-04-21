@@ -47,7 +47,7 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
         return;
       }
 
-      handleQrIntent(result, router);
+      await handleQrIntent(result, router);
     } catch (error) {
       console.error('StickyHeader: QR scan failed', error);
     }

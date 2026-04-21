@@ -262,6 +262,7 @@ export default function SendLayout() {
         <Stack.Screen name="send-confirm" />
         <Stack.Screen name="send-address-usdt" />
         <Stack.Screen name="send-amount-usdt" />
+        <Stack.Screen name="withdraw-lightning" />
       </Stack>
     </SendFlowProvider>
   );

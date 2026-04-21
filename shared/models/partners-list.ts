@@ -73,6 +73,13 @@ const partnersList: PartnerInfo[] = [
     description: '',
   },
   {
+    name: 'Atlas',
+    network: NETWORK_ROOTSTOCK,
+    url: 'https://atlas.rootstock.io',
+    imgUrl: '',
+    description: '',
+  },
+  {
     name: 'Bridge',
     network: NETWORK_CITREA,
     url: 'https://citrea.xyz/bridge',

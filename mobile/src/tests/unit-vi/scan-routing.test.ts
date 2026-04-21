@@ -111,23 +111,23 @@ describe('scan-routing parser', () => {
 });
 
 describe('scan-routing handler', () => {
-  test('routes lightning payloads to SendLightning', () => {
+  test('routes lightning payloads to SendLightning', async () => {
     const push = vi.fn();
     const router = { push };
     const invoice = 'lightning:lnurl1dp68gurn8ghj7mrww4exctnrda3k7mrww4excu0';
 
-    const handled = handleQrIntent(invoice, router);
+    const handled = await handleQrIntent(invoice, router);
 
     expect(handled).toBe(true);
     expect(push).toHaveBeenCalledWith({ pathname: '/send', params: { network: NETWORK_LIGHTNING, address: 'lnurl1dp68gurn8ghj7mrww4exctnrda3k7mrww4excu0' } });
   });
 
-  test('routes merchant QR code payloads to SendLightning', () => {
+  test('routes merchant QR code payloads to SendLightning', async () => {
     const push = vi.fn();
     const router = { push };
     const invoice = '00020129530023za.co.electrum.picknpay0122D57H4TMHFZ2TEZ/confirm520458125303710540115802ZA5916cryptoqrtestscan6002CT6304A440';
 
-    const handled = handleQrIntent(invoice, router);
+    const handled = await handleQrIntent(invoice, router);
 
     expect(handled).toBe(true);
     expect(push).toHaveBeenCalledWith({
@@ -136,28 +136,28 @@ describe('scan-routing handler', () => {
     });
   });
 
-  test('routes bitcoin payloads to send', () => {
+  test('routes bitcoin payloads to send', async () => {
     const push = vi.fn();
     const router = { push };
-    const handled = handleQrIntent('bitcoin:bc1qt4t9xl2gmjvxgmp5gev6m8e6s9c85979ta7jeh?amount=0.25', router);
+    const handled = await handleQrIntent('bitcoin:bc1qt4t9xl2gmjvxgmp5gev6m8e6s9c85979ta7jeh?amount=0.25', router);
 
     expect(handled).toBe(true);
     expect(push).toHaveBeenCalledWith({ pathname: '/send', params: { address: 'bc1qt4t9xl2gmjvxgmp5gev6m8e6s9c85979ta7jeh', amount: '0.25' } });
   });
 
-  test('routes bitcoin payloads to send 2', () => {
+  test('routes bitcoin payloads to send 2', async () => {
     const push = vi.fn();
     const router = { push };
-    const handled = handleQrIntent('bitcoin:1DzJepHCRD2C9vpFjk11eXJi97juEZ3ftv?amount=0.004&message=wheres the money lebowski', router);
+    const handled = await handleQrIntent('bitcoin:1DzJepHCRD2C9vpFjk11eXJi97juEZ3ftv?amount=0.004&message=wheres the money lebowski', router);
 
     expect(handled).toBe(true);
     expect(push).toHaveBeenCalledWith({ pathname: '/send', params: { address: '1DzJepHCRD2C9vpFjk11eXJi97juEZ3ftv', amount: '0.004' } });
   });
 
-  test('returns false for malformed/unknown payloads', () => {
+  test('returns false for malformed/unknown payloads', async () => {
     const push = vi.fn();
     const router = { push };
-    const handled = handleQrIntent('invalid-qr-code-data', router);
+    const handled = await handleQrIntent('invalid-qr-code-data', router);
 
     expect(push).not.toHaveBeenCalled();
     expect(handled).toBe(false);

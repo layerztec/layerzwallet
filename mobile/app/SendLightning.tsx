@@ -69,10 +69,12 @@ const SendLightning: React.FC = () => {
           invoice2use = merchantLightningAddress;
         }
 
-        if (Lnurl.isLightningAddress(invoice2use)) {
+        if (Lnurl.isLightningAddressOrLnurl(invoice2use)) {
           try {
             // need to fetch details, like minimum and maximum sat payment
-            invoice2use = encodeURIComponent(invoice2use.split('@')[0]) + '@' + invoice2use.split('@')[1]; // copensating for router automatically urldecoding the ln address in param
+            if (Lnurl.isLightningAddress(invoice2use)) {
+              invoice2use = encodeURIComponent(invoice2use.split('@')[0]) + '@' + invoice2use.split('@')[1]; // compensating for router automatically urldecoding the ln address in param
+            }
             const ln = new Lnurl(invoice2use);
             const response = await ln.callLnurlPayService();
             if (response) {
@@ -84,8 +86,8 @@ const SendLightning: React.FC = () => {
               return;
             }
           } catch (error: any) {
-            console.log('Lightning Address fetch error:', error.message);
-            setError('Lightning Address fetch error: ' + error.message);
+            console.log('LNURL fetch error:', error.message);
+            setError('LNURL fetch error: ' + error.message);
           }
           return;
         }
@@ -290,7 +292,7 @@ const SendLightning: React.FC = () => {
               <View style={styles.invoiceContainer}>
                 <TextInput
                   style={styles.invoiceInput}
-                  placeholder="Lightning invoice or Lightning address here"
+                  placeholder="Lightning invoice, LNURL, or Lightning address here"
                   placeholderTextColor="rgba(255, 255, 255, 0.6)"
                   onChangeText={onInvoiceInput}
                   value={invoice}
@@ -307,7 +309,7 @@ const SendLightning: React.FC = () => {
           {isPayingToLightningAddress && (
             <>
               <View style={styles.detailsContainer}>
-                <ThemedText style={styles.detailsTitle}>Paying to Lightning Address</ThemedText>
+                <ThemedText style={styles.detailsTitle}>Paying to Lightning Address or LNURL</ThemedText>
 
                 {lnurlPayServicePayload[invoice]?.min && lnurlPayServicePayload[invoice]?.max && (
                   <>

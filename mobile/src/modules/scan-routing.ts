@@ -5,8 +5,10 @@ import type { Router } from 'expo-router';
 
 import { PosMerchantParams } from '@/app/PosMerchant';
 import { SendParams } from '@/app/send';
+import { WithdrawLightningParams } from '@/app/send/withdraw-lightning';
 import { convertMerchantQRToLightningAddress } from '@shared/modules/merchants';
 import { NETWORK_LIGHTNING } from '@shared/types/networks';
+import Lnurl from '@shared/class/lnurl';
 
 type LightningIntent = {
   type: 'lightning';
@@ -160,11 +162,24 @@ export function parseQrIntent(rawInput: string): QrIntent {
   return { type: 'unknown', raw };
 }
 
-export function handleQrIntent(rawInput: string, router: Pick<Router, 'push'>): boolean {
+export async function handleQrIntent(rawInput: string, router: Pick<Router, 'push'>): Promise<boolean> {
   const intent = parseQrIntent(rawInput);
 
   switch (intent.type) {
     case 'lightning': {
+      try {
+        if (await Lnurl.isLnurlWithdrawRequest(intent.invoice)) {
+          const params: WithdrawLightningParams = {
+            lnurl: intent.invoice,
+            network: NETWORK_LIGHTNING,
+          };
+          router.push({
+            pathname: '/send/withdraw-lightning',
+            params,
+          });
+          return true;
+        }
+      } catch (_) {}
       const params: SendParams = { address: intent.invoice, network: NETWORK_LIGHTNING };
       router.push({ pathname: '/send', params });
       return true;

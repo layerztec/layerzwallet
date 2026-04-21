@@ -24,7 +24,7 @@ const SendAddressLightning: React.FC = () => {
   const { scanQr } = useContext(ScanQrContext);
   const router = useRouter();
   const { network } = useContext(NetworkContext);
-  const { lightning, address } = useSendFlow();
+  const { lightning, address, setAddress } = useSendFlow();
   assert(lightning, 'Lightning context not found');
   const { layer } = lightning;
 
@@ -32,6 +32,7 @@ const SendAddressLightning: React.FC = () => {
   const [localInvoice, setLocalInvoice] = useState(address);
   const [validating, setValidating] = useState<{ [invoice: string]: boolean }>({});
   const [errorMessages, setErrorMessages] = useState<{ [invoice: string]: string }>({});
+  const [resolvedInvoice, setResolvedInvoice] = useState<{ [invoice: string]: string }>({});
   const [lnurlPayServicePayload, setLnurlPayServicePayload] = useState<{ [invoice: string]: LnurlPayServicePayload }>({});
   const [lnurlInstance, setLnurlInstance] = useState<{ [invoice: string]: Lnurl | undefined }>({});
   const [decodedInvoice, setDecodedInvoice] = useState<{ [invoice: string]: DecodedInvoice | undefined }>({});
@@ -56,21 +57,22 @@ const SendAddressLightning: React.FC = () => {
 
   const validateInvoice = useCallback(
     async (i: string) => {
-      let invoice = i.trim();
+      const input = i.trim();
+      let invoice = input;
 
       try {
-        setValidating((prev) => ({ ...prev, [invoice]: true }));
+        setValidating((prev) => ({ ...prev, [input]: true }));
         setErrorMessages((prev) => {
-          const { [invoice]: _, ...newErrors } = prev;
+          const { [input]: _, ...newErrors } = prev;
           return newErrors;
         });
 
         if (!invoice) {
-          setErrorMessages((prev) => ({ ...prev, [invoice]: 'Please enter a lightning invoice or address' }));
+          setErrorMessages((prev) => ({ ...prev, [input]: 'Please enter a lightning invoice, LNURL, or address' }));
           return;
         }
         if (!layer) {
-          setErrorMessages((prev) => ({ ...prev, [invoice]: 'Please select a Layer' }));
+          setErrorMessages((prev) => ({ ...prev, [input]: 'Please select a Layer' }));
           return;
         }
 
@@ -83,18 +85,19 @@ const SendAddressLightning: React.FC = () => {
         }
 
         // Handle Lightning Address (LNURL)
-        if (Lnurl.isLightningAddress(invoice)) {
+        if (Lnurl.isLightningAddressOrLnurl(invoice)) {
           try {
-            invoice = encodeURIComponent(invoice.split('@')[0]) + '@' + invoice.split('@')[1];
-            const ln = new Lnurl(invoice);
+            const invoiceToUse = Lnurl.isLightningAddress(invoice) ? encodeURIComponent(invoice.split('@')[0]) + '@' + invoice.split('@')[1] : invoice;
+            const ln = new Lnurl(invoiceToUse);
             const response = await ln.callLnurlPayService();
             if (response) {
-              setLnurlInstance((prev) => ({ ...prev, [invoice]: ln }));
-              setLnurlPayServicePayload((prev) => ({ ...prev, [invoice]: response }));
+              setResolvedInvoice((prev) => ({ ...prev, [input]: invoiceToUse }));
+              setLnurlInstance((prev) => ({ ...prev, [input]: ln }));
+              setLnurlPayServicePayload((prev) => ({ ...prev, [input]: response }));
               return;
             }
           } catch (error: any) {
-            setErrorMessages((prev) => ({ ...prev, [invoice]: 'Lightning Address fetch error: ' + error.message }));
+            setErrorMessages((prev) => ({ ...prev, [input]: 'LNURL fetch error: ' + error.message }));
             return;
           }
         }
@@ -112,20 +115,21 @@ const SendAddressLightning: React.FC = () => {
         // Decode BOLT11 invoice
         const decoded = bolt11.decode(invoice);
         if (!decoded.satoshis) {
-          setErrorMessages((prev) => ({ ...prev, [invoice]: 'Zero amount invoices are not supported' }));
+          setErrorMessages((prev) => ({ ...prev, [input]: 'Zero amount invoices are not supported' }));
           return;
         }
-        setDecodedInvoice((prev) => ({ ...prev, [invoice]: decoded }));
+        setResolvedInvoice((prev) => ({ ...prev, [input]: invoice }));
+        setDecodedInvoice((prev) => ({ ...prev, [input]: decoded }));
 
         // Extract memo
         const memoTag = decoded.tags.find((tag: any) => tag.tagName === 'description');
         if (memoTag) {
-          setMemo((prev) => ({ ...prev, [invoice]: String(memoTag.data) }));
+          setMemo((prev) => ({ ...prev, [input]: String(memoTag.data) }));
         }
       } catch (error: any) {
-        setErrorMessages((prev) => ({ ...prev, [invoice]: error.message || 'Invalid lightning invoice or address' }));
+        setErrorMessages((prev) => ({ ...prev, [input]: error.message || 'Invalid lightning invoice, LNURL, or address' }));
       } finally {
-        setValidating((prev) => ({ ...prev, [invoice]: false }));
+        setValidating((prev) => ({ ...prev, [input]: false }));
       }
     },
     [layer, network]
@@ -158,6 +162,7 @@ const SendAddressLightning: React.FC = () => {
         return;
       }
 
+      const invoiceToUse = resolvedInvoice[invoice] ?? invoice;
       const decoded = decodedInvoice[invoice];
       const lnurlPSPayload = lnurlPayServicePayload[invoice];
       const lnurlInst = lnurlInstance[invoice];
@@ -169,6 +174,7 @@ const SendAddressLightning: React.FC = () => {
       if (lnurlPSPayload) {
         lightning.setLnurlPayServicePayload(lnurlPSPayload);
       }
+      setAddress(lnurlPSPayload && Lnurl.isLightningAddress(invoice) ? invoice : '');
       if (lnurlInst) {
         lightning.setLnurlInstance(lnurlInst);
       }
@@ -176,7 +182,7 @@ const SendAddressLightning: React.FC = () => {
       if (redirectToAmountScreen) {
         router.push('/send/send-amount-lightning');
       } else {
-        lightning.setInvoice(invoice);
+        lightning.setInvoice(invoiceToUse);
         router.push('/send/send-confirm-lightning');
       }
     } catch (error: any) {
@@ -233,7 +239,7 @@ const SendAddressLightning: React.FC = () => {
           {isLightningAddress && lnurlPayServicePayload[invoice] && (
             <View style={styles.lightningAddressInfo}>
               <Ionicons name="information-circle" size={20} color="rgba(255, 255, 255, 0.8)" />
-              <ThemedText style={styles.lightningAddressText}>{lnurlPayServicePayload[invoice]?.description || 'Lightning Address detected'}</ThemedText>
+              <ThemedText style={styles.lightningAddressText}>{lnurlPayServicePayload[invoice]?.description || 'Lightning Address or LNURL pay request detected'}</ThemedText>
             </View>
           )}
 
