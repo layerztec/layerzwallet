@@ -44,6 +44,15 @@
       "android": {
         "buildType": "apk"
       }
+      },
+      "devclient-store": {
+        "extends": "production",
+        "env": {
+          "APP_VARIANT": "devclient"
+        },
+        "ios": {
+          "credentialsSource": "remote"
+        }
     }
   },
   "submit": {
@@ -54,6 +63,11 @@
       "ios": {
         "ascAppId": "6745974808"
       }
+      },
+      "devclient-store": {
+        "ios": {
+          "ascAppId": "6762009368"
+        }
     }
   }
 }
