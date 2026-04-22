@@ -1,0 +1,115 @@
+name: Dev Client Build
+
+on:
+  pull_request_target:
+    types:
+      - labeled
+      - unlabeled
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: devclient-build-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  trigger-devclient-build:
+    name: Trigger devclient build
+    if: github.event.action == 'labeled' && github.event.label.name == 'devclient' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Start devclient build
+        run: |
+          eas build \
+            --platform ios \
+            --profile devclient-store \
+            --non-interactive \
+            --no-wait \
+            --message "PR #${{ github.event.pull_request.number }} devclient"
+
+  cancel-devclient-build:
+    name: Cancel devclient build
+    if: github.event.action == 'unlabeled' && github.event.label.name == 'devclient'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Cancel matching builds
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          eas build:list \
+            --platform ios \
+            --build-profile devclient-store \
+            --limit 50 \
+            --json \
+            --non-interactive > builds.json
+
+          target_ids=$(node <<'NODE'
+          const fs = require('fs');
+
+          const prNumber = process.env.PR_NUMBER;
+          const statusesToCancel = new Set(['new', 'in-queue', 'in-progress', 'pending-cancel']);
+          const expectedMessage = `PR #${prNumber} devclient`;
+          const builds = JSON.parse(fs.readFileSync('builds.json', 'utf8'));
+
+          const ids = builds
+            .filter((build) => statusesToCancel.has(build.status) && build.message === expectedMessage)
+            .map((build) => build.id);
+
+          process.stdout.write(ids.join('\n'));
+          NODE
+          )
+
+          if [ -z "$target_ids" ]; then
+            echo "No in-flight devclient builds found for PR #$PR_NUMBER"
+            exit 0
+          fi
+
+          while IFS= read -r build_id; do
+            [ -z "$build_id" ] && continue
+            eas build:cancel "$build_id" --non-interactive
+          done <<< "$target_ids"
