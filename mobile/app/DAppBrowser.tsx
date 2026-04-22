@@ -1056,7 +1056,7 @@ const DAppBrowser: React.FC = () => {
             });
             return candidates.find(function(input) {
               var hint = [input.placeholder, input.name, input.id, input.getAttribute('aria-label')].filter(Boolean).join(' ').toLowerCase();
-              var hasBitcoinHint = /btc|bitcoin|address|bc1/i.test(hint);
+              var hasBitcoinHint = /btc|bitcoin|bitcoin address|bc1/i.test(hint);
               return (!!hasBitcoinHint);
             }) || null;
           };
