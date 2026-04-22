@@ -190,6 +190,24 @@ describe('RgbWallet', () => {
       await w.init({} as any);
       expect(adapter.createWallet).toHaveBeenCalledOnce();
     });
+
+    it('falls back on web SDK shape (non-Error object, toString = "VSS backup not found")', async () => {
+      // Observed shape thrown by @utexo/rgb-sdk-web when the user has no VSS
+      // backup: an object with numeric keys, no `message`, but a `toString()`
+      // that yields the error phrase. Verifies we fall back to String(e) when
+      // err.message is missing.
+      const err = Object.assign({ 0: 'V', 1: 'S', 2: 'S' }, { toString: () => 'VSS backup not found' });
+      const adapter: IRgbAdapter = {
+        capabilities: { lightning: false },
+        createWallet: vi.fn().mockResolvedValue({} as IRgbWallet),
+        restoreFromVss: vi.fn().mockRejectedValue(err),
+      };
+      (globalThis as any).rgbAdapter = adapter;
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      expect(adapter.createWallet).toHaveBeenCalledOnce();
+    });
   });
 
   describe('balance + send', () => {

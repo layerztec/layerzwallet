@@ -319,15 +319,18 @@ function isVssBackupMissing(e: unknown): boolean {
   // Each platform SDK signals this differently:
   //  • RN SDK throws an RgbError with `code === 'VssBackupNotFound'` and a
   //    message like `Rgb.RgbLibError.VssBackupNotFound`.
-  //  • Web/Node SDKs tend to throw a NotFoundError or an HTTP 404.
-  // We check all three so existing users (no RGB state yet) get a fresh wallet
-  // on first unlock rather than a retry-loop error.
+  //  • Web SDK throws a non-Error object whose `toString()` returns
+  //    `"VSS backup not found"` — no `message` property, just a stringifier.
+  //  • Node/HTTP paths tend to throw a NotFoundError or an HTTP 404.
+  // We check all of them so existing users (no RGB state yet) get a fresh
+  // wallet on first unlock rather than a retry-loop error.
   if (!e) return false;
   const err = e as { name?: string; message?: string; statusCode?: number; status?: number; code?: string };
   if (err.code === 'VssBackupNotFound') return true;
   if (err.name === 'NotFoundError') return true;
   if (err.statusCode === 404 || err.status === 404) return true;
-  if (typeof err.message === 'string' && /VssBackupNotFound|backup\s*not\s*found|backup\s+(does\s+not\s+exist|missing)/i.test(err.message)) return true;
+  const text = typeof err.message === 'string' ? err.message : String(e);
+  if (/VssBackupNotFound|backup\s*not\s*found|backup\s+(does\s+not\s+exist|missing)/i.test(text)) return true;
   return false;
 }
 
