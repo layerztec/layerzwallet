@@ -74,37 +74,34 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
       }
       break;
 
-    case 'wallet_switchEthereumChain':
-      // asking permission for network change is old news, although we still support it in the
-      // dedicated screen.
-      // we can reply on the spot if we support such network. if we dont support it
-      // we fallback to popup opening that will display the message "its not supported".
-      // technically, permission to chance network can only be shown by a dapp that wasnt whitelisted yet
-      if (whitelist.includes(from)) {
-        const net = getNetworkByChainId(params?.[0]?.chainId); // @see https://docs.metamask.io/wallet/reference/json-rpc-methods/wallet_switchethereumchain/
-        if (net) {
-          await new Promise((resolve) => setTimeout(resolve, 500)); // sleep to propagate
-          // network supported by us
-          await LayerzStorage.setItem(STORAGE_SELECTED_NETWORK, net);
-          await sendResponse({
-            for: 'webpage',
-            id,
-            response: null,
-          });
-
-          // triggering event for any connected Dapp:
-          await new Promise((resolve) => setTimeout(resolve, 500)); // sleep to propagate
-          Messenger.documentDispatchEvent({
-            for: 'webpage',
-            type: 'eventCallback',
-            event: 'chainChanged',
-            arg: getChainIdByNetwork(net),
-          });
-
-          return { success: true };
-        }
+    case 'wallet_switchEthereumChain': {
+      // Auto-switch without a confirmation popup: if we support the chain we switch,
+      // otherwise we reject with EIP-3326 code 4902 so the dapp stops looping.
+      // @see https://docs.metamask.io/wallet/reference/json-rpc-methods/wallet_switchethereumchain/
+      const net = getNetworkByChainId(params?.[0]?.chainId);
+      if (!net) {
+        await sendResponse({
+          for: 'webpage',
+          id,
+          error: { code: 4902, message: `Unrecognized chain ID "${params?.[0]?.chainId}". Try adding the chain first.` },
+        });
+        return { success: true };
       }
-      break;
+
+      await LayerzStorage.setItem(STORAGE_SELECTED_NETWORK, net);
+      await sendResponse({ for: 'webpage', id, response: null });
+
+      // triggering event for any connected Dapp:
+      await new Promise((resolve) => setTimeout(resolve, 500)); // sleep to propagate
+      Messenger.documentDispatchEvent({
+        for: 'webpage',
+        type: 'eventCallback',
+        event: 'chainChanged',
+        arg: getChainIdByNetwork(net),
+      });
+
+      return { success: true };
+    }
 
     case 'eth_chainId':
       // can just reply with a chainId, no need to show a screen for that
@@ -142,8 +139,47 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
       await sendResponse({ for: 'webpage', id, response: {} });
       return { success: true };
 
-    // Forward these RPC calls directly to the provider without user confirmation
     case 'eth_maxPriorityFeePerGas':
+      // Rootstock doesn't implement EIP-1559 and replies with JSON-RPC -32601 for this
+      // method, which makes EIP-1559-assuming dapps (e.g. oku.trade) hang during connect.
+      // Short-circuit with gasPrice so the dapp's fee pipeline can proceed.
+      if (network === NETWORK_ROOTSTOCK) {
+        try {
+          const gasPrice = await getRpcProvider(network).send('eth_gasPrice', []);
+          await sendResponse({ for: 'webpage', id, response: gasPrice });
+        } catch {
+          await sendResponse({ for: 'webpage', id, response: '0x0' });
+        }
+        return { success: true };
+      }
+    // falls through to the generic forwarder below for all other networks
+
+    case 'eth_feeHistory':
+      // Same reason as eth_maxPriorityFeePerGas: Rootstock rejects this with -32601.
+      // Synthesize a minimal valid response so the dapp can compute a fee.
+      if (network === NETWORK_ROOTSTOCK) {
+        const blockCount = Number(new BigNumber((params?.[0] ?? '0x1').toString()).toString(10)) || 1;
+        let gasPrice = '0x0';
+        try {
+          gasPrice = await getRpcProvider(network).send('eth_gasPrice', []);
+        } catch {
+          // keep '0x0'
+        }
+        await sendResponse({
+          for: 'webpage',
+          id,
+          response: {
+            oldestBlock: '0x0',
+            baseFeePerGas: new Array(blockCount + 1).fill('0x0'),
+            gasUsedRatio: new Array(blockCount).fill(0),
+            reward: new Array(blockCount).fill([gasPrice]),
+          },
+        });
+        return { success: true };
+      }
+    // falls through to the generic forwarder below for all other networks
+
+    // Forward these RPC calls directly to the provider without user confirmation
     case 'eth_getBalance':
     case 'eth_getLogs':
     case 'eth_getTransactionCount':
@@ -153,7 +189,6 @@ export async function processRPC(LayerzStorage: IStorage, BackgroundCaller: IBac
     case 'eth_blockNumber':
     case 'eth_getCode':
     case 'eth_coinbase':
-    case 'eth_feeHistory':
     case 'eth_getBlockByHash':
     case 'eth_getBlockTransactionCountByHash':
     case 'eth_getBlockTransactionCountByNumber':

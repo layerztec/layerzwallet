@@ -11,7 +11,6 @@ import { EthRequestAccounts } from './ActionComponents/EthRequestAccounts';
 import { EthSignTypedData } from './ActionComponents/EthSignTypedData';
 import { PersonalSign } from './ActionComponents/PersonalSign';
 import { SendTransaction } from './ActionComponents/SendTransaction';
-import { SwitchEthereumChain } from './ActionComponents/SwitchEthereumChain';
 import { WalletRequestPermissions } from './ActionComponents/WalletRequestPermissions';
 
 /**
@@ -69,8 +68,6 @@ const Action: React.FC = () => {
     const componentProps = { params, id, from };
 
     switch (method) {
-      case 'wallet_switchEthereumChain':
-        return <SwitchEthereumChain {...componentProps} />;
       case 'personal_sign':
         return <PersonalSign {...componentProps} />;
       case 'eth_signTypedData_v4':
