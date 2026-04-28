@@ -40,6 +40,10 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   public _lastTokensFetch: number = 0;
   /** Dedupes concurrent `fetchTokenBalances` calls from different hooks. */
   private _tokensFetchInFlight: Promise<void> | undefined;
+  /** Window for skipping a redundant chain sync (ms). */
+  private static readonly SYNC_COOLDOWN_MS = 10_000;
+  private _lastSync: number = 0;
+  private _syncInFlight: Promise<void> | undefined;
 
   constructor(network: Networks = NETWORK_RGB) {
     super();
@@ -89,6 +93,36 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     return this._sdkWallet;
   }
 
+  /**
+   * Pulls fresh chain state into the SDK's local store. The rgb-lib wallet
+   * holds a sled DB that only reflects what has been explicitly synced — so
+   * `getBtcBalance` / `listTransactions` / `listAssets` all return stale
+   * (often zero) data until this runs. We call both the BDK UTXO sync
+   * (`syncWallet`) and the RGB transfer-state refresh (`refreshWallet`);
+   * transient indexer errors are logged but swallowed so a degraded network
+   * still produces a readable (stale) balance instead of an empty screen.
+   */
+  private async sync(): Promise<void> {
+    if (this._syncInFlight) return this._syncInFlight;
+    if (Date.now() - this._lastSync < RgbWallet.SYNC_COOLDOWN_MS) return;
+    this._syncInFlight = (async () => {
+      try {
+        await this.sdk().syncWallet();
+      } catch (e) {
+        globalThis.handleError?.(e, 'rgb-wallet.ts:syncWallet');
+      }
+      try {
+        await this.sdk().refreshWallet();
+      } catch (e) {
+        globalThis.handleError?.(e, 'rgb-wallet.ts:refreshWallet');
+      }
+      this._lastSync = Date.now();
+    })().finally(() => {
+      this._syncInFlight = undefined;
+    });
+    return this._syncInFlight;
+  }
+
   async getOffchainReceiveAddress(): Promise<string> {
     if (!this._receiveAddress) this._receiveAddress = await this.sdk().getAddress();
     return this._receiveAddress;
@@ -103,6 +137,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    * transient indexer failure on the asset side must not fail the BTC balance.
    */
   async getOffchainBalance(): Promise<number> {
+    await this.sync();
     const bal = await this.sdk().getBtcBalance();
     this._lastBalanceFetch = Date.now();
     this.fetchTokenBalances().catch((e) => globalThis.handleError?.(e, 'rgb-wallet.ts:fetchTokens'));
@@ -146,6 +181,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     if (this._tokensFetchInFlight) return this._tokensFetchInFlight;
     this._tokensFetchInFlight = (async () => {
       try {
+        await this.sync();
         const list = await this.sdk().listAssets();
         const assets: AnyAsset[] = [...(list.nia ?? []), ...(list.cfa ?? []), ...(list.ifa ?? []), ...(list.uda ?? [])];
         this._tokens = assets.map((a) => ({
@@ -171,6 +207,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
 
   async getCommonTransactions(): Promise<CommonTransaction[]> {
     const sdk = this.sdk();
+    await this.sync();
     // Get on-chain tx metadata (fee, confirmation) and per-asset transfers.
     // `listTransfers()` without an assetId yields transfers with no asset id
     // attached, which is useless for UI attribution — we iterate the known
