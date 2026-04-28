@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useContext, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View, Platform } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import Slider from '@react-native-community/slider';
 import Pressable from '../Pressable';
 
@@ -143,24 +143,18 @@ export function SendTransaction(args: SendTransactionArgs) {
     }
   };
 
-  const renderContractData = (params: any) => {
-    let ret = JSON.stringify(params, null, 2);
-    if (Platform.OS !== 'ios' && ret.length > 200) {
-      ret = ret.substring(0, 200) + '\n  ...\n}';
-    }
-    return ret;
-  };
-
   const renderParams = () => {
     const params = getParamsTx();
     const isSmartContractInteraction = params?.data; // probably also need to check length of data so its not just 0x0
     if (params) {
       return (
         <>
-          <ScrollView style={styles.messageContainer} showsVerticalScrollIndicator={true} bounces={true}>
-            <ThemedText style={styles.messageText}>{renderContractData(params)}</ThemedText>
-          </ScrollView>
-          <View>
+          <View style={styles.messageContainer}>
+            <ScrollView style={styles.messageScrollView} contentContainerStyle={styles.messageScrollContent} showsVerticalScrollIndicator={true} bounces={true}>
+              <ThemedText style={styles.messageText}>{JSON.stringify(params, null, 2)}</ThemedText>
+            </ScrollView>
+          </View>
+          <View style={styles.detailsContainer}>
             {params?.to ? <ThemedText style={styles.detailText}>To: {params.to}</ThemedText> : null}
             {isSmartContractInteraction ? <ThemedText style={styles.detailText}>(smart contract interaction)</ThemedText> : null}
             {params?.value && hexToDec(params?.value) > 0 ? (
@@ -258,21 +252,23 @@ export function SendTransaction(args: SendTransactionArgs) {
 
   return (
     <View style={styles.container} collapsable={true}>
-      <View style={styles.contentContainer}>
-        <ThemedText style={styles.title}>Send Transaction</ThemedText>
-        <ThemedText style={styles.subtitle}>
-          Dapp <ThemedText style={styles.highlight}>{args.from}</ThemedText> wants to send a transaction
-        </ThemedText>
-        {renderParams()}
-        {renderFeeMultiplier()}
-        {renderFeeInfo()}
-        {error ? (
-          <View style={styles.errorContainer}>
-            <ThemedText style={styles.errorText}>Error: {renderError(error)}</ThemedText>
-          </View>
-        ) : null}
-      </View>
-      {renderActionButtons()}
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.contentContainer}>
+          <ThemedText style={styles.title}>Send Transaction</ThemedText>
+          <ThemedText style={styles.subtitle}>
+            Dapp <ThemedText style={styles.highlight}>{args.from}</ThemedText> wants to send a transaction
+          </ThemedText>
+          {renderParams()}
+          {renderFeeMultiplier()}
+          {renderFeeInfo()}
+          {error ? (
+            <View style={styles.errorContainer}>
+              <ThemedText style={styles.errorText}>Error: {renderError(error)}</ThemedText>
+            </View>
+          ) : null}
+        </View>
+        {renderActionButtons()}
+      </ScrollView>
     </View>
   );
 }
@@ -281,6 +277,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.95)',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 24,
+    alignItems: 'center',
+    paddingVertical: 20,
   },
   contentContainer: {
     width: '100%',
@@ -306,7 +310,6 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     width: '100%',
-    height: 300,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     padding: 16,
@@ -314,11 +317,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
+  messageScrollView: {
+    maxHeight: 180,
+  },
+  messageScrollContent: {
+    paddingVertical: 8,
+  },
   messageText: {
     fontSize: 14,
     fontFamily: 'SpaceMono',
     color: 'rgba(255, 255, 255, 0.9)',
     lineHeight: 20,
+  },
+  detailsContainer: {
+    width: '100%',
+    marginTop: 12,
   },
   detailText: {
     fontSize: 14,
@@ -357,10 +370,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 24,
-    paddingBottom: 80,
+    paddingBottom: 40,
     backgroundColor: 'rgba(0, 0, 0, 0.95)',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 100,
   },
   button: {
     flex: 1,

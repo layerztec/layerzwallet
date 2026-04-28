@@ -6,7 +6,6 @@ import { EthRequestAccounts } from '@/components/action/EthRequestAccounts';
 import { EthSignTypedData } from '@/components/action/EthSignTypedData';
 import { PersonalSign } from '@/components/action/PersonalSign';
 import { SendTransaction } from '@/components/action/SendTransaction';
-import { SwitchEthereumChain } from '@/components/action/SwitchEthereumChain';
 import { WalletRequestPermissions } from '@/components/action/WalletRequestPermissions';
 import { ThemedText } from '@/components/ThemedText';
 import { BrowserBridge } from '@/src/class/browser-bridge';
@@ -71,8 +70,6 @@ const Action: React.FC = () => {
     const componentProps = { params, id, from };
 
     switch (method) {
-      case 'wallet_switchEthereumChain':
-        return <SwitchEthereumChain {...componentProps} />;
       case 'personal_sign':
         return <PersonalSign {...componentProps} />;
       case 'eth_signTypedData_v4':

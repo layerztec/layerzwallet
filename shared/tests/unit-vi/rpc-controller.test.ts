@@ -139,6 +139,31 @@ test('RpcController can resolve calls that fallthrough to a real RPC (like eth_g
   expect(mockedMethod2).toHaveBeenCalled();
 });
 
+test('RpcController short-circuits eth_maxPriorityFeePerGas with eth_gasPrice on Rootstock', async () => {
+  await storageMock.setItem('STORAGE_SELECTED_NETWORK', 'rootstock');
+
+  const mockedMethod = jest.spyOn(messengerMock, 'sendResponseFromContentScriptToContentScript').mockImplementation(async (message: Eip1193CustomEventResponse): Promise<void> => {
+    assert.deepStrictEqual(message, { for: 'webpage', id: 12345, response: '0x3b9aca00' });
+  });
+
+  // @ts-ignore partial mock, only `send()` is needed
+  const mockedMethod2 = jest.spyOn(networkGetters, 'getRpcProvider').mockImplementation(() => {
+    return {
+      send: async (method: string) => {
+        assert.strictEqual(method, 'eth_gasPrice'); // we should NOT forward eth_maxPriorityFeePerGas to Rootstock
+        return '0x3b9aca00';
+      },
+    };
+  });
+
+  const response = await processRPC(storageMock, backgroundCallerMock2, 'eth_maxPriorityFeePerGas', [], 12345, 'localhost', messengerMock);
+  assert.deepStrictEqual(response, { success: true });
+  expect(mockedMethod).toHaveBeenCalled();
+  expect(mockedMethod2).toHaveBeenCalled();
+
+  await storageMock.setItem('STORAGE_SELECTED_NETWORK', '');
+});
+
 test('RpcController can do calls that need to go to OPEN_POPUP that require user interaction (like personal_sign)', async () => {
   const mockedMethod = jest.spyOn(backgroundCallerMock2, 'openPopup').mockImplementation(async (method: string, params: any, id: number, from: string): Promise<void> => {
     assert.strictEqual(method, 'personal_sign');
@@ -151,51 +176,47 @@ test('RpcController can do calls that need to go to OPEN_POPUP that require user
   expect(mockedMethod).toHaveBeenCalled();
 });
 
-test('wallet_switchEthereumChain opens popup', async () => {
-  const mockedMethod = jest.spyOn(backgroundCallerMock2, 'openPopup').mockImplementation(async (method: string, params: any, id: number, from: string): Promise<void> => {
-    assert.strictEqual(method, 'wallet_switchEthereumChain');
-    assert.deepStrictEqual(params, [{ chainId: '0x1e' }]);
-    assert.strictEqual(id, 12345);
-    assert.strictEqual(from, 'localhost');
+test('wallet_switchEthereumChain rejects unsupported chainId with EIP-3326 code 4902', async () => {
+  const mockedOpenPopup = jest.spyOn(backgroundCallerMock2, 'openPopup').mockImplementation(async () => {
+    // must NOT be called
   });
 
-  const response = await processRPC(storageMock, backgroundCallerMock2, 'wallet_switchEthereumChain', [{ chainId: '0x1e' }], 12345, 'localhost', messengerMock);
-  console.log(response);
-  expect(mockedMethod).toHaveBeenCalled();
+  const mockedSendResponse = jest.spyOn(messengerMock, 'sendResponseFromContentScriptToContentScript').mockImplementation(async (message: Eip1193CustomEventResponse): Promise<void> => {
+    assert.strictEqual(message.for, 'webpage');
+    assert.strictEqual(message.id, 12345);
+    assert.strictEqual(message.error?.code, 4902);
+  });
+
+  const response = await processRPC(storageMock, backgroundCallerMock2, 'wallet_switchEthereumChain', [{ chainId: '0xa4b1' /* Arbitrum - unsupported */ }], 12345, 'localhost', messengerMock);
+  assert.deepStrictEqual(response, { success: true });
+  expect(mockedSendResponse).toHaveBeenCalledTimes(1);
+  expect(mockedOpenPopup).toHaveBeenCalledTimes(0);
 });
 
-test('wallet_switchEthereumChain when dapp is whitelisted is replying on the spot', async () => {
+test('wallet_switchEthereumChain auto-switches on the spot for supported chains (no popup, no whitelist check)', async () => {
   /**
    * test plan:
-   * 1. dapp is whitelisted (call mocked)
-   * 2. `setItem` with new network is called (call is mocked)
-   * 3. success message is sent back (call is mocked)
-   * 4. `openPopup` is NOT called (call is mocked)
-   *
-   * making it all work by calling RPC controller for `wallet_switchEthereumChain`
+   * 1. `setItem` with new network is called (call is mocked)
+   * 2. success message is sent back (call is mocked)
+   * 3. `openPopup` is NOT called (call is mocked)
+   * 4. works regardless of whitelist status (dapp is NOT whitelisted)
    */
-  const mockedMethod = jest.spyOn(backgroundCallerMock2, 'openPopup').mockImplementation(async (method: string, params: any, id: number, from: string): Promise<void> => {
-    // wont be called at all
+  const mockedOpenPopup = jest.spyOn(backgroundCallerMock2, 'openPopup').mockImplementation(async () => {
+    // must NOT be called
   });
 
-  const mockedMethod2 = jest.spyOn(backgroundCallerMock2, 'getWhitelist').mockImplementation(async (): Promise<string[]> => {
-    return ['localhost'];
-  });
-
-  const mockedMethod3 = jest.spyOn(messengerMock, 'sendResponseFromContentScriptToContentScript').mockImplementation(async (message: Eip1193CustomEventResponse): Promise<void> => {
+  const mockedSendResponse = jest.spyOn(messengerMock, 'sendResponseFromContentScriptToContentScript').mockImplementation(async (message: Eip1193CustomEventResponse): Promise<void> => {
     assert.deepStrictEqual(message, { for: 'webpage', id: 12345, response: null });
   });
 
-  const mockedMethod4 = jest.spyOn(storageMock, 'setItem').mockImplementation(async (key: string, value: string): Promise<void> => {
+  const mockedSetItem = jest.spyOn(storageMock, 'setItem').mockImplementation(async (key: string, value: string): Promise<void> => {
     assert.deepStrictEqual(key, 'STORAGE_SELECTED_NETWORK');
     assert.deepStrictEqual(value, 'rootstock');
   });
 
   const response = await processRPC(storageMock, backgroundCallerMock2, 'wallet_switchEthereumChain', [{ chainId: '0x1e' }], 12345, 'localhost', messengerMock);
-  console.log(response);
   assert.deepStrictEqual(response, { success: true });
-  expect(mockedMethod).toHaveBeenCalledTimes(0);
-  expect(mockedMethod2).toHaveBeenCalledTimes(1);
-  expect(mockedMethod3).toHaveBeenCalledTimes(1);
-  expect(mockedMethod4).toHaveBeenCalledTimes(1);
+  expect(mockedOpenPopup).toHaveBeenCalledTimes(0);
+  expect(mockedSendResponse).toHaveBeenCalledTimes(1);
+  expect(mockedSetItem).toHaveBeenCalledTimes(1);
 });

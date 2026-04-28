@@ -15,6 +15,18 @@
       "developmentClient": true,
       "distribution": "internal"
     },
+    "development-device-ios": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "store",
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "devclient"
+      },
+      "ios": {
+        "credentialsSource": "remote"
+      }
+    },
     "preview": {
       "extends": "base",
       "distribution": "internal",
@@ -53,6 +65,12 @@
       },
       "ios": {
         "ascAppId": "6745974808"
+      }
+    },
+    "devclient": {
+      "ios": {
+        "ascAppId": "6762009368",
+        "bundleIdentifier": "com.layerzwallet.mobile.devclient"
       }
     }
   }

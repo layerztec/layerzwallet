@@ -19,7 +19,10 @@ export function getChainIdByNetwork(network: Networks): string {
 }
 
 export function getNetworkByChainId(chainId: string): Networks | undefined {
+  // Only consider EVM networks: wallet_switchEthereumChain is EVM-only, and non-EVM
+  // networks share placeholder chainIds (e.g. 0) that would cause false matches.
   for (const net of getAvailableNetworks()) {
+    if (!AllNetworkInfos[net]?.isEVM) continue;
     if (getChainIdByNetwork(net) === chainId) {
       return net;
     }

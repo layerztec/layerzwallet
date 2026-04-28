@@ -350,7 +350,13 @@ export class EvmWallet implements InterfaceSendQuotable {
       const response = await fetch(url);
       const data = await response.json();
 
-      const okMessages = ['OK', 'No transactions found', 'No token transfers found', 'No internal transactions found'];
+      const okMessages = [
+        'OK',
+        'No transactions found',
+        'No token transfers found',
+        'No internal transactions found',
+        'Some internal transactions within this block range have not yet been processed',
+      ];
       if (!okMessages.includes(data.message)) {
         throw new Error('Failed to fetch history: ' + data.message);
       }

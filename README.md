@@ -80,3 +80,32 @@ We are also relying on Expo EAS for builds, so a generic workflow to run e2e tes
 
 * local android build: `eas build --platform android --profile preview --local`
 * ext build: `npm run build`
+
+## iOS Dev Client (TestFlight)
+
+A separate iOS app record exists on App Store Connect for distributing an
+Expo Dev Client build via TestFlight (bundle id `com.layerzwallet.mobile.devclient`,
+ASC app id `6762009368`). The binary is signed as a regular App Store build but
+embeds `expo-dev-client`, so once installed from TestFlight it can load any
+branch's JS bundle remotely from `expo start --dev-client`.
+
+The bundle id is swapped at prebuild time via the `APP_VARIANT=devclient`
+env var (see `mobile/app.config.js`); the production app's identity is
+unaffected.
+
+Build remotely on EAS and auto-submit to TestFlight in one shot:
+
+```
+cd mobile
+eas build --platform ios --profile development-device-ios --auto-submit-with-profile=devclient
+```
+
+Or in two steps if you want to inspect the build first:
+
+```
+eas build --platform ios --profile development-device-ios
+eas submit --platform ios --profile devclient --latest
+```
+
+Credentials (distribution cert + provisioning profile) are managed by EAS;
+first run will prompt for an Apple ID and create them automatically.
