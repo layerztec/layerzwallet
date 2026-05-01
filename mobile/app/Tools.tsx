@@ -108,6 +108,11 @@ export default function TabThreeScreen() {
       const buffer = Buffer.from('ffff', 'hex');
       assert.strictEqual(buffer.toString('hex'), 'ffff');
 
+      // crypto.randomUUID (entry.js polyfill on Hermes; MCP sessions use it):
+      assert.strictEqual(typeof globalThis.crypto.randomUUID, 'function', 'crypto.randomUUID missing');
+      const randomUuid = globalThis.crypto.randomUUID();
+      assert(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(randomUuid), `crypto.randomUUID() expected RFC 4122 v4, got ${randomUuid}`);
+
       // testing encryption:
       const data2encrypt = 'really long data string bla bla really long data string bla bla really long data string bla bla';
       const start = Date.now();

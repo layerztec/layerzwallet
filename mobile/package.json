@@ -23,9 +23,11 @@
     }
   },
   "scripts": {
+    "eas-build-pre-install": "npm install -g npm@11.6.2",
     "postinstall": "npx patch-package; node -e \"const fs = require('fs'); const easHash = process.env.EAS_BUILD_GIT_COMMIT_HASH || ''; console.log('EAS_BUILD_GIT_COMMIT_HASH:', easHash); fs.writeFileSync('git_commit_hash.json', JSON.stringify(easHash) + '\\n');\"",
     "start": "expo start",
     "android": "expo run:android",
+    "android:restart": "adb shell am force-stop com.layerzwallet.mobile && adb shell monkey -p com.layerzwallet.mobile -c android.intent.category.LAUNCHER 1",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
@@ -54,6 +56,7 @@
     "@flashnet/sdk": "0.5.7",
     "@gorhom/bottom-sheet": "5.2.8",
     "@metamask/eth-sig-util": "8.2.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@noble/curves": "2.0.1",
     "@noble/hashes": "1.7.1",
     "@noble/secp256k1": "1.6.3",
@@ -125,6 +128,7 @@
     "react-native-screens": "4.23.0",
     "react-native-svg": "15.15.3",
     "react-native-timeline-flatlist": "0.8.0",
+    "react-native-toast-message": "^2.3.3",
     "react-native-view-shot": "4.0.3",
     "react-native-web": "0.21.2",
     "react-native-webview": "13.16.0",

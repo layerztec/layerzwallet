@@ -191,6 +191,9 @@ jobs:
           cache: 'npm'
           cache-dependency-path: mobile/package-lock.json
 
+      - name: Use npm 11 (lockfile tooling matches developers / EAS)
+        run: npm install -g npm@11.6.2
+
       - name: Install node_modules
         run: cd mobile && npm ci
 
@@ -216,6 +219,9 @@ jobs:
           cache: 'npm'
           cache-dependency-path: mobile/package-lock.json
 
+      - name: Use npm 11 (lockfile tooling matches developers / EAS)
+        run: npm install -g npm@11.6.2
+
       - name: Install node_modules
         run: cd mobile && npm ci
 
@@ -234,6 +240,9 @@ jobs:
           node-version: 22
           cache: 'npm'
           cache-dependency-path: mobile/package-lock.json
+
+      - name: Use npm 11 (lockfile tooling matches developers / EAS)
+        run: npm install -g npm@11.6.2
 
       - name: Install node_modules
         run: cd mobile && npm ci

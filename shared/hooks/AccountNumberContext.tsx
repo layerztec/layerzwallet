@@ -35,9 +35,9 @@ export const accountItems: AccountItem[] = [
     iconCollection: 'foundation',
   },
   {
-    name: 'Fifth',
-    icon: 'die-five',
-    iconCollection: 'foundation',
+    name: 'AI Agent',
+    icon: 'robot-outline',
+    iconCollection: 'material-community',
   },
 ] as const;
 

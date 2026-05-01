@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountItem, AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { handleQrIntent } from '@/src/modules/scan-routing';
-import { Ionicons, Foundation } from '@expo/vector-icons';
+import { Ionicons, Foundation, MaterialCommunityIcons } from '@expo/vector-icons';
 import PlatformBlurView from './PlatformBlurView';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useAnimatedStyle, interpolate, SharedValue } from 'react-native-reanimated';
@@ -53,7 +53,7 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
     }
   };
 
-  const IconComponent = accountItem.iconCollection === 'ion' ? Ionicons : Foundation;
+  const IconComponent = accountItem.iconCollection === 'ion' ? Ionicons : accountItem.iconCollection === 'material-community' ? MaterialCommunityIcons : Foundation;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -77,7 +77,7 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
         {/* Left Side: Pocket */}
         <Pressable style={styles.pocket} onPress={handlePocketPress}>
           <View style={styles.pocketIconContainer}>
-            <IconComponent name={accountItem.icon as any} size={22} color="white" />
+            <IconComponent name={accountItem.icon as any} size={22} color="white" style={accountItem.iconCollection === 'material-community' ? styles.materialIconNudge : undefined} />
           </View>
           <ThemedText style={styles.pocketLabel} numberOfLines={1}>
             {accountItem.name.length > 10 ? accountItem.name.substring(0, 10) + '...' : accountItem.name}
@@ -152,6 +152,9 @@ const styles = StyleSheet.create({
     height: 24,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  materialIconNudge: {
+    marginTop: -3,
   },
   pocketLabel: {
     fontSize: 15,

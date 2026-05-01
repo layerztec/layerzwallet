@@ -9,7 +9,7 @@ import { CommonSwap } from '../../types/common-swap';
 import { CommonTokenTransfer, CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_BITCOIN, NETWORK_SPARK } from '../../types/networks';
 import { CachedTokenInfo, NftInfo } from '../../types/token-info';
-import { IStorage, STORAGE_KEY_SPARK_REFUNDED_DEPOSITS } from '../../types/IStorage';
+import { IStorage, STORAGE_KEY_SPARK_LN_INVOICE_IDS, STORAGE_KEY_SPARK_REFUNDED_DEPOSITS } from '../../types/IStorage';
 import { ArkWallet } from './ark-wallet';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
@@ -51,7 +51,6 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
   _lastNftsFetch: number = 0;
   _lastTokensFetch: number = 0;
 
-  protected _bolt11toReceiveRequestId: Record<string, string> = {};
   private tokenBalances: TokenBalanceMap = new Map();
 
   constructor() {
@@ -88,6 +87,20 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
         const txids: string[] = JSON.parse(raw);
         txids.forEach((txid) => this._refundedDepositTxids.add(txid));
       } catch {}
+    }
+  }
+
+  private _lnInvoiceIdsStorageKey() {
+    return `${STORAGE_KEY_SPARK_LN_INVOICE_IDS}_${this._accountNumber}`;
+  }
+
+  private async _readLnInvoiceIdMap(): Promise<Record<string, string>> {
+    const raw = await this._storage?.getItem(this._lnInvoiceIdsStorageKey());
+    if (!raw) return {};
+    try {
+      return JSON.parse(raw) as Record<string, string>;
+    } catch {
+      return {};
     }
   }
 
@@ -205,7 +218,9 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
 
     console.log('Invoice:', invoice);
 
-    this._bolt11toReceiveRequestId[invoice.invoice.encodedInvoice] = invoice.id;
+    const map = await this._readLnInvoiceIdMap();
+    map[invoice.invoice.encodedInvoice] = invoice.id;
+    await this._storage?.setItem(this._lnInvoiceIdsStorageKey(), JSON.stringify(map));
 
     return {
       invoice: invoice.invoice.encodedInvoice,
@@ -216,7 +231,8 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
   async isInvoicePaid(invoice: string): Promise<boolean> {
     if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
-    const id = this._bolt11toReceiveRequestId[invoice];
+    const id = (await this._readLnInvoiceIdMap())[invoice];
+    if (!id) return false;
 
     const lightningPaymentStatus = await this._sdkWallet.getLightningReceiveRequest(id);
 

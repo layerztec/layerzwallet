@@ -1,13 +1,21 @@
 import assert from 'assert';
-import { test, describe } from 'vitest';
+import { beforeEach, describe, test } from 'vitest';
 import { SparkWallet } from '../../class/wallets/spark-wallet';
+import { STORAGE_KEY_SPARK_LN_INVOICE_IDS } from '../../types/IStorage';
 
+const storageStore: Record<string, string> = {};
 const storageMock = {
-  async setItem(key: string, value: string) {},
+  async setItem(key: string, value: string) {
+    storageStore[key] = value;
+  },
   async getItem(key: string) {
-    return '';
+    return storageStore[key] ?? '';
   },
 };
+
+beforeEach(() => {
+  for (const k of Object.keys(storageStore)) delete storageStore[k];
+});
 
 // fyi, spark adapter is set up in vitest.config.mts (uses the one for extension)
 describe('SparkWallet', () => {
@@ -105,23 +113,22 @@ describe('SparkWallet', () => {
     w.setSecret(process.env.TEST_MNEMONIC);
     await w.init(storageMock);
 
-    // @ts-ignore messing with internals to test it
-    w._bolt11toReceiveRequestId[
-      'lnbc10n1p5x8nq5pp55de33575jrcz8enxjuzq5mm66hs5jfyaa5fds3s9le6xagdxae7ssp5du088t4c0k5x8z0dv6t4uw4tsenxzs4e0t8m7ke89kanprmykuzqxq9z0rgqnp4qvyndeaqzman7h898jxm98dzkm0mlrsx36s93smrur7h0azyyuxc5rzjq25carzepgd4vqsyn44jrk85ezrpju92xyrk9apw4cdjh6yrwt5jgqqqqrt49lmtcqqqqqqqqqqq86qq9qrzjqwghf7zxvfkxq5a6sr65g0gdkv768p83mhsnt0msszapamzx2qvuxqqqqrt49lmtcqqqqqqqqqqq86qq9qcqzpgdq8w3jhxaq9qyyssqrj43wj4eh8ekdff9k0pnfw8ggclu8cgymzat8s0uhtnnt0gl8pcy9x5n3rtelngt3gdd879vathhqmtrwqv4zq2s5s5gchkmnwjhflqqdjkstc'
-    ] = 'SparkLightningReceiveRequest:0197c5d5-2ea2-cd96-0000-d91759d99484';
+    const inv1 =
+      'lnbc10n1p5x8nq5pp55de33575jrcz8enxjuzq5mm66hs5jfyaa5fds3s9le6xagdxae7ssp5du088t4c0k5x8z0dv6t4uw4tsenxzs4e0t8m7ke89kanprmykuzqxq9z0rgqnp4qvyndeaqzman7h898jxm98dzkm0mlrsx36s93smrur7h0azyyuxc5rzjq25carzepgd4vqsyn44jrk85ezrpju92xyrk9apw4cdjh6yrwt5jgqqqqrt49lmtcqqqqqqqqqqq86qq9qrzjqwghf7zxvfkxq5a6sr65g0gdkv768p83mhsnt0msszapamzx2qvuxqqqqrt49lmtcqqqqqqqqqqq86qq9qcqzpgdq8w3jhxaq9qyyssqrj43wj4eh8ekdff9k0pnfw8ggclu8cgymzat8s0uhtnnt0gl8pcy9x5n3rtelngt3gdd879vathhqmtrwqv4zq2s5s5gchkmnwjhflqqdjkstc';
+    const inv2 =
+      'lnbc20n1p5x8n27pp5p6tlgver47r3ftruqhsayltdhsutgmxfjycn8j52ffp44ccenyzssp5y488hs9t07jhx8d8zgpl6w0l3kfl030rqr8wm0kz055436ugknesxq9z0rgqnp4qvyndeaqzman7h898jxm98dzkm0mlrsx36s93smrur7h0azyyuxc5rzjq25carzepgd4vqsyn44jrk85ezrpju92xyrk9apw4cdjh6yrwt5jgqqqqrt49lmtcqqqqqqqqqqq86qq9qrzjqwghf7zxvfkxq5a6sr65g0gdkv768p83mhsnt0msszapamzx2qvuxqqqqrt49lmtcqqqqqqqqqqq86qq9qcqzpgdq8w3jhxaq9qyyssq3p29at57ys454qfan6akp8pcld9shevpyfkvgz3jksc8u4605kfxhwtk764vryguuuq054fglfyf0nzvvkehzj3d0wlxp9apds9h7xqqggpqwx';
 
-    // @ts-ignore messing with internals to test it
-    w._bolt11toReceiveRequestId[
-      'lnbc20n1p5x8n27pp5p6tlgver47r3ftruqhsayltdhsutgmxfjycn8j52ffp44ccenyzssp5y488hs9t07jhx8d8zgpl6w0l3kfl030rqr8wm0kz055436ugknesxq9z0rgqnp4qvyndeaqzman7h898jxm98dzkm0mlrsx36s93smrur7h0azyyuxc5rzjq25carzepgd4vqsyn44jrk85ezrpju92xyrk9apw4cdjh6yrwt5jgqqqqrt49lmtcqqqqqqqqqqq86qq9qrzjqwghf7zxvfkxq5a6sr65g0gdkv768p83mhsnt0msszapamzx2qvuxqqqqrt49lmtcqqqqqqqqqqq86qq9qcqzpgdq8w3jhxaq9qyyssq3p29at57ys454qfan6akp8pcld9shevpyfkvgz3jksc8u4605kfxhwtk764vryguuuq054fglfyf0nzvvkehzj3d0wlxp9apds9h7xqqggpqwx'
-    ] = 'SparkLightningReceiveRequest:0197c5da-39da-cd96-0000-449ca8c8413b';
-
-    const paid = await w.isInvoicePaid(
-      'lnbc10n1p5x8nq5pp55de33575jrcz8enxjuzq5mm66hs5jfyaa5fds3s9le6xagdxae7ssp5du088t4c0k5x8z0dv6t4uw4tsenxzs4e0t8m7ke89kanprmykuzqxq9z0rgqnp4qvyndeaqzman7h898jxm98dzkm0mlrsx36s93smrur7h0azyyuxc5rzjq25carzepgd4vqsyn44jrk85ezrpju92xyrk9apw4cdjh6yrwt5jgqqqqrt49lmtcqqqqqqqqqqq86qq9qrzjqwghf7zxvfkxq5a6sr65g0gdkv768p83mhsnt0msszapamzx2qvuxqqqqrt49lmtcqqqqqqqqqqq86qq9qcqzpgdq8w3jhxaq9qyyssqrj43wj4eh8ekdff9k0pnfw8ggclu8cgymzat8s0uhtnnt0gl8pcy9x5n3rtelngt3gdd879vathhqmtrwqv4zq2s5s5gchkmnwjhflqqdjkstc'
+    await storageMock.setItem(
+      `${STORAGE_KEY_SPARK_LN_INVOICE_IDS}_0`,
+      JSON.stringify({
+        [inv1]: 'SparkLightningReceiveRequest:0197c5d5-2ea2-cd96-0000-d91759d99484',
+        [inv2]: 'SparkLightningReceiveRequest:0197c5da-39da-cd96-0000-449ca8c8413b',
+      })
     );
 
-    const paid2 = await w.isInvoicePaid(
-      'lnbc20n1p5x8n27pp5p6tlgver47r3ftruqhsayltdhsutgmxfjycn8j52ffp44ccenyzssp5y488hs9t07jhx8d8zgpl6w0l3kfl030rqr8wm0kz055436ugknesxq9z0rgqnp4qvyndeaqzman7h898jxm98dzkm0mlrsx36s93smrur7h0azyyuxc5rzjq25carzepgd4vqsyn44jrk85ezrpju92xyrk9apw4cdjh6yrwt5jgqqqqrt49lmtcqqqqqqqqqqq86qq9qrzjqwghf7zxvfkxq5a6sr65g0gdkv768p83mhsnt0msszapamzx2qvuxqqqqrt49lmtcqqqqqqqqqqq86qq9qcqzpgdq8w3jhxaq9qyyssq3p29at57ys454qfan6akp8pcld9shevpyfkvgz3jksc8u4605kfxhwtk764vryguuuq054fglfyf0nzvvkehzj3d0wlxp9apds9h7xqqggpqwx'
-    );
+    const paid = await w.isInvoicePaid(inv1);
+
+    const paid2 = await w.isInvoicePaid(inv2);
 
     assert.ok(paid);
     assert.ok(paid2);
