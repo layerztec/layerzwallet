@@ -30,6 +30,7 @@ export type IRgbWallet = Pick<
   | 'createUtxos'
   | 'createUtxosBegin'
   | 'createUtxosEnd'
+  | 'issueAssetNia'
   | 'signPsbt'
   | 'refreshWallet'
   | 'syncWallet'

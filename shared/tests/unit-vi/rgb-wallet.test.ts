@@ -27,9 +27,12 @@ function installAdapter(overrides: Partial<IRgbWallet> = {}) {
     sendBtc: vi.fn().mockResolvedValue('btc-txid-abc'),
     sendBtcBegin: vi.fn(),
     sendBtcEnd: vi.fn(),
-    createUtxos: vi.fn(),
+    createUtxos: vi.fn().mockResolvedValue(1),
     createUtxosBegin: vi.fn(),
     createUtxosEnd: vi.fn(),
+    issueAssetNia: vi
+      .fn()
+      .mockResolvedValue({ assetId: 'rgb:demo-asset', ticker: 'DEMO', name: 'Demo Token', precision: 2, issuedSupply: 1000, timestamp: 0, balance: { settled: 1000, future: 1000, spendable: 1000 } }),
     signPsbt: vi.fn(),
     refreshWallet: vi.fn(),
     syncWallet: vi.fn(),
@@ -447,6 +450,32 @@ describe('RgbWallet', () => {
       // getOffchainBalance kicks off fetchTokenBalances but must not propagate its error.
       const bal = await w.getOffchainBalance();
       expect(bal).toBe(100);
+    });
+  });
+
+  describe('asset issuance', () => {
+    it('createUtxos delegates to the SDK with default fee rate and triggers a backup', async () => {
+      const { sdkWallet } = installAdapter();
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const slots = await w.createUtxos();
+      expect(slots).toBe(1);
+      expect(sdkWallet.createUtxos).toHaveBeenCalledWith({ upTo: true, num: 1, feeRate: 1 });
+      expect(sdkWallet.vssBackup).toHaveBeenCalled();
+    });
+
+    it('issueAssetNia returns a narrow projection and triggers a backup', async () => {
+      const { sdkWallet } = installAdapter();
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const params = { ticker: 'DEMO', name: 'Demo Token', precision: 2, amounts: [1000] };
+      const out = await w.issueAssetNia(params);
+      expect(sdkWallet.issueAssetNia).toHaveBeenCalledWith(params);
+      // The wallet should not leak SDK-only fields like `issuedSupply` or `balance` to callers.
+      expect(out).toEqual({ assetId: 'rgb:demo-asset', ticker: 'DEMO', name: 'Demo Token', precision: 2 });
+      expect(sdkWallet.vssBackup).toHaveBeenCalled();
     });
   });
 });

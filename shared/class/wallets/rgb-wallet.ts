@@ -144,6 +144,38 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     return Number(bal.vanilla.spendable);
   }
 
+  /**
+   * Allocates a colorable UTXO so the wallet can hold/issue RGB assets. Issuance
+   * (`issueAssetNia`) and receive (`blindReceive`) both require at least one
+   * unspent allocation slot; rgb-lib otherwise throws `InsufficientAllocationSlots`.
+   * Defaults: one slot, default fee rate. The SDK signs and broadcasts the
+   * UTXO-creation tx itself.
+   */
+  async createUtxos(): Promise<number> {
+    const num = await this.sdk().createUtxos({
+      upTo: true,
+      num: 1,
+      feeRate: await this.defaultFeeRate(),
+    });
+    await this.tryBackup();
+    return num;
+  }
+
+  /**
+   * Issues a Non-Inflationary Asset (NIA) — fungible, single-issuance.
+   * Caller is responsible for ensuring an allocation slot exists; if not, the
+   * SDK throws `InsufficientAllocationSlots` and the caller should run
+   * `createUtxos()` and retry.
+   *
+   * The return shape is intentionally narrow (just the fields the UI needs)
+   * so we don't leak the SDK's `AssetNIA` type into shared/.
+   */
+  async issueAssetNia(params: { ticker: string; name: string; precision: number; amounts: number[] }): Promise<{ assetId: string; ticker: string; name: string; precision: number }> {
+    const asset = await this.sdk().issueAssetNia(params);
+    await this.tryBackup();
+    return { assetId: asset.assetId, ticker: asset.ticker, name: asset.name, precision: asset.precision };
+  }
+
   async pay(receiverAddress: string, amountSats: number): Promise<string> {
     const txid = await this.sdk().sendBtc({
       address: receiverAddress,

@@ -164,6 +164,7 @@ export function ProtectedRouteStack() {
         />
         <Stack.Screen name="send" options={{ headerShown: false }} />
         <Stack.Screen name="transfer" options={{ headerShown: false }} />
+        <Stack.Screen name="issue-asset" options={{ headerShown: false }} />
         <Stack.Screen
           name="modals/transfer-select-asset"
           options={{

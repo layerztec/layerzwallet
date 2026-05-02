@@ -9,7 +9,7 @@ import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { USDT_TOKENS } from '@shared/models/token-list';
-import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
+import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_RGB, NETWORK_RGB_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
 import { ReceiveTokenProps } from '@/app/Receive';
 import { SendTokenEvmProps } from '@/app/SendTokenEvm';
 import { SendParams } from '@/app/send';
@@ -145,12 +145,20 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
     return <HomeActionButton title="Fund" icon={{ name: 'add', type: 'ionicons', size: 24 }} onPress={handleFund} testID="FundButton" />;
   };
 
+  // RGB-only: lets the user mint a NIA asset directly from the wallet so they
+  // can self-fund test assets without depending on a counterparty.
+  const renderIssueButton = () => {
+    if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) return null;
+    return <HomeActionButton title="Issue" icon={{ name: 'add-circle-outline', type: 'material', size: 24 }} onPress={() => router.push('/issue-asset')} testID="IssueButton" />;
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.buttonsRow}>
         {renderReceiveButton()}
         {renderSendButton()}
         {renderFundButton()}
+        {renderIssueButton()}
       </View>
     </View>
   );
