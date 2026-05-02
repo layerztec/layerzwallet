@@ -105,6 +105,17 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
+  // RGB has two distinct receive flavors: a plain bech32m address for BTC sats
+  // (handled by the existing /Receive screen) and an RGB invoice for assets
+  // (new /receive-rgb-token screen). Surface both via the popup pattern that
+  // USDT already uses.
+  const handleReceiveRgbToken = () => router.push('/receive-rgb-token');
+  const rgbReceiveActions = [
+    { children: <Action network={network} text="Receive sats" />, onClick: handleReceive },
+    { children: <Action network={network} text="Receive RGB asset" />, onClick: handleReceiveRgbToken },
+    { children: <Action text="Cancel" />, onClick: () => {} },
+  ];
+
   // Render Send button
   const renderSendButton = () => {
     if (network === NETWORK_USDT) {
@@ -128,6 +139,14 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
     if (network === NETWORK_USDT) {
       return (
         <ActionPopupButton actions={usdtReceiveActions} title="Layer to receive">
+          <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={() => {}} testID="ReceiveButton" />
+        </ActionPopupButton>
+      );
+    }
+
+    if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+      return (
+        <ActionPopupButton actions={rgbReceiveActions} title="What to receive">
           <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={() => {}} testID="ReceiveButton" />
         </ActionPopupButton>
       );

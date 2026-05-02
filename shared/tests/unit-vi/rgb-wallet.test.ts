@@ -15,11 +15,12 @@ function installAdapter(overrides: Partial<IRgbWallet> = {}) {
     }),
     listAssets: vi.fn().mockResolvedValue({ nia: [], uda: [], cfa: [], ifa: [] }),
     getAssetBalance: vi.fn(),
-    listUnspents: vi.fn(),
+    listUnspents: vi.fn().mockResolvedValue([]),
+    estimateFeeRate: vi.fn().mockResolvedValue(1),
     listTransactions: vi.fn().mockResolvedValue([]),
     listTransfers: vi.fn().mockResolvedValue([]),
-    blindReceive: vi.fn(),
-    witnessReceive: vi.fn(),
+    blindReceive: vi.fn().mockResolvedValue({ invoice: 'rgb:blind-invoice', recipientId: 'utxob:abc', expirationTimestamp: 1730000000, batchTransferIdx: 1 }),
+    witnessReceive: vi.fn().mockResolvedValue({ invoice: 'rgb:witness-invoice', recipientId: 'tb1pwit', expirationTimestamp: 1730000000, batchTransferIdx: 2 }),
     decodeRGBInvoice: vi.fn(),
     send: vi.fn(),
     sendBegin: vi.fn(),
@@ -465,6 +466,48 @@ describe('RgbWallet', () => {
       expect(sdkWallet.vssBackup).toHaveBeenCalled();
     });
 
+    it('requestReceive: prefers blindReceive when slots are available', async () => {
+      const { sdkWallet } = installAdapter();
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const out = await w.requestReceive({ assetId: 'rgb:asset-1', amount: 100 });
+      expect(sdkWallet.blindReceive).toHaveBeenCalledWith({ assetId: 'rgb:asset-1', amount: 100 });
+      expect(sdkWallet.witnessReceive).not.toHaveBeenCalled();
+      expect(out.type).toBe('blind');
+      expect(out.invoice).toBe('rgb:blind-invoice');
+      expect(out.recipientId).toBe('utxob:abc');
+      expect(out.expirationTimestamp).toBe(1730000000);
+    });
+
+    it('requestReceive: falls back to witnessReceive on InsufficientAllocationSlots', async () => {
+      const { sdkWallet } = installAdapter({
+        blindReceive: vi.fn().mockRejectedValue(Object.assign(new Error('Rgb.RgbLibError.InsufficientAllocationSlots'), { code: 'InsufficientAllocationSlots' })),
+      });
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const out = await w.requestReceive();
+      expect(sdkWallet.blindReceive).toHaveBeenCalledOnce();
+      expect(sdkWallet.witnessReceive).toHaveBeenCalledOnce();
+      expect(out.type).toBe('witness');
+      expect(out.invoice).toBe('rgb:witness-invoice');
+    });
+
+    it('requestReceive: rethrows non-allocation errors from blindReceive (no witness fallback)', async () => {
+      // Defense against the fall-through swallowing real failures (network,
+      // validation, etc.). Only the specific allocation-slot error should
+      // trigger a witness retry.
+      const { sdkWallet } = installAdapter({
+        blindReceive: vi.fn().mockRejectedValue(new Error('Indexer offline')),
+      });
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      await expect(w.requestReceive()).rejects.toThrow(/Indexer offline/);
+      expect(sdkWallet.witnessReceive).not.toHaveBeenCalled();
+    });
+
     it('issueAssetNia returns a narrow projection and triggers a backup', async () => {
       const { sdkWallet } = installAdapter();
       const w = new RgbWallet(NETWORK_RGB_TESTNET);
@@ -476,6 +519,75 @@ describe('RgbWallet', () => {
       // The wallet should not leak SDK-only fields like `issuedSupply` or `balance` to callers.
       expect(out).toEqual({ assetId: 'rgb:demo-asset', ticker: 'DEMO', name: 'Demo Token', precision: 2 });
       expect(sdkWallet.vssBackup).toHaveBeenCalled();
+    });
+  });
+
+  describe('prepareWallet', () => {
+    // Mock unspents shape: a single non-colorable spendable output (so listUnspents
+    // is non-empty) plus zero free colorable slots → triggers the top-up branch.
+    const oneVanillaUnspent = [{ utxo: { outpoint: 'a:0', btcAmount: 5000, colorable: false, exists: true }, rgbAllocations: [], pendingBlinded: 0 }];
+    const oneFreeColorable = [...oneVanillaUnspent, { utxo: { outpoint: 'b:0', btcAmount: 1000, colorable: true, exists: true }, rgbAllocations: [], pendingBlinded: 0 }];
+    const threeFreeColorable = [
+      ...oneVanillaUnspent,
+      { utxo: { outpoint: 'c:0', btcAmount: 1000, colorable: true, exists: true }, rgbAllocations: [], pendingBlinded: 0 },
+      { utxo: { outpoint: 'd:0', btcAmount: 1000, colorable: true, exists: true }, rgbAllocations: [], pendingBlinded: 0 },
+      { utxo: { outpoint: 'e:0', btcAmount: 1000, colorable: true, exists: true }, rgbAllocations: [], pendingBlinded: 0 },
+    ];
+
+    it('testnet: skips the fee gate, tops up when free slots are scarce', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listUnspents as any).mockResolvedValue(oneFreeColorable);
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      await w.prepareWallet();
+      expect(sdkWallet.estimateFeeRate).not.toHaveBeenCalled();
+      expect(sdkWallet.createUtxos).toHaveBeenCalledWith({ upTo: true, num: 5, size: 1000, feeRate: 1 });
+      expect(sdkWallet.vssBackup).toHaveBeenCalled();
+    });
+
+    it('skips top-up when there are already plenty of free slots', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listUnspents as any).mockResolvedValue(threeFreeColorable);
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      await w.prepareWallet();
+      expect(sdkWallet.createUtxos).not.toHaveBeenCalled();
+    });
+
+    it('skips when the wallet has no spendable outputs at all', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listUnspents as any).mockResolvedValue([]);
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      await w.prepareWallet();
+      expect(sdkWallet.createUtxos).not.toHaveBeenCalled();
+    });
+
+    it('mainnet: skips when network fees exceed the gate', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listUnspents as any).mockResolvedValue(oneFreeColorable);
+      (sdkWallet.estimateFeeRate as any).mockResolvedValue(10); // > 3
+      const w = new RgbWallet(NETWORK_RGB);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      await w.prepareWallet();
+      expect(sdkWallet.estimateFeeRate).toHaveBeenCalledWith(6);
+      expect(sdkWallet.createUtxos).not.toHaveBeenCalled();
+    });
+
+    it('mainnet: proceeds when fees are at or below the gate', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listUnspents as any).mockResolvedValue(oneFreeColorable);
+      (sdkWallet.estimateFeeRate as any).mockResolvedValue(2); // ≤ 3
+      const w = new RgbWallet(NETWORK_RGB);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      await w.prepareWallet();
+      // Mainnet defaultFeeRate is 5 (see RgbWallet.defaultFeeRate)
+      expect(sdkWallet.createUtxos).toHaveBeenCalledWith({ upTo: true, num: 5, size: 1000, feeRate: 5 });
     });
   });
 });

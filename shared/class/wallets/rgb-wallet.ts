@@ -44,6 +44,14 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   private static readonly SYNC_COOLDOWN_MS = 10_000;
   private _lastSync: number = 0;
   private _syncInFlight: Promise<void> | undefined;
+  /** Auto-UTXO prep tunables. Top up colorable slots so the user doesn't have
+   *  to wait through a chain confirmation the moment they hit Issue / Receive. */
+  private static readonly UTXO_PREPARE_DELAY_MS = 1_000;
+  private static readonly UTXO_PREPARE_MIN_FREE = 1; // (re)fill when free slots ≤ this
+  private static readonly UTXO_PREPARE_TARGET = 5;
+  private static readonly UTXO_PREPARE_SIZE_SATS = 1_000;
+  private static readonly UTXO_PREPARE_FEE_GATE_SAT_VB = 3; // mainnet only
+  private _preparingWallet = false;
 
   constructor(network: Networks = NETWORK_RGB) {
     super();
@@ -78,14 +86,19 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     const params = { mnemonic: this.secret, network: this._sdkNetwork };
     try {
       this._sdkWallet = await this.adapter.restoreFromVss(params);
-      return;
     } catch (e) {
       if (!isVssBackupMissing(e)) {
         globalThis.handleError?.(e, 'rgb-wallet.ts:init:vss');
         throw e;
       }
+      this._sdkWallet = await this.adapter.createWallet(params);
     }
-    this._sdkWallet = await this.adapter.createWallet(params);
+    // Pre-warm colorable UTXOs in the background so Issue / blind-Receive
+    // don't have to detour through a UTXO-creation tx the moment the user
+    // taps them. Deferred so it never blocks first paint.
+    setTimeout(() => {
+      this.prepareWallet().catch((e) => globalThis.handleError?.(e, 'rgb-wallet.ts:prepareWallet:scheduled'));
+    }, RgbWallet.UTXO_PREPARE_DELAY_MS);
   }
 
   private sdk(): IRgbWallet {
@@ -145,6 +158,49 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   }
 
   /**
+   * Background top-up of colorable UTXO slots. Called once after `init()` via a
+   * 1-second `setTimeout`, so first paint isn't blocked. Skips entirely when the
+   * wallet has plenty of free slots, or — on mainnet — when fees are above
+   * `UTXO_PREPARE_FEE_GATE_SAT_VB`. Testnet bypasses the fee gate entirely
+   * because we have no reliable testnet electrum fee estimate (and it's free
+   * sats anyway). Errors are logged but never thrown — this is best-effort.
+   */
+  async prepareWallet(): Promise<void> {
+    if (this._preparingWallet) return;
+    this._preparingWallet = true;
+    try {
+      if (this._sdkNetwork === 'mainnet') {
+        try {
+          // The SDK returns either a bare sat/vB number or `{ <blocks>: rate, … }`
+          // depending on indexer; pick the requested target if it's an object.
+          const raw = await this.sdk().estimateFeeRate(6);
+          const feeRate = typeof raw === 'number' ? raw : Number(raw[6] ?? Object.values(raw)[0] ?? NaN);
+          if (!Number.isFinite(feeRate) || feeRate > RgbWallet.UTXO_PREPARE_FEE_GATE_SAT_VB) return;
+        } catch (e) {
+          // No fee estimate → don't risk an expensive top-up.
+          globalThis.handleError?.(e, 'rgb-wallet.ts:prepareWallet:estimateFee');
+          return;
+        }
+      }
+      const unspents = await this.sdk().listUnspents();
+      if (!unspents || unspents.length === 0) return;
+      const free = unspents.filter((u) => u.utxo.colorable && !u.pendingBlinded && (u.rgbAllocations?.length ?? 0) === 0);
+      if (free.length > RgbWallet.UTXO_PREPARE_MIN_FREE) return;
+      await this.sdk().createUtxos({
+        upTo: true,
+        num: RgbWallet.UTXO_PREPARE_TARGET,
+        size: RgbWallet.UTXO_PREPARE_SIZE_SATS,
+        feeRate: await this.defaultFeeRate(),
+      });
+      await this.tryBackup();
+    } catch (e) {
+      globalThis.handleError?.(e, 'rgb-wallet.ts:prepareWallet');
+    } finally {
+      this._preparingWallet = false;
+    }
+  }
+
+  /**
    * Allocates a colorable UTXO so the wallet can hold/issue RGB assets. Issuance
    * (`issueAssetNia`) and receive (`blindReceive`) both require at least one
    * unspent allocation slot; rgb-lib otherwise throws `InsufficientAllocationSlots`.
@@ -159,6 +215,31 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     });
     await this.tryBackup();
     return num;
+  }
+
+  /**
+   * Generates an RGB receive invoice. Defaults to a **blind** invoice (better
+   * privacy: the sender doesn't learn which UTXO the asset lands on), and
+   * transparently falls back to **witness** if the wallet has no free
+   * colorable allocation slot. Caller learns which type was generated via the
+   * returned `type` field so it can label the UI.
+   *
+   * `assetId` and `amount` are both optional — omit `assetId` for an
+   * "any asset" invoice, omit `amount` to let the sender pay any amount.
+   */
+  async requestReceive(
+    params: { assetId?: string; amount?: number; durationSeconds?: number; minConfirmations?: number } = {}
+  ): Promise<{ invoice: string; type: 'blind' | 'witness'; recipientId: string; expirationTimestamp: number | null }> {
+    try {
+      const r = await this.sdk().blindReceive(params);
+      return { invoice: r.invoice, type: 'blind', recipientId: r.recipientId, expirationTimestamp: r.expirationTimestamp };
+    } catch (e) {
+      // Only fall through for the specific "no slots" error — anything else is
+      // a real failure (network, validation, etc.) and should propagate.
+      if (!isInsufficientAllocationSlots(e)) throw e;
+      const r = await this.sdk().witnessReceive(params);
+      return { invoice: r.invoice, type: 'witness', recipientId: r.recipientId, expirationTimestamp: r.expirationTimestamp };
+    }
   }
 
   /**
@@ -378,6 +459,18 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   isAddressValid(input: string): boolean {
     return RgbWallet.isAddressValid(input);
   }
+}
+
+/**
+ * `blindReceive` requires a free colorable UTXO; without one rgb-lib raises
+ * `InsufficientAllocationSlots`. Caller (e.g. `requestReceive`) treats this
+ * as the signal to fall back to `witnessReceive`. The RN SDK exposes the
+ * error name via `code`; the web SDK puts it in the message.
+ */
+function isInsufficientAllocationSlots(e: unknown): boolean {
+  const err = e as { code?: string; message?: string };
+  if (err?.code === 'InsufficientAllocationSlots') return true;
+  return /InsufficientAllocationSlots|insufficient.*allocation/i.test(String(err?.message ?? e));
 }
 
 function isVssBackupMissing(e: unknown): boolean {
