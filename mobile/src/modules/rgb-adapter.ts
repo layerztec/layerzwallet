@@ -24,13 +24,23 @@ function mnemonicFingerprint(mnemonic: string): string {
  * Returns a per-mnemonic data directory. Isolating state by mnemonic prevents
  * the SDK from re-opening a previous wallet's rgb-lib sled store when the user
  * wipes the app and imports a different seed — the pattern mirrors
- * `breeze-adapter.ts` which uses `sha256(mnemonic)` for the same reason. Strips
- * the `file://` URI prefix because the RN SDK expects a POSIX path.
+ * `breeze-adapter.ts` which uses `sha256(mnemonic)` for the same reason.
+ *
+ * Returned as a `Directory` (not a string) because expo-file-system's
+ * `Directory` constructor requires an *absolute URI* on Android — passing a
+ * bare POSIX path crashes with `IllegalArgumentException: URI is not absolute`.
+ * Convert to the SDK's expected POSIX form via `dataDirSdkPath` only at the
+ * native-call boundary.
  */
-function dataDirFor(mnemonic: string, network: IRgbAdapterCreateParams['network']): string {
+function dataDirFor(mnemonic: string, network: IRgbAdapterCreateParams['network']): Directory {
   const root = new Directory(Paths.document, RGB_DATA_ROOT, network, mnemonicFingerprint(mnemonic));
   if (!root.exists) root.create({ intermediates: true });
-  return root.uri.replace(/^file:\/\//, '');
+  return root;
+}
+
+/** Strips the `file://` URI prefix; the RN SDK expects a POSIX path. */
+function dataDirSdkPath(dir: Directory): string {
+  return dir.uri.replace(/^file:\/\//, '');
 }
 
 /**
@@ -67,7 +77,7 @@ class RgbAdapter implements IRgbAdapter {
     const open = async () => {
       const wallet = new UTEXOWallet(mnemonic, {
         network,
-        dataDir: dataDirFor(mnemonic, network),
+        dataDir: dataDirSdkPath(dataDirFor(mnemonic, network)),
         vssServerUrl,
       });
       await wallet.initialize();
@@ -80,7 +90,7 @@ class RgbAdapter implements IRgbAdapter {
       for (const dir of nativeWalletDirs(network)) {
         if (dir.exists) dir.delete();
       }
-      const adapterDir = new Directory(Paths.document, RGB_DATA_ROOT, network, mnemonicFingerprint(mnemonic));
+      const adapterDir = dataDirFor(mnemonic, network);
       if (adapterDir.exists) adapterDir.delete();
       return open();
     }
@@ -92,7 +102,7 @@ class RgbAdapter implements IRgbAdapter {
     // (`WalletDirAlreadyExists`). If we already have local state, skip the VSS
     // step — `createWallet` will reopen the existing sled stores in place.
     if (!new Directory(dir, 'layer1').exists) {
-      await UTEXOWallet.restoreFromVss(mnemonic, dir, vssServerUrl ? { serverUrl: vssServerUrl } : undefined);
+      await UTEXOWallet.restoreFromVss(mnemonic, dataDirSdkPath(dir), vssServerUrl ? { serverUrl: vssServerUrl } : undefined);
     }
     return this.createWallet({ mnemonic, network, vssServerUrl });
   }
