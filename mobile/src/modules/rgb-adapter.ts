@@ -33,21 +33,67 @@ function dataDirFor(mnemonic: string, network: IRgbAdapterCreateParams['network'
   return root.uri.replace(/^file:\/\//, '');
 }
 
+/**
+ * rgb-lib throws these messages when the local sled store can't be parsed —
+ * usually from an interrupted write (app killed mid-commit) or a schema bump
+ * across an SDK upgrade. The Android binding self-heals (see RgbModule.kt:271);
+ * iOS doesn't, so we mirror the recovery here.
+ */
+function isCorruptStore(e: unknown): boolean {
+  const msg = (e as { message?: string })?.message ?? String(e);
+  return /bincode error while reading entry/i.test(msg) || /failed to fill whole buffer/i.test(msg);
+}
+
+/**
+ * Native dirs the iOS rgb-sdk-rn binding actually writes to. The `dataDir` we
+ * pass to `WalletManager` is **ignored** by `_initializeWallet` in
+ * `RgbSwiftHelper.swift:210`, which hardcodes `Documents/<network>/` (with
+ * `network = toNativeNetwork(<sdk-network>)`). Each `UTEXOWallet` opens TWO
+ * sub-wallets: a layer1 wallet on the bridge bitcoin chain, and a utexo
+ * sidechain wallet that the SDK maps to `signet`. So for either preset we
+ * have two on-disk dirs we have to wipe to recover.
+ *
+ * Tracked upstream: https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/20
+ */
+function nativeWalletDirs(network: IRgbAdapterCreateParams['network']): Directory[] {
+  const layer1 = network === 'testnet' ? 'testnet' : 'mainnet';
+  return [new Directory(Paths.document, layer1), new Directory(Paths.document, 'signet')];
+}
+
 class RgbAdapter implements IRgbAdapter {
   readonly capabilities = { lightning: false } as const;
 
   async createWallet({ mnemonic, network, vssServerUrl }: IRgbAdapterCreateParams): Promise<IRgbWallet> {
-    const wallet = new UTEXOWallet(mnemonic, {
-      network,
-      dataDir: dataDirFor(mnemonic, network),
-      vssServerUrl,
-    });
-    await wallet.initialize();
-    return wallet;
+    const open = async () => {
+      const wallet = new UTEXOWallet(mnemonic, {
+        network,
+        dataDir: dataDirFor(mnemonic, network),
+        vssServerUrl,
+      });
+      await wallet.initialize();
+      return wallet;
+    };
+    try {
+      return await open();
+    } catch (e) {
+      if (!isCorruptStore(e)) throw e;
+      for (const dir of nativeWalletDirs(network)) {
+        if (dir.exists) dir.delete();
+      }
+      const adapterDir = new Directory(Paths.document, RGB_DATA_ROOT, network, mnemonicFingerprint(mnemonic));
+      if (adapterDir.exists) adapterDir.delete();
+      return open();
+    }
   }
 
   async restoreFromVss({ mnemonic, network, vssServerUrl }: IRgbAdapterCreateParams): Promise<IRgbWallet> {
-    await UTEXOWallet.restoreFromVss(mnemonic, dataDirFor(mnemonic, network), vssServerUrl ? { serverUrl: vssServerUrl } : undefined);
+    const dir = dataDirFor(mnemonic, network);
+    // rgb-lib refuses to restore over an existing wallet dir
+    // (`WalletDirAlreadyExists`). If we already have local state, skip the VSS
+    // step — `createWallet` will reopen the existing sled stores in place.
+    if (!new Directory(dir, 'layer1').exists) {
+      await UTEXOWallet.restoreFromVss(mnemonic, dir, vssServerUrl ? { serverUrl: vssServerUrl } : undefined);
+    }
     return this.createWallet({ mnemonic, network, vssServerUrl });
   }
 }

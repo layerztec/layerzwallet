@@ -349,18 +349,26 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
 }
 
 function isVssBackupMissing(e: unknown): boolean {
-  // Only treat "VSS has no backup for this mnemonic" as an expected path into
-  // fresh-wallet creation. Every other error rethrows so we never silently
-  // overwrite a real remote backup with an empty local state.
+  // Only treat "VSS has no backup for this mnemonic" — or "the backup we have
+  // is unreadable" — as an expected path into fresh-wallet creation. Every
+  // other error rethrows so we never silently overwrite a real remote backup
+  // with an empty local state.
   //
-  // Each platform SDK signals this differently:
+  // Each platform SDK signals "missing" differently:
   //  • RN SDK throws an RgbError with `code === 'VssBackupNotFound'` and a
   //    message like `Rgb.RgbLibError.VssBackupNotFound`.
   //  • Web SDK throws a non-Error object whose `toString()` returns
   //    `"VSS backup not found"` — no `message` property, just a stringifier.
   //  • Node/HTTP paths tend to throw a NotFoundError or an HTTP 404.
-  // We check all of them so existing users (no RGB state yet) get a fresh
-  // wallet on first unlock rather than a retry-loop error.
+  //
+  // "Unreadable" shows up as bincode/parse errors when an older SDK wrote the
+  // backup and the current one can't decode it. Beta-to-beta schema breaks
+  // are routine; treat them as missing so the next mutation rewrites the
+  // backup cleanly. Acceptable risk: a transient decoder bug could discard a
+  // good remote backup on first unlock — but the alternative is a permanent
+  // boot loop with no recovery path.
+  //
+  // Tracked upstream: https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/20
   if (!e) return false;
   const err = e as { name?: string; message?: string; statusCode?: number; status?: number; code?: string };
   if (err.code === 'VssBackupNotFound') return true;
@@ -368,6 +376,7 @@ function isVssBackupMissing(e: unknown): boolean {
   if (err.statusCode === 404 || err.status === 404) return true;
   const text = typeof err.message === 'string' ? err.message : String(e);
   if (/VssBackupNotFound|backup\s*not\s*found|backup\s+(does\s+not\s+exist|missing)/i.test(text)) return true;
+  if (/bincode error while reading entry|failed to fill whole buffer/i.test(text)) return true;
   return false;
 }
 
