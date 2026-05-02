@@ -166,6 +166,7 @@ export function ProtectedRouteStack() {
         <Stack.Screen name="transfer" options={{ headerShown: false }} />
         <Stack.Screen name="issue-asset" options={{ headerShown: false }} />
         <Stack.Screen name="receive-rgb-token" options={{ headerShown: false }} />
+        <Stack.Screen name="utxo-manager" options={{ headerShown: false }} />
         <Stack.Screen
           name="modals/transfer-select-asset"
           options={{

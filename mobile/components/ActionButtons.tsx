@@ -171,6 +171,14 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
     return <HomeActionButton title="Issue" icon={{ name: 'add-circle-outline', type: 'material', size: 24 }} onPress={() => router.push('/issue-asset')} testID="IssueButton" />;
   };
 
+  // RGB-only debug surface: list colorable UTXOs, allocations attached to
+  // each output, and create more on demand. Helpful when InsufficientAllocationSlots
+  // shows up unexpectedly or a pending blind-receive is holding a slot.
+  const renderUtxosButton = () => {
+    if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) return null;
+    return <HomeActionButton title="UTXOs" icon={{ name: 'view-list', type: 'material', size: 24 }} onPress={() => router.push('/utxo-manager')} testID="UtxosButton" />;
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.buttonsRow}>
@@ -178,6 +186,7 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
         {renderSendButton()}
         {renderFundButton()}
         {renderIssueButton()}
+        {renderUtxosButton()}
       </View>
     </View>
   );

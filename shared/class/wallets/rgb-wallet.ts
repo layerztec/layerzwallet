@@ -22,6 +22,8 @@ type AnyAsset = {
 type SdkTransfer = Awaited<ReturnType<IRgbWallet['listTransfers']>>[number];
 type AnnotatedTransfer = SdkTransfer & { assetId?: string };
 
+export type RgbUnspent = Awaited<ReturnType<IRgbWallet['listUnspents']>>[number];
+
 export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveTokens {
   static readonly type = 'rgb';
   static readonly typeReadable = 'RGB';
@@ -173,6 +175,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
         try {
           // The SDK returns either a bare sat/vB number or `{ <blocks>: rate, … }`
           // depending on indexer; pick the requested target if it's an object.
+          // Tracked upstream: https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/23
           const raw = await this.sdk().estimateFeeRate(6);
           const feeRate = typeof raw === 'number' ? raw : Number(raw[6] ?? Object.values(raw)[0] ?? NaN);
           if (!Number.isFinite(feeRate) || feeRate > RgbWallet.UTXO_PREPARE_FEE_GATE_SAT_VB) return;
@@ -201,20 +204,32 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   }
 
   /**
-   * Allocates a colorable UTXO so the wallet can hold/issue RGB assets. Issuance
+   * Allocates colorable UTXOs so the wallet can hold/issue RGB assets. Issuance
    * (`issueAssetNia`) and receive (`blindReceive`) both require at least one
    * unspent allocation slot; rgb-lib otherwise throws `InsufficientAllocationSlots`.
-   * Defaults: one slot, default fee rate. The SDK signs and broadcasts the
-   * UTXO-creation tx itself.
+   * Defaults: one slot at the network's default fee rate, `upTo: true` so the
+   * SDK skips creation when the target is already covered. `size` is forwarded
+   * verbatim — `undefined` lets rgb-lib pick its built-in default.
    */
-  async createUtxos(): Promise<number> {
+  async createUtxos(opts: { num?: number; size?: number; feeRate?: number; upTo?: boolean } = {}): Promise<number> {
     const num = await this.sdk().createUtxos({
-      upTo: true,
-      num: 1,
-      feeRate: await this.defaultFeeRate(),
+      upTo: opts.upTo ?? true,
+      num: opts.num ?? 1,
+      size: opts.size,
+      feeRate: opts.feeRate ?? (await this.defaultFeeRate()),
     });
     await this.tryBackup();
     return num;
+  }
+
+  /**
+   * Returns the SDK's UTXO list verbatim. Syncs first so colorable status,
+   * `pendingBlinded`, and `rgbAllocations` reflect chain truth. Used by the
+   * UTXO-manager debug screen.
+   */
+  async listUnspents(): Promise<RgbUnspent[]> {
+    await this.sync();
+    return this.sdk().listUnspents();
   }
 
   /**

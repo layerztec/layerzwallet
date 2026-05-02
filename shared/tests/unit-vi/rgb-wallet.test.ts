@@ -522,6 +522,39 @@ describe('RgbWallet', () => {
     });
   });
 
+  describe('utxo manager helpers', () => {
+    it('createUtxos forwards custom { num, size, feeRate, upTo } and triggers a backup', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.createUtxos as any).mockResolvedValue(3);
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const slots = await w.createUtxos({ num: 3, size: 2000, feeRate: 7, upTo: false });
+      expect(slots).toBe(3);
+      expect(sdkWallet.createUtxos).toHaveBeenCalledWith({ upTo: false, num: 3, size: 2000, feeRate: 7 });
+      expect(sdkWallet.vssBackup).toHaveBeenCalled();
+    });
+
+    it('listUnspents syncs (syncWallet + refreshWallet) before returning the SDK shape verbatim', async () => {
+      const { sdkWallet } = installAdapter();
+      const fake = [
+        {
+          utxo: { outpoint: 'a:0', btcAmount: 1000, colorable: true, exists: true },
+          rgbAllocations: [{ assetId: 'rgb:demo', assignment: { type: 'Fungible', amount: 42 }, settled: true }],
+          pendingBlinded: 0,
+        },
+      ];
+      (sdkWallet.listUnspents as any).mockResolvedValue(fake);
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const out = await w.listUnspents();
+      expect(sdkWallet.syncWallet).toHaveBeenCalled();
+      expect(sdkWallet.refreshWallet).toHaveBeenCalled();
+      expect(out).toBe(fake);
+    });
+  });
+
   describe('prepareWallet', () => {
     // Mock unspents shape: a single non-colorable spendable output (so listUnspents
     // is non-empty) plus zero free colorable slots → triggers the top-up branch.

@@ -131,6 +131,7 @@ export default function ReceiveRgbTokenScreen() {
       // witnessReceive crashes the native iOS module via a Swift `fatalError`
       // (assignment is hardcoded to `Fungible`, which requires an amount).
       // Until upstream fixes it, force the caller to enter an amount.
+      // Tracked: https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/21
       const n = Number(amountStr);
       if (!amountStr.trim() || !Number.isFinite(n) || n <= 0 || !Number.isSafeInteger(n)) {
         setError('Amount is required and must be a positive integer (in base units).');
