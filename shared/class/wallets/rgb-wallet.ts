@@ -5,7 +5,7 @@ import { CommonTokenTransfer, CommonTransaction } from '../../types/common-trans
 import { Networks, NETWORK_RGB, NETWORK_RGB_TESTNET } from '../../types/networks';
 import { CachedTokenInfo } from '../../types/token-info';
 import { IRgbAdapter, IRgbWallet, RgbNetwork } from '../../types/rgb-adapter';
-import { IStorage } from '../../types/IStorage';
+import { getRgbBackupStateStorageKey, getRgbInitializedStorageKey, IStorage } from '../../types/IStorage';
 import { AbstractWallet } from './abstract-wallet';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
@@ -23,6 +23,49 @@ type SdkTransfer = Awaited<ReturnType<IRgbWallet['listTransfers']>>[number];
 type AnnotatedTransfer = SdkTransfer & { assetId?: string };
 
 export type RgbUnspent = Awaited<ReturnType<IRgbWallet['listUnspents']>>[number];
+
+export interface DecodedInvoice {
+  assetId?: string;
+  amount?: number;
+  expirationTimestamp: number | null;
+  recipientId: string;
+}
+
+/**
+ * Error classes for VSS backup edge cases. Callers (lazyInitWallet, the
+ * restore-from-seed gate) match on `instanceof` to decide whether to retry,
+ * surface a "server unreachable" UI, or refuse to proceed because a backup we
+ * previously had has gone missing. See tasks/rgb-backup-failure-handling.md.
+ */
+export class RgbBackupServerUnreachableError extends Error {
+  constructor(message = 'RGB backup server is unreachable') {
+    super(message);
+    this.name = 'RgbBackupServerUnreachableError';
+  }
+}
+
+/**
+ * Thrown when this device previously initialized RGB successfully (the
+ * `STORAGE_KEY_RGB_INITIALIZED_<network>` flag is set) but VSS now reports the
+ * backup as missing. Means either the user nuked their VSS account, or
+ * something is very wrong on the server. Either way, we don't silently
+ * recreate — that would overwrite a real backup with empty state.
+ */
+export class RgbBackupLostError extends Error {
+  constructor(message = 'RGB backup unexpectedly missing on a wallet that was previously initialized') {
+    super(message);
+    this.name = 'RgbBackupLostError';
+  }
+}
+
+export type RgbBackupErrorKind = 'network' | 'auth' | 'unknown';
+
+/** Persisted shape (storage key from getRgbBackupStateStorageKey). */
+export interface RgbBackupPersistedState {
+  pendingMutations: number;
+  lastBackupAt: number | null;
+  lastBackupError: { kind: RgbBackupErrorKind; at: number; message: string } | null;
+}
 
 export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWallet, InterfaceCanHaveTokens {
   static readonly type = 'rgb';
@@ -54,6 +97,17 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   private static readonly UTXO_PREPARE_SIZE_SATS = 1_000;
   private static readonly UTXO_PREPARE_FEE_GATE_SAT_VB = 3; // mainnet only
   private _preparingWallet = false;
+  /**
+   * Backup ledger. See tasks/rgb-backup-failure-handling.md.
+   * `_pendingMutationsSinceBackup` is bumped before every `tryBackup` and
+   * decremented on success; the persisted shape mirrors what the UI hook
+   * surfaces. `_storage` is captured during `init()` so `tryBackup` can persist
+   * without callers having to thread the IStorage through every mutation.
+   */
+  private _storage: IStorage | undefined;
+  private _pendingMutationsSinceBackup: number = 0;
+  private _lastBackupAt: number | null = null;
+  private _lastBackupError: { kind: RgbBackupErrorKind; at: number; message: string } | null = null;
 
   constructor(network: Networks = NETWORK_RGB) {
     super();
@@ -77,14 +131,38 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   }
 
   /**
-   * Bring the SDK wallet online. Tries a VSS restore first so a fresh install
-   * with an existing mnemonic picks up state created on another device. Any
-   * "backup not found" signal falls through to a fresh wallet; any other error
-   * rethrows so we don't silently overwrite remote backups with an empty
-   * local state on the next mutation.
+   * Bring the SDK wallet online.
+   *
+   * The decision tree below exists to defend against silently overwriting a
+   * real VSS backup with empty local state — the worst possible failure mode
+   * for this wallet. See tasks/rgb-backup-failure-handling.md for the full
+   * model. Short version:
+   *
+   *   1. Try `restoreFromVss`. Happy path: backup exists, we restore, done.
+   *   2. If it throws something `isVssBackupMissing` recognizes (404 / parse
+   *      error / "not found"), we still don't trust that classification on
+   *      its own — a confused server could report 404 for a transient
+   *      database hiccup. We probe `vssBackupInfo` to confirm.
+   *      • Probe says exists → original error was real, rethrow.
+   *      • Probe throws → server is genuinely unreachable, throw
+   *        `RgbBackupServerUnreachableError` so the unlock flow can show a
+   *        "try again later / skip RGB" UI instead of creating a ghost wallet.
+   *      • Probe says missing AND we previously initialized RGB on this
+   *        device → backup vanished, throw `RgbBackupLostError`.
+   *      • Probe says missing AND no prior init → genuine first-creation,
+   *        fall through to `createWallet`.
+   *   3. If `restoreFromVss` throws something we *don't* recognize, rethrow
+   *      verbatim — same posture as before.
+   *
+   * The `STORAGE_KEY_RGB_INITIALIZED_<network>` flag is set after every
+   * successful init; it's the device-local "I've been here before" signal
+   * that turns "backup missing" from expected into a red flag.
    */
-  async init(_storage: IStorage): Promise<void> {
+  async init(storage: IStorage): Promise<void> {
     assert(this.secret, 'Cant init RGB wallet: secret is not set.');
+    this._storage = storage;
+    await this.loadBackupState();
+
     const params = { mnemonic: this.secret, network: this._sdkNetwork };
     try {
       this._sdkWallet = await this.adapter.restoreFromVss(params);
@@ -93,14 +171,65 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
         globalThis.handleError?.(e, 'rgb-wallet.ts:init:vss');
         throw e;
       }
-      this._sdkWallet = await this.adapter.createWallet(params);
+      // The "missing" classification is a hint, not a verdict — confirm with a
+      // dedicated probe before doing anything destructive. The probe creates
+      // the candidate wallet itself; on success we keep it instead of
+      // creating a second one.
+      this._sdkWallet = await this.acquireFreshWalletAfterProbe(e);
     }
+
+    await this.markRgbInitialized();
+
     // Pre-warm colorable UTXOs in the background so Issue / blind-Receive
     // don't have to detour through a UTXO-creation tx the moment the user
     // taps them. Deferred so it never blocks first paint.
     setTimeout(() => {
       this.prepareWallet().catch((e) => globalThis.handleError?.(e, 'rgb-wallet.ts:prepareWallet:scheduled'));
     }, RgbWallet.UTXO_PREPARE_DELAY_MS);
+  }
+
+  /**
+   * Probe-then-keep flow. Called only when `restoreFromVss` failed in a way
+   * `isVssBackupMissing` recognized — we still don't trust that on its own,
+   * so we create a candidate wallet locally and call `vssBackupInfo` on it.
+   * The candidate is *local-only* until the first `vssBackup` call, so
+   * disposing it on a probe-disagree is safe and non-destructive.
+   *
+   * Returns the kept wallet on success; throws `RgbBackupServerUnreachableError`,
+   * `RgbBackupLostError`, or the original restore error otherwise. See
+   * tasks/rgb-backup-failure-handling.md.
+   */
+  private async acquireFreshWalletAfterProbe(originalError: unknown): Promise<IRgbWallet> {
+    const candidate = await this.adapter.createWallet({ mnemonic: this.secret!, network: this._sdkNetwork });
+
+    let info: Awaited<ReturnType<IRgbWallet['vssBackupInfo']>>;
+    try {
+      info = await candidate.vssBackupInfo();
+    } catch (probeErr) {
+      // Probe itself failed. Anything that isn't a clear "server says no
+      // backup here" is treated as unreachable — the alternative is silently
+      // overwriting a real backup with empty state, which is unrecoverable.
+      await disposeQuiet(candidate);
+      globalThis.handleError?.(probeErr, 'rgb-wallet.ts:init:vssBackupInfoProbe');
+      throw new RgbBackupServerUnreachableError();
+    }
+
+    if (info.backupExists) {
+      // Server says a backup is here, but `restoreFromVss` couldn't load it.
+      // That's a real, non-"missing" failure — surface the original error.
+      await disposeQuiet(candidate);
+      throw originalError;
+    }
+
+    if (await this.hasInitializedBefore()) {
+      // Probe confirmed no backup. If we've initialized RGB on this device
+      // before, the backup vanished — refuse to silently recreate.
+      await disposeQuiet(candidate);
+      throw new RgbBackupLostError();
+    }
+
+    // Genuine first-creation on this device.
+    return candidate;
   }
 
   private sdk(): IRgbWallet {
@@ -268,7 +397,9 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    */
   async issueAssetNia(params: { ticker: string; name: string; precision: number; amounts: number[] }): Promise<{ assetId: string; ticker: string; name: string; precision: number }> {
     const asset = await this.sdk().issueAssetNia(params);
-    await this.tryBackup();
+    // Critical: a freshly-issued asset that isn't backed up is invisible after
+    // a reinstall. See tasks/rgb-backup-failure-handling.md.
+    await this.tryBackup({ critical: true });
     return { assetId: asset.assetId, ticker: asset.ticker, name: asset.name, precision: asset.precision };
   }
 
@@ -278,7 +409,10 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
       amount: amountSats,
       feeRate: await this.defaultFeeRate(),
     });
-    await this.tryBackup();
+    // Critical: a sent-on-chain payment changed the wallet's UTXO set; a
+    // recovery without this backup would think those UTXOs are still
+    // spendable. See tasks/rgb-backup-failure-handling.md.
+    await this.tryBackup({ critical: true });
     return txid;
   }
 
@@ -287,20 +421,55 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    * Amount is in the asset's base units; the `_memo` parameter is accepted to
    * satisfy InterfaceCanHaveTokens but is ignored — the RGB send API has no memo
    * field.
+   *
+   * RGB invoices can carry an embedded amount (and asset id). When they do, the
+   * SDK's `sendBegin` returns an empty PSBT if we *also* pass `amount` —
+   * downstream `signPsbt` then rejects with `psbtBase64 must be a non-empty
+   * string`. So we decode the invoice first and only forward the explicit
+   * `amount` / `assetId` for invoices that don't have them baked in.
    */
   async transferToken(tokenId: string, amount: bigint, invoice: string, _memo?: string): Promise<string> {
     // The SDK's send API takes `amount: number`. High-precision assets (e.g.
     // precision 18 + a large holding) can exceed JS's safe-integer range; the
     // error surfaces here rather than producing a silently rounded send.
     assert(amount <= BigInt(Number.MAX_SAFE_INTEGER), `RGB send amount ${amount} exceeds Number.MAX_SAFE_INTEGER (2^53). ` + 'Reduce the amount or wait for SDK bigint support.');
-    const result = await this.sdk().send({
+    const decoded = await this.sdk().decodeRGBInvoice({ invoice });
+    const invoiceHasAmount = typeof decoded.assignment?.amount === 'number';
+    const invoiceHasAsset = typeof decoded.assetId === 'string' && decoded.assetId.length > 0;
+    const params: Parameters<IRgbWallet['send']>[0] = {
       invoice,
-      assetId: tokenId,
-      amount: Number(amount),
       feeRate: await this.defaultFeeRate(),
-    });
-    await this.tryBackup();
+    };
+    if (!invoiceHasAsset) params.assetId = tokenId;
+    if (!invoiceHasAmount) params.amount = Number(amount);
+    const result = await this.sdk().send(params);
+    // Critical: an asset transfer changed colorable UTXO bindings; a recovery
+    // without this backup would have the wrong allocation map and could even
+    // double-spend the now-consumed slot. See
+    // tasks/rgb-backup-failure-handling.md.
+    await this.tryBackup({ critical: true });
     return result.txid;
+  }
+
+  /**
+   * Returns invoice metadata (assetId, embedded amount, expiration, …) so the
+   * UI can pre-fill / lock the amount field before reaching the send-confirm
+   * step. Returns null on decode failure (caller can fall back to manual
+   * entry).
+   */
+  async decodeInvoice(invoice: string): Promise<DecodedInvoice | null> {
+    try {
+      const d = await this.sdk().decodeRGBInvoice({ invoice });
+      return {
+        assetId: d.assetId,
+        amount: typeof d.assignment?.amount === 'number' ? d.assignment.amount : undefined,
+        expirationTimestamp: d.expirationTimestamp,
+        recipientId: d.recipientId,
+      };
+    } catch (e) {
+      globalThis.handleError?.(e, 'rgb-wallet.ts:decodeInvoice');
+      return null;
+    }
   }
 
   async fetchTokenBalances(): Promise<void> {
@@ -444,11 +613,130 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     return this._sdkNetwork === 'testnet' ? 1 : 5;
   }
 
-  private async tryBackup(): Promise<void> {
+  /**
+   * Backup ledger semantics. See tasks/rgb-backup-failure-handling.md.
+   *
+   * Every state-changing op increments `_pendingMutationsSinceBackup`, calls
+   * `vssBackup`, and on success decrements back to zero (or whatever the
+   * intervening mutations have stacked up). On failure the counter stays
+   * elevated, the error is classified, and the persisted state is updated so
+   * the warning survives a force-quit.
+   *
+   * `critical: true` is the right choice for user-initiated transfers /
+   * issuance: if the backup fails for one of those, we'd rather throw than
+   * pretend everything's fine — the caller (send-confirm screen) can show a
+   * "your transfer happened but backup failed" dialog and offer a retry.
+   * Background ops like `prepareWallet`'s `createUtxos` keep the default
+   * non-throwing behavior.
+   */
+  private async tryBackup(opts: { critical?: boolean } = {}): Promise<boolean> {
+    this._pendingMutationsSinceBackup += 1;
+    await this.persistBackupState();
     try {
       await this.sdk().vssBackup();
+      this._pendingMutationsSinceBackup = Math.max(0, this._pendingMutationsSinceBackup - 1);
+      this._lastBackupAt = Date.now();
+      this._lastBackupError = null;
+      await this.persistBackupState();
+      return true;
     } catch (e) {
+      const kind = classifyBackupError(e);
+      this._lastBackupError = { kind, at: Date.now(), message: errorMessage(e) };
+      await this.persistBackupState();
       globalThis.handleError?.(e, 'rgb-wallet.ts:vssBackup');
+      if (opts.critical) throw e;
+      return false;
+    }
+  }
+
+  /**
+   * Snapshot of the backup ledger for the UI hook. Read-only — mutations
+   * happen exclusively through `tryBackup` so the persisted state can't
+   * drift from in-memory.
+   */
+  getBackupStatus(): RgbBackupPersistedState {
+    return {
+      pendingMutations: this._pendingMutationsSinceBackup,
+      lastBackupAt: this._lastBackupAt,
+      lastBackupError: this._lastBackupError,
+    };
+  }
+
+  /** Re-attempt a backup outside any specific mutation. Used by the "Retry
+   *  backup" CTA in the warning banner. */
+  async retryBackup(): Promise<boolean> {
+    if (!this._sdkWallet) return false;
+    try {
+      await this.sdk().vssBackup();
+      this._pendingMutationsSinceBackup = 0;
+      this._lastBackupAt = Date.now();
+      this._lastBackupError = null;
+      await this.persistBackupState();
+      return true;
+    } catch (e) {
+      this._lastBackupError = { kind: classifyBackupError(e), at: Date.now(), message: errorMessage(e) };
+      await this.persistBackupState();
+      globalThis.handleError?.(e, 'rgb-wallet.ts:retryBackup');
+      return false;
+    }
+  }
+
+  // ── Persistence helpers for the backup ledger + the "initialized" flag. ──
+  // See tasks/rgb-backup-failure-handling.md.
+
+  /**
+   * The `storage?.<method> ?? noop` shape below tolerates the test fixtures'
+   * `init({} as any)` pattern. Persistence is best-effort by design: a broken
+   * storage layer must not crash wallet init, since the in-memory ledger is
+   * still authoritative for the lifetime of the process.
+   */
+  private async hasInitializedBefore(): Promise<boolean> {
+    if (!this._storage || typeof this._storage.getItem !== 'function') return false;
+    try {
+      const v = await this._storage.getItem(getRgbInitializedStorageKey(this._network));
+      return v === 'true';
+    } catch (e) {
+      globalThis.handleError?.(e, 'rgb-wallet.ts:hasInitializedBefore');
+      return false;
+    }
+  }
+
+  private async markRgbInitialized(): Promise<void> {
+    if (!this._storage || typeof this._storage.setItem !== 'function') return;
+    try {
+      await this._storage.setItem(getRgbInitializedStorageKey(this._network), 'true');
+    } catch (e) {
+      globalThis.handleError?.(e, 'rgb-wallet.ts:markRgbInitialized');
+    }
+  }
+
+  private async loadBackupState(): Promise<void> {
+    if (!this._storage || typeof this._storage.getItem !== 'function') return;
+    try {
+      const raw = await this._storage.getItem(getRgbBackupStateStorageKey(this._network, this._accountNumber));
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Partial<RgbBackupPersistedState>;
+      if (typeof parsed.pendingMutations === 'number') this._pendingMutationsSinceBackup = parsed.pendingMutations;
+      if (parsed.lastBackupAt === null || typeof parsed.lastBackupAt === 'number') this._lastBackupAt = parsed.lastBackupAt;
+      if (parsed.lastBackupError === null || (parsed.lastBackupError && typeof parsed.lastBackupError === 'object')) this._lastBackupError = parsed.lastBackupError ?? null;
+    } catch (e) {
+      // Corrupt persisted state shouldn't brick init. Reset to a clean ledger
+      // and let the next mutation re-establish it.
+      globalThis.handleError?.(e, 'rgb-wallet.ts:loadBackupState');
+    }
+  }
+
+  private async persistBackupState(): Promise<void> {
+    if (!this._storage || typeof this._storage.setItem !== 'function') return;
+    const state: RgbBackupPersistedState = {
+      pendingMutations: this._pendingMutationsSinceBackup,
+      lastBackupAt: this._lastBackupAt,
+      lastBackupError: this._lastBackupError,
+    };
+    try {
+      await this._storage.setItem(getRgbBackupStateStorageKey(this._network, this._accountNumber), JSON.stringify(state));
+    } catch (e) {
+      globalThis.handleError?.(e, 'rgb-wallet.ts:persistBackupState');
     }
   }
 
@@ -486,6 +774,40 @@ function isInsufficientAllocationSlots(e: unknown): boolean {
   const err = e as { code?: string; message?: string };
   if (err?.code === 'InsufficientAllocationSlots') return true;
   return /InsufficientAllocationSlots|insufficient.*allocation/i.test(String(err?.message ?? e));
+}
+
+/**
+ * Classify a backup failure for the UI ledger. The split exists so the
+ * warning banner can say "we couldn't reach the server" vs "the server
+ * rejected our credentials" — both are actionable, but in different ways.
+ * See tasks/rgb-backup-failure-handling.md.
+ */
+function classifyBackupError(e: unknown): RgbBackupErrorKind {
+  if (!e) return 'unknown';
+  const err = e as { code?: string; name?: string; message?: string; statusCode?: number; status?: number };
+  const text = typeof err.message === 'string' ? err.message : String(e);
+  if (err.code === 'NetworkError' || err.name === 'NetworkError') return 'network';
+  if (/network|fetch|timeout|connection|reachable|enotfound|econn/i.test(text)) return 'network';
+  if (err.statusCode === 401 || err.statusCode === 403 || err.status === 401 || err.status === 403) return 'auth';
+  if (/unauthor|forbidden|invalid\s+(?:token|credential)|signature/i.test(text)) return 'auth';
+  return 'unknown';
+}
+
+function errorMessage(e: unknown): string {
+  if (!e) return 'unknown';
+  const err = e as { message?: string };
+  if (typeof err.message === 'string' && err.message) return err.message;
+  return String(e);
+}
+
+/** Best-effort dispose. Tolerates partial/test mocks that don't implement it. */
+async function disposeQuiet(w: IRgbWallet): Promise<void> {
+  try {
+    const r = (w as { dispose?: () => unknown | Promise<unknown> }).dispose?.();
+    if (r && typeof (r as Promise<unknown>).then === 'function') await r;
+  } catch {
+    // ignore
+  }
 }
 
 function isVssBackupMissing(e: unknown): boolean {

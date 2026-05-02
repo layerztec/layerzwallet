@@ -1,12 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { RgbWallet } from '../../class/wallets/rgb-wallet';
+import { RgbBackupLostError, RgbBackupServerUnreachableError, RgbWallet } from '../../class/wallets/rgb-wallet';
+import { getRgbBackupStateStorageKey, getRgbInitializedStorageKey, IStorage } from '../../types/IStorage';
 import { NETWORK_RGB, NETWORK_RGB_TESTNET } from '../../types/networks';
 import type { IRgbAdapter, IRgbWallet } from '../../types/rgb-adapter';
 
+/** In-memory IStorage used by the backup-handling tests. */
+function makeMemoryStorage(initial: Record<string, string> = {}): IStorage & { _data: Record<string, string> } {
+  const _data: Record<string, string> = { ...initial };
+  return {
+    _data,
+    async getItem(key) {
+      return _data[key] ?? '';
+    },
+    async setItem(key, value) {
+      _data[key] = value;
+    },
+  };
+}
+
 function installAdapter(overrides: Partial<IRgbWallet> = {}) {
   const sdkWallet: IRgbWallet = {
-    dispose: vi.fn(),
+    dispose: vi.fn().mockResolvedValue(undefined),
     getAddress: vi.fn().mockResolvedValue('bc1pexampletaprootexampletaprootexampletaprootexampletaprootex'),
     getXpub: vi.fn().mockReturnValue({ xpubVan: '', xpubCol: '' }),
     getBtcBalance: vi.fn().mockResolvedValue({
@@ -39,7 +54,11 @@ function installAdapter(overrides: Partial<IRgbWallet> = {}) {
     syncWallet: vi.fn(),
     failTransfers: vi.fn(),
     vssBackup: vi.fn().mockResolvedValue(1),
-    vssBackupInfo: vi.fn(),
+    // Default to "VSS reachable, no backup yet, no backup required" so the
+    // probe-then-fresh-create path used by RgbWallet.init() works without
+    // each test having to spell it out. See
+    // tasks/rgb-backup-failure-handling.md.
+    vssBackupInfo: vi.fn().mockResolvedValue({ backupExists: false, backupRequired: false, serverVersion: null }),
     configureVssBackup: vi.fn(),
     disableVssAutoBackup: vi.fn(),
     getDefaultVssConfig: vi.fn(),
@@ -127,7 +146,7 @@ describe('RgbWallet', () => {
     it('falls back to createWallet when VSS reports backup missing', async () => {
       const adapter: IRgbAdapter = {
         capabilities: { lightning: false },
-        createWallet: vi.fn().mockResolvedValue({} as IRgbWallet),
+        createWallet: vi.fn().mockResolvedValue({ vssBackupInfo: vi.fn().mockResolvedValue({ backupExists: false, backupRequired: false, serverVersion: null }) } as unknown as IRgbWallet),
         restoreFromVss: vi.fn().mockRejectedValue(Object.assign(new Error('not found'), { name: 'NotFoundError' })),
       };
       (globalThis as any).rgbAdapter = adapter;
@@ -168,7 +187,7 @@ describe('RgbWallet', () => {
     it('falls back on HTTP 404 from VSS', async () => {
       const adapter: IRgbAdapter = {
         capabilities: { lightning: false },
-        createWallet: vi.fn().mockResolvedValue({} as IRgbWallet),
+        createWallet: vi.fn().mockResolvedValue({ vssBackupInfo: vi.fn().mockResolvedValue({ backupExists: false, backupRequired: false, serverVersion: null }) } as unknown as IRgbWallet),
         restoreFromVss: vi.fn().mockRejectedValue(Object.assign(new Error('vss bucket unavailable'), { statusCode: 404 })),
       };
       (globalThis as any).rgbAdapter = adapter;
@@ -185,7 +204,7 @@ describe('RgbWallet', () => {
       const err = Object.assign(new Error('Rgb.RgbLibError.VssBackupNotFound'), { code: 'VssBackupNotFound' });
       const adapter: IRgbAdapter = {
         capabilities: { lightning: false },
-        createWallet: vi.fn().mockResolvedValue({} as IRgbWallet),
+        createWallet: vi.fn().mockResolvedValue({ vssBackupInfo: vi.fn().mockResolvedValue({ backupExists: false, backupRequired: false, serverVersion: null }) } as unknown as IRgbWallet),
         restoreFromVss: vi.fn().mockRejectedValue(err),
       };
       (globalThis as any).rgbAdapter = adapter;
@@ -203,7 +222,7 @@ describe('RgbWallet', () => {
       const err = Object.assign({ 0: 'V', 1: 'S', 2: 'S' }, { toString: () => 'VSS backup not found' });
       const adapter: IRgbAdapter = {
         capabilities: { lightning: false },
-        createWallet: vi.fn().mockResolvedValue({} as IRgbWallet),
+        createWallet: vi.fn().mockResolvedValue({ vssBackupInfo: vi.fn().mockResolvedValue({ backupExists: false, backupRequired: false, serverVersion: null }) } as unknown as IRgbWallet),
         restoreFromVss: vi.fn().mockRejectedValue(err),
       };
       (globalThis as any).rgbAdapter = adapter;
@@ -241,6 +260,84 @@ describe('RgbWallet', () => {
       await w.init({} as any);
       const huge = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
       await expect(w.transferToken('nia-1', huge, 'rgb:abc')).rejects.toThrow(/MAX_SAFE_INTEGER/);
+    });
+
+    it('transferToken: omits amount/assetId when invoice has them baked in', async () => {
+      // Repro of the empty-PSBT bug: when the invoice carries assignment.amount
+      // and we *also* pass `amount` to sendBegin, rgb-lib returns an empty PSBT
+      // and signPsbt rejects with `psbtBase64 must be a non-empty string`.
+      const { sdkWallet } = installAdapter({
+        decodeRGBInvoice: vi.fn().mockResolvedValue({
+          invoice: 'rgb:full-invoice',
+          recipientId: 'utxob:abc',
+          assetId: 'rgb:embedded-asset',
+          network: 'testnet',
+          assignment: { type: 'Fungible', amount: 42 },
+          expirationTimestamp: null,
+          transportEndpoints: [],
+        }),
+        send: vi.fn().mockResolvedValue({ txid: 'tx-omit', batchTransferIdx: 1 }),
+      });
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const txid = await w.transferToken('rgb:embedded-asset', 42n, 'rgb:full-invoice');
+      expect(txid).toBe('tx-omit');
+      expect(sdkWallet.send).toHaveBeenCalledWith({ invoice: 'rgb:full-invoice', feeRate: 1 });
+      // No `amount` and no `assetId` keys leaked through.
+      const call = (sdkWallet.send as any).mock.calls[0][0];
+      expect('amount' in call).toBe(false);
+      expect('assetId' in call).toBe(false);
+    });
+
+    it('transferToken: passes amount/assetId for an "any-amount" / "any-asset" invoice', async () => {
+      const { sdkWallet } = installAdapter({
+        decodeRGBInvoice: vi.fn().mockResolvedValue({
+          invoice: 'rgb:open-invoice',
+          recipientId: 'utxob:open',
+          // No assetId, no amount → invoice is the open / "tip jar" form.
+          network: 'testnet',
+          assignment: { type: 'Any' },
+          expirationTimestamp: null,
+          transportEndpoints: [],
+        }),
+        send: vi.fn().mockResolvedValue({ txid: 'tx-open', batchTransferIdx: 2 }),
+      });
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const txid = await w.transferToken('nia-A', 100n, 'rgb:open-invoice');
+      expect(txid).toBe('tx-open');
+      expect(sdkWallet.send).toHaveBeenCalledWith({ invoice: 'rgb:open-invoice', feeRate: 1, assetId: 'nia-A', amount: 100 });
+    });
+
+    it('decodeInvoice: returns the projected shape', async () => {
+      const { sdkWallet } = installAdapter({
+        decodeRGBInvoice: vi.fn().mockResolvedValue({
+          invoice: 'rgb:abc',
+          recipientId: 'utxob:r',
+          assetId: 'rgb:asset-1',
+          network: 'testnet',
+          assignment: { type: 'Fungible', amount: 7 },
+          expirationTimestamp: 1730000000,
+          transportEndpoints: [],
+        }),
+      });
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const out = await w.decodeInvoice('rgb:abc');
+      expect(out).toEqual({ assetId: 'rgb:asset-1', amount: 7, expirationTimestamp: 1730000000, recipientId: 'utxob:r' });
+      expect(sdkWallet.decodeRGBInvoice).toHaveBeenCalledWith({ invoice: 'rgb:abc' });
+    });
+
+    it('decodeInvoice: returns null on SDK error (caller falls back to manual entry)', async () => {
+      installAdapter({ decodeRGBInvoice: vi.fn().mockRejectedValue(new Error('bad invoice')) });
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const out = await w.decodeInvoice('rgb:bad');
+      expect(out).toBeNull();
     });
   });
 
@@ -621,6 +718,223 @@ describe('RgbWallet', () => {
       await w.prepareWallet();
       // Mainnet defaultFeeRate is 5 (see RgbWallet.defaultFeeRate)
       expect(sdkWallet.createUtxos).toHaveBeenCalledWith({ upTo: true, num: 5, size: 1000, feeRate: 5 });
+    });
+  });
+
+  /**
+   * Backup-failure handling. The model these tests cover is documented in
+   * tasks/rgb-backup-failure-handling.md.
+   *
+   * The init() probe path: when restoreFromVss reports a "missing" error, we
+   * don't trust that classification on its own — we create a candidate wallet
+   * and call vssBackupInfo on it. The probe answer (combined with the
+   * device-local "RGB_INITIALIZED" flag) determines whether we fresh-create,
+   * throw RgbBackupServerUnreachableError, throw RgbBackupLostError, or
+   * surface the original error.
+   */
+  describe('backup-failure handling', () => {
+    describe('init probe', () => {
+      it('throws RgbBackupServerUnreachableError when probe call itself fails', async () => {
+        // restoreFromVss says "missing"; probe says nothing (throws). Without
+        // the probe gate, the old code would have created a fresh wallet and
+        // overwritten the user's real backup on the next mutation.
+        const probeWallet = {
+          vssBackupInfo: vi.fn().mockRejectedValue(new Error('connect ETIMEDOUT')),
+          dispose: vi.fn().mockResolvedValue(undefined),
+        } as unknown as IRgbWallet;
+        const adapter: IRgbAdapter = {
+          capabilities: { lightning: false },
+          createWallet: vi.fn().mockResolvedValue(probeWallet),
+          restoreFromVss: vi.fn().mockRejectedValue(Object.assign(new Error('not found'), { name: 'NotFoundError' })),
+        };
+        (globalThis as any).rgbAdapter = adapter;
+        const w = new RgbWallet(NETWORK_RGB_TESTNET);
+        w.setSecret(MNEMONIC);
+        await expect(w.init(makeMemoryStorage())).rejects.toBeInstanceOf(RgbBackupServerUnreachableError);
+        // Probe wallet was disposed — we don't keep dangling state.
+        expect(probeWallet.dispose).toHaveBeenCalled();
+      });
+
+      it('rethrows the original restore error when probe says backup exists', async () => {
+        // The "missing" classifier was wrong: server says a backup is here,
+        // restoreFromVss just couldn't load it. Surface the original error so
+        // the user knows what actually went wrong instead of a misleading
+        // fresh wallet.
+        const probeWallet = {
+          vssBackupInfo: vi.fn().mockResolvedValue({ backupExists: true, backupRequired: false, serverVersion: 7 }),
+          dispose: vi.fn().mockResolvedValue(undefined),
+        } as unknown as IRgbWallet;
+        const restoreErr = Object.assign(new Error('Rgb.RgbLibError.VssBackupNotFound'), { code: 'VssBackupNotFound' });
+        const adapter: IRgbAdapter = {
+          capabilities: { lightning: false },
+          createWallet: vi.fn().mockResolvedValue(probeWallet),
+          restoreFromVss: vi.fn().mockRejectedValue(restoreErr),
+        };
+        (globalThis as any).rgbAdapter = adapter;
+        const w = new RgbWallet(NETWORK_RGB_TESTNET);
+        w.setSecret(MNEMONIC);
+        await expect(w.init(makeMemoryStorage())).rejects.toBe(restoreErr);
+      });
+
+      it('throws RgbBackupLostError when device flag is set and probe says missing', async () => {
+        // Hardest case: this device has used RGB before (flag set), but VSS
+        // now reports no backup. Either the user nuked their VSS account or
+        // something is very wrong server-side. Refuse to silently recreate.
+        const probeWallet = {
+          vssBackupInfo: vi.fn().mockResolvedValue({ backupExists: false, backupRequired: false, serverVersion: null }),
+          dispose: vi.fn().mockResolvedValue(undefined),
+        } as unknown as IRgbWallet;
+        const adapter: IRgbAdapter = {
+          capabilities: { lightning: false },
+          createWallet: vi.fn().mockResolvedValue(probeWallet),
+          restoreFromVss: vi.fn().mockRejectedValue(Object.assign(new Error('not found'), { name: 'NotFoundError' })),
+        };
+        (globalThis as any).rgbAdapter = adapter;
+        const storage = makeMemoryStorage({ [getRgbInitializedStorageKey(NETWORK_RGB_TESTNET)]: 'true' });
+        const w = new RgbWallet(NETWORK_RGB_TESTNET);
+        w.setSecret(MNEMONIC);
+        await expect(w.init(storage)).rejects.toBeInstanceOf(RgbBackupLostError);
+      });
+
+      it('creates fresh wallet when probe says missing AND device has never initialized', async () => {
+        // The genuine first-creation path — no flag set, server confirms no
+        // backup. Same outcome as the old fall-back-on-missing behavior, but
+        // now reached only after probe confirmation.
+        const freshWallet = {
+          vssBackupInfo: vi.fn().mockResolvedValue({ backupExists: false, backupRequired: false, serverVersion: null }),
+          dispose: vi.fn().mockResolvedValue(undefined),
+        } as unknown as IRgbWallet;
+        const adapter: IRgbAdapter = {
+          capabilities: { lightning: false },
+          createWallet: vi.fn().mockResolvedValue(freshWallet),
+          restoreFromVss: vi.fn().mockRejectedValue(Object.assign(new Error('not found'), { name: 'NotFoundError' })),
+        };
+        (globalThis as any).rgbAdapter = adapter;
+        const storage = makeMemoryStorage();
+        const w = new RgbWallet(NETWORK_RGB_TESTNET);
+        w.setSecret(MNEMONIC);
+        await w.init(storage);
+        // Flag was set after successful init — next time, a probe-missing
+        // would trigger RgbBackupLostError instead of silent fresh creation.
+        expect(storage._data[getRgbInitializedStorageKey(NETWORK_RGB_TESTNET)]).toBe('true');
+        // Fresh wallet was kept (not disposed) — caller will use it.
+        expect(freshWallet.dispose).not.toHaveBeenCalled();
+      });
+
+      it('does not invoke the probe at all when restoreFromVss succeeds', async () => {
+        // Happy path — backup exists, restore succeeds, no probe needed. The
+        // RGB_INITIALIZED flag is still set on the way out so a future
+        // backup-loss is detectable.
+        const { adapter, sdkWallet } = installAdapter();
+        const storage = makeMemoryStorage();
+        const w = new RgbWallet(NETWORK_RGB_TESTNET);
+        w.setSecret(MNEMONIC);
+        await w.init(storage);
+        expect(adapter.createWallet).not.toHaveBeenCalled();
+        expect(sdkWallet.vssBackupInfo).not.toHaveBeenCalled();
+        expect(storage._data[getRgbInitializedStorageKey(NETWORK_RGB_TESTNET)]).toBe('true');
+      });
+    });
+
+    describe('tryBackup ledger', () => {
+      it('records a successful backup: pendingMutations -> 0, lastBackupAt set, no error', async () => {
+        const { sdkWallet } = installAdapter();
+        const storage = makeMemoryStorage();
+        const w = new RgbWallet(NETWORK_RGB_TESTNET);
+        w.setSecret(MNEMONIC);
+        await w.init(storage);
+        // issueAssetNia triggers a critical tryBackup; the default vssBackup
+        // mock resolves successfully.
+        await w.issueAssetNia({ ticker: 'X', name: 'X', precision: 0, amounts: [1] });
+        const status = w.getBackupStatus();
+        expect(status.pendingMutations).toBe(0);
+        expect(status.lastBackupAt).toBeTypeOf('number');
+        expect(status.lastBackupError).toBeNull();
+        expect(sdkWallet.vssBackup).toHaveBeenCalledOnce();
+        // Persisted shape mirrors the in-memory state.
+        const raw = storage._data[getRgbBackupStateStorageKey(NETWORK_RGB_TESTNET, 0)];
+        expect(JSON.parse(raw).pendingMutations).toBe(0);
+      });
+
+      it('classifies a network-style failure and leaves pendingMutations elevated', async () => {
+        // Default tryBackup (non-critical) is used by createUtxos. Force the
+        // SDK call to fail; ledger should record the error and the bumped
+        // counter, but not throw.
+        const { sdkWallet } = installAdapter({
+          vssBackup: vi.fn().mockRejectedValue(Object.assign(new Error('connect ECONNREFUSED'), { code: 'NetworkError' })),
+        });
+        const storage = makeMemoryStorage();
+        const w = new RgbWallet(NETWORK_RGB_TESTNET);
+        w.setSecret(MNEMONIC);
+        await w.init(storage);
+        await w.createUtxos();
+        const status = w.getBackupStatus();
+        expect(status.pendingMutations).toBe(1);
+        expect(status.lastBackupError?.kind).toBe('network');
+        expect(sdkWallet.vssBackup).toHaveBeenCalledOnce();
+        // Persistence held — a force-quit here would still surface the warning.
+        const raw = storage._data[getRgbBackupStateStorageKey(NETWORK_RGB_TESTNET, 0)];
+        expect(JSON.parse(raw).lastBackupError.kind).toBe('network');
+      });
+
+      it('throws on critical=true backup failure (transferToken / issueAssetNia path)', async () => {
+        // Caller (send-confirm) needs to know about a failed backup so it
+        // can surface a "your transfer happened but backup failed" dialog.
+        const issueErr = Object.assign(new Error('connect ECONNREFUSED'), { code: 'NetworkError' });
+        const { sdkWallet } = installAdapter({
+          vssBackup: vi.fn().mockRejectedValue(issueErr),
+        });
+        const storage = makeMemoryStorage();
+        const w = new RgbWallet(NETWORK_RGB_TESTNET);
+        w.setSecret(MNEMONIC);
+        await w.init(storage);
+        await expect(w.issueAssetNia({ ticker: 'X', name: 'X', precision: 0, amounts: [1] })).rejects.toBe(issueErr);
+        // The actual issuance still went through on the SDK — the ledger
+        // reflects that we have a pending mutation that wasn't backed up.
+        expect(sdkWallet.issueAssetNia).toHaveBeenCalledOnce();
+        expect(w.getBackupStatus().pendingMutations).toBe(1);
+      });
+
+      it('retryBackup clears pendingMutations and the recorded error on success', async () => {
+        // Wire vssBackup to fail first, then succeed on the retry.
+        const vssBackup = vi.fn().mockRejectedValueOnce(new Error('transient')).mockResolvedValueOnce(1);
+        const { sdkWallet } = installAdapter({ vssBackup });
+        const storage = makeMemoryStorage();
+        const w = new RgbWallet(NETWORK_RGB_TESTNET);
+        w.setSecret(MNEMONIC);
+        await w.init(storage);
+        await w.createUtxos(); // first attempt fails, ledger records it
+        expect(w.getBackupStatus().pendingMutations).toBe(1);
+        const ok = await w.retryBackup();
+        expect(ok).toBe(true);
+        expect(w.getBackupStatus().pendingMutations).toBe(0);
+        expect(w.getBackupStatus().lastBackupError).toBeNull();
+        expect(sdkWallet.vssBackup).toHaveBeenCalledTimes(2);
+      });
+
+      it('preserves pendingMutations across re-init by reading from persisted state', async () => {
+        // A force-quit between mutation and successful backup must not
+        // silently clear the warning state on next launch.
+        const storage = makeMemoryStorage();
+        {
+          const { sdkWallet } = installAdapter({
+            vssBackup: vi.fn().mockRejectedValue(new Error('boom')),
+          });
+          void sdkWallet;
+          const w1 = new RgbWallet(NETWORK_RGB_TESTNET);
+          w1.setSecret(MNEMONIC);
+          await w1.init(storage);
+          await w1.createUtxos();
+          expect(w1.getBackupStatus().pendingMutations).toBe(1);
+        }
+        // Simulate fresh process: new wallet instance, same storage.
+        installAdapter();
+        const w2 = new RgbWallet(NETWORK_RGB_TESTNET);
+        w2.setSecret(MNEMONIC);
+        await w2.init(storage);
+        // Counter survived the process boundary.
+        expect(w2.getBackupStatus().pendingMutations).toBe(1);
+      });
     });
   });
 });
