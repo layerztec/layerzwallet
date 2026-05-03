@@ -821,6 +821,46 @@ describe('RgbWallet', () => {
         expect(freshWallet.dispose).not.toHaveBeenCalled();
       });
 
+      it('treats a "missing" probe throw as backupExists:false and fresh-creates when never initialized', async () => {
+        // Web SDK throws (rather than returns) on a 404 from getObject. If
+        // that throw matches isVssBackupMissing, the probe should treat it as
+        // a confirmed "no backup" answer — not as "server unreachable".
+        const probeWallet = {
+          vssBackupInfo: vi.fn().mockRejectedValue(Object.assign(new Error('VSS backup not found'), { statusCode: 404 })),
+          dispose: vi.fn().mockResolvedValue(undefined),
+        } as unknown as IRgbWallet;
+        const adapter: IRgbAdapter = {
+          capabilities: { lightning: false },
+          createWallet: vi.fn().mockResolvedValue(probeWallet),
+          restoreFromVss: vi.fn().mockRejectedValue(Object.assign(new Error('not found'), { name: 'NotFoundError' })),
+        };
+        (globalThis as any).rgbAdapter = adapter;
+        const storage = makeMemoryStorage();
+        const w = new RgbWallet(NETWORK_RGB_TESTNET);
+        w.setSecret(MNEMONIC);
+        await w.init(storage);
+        expect(storage._data[getRgbInitializedStorageKey(NETWORK_RGB_TESTNET)]).toBe('true');
+        // Candidate kept (not disposed) — caller will use it.
+        expect(probeWallet.dispose).not.toHaveBeenCalled();
+      });
+
+      it('treats a "missing" probe throw as backupExists:false and throws RgbBackupLostError when device flag is set', async () => {
+        const probeWallet = {
+          vssBackupInfo: vi.fn().mockRejectedValue(Object.assign(new Error('Requested key not found.'), { statusCode: 404 })),
+          dispose: vi.fn().mockResolvedValue(undefined),
+        } as unknown as IRgbWallet;
+        const adapter: IRgbAdapter = {
+          capabilities: { lightning: false },
+          createWallet: vi.fn().mockResolvedValue(probeWallet),
+          restoreFromVss: vi.fn().mockRejectedValue(Object.assign(new Error('not found'), { name: 'NotFoundError' })),
+        };
+        (globalThis as any).rgbAdapter = adapter;
+        const storage = makeMemoryStorage({ [getRgbInitializedStorageKey(NETWORK_RGB_TESTNET)]: 'true' });
+        const w = new RgbWallet(NETWORK_RGB_TESTNET);
+        w.setSecret(MNEMONIC);
+        await expect(w.init(storage)).rejects.toBeInstanceOf(RgbBackupLostError);
+      });
+
       it('does not invoke the probe at all when restoreFromVss succeeds', async () => {
         // Happy path — backup exists, restore succeeds, no probe needed. The
         // RGB_INITIALIZED flag is still set on the way out so a future

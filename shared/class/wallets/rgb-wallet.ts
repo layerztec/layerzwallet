@@ -206,12 +206,20 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     try {
       info = await candidate.vssBackupInfo();
     } catch (probeErr) {
-      // Probe itself failed. Anything that isn't a clear "server says no
-      // backup here" is treated as unreachable — the alternative is silently
-      // overwriting a real backup with empty state, which is unrecoverable.
-      await disposeQuiet(candidate);
-      globalThis.handleError?.(probeErr, 'rgb-wallet.ts:init:vssBackupInfoProbe');
-      throw new RgbBackupServerUnreachableError();
+      // The web SDK throws on a 404 from `getObject` rather than returning
+      // `{ backupExists: false }`. If the throw matches our "missing" detector
+      // (same shape as the original restore error), treat it as a confirmed
+      // "no backup" answer — same outcome as the success branch with
+      // `info.backupExists === false`. Anything else is treated as unreachable
+      // — the alternative is silently overwriting a real backup with empty
+      // state, which is unrecoverable.
+      if (isVssBackupMissing(probeErr)) {
+        info = { backupExists: false } as Awaited<ReturnType<IRgbWallet['vssBackupInfo']>>;
+      } else {
+        await disposeQuiet(candidate);
+        globalThis.handleError?.(probeErr, 'rgb-wallet.ts:init:vssBackupInfoProbe');
+        throw new RgbBackupServerUnreachableError();
+      }
     }
 
     if (info.backupExists) {
@@ -843,6 +851,14 @@ function isVssBackupMissing(e: unknown): boolean {
   // good remote backup on first unlock — but the alternative is a permanent
   // boot loop with no recovery path.
   //
+  // The "VSS backup not configured" / "VSS not initialized" message is the
+  // web SDK's response when `vssBackupInfo()` is called on a wallet that
+  // hasn't run `restoreFromVss` first — i.e. exactly the candidate built in
+  // `acquireFreshWalletAfterProbe`. The web wasm exposes no probe API that
+  // works without prior VSS setup, so this throw means "probe unavailable,
+  // fall back to the restore verdict (which was 'missing')." Same outcome as
+  // a real "missing" answer, so we merge them here.
+  //
   // Tracked upstream: https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/20
   if (!e) return false;
   const err = e as { name?: string; message?: string; statusCode?: number; status?: number; code?: string };
@@ -851,6 +867,7 @@ function isVssBackupMissing(e: unknown): boolean {
   if (err.statusCode === 404 || err.status === 404) return true;
   const text = typeof err.message === 'string' ? err.message : String(e);
   if (/VssBackupNotFound|backup\s*not\s*found|backup\s+(does\s+not\s+exist|missing)/i.test(text)) return true;
+  if (/VSS\s+backup\s+not\s+configured|VSS\s+not\s+initialized/i.test(text)) return true;
   if (/bincode error while reading entry|failed to fill whole buffer/i.test(text)) return true;
   return false;
 }
