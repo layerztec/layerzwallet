@@ -32,6 +32,7 @@ import { BackgroundCaller } from '../../modules/background-caller';
 import Balance from './components/Balance';
 import NftsView from './components/NftsView';
 import PartnersView from './components/PartnersView';
+import RgbBackupBanner from './components/RgbBackupBanner';
 import SwapInterfaceView from './components/SwapInterfaceView';
 import SwapListView from './components/SwapListView';
 import TokensView from './components/TokensView';
@@ -250,6 +251,8 @@ const Home: React.FC = () => {
       </div>
 
       <Balance ref={balanceRef} network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />
+
+      <RgbBackupBanner />
 
       {showSwapInterface ? (
         <SwapInterfaceView fromNetwork={swapFromNetwork} />

@@ -25,8 +25,19 @@ export default function OnboardingCreatePassword() {
 
     try {
       await BackgroundCaller.encryptMnemonic(pass1);
-      setStep(EStep.TOS);
-      navigate('/onboarding-tos');
+      // On the import path we run a one-time VSS reachability probe before
+      // letting the user reach the wallet. Create-wallet skips it (no
+      // backup to restore from). Flag is set in OnboardingImportWallet.
+      // The gate route is registered in BOTH EStep.PASSWORD and EStep.TOS
+      // Routes blocks so this navigate matches without first transitioning
+      // EStep — the gate itself bumps EStep to TOS when it proceeds.
+      const justImported = sessionStorage.getItem('rgb.justImported') === '1';
+      if (justImported) {
+        navigate('/onboarding-verifying-rgb-backup');
+      } else {
+        setStep(EStep.TOS);
+        navigate('/onboarding-tos');
+      }
     } catch (error) {
       setValidationError('An error occurred');
       setIsLoading(false);

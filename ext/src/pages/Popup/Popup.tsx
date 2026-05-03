@@ -27,6 +27,7 @@ import OnboardingCreateWallet from './OnboardingCreateWallet';
 import OnboardingImportWallet from './OnboardingImportWallet';
 import OnboardingIntro from './OnboardingIntro';
 import OnboardingTos from './OnboardingTos';
+import OnboardingVerifyingRgbBackup from './OnboardingVerifyingRgbBackup';
 import './Popup.css';
 import Receive from './Receive';
 import ReceiveLightning from './ReceiveLightning';
@@ -73,6 +74,7 @@ const AppContent: React.FC = () => {
           <Routes>
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/onboarding-create-password" element={<OnboardingCreatePassword />} />
+            <Route path="/onboarding-verifying-rgb-backup" element={<OnboardingVerifyingRgbBackup />} />
             <Route path="*" element={<Navigate to="/onboarding-create-password" replace />} />
           </Routes>
         );
@@ -92,6 +94,7 @@ const AppContent: React.FC = () => {
           <Routes>
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/onboarding-tos" element={<OnboardingTos />} />
+            <Route path="/onboarding-verifying-rgb-backup" element={<OnboardingVerifyingRgbBackup />} />
             <Route path="*" element={<Navigate to="/onboarding-tos" replace />} />
           </Routes>
         );
