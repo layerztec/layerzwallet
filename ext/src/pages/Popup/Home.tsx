@@ -18,6 +18,8 @@ import {
   NETWORK_LIGHTNING_TESTNET,
   NETWORK_LIQUID,
   NETWORK_LIQUID_TESTNET,
+  NETWORK_RGB,
+  NETWORK_RGB_TESTNET,
   NETWORK_ROOTSTOCK,
   NETWORK_SPARK,
   NETWORK_STACKS,
@@ -59,6 +61,10 @@ const Home: React.FC = () => {
   }, [network]);
 
   const handleReceive = () => {
+    if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+      navigate('/receive-rgb-token');
+      return;
+    }
     navigate('/receive');
   };
 
@@ -80,6 +86,10 @@ const Home: React.FC = () => {
       case NETWORK_LIGHTNING:
       case NETWORK_LIGHTNING_TESTNET:
         navigate('/send-lightning');
+        break;
+      case NETWORK_RGB:
+      case NETWORK_RGB_TESTNET:
+        navigate('/send-rgb');
         break;
       default:
         navigate('/send-evm');
