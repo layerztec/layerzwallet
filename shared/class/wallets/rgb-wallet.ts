@@ -362,6 +362,19 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   }
 
   /**
+   * Fails all pending RGB transfers — frees up the colorable UTXOs they were
+   * holding. Used by the UTXO-manager debug screen to recover from a stuck
+   * `WaitingCounterparty` blind invoice that's locking an allocation slot.
+   * Returns `true` if at least one transfer was failed.
+   */
+  async failTransfers(): Promise<boolean> {
+    await this.sync();
+    const result = await this.sdk().failTransfers({});
+    await this.tryBackup();
+    return result;
+  }
+
+  /**
    * Generates an RGB receive invoice. Defaults to a **blind** invoice (better
    * privacy: the sender doesn't learn which UTXO the asset lands on), and
    * transparently falls back to **witness** if the wallet has no free

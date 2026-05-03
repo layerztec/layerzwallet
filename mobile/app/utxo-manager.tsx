@@ -33,6 +33,7 @@ export default function UtxoManagerScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isFailing, setIsFailing] = useState(false);
   const [createdHint, setCreatedHint] = useState<string | null>(null);
 
   const [numStr, setNumStr] = useState(DEFAULT_NUM);
@@ -106,6 +107,36 @@ export default function UtxoManagerScreen() {
     }
   };
 
+  const failPendingTransfers = async () => {
+    if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) return;
+    Alert.alert('Fail pending transfers?', 'This aborts every pending RGB transfer (incoming blind invoices included) and frees the UTXOs they hold. Use to recover stuck allocations.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Fail all',
+        style: 'destructive',
+        onPress: async () => {
+          setError(null);
+          setCreatedHint(null);
+          setIsFailing(true);
+          try {
+            const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+            if (!(wallet instanceof RgbWallet)) throw new Error('Wallet is not an RgbWallet');
+            const ok = await wallet.failTransfers();
+            setCreatedHint(ok ? 'Pending transfers failed.' : 'No pending transfers to fail.');
+            await refresh();
+          } catch (e: any) {
+            console.warn('failTransfers failed:', e);
+            const msg = e?.message ?? 'Failed to abort transfers';
+            setError(msg);
+            Alert.alert('Fail Transfers failed', msg);
+          } finally {
+            setIsFailing(false);
+          }
+        },
+      },
+    ]);
+  };
+
   const copy = async (text: string, label: string) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await Clipboard.setStringAsync(text);
@@ -163,6 +194,7 @@ export default function UtxoManagerScreen() {
 
             <View style={styles.buttonStack}>
               <Button title="Create UTXOs" onPress={create} loading={isCreating} disabled={!!validation || isCreating} testID="UtxoManager.Create" />
+              <Button title="Fail Pending Transfers" variant="lighter" onPress={failPendingTransfers} loading={isFailing} disabled={isFailing} testID="UtxoManager.FailTransfers" />
               <Button title="Refresh" variant="lighter" onPress={refresh} loading={isLoading} disabled={isLoading} testID="UtxoManager.Refresh" />
             </View>
           </View>
