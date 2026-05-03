@@ -69,6 +69,14 @@ export function ProtectedRouteStack() {
           }}
         />
         <Stack.Screen
+          name="onboarding/verifying-rgb-backup"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
           name="onboarding/import-wallet"
           options={{
             headerTitle: 'Enter seed phrase',
