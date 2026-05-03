@@ -10,6 +10,7 @@ import Pressable from '../../components/Pressable';
 import successRiv from '../../assets/animations/success.riv';
 
 import RadialGradientScreen from '@/components/RadialGradientScreen';
+import RgbBackupBanner from '@/components/RgbBackupBanner';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { SendAssetProps, withAsset } from '@/hooks/withAsset';
@@ -284,6 +285,11 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                 </View>
               ) : (
                 <>
+                  {/* Soft warning if a previous RGB backup is still pending or
+                      failed — sending now will increase the unbacked window.
+                      No-op on non-RGB networks. */}
+                  <RgbBackupBanner />
+
                   {/* Total Section */}
                   <Animated.View style={[styles.totalSection, totalAnimatedStyle]}>
                     <View style={styles.sectionHeader}>
