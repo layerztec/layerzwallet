@@ -207,12 +207,14 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
       info = await candidate.vssBackupInfo();
     } catch (probeErr) {
       // The web SDK throws on a 404 from `getObject` rather than returning
-      // `{ backupExists: false }`. If the throw matches our "missing" detector
-      // (same shape as the original restore error), treat it as a confirmed
-      // "no backup" answer — same outcome as the success branch with
-      // `info.backupExists === false`. Anything else is treated as unreachable
-      // — the alternative is silently overwriting a real backup with empty
-      // state, which is unrecoverable.
+      // `{ backupExists: false }`, and additionally throws "VSS backup not
+      // configured" when called on a candidate that hasn't yet been restored
+      // (no pre-restore probe API exists on web). If the throw matches our
+      // "missing" detector, treat it as a confirmed "no backup" answer — same
+      // outcome as the success branch with `info.backupExists === false`.
+      // Anything else is treated as unreachable — the alternative is silently
+      // overwriting a real backup with empty state, which is unrecoverable.
+      // Tracked upstream: https://github.com/UTEXO-Protocol/rgb-sdk-web/issues/6
       if (isVssBackupMissing(probeErr)) {
         info = { backupExists: false } as Awaited<ReturnType<IRgbWallet['vssBackupInfo']>>;
       } else {
@@ -858,8 +860,9 @@ function isVssBackupMissing(e: unknown): boolean {
   // works without prior VSS setup, so this throw means "probe unavailable,
   // fall back to the restore verdict (which was 'missing')." Same outcome as
   // a real "missing" answer, so we merge them here.
+  // Tracked upstream: https://github.com/UTEXO-Protocol/rgb-sdk-web/issues/6
   //
-  // Tracked upstream: https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/20
+  // Tracked upstream (RN): https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/20
   if (!e) return false;
   const err = e as { name?: string; message?: string; statusCode?: number; status?: number; code?: string };
   if (err.code === 'VssBackupNotFound') return true;
