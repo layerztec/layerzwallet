@@ -561,17 +561,26 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
       const netSats = tx.received - tx.sent;
       const related = transfersByTxid.get(tx.txid) ?? [];
       const tokenTransfers = this.annotatedTransfersToCommon(related);
-      const direction: CommonTransaction['direction'] = netSats === 0 && tokenTransfers.length > 0 ? (related.some((r) => r.kind === 'Send') ? 'send' : 'receive') : netSats > 0 ? 'receive' : 'send';
+      const hasTokens = tokenTransfers.length > 0;
+      const direction: CommonTransaction['direction'] = hasTokens ? (related.some((r) => r.kind === 'Send') ? 'send' : 'receive') : netSats > 0 ? 'receive' : 'send';
+      // For token transactions the on-chain BTC delta is just dust + fee —
+      // not what the user moved. Leave `amount` undefined so the UI renders
+      // the token amount as the primary figure (Transaction.tsx and
+      // TransactionDetails.tsx both gate their "token-as-primary" branch on
+      // `!transaction.amount`). `fee` is preserved separately for the
+      // details sheet.
+      const sendCounterparty = direction === 'send' ? related.find((r) => r.kind === 'Send')?.recipientId : undefined;
       common.push({
         network: this._network,
         txid: tx.txid,
         timestamp: tx.confirmationTime?.timestamp ?? Math.floor(Date.now() / 1000),
         direction,
-        amount: Math.abs(netSats),
+        amount: hasTokens ? undefined : Math.abs(netSats),
         fee: tx.fee,
         status: tx.confirmationTime ? 'confirmed' : 'pending',
         blockHeight: tx.confirmationTime?.height,
-        tokenTransfers: tokenTransfers.length > 0 ? tokenTransfers : undefined,
+        tokenTransfers: hasTokens ? tokenTransfers : undefined,
+        counterparty: sendCounterparty,
         explorerUrl: explorerBase ? `${explorerBase}/tx/${tx.txid}` : undefined,
       });
     }
@@ -585,13 +594,15 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
       if (seenTransferIds.has(key)) continue;
       seenTransferIds.add(key);
       const tokenTransfers = this.annotatedTransfersToCommon([t]);
+      const direction: CommonTransaction['direction'] = t.kind === 'Send' ? 'send' : 'receive';
       common.push({
         network: this._network,
         txid: t.txid ?? key,
         timestamp: Math.floor((t.updatedAt || t.createdAt) / 1000),
-        direction: t.kind === 'Send' ? 'send' : 'receive',
+        direction,
         status: transferStatusToCommon(t.status),
         tokenTransfers: tokenTransfers.length > 0 ? tokenTransfers : undefined,
+        counterparty: direction === 'send' ? t.recipientId : undefined,
         explorerUrl: explorerBase && t.txid ? `${explorerBase}/tx/${t.txid}` : undefined,
       });
     }
@@ -620,7 +631,18 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     const seen = new Set<string>();
     for (const t of list) {
       const metadata = t.assetId ? this._tokens.find((m) => m.id === t.assetId) : undefined;
-      for (const a of t.assignments ?? []) {
+      // For `Send` transfers, `assignments[]` reflects the sender's *change*
+      // UTXO (the leftover that stayed in the wallet) — not the amount that
+      // was transferred. The actual transferred amount lives on
+      // `requestedAssignment` (set from the invoice). For Receive/Issuance,
+      // `assignments[]` is the inbound delta and is correct.
+      const sourceAssignments = t.kind === 'Send' && t.requestedAssignment ? [t.requestedAssignment] : (t.assignments ?? []);
+      for (const a of sourceAssignments) {
+        // The TS interface declares `Assignment.type: 'Fungible' | 'NonFungible' | …`,
+        // but the iOS Swift binding emits `{Fungible: 100}` (raw enum case)
+        // instead of `{type: "Fungible", amount: 100}` like Android does, so
+        // `a.type` is undefined on iOS and this filter drops everything.
+        // Tracking: https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/28
         if (a.type !== 'Fungible' && a.type !== 'NonFungible') continue;
         const key = `${t.assetId ?? ''}|${a.amount ?? ''}|${t.recipientId ?? ''}|${t.kind}`;
         if (seen.has(key)) continue;

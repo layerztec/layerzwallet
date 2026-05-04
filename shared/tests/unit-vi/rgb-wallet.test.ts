@@ -524,6 +524,193 @@ describe('RgbWallet', () => {
       expect(txs).toHaveLength(1);
       expect(txs[0].tokenTransfers).toHaveLength(1); // duplicate collapsed
     });
+
+    it('Send transfer: tokenTransfers.amount comes from requestedAssignment, not assignments[]', async () => {
+      // Verified on Android: a Send transfer's `assignments[]` reflects the
+      // sender's *change* UTXO (sender had 999, sent 100, kept 899). The
+      // amount the user actually transferred lives on `requestedAssignment`
+      // (mirrored from the invoice). Without this, the tx history would
+      // display the change amount instead of the transferred amount.
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listAssets as any) = vi.fn().mockResolvedValue({
+        nia: [{ assetId: 'nia-A', name: 'Token A', ticker: 'A', precision: 8, balance: { settled: 899, future: 899, spendable: 899 } }],
+        cfa: [],
+        ifa: [],
+        uda: [],
+      });
+      (sdkWallet.listTransactions as any) = vi
+        .fn()
+        .mockResolvedValue([{ transactionType: 'RgbSend', txid: 'tx-send', received: 0, sent: 0, fee: 155, confirmationTime: { height: 1, timestamp: 1700000000 } }]);
+      (sdkWallet.listTransfers as any) = vi.fn().mockResolvedValue([
+        {
+          idx: 1,
+          batchTransferIdx: 1,
+          createdAt: 1700000000000,
+          updatedAt: 1700000000000,
+          status: 'Settled',
+          kind: 'Send',
+          requestedAssignment: { type: 'Fungible', amount: 100 },
+          assignments: [{ type: 'Fungible', amount: 899 }], // change UTXO
+          transportEndpoints: [],
+          txid: 'tx-send',
+          recipientId: 'utxob:recipient-1',
+        },
+      ]);
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const txs = await w.getCommonTransactions();
+      expect(txs).toHaveLength(1);
+      expect(txs[0].tokenTransfers?.[0].amount).toBe(100); // not 899
+    });
+
+    it('Send transfer: counterparty wired from recipientId; amount is undefined when token transfers present', async () => {
+      // Two coupled invariants for the UI: TransactionDetails.tsx renders the
+      // To field from `counterparty`, and Transaction.tsx /
+      // TransactionDetails.tsx both gate "show token as primary amount" on
+      // `!transaction.amount`. So for a token-only RGB tx we want
+      // `counterparty` set and `amount` left undefined (the on-chain dust/
+      // fee isn't what the user moved).
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listAssets as any) = vi.fn().mockResolvedValue({
+        nia: [{ assetId: 'nia-A', name: 'Token A', ticker: 'A', precision: 8, balance: { settled: 0, future: 0, spendable: 0 } }],
+        cfa: [],
+        ifa: [],
+        uda: [],
+      });
+      (sdkWallet.listTransactions as any) = vi
+        .fn()
+        .mockResolvedValue([{ transactionType: 'RgbSend', txid: 'tx-send', received: 0, sent: 200, fee: 155, confirmationTime: { height: 1, timestamp: 1700000000 } }]);
+      (sdkWallet.listTransfers as any) = vi.fn().mockResolvedValue([
+        {
+          idx: 1,
+          batchTransferIdx: 1,
+          createdAt: 1700000000000,
+          updatedAt: 1700000000000,
+          status: 'Settled',
+          kind: 'Send',
+          requestedAssignment: { type: 'Fungible', amount: 100 },
+          assignments: [{ type: 'Fungible', amount: 899 }],
+          transportEndpoints: [],
+          txid: 'tx-send',
+          recipientId: 'utxob:bcB8PI8V-FfeJp6L',
+        },
+      ]);
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const txs = await w.getCommonTransactions();
+      expect(txs).toHaveLength(1);
+      expect(txs[0].direction).toBe('send');
+      expect(txs[0].counterparty).toBe('utxob:bcB8PI8V-FfeJp6L');
+      expect(txs[0].amount).toBeUndefined();
+      expect(txs[0].fee).toBe(155);
+    });
+
+    it('tBTC-only tx (no token transfers): amount stays as netSats, counterparty stays undefined', async () => {
+      // Regression guard: dropping the netSats amount should only happen
+      // when there's a token transfer attached. Vanilla tBTC sends from the
+      // wallet — which surface in `listTransactions` but have no
+      // corresponding `listTransfers` entry — must keep showing the BTC
+      // amount as the primary figure.
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listAssets as any) = vi.fn().mockResolvedValue({ nia: [], cfa: [], ifa: [], uda: [] });
+      (sdkWallet.listTransactions as any) = vi
+        .fn()
+        .mockResolvedValue([{ transactionType: 'User', txid: 'tx-btc', received: 0, sent: 5000, fee: 200, confirmationTime: { height: 1, timestamp: 1700000000 } }]);
+      (sdkWallet.listTransfers as any) = vi.fn().mockResolvedValue([]);
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const txs = await w.getCommonTransactions();
+      expect(txs).toHaveLength(1);
+      expect(txs[0].direction).toBe('send');
+      expect(txs[0].amount).toBe(5000);
+      expect(txs[0].counterparty).toBeUndefined();
+      expect(txs[0].tokenTransfers).toBeUndefined();
+    });
+
+    it('Receive transfer (Blind/Witness): amount uses assignments[] (no requestedAssignment), counterparty stays undefined', async () => {
+      // Regression guard: Receive transfers don't have the "change vs
+      // transferred" ambiguity — `assignments[]` IS the inbound delta. And
+      // RGB blind/witness receives don't reveal sender, so counterparty
+      // should remain unset (the To/From field will render as "—").
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listAssets as any) = vi.fn().mockResolvedValue({
+        nia: [{ assetId: 'nia-A', name: 'Token A', ticker: 'A', precision: 8, balance: { settled: 100, future: 100, spendable: 100 } }],
+        cfa: [],
+        ifa: [],
+        uda: [],
+      });
+      (sdkWallet.listTransactions as any) = vi
+        .fn()
+        .mockResolvedValue([{ transactionType: 'RgbSend', txid: 'tx-recv', received: 1000, sent: 0, fee: 0, confirmationTime: { height: 1, timestamp: 1700000000 } }]);
+      (sdkWallet.listTransfers as any) = vi.fn().mockResolvedValue([
+        {
+          idx: 1,
+          batchTransferIdx: 1,
+          createdAt: 1700000000000,
+          updatedAt: 1700000000000,
+          status: 'Settled',
+          kind: 'ReceiveBlind',
+          assignments: [{ type: 'Fungible', amount: 100 }],
+          transportEndpoints: [],
+          txid: 'tx-recv',
+        },
+      ]);
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const txs = await w.getCommonTransactions();
+      expect(txs).toHaveLength(1);
+      expect(txs[0].direction).toBe('receive');
+      expect(txs[0].tokenTransfers?.[0].amount).toBe(100);
+      expect(txs[0].counterparty).toBeUndefined();
+      expect(txs[0].amount).toBeUndefined();
+    });
+
+    it('Send transfer falls back to assignments[] when requestedAssignment is missing (defensive)', async () => {
+      // Older wallet states or batch sends might surface a Send transfer
+      // without `requestedAssignment`. Falling back to `assignments[]`
+      // keeps the UI showing *something* rather than rendering an empty
+      // token row.
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listAssets as any) = vi.fn().mockResolvedValue({
+        nia: [{ assetId: 'nia-A', name: 'Token A', ticker: 'A', precision: 0, balance: { settled: 0, future: 0, spendable: 0 } }],
+        cfa: [],
+        ifa: [],
+        uda: [],
+      });
+      (sdkWallet.listTransactions as any) = vi
+        .fn()
+        .mockResolvedValue([{ transactionType: 'RgbSend', txid: 'tx-fallback', received: 0, sent: 0, fee: 50, confirmationTime: { height: 1, timestamp: 1700000000 } }]);
+      (sdkWallet.listTransfers as any) = vi.fn().mockResolvedValue([
+        {
+          idx: 1,
+          batchTransferIdx: 1,
+          createdAt: 1700000000000,
+          updatedAt: 1700000000000,
+          status: 'Settled',
+          kind: 'Send',
+          // requestedAssignment intentionally absent
+          assignments: [{ type: 'Fungible', amount: 42 }],
+          transportEndpoints: [],
+          txid: 'tx-fallback',
+          recipientId: 'rcp-fallback',
+        },
+      ]);
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const txs = await w.getCommonTransactions();
+      expect(txs[0].tokenTransfers?.[0].amount).toBe(42);
+      expect(txs[0].counterparty).toBe('rcp-fallback');
+    });
   });
 
   describe('fetchTokenBalances', () => {
