@@ -262,10 +262,16 @@ describe('RgbWallet', () => {
       await expect(w.transferToken('nia-1', huge, 'rgb:abc')).rejects.toThrow(/MAX_SAFE_INTEGER/);
     });
 
-    it('transferToken: omits amount/assetId when invoice has them baked in', async () => {
-      // Repro of the empty-PSBT bug: when the invoice carries assignment.amount
-      // and we *also* pass `amount` to sendBegin, rgb-lib returns an empty PSBT
-      // and signPsbt rejects with `psbtBase64 must be a non-empty string`.
+    it('transferToken: omits amount but always forwards assetId when invoice has them baked in', async () => {
+      // Two coupled SDK quirks the params here are guarding against:
+      //   • amount: when the invoice carries assignment.amount AND we also
+      //     pass `amount` to sendBegin, rgb-lib returns an empty PSBT and
+      //     signPsbt rejects with `psbtBase64 must be a non-empty string`.
+      //   • assetId: the RN binding throws "asset_id is required for send
+      //     operation" if assetId isn't passed, even when the invoice has it.
+      //     Web SDK is permissive (extracts from invoice when omitted), but
+      //     forwarding unconditionally is required for mobile and a no-op on
+      //     web.
       const { sdkWallet } = installAdapter({
         decodeRGBInvoice: vi.fn().mockResolvedValue({
           invoice: 'rgb:full-invoice',
@@ -283,11 +289,11 @@ describe('RgbWallet', () => {
       await w.init({} as any);
       const txid = await w.transferToken('rgb:embedded-asset', 42n, 'rgb:full-invoice');
       expect(txid).toBe('tx-omit');
-      expect(sdkWallet.send).toHaveBeenCalledWith({ invoice: 'rgb:full-invoice', feeRate: 1 });
-      // No `amount` and no `assetId` keys leaked through.
+      expect(sdkWallet.send).toHaveBeenCalledWith({ invoice: 'rgb:full-invoice', feeRate: 1, assetId: 'rgb:embedded-asset' });
+      // `amount` still skipped (the empty-PSBT guard); `assetId` present.
       const call = (sdkWallet.send as any).mock.calls[0][0];
       expect('amount' in call).toBe(false);
-      expect('assetId' in call).toBe(false);
+      expect(call.assetId).toBe('rgb:embedded-asset');
     });
 
     it('transferToken: passes amount/assetId for an "any-amount" / "any-asset" invoice', async () => {

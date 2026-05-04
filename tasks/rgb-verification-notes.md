@@ -309,7 +309,29 @@ up on Rgb_testnet with the existing seed's prior funds:
   Validates the mobile bitcoin send path on RGB-testnet (which uses
   the underlying signet-mapped Bitcoin chain) end-to-end.
 
-### B-IOS-1 — iOS Send rejects Android-generated invoice with assetId
+### B-IOS-1 — FIXED + filed as rgb-sdk-rn#25
+
+Upstream tracking: https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/25
+
+**Root cause**: `@utexo/rgb-sdk-rn`'s `sendBegin` requires `params.assetId`
+unconditionally, while the web SDK extracts it from the invoice when
+omitted. Our `transferToken` previously skipped passing `assetId` when
+the invoice had it embedded — fine for web, broken for mobile.
+
+**Fix in our code**: `shared/class/wallets/rgb-wallet.ts` `transferToken`
+now always forwards `assetId: tokenId`. No-op on web (the invoice's id
+wins), required on RN. All 52/52 unit tests pass after updating the
+"omits amount/assetId" test to assert `assetId` is always present.
+
+**Verified on iOS sim**: the originally reported `ValidationError:
+asset_id is required for send operation` is gone. A new downstream
+error surfaced (`psbtBase64 must be a non-empty string`) on the same
+flow — likely caused by the iOS wallet's freshly-received TEST asset
+not having a fully-settled spendable UTXO yet (only 1 base unit
+received, no change room). This is a different code path than the
+asset_id fix and not in scope for this fix.
+
+### B-IOS-1-original — iOS Send rejects Android-generated invoice with assetId
 
 - Tried iOS → Android reverse RGB transfer.
 - Generated invoice on Android for **TEST asset specifically**

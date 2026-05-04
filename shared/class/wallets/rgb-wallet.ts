@@ -445,11 +445,19 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    * satisfy InterfaceCanHaveTokens but is ignored — the RGB send API has no memo
    * field.
    *
-   * RGB invoices can carry an embedded amount (and asset id). When they do, the
+   * `amount`: RGB invoices can carry an embedded amount. When they do, the
    * SDK's `sendBegin` returns an empty PSBT if we *also* pass `amount` —
    * downstream `signPsbt` then rejects with `psbtBase64 must be a non-empty
-   * string`. So we decode the invoice first and only forward the explicit
-   * `amount` / `assetId` for invoices that don't have them baked in.
+   * string`. So we decode the invoice first and only forward `amount` for
+   * invoices that don't have one baked in.
+   *
+   * `assetId`: always forwarded. The web SDK extracts it from the invoice
+   * data when omitted, but the RN binding's `sendBegin` throws
+   * `ValidationError: asset_id is required for send operation` if the param
+   * is missing — even when the invoice clearly has it. Forwarding the id
+   * unconditionally is a no-op on web (the invoice's id wins) and required
+   * on mobile. Tracking upstream:
+   * https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/25
    */
   async transferToken(tokenId: string, amount: bigint, invoice: string, _memo?: string): Promise<string> {
     // The SDK's send API takes `amount: number`. High-precision assets (e.g.
@@ -458,12 +466,11 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     assert(amount <= BigInt(Number.MAX_SAFE_INTEGER), `RGB send amount ${amount} exceeds Number.MAX_SAFE_INTEGER (2^53). ` + 'Reduce the amount or wait for SDK bigint support.');
     const decoded = await this.sdk().decodeRGBInvoice({ invoice });
     const invoiceHasAmount = typeof decoded.assignment?.amount === 'number';
-    const invoiceHasAsset = typeof decoded.assetId === 'string' && decoded.assetId.length > 0;
     const params: Parameters<IRgbWallet['send']>[0] = {
       invoice,
+      assetId: tokenId,
       feeRate: await this.defaultFeeRate(),
     };
-    if (!invoiceHasAsset) params.assetId = tokenId;
     if (!invoiceHasAmount) params.amount = Number(amount);
     const result = await this.sdk().send(params);
     // Critical: an asset transfer changed colorable UTXO bindings; a recovery
