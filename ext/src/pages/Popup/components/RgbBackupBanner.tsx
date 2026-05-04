@@ -8,7 +8,7 @@ import { useRgbBackupStatus } from '@shared/hooks/useRgbBackupStatus';
 import { BackgroundCaller } from '../../../modules/background-caller';
 
 // Persistent banner for the RGB backup ledger — see
-// tasks/rgb-backup-failure-handling.md.
+// tasks/ship-rgb.md.
 const RgbBackupBanner: React.FC = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);

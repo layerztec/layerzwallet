@@ -27,7 +27,7 @@ type Status = 'probing' | 'failed';
  * On Skip the user proceeds to TOS; subsequent RGB inits still fail with
  * the same typed error, so the safety net is never bypassed.
  *
- * See tasks/rgb-backup-failure-handling.md.
+ * See tasks/ship-rgb.md.
  */
 const OnboardingVerifyingRgbBackup: React.FC = () => {
   const navigate = useNavigate();

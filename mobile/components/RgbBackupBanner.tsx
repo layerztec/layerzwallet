@@ -11,7 +11,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useRgbBackupStatus } from '@shared/hooks/useRgbBackupStatus';
 
 // Keeps the banner persistent until the user retries or a fresh mutation
-// succeeds — see tasks/rgb-backup-failure-handling.md.
+// succeeds — see tasks/ship-rgb.md.
 
 const RgbBackupBanner: React.FC = () => {
   const { network } = React.useContext(NetworkContext);

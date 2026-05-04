@@ -35,7 +35,7 @@ export interface DecodedInvoice {
  * Error classes for VSS backup edge cases. Callers (lazyInitWallet, the
  * restore-from-seed gate) match on `instanceof` to decide whether to retry,
  * surface a "server unreachable" UI, or refuse to proceed because a backup we
- * previously had has gone missing. See tasks/rgb-backup-failure-handling.md.
+ * previously had has gone missing. See tasks/ship-rgb.md.
  */
 export class RgbBackupServerUnreachableError extends Error {
   constructor(message = 'RGB backup server is unreachable') {
@@ -98,7 +98,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   private static readonly UTXO_PREPARE_FEE_GATE_SAT_VB = 3; // mainnet only
   private _preparingWallet = false;
   /**
-   * Backup ledger. See tasks/rgb-backup-failure-handling.md.
+   * Backup ledger. See tasks/ship-rgb.md.
    * `_pendingMutationsSinceBackup` is bumped before every `tryBackup` and
    * decremented on success; the persisted shape mirrors what the UI hook
    * surfaces. `_storage` is captured during `init()` so `tryBackup` can persist
@@ -135,7 +135,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    *
    * The decision tree below exists to defend against silently overwriting a
    * real VSS backup with empty local state — the worst possible failure mode
-   * for this wallet. See tasks/rgb-backup-failure-handling.md for the full
+   * for this wallet. See tasks/ship-rgb.md for the full
    * model. Short version:
    *
    *   1. Try `restoreFromVss`. Happy path: backup exists, we restore, done.
@@ -197,7 +197,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    *
    * Returns the kept wallet on success; throws `RgbBackupServerUnreachableError`,
    * `RgbBackupLostError`, or the original restore error otherwise. See
-   * tasks/rgb-backup-failure-handling.md.
+   * tasks/ship-rgb.md.
    */
   private async acquireFreshWalletAfterProbe(originalError: unknown): Promise<IRgbWallet> {
     const candidate = await this.adapter.createWallet({ mnemonic: this.secret!, network: this._sdkNetwork });
@@ -421,7 +421,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   async issueAssetNia(params: { ticker: string; name: string; precision: number; amounts: number[] }): Promise<{ assetId: string; ticker: string; name: string; precision: number }> {
     const asset = await this.sdk().issueAssetNia(params);
     // Critical: a freshly-issued asset that isn't backed up is invisible after
-    // a reinstall. See tasks/rgb-backup-failure-handling.md.
+    // a reinstall. See tasks/ship-rgb.md.
     await this.tryBackup({ critical: true });
     return { assetId: asset.assetId, ticker: asset.ticker, name: asset.name, precision: asset.precision };
   }
@@ -434,7 +434,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     });
     // Critical: a sent-on-chain payment changed the wallet's UTXO set; a
     // recovery without this backup would think those UTXOs are still
-    // spendable. See tasks/rgb-backup-failure-handling.md.
+    // spendable. See tasks/ship-rgb.md.
     await this.tryBackup({ critical: true });
     return txid;
   }
@@ -476,7 +476,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     // Critical: an asset transfer changed colorable UTXO bindings; a recovery
     // without this backup would have the wrong allocation map and could even
     // double-spend the now-consumed slot. See
-    // tasks/rgb-backup-failure-handling.md.
+    // tasks/ship-rgb.md.
     await this.tryBackup({ critical: true });
     return result.txid;
   }
@@ -666,7 +666,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   }
 
   /**
-   * Backup ledger semantics. See tasks/rgb-backup-failure-handling.md.
+   * Backup ledger semantics. See tasks/ship-rgb.md.
    *
    * Every state-changing op increments `_pendingMutationsSinceBackup`, calls
    * `vssBackup`, and on success decrements back to zero (or whatever the
@@ -734,7 +734,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   }
 
   // ── Persistence helpers for the backup ledger + the "initialized" flag. ──
-  // See tasks/rgb-backup-failure-handling.md.
+  // See tasks/ship-rgb.md.
 
   /**
    * The `storage?.<method> ?? noop` shape below tolerates the test fixtures'
@@ -832,7 +832,7 @@ function isInsufficientAllocationSlots(e: unknown): boolean {
  * Classify a backup failure for the UI ledger. The split exists so the
  * warning banner can say "we couldn't reach the server" vs "the server
  * rejected our credentials" — both are actionable, but in different ways.
- * See tasks/rgb-backup-failure-handling.md.
+ * See tasks/ship-rgb.md.
  */
 function classifyBackupError(e: unknown): RgbBackupErrorKind {
   if (!e) return 'unknown';

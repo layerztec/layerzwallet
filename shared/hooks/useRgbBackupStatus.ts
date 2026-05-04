@@ -52,7 +52,7 @@ async function fetcher(arg: FetcherArg): Promise<RgbBackupPersistedState | null>
  * - `failed`: the last backup attempt threw — until the user retries (or a
  *              new mutation succeeds), VSS is stale relative to local state
  *
- * See tasks/rgb-backup-failure-handling.md for why this exists.
+ * See tasks/ship-rgb.md for why this exists.
  */
 export function useRgbBackupStatus(network: Networks, accountNumber: number, backgroundCaller: IBackgroundCaller): UseRgbBackupStatusResult {
   const isRgb = network === NETWORK_RGB || network === NETWORK_RGB_TESTNET;

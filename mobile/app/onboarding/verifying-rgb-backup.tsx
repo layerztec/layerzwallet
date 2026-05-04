@@ -10,7 +10,7 @@
  * On Skip the user proceeds to TOS; subsequent RGB inits still fail with
  * the same typed error, so the safety net is never bypassed.
  *
- * See tasks/rgb-backup-failure-handling.md.
+ * See tasks/ship-rgb.md.
  */
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';

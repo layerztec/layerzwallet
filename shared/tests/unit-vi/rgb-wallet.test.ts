@@ -57,7 +57,7 @@ function installAdapter(overrides: Partial<IRgbWallet> = {}) {
     // Default to "VSS reachable, no backup yet, no backup required" so the
     // probe-then-fresh-create path used by RgbWallet.init() works without
     // each test having to spell it out. See
-    // tasks/rgb-backup-failure-handling.md.
+    // tasks/ship-rgb.md.
     vssBackupInfo: vi.fn().mockResolvedValue({ backupExists: false, backupRequired: false, serverVersion: null }),
     configureVssBackup: vi.fn(),
     disableVssAutoBackup: vi.fn(),
@@ -916,7 +916,7 @@ describe('RgbWallet', () => {
 
   /**
    * Backup-failure handling. The model these tests cover is documented in
-   * tasks/rgb-backup-failure-handling.md.
+   * tasks/ship-rgb.md.
    *
    * The init() probe path: when restoreFromVss reports a "missing" error, we
    * don't trust that classification on its own — we create a candidate wallet

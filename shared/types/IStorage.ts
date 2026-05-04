@@ -15,12 +15,12 @@ export const STORAGE_KEY_FLASHNET_TRANSFERS = 'STORAGE_KEY_FLASHNET_TRANSFERS';
 export const STORAGE_KEY_SPARK_REFUNDED_DEPOSITS = 'STORAGE_KEY_SPARK_REFUNDED_DEPOSITS';
 /** Set after the first successful RGB wallet init per network. Used to detect
  *  the dangerous "had a backup, now VSS says missing" case during a later
- *  unlock — see tasks/rgb-backup-failure-handling.md. */
+ *  unlock — see tasks/ship-rgb.md. */
 export const STORAGE_KEY_RGB_INITIALIZED = 'STORAGE_KEY_RGB_INITIALIZED';
 /** Persistent ledger of RGB backup state per network/account: pending mutation
  *  count + last failure classification. Survives force-quit so the warning
  *  banner can't be hidden by killing the app. See
- *  tasks/rgb-backup-failure-handling.md. */
+ *  tasks/ship-rgb.md. */
 export const STORAGE_KEY_RGB_BACKUP_STATE = 'STORAGE_KEY_RGB_BACKUP_STATE';
 
 export interface IStorage {
