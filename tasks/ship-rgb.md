@@ -85,6 +85,21 @@ the typed errors during restore (not on first RGB tap). Skip is allowed;
 subsequent inits still fail with the same typed error so the safety net
 isn't bypassed.
 
+## Future TODO: ext context for RGB
+
+Today RGB runs in the **popup window context** (`ext/src/modules/rgb-adapter.ts`
+imported only from `Popup.tsx`; `background-message-controller.ts:90-91`
+explicitly throws if RGB is hit from the SW). When the user closes the popup,
+the JS context dies — any long-running RGB op (transfer broadcast, large sync,
+VSS roundtrip) is aborted mid-flight.
+
+Won't fix `rgb-sdk-web#7` (the wasm panic is in rgb-lib's Rust, host-independent;
+same bytecode panics in popup / SW / offscreen). But once #7 lands, we should
+move RGB to an **offscreen document** (Chrome MV3 offscreen API) — survives
+popup close, full DOM/IDB access, no MV3 service worker idle-kill. Service
+worker by itself isn't the right target (30s idle eviction in MV3 makes it
+worse than popup for state retention).
+
 ## Verification quick-resume
 
 Test seed (mobile only — has TEST asset issued):

@@ -283,6 +283,18 @@ export const sanitizeAndValidateMnemonic = (mnemonic: string): string => {
 
 export const clearWalletCache = () => {
   (Object.keys(cachedWallets) as TSupportedLazyInitWalletNetworks[]).forEach((network) => {
+    for (const w of Object.values(cachedWallets[network])) {
+      // Best-effort dispose. Currently only RgbWallet has a dispose() (clears
+      // the deferred prepareWallet timer); others can opt in later.
+      const d = (w as unknown as { dispose?: () => void }).dispose;
+      if (typeof d === 'function') {
+        try {
+          d.call(w);
+        } catch {
+          /* swallow — dispose is best-effort */
+        }
+      }
+    }
     cachedWallets[network] = {};
   });
 };

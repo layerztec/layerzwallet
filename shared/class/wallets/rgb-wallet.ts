@@ -89,6 +89,10 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   private static readonly SYNC_COOLDOWN_MS = 10_000;
   private _lastSync: number = 0;
   private _syncInFlight: Promise<void> | undefined;
+  /** The most recent sync promise (in-flight or completed). Returned from the
+   *  cooldown branch so a `sync()` short-circuit still chains correctly with
+   *  callers that `await` it before reading state. */
+  private _lastSyncPromise: Promise<void> = Promise.resolve();
   /** Auto-UTXO prep tunables. Top up colorable slots so the user doesn't have
    *  to wait through a chain confirmation the moment they hit Issue / Receive. */
   private static readonly UTXO_PREPARE_DELAY_MS = 1_000;
@@ -97,6 +101,11 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   private static readonly UTXO_PREPARE_SIZE_SATS = 1_000;
   private static readonly UTXO_PREPARE_FEE_GATE_SAT_VB = 3; // mainnet only
   private _preparingWallet = false;
+  /** Timer id for the deferred `prepareWallet` kick-off. Cleared in
+   *  `dispose()` so a logout / network switch within the prep delay can't
+   *  fire SDK calls against an evicted instance. */
+  private _prepareTimer: ReturnType<typeof setTimeout> | undefined;
+  private _disposed = false;
   /**
    * Backup ledger. See tasks/ship-rgb.md.
    * `_pendingMutationsSinceBackup` is bumped before every `tryBackup` and
@@ -182,10 +191,27 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
 
     // Pre-warm colorable UTXOs in the background so Issue / blind-Receive
     // don't have to detour through a UTXO-creation tx the moment the user
-    // taps them. Deferred so it never blocks first paint.
-    setTimeout(() => {
+    // taps them. Deferred so it never blocks first paint. Cancelled on
+    // dispose so a logout / network switch within UTXO_PREPARE_DELAY_MS
+    // can't run SDK calls against an evicted wallet.
+    this._prepareTimer = setTimeout(() => {
+      this._prepareTimer = undefined;
+      if (this._disposed) return;
       this.prepareWallet().catch((e) => globalThis.handleError?.(e, 'rgb-wallet.ts:prepareWallet:scheduled'));
     }, RgbWallet.UTXO_PREPARE_DELAY_MS);
+  }
+
+  /**
+   * Releases scheduled work tied to this instance. Idempotent. Called by
+   * `clearWalletCache()` on logout / wipe so the deferred `prepareWallet`
+   * timer can't fire against a wallet whose underlying storage is gone.
+   */
+  dispose(): void {
+    this._disposed = true;
+    if (this._prepareTimer !== undefined) {
+      clearTimeout(this._prepareTimer);
+      this._prepareTimer = undefined;
+    }
   }
 
   /**
@@ -258,8 +284,8 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    */
   private async sync(): Promise<void> {
     if (this._syncInFlight) return this._syncInFlight;
-    if (Date.now() - this._lastSync < RgbWallet.SYNC_COOLDOWN_MS) return;
-    this._syncInFlight = (async () => {
+    if (Date.now() - this._lastSync < RgbWallet.SYNC_COOLDOWN_MS) return this._lastSyncPromise;
+    const p = (async () => {
       try {
         await this.sdk().syncWallet();
       } catch (e) {
@@ -272,9 +298,11 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
       }
       this._lastSync = Date.now();
     })().finally(() => {
-      this._syncInFlight = undefined;
+      if (this._syncInFlight === p) this._syncInFlight = undefined;
     });
-    return this._syncInFlight;
+    this._syncInFlight = p;
+    this._lastSyncPromise = p;
+    return p;
   }
 
   async getOffchainReceiveAddress(): Promise<string> {
