@@ -356,3 +356,58 @@ asset_id fix and not in scope for this fix.
   follow-up. **One direction (Android→iOS) of cross-platform RGB
   is the validated success.**
 
+---
+
+## 2026-05-04 — psbtBase64-empty bug (post-#25 fix)
+
+After fixing rgb-sdk-rn#25 (asset_id required), iOS → Android RGB
+transfers now hit a different consistent failure:
+`ValidationError: psbtBase64 must be a non-empty string` raised by
+`sendEnd`'s param validation.
+
+### Repro
+1. Android (with TEST balance) generates blind invoice with amount=50
+   → invoice format `/gk/sb` with embedded amount.
+2. iOS (TEST balance = 100 base units, 5+ free colorable slots,
+   plenty of vanilla sats) pastes the invoice.
+3. send-address auto-decodes `decoded.assignment.amount = 50`,
+   bypasses send-amount, lands on send-confirm showing
+   "Total 0.0000005 TEST".
+4. Confirm Send → JS error
+   `Failed to broadcast transaction: ValidationError: psbtBase64
+   must be a non-empty string [field: psbtBase64]`.
+
+### Root cause analysis
+- `RNRgbLibBinding.sendBegin()` calls `Rgb.sendBegin` and returns
+  `r.psbt`. When something's wrong at the rgb-lib layer, `r.psbt`
+  comes back as `""` (empty) rather than throwing.
+- `BaseWalletManager.send()` then calls `signPsbt("")` then
+  `sendEnd({signedPsbt: ""})`. `sendEnd`'s validator throws
+  `psbtBase64 must be a non-empty string`.
+- So the surfaced error is a *symptom*, not the cause.
+
+### Confirmed not to be the cause
+- **Allocation pressure** — iOS UTXO Manager confirms 5 free
+  colorable slots, settled TEST allocation present, vanilla balance
+  ample.
+- **Invoice format** — same `/gk/sb` invoice succeeds on receive
+  side; iOS auto-decodes amount correctly.
+- **`amount` arg conflict** — already guarded in `transferToken`:
+  we only pass `amount` when invoice lacks one. (Comment at
+  shared/class/wallets/rgb-wallet.ts:448-452.)
+
+### Suspected upstream issues to file
+1. **rgb-sdk-rn / rgb-lib**: `sendBegin` returning empty PSBT instead
+   of throwing a real error when it can't build one. Need a small repro.
+2. **rgb-sdk-rn**: `failTransfers` reports "No pending transfers to
+   fail" while UTXO Manager clearly shows a stuck `pending` allocation
+   with display `{"type":"type","amount":null}`. After a failed send,
+   `listAssets` even drops the asset from the wallet's view until app
+   restart.
+
+### Status
+- Fix for #25 (asset_id) committed and tested locally — 52/52
+  unit tests pass.
+- psbtBase64 issue blocked on upstream investigation. Working
+  workaround: Android → iOS direction validated, ext direction also
+  blocked by web SDK panic (rgb-sdk-web#7).

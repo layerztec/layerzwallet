@@ -235,6 +235,7 @@ export const AllNetworkInfos: Record<Networks, NetworkInfo> = {
     explorerUrl: 'https://layerz.mempool.space',
     rpcUrl: '',
     knowMoreUrl: 'https://rgb.tech',
+    isTestnet: true,
     isEVM: false,
     sortIndex: 25,
   },
