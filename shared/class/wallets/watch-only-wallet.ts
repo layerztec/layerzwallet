@@ -351,6 +351,7 @@ export class WatchOnlyWallet extends LegacyWallet implements InterfaceSendQuotab
       request,
       fee: String(fee),
       feeTicker: 'BTC',
+      feeDecimals: 8,
       _prepared: { psbt },
     };
   }

@@ -15,10 +15,13 @@ export interface SendQuoteRequest {
 export interface SendQuote {
   /** Echo of the original request */
   request: SendQuoteRequest;
-  /** Estimated fee in smallest unit of native currency */
+  /** Estimated fee in smallest unit of the fee currency */
   fee: string;
   /** Ticker of the fee currency (e.g. "RBTC", "L-BTC") */
   feeTicker: string;
-  /** Wallet-specific prepared data needed for execution. Opaque to consumers. */
-  _prepared: unknown;
+  /** Decimals of the fee currency (e.g. 18 for wei, 8 for sats, 6 for microSTX) */
+  feeDecimals: number;
+  /** Wallet-specific prepared data needed for execution. Opaque to consumers.
+   *  Omit when the quote carries no pre-broadcast artifact (e.g. Ark/Spark). */
+  _prepared?: unknown;
 }

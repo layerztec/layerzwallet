@@ -171,7 +171,7 @@ export default function SendNft() {
               <ThemedText style={styles.successSub} numberOfLines={1} ellipsizeMode="middle">
                 Tx: {txid}
               </ThemedText>
-              <Pressable style={styles.secondaryButton} onPress={() => router.replace('/(tabs)/home')} activeOpacity={0.85} testID="send-nft-back-button">
+              <Pressable style={styles.secondaryButton} onPress={() => router.replace('/home')} activeOpacity={0.85} testID="send-nft-back-button">
                 <ThemedText style={styles.secondaryButtonText}>Back to Wallet</ThemedText>
               </Pressable>
             </View>

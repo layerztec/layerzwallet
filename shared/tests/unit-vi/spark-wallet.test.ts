@@ -1,5 +1,5 @@
 import { encodeBech32mTokenIdentifier, encodeSparkAddress } from '@buildonspark/spark-sdk';
-import { describe, it, vi, assert } from 'vitest';
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SparkWallet } from '../../class/wallets/spark-wallet';
 
 const ownIdentityPublicKey = '036b1448c1b77fea99943c36c4ebed2de121ad98349f249949a1c43817fe26c2e2';
@@ -238,5 +238,86 @@ describe('Spark Wallet', () => {
     assert.strictEqual(wallet.isAddressValid('0x742d35Cc6634C0532925a3b8D'), false);
     assert.strictEqual(wallet.isAddressValid('spark1invalid'), false);
     assert.strictEqual(wallet.isAddressValid('spark1'), false);
+  });
+});
+
+describe('SparkWallet getSendQuote / executeSendQuote', () => {
+  const TO = 'sp1recipientaddress';
+  const TOKEN_ID = 'btkn1tokenid';
+  const NATIVE_TXID = 'sparktxid0001';
+  const TOKEN_TXID = 'sparktxid0002';
+
+  const createWallet = (): SparkWallet => {
+    const w = new SparkWallet();
+    (w as any)._sdkWallet = {
+      transfer: vi.fn().mockResolvedValue({ id: NATIVE_TXID }),
+      transferTokens: vi.fn().mockResolvedValue(TOKEN_TXID),
+    };
+    return w;
+  };
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('native send: returns fee=0, feeTicker=BTC, feeDecimals=8, and execute calls _sdkWallet.transfer', async () => {
+    const w = createWallet();
+
+    const quote = await w.getSendQuote({ toAddress: TO, amount: '500' });
+
+    expect(quote.fee).toBe('0');
+    expect(quote.feeTicker).toBe('BTC');
+    expect(quote.feeDecimals).toBe(8);
+    expect(quote.request.amount).toBe('500');
+
+    const txid = await w.executeSendQuote(quote);
+    expect(txid).toBe(NATIVE_TXID);
+    expect((w as any)._sdkWallet.transfer).toHaveBeenCalledWith({ receiverSparkAddress: TO, amountSats: 500 });
+  });
+
+  it('token send: checks cached tokenBalances and execute calls _sdkWallet.transferTokens', async () => {
+    const w = createWallet();
+    (w as any).tokenBalances = new Map([[TOKEN_ID, { ownedBalance: 10000n, tokenMetadata: { tokenTicker: 'USDB', tokenName: 'USD Bond', decimals: 6 } }]]);
+
+    const quote = await w.getSendQuote({ toAddress: TO, amount: '1000', tokenId: TOKEN_ID });
+    expect(quote.fee).toBe('0');
+
+    const txid = await w.executeSendQuote(quote);
+    expect(txid).toBe(TOKEN_TXID);
+    expect((w as any)._sdkWallet.transferTokens).toHaveBeenCalledWith({
+      receiverSparkAddress: TO,
+      tokenAmount: 1000n,
+      tokenIdentifier: TOKEN_ID,
+    });
+  });
+
+  it('token send: throws if token balance unavailable', async () => {
+    const w = createWallet();
+    (w as any).tokenBalances = new Map();
+
+    await expect(w.getSendQuote({ toAddress: TO, amount: '1000', tokenId: TOKEN_ID })).rejects.toThrow(/token balance is unavailable/);
+  });
+
+  it('token send: throws if insufficient balance', async () => {
+    const w = createWallet();
+    (w as any).tokenBalances = new Map([[TOKEN_ID, { ownedBalance: 100n, tokenMetadata: { tokenTicker: 'USDB', tokenName: 'USD Bond', decimals: 6 } }]]);
+
+    await expect(w.getSendQuote({ toAddress: TO, amount: '1000', tokenId: TOKEN_ID })).rejects.toThrow(/Insufficient USDB balance/);
+  });
+
+  it('throws if wallet not initialized', async () => {
+    const w = new SparkWallet();
+    await expect(w.getSendQuote({ toAddress: TO, amount: '1000' })).rejects.toThrow(/not initialized/);
+  });
+
+  it('throws on non-positive amount', async () => {
+    const w = createWallet();
+    await expect(w.getSendQuote({ toAddress: TO, amount: '0' })).rejects.toThrow(/amount must be positive/);
+  });
+
+  it('throws when native amount exceeds MAX_SAFE_INTEGER', async () => {
+    const w = createWallet();
+    const overflow = String(BigInt(Number.MAX_SAFE_INTEGER) + 1n);
+    await expect(w.getSendQuote({ toAddress: TO, amount: overflow })).rejects.toThrow(/Amount too large/);
   });
 });

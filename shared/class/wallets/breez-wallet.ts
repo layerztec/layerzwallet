@@ -282,6 +282,7 @@ export class BreezWallet implements InterfaceLightningWallet, InterfaceSendQuota
       request,
       fee: String(prepareResponse.feesSat),
       feeTicker: 'L-BTC',
+      feeDecimals: 8,
       _prepared: prepareResponse,
     };
   }

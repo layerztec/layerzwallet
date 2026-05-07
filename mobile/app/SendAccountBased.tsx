@@ -108,7 +108,7 @@ const SendAccountBased = () => {
         <View style={styles.successContainer}>
           <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
           <ThemedText style={styles.successTitle}>Transaction Sent!</ThemedText>
-          <Pressable style={styles.backButton} onPress={() => router.replace('/(tabs)/home')}>
+          <Pressable style={styles.backButton} onPress={() => router.replace('/home')}>
             <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
           </Pressable>
         </View>

@@ -146,7 +146,7 @@ const SendConfirmLightning: React.FC = () => {
   };
 
   const handleHome = () => {
-    router.replace('/(tabs)/home');
+    router.replace('/home');
   };
 
   // Calculate fee from invoice amount

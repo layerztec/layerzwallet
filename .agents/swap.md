@@ -5,6 +5,7 @@ Cross-chain transfer system enabling asset swaps between different networks via 
 ## Architecture
 
 ### TransferServiceManager (`shared/services/transfer-service-manager.ts`)
+
 Wraps N `ITransferService` implementations behind a single `ITransferService` interface. Zero UI changes needed when adding/removing providers.
 
 - `getAvailableAssets()` — union of all services' assets, deduplicated
@@ -16,6 +17,7 @@ Wraps N `ITransferService` implementations behind a single `ITransferService` in
 Singleton via `useTransferService(storage)` hook (`shared/hooks/useTransferService.ts`).
 
 ### ITransferService Interface (`shared/types/transfer.ts`)
+
 ```
 readonly name: string
 getSupportedPairs(): TransferPair[]
@@ -31,6 +33,7 @@ getTrackingUrl?(execution): string | undefined
 ```
 
 ### Key Types (`shared/types/transfer.ts`, `shared/types/asset.ts`)
+
 - **AssetId** — strict union: `native:bitcoin`, `token:spark:usdb`, etc.
 - **AssetInfo** — resolved metadata: network, ticker, decimals, tokenId
 - **TransferQuote** — quote with `serviceName`, `serviceErrors?`
@@ -42,6 +45,7 @@ getTrackingUrl?(execution): string | undefined
 ## Providers
 
 ### SideShift (`shared/services/transfer-service-sideshift.ts`)
+
 - **Pairs**: BTC, Liquid BTC, Liquid USDT, Rootstock RBTC, Stacks STX — all cross-pairs
 - **Model**: Fixed quotes only. Deposit address flow. 15-min quote expiry.
 - **API**: `shared/services/sideshift-api.ts` — `sideshift.ai/api/v2`
@@ -51,6 +55,7 @@ getTrackingUrl?(execution): string | undefined
 - Affiliate ID: `uYB9AagC9`
 
 ### Garden Finance (`shared/services/transfer-service-garden.ts`)
+
 - **Pairs**: BTC → Botanix only (reverse requires EVM tx signing — deferred)
 - **Model**: Atomic swap deposit. Requires `fromAddress` for HTLC refund.
 - **API**: `shared/services/garden-api.ts` — `api.garden.finance/v2`, auth via `garden-app-id` header
@@ -60,6 +65,7 @@ getTrackingUrl?(execution): string | undefined
 - Conditional on `EXPO_PUBLIC_GARDEN_APP_ID` env var
 
 ### Symbiosis (`shared/services/transfer-service-symbiosis.ts`)
+
 - **Pairs**: BTC → Rootstock (working), BTC → Citrea (registered, no route yet)
 - **Model**: Combined quote+execute API (`/v1/swap`). Deposit address with expiration.
 - **API**: `shared/services/symbiosis-api.ts` — `api.symbiosis.finance/crosschain`, no auth
@@ -67,6 +73,7 @@ getTrackingUrl?(execution): string | undefined
 - **Tracking**: `explorer.symbiosis.finance/transactions/bitcoin/{txHash}`
 
 ### Flashnet AMM (`shared/services/transfer-service-flashnet.ts`)
+
 - **Pairs**: BTC <-> USDB on Spark (both directions)
 - **Model**: Instant atomic swap via `@flashnet/sdk`. No deposit address. Executes atomically in `executeTransfer()`.
 - **API**: `FlashnetClient.simulateSwap()` for quotes, `executeSwap()` for execution
@@ -74,6 +81,7 @@ getTrackingUrl?(execution): string | undefined
 - No tracking URL (instant)
 
 ### NativeDeposit (`shared/services/transfer-service-native-deposit.ts`)
+
 - **Pairs**: BTC → Ark, BTC → Spark
 - **Model**: 1:1 quotes. Wallet-driven status via `swapsFetcher`. Boarding/deposit address as deposit.
 - **Status flow**: `waiting → confirming → claimable → completed` (or `→ refunded`)
@@ -86,6 +94,7 @@ getTrackingUrl?(execution): string | undefined
 - No tracking URL
 
 ### Fake (`shared/services/transfer-service-fake.ts`)
+
 - **Pairs**: Liquid Testnet BTC <-> Botanix Testnet BTC
 - **Model**: Dev/test stub. Instant completion. Throws error when amount=1.
 - Only available in `__DEV__` mode
@@ -95,12 +104,14 @@ getTrackingUrl?(execution): string | undefined
 **Entry**: "Transfer" button on Home → `/transfer`
 
 ### Screens (`mobile/app/transfer/`)
+
 1. **`index.tsx`** — Input screen. Bidirectional quote (type in either field). 500ms debounce. Min/max validation via `getPairInfo`. Balance check before confirm (skipped for testnets). Shows `serviceErrors` warnings for partial provider failures.
 2. **`select-asset.tsx`** — Asset picker modal. Filters testnet assets via settings.
 3. **`confirm.tsx`** — Auto-prepares on mount (`executeTransfer` + `getSendQuote`). Shows rate, fee, est. time, expiry countdown, provider. Single "Confirm" tap. NativeDeposit: uses boarding address, auto/manual claim toggle (hidden for ARK — always auto). Flashnet: no deposit address, instant swap on prepare.
 4. **`success.tsx`** — Pull-to-dismiss modal with checkmark animation.
 
 ### Components (`mobile/components/transfer/`)
+
 - `TransferAmountSection.tsx` — send/receive input with fiat toggle
 - `TransferAssetIcon.tsx` — colored icon with network badge
 - `AssetSelectorPill.tsx` — `[icon] [ticker] [chevron]` or "Select >"
@@ -109,21 +120,27 @@ getTrackingUrl?(execution): string | undefined
 - `OngoingTransferItem.tsx` — status display with fiat values
 
 ### Detail Screen
+
 - `mobile/app/TransferDetails.tsx` — Timeline from `getTimelineSteps()`. Detail rows: provider, status, transfer ID, addresses, deposit/claim txids. Claim button for NativeDeposit (disabled during auto-claim). "View Online" button when tracking URL available.
 
 ## Shared Hooks
+
 - `useTransferService(storage)` — singleton TransferServiceManager (`shared/hooks/useTransferService.ts`). Also exports: `setNativeDepositSwapsFetcher`, `setNativeDepositClaimExecutor`, `startAutoClaimMonitor`, `stopAutoClaimMonitor`, `processAutoClaimsNow`
 - `useTransactionHistory(network, account)` — merges transfers into tx list, deduplicates (`shared/hooks/useTransactionHistory.ts`)
 - `useAssetExchangeRate(assetId)` — fiat rate for transfer assets (`shared/hooks/useAssetExchangeRate.ts`)
 - `useAssetBalance(assetId, account, bg)` — unified native/token balance (`shared/hooks/useAssetBalance.ts`)
 
 ## Wallet Send Quote API
+
 2-step API for sending on-chain funds to deposit addresses:
+
 - **Types**: `SendQuoteRequest`, `SendQuote` (`shared/types/send-quote.ts`)
 - **Interface**: `InterfaceSendQuotable` (`shared/class/wallets/interface-send-quotable.ts`)
-- **Implementations**: `EvmWallet`, `BreezWallet`
+- **Implementations**: `EvmWallet`, `BreezWallet`, `WatchOnlyWallet` (Bitcoin), `ArkWallet`, `SparkWallet`, `StacksWallet`
+- Ark/Spark report `fee='0'` — their SDKs do not expose a pre-broadcast fee estimator; Bitcoin/EVM/Breez/Stacks report real fees. Stacks uses `getFee(transaction.auth)` (microSTX, feeTicker `STX`, `feeDecimals: 6`); others report in their native ticker. The `feeDecimals` field on the quote tells consumers how to scale `fee` for display. Stacks rebuilds the signed tx at execute time so the baked-in nonce cannot go stale between quote display and broadcast.
 
 ## Tests
+
 - `shared/tests/unit-vi/transfer-service-sideshift.test.ts`
 - `shared/tests/unit-vi/transfer-service-garden.test.ts`
 - `shared/tests/unit-vi/transfer-service-symbiosis.test.ts`

@@ -15,10 +15,12 @@ import { sleep } from '../../modules/sleep';
 import { CommonTokenTransfer, CommonTransaction } from '../../types/common-transaction';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET } from '../../types/networks';
 import { CachedTokenInfo } from '../../types/token-info';
+import { SendQuote, SendQuoteRequest } from '../../types/send-quote';
 import { AbstractHDElectrumWallet } from './abstract-hd-electrum-wallet';
 import { createLightningInvoiceResponse, InterfaceLightningWallet, LightningPaymentLimitsResponse } from './interface-lightning-wallet';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
+import { InterfaceSendQuotable } from './interface-send-quotable';
 
 const bip32 = BIP32Factory(ecc);
 
@@ -407,7 +409,7 @@ class LayerzContractRepository {
   }
 }
 
-export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet, InterfaceCanHaveTokens {
+export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet, InterfaceCanHaveTokens, InterfaceSendQuotable {
   private _wallet: Wallet | undefined = undefined;
   private _arkadeLightning: ArkadeSwaps | undefined = undefined;
   private _arkServerUrl: string = 'https://mutinynet.arkade.sh';
@@ -625,6 +627,35 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
       address,
       amount,
     });
+  }
+
+  async getSendQuote(request: SendQuoteRequest): Promise<SendQuote> {
+    assert(this._wallet, 'Ark wallet not initialized');
+    assert(request.toAddress, 'toAddress is required');
+    const amountBig = BigInt(request.amount);
+    assert(amountBig > 0n, 'amount must be positive');
+    assert(amountBig <= BigInt(Number.MAX_SAFE_INTEGER), 'Amount too large');
+
+    if (request.tokenId) {
+      const token = this._arkTokenBalances.find((t) => t.id === request.tokenId);
+      assert(token && token.balance != null, 'token balance is unavailable');
+      assert(BigInt(token.balance) >= amountBig, `Insufficient ${token.symbol ?? 'token'} balance`);
+    }
+
+    return {
+      request,
+      fee: '0',
+      feeTicker: 'BTC',
+      feeDecimals: 8,
+    };
+  }
+
+  async executeSendQuote(quote: SendQuote, _mnemonic?: string, _accountNumber?: number): Promise<string> {
+    const { toAddress, amount, tokenId } = quote.request;
+    if (tokenId) {
+      return await this.transferToken(tokenId, BigInt(amount), toAddress);
+    }
+    return await this.pay(toAddress, Number(amount));
   }
 
   async getOffchainReceiveAddress(): Promise<string> {
