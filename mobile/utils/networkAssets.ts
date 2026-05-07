@@ -29,6 +29,7 @@ const TRANSFER_ASSET_COLORS: Partial<Record<AssetId, string>> = {
   'native:spark': '#7297A6',
   'token:liquid:usdt': '#26A17B',
   'token:stacks:stx': '#5546FF',
+  'token:rootstock:usdt0': '#26A17B',
 };
 
 /**
@@ -46,6 +47,7 @@ export const getTransferAssetColor = (assetId: AssetId): string | undefined => {
 export const getTransferAssetIcon = (assetId: AssetId, network: string): string | null => {
   switch (assetId) {
     case 'token:liquid:usdt':
+    case 'token:rootstock:usdt0':
       return require('../assets/images/ui/network/tether.png');
     case 'token:stacks:stx':
       return require('../assets/images/ui/network/stacks.png');

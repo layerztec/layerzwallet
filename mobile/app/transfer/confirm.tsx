@@ -13,6 +13,7 @@ import TransferAssetIcon from '@/components/transfer/TransferAssetIcon';
 import { BackgroundExecutor, getOnchainDepositAddress } from '@/src/modules/background-executor';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { InterfaceSendQuotable, walletCanSendQuote } from '@shared/class/wallets/interface-send-quotable';
+import { walletSupportsLightning } from '@shared/class/wallets/interface-lightning-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useAssetExchangeRate } from '@shared/hooks/useAssetExchangeRate';
 import { AllNetworkInfos } from '@shared/models/all-network-infos';
@@ -22,8 +23,11 @@ import { TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 import type { AssetId } from '@shared/types/asset';
 import type { SendQuote } from '@shared/types/send-quote';
 import { EXECUTION_CLAIM, EXECUTION_INSTANT, type TransferExecution } from '@shared/types/transfer';
-import { NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { useTransferFlow } from '@/src/transfer/TransferFlowContext';
+
+const SATORA_PROVIDER = 'Satora';
+const LN_CAPABLE_NETWORKS: TSupportedLazyInitWalletNetworks[] = [NETWORK_LIQUID, NETWORK_SPARK, NETWORK_ARK];
 
 const DISMISS_THRESHOLD = 150;
 const CLAIM_OPTIONS_HEIGHT = 40 * 2; // 2 option rows
@@ -51,7 +55,11 @@ export default function TransferConfirm() {
   const isConfirmingRef = useRef(false);
   const isFakeProvider = quote?.serviceName === 'Fake';
   const isNativeDeposit = quote?.serviceName === 'Native';
+  const isSatora = quote?.serviceName === SATORA_PROVIDER;
   const isSparkDeposit = isNativeDeposit && receiveAsset ? getAssetInfo(receiveAsset).network === NETWORK_SPARK : false;
+  const [lnPayNetworks, setLnPayNetworks] = useState<Networks[]>([]);
+  const [selectedLnPayNetwork, setSelectedLnPayNetwork] = useState<Networks | undefined>(undefined);
+  const [discoveringLnPay, setDiscoveringLnPay] = useState(false);
 
   useEffect(() => {
     if (!quote) return;
@@ -92,8 +100,39 @@ export default function TransferConfirm() {
     return walletCanSendQuote(wallet) ? wallet : undefined;
   };
 
+  // Satora flow: discover LN-capable wallets up front so the "Pay from" picker has its options.
+  // We skip the standard auto-prepare entirely — the source asset is `native:lightning` and the actual
+  // swap + invoice payment happens in handleSatoraConfirm atomically.
+  useEffect(() => {
+    if (!isSatora) return;
+    let cancelled = false;
+    setDiscoveringLnPay(true);
+    (async () => {
+      const found: Networks[] = [];
+      for (const network of LN_CAPABLE_NETWORKS) {
+        try {
+          const w = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+          if (walletSupportsLightning(w)) {
+            found.push(network);
+          }
+        } catch (e) {
+          globalThis.handleError?.(e, 'transfer-confirm-ln-discovery');
+        }
+      }
+      if (cancelled) return;
+      setLnPayNetworks(found);
+      setSelectedLnPayNetwork(found[0]);
+      setDiscoveringLnPay(false);
+      setIsPreparing(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSatora, accountNumber]);
+
   // On mount: create shift + get send quote so everything is ready for one-tap confirm
   useEffect(() => {
+    if (isSatora) return; // Satora flow handled by the dedicated effect above
     let cancelled = false;
 
     const prepare = async () => {
@@ -159,8 +198,45 @@ export default function TransferConfirm() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Satora flow confirm: the service handles create → commit → pay via callback.
+  const handleSatoraConfirm = async () => {
+    if (isConfirmingRef.current) return;
+    if (!quote || !sendAsset || !receiveAsset) return;
+    if (!selectedLnPayNetwork) {
+      setError('Pick a Lightning wallet to pay the invoice');
+      return;
+    }
+    isConfirmingRef.current = true;
+    setIsConfirming(true);
+    setError('');
+    try {
+      const rootstockAddress = await BackgroundExecutor.getAddress(NETWORK_ROOTSTOCK, accountNumber);
+      if (!rootstockAddress) {
+        throw new Error('No Rootstock address available for this account');
+      }
+
+      const lnWallet = await BackgroundExecutor.lazyInitWallet(selectedLnPayNetwork as TSupportedLazyInitWalletNetworks, accountNumber);
+      if (!walletSupportsLightning(lnWallet)) {
+        throw new Error(`${selectedLnPayNetwork} wallet does not support Lightning`);
+      }
+
+      const execution = await transferService.executeAndPay(quote, accountNumber, rootstockAddress, (bolt11: string) => lnWallet.payLightningInvoice(bolt11));
+      executionRef.current = execution;
+
+      setPreparedExecution(undefined);
+      setCommitted(true);
+      router.replace({ pathname: '/TransferDetails', params: { execution: JSON.stringify(execution) } });
+    } catch (e: any) {
+      setError(e.message || 'Failed to start Satora swap');
+    } finally {
+      isConfirmingRef.current = false;
+      setIsConfirming(false);
+    }
+  };
+
   // Single confirm: commit + broadcast
   const handleConfirm = async () => {
+    if (isSatora) return handleSatoraConfirm();
     if (isConfirmingRef.current) return;
     isConfirmingRef.current = true;
     setIsConfirming(true);
@@ -295,7 +371,7 @@ export default function TransferConfirm() {
   const receiveFiat = receiveRate && receiveAmount ? `$${new BigNumber(receiveAmount).multipliedBy(receiveRate).toFixed(2)}` : '';
 
   const isExpired = !isNativeDeposit && expirySeconds <= 0;
-  const isReady = !isPreparing && !error && !isExpired;
+  const isReady = !isPreparing && !error && !isExpired && (!isSatora || !!selectedLnPayNetwork);
 
   if (!sendAsset || !receiveAsset || !quote) {
     router.back();
@@ -393,6 +469,38 @@ export default function TransferConfirm() {
                         <View style={styles.detailRow} testID="ConfirmProvider">
                           <ThemedText style={styles.detailLabel}>Provider</ThemedText>
                           <ThemedText style={styles.detailValue}>{quote.serviceName}</ThemedText>
+                        </View>
+                      )}
+
+                      {isSatora && (
+                        <View style={styles.lnPayPickerContainer} testID="SatoraLnPayPicker">
+                          <View style={styles.detailRow}>
+                            <ThemedText style={styles.detailLabel}>Pay from</ThemedText>
+                            <ThemedText style={styles.detailValue}>
+                              {discoveringLnPay ? 'Discovering...' : selectedLnPayNetwork ? AllNetworkInfos[selectedLnPayNetwork].displayName : 'No LN wallet'}
+                            </ThemedText>
+                          </View>
+                          {!discoveringLnPay && lnPayNetworks.length > 0 && (
+                            <View style={styles.lnPayPickerOptions}>
+                              {lnPayNetworks.map((network) => {
+                                const isSelected = network === selectedLnPayNetwork;
+                                return (
+                                  <RNPressable
+                                    key={network}
+                                    style={[styles.lnPayPickerOption, isSelected && styles.lnPayPickerOptionSelected]}
+                                    onPress={() => setSelectedLnPayNetwork(network)}
+                                    testID={`SatoraLnPayOption-${network}`}
+                                  >
+                                    <ThemedText style={[styles.lnPayPickerOptionText, isSelected && styles.lnPayPickerOptionTextSelected]}>{AllNetworkInfos[network].displayName}</ThemedText>
+                                    {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                                  </RNPressable>
+                                );
+                              })}
+                            </View>
+                          )}
+                          {!discoveringLnPay && lnPayNetworks.length === 0 && (
+                            <ThemedText style={styles.lnPayPickerEmpty}>No Lightning-capable wallet found for this account. Activate Liquid, Spark, or Ark first.</ThemedText>
+                          )}
                         </View>
                       )}
 
@@ -624,5 +732,46 @@ const styles = StyleSheet.create({
   loadingContainer: {
     alignItems: 'center',
     padding: 20,
+  },
+  lnPayPickerContainer: {
+    marginTop: 4,
+  },
+  lnPayPickerOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+  },
+  lnPayPickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  lnPayPickerOptionSelected: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  lnPayPickerOptionText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  lnPayPickerOptionTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  lnPayPickerEmpty: {
+    fontSize: 12,
+    color: 'rgba(255, 165, 0, 0.9)',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
   },
 });

@@ -1,9 +1,11 @@
 import { SparkWallet } from '../class/wallets/spark-wallet';
+import { getMasterSeed } from '../modules/wallet-utils';
 import { FakeTransferService } from '../services/transfer-service-fake';
 import { FlashnetTransferService } from '../services/transfer-service-flashnet';
 import { GardenTransferService } from '../services/transfer-service-garden';
 import { TransferServiceManager } from '../services/transfer-service-manager';
 import { NativeDepositClaimExecutor, NativeDepositSwapsFetcher, NativeDepositTransferService } from '../services/transfer-service-native-deposit';
+import { SatoraTransferService } from '../services/transfer-service-satora';
 import { SideshiftTransferService } from '../services/transfer-service-sideshift';
 import { SymbiosisTransferService } from '../services/transfer-service-symbiosis';
 import { IStorage } from '../types/IStorage';
@@ -48,6 +50,7 @@ export function useTransferService(storage: IStorage): TransferServiceManager {
       console.warn('EXPO_PUBLIC_GARDEN_APP_ID not set — Garden Finance disabled');
     }
     services.push(new SymbiosisTransferService(storage));
+    services.push(new SatoraTransferService(storage, () => getMasterSeed(), process.env.EXPO_PUBLIC_SATORA_API_KEY));
     _flashnetService = new FlashnetTransferService(storage, (accountNumber) => SparkWallet.getSDKWalletForAccount(accountNumber));
     services.push(_flashnetService);
     _nativeDepositService = new NativeDepositTransferService(storage);
