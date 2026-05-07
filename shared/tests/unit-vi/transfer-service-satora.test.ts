@@ -24,6 +24,9 @@ vi.mock('@lendasat/lendaswap-sdk-pure', () => {
     withApiKey() {
       return this;
     }
+    withXprv() {
+      return this;
+    }
     async build() {
       return {
         getQuote: mockGetQuote,
@@ -53,6 +56,7 @@ function makeStorage() {
 
 const ROOTSTOCK_ADDRESS = '0x1234567890abcdefABCDEF1234567890abcdefAB';
 const USDT0_ROOTSTOCK_ADDR = '0x779dED0C9e1022225F8e0630b35A9B54Be713736';
+const TEST_MASTER_MNEMONIC = 'install scatter logic circle pencil average fall shoe quantum disease suspect usage';
 
 // 0.0001 BTC → 10_000 sats. SDK quote returns target_amount in USDT0 smallest units
 // (6 decimals). 1 BTC ≈ 100k USDT0 → 10k sats → ~10 USDT0 = 10_000_000 smallest units.
@@ -114,7 +118,7 @@ describe('SatoraTransferService', () => {
     mockFundSwapGasless.mockReset();
     mockClaimArkade.mockReset();
     storage = makeStorage();
-    service = new SatoraTransferService(storage);
+    service = new SatoraTransferService(storage, () => TEST_MASTER_MNEMONIC);
   });
 
   afterEach(() => {
@@ -356,7 +360,7 @@ describe('SatoraTransferService', () => {
       await service.commitTransfer(exec);
 
       // New instance, same storage — the persisted transfer should be readable.
-      const service2 = new SatoraTransferService(storage);
+      const service2 = new SatoraTransferService(storage, () => TEST_MASTER_MNEMONIC);
       mockGetSwap.mockResolvedValueOnce({ ...CREATE_SWAP_RESPONSE, status: 'pending' });
       const transfers = await service2.getOngoingTransfers(0);
       expect(transfers).toHaveLength(1);

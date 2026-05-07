@@ -1,10 +1,29 @@
+import ecc from '@bitcoinerlab/secp256k1';
 import { Client, type GetSwapResponse, type LightningToEvmSwapResponse, type SwapStatus } from '@lendasat/lendaswap-sdk-pure';
+import BIP32Factory from 'bip32';
+import * as bip39 from 'bip39';
 import BigNumber from 'bignumber.js';
 
 import { IStorage, STORAGE_KEY_SATORA_SWAPS } from '../types/IStorage';
 import type { AssetId } from '../types/asset';
 import { EXECUTION_DEPOSIT, ITransferService, isTerminalStatus, TimelineStep, TransferExecution, TransferPair, TransferQuote, TransferStatus } from '../types/transfer';
 import { SatoraSwapStorageAdapter, SatoraWalletStorageAdapter } from './satora-storage-adapter';
+
+const bip32 = BIP32Factory(ecc);
+
+/**
+ * Path used to derive the Satora signing xprv from the wallet's master seed.
+ *
+ * Hardened BIP44 account 100' under coin_type=60' — a sibling of the user's
+ * main EVM account tree (m/44'/60'/0'/0/{n}), so the Satora signing identity
+ * shares no common ancestor xprv with regular wallet keys.
+ *
+ * The SDK treats this xprv as a fresh master and derives swap-signing children
+ * underneath it (see Signer.deriveSwapParams).
+ */
+const SATORA_XPRV_PATH = "m/44'/60'/100'";
+
+export type GetMasterMnemonic = () => string | Promise<string>;
 
 const PRUNE_AGE_SECONDS = 7 * 24 * 60 * 60; // 7 days
 const QUOTE_TTL_SECONDS = 60; // 1 minute
@@ -55,24 +74,36 @@ export class SatoraTransferService implements ITransferService {
   private clientPromise?: Promise<Client>;
   private readonly storage: IStorage;
   private readonly apiKey: string | undefined;
+  private readonly getMasterMnemonic: GetMasterMnemonic;
   private readonly walletStorage: SatoraWalletStorageAdapter;
   private readonly swapStorage: SatoraSwapStorageAdapter;
   private readonly uncommitted = new Map<string, TransferExecution>();
 
-  constructor(storage: IStorage, apiKey?: string) {
+  constructor(storage: IStorage, getMasterMnemonic: GetMasterMnemonic, apiKey?: string) {
     this.storage = storage;
     this.apiKey = apiKey && apiKey.length > 0 ? apiKey : undefined;
+    this.getMasterMnemonic = getMasterMnemonic;
     this.walletStorage = new SatoraWalletStorageAdapter(storage);
     this.swapStorage = new SatoraSwapStorageAdapter(storage);
   }
 
+  private async deriveSatoraXprv(): Promise<string> {
+    const master = await this.getMasterMnemonic();
+    if (!master) throw new Error('Satora signer requires the wallet to be unlocked');
+    const seed = bip39.mnemonicToSeedSync(master);
+    return bip32.fromSeed(seed).derivePath(SATORA_XPRV_PATH).toBase58();
+  }
+
   private getClient(): Promise<Client> {
     if (!this.clientPromise) {
-      let builder = Client.builder().withSignerStorage(this.walletStorage).withSwapStorage(this.swapStorage).withBaseUrl(SATORA_BASE_URL);
-      if (this.apiKey) {
-        builder = builder.withApiKey(this.apiKey);
-      }
-      this.clientPromise = builder.build().catch((e) => {
+      this.clientPromise = (async () => {
+        const xprv = await this.deriveSatoraXprv();
+        let builder = Client.builder().withXprv(xprv).withSignerStorage(this.walletStorage).withSwapStorage(this.swapStorage).withBaseUrl(SATORA_BASE_URL);
+        if (this.apiKey) {
+          builder = builder.withApiKey(this.apiKey);
+        }
+        return builder.build();
+      })().catch((e) => {
         this.clientPromise = undefined;
         throw e;
       });
