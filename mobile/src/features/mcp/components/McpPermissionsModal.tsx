@@ -26,6 +26,7 @@ const PERMISSION_ROWS: McpPermissionRow[] = [
   { key: 'send_tokens', label: 'Send tokens' },
   { key: 'send_nfts', label: 'Send NFTs' },
   { key: 'pay_invoices', label: 'Pay Lightning invoices' },
+  { key: 'execute_swaps', label: 'Execute swaps' },
 ];
 
 export default function McpPermissionsModal() {

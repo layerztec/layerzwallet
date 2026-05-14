@@ -44,6 +44,12 @@ export class FlashnetTransferService implements ITransferService {
   private client: any | undefined;
   private clientWallet: SparkSDKWallet | undefined;
   private poolId: string | undefined;
+  /**
+   * Cached full pool object (from `listPools`). Needed for fee computation because the
+   * authoritative fee config lives on the pool (`lpFeeBps + hostFeeBps`), not on the swap
+   * simulation response.
+   */
+  private poolDetails: any | undefined;
   private currentAccountNumber: number = 0;
   private pendingSwaps: Map<string, PendingSwapParams> = new Map();
 
@@ -79,11 +85,22 @@ export class FlashnetTransferService implements ITransferService {
 
     const receiveAmount = new BigNumber(simulation.amountOut).div(new BigNumber(10).pow(receiveInfo.decimals)).toFixed(receiveInfo.decimals);
     const rateValue = new BigNumber(receiveAmount).div(sendAmount).toFixed(8);
-    const priceImpact = parseFloat(simulation.priceImpactPct || '0');
-    const feeEstimate = new BigNumber(sendAmount)
-      .times(priceImpact / 100)
-      .abs()
-      .toFixed(sendInfo.decimals);
+
+    // Fee is derived from the pool's configured basis points (lpFeeBps + hostFeeBps),
+    // NOT from simulation.feePaidAssetIn. Why: the SDK type names `feePaidAssetIn` but
+    // empirically the field is denominated in the OUTPUT asset's smallest units (verified
+    // against `pool.lpFeeBps+hostFeeBps` in [FLASHNET-FEE-DIAG] log analysis — interpreting
+    // it as input units gives a nonsense ~38% fee on a pool configured for 5 bps).
+    //
+    // Using pool bps is also unit-unambiguous, direction-symmetric, and slightly more accurate
+    // than the realized-fee field for pricing intent (e.g. 0.05% nominal vs 0.048% realized
+    // due to V3 tick rounding — the diff is invisible to users).
+    const lpFeeBps = this.poolDetails?.lpFeeBps ?? 0;
+    const hostFeeBps = this.poolDetails?.hostFeeBps ?? 0;
+    const totalFeeBps = lpFeeBps + hostFeeBps;
+    const feeBaseUnits = new BigNumber(amountInSmallest).times(totalFeeBps).div(10000).integerValue(BigNumber.ROUND_CEIL).toFixed(0);
+    const feeHuman = new BigNumber(feeBaseUnits).div(new BigNumber(10).pow(sendInfo.decimals)).toFixed(sendInfo.decimals);
+    const priceImpactPct = simulation.priceImpactPct ?? '0';
 
     return {
       id: `flashnet-${Date.now()}`,
@@ -92,8 +109,10 @@ export class FlashnetTransferService implements ITransferService {
       sendAmount,
       receiveAmount,
       rate: `1 ${sendInfo.ticker} = ${rateValue} ${receiveInfo.ticker}`,
-      fee: feeEstimate,
+      fee: feeHuman,
       feeTicker: sendInfo.ticker,
+      feeBaseUnits,
+      priceImpactPct,
       estimatedTime: 5,
       expiresAt: Math.floor(Date.now() / 1000) + 60,
       serviceName: this.name,
@@ -254,6 +273,7 @@ export class FlashnetTransferService implements ITransferService {
     this.client = new FlashnetClient(wallet);
     this.clientWallet = wallet;
     this.poolId = undefined; // pool discovery may differ per wallet context
+    this.poolDetails = undefined;
     await this.client.initialize();
     return this.client;
   }
@@ -275,6 +295,7 @@ export class FlashnetTransferService implements ITransferService {
     }
 
     this.poolId = pool.lpPublicKey || pool.publicKey || pool.id;
+    this.poolDetails = pool;
     return this.poolId!;
   }
 

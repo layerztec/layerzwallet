@@ -68,8 +68,10 @@ getTrackingUrl?(execution): string | undefined
 
 ### Flashnet AMM (`shared/services/transfer-service-flashnet.ts`)
 - **Pairs**: BTC <-> USDB on Spark (both directions)
-- **Model**: Instant atomic swap via `@flashnet/sdk`. No deposit address. Executes atomically in `executeTransfer()`.
+- **Model**: Two-phase instant swap. `executeTransfer()` stages params in `pendingSwaps` and returns `status: 'pending'` *without* moving funds. `executeInstantSwap(executionId)` then runs `FlashnetClient.executeSwap()` and returns `status: 'completed'`. This split lets the UI / MCP show fee + impact before commit.
 - **API**: `FlashnetClient.simulateSwap()` for quotes, `executeSwap()` for execution
+- **Fees**: Derived from the pool's configured `lpFeeBps + hostFeeBps` (read from the cached `AmmPool` after `listPools`), as `amountIn × totalFeeBps / 10000`. `TransferQuote.feeBaseUnits` is then in the input asset's smallest units. **We deliberately do NOT use `SimulateSwapResponse.feePaidAssetIn`** — despite the name suggesting input-asset units, empirically the field is denominated in the OUTPUT asset's smallest units, which on a real BTC→USDB swap caused us to report a ~38% fee on a pool actually configured for 5 bps. The pool-bps approach is unit-unambiguous and direction-symmetric. **Price impact is NOT a fee** — exposed separately on `TransferQuote.priceImpactPct`.
+- **Slippage**: `maxSlippageBps: 300` + hard `minAmountOut = receiveAmount * 0.97`.
 - **SparkWallet access**: `SparkWallet.getSDKWalletForAccount(accountNumber)` static getter
 - No tracking URL (instant)
 
@@ -112,7 +114,7 @@ getTrackingUrl?(execution): string | undefined
 - `mobile/app/TransferDetails.tsx` — Timeline from `getTimelineSteps()`. Detail rows: provider, status, transfer ID, addresses, deposit/claim txids. Claim button for NativeDeposit (disabled during auto-claim). "View Online" button when tracking URL available.
 
 ## Shared Hooks
-- `useTransferService(storage)` — singleton TransferServiceManager (`shared/hooks/useTransferService.ts`). Also exports: `setNativeDepositSwapsFetcher`, `setNativeDepositClaimExecutor`, `startAutoClaimMonitor`, `stopAutoClaimMonitor`, `processAutoClaimsNow`
+- `useTransferService(storage)` — singleton TransferServiceManager (`shared/hooks/useTransferService.ts`). Also exports: `setNativeDepositSwapsFetcher`, `setNativeDepositClaimExecutor`, `startAutoClaimMonitor`, `stopAutoClaimMonitor`, `processAutoClaimsNow`, `setFlashnetAccountNumber`, `getTransferServiceManager` (non-hook singleton accessor), `getFlashnetTransferService` (non-hook singleton accessor — used by MCP).
 - `useTransactionHistory(network, account)` — merges transfers into tx list, deduplicates (`shared/hooks/useTransactionHistory.ts`)
 - `useAssetExchangeRate(assetId)` — fiat rate for transfer assets (`shared/hooks/useAssetExchangeRate.ts`)
 - `useAssetBalance(assetId, account, bg)` — unified native/token balance (`shared/hooks/useAssetBalance.ts`)
@@ -122,6 +124,15 @@ getTrackingUrl?(execution): string | undefined
 - **Types**: `SendQuoteRequest`, `SendQuote` (`shared/types/send-quote.ts`)
 - **Interface**: `InterfaceSendQuotable` (`shared/class/wallets/interface-send-quotable.ts`)
 - **Implementations**: `EvmWallet`, `BreezWallet`
+
+## MCP swap surface (`mobile/src/features/mcp/modules/mcp-calls.ts`)
+
+Two tools expose Flashnet to remote AI agents. They run on `MCP_BALANCE_ACCOUNT_NUMBER` (= 4) so they don't touch the user's primary account.
+
+- **`get_swap_quote(send_asset, receive_asset, send_amount_base_units)`** — `send_asset` / `receive_asset` are strict `AssetId` strings (currently `native:spark` / `token:spark:usdb`). Internally: `lazyInitWallet(NETWORK_SPARK, 4)` → `setFlashnetAccountNumber(4)` → `manager.getQuote()` → `manager.executeTransfer()` (Flashnet: stages params, no funds movement) → `manager.commitTransfer()`. Returns `{ quote_id, send_amount_base_units, receive_amount_base_units, fee_base_units, fee_asset, fee_ticker, price_impact_pct, rate, estimated_time_seconds, expires_at_unix, service }`.
+- **`execute_swap(quote_id)`** — `manager.executeInstantSwap(quote_id, 'Flashnet')` → `commitTransfer()`. Idempotency: Flashnet pops the quote from `pendingSwaps` on execute, so replay fails with *"No pending swap found"*. Quote expiry is enforced by Flashnet's internal `PENDING_SWAP_TTL` (5 min) on top of `TransferQuote.expiresAt` (60 s).
+
+Adding more pairs is purely additive: extend `MCP_SWAP_ASSET_IDS` and ensure the relevant provider quotes the pair. Tools don't pin to Flashnet.
 
 ## Tests
 - `shared/tests/unit-vi/transfer-service-sideshift.test.ts`
@@ -135,6 +146,7 @@ getTrackingUrl?(execution): string | undefined
 - `shared/tests/unit-vi/use-asset-balance.test.ts`
 - `shared/tests/integration-vi/sideshift-transfer.test.ts`
 - `shared/tests/integration-vi/garden-transfer.test.ts`
+- `mobile/src/tests/unit-vi/mcp-calls-swap.test.ts` — MCP `get_swap_quote` / `execute_swap` handlers
 - `mobile/.maestro/swap.yml` — e2e flow with Fake service
 
 ## Adding a New Transfer Service

@@ -3,6 +3,7 @@
  * No HTTP, tunnel, or session lifecycle (that stays in `mcp.ts`).
  */
 
+import BigNumber from 'bignumber.js';
 import * as bolt11 from 'bolt11';
 import { isValidSparkAddress } from '@buildonspark/spark-sdk';
 import * as z from 'zod';
@@ -14,8 +15,11 @@ import { walletCanHaveTokens } from '@shared/class/wallets/interface-can-have-to
 import { walletSupportsLightning } from '@shared/class/wallets/interface-lightning-wallet';
 import { exchangeRateFetcher } from '@shared/hooks/useExchangeRate';
 import { balanceFetcher } from '@shared/hooks/useBalance';
+import { getFlashnetTransferService, getTransferServiceManager, setFlashnetAccountNumber, useTransferService } from '@shared/hooks/useTransferService';
+import { getAssetInfo } from '@shared/models/asset-info';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { validateAddress } from '@shared/modules/wallet-utils';
+import { AssetId } from '@shared/types/asset';
 import {
   getAvailableNetworks,
   NETWORK_ARK,
@@ -28,7 +32,9 @@ import {
   NETWORK_USDT,
   type Networks,
 } from '@shared/types/networks';
+import { EXECUTION_INSTANT } from '@shared/types/transfer';
 
+import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AnalyticsEvents, trackAnalyticsEvent } from '@/src/modules/analytics';
 
@@ -72,6 +78,14 @@ const mcpNftNetworkSchema = z.enum(MCP_NFT_NETWORKS);
 /** Networks supported by get_receive_address (account-based wallets exposed to MCP). */
 const MCP_RECEIVE_ADDRESS_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS, NETWORK_ARK] as const;
 const mcpReceiveAddressNetworkSchema = z.enum(MCP_RECEIVE_ADDRESS_NETWORKS);
+
+/**
+ * AssetIds the MCP swap tools accept. Today: only BTC↔USDB on Spark (Flashnet AMM).
+ * Adding more pairs is purely additive: extend this list and the routing falls through
+ * to whatever provider TransferServiceManager picks.
+ */
+const MCP_SWAP_ASSET_IDS = ['native:spark', 'token:spark:usdb'] as const satisfies readonly AssetId[];
+const mcpSwapAssetSchema = z.enum(MCP_SWAP_ASSET_IDS);
 
 function walletHasOffchainReceiveAddress(w: unknown): w is { getOffchainReceiveAddress(): Promise<string> } {
   return typeof w === 'object' && w !== null && typeof (w as { getOffchainReceiveAddress?: unknown }).getOffchainReceiveAddress === 'function';
@@ -880,6 +894,199 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
         return {
           isError: true,
           content: [{ type: 'text', text: JSON.stringify({ error: message, network }, null, 2) }],
+        };
+      }
+    }
+  );
+
+  mcp.registerTool(
+    'get_swap_quote',
+    {
+      title: 'Quote an in-wallet swap (no funds move)',
+      description:
+        'Returns a quote for swapping `send_amount_base_units` of `send_asset` into `receive_asset`. Currently only BTC↔USDB on Spark. The response includes a `quote_id` you must pass verbatim to `execute_swap` to actually trade. Quotes expire at `expires_at_unix` (typically 60s, TELL USER HOW MUCH TIME IS LEFT); call this tool again after expiry. **No funds move on this call** — it only stages the swap so the user/agent can review fees before committing.\n\n' +
+        '**Present the EXACT outcome to the user with zero mental math.** `receive_amount_base_units`, `effective_exchange_rate`, and `rate` are all already net of the AMM fee — quote them verbatim, do **NOT** subtract anything on top.\n\n' +
+        '- `effective_exchange_rate`: precomputed BTC price in USDB the user is actually paying, factoring in fees (e.g. "99500.00"). Always normalized to USDB-per-BTC regardless of swap direction, so the user can compare it directly to a market BTC price. Prefer this over `rate` when presenting — `rate` reads poorly in the USDB→BTC direction ("1 USDB = 0.00001 BTC").\n' +
+        '- `effective_fee_rate`: precomputed `fee_base_units / send_amount_base_units × 100` as a percent string. Always surface it for transparency about what the AMM is keeping — but show it as transparency, **not** as a further deduction on top of the rate/amounts.\n\n' +
+        'Good: "You\'ll send 0.001 BTC and receive 99.5 USDB (effective price: 99,500 USDB per BTC, includes a 0.4% AMM fee)."\n' +
+        'Bad: "You\'ll send 0.001 BTC at 99,500 USDB per BTC, with a 0.4% fee on top." (the fee is **not** on top — it\'s already baked into `effective_exchange_rate` and `receive_amount_base_units`.)',
+      inputSchema: {
+        send_asset: mcpSwapAssetSchema.describe(`Asset to sell. One of: ${MCP_SWAP_ASSET_IDS.join(', ')}.`),
+        receive_asset: mcpSwapAssetSchema.describe(`Asset to buy. Must differ from \`send_asset\`. One of: ${MCP_SWAP_ASSET_IDS.join(', ')}.`),
+        send_amount_base_units: mcpPositiveBaseUnitsString.describe("Amount to sell, in the send asset's smallest units (sats for BTC, 6-decimal base units for USDB)."),
+      },
+    },
+    async ({ send_asset, receive_asset, send_amount_base_units }) => {
+      mcpCallLog(`get_swap_quote: start - ${send_asset} -> ${receive_asset}, amount ${send_amount_base_units}`);
+      trackMcpCall('get_swap_quote');
+
+      if (send_asset === receive_asset) {
+        mcpCallLog('get_swap_quote: error - send_asset and receive_asset are the same');
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: '`send_asset` and `receive_asset` must differ.' }, null, 2) }],
+        };
+      }
+
+      try {
+        useTransferService(LayerzStorage); // ensure the singleton + Flashnet service are constructed
+        await BackgroundExecutor.lazyInitWallet(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
+        setFlashnetAccountNumber(MCP_BALANCE_ACCOUNT_NUMBER);
+
+        const manager = getTransferServiceManager();
+        if (!manager) {
+          mcpCallLog('get_swap_quote: error - transfer service manager not initialized');
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'Transfer service is not initialized yet. Open the wallet UI once, then retry.' }, null, 2) }],
+          };
+        }
+
+        const sendInfo = getAssetInfo(send_asset);
+        const receiveInfo = getAssetInfo(receive_asset);
+
+        const sendAmountHuman = new BigNumber(send_amount_base_units).div(new BigNumber(10).pow(sendInfo.decimals)).toFixed();
+
+        const quote = await manager.getQuote(send_asset, receive_asset, sendAmountHuman);
+        const execution = await manager.executeTransfer(quote, MCP_BALANCE_ACCOUNT_NUMBER, '');
+        await manager.commitTransfer(execution);
+
+        const receiveAmountBaseUnits = new BigNumber(quote.receiveAmount).times(new BigNumber(10).pow(receiveInfo.decimals)).integerValue(BigNumber.ROUND_FLOOR).toFixed(0);
+
+        // Trading fee as a percentage of the user's input (e.g. "0.4000" for 0.4%).
+        // Kept as smallest-unit math (fee_base_units / send_amount_base_units) so it stays exact
+        // regardless of asset decimals. `quote.rate` is already the post-fee effective rate,
+        // since the AMM's amountOut is net of fees — surfacing this percentage lets the agent
+        // explain the cost of the trade alongside that rate.
+        const feeBaseUnitsStr = quote.feeBaseUnits ?? '0';
+        const effectiveFeeRate = new BigNumber(feeBaseUnitsStr).div(new BigNumber(send_amount_base_units)).times(100).toFixed(4);
+
+        // The actual BTC-priced-in-USDB rate the user is paying, factoring in fees.
+        // `quote.rate` is direction-specific ("1 USDB = 0.00001 BTC" reads poorly), so we
+        // always normalize to USDB-per-BTC for the BTC↔USDB pair. Uses human-unit amounts
+        // — both sides are decimal-corrected, so the ratio is exact regardless of decimals.
+        // If new swap pairs are added beyond MCP_SWAP_ASSET_IDS, revisit this normalization.
+        const sendIsBtc = send_asset === 'native:spark';
+        const usdbHuman = sendIsBtc ? quote.receiveAmount : sendAmountHuman;
+        const btcHuman = sendIsBtc ? sendAmountHuman : quote.receiveAmount;
+        const effectiveExchangeRate = new BigNumber(usdbHuman).div(new BigNumber(btcHuman)).toFixed(2);
+
+        const summary = `${sendAmountHuman} ${sendInfo.ticker} \u2192 ${quote.receiveAmount} ${receiveInfo.ticker}`;
+        mcpCallLog(
+          `get_swap_quote: ok - ${summary}, price ${effectiveExchangeRate} USDB/BTC, fee ${feeBaseUnitsStr} ${quote.feeTicker} base units (${effectiveFeeRate}%), impact ${quote.priceImpactPct ?? '?'}%, quote_id ${execution.id}`
+        );
+        showMcpSuccessToast('Quoted swap', summary);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  quote_id: execution.id,
+                  send_asset,
+                  receive_asset,
+                  send_amount_base_units,
+                  receive_amount_base_units: receiveAmountBaseUnits,
+                  fee_base_units: feeBaseUnitsStr,
+                  fee_asset: send_asset,
+                  fee_ticker: quote.feeTicker,
+                  effective_fee_rate: effectiveFeeRate,
+                  effective_exchange_rate: effectiveExchangeRate,
+                  price_impact_pct: quote.priceImpactPct ?? '0',
+                  rate: quote.rate,
+                  estimated_time_seconds: quote.estimatedTime,
+                  expires_at_unix: quote.expiresAt,
+                  service: quote.serviceName,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        mcpCallLog(`get_swap_quote: error - ${message}`);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: message }, null, 2) }],
+        };
+      }
+    }
+  );
+
+  mcp.registerTool(
+    'execute_swap',
+    {
+      title: 'Execute a previously quoted swap',
+      description:
+        'Executes the swap staged by an earlier `get_swap_quote` call. Pass `quote_id` exactly as returned. The trade is atomic (a few seconds, no on-chain confirmations on Spark) and **irreversible** once it returns success. Each `quote_id` can only be executed **once**; expired or already-executed quotes return an error and you must re-quote. Slippage is capped at 3% (300 bps); execution fails rather than filling beyond that.',
+      inputSchema: {
+        quote_id: z.string().min(1).describe('Exact `quote_id` from `get_swap_quote` — copy verbatim. Leading/trailing whitespace is trimmed.'),
+      },
+    },
+    async ({ quote_id }) => {
+      const qid = quote_id.trim();
+      mcpCallLog(`execute_swap: start - quote_id ${qid}`);
+      trackMcpCall('execute_swap');
+
+      try {
+        const manager = getTransferServiceManager();
+        const flashnet = getFlashnetTransferService();
+        if (!manager || !flashnet) {
+          mcpCallLog('execute_swap: error - transfer service not initialized');
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'Transfer service is not initialized yet. Call `get_swap_quote` first from a warm wallet.' }, null, 2) }],
+          };
+        }
+
+        // Re-point Flashnet at the MCP account in case other code mutated it between quote and execute.
+        setFlashnetAccountNumber(MCP_BALANCE_ACCOUNT_NUMBER);
+
+        const completed = await manager.executeInstantSwap(qid, flashnet.name);
+        await manager.commitTransfer(completed);
+
+        if (completed.type !== EXECUTION_INSTANT) {
+          throw new Error(`Unexpected execution type for swap: ${completed.type}`);
+        }
+
+        const sendInfo = getAssetInfo(completed.sendAsset);
+        const receiveInfo = getAssetInfo(completed.receiveAsset);
+        const receiveBaseUnits = new BigNumber(completed.receiveAmount).times(new BigNumber(10).pow(receiveInfo.decimals)).integerValue(BigNumber.ROUND_FLOOR).toFixed(0);
+        const sendBaseUnits = new BigNumber(completed.sendAmount).times(new BigNumber(10).pow(sendInfo.decimals)).integerValue(BigNumber.ROUND_FLOOR).toFixed(0);
+        const summary = `${completed.sendAmount} ${sendInfo.ticker} \u2192 ${completed.receiveAmount} ${receiveInfo.ticker}`;
+
+        mcpCallLog(`execute_swap: ok - ${summary}`);
+        showMcpSuccessToast('Swapped', summary);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: true,
+                  quote_id: qid,
+                  send_asset: completed.sendAsset,
+                  receive_asset: completed.receiveAsset,
+                  send_amount_base_units: sendBaseUnits,
+                  receive_amount_base_units: receiveBaseUnits,
+                  service: completed.serviceName,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        mcpCallLog(`execute_swap: error - ${message}`);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: message, quote_id: qid }, null, 2) }],
         };
       }
     }

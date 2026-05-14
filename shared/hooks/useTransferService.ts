@@ -37,6 +37,16 @@ export function setFlashnetAccountNumber(accountNumber: number): void {
   _flashnetService?.setCurrentAccountNumber(accountNumber);
 }
 
+/** Returns the singleton TransferServiceManager if it's been constructed yet. Module-level singleton; MCP and other non-hook callers should use this after the app boot has run `useTransferService`. */
+export function getTransferServiceManager(): TransferServiceManager | undefined {
+  return _instance;
+}
+
+/** Returns the singleton FlashnetTransferService once `useTransferService` has run. Used by MCP to call `executeInstantSwap` directly. */
+export function getFlashnetTransferService(): FlashnetTransferService | undefined {
+  return _flashnetService;
+}
+
 export function useTransferService(storage: IStorage): TransferServiceManager {
   if (!_instance) {
     const services: ITransferService[] = [];

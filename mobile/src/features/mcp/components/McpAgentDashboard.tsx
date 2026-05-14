@@ -179,7 +179,7 @@ export function McpAgentDashboard() {
             </View>
             <View style={styles.permissionsTextWrap}>
               <ThemedText style={styles.permissionsTitle}>Permissions</ThemedText>
-              <ThemedText style={styles.permissionsSubtitle}>5 out of 5</ThemedText>
+              <ThemedText style={styles.permissionsSubtitle}>6 out of 6</ThemedText>
             </View>
           </Pressable>
         </View>

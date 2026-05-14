@@ -35,6 +35,10 @@ function makeMockClient() {
     simulateSwap: vi.fn().mockResolvedValue({
       amountOut: '99500000', // 99.5 USDB (6 decimals)
       executionPrice: '99500',
+      // Note: we no longer trust `feePaidAssetIn` (its real units don't match the name).
+      // Fee is derived from pool.lpFeeBps + pool.hostFeeBps instead; this field is left for
+      // realism but is no longer consumed.
+      feePaidAssetIn: '49750', // ignored
       priceImpactPct: '0.5',
     }),
     executeSwap: vi.fn().mockResolvedValue({
@@ -48,6 +52,10 @@ function makeMockClient() {
           lpPublicKey: MOCK_POOL_ID,
           assetAAddress: '020202020202020202020202020202020202020202020202020202020202020202',
           assetBAddress: '3206c93b24a4d18ea19d0a9a213204af2c7e74a6d16c7535cc5d33eca4ad1eca',
+          // 30 + 10 = 40 bps = 0.40%. Chosen so 0.001 BTC × 40 bps / 10000 = 400 sats fee,
+          // matching the value the previous test fixture used for `feePaidAssetIn`.
+          lpFeeBps: 30,
+          hostFeeBps: 10,
         },
       ],
     }),
@@ -92,6 +100,44 @@ describe('FlashnetTransferService', () => {
       expect(quote.rate).toContain('BTC');
       expect(quote.rate).toContain('USDB');
       expect(quote.estimatedTime).toBe(5);
+    });
+
+    it('derives fee from pool.lpFeeBps + pool.hostFeeBps (not from simulation.feePaidAssetIn)', async () => {
+      const quote = await service.getQuote(BTC_SPARK, USDB, '0.001');
+
+      // 0.001 BTC = 100,000 sats. Pool is configured at 30 + 10 = 40 bps (0.40%).
+      // Expected fee = 100,000 × 40 / 10,000 = 400 sats. Note: `feePaidAssetIn: '49750'` in the
+      // mock — if we were still using that (in output units), we'd get a wildly wrong answer.
+      expect(quote.feeBaseUnits).toBe('400');
+      expect(quote.fee).toBe('0.00000400');
+      expect(quote.feeTicker).toBe('BTC');
+      // priceImpactPct is plumbed through unchanged (it's slippage, not a fee).
+      expect(quote.priceImpactPct).toBe('0.5');
+    });
+
+    it('falls back to zero fee when the pool object omits fee bps fields', async () => {
+      const { FlashnetClient } = await import('@flashnet/sdk');
+      (FlashnetClient as any).mockImplementationOnce(() => ({
+        initialize: vi.fn().mockResolvedValue(undefined),
+        simulateSwap: vi.fn().mockResolvedValue({ amountOut: '99500000', executionPrice: '99500' }),
+        executeSwap: vi.fn(),
+        listPools: vi.fn().mockResolvedValue({
+          pools: [
+            {
+              id: 'p',
+              lpPublicKey: MOCK_POOL_ID,
+              assetAAddress: '020202020202020202020202020202020202020202020202020202020202020202',
+              assetBAddress: '3206c93b24a4d18ea19d0a9a213204af2c7e74a6d16c7535cc5d33eca4ad1eca',
+              // No lpFeeBps, no hostFeeBps — exercise the `?? 0` defensive fallbacks.
+            },
+          ],
+        }),
+      }));
+      const noFeeService = new FlashnetTransferService(mockStorage, () => mockWallet);
+      const quote = await noFeeService.getQuote(BTC_SPARK, USDB, '0.001');
+
+      expect(quote.feeBaseUnits).toBe('0');
+      expect(quote.priceImpactPct).toBe('0');
     });
 
     it('handles USDB→BTC direction', async () => {
