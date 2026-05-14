@@ -1,18 +1,32 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { Tabs } from 'expo-router';
 import { Image } from 'expo-image';
+import React, { useContext } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 
 import CustomTabBarBackground from '@/components/ui/CustomTabBarBackground';
+import { MCP_BALANCE_ACCOUNT_NUMBER } from '@/src/features/mcp/modules/mcp-constants';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 
 // Use custom tab bar only on iOS 18–25 for a reliable background. iOS 26+ and Android use native tabs.
 const iosVersion = Platform.OS === 'ios' ? (typeof Platform.Version === 'string' ? parseInt(String(Platform.Version), 10) : Number(Platform.Version)) : 0;
 const useCustomTabBar = Platform.OS === 'ios' && iosVersion >= 18 && iosVersion < 26;
 
 export default function TabsLayout() {
+  const { accountNumber } = useContext(AccountNumberContext);
+  // Hide bottom navigation on the MCP automation account — that account uses the dashboard's own actions.
+  const tabBarHidden = accountNumber === MCP_BALANCE_ACCOUNT_NUMBER;
+
   if (!useCustomTabBar) {
     return (
-      <NativeTabs backgroundColor="#111111" iconColor="white" indicatorColor={Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.1)' : undefined} labelStyle={{ color: 'white' }} tintColor="white">
+      <NativeTabs
+        hidden={tabBarHidden}
+        backgroundColor="#111111"
+        iconColor="white"
+        indicatorColor={Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.1)' : undefined}
+        labelStyle={{ color: 'white' }}
+        tintColor="white"
+      >
         <NativeTabs.Trigger name="home" disableAutomaticContentInsets={Platform.OS === 'android'} contentStyle={{ backgroundColor: '#000' }}>
           <NativeTabs.Trigger.Label>Layerz</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/layerz.png')} />
@@ -33,7 +47,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: [styles.tabBar, { backgroundColor: 'transparent' }],
+        tabBarStyle: tabBarHidden ? { display: 'none' } : [styles.tabBar, { backgroundColor: 'transparent' }],
         tabBarActiveTintColor: 'white',
         tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.6)',
         tabBarLabelStyle: styles.tabBarLabel,

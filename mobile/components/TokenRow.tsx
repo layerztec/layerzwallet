@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from 'react';
+import React, { memo, useContext, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import Pressable from './Pressable';
@@ -136,4 +136,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TokenRow;
+export default memo(TokenRow);

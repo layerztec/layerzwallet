@@ -18,7 +18,7 @@ export interface LightningPaymentLimitsResponse {
  * represents trait of a wallet: that wallet can pay and receive lightning
  */
 export interface InterfaceLightningWallet {
-  payLightningInvoice(invoice: string): Promise<boolean>;
+  payLightningInvoice(invoice: string, maxFeePercentage?: number): Promise<boolean>;
 
   createLightningInvoice(amountSats: number, memo: string): Promise<createLightningInvoiceResponse>;
 

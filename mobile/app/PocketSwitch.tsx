@@ -1,4 +1,4 @@
-import { Foundation, Ionicons } from '@expo/vector-icons';
+import { Foundation, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Pressable from '../components/Pressable';
 import { useRouter } from 'expo-router';
 import React, { useContext, useMemo } from 'react';
@@ -46,7 +46,7 @@ const TotalBalanceSection = () => {
 };
 const ListItem = ({ item, onPress, accountNumber, currentAccountNumber }: { item: AccountItem; onPress: () => void; accountNumber: number; currentAccountNumber: number }) => {
   const availableNetworks = useAvailableNetworks();
-  const IconComponent = item.iconCollection === 'ion' ? Ionicons : Foundation;
+  const IconComponent = item.iconCollection === 'ion' ? Ionicons : item.iconCollection === 'material-community' ? MaterialCommunityIcons : Foundation;
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
   const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN, 'USD');
 
@@ -57,7 +57,7 @@ const ListItem = ({ item, onPress, accountNumber, currentAccountNumber }: { item
   return (
     <Pressable style={[styles.item, active && styles.activeItem]} onPress={onPress} scaleOnPress={0.97}>
       <View style={styles.icon}>
-        <IconComponent name={item.icon as any} size={24} color="white" />
+        <IconComponent name={item.icon as any} size={24} color="white" style={item.iconCollection === 'material-community' ? styles.materialIconNudge : undefined} />
       </View>
       <View style={styles.info}>
         <ThemedText style={styles.name}>{item.name}</ThemedText>
@@ -168,6 +168,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
+  },
+  materialIconNudge: {
+    marginTop: -3,
   },
   info: {
     flex: 1,
