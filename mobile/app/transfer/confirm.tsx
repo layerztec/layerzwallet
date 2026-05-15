@@ -187,7 +187,7 @@ export default function TransferConfirm() {
 
       // Instant swap (e.g. Flashnet): execute the actual swap now, then commit
       if (execution.type === EXECUTION_INSTANT) {
-        const completed = await transferService.executeInstantSwap(execution.id, execution.serviceName);
+        const completed = await transferService.executeInstantSwap(execution.id);
         executionRef.current = completed;
         await transferService.commitTransfer(completed);
         setPreparedExecution(undefined);

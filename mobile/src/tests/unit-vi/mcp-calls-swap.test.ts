@@ -490,7 +490,7 @@ describe('MCP swap tools', () => {
       expect(body.quote_id).toBe(quoteId);
     });
 
-    it('reports the friendly error when neither manager nor flashnet singleton is wired', async () => {
+    it('reports the friendly error when the transfer service manager is not wired', async () => {
       getTransferServiceManager.mockReturnValueOnce(undefined);
 
       const result = await handlers.get('execute_swap')!({ quote_id: 'flashnet-anything' });

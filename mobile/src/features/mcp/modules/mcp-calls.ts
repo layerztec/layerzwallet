@@ -1033,8 +1033,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
 
       try {
         const manager = getTransferServiceManager();
-        const flashnet = getFlashnetTransferService();
-        if (!manager || !flashnet) {
+        if (!manager) {
           mcpCallLog('execute_swap: error - transfer service not initialized');
           return {
             isError: true,
@@ -1042,10 +1041,11 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
           };
         }
 
-        // Re-point Flashnet at the MCP account in case other code mutated it between quote and execute.
+        // Re-pin Flashnet at the MCP account in case other code mutated it between quote and execute.
+        // No-op for non-Flashnet quotes (setFlashnetAccountNumber only touches the Flashnet singleton).
         setFlashnetAccountNumber(MCP_BALANCE_ACCOUNT_NUMBER);
 
-        const completed = await manager.executeInstantSwap(qid, flashnet.name);
+        const completed = await manager.executeInstantSwap(qid);
         await manager.commitTransfer(completed);
 
         if (completed.type !== EXECUTION_INSTANT) {

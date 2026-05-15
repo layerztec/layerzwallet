@@ -21,6 +21,11 @@ export class TransferServiceManager {
   private services: ITransferService[];
   onTransferCompleted?: (execution: TransferExecution) => void;
   private lastSeenStatuses = new Map<string, TransferStatus>();
+  // Tracks which service staged each execution so executeInstantSwap can route
+  // by id alone. Populated in executeTransfer, popped in executeInstantSwap.
+  // Orphan entries (quotes never executed) leak until process restart — bounded
+  // by realistic call volume; not worth a TTL.
+  private executionOwners = new Map<string, string>();
 
   constructor(services: ITransferService[]) {
     this.services = services;
@@ -104,10 +109,18 @@ export class TransferServiceManager {
     const service = this.resolveServiceForQuote(quote);
     const execution = await service.executeTransfer(quote, accountNumber, settleAddress, fromAddress);
     execution.serviceName = service.name;
+    this.executionOwners.set(execution.id, service.name);
     return execution;
   }
 
-  async executeInstantSwap(executionId: string, serviceName: string): Promise<TransferExecution> {
+  async executeInstantSwap(executionId: string): Promise<TransferExecution> {
+    const serviceName = this.executionOwners.get(executionId);
+    // Pop before invoking so a retry yields the service's own "No pending swap" error
+    // rather than a stale routing hit.
+    this.executionOwners.delete(executionId);
+    if (!serviceName) {
+      throw new Error(`No pending swap found for execution ${executionId}. It may have expired or already been executed.`);
+    }
     const service = this.resolveServiceByName(serviceName);
     if (!service || typeof (service as any).executeInstantSwap !== 'function') {
       throw new Error(`Service "${serviceName}" does not support instant swap execution`);

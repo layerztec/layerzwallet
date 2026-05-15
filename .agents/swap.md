@@ -129,10 +129,10 @@ getTrackingUrl?(execution): string | undefined
 
 Two tools expose Flashnet to remote AI agents. They run on `MCP_BALANCE_ACCOUNT_NUMBER` (= 4) so they don't touch the user's primary account.
 
-- **`get_swap_quote(send_asset, receive_asset, send_amount_base_units)`** — `send_asset` / `receive_asset` are strict `AssetId` strings (currently `native:spark` / `token:spark:usdb`). Internally: `lazyInitWallet(NETWORK_SPARK, 4)` → `setFlashnetAccountNumber(4)` → `manager.getQuote()` → `manager.executeTransfer()` (Flashnet: stages params, no funds movement) → `manager.commitTransfer()`. Returns `{ quote_id, send_amount_base_units, receive_amount_base_units, fee_base_units, fee_asset, fee_ticker, price_impact_pct, rate, estimated_time_seconds, expires_at_unix, service }`.
-- **`execute_swap(quote_id)`** — `manager.executeInstantSwap(quote_id, 'Flashnet')` → `commitTransfer()`. Idempotency: Flashnet pops the quote from `pendingSwaps` on execute, so replay fails with *"No pending swap found"*. Quote expiry is enforced by Flashnet's internal `PENDING_SWAP_TTL` (5 min) on top of `TransferQuote.expiresAt` (60 s).
+- **`get_swap_quote(send_asset, receive_asset, send_amount_base_units)`** — `send_asset` / `receive_asset` are strict `AssetId` strings (currently `native:spark` / `token:spark:usdb`). Internally: `lazyInitWallet(NETWORK_SPARK, 4)` → `setFlashnetAccountNumber(4)` → `manager.getQuote()` → `manager.executeTransfer()` (Flashnet: stages params, no funds movement — in-memory only, NOT persisted). Returns `{ quote_id, send_amount_base_units, receive_amount_base_units, fee_base_units, fee_asset, fee_ticker, price_impact_pct, rate, estimated_time_seconds, expires_at_unix, service }`.
+- **`execute_swap(quote_id)`** — `manager.executeInstantSwap(quote_id)` → `commitTransfer()` (persists completed row). The manager looks up the owning service from `executionOwners` (populated in `executeTransfer`), so the agent only needs `quote_id`. Idempotency: the manager pops the owner entry on execute and the owning service pops the quote from its pending map; replay fails with *"No pending swap found"*. Quote expiry is enforced by Flashnet's internal `PENDING_SWAP_TTL` (5 min) on top of `TransferQuote.expiresAt` (60 s).
 
-Adding more pairs is purely additive: extend `MCP_SWAP_ASSET_IDS` and ensure the relevant provider quotes the pair. Tools don't pin to Flashnet.
+Adding more pairs is purely additive: extend `MCP_SWAP_ASSET_IDS` and ensure the relevant provider quotes the pair and implements `executeInstantSwap`. The manager routes by `executionOwners` so any such provider works without touching the MCP layer.
 
 ## Tests
 - `shared/tests/unit-vi/transfer-service-sideshift.test.ts`
