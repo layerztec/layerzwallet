@@ -2,6 +2,16 @@ on:
   push:
     branches: ['master']
 
+concurrency:
+  cancel_in_progress: true
+  group: ${{ workflow.filename }}-${{ github.ref }}
+
+# Submit jobs still run `npm ci` on the worker; pin Node to match `eas.json`
+# `build.base.node` so install matches production builds (see eas-cli#3589).
+defaults:
+  tools:
+    node: '22.14.0'
+
 jobs:
   build_android:
     name: Build Android app

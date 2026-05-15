@@ -23,10 +23,14 @@ export interface TransferQuote {
   receiveAmount: string;
   /** Human-readable rate, e.g. "1 BTC = 120,000 USDT" */
   rate: string;
-  /** Fee amount as string */
+  /** Fee amount as a human-readable string (e.g. "0.0003") in the send asset */
   fee: string;
   /** Ticker for the fee denomination */
   feeTicker: string;
+  /** Optional: fee amount in the send asset's smallest units. Set by providers that expose precise fee info (e.g. Flashnet). */
+  feeBaseUnits?: string;
+  /** Optional: AMM price-impact percentage (slippage from curve, not a fee), e.g. "0.50". Set by AMM-backed providers. */
+  priceImpactPct?: string;
   /** Estimated completion time in seconds */
   estimatedTime: number;
   /** Unix timestamp when this quote expires */
@@ -214,4 +218,12 @@ export interface ITransferService {
 
   /** Return a URL where the user can track this transfer online */
   getTrackingUrl?(execution: TransferExecution): string | undefined;
+
+  /**
+   * Execute a previously staged instant-swap quote (e.g. AMM swap).
+   * Only providers that use the stage-then-execute pattern implement this.
+   * `executeTransfer` stages parameters in memory; `executeInstantSwap` commits the trade.
+   * Must throw if the executionId is unknown, expired, or already executed.
+   */
+  executeInstantSwap?(executionId: string): Promise<TransferExecution>;
 }
