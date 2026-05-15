@@ -21,10 +21,11 @@ export class TransferServiceManager {
   private services: ITransferService[];
   onTransferCompleted?: (execution: TransferExecution) => void;
   private lastSeenStatuses = new Map<string, TransferStatus>();
-  // Tracks which service staged each execution so executeInstantSwap can route
-  // by id alone. Populated in executeTransfer, popped in executeInstantSwap.
-  // Orphan entries (quotes never executed) leak until process restart — bounded
-  // by realistic call volume; not worth a TTL.
+  // Tracks which service staged each instant-swap execution so executeInstantSwap can
+  // route by id alone. Populated in executeTransfer ONLY for services that implement
+  // executeInstantSwap (gating by capability avoids permanent orphans from non-instant
+  // providers, whose executions never call back into executeInstantSwap). Popped in
+  // executeInstantSwap.
   private executionOwners = new Map<string, string>();
 
   constructor(services: ITransferService[]) {
@@ -109,7 +110,9 @@ export class TransferServiceManager {
     const service = this.resolveServiceForQuote(quote);
     const execution = await service.executeTransfer(quote, accountNumber, settleAddress, fromAddress);
     execution.serviceName = service.name;
-    this.executionOwners.set(execution.id, service.name);
+    if (typeof service.executeInstantSwap === 'function') {
+      this.executionOwners.set(execution.id, service.name);
+    }
     return execution;
   }
 
@@ -122,10 +125,10 @@ export class TransferServiceManager {
       throw new Error(`No pending swap found for execution ${executionId}. It may have expired or already been executed.`);
     }
     const service = this.resolveServiceByName(serviceName);
-    if (!service || typeof (service as any).executeInstantSwap !== 'function') {
+    if (!service || typeof service.executeInstantSwap !== 'function') {
       throw new Error(`Service "${serviceName}" does not support instant swap execution`);
     }
-    return (service as any).executeInstantSwap(executionId);
+    return service.executeInstantSwap(executionId);
   }
 
   async commitTransfer(execution: TransferExecution): Promise<void> {

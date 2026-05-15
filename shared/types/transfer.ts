@@ -218,4 +218,12 @@ export interface ITransferService {
 
   /** Return a URL where the user can track this transfer online */
   getTrackingUrl?(execution: TransferExecution): string | undefined;
+
+  /**
+   * Execute a previously staged instant-swap quote (e.g. AMM swap).
+   * Only providers that use the stage-then-execute pattern implement this.
+   * `executeTransfer` stages parameters in memory; `executeInstantSwap` commits the trade.
+   * Must throw if the executionId is unknown, expired, or already executed.
+   */
+  executeInstantSwap?(executionId: string): Promise<TransferExecution>;
 }
