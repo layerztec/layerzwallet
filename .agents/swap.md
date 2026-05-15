@@ -114,7 +114,7 @@ getTrackingUrl?(execution): string | undefined
 - `mobile/app/TransferDetails.tsx` — Timeline from `getTimelineSteps()`. Detail rows: provider, status, transfer ID, addresses, deposit/claim txids. Claim button for NativeDeposit (disabled during auto-claim). "View Online" button when tracking URL available.
 
 ## Shared Hooks
-- `useTransferService(storage)` — singleton TransferServiceManager (`shared/hooks/useTransferService.ts`). Also exports: `setNativeDepositSwapsFetcher`, `setNativeDepositClaimExecutor`, `startAutoClaimMonitor`, `stopAutoClaimMonitor`, `processAutoClaimsNow`, `setFlashnetAccountNumber`, `getTransferServiceManager` (non-hook singleton accessor), `getFlashnetTransferService` (non-hook singleton accessor — used by MCP).
+- `useTransferService(storage)` — singleton TransferServiceManager (`shared/hooks/useTransferService.ts`). Also exports: `setNativeDepositSwapsFetcher`, `setNativeDepositClaimExecutor`, `startAutoClaimMonitor`, `stopAutoClaimMonitor`, `processAutoClaimsNow`, `setFlashnetAccountNumber`, `getTransferServiceManager` (non-hook singleton accessor — used by MCP).
 - `useTransactionHistory(network, account)` — merges transfers into tx list, deduplicates (`shared/hooks/useTransactionHistory.ts`)
 - `useAssetExchangeRate(assetId)` — fiat rate for transfer assets (`shared/hooks/useAssetExchangeRate.ts`)
 - `useAssetBalance(assetId, account, bg)` — unified native/token balance (`shared/hooks/useAssetBalance.ts`)

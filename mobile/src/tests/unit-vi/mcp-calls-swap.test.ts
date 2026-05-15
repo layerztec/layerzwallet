@@ -22,25 +22,13 @@ const MCP_ACCOUNT = 4;
 // vi.hoisted — vi.mock factories are lifted above imports, so their closures need
 // stable references that exist at hoist time. SDK call spies live here so we can
 // assert on them from inside tests after vi.clearAllMocks().
-const {
-  lazyInitWallet,
-  getSparkWallet,
-  sdkSimulateSwap,
-  sdkExecuteSwap,
-  sdkListPools,
-  sdkInitialize,
-  getFlashnetTransferService,
-  getTransferServiceManager,
-  setFlashnetAccountNumber,
-  useTransferService,
-} = vi.hoisted(() => ({
+const { lazyInitWallet, getSparkWallet, sdkSimulateSwap, sdkExecuteSwap, sdkListPools, sdkInitialize, getTransferServiceManager, setFlashnetAccountNumber, useTransferService } = vi.hoisted(() => ({
   lazyInitWallet: vi.fn().mockResolvedValue(undefined),
   getSparkWallet: vi.fn(),
   sdkSimulateSwap: vi.fn(),
   sdkExecuteSwap: vi.fn(),
   sdkListPools: vi.fn(),
   sdkInitialize: vi.fn().mockResolvedValue(undefined),
-  getFlashnetTransferService: vi.fn(),
   getTransferServiceManager: vi.fn(),
   setFlashnetAccountNumber: vi.fn(),
   useTransferService: vi.fn(),
@@ -63,7 +51,6 @@ vi.mock('@/src/modules/analytics', () => ({ AnalyticsEvents: { McpCall: 'mcp_cal
 vi.mock('@shared/hooks/useTransferService', () => ({
   useTransferService,
   getTransferServiceManager,
-  getFlashnetTransferService,
   setFlashnetAccountNumber,
 }));
 vi.mock('@shared/hooks/useExchangeRate', () => ({ exchangeRateFetcher: vi.fn() }));
@@ -141,7 +128,6 @@ describe('MCP swap tools', () => {
 
     // Wire the production singleton accessors to point at the real services.
     setFlashnetAccountNumber.mockImplementation((n: number) => flashnet.setCurrentAccountNumber(n));
-    getFlashnetTransferService.mockReturnValue(flashnet);
     getTransferServiceManager.mockReturnValue(manager);
     useTransferService.mockReturnValue(manager);
 

@@ -42,11 +42,6 @@ export function getTransferServiceManager(): TransferServiceManager | undefined 
   return _instance;
 }
 
-/** Returns the singleton FlashnetTransferService once `useTransferService` has run. Used by MCP to call `executeInstantSwap` directly. */
-export function getFlashnetTransferService(): FlashnetTransferService | undefined {
-  return _flashnetService;
-}
-
 export function useTransferService(storage: IStorage): TransferServiceManager {
   if (!_instance) {
     const services: ITransferService[] = [];

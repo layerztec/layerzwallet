@@ -15,7 +15,7 @@ import { walletCanHaveTokens } from '@shared/class/wallets/interface-can-have-to
 import { walletSupportsLightning } from '@shared/class/wallets/interface-lightning-wallet';
 import { exchangeRateFetcher } from '@shared/hooks/useExchangeRate';
 import { balanceFetcher } from '@shared/hooks/useBalance';
-import { getFlashnetTransferService, getTransferServiceManager, setFlashnetAccountNumber, useTransferService } from '@shared/hooks/useTransferService';
+import { getTransferServiceManager, setFlashnetAccountNumber, useTransferService } from '@shared/hooks/useTransferService';
 import { getAssetInfo } from '@shared/models/asset-info';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
 import { validateAddress } from '@shared/modules/wallet-utils';
