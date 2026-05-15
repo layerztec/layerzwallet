@@ -948,8 +948,8 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
         const sendAmountHuman = new BigNumber(send_amount_base_units).div(new BigNumber(10).pow(sendInfo.decimals)).toFixed();
 
         const quote = await manager.getQuote(send_asset, receive_asset, sendAmountHuman);
+        // Stage in-memory only (5min TTL); execute_swap persists the completed row.
         const execution = await manager.executeTransfer(quote, MCP_BALANCE_ACCOUNT_NUMBER, '');
-        await manager.commitTransfer(execution);
 
         const receiveAmountBaseUnits = new BigNumber(quote.receiveAmount).times(new BigNumber(10).pow(receiveInfo.decimals)).integerValue(BigNumber.ROUND_FLOOR).toFixed(0);
 
