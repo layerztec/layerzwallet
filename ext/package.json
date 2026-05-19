@@ -21,8 +21,8 @@
     "prepare": "cd .. && husky ext/.husky"
   },
   "dependencies": {
-    "@arkade-os/boltz-swap": "0.3.9",
-    "@arkade-os/sdk": "0.4.10",
+    "@arkade-os/boltz-swap": "0.3.32",
+    "@arkade-os/sdk": "0.4.27",
     "@bitcoinerlab/secp256k1": "1.2.0",
     "@breeztech/breez-sdk-liquid": "0.12.2",
     "@buildonspark/spark-sdk": "0.8.0",
