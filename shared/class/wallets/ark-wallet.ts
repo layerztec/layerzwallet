@@ -585,13 +585,10 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   async transferToken(tokenId: string, amount: bigint, address: string, _memo?: string): Promise<string> {
     assert(this._wallet, 'Ark wallet not initialized');
     if (amount < 0n) throw new Error('Invalid amount');
-    if (amount > BigInt(Number.MAX_SAFE_INTEGER)) {
-      throw new Error('Amount too large');
-    }
 
     return await this._wallet.send({
       address,
-      assets: [{ assetId: tokenId, amount: Number(amount) }],
+      assets: [{ assetId: tokenId, amount }],
     });
   }
 
@@ -655,7 +652,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
         const aDetails = await this._wallet.assetManager.getAssetDetails(a.assetId);
         tokenTransfers.push({
           tokenId: a.assetId,
-          amount: a.amount,
+          amount: Number(a.amount),
           decimals: aDetails.metadata?.decimals || 0,
           name: aDetails.metadata?.name,
           symbol: aDetails.metadata?.ticker,
