@@ -21,7 +21,7 @@ import { sleep } from '@shared/modules/sleep';
 import { TSupportedLazyInitWalletNetworks } from '@shared/modules/wallet-utils';
 import type { AssetId } from '@shared/types/asset';
 import type { SendQuote } from '@shared/types/send-quote';
-import { EXECUTION_CLAIM, EXECUTION_INSTANT, type TransferExecution } from '@shared/types/transfer';
+import { EXECUTION_CLAIM, EXECUTION_INSTANT, EXECUTION_SPARK_EXIT, type TransferExecution } from '@shared/types/transfer';
 import { NETWORK_SPARK } from '@shared/types/networks';
 import { useTransferFlow } from '@/src/transfer/TransferFlowContext';
 
@@ -185,11 +185,14 @@ export default function TransferConfirm() {
         return;
       }
 
-      // Instant swap (e.g. Flashnet): execute the actual swap now, then commit
-      if (execution.type === EXECUTION_INSTANT) {
-        const completed = await transferService.executeInstantSwap(execution.id);
-        executionRef.current = completed;
-        await transferService.commitTransfer(completed);
+      // Staged-execution providers (Flashnet AMM swap, Spark cooperative exit): the actual
+      // irreversible op happens here, on user confirm. For Flashnet this is the AMM trade
+      // (sync — returns 'completed'); for SparkExit this is the SDK `withdraw()` call (async —
+      // returns 'pending' or 'confirming', then polls to 'completed' via getOngoingTransfers).
+      if (execution.type === EXECUTION_INSTANT || execution.type === EXECUTION_SPARK_EXIT) {
+        const committed = await transferService.executeInstantSwap(execution.id);
+        executionRef.current = committed;
+        await transferService.commitTransfer(committed);
         setPreparedExecution(undefined);
         setCommitted(true);
         router.replace('/modals/transfer-success');
