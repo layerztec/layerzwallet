@@ -14,7 +14,7 @@ import { LayerzStorage } from '@/src/class/layerz-storage';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useTransferService } from '@shared/hooks/useTransferService';
 import { getAssetInfo } from '@shared/models/asset-info';
-import { EXECUTION_CLAIM, getStatusLabel, isActiveStatus, isTerminalStatus, TransferExecution } from '@shared/types/transfer';
+import { EXECUTION_CLAIM, EXECUTION_SPARK_EXIT, getStatusLabel, isActiveStatus, isTerminalStatus, TransferExecution } from '@shared/types/transfer';
 
 const POLL_INTERVAL = 10_000;
 
@@ -179,6 +179,9 @@ export default function TransferDetails() {
     }
     if (execution.type === EXECUTION_CLAIM && execution.claimTxid) {
       rows.push({ label: 'Claim Txid', value: execution.claimTxid, copyable: true });
+    }
+    if (execution.type === EXECUTION_SPARK_EXIT && execution.coopExitTxid) {
+      rows.push({ label: 'Exit Txid', value: execution.coopExitTxid, copyable: true });
     }
 
     return rows;

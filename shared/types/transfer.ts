@@ -95,7 +95,8 @@ export interface TimelineStep {
 export const EXECUTION_DEPOSIT = 'deposit-address' as const;
 export const EXECUTION_CLAIM = 'native-claim' as const;
 export const EXECUTION_INSTANT = 'instant' as const;
-export type TransferExecutionType = typeof EXECUTION_DEPOSIT | typeof EXECUTION_CLAIM | typeof EXECUTION_INSTANT;
+export const EXECUTION_SPARK_EXIT = 'spark-exit' as const;
+export type TransferExecutionType = typeof EXECUTION_DEPOSIT | typeof EXECUTION_CLAIM | typeof EXECUTION_INSTANT | typeof EXECUTION_SPARK_EXIT;
 
 interface BaseTransferExecution {
   /** Discriminant: determines which execution variant this is */
@@ -163,7 +164,22 @@ export interface InstantSwapExecution extends BaseTransferExecution {
   type: typeof EXECUTION_INSTANT;
 }
 
-export type TransferExecution = DepositAddressExecution | NativeClaimExecution | InstantSwapExecution;
+/**
+ * Spark → Bitcoin cooperative exit. Funds commit at `executeInstantSwap` time (the
+ * Spark SDK `withdraw()` call), then the SSP signs and broadcasts an L1 transaction
+ * asynchronously. Status is refreshed by polling the SSP via `getCoopExitRequest`.
+ */
+export interface SparkExitExecution extends BaseTransferExecution {
+  type: typeof EXECUTION_SPARK_EXIT;
+  /** SSP-side request ID returned by `withdraw()`. Used to poll status via `getCoopExitRequest`. */
+  coopExitRequestId: string;
+  /** Bitcoin L1 txid of the cooperative exit transaction. Populated once the SSP broadcasts it. */
+  coopExitTxid?: string;
+  /** Exit speed the user requested ('FAST' | 'MEDIUM' | 'SLOW'). Determines the fee tier. */
+  exitSpeed: 'FAST' | 'MEDIUM' | 'SLOW';
+}
+
+export type TransferExecution = DepositAddressExecution | NativeClaimExecution | InstantSwapExecution | SparkExitExecution;
 
 /** Collect all on-chain txids for a transfer (for deduplication in transaction history) */
 export function getRelatedTxids(exec: TransferExecution): string[] {
@@ -171,6 +187,7 @@ export function getRelatedTxids(exec: TransferExecution): string[] {
   if (exec.depositTxid) txids.push(exec.depositTxid);
   if (exec.type === EXECUTION_CLAIM && exec.claimTxid) txids.push(exec.claimTxid);
   if (exec.type === EXECUTION_CLAIM && exec.receiveTransferId) txids.push(exec.receiveTransferId);
+  if (exec.type === EXECUTION_SPARK_EXIT && exec.coopExitTxid) txids.push(exec.coopExitTxid);
   return txids;
 }
 
