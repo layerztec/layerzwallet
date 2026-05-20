@@ -19,6 +19,11 @@ import {
   TransferStatus,
 } from '../types/transfer';
 
+// Derived from public `SparkSDKWallet` signatures: the SDK doesn't re-export these types from
+// its package root, and a `dist/` subpath import would couple `shared/` to its build layout.
+type CoopExitFeeQuote = NonNullable<Awaited<ReturnType<SparkSDKWallet['getWithdrawalFeeQuote']>>>;
+type CoopExitRequestStatus = NonNullable<Awaited<ReturnType<SparkSDKWallet['getCoopExitRequest']>>>['status'];
+
 const PRUNE_AGE_SECONDS = 7 * 24 * 60 * 60;
 const PENDING_QUOTE_TTL = 5 * 60; // 5 minutes — matches typical CoopExitFeeQuote expiry
 const PENDING_EXIT_TTL = 5 * 60;
@@ -519,27 +524,43 @@ export class SparkExitTransferService implements ITransferService {
   }
 }
 
+/**
+ * Reads a `CurrencyAmount` fee field as sats. We treat the value as sats, so the unit must be
+ * SATOSHI — reading e.g. a BITCOIN-denominated value as sats understates the fee by 1e8 and
+ * loses funds. Throw on a wrong unit or a missing field; both block the withdrawal, which is
+ * the fund-safe failure mode (a `?? 0` default would silently underprice it).
+ */
+function feeAmountToSats(amount: CoopExitFeeQuote['userFeeMedium'] | undefined, label: string): number {
+  if (!amount) {
+    throw new Error(`Spark fee quote is missing the "${label}" field — cannot price the withdrawal.`);
+  }
+  if (String(amount.originalUnit) !== 'SATOSHI') {
+    throw new Error(`Spark fee quote field "${label}" has unexpected unit "${String(amount.originalUnit)}" — expected SATOSHI. Refusing to withdraw to avoid mis-pricing the fee.`);
+  }
+  return Number(amount.originalValue);
+}
+
 /** Pulls the user-fee sats value (independent of L1 broadcast fee) from a CoopExitFeeQuote. */
-function pickUserFee(feeQuote: any, speed: 'FAST' | 'MEDIUM' | 'SLOW'): number {
+function pickUserFee(feeQuote: CoopExitFeeQuote, speed: 'FAST' | 'MEDIUM' | 'SLOW'): number {
   switch (speed) {
     case 'FAST':
-      return Number(feeQuote.userFeeFast?.originalValue ?? 0);
+      return feeAmountToSats(feeQuote.userFeeFast, 'userFeeFast');
     case 'MEDIUM':
-      return Number(feeQuote.userFeeMedium?.originalValue ?? 0);
+      return feeAmountToSats(feeQuote.userFeeMedium, 'userFeeMedium');
     case 'SLOW':
-      return Number(feeQuote.userFeeSlow?.originalValue ?? 0);
+      return feeAmountToSats(feeQuote.userFeeSlow, 'userFeeSlow');
   }
 }
 
 /** Pulls the L1 broadcast fee sats value (independent of Spark userFee) from a CoopExitFeeQuote. */
-function pickL1Fee(feeQuote: any, speed: 'FAST' | 'MEDIUM' | 'SLOW'): number {
+function pickL1Fee(feeQuote: CoopExitFeeQuote, speed: 'FAST' | 'MEDIUM' | 'SLOW'): number {
   switch (speed) {
     case 'FAST':
-      return Number(feeQuote.l1BroadcastFeeFast?.originalValue ?? 0);
+      return feeAmountToSats(feeQuote.l1BroadcastFeeFast, 'l1BroadcastFeeFast');
     case 'MEDIUM':
-      return Number(feeQuote.l1BroadcastFeeMedium?.originalValue ?? 0);
+      return feeAmountToSats(feeQuote.l1BroadcastFeeMedium, 'l1BroadcastFeeMedium');
     case 'SLOW':
-      return Number(feeQuote.l1BroadcastFeeSlow?.originalValue ?? 0);
+      return feeAmountToSats(feeQuote.l1BroadcastFeeSlow, 'l1BroadcastFeeSlow');
   }
 }
 
@@ -550,8 +571,10 @@ function pickL1Fee(feeQuote: any, speed: 'FAST' | 'MEDIUM' | 'SLOW'): number {
  * - SUCCEEDED → completed
  * - EXPIRED / FAILED → terminal failure modes
  */
-function mapSdkStatus(sdkStatus: string): TransferStatus {
-  switch (sdkStatus) {
+function mapSdkStatus(sdkStatus: CoopExitRequestStatus): TransferStatus {
+  // `sdkStatus` is a string-valued SDK enum; widen to string so the literal `case`s compare
+  // cleanly and the `default` still catches any FUTURE_VALUE the SDK adds.
+  switch (String(sdkStatus)) {
     case 'SUCCEEDED':
       return 'completed';
     case 'TX_BROADCASTED':
