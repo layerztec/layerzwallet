@@ -167,7 +167,7 @@ export class SparkExitTransferService implements ITransferService {
       feeTicker: sendInfo.ticker,
       feeBaseUnits: feeAmountSats.toFixed(0),
       estimatedTime: 30 * 60, // ~30 min ballpark; depends on Bitcoin confirmation time at chosen speed
-      expiresAt: now + 60, // matches the UI quote-refresh expectation; we always re-fetch on confirm anyway
+      expiresAt: quoteExpiresAt(feeQuote, now),
       serviceName: this.name,
     };
 
@@ -538,6 +538,16 @@ function feeAmountToSats(amount: CoopExitFeeQuote['userFeeMedium'] | undefined, 
     throw new Error(`Spark fee quote field "${label}" has unexpected unit "${String(amount.originalUnit)}" — expected SATOSHI. Refusing to withdraw to avoid mis-pricing the fee.`);
   }
   return Number(amount.originalValue);
+}
+
+/**
+ * Quote expiry (epoch seconds) the UI counts down against. Use the SDK fee quote's own
+ * `expiresAt` — the real binding deadline for `feeQuoteId` — instead of a fixed window, so the
+ * countdown matches reality. Fall back to the staging TTL if it's missing/unparseable.
+ */
+function quoteExpiresAt(feeQuote: CoopExitFeeQuote, now: number): number {
+  const parsed = Math.floor(new Date(feeQuote.expiresAt).getTime() / 1000);
+  return Number.isFinite(parsed) ? parsed : now + PENDING_QUOTE_TTL;
 }
 
 /** Pulls the user-fee sats value (independent of L1 broadcast fee) from a CoopExitFeeQuote. */

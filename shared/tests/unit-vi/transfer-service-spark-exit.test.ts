@@ -147,6 +147,26 @@ describe('SparkExitTransferService', () => {
       mockWallet.getWithdrawalFeeQuote = vi.fn().mockResolvedValue(badQuote);
       await expect(service.getQuote(SPARK_BTC, BITCOIN, '0.001')).rejects.toThrow(/missing/i);
     });
+
+    it('sets expiresAt from the SDK fee quote, not a fixed 60s window', async () => {
+      const sdkExpiry = new Date(Date.now() + 280_000).toISOString();
+      const fq = makeFeeQuoteFixture();
+      fq.expiresAt = sdkExpiry;
+      mockWallet.getWithdrawalFeeQuote = vi.fn().mockResolvedValue(fq);
+      const quote = await service.getQuote(SPARK_BTC, BITCOIN, '0.001');
+      expect(quote.expiresAt).toBe(Math.floor(new Date(sdkExpiry).getTime() / 1000));
+    });
+
+    it('falls back to the staging TTL when the SDK quote expiry is unparseable', async () => {
+      const fq = makeFeeQuoteFixture();
+      fq.expiresAt = 'not-a-date';
+      mockWallet.getWithdrawalFeeQuote = vi.fn().mockResolvedValue(fq);
+      const before = Math.floor(Date.now() / 1000);
+      const quote = await service.getQuote(SPARK_BTC, BITCOIN, '0.001');
+      // PENDING_QUOTE_TTL is 5 minutes — the quote should advertise that, not a stale 60s.
+      expect(quote.expiresAt).toBeGreaterThanOrEqual(before + 5 * 60);
+      expect(quote.expiresAt).toBeLessThanOrEqual(before + 5 * 60 + 5);
+    });
   });
 
   describe('executeTransfer', () => {
