@@ -125,6 +125,28 @@ describe('SparkExitTransferService', () => {
       await service.getQuote(SPARK_BTC, BITCOIN, '0.001');
       expect(mockWallet.withdraw).not.toHaveBeenCalled();
     });
+
+    it('throws when a userFee field uses a non-SATOSHI unit (guards against fee mis-pricing)', async () => {
+      // A BITCOIN-denominated value read as sats would understate the fee by 1e8 and lose user funds.
+      const badQuote = makeFeeQuoteFixture();
+      badQuote.userFeeMedium = { originalValue: 0.0000025, originalUnit: 'BITCOIN' };
+      mockWallet.getWithdrawalFeeQuote = vi.fn().mockResolvedValue(badQuote);
+      await expect(service.getQuote(SPARK_BTC, BITCOIN, '0.001')).rejects.toThrow(/unexpected unit/i);
+    });
+
+    it('throws when an l1BroadcastFee field uses a non-SATOSHI unit', async () => {
+      const badQuote = makeFeeQuoteFixture();
+      badQuote.l1BroadcastFeeMedium = { originalValue: 0.00002, originalUnit: 'MILLIBITCOIN' };
+      mockWallet.getWithdrawalFeeQuote = vi.fn().mockResolvedValue(badQuote);
+      await expect(service.getQuote(SPARK_BTC, BITCOIN, '0.001')).rejects.toThrow(/unexpected unit/i);
+    });
+
+    it('throws when a fee field is missing from the SDK quote (no silent zero-fee)', async () => {
+      const badQuote = makeFeeQuoteFixture();
+      delete badQuote.userFeeMedium;
+      mockWallet.getWithdrawalFeeQuote = vi.fn().mockResolvedValue(badQuote);
+      await expect(service.getQuote(SPARK_BTC, BITCOIN, '0.001')).rejects.toThrow(/missing/i);
+    });
   });
 
   describe('executeTransfer', () => {
