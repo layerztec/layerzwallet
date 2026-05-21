@@ -7,6 +7,7 @@ export type AnalyticsPropertyValue = string | number | boolean;
 export enum AnalyticsEvents {
   AppStarted = 'app_started',
   SwapCompleted = 'swap_completed',
+  McpCall = 'mcp_call',
 }
 
 type NoAnalyticsProperties = Record<never, never>;
@@ -19,6 +20,9 @@ export type AnalyticsEventPropertiesMap = {
     sendAsset: string;
     receiveAsset: string;
     sat: number;
+  };
+  [AnalyticsEvents.McpCall]: {
+    tool_name: string;
   };
 };
 

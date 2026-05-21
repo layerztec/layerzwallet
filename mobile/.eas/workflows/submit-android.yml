@@ -2,6 +2,19 @@ on:
   push:
     branches: ['master']
 
+concurrency:
+  cancel_in_progress: true
+  group: ${{ workflow.filename }}-${{ github.ref }}
+
+# Submit jobs still run `npm ci` on the worker (see eas-cli#3589) and the
+# `eas-build-pre-install` npm-upgrade hook in package.json is NOT executed on
+# submit workers. So we pin to a Node version that ships with an npm >= 11.6.2
+# that can parse our lockfile. Node 24.14.0 bundles npm 11.9.0, matching what
+# developers use locally to regenerate package-lock.json.
+defaults:
+  tools:
+    node: '24.14.0'
+
 jobs:
   build_android:
     name: Build Android app

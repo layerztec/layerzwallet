@@ -36,6 +36,7 @@ jsEngine: graaljs
     id: 'SendButton'
 - tapOn:
     id: 'send-address-input'
+# split into chunks - single 68-char inputText hangs iOS WDA (port 7001) on CI
 - inputText: 'spark1pgssyjcyyyp'
 - runFlow:
     file: subflows/sleep.yml

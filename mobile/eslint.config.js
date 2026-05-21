@@ -16,6 +16,8 @@ module.exports = defineConfig([
       '@typescript-eslint/no-unused-vars': 'off',
       'import/no-named-as-default': 'off',
       'react/no-unescaped-entities': 'off',
+      // Subpath + .js imports (e.g. server/mcp.js) resolve via package exports; eslint-plugin-import does not.
+      'import/no-unresolved': ['error', { ignore: ['^@modelcontextprotocol/sdk/'] }],
     },
   },
 ]);

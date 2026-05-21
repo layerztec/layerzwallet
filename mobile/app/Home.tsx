@@ -13,6 +13,9 @@ import BackupWarning from '@/components/BackupWarning';
 import RgbBackupBanner from '@/components/RgbBackupBanner';
 import Balance from '@/components/Balance';
 import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
+import { McpAgentDashboard } from '@/src/features/mcp/components/McpAgentDashboard';
+import { McpTunnelStatusRow } from '@/src/features/mcp/components/McpTunnelStatusRow';
+import { getTunnelAutostartOnLaunch } from '@/src/features/mcp/modules/tunnel';
 import NftsView from '@/components/NftsView';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
 import StickyHeader from '@/components/StickyHeader';
@@ -25,6 +28,7 @@ import TokensView from '@/components/TokensView';
 import YieldView from '@/components/YieldView';
 import TransactionsList from '@/components/TransactionsList';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { MCP_BALANCE_ACCOUNT_NUMBER } from '@/src/features/mcp/modules/mcp-constants';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { getNetworkGradient } from '@shared/constants/Colors';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -90,6 +94,34 @@ export default function Home() {
       currentModalPosition.value = maxTranslate;
     }
   }, [params.fromOnboarding, modalTranslateY, currentModalPosition]);
+
+  // Auto-present the agent activation sheet when the user lands on the MCP
+  // automation account and has not opted the tunnel into autostart yet
+  // (either never started, or explicitly paused — both clear the persisted
+  // intent flag).
+  //
+  // The "presented for this account" claim is taken SYNCHRONOUSLY before the
+  // AsyncStorage read so two effect runs in quick succession (e.g. an account
+  // context re-emission, or a parent re-render that changes the `router`
+  // identity) can't both push the modal and stack two sheets.
+  const activateModalPresentedForRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER) {
+      activateModalPresentedForRef.current = null;
+      return;
+    }
+    if (activateModalPresentedForRef.current === accountNumber) return;
+    activateModalPresentedForRef.current = accountNumber;
+    let cancelled = false;
+    void (async () => {
+      const wantsTunnelOn = await getTunnelAutostartOnLaunch();
+      if (cancelled || wantsTunnelOn) return;
+      router.push('/McpAgentActivateModal');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accountNumber, router]);
 
   // Animated styles
   const modalAnimatedStyle = useAnimatedStyle(() => ({ transform: [{ translateY: modalTranslateY.value }] }));
@@ -330,8 +362,12 @@ export default function Home() {
               {/* Balance Section */}
               <Balance ref={balanceRef} />
 
-              {/* Action Buttons Section */}
-              <ActionButtons onFundPress={handleFund} />
+              {/* AI Section */}
+              {accountNumber === MCP_BALANCE_ACCOUNT_NUMBER ? <McpTunnelStatusRow /> : null}
+              {accountNumber === MCP_BALANCE_ACCOUNT_NUMBER ? <McpAgentDashboard /> : null}
+
+              {/* Action Buttons Section (hidden on MCP automation account) */}
+              {accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER ? <ActionButtons onFundPress={handleFund} /> : null}
 
               {/* Seed Backup Warning */}
               {hasBackedUpSeed === false && <BackupWarning onPress={handleBackupSeed} />}
@@ -340,8 +376,8 @@ export default function Home() {
                   when state is `pending`/`failed`. */}
               <RgbBackupBanner />
 
-              {/* Yield Section */}
-              <YieldView ref={yieldViewRef} onYieldPress={handleYieldPress} />
+              {/* Yield Section (hidden on MCP automation account) */}
+              {accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER ? <YieldView ref={yieldViewRef} onYieldPress={handleYieldPress} /> : null}
 
               {/* Tokens Section */}
               <TokensView ref={tokensViewRef} onTokenPress={handleTokenPress} />

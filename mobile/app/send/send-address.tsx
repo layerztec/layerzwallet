@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
 import { Stack, useRouter } from 'expo-router';
-import React, { useContext, useRef, useState } from 'react';
+import React, { useCallback, useContext, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import Pressable from '../../components/Pressable';
 
@@ -36,7 +36,7 @@ const SendAddress: React.FC = () => {
 
   const isRgb = network === NETWORK_RGB || network === NETWORK_RGB_TESTNET;
 
-  const handleScanQR = async () => {
+  const handleScanQR = useCallback(async () => {
     const scanned = await scanQr();
     if (scanned) {
       try {
@@ -51,7 +51,7 @@ const SendAddress: React.FC = () => {
         setLocalAddress(scanned);
       }
     }
-  };
+  }, [scanQr, setAmount]);
 
   const handleContinue = async () => {
     if (!localAddress.trim()) {
@@ -106,16 +106,19 @@ const SendAddress: React.FC = () => {
     }
   };
 
-  const handleInputWrapperPress = () => {
+  const handleInputWrapperPress = useCallback(() => {
     inputRef.current?.focus();
-  };
+  }, []);
 
-  const handleTokenPress = (clickedToken: CachedTokenInfo) => {
-    setToken(token === clickedToken.id ? undefined : clickedToken.id);
-    setAmount('');
-    setDenomination('Native');
-    setMemo('');
-  };
+  const handleTokenPress = useCallback(
+    (clickedToken: CachedTokenInfo) => {
+      setToken(token === clickedToken.id ? undefined : clickedToken.id);
+      setAmount('');
+      setDenomination('Native');
+      setMemo('');
+    },
+    [token, setToken, setAmount, setDenomination, setMemo]
+  );
 
   return (
     <RadialGradientScreen network={network} scroll={true}>

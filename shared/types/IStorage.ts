@@ -13,6 +13,7 @@ export const STORAGE_KEY_GARDEN_TRANSFERS = 'STORAGE_KEY_GARDEN_TRANSFERS';
 export const STORAGE_KEY_SYMBIOSIS_TRANSFERS = 'STORAGE_KEY_SYMBIOSIS_TRANSFERS';
 export const STORAGE_KEY_FLASHNET_TRANSFERS = 'STORAGE_KEY_FLASHNET_TRANSFERS';
 export const STORAGE_KEY_SPARK_REFUNDED_DEPOSITS = 'STORAGE_KEY_SPARK_REFUNDED_DEPOSITS';
+export const STORAGE_KEY_SPARK_LN_INVOICE_IDS = 'STORAGE_KEY_SPARK_LN_INVOICE_IDS';
 /** Set after the first successful RGB wallet init per network. Used to detect
  *  the dangerous "had a backup, now VSS says missing" case during a later
  *  unlock — see tasks/ship-rgb.md. */

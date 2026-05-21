@@ -6,6 +6,7 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { useEffect } from 'react';
 import { AppState, AppStateStatus, LogBox, Platform } from 'react-native';
 import 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 import { SWRConfig } from 'swr';
 import BigNumber from 'bignumber.js';
 
@@ -31,6 +32,9 @@ import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
 import { useTransferService } from '@shared/hooks/useTransferService';
 import { ProtectedRouteStack } from '@/components/ProtectedRouteStack';
 import { ActionPopupProvider } from '@/contexts/ActionPopupContext';
+import { toastConfig } from '@/components/toast-config';
+import { handleMcpRequest, resetMcpSessions } from '@/src/features/mcp/modules/mcp';
+import { startTunnel } from '@/src/features/mcp/modules/tunnel';
 import { appendLog, applogFilePath, handleError } from '@/src/modules/error-handler';
 import { TransferFlowProvider } from '@/src/transfer/TransferFlowContext';
 import { TransferExecution } from '@shared/types/transfer';
@@ -49,6 +53,20 @@ if (!__DEV__) {
     consoleLogOrig(...args);
   };
   console.log = console.warn = console.error = console.debug = console.info = _log;
+}
+
+/** One-shot `startTunnel`; must mount under `InitializationContextProvider`. */
+function TunnelBootstrap() {
+  useEffect(() => {
+    void startTunnel({
+      handleRequest: handleMcpRequest,
+      onSessionChange: ({ publicUrl, idChanged }) => {
+        if (__DEV__) console.log('[mcp] PUBLIC URL:', publicUrl);
+        if (idChanged) resetMcpSessions();
+      },
+    });
+  }, []);
+  return null;
 }
 
 export default function RootLayout() {
@@ -162,6 +180,7 @@ export default function RootLayout() {
         <ScanQrContextProvider>
           <AskPasswordContextProvider>
             <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} platform={'MOBILE'}>
+              <TunnelBootstrap />
               <SettingsContextProvider storage={LayerzStorage}>
                 <AuthStateContextProvider>
                   <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
@@ -173,6 +192,7 @@ export default function RootLayout() {
                             <ProtectedRouteStack />
                           </TransferFlowProvider>
                           <StatusBar style="light" />
+                          <Toast config={toastConfig} />
                         </ThemeProvider>
                       </ActionPopupProvider>
                     </NetworkContextProvider>
