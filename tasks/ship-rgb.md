@@ -4,6 +4,87 @@ Branch: `rgb-two`. Both RGB networks are flagged `isTestnet: true` so they
 hide behind the "Show Testnets" toggle until upstream blockers clear.
 This doc is for picking the work back up later.
 
+## beta.10 assessment — DO NOT bump yet (2026-05-22)
+
+UTEXO closed rgb-sdk-rn #21, #22, #25, #26, #27, #28, #29, #30 claiming fixes
+in `@utexo/rgb-sdk-rn@1.0.0-beta.10`. The fixes are real — verified against
+beta.10 source (table below). But **beta.10 is a ground-up product
+replacement, not a version bump.** Did not bump / build / migrate this session.
+
+### What beta.10 actually is
+
+- beta.9 (current) = lightweight rgb-lib wallet: electrum + RGB proxy, VSS
+  cloud backup. `new UTEXOWallet(mnemonic, { network })`.
+- beta.10 = on-device **RGB Lightning Node (RLN)** — a full LDK node running
+  on the device. New API:
+  `new UTEXOWallet({ storageDirPath, daemonListeningPort, ldkPeerListeningPort,
+  network, xpubVan, xpubCol, masterFingerprint }, signer)` + lifecycle
+  `init() / unlock(params) / shutdown() / destroy() / reinit()`. Adds Lightning
+  channels, peers, keysend.
+
+### Four hard blockers
+
+1. **ext cannot follow.** `@utexo/rgb-sdk-web` has no beta.10 — npm `latest` is
+   beta.9; only an unstable `1.0.6-test` tag exists. The shared `rgb-wallet.ts`
+   / `IRgbAdapter` abstraction cannot target the beta.10 RLN model (mobile) and
+   the beta.9 rgb-lib model (ext) at the same time. "Mobile + ext" scope is
+   unachievable as a single migration.
+2. **bitcoind RPC required, none available.** `unlock()` needs
+   `bitcoindRpc{Username,Password,Host,Port}` — non-optional in
+   `IRLNUnlockParams`. No default is exported (only `DEFAULT_INDEXER_URLS` /
+   `DEFAULT_TRANSPORT_ENDPOINTS`). The faucet (`node-api.thunderstack.org`) is
+   a hosted RLN node, not a public bitcoind RPC. Without bitcoind creds the
+   on-device node can't start → beta.10 cannot be tested at all.
+3. **VSS backup removed.** `restoreFromVss`, `restoreFromBackup`, and
+   `WalletManager` all throw `"not supported in the RLN-only build"`. The
+   entire backup safety net below (`STORAGE_KEY_RGB_INITIALIZED`, VSS health
+   probe, backup ledger, onboarding gate, `RgbBackupBanner`) is invalidated.
+   beta.10 offers only local-file `rlnBackup(path, password)`.
+4. **`IRgbAdapter` contract ~50% incompatible.** beta.10 `UTEXOWallet` stubs
+   `sendBegin / sendEnd / createUtxosBegin / createUtxosEnd / signPsbt` (all
+   throw) and has no `vssBackup*` methods at all. Half of `rgb-wallet.ts`
+   (`init()` probe, `acquireFreshWalletAfterProbe`, `tryBackup`) has no
+   beta.10 equivalent.
+
+### Per-issue verification (beta.10 source)
+
+| Issue | UTEXO claim | Verified |
+|-------|-------------|----------|
+| #30 x86_64 `libbdk-rn.so` | bdk-rn dropped | ✅ `bdk-rn` gone from deps; `signPsbt` is a throwing stub — no eager dlopen on import. |
+| #28 `Assignment` shape iOS≠Android | `Vec<String>` + `parseAssignment` | ✅ `RlnTransfer.assignments: string[]`; `parseAssignment()` regex-parses `Fungible(n)` uniformly on both platforms. |
+| #22 `listUnspents` `{type:"type"}` | same `parseAssignment` | ✅ `RlnRgbAllocation.assignment: string` → `parseAssignment`. |
+| #26 `sendBegin` empty PSBT | PSBT flow removed | ✅ `sendBegin`/`sendEnd` throw "not implemented"; new atomic `send()` → `rlnSendRgb`, native throws on failure. |
+| #25 `sendBegin` needs `assetId` | invoice fallback | ✅ `send()`: `assetId = params.assetId ?? decoded.assetId`, throw only if neither. |
+| #21 `blindReceive` crash on omitted amount | optional amount | ✅ `blindReceive` → `rlnRgbInvoice(assetId??null, amount??null, …)`; no hardcoded `{type:'Fungible', amount}`. |
+| #29 `expiration` vs `expirationTimestamp` | fixed at node level | ◑ Transfers use `expiration`, invoices use `expirationTimestamp` — each consistent within its type. Accept. |
+| #27 `failTransfers` stuck pending | "by design" | ✖ Not a code fix. Recovery path = pass a specific `batchTransferIdx`. |
+
+### Recommendation
+
+Stay on beta.9. The 8 issues are genuine but only reachable by adopting the RLN
+model — a multi-day rewrite that also (a) is impossible for ext until
+`rgb-sdk-web` ships an RLN build, (b) needs a reachable testnet bitcoind RPC,
+and (c) deletes the VSS backup design. This is a product decision (run a
+Lightning node on-device?), not a dependency chore. Open questions for UTEXO
+are in `/tmp/kkk.txt`. The beta.9 patch
+(`mobile/patches/@utexo+rgb-sdk-rn+1.0.0-beta.9.patch`, issue #24) is
+version-pinned and would not carry to beta.10.
+
+### If the team decides to adopt RLN later
+
+Migration shape (mobile only — ext blocked until `rgb-sdk-web` RLN build):
+
+- Rewrite `mobile/src/modules/rgb-adapter.ts` around `UTEXOWallet` +
+  `NativeExternalRLNSigner`; derive `xpubVan/xpubCol/masterFingerprint` via the
+  exported `generateKeys`/`deriveKeysFromMnemonic`.
+- Source bitcoind RPC creds + ports as config (UTEXO-hosted or self-hosted).
+- Redefine `IRgbAdapter`/`IRgbWallet` to the beta.10 surface; drop the
+  `sendBegin/sendEnd` and `vss*` members.
+- Replace the VSS backup safety net in `rgb-wallet.ts` with a new design over
+  `rlnBackup` (local encrypted file) + your own cloud sync, or wait for UTEXO
+  to restore VSS in the RLN build.
+- Keep ext on beta.9 behind a capability flag until `rgb-sdk-web` catches up.
+
 ## What works
 
 - **Android, RGB Testnet**: issue NIA asset, generate blind invoices,
