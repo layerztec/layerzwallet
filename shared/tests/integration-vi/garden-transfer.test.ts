@@ -18,7 +18,10 @@ const storage: IStorage = {
 const BTC_ASSET: AssetId = 'native:bitcoin';
 const BOTANIX_ASSET: AssetId = 'native:botanix';
 
-const isInsufficientLiquidity = (err: unknown): boolean => err instanceof GardenApiError && /insufficient liquidity/i.test(err.message);
+// Garden pairs come and go: a pair may have no liquidity, no solver route, or
+// reference an asset Garden doesn't list. All mean "try the next candidate /
+// skip" rather than fail — only genuine client/auth errors should throw.
+const isPairUnavailable = (err: unknown): boolean => err instanceof GardenApiError && /insufficient liquidity|no order pair found|invalid (to|from)_asset/i.test(err.message);
 
 // Candidate Garden pairs to probe. `serviceSendAsset`/`serviceReceiveAsset` are
 // set only when the pair is mapped in `garden-mappings.ts` — service-level
@@ -49,10 +52,10 @@ describe('Garden Finance API integration', () => {
         console.log(`Using working Garden pair: ${c.gardenFrom} → ${c.gardenTo}`);
         return;
       } catch (err) {
-        if (!isInsufficientLiquidity(err)) throw err;
+        if (!isPairUnavailable(err)) throw err;
       }
     }
-    console.warn('No Garden pair returned liquidity — skipping dependent tests');
+    console.warn('No Garden pair currently tradeable — skipping dependent tests');
   }, 30_000);
 
   it('GET /quote returns valid amounts for BTC→<dest>', async (ctx) => {
