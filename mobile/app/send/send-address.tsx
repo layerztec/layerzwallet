@@ -95,10 +95,12 @@ const SendAddress: React.FC = () => {
         <View style={styles.container}>
           <View style={styles.inputSection}>
             <View style={styles.inputContainer}>
-              <Pressable style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1} testID="send-address-input">
+              <Pressable style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1}>
                 <ThemedText style={styles.inputLabel}>To</ThemedText>
                 <TextInput
                   ref={inputRef}
+                  testID="send-address-input"
+                  accessibilityLabel="send-address-input"
                   style={styles.input}
                   placeholder="Enter address"
                   placeholderTextColor="rgba(255, 255, 255, 0.8)"
