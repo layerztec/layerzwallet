@@ -1,8 +1,16 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ActivityIndicator, StyleProp, StyleSheet, TextStyle, View, ViewStyle } from 'react-native';
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Pressable, { PressableProps } from './Pressable';
 import { ThemedText } from './ThemedText';
+
+// Bitcoin orange — warm accent that stays visible on every network background gradient.
+const GLOW_COLOR = '#F7931A';
+// Breathing glow opacity range — floors above 0 so the halo stays continuously visible.
+const GLOW_MIN = 0.3;
+const GLOW_MAX = 0.62;
+const GLOW_DURATION = 2400; // ms per half-cycle — slow, calm breathing
 
 type IconConfig =
   | { name: React.ComponentProps<typeof MaterialIcons>['name']; type: 'material'; size?: number }
@@ -14,9 +22,39 @@ export interface HomeActionButtonProps extends PressableProps {
   variant?: 'light' | 'dark';
   loading?: boolean;
   textStyle?: TextStyle;
+  /** When true, renders a soft breathing glow halo behind the button to draw attention. */
+  glow?: boolean;
 }
 
-export default function HomeActionButton({ title, icon, onPress, variant = 'light', disabled = false, loading = false, style, textStyle, activeOpacity = 0.8, ...restProps }: HomeActionButtonProps) {
+export default function HomeActionButton({
+  title,
+  icon,
+  onPress,
+  variant = 'light',
+  disabled = false,
+  loading = false,
+  style,
+  textStyle,
+  activeOpacity = 0.8,
+  glow = false,
+  ...restProps
+}: HomeActionButtonProps) {
+  const glowOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    if (glow) {
+      // Start dim, then repeat reversed so opacity oscillates GLOW_MIN <-> GLOW_MAX forever.
+      glowOpacity.value = GLOW_MIN;
+      glowOpacity.value = withRepeat(withTiming(GLOW_MAX, { duration: GLOW_DURATION, easing: Easing.inOut(Easing.ease) }), -1, true);
+    } else {
+      cancelAnimation(glowOpacity);
+      glowOpacity.value = withTiming(0, { duration: 300 });
+    }
+    return () => cancelAnimation(glowOpacity);
+  }, [glow, glowOpacity]);
+
+  const glowStyle = useAnimatedStyle(() => ({ opacity: glowOpacity.value }));
+
   const getButtonStyle = (): StyleProp<ViewStyle> => {
     const baseStyle: ViewStyle[] = [styles.button];
 
@@ -66,6 +104,7 @@ export default function HomeActionButton({ title, icon, onPress, variant = 'ligh
   return (
     <View style={styles.buttonContainer}>
       <View style={styles.buttonWrapper}>
+        {glow ? <Animated.View pointerEvents="none" style={[styles.glow, glowStyle]} /> : null}
         <Pressable style={getButtonStyle()} onPress={onPress} disabled={disabled || loading} activeOpacity={activeOpacity} {...restProps}>
           <View style={[styles.surface, surfaceStyle]}>{renderContent()}</View>
         </Pressable>
@@ -87,6 +126,20 @@ const styles = StyleSheet.create({
   },
   buttonWrapper: {
     width: '100%',
+  },
+  glow: {
+    position: 'absolute',
+    top: -9,
+    left: -9,
+    right: -9,
+    bottom: -9,
+    borderRadius: 36,
+    backgroundColor: GLOW_COLOR,
+    shadowColor: GLOW_COLOR,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 14,
+    elevation: 10,
   },
   button: {
     width: '100%',
