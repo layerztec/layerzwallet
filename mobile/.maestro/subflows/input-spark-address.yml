@@ -1,0 +1,29 @@
+appId: com.layerzwallet.mobile
+---
+# Chunked entry: one long inputText hangs iOS WDA on CI. eraseText: 1 primes the field after tapOn
+# (Maestro/Android can drop leading characters on the first inputText otherwise).
+- tapOn:
+    id: 'send-address-input'
+- waitForAnimationToEnd
+- eraseText: 1
+- inputText: 'spark1pgssyjcyyyp'
+- runFlow:
+    file: sleep.yml
+    env:
+      TIMEOUT: 1000
+- inputText: 'uufme5g6n4rg7avcx'
+- runFlow:
+    file: sleep.yml
+    env:
+      TIMEOUT: 1000
+- inputText: 'kx029am5ccpfn63d5'
+- runFlow:
+    file: sleep.yml
+    env:
+      TIMEOUT: 1000
+- inputText: 'ryr6d308m0j4akqhx'
+- runFlow:
+    file: sleep.yml
+    env:
+      TIMEOUT: 1000
+- assertNotVisible: 'Invalid address'
