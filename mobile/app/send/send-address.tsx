@@ -95,7 +95,7 @@ const SendAddress: React.FC = () => {
         <View style={styles.container}>
           <View style={styles.inputSection}>
             <View style={styles.inputContainer}>
-              <Pressable style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1}>
+              <Pressable style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1} accessible={false}>
                 <ThemedText style={styles.inputLabel}>To</ThemedText>
                 <TextInput
                   ref={inputRef}
