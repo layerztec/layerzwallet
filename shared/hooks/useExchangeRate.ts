@@ -3,8 +3,8 @@ import { useMemo } from 'react';
 import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT, Networks } from '../types/networks';
 import { getFiatRate } from '../models/fiatUnit';
 import { getIsTestnet } from '../models/network-getters';
-
-export type TFiat = 'USD';
+import { TFiat } from '../types/fiat';
+import { useSelectedFiat } from './useSelectedFiat';
 
 interface exchangeRateFetcherArg {
   cacheKey: string;
@@ -28,13 +28,16 @@ export const exchangeRateFetcher = async (arg: exchangeRateFetcherArg): Promise<
   }
 
   if (network === NETWORK_USDT) {
-    return 1;
+    const btcToFiat = await getFiatRate(fiat);
+    const btcToUsd = await getFiatRate('USD');
+    return btcToFiat / btcToUsd;
   }
 
   return await getFiatRate(fiat);
 };
 
-export function useExchangeRate(network: Networks, fiat: TFiat) {
+export function useExchangeRate(network: Networks) {
+  const fiat = useSelectedFiat();
   let refreshInterval = 60_000;
 
   let network2use: Networks = network;

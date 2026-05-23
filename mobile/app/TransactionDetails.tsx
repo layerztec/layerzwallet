@@ -12,7 +12,9 @@ import DetachedSheet from '@/components/DetachedSheet';
 import { ThemedText } from '@/components/ThemedText';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
+import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
 import { getDecimalsByNetwork, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
+import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 import { getTokenIconColor, resolveTokenInfo, shortenTokenId } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
@@ -26,7 +28,8 @@ export default function TransactionDetails() {
   const currentLayerNetwork = layerNetwork as string | undefined;
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);
-  const { exchangeRate } = useExchangeRate(network, 'USD');
+  const fiat = useSelectedFiat();
+  const { exchangeRate } = useExchangeRate(network);
   const networkImage = getNetworkImageAsset(network);
   const networkIconContent = networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null;
   const [imageLoadErrors, setImageLoadErrors] = useState<{ [key: string]: boolean }>({});
@@ -317,9 +320,9 @@ export default function TransactionDetails() {
       return '';
     }
 
-    if (transaction.amount === undefined || !exchangeRate) return '— USD';
-    return `${formatFiatBalance(Math.abs(transaction.amount).toString(), decimals, exchangeRate)} USD`;
-  }, [isZeroAmountWithTokens, transaction.amount, decimals, exchangeRate]);
+    if (transaction.amount === undefined || !exchangeRate) return `${fiat} —`;
+    return formatFiatDisplay(formatFiatBalance(Math.abs(transaction.amount).toString(), decimals, exchangeRate), fiat);
+  }, [isZeroAmountWithTokens, transaction.amount, decimals, exchangeRate, fiat]);
 
   const directionText = useMemo(() => {
     if (isZeroAmountWithTokens && singleTokenInfo) {

@@ -19,7 +19,9 @@ import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { TLightningWallet } from '@shared/types/TWallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
+import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { useSendFlow } from './_layout';
@@ -37,7 +39,8 @@ const SendConfirmLightning: React.FC = () => {
   const router = useRouter();
   const { lightning, network, address } = useSendFlow();
   const { accountNumber } = useContext(AccountNumberContext);
-  const { exchangeRate } = useCachedExchangeRate(NETWORK_BITCOIN, 'USD');
+  const fiat = useSelectedFiat();
+  const { exchangeRate } = useCachedExchangeRate(NETWORK_BITCOIN);
 
   assert(lightning && lightning.layer && lightning.invoice, 'No lightning data available');
   const decoded = lightning.decodedInvoice;
@@ -162,9 +165,9 @@ const SendConfirmLightning: React.FC = () => {
   const totalDisplay = formatBalance(String(totalSats), networkDecimals);
 
   // USD conversions
-  const amountUsdValue = exchangeRate ? `$${new BigNumber(invoiceAmountSats).dividedBy(new BigNumber(10).pow(networkDecimals)).multipliedBy(Number(exchangeRate)).toFixed(2)}` : '';
-  const feeUsd = exchangeRate ? `$${new BigNumber(feeSats).dividedBy(new BigNumber(10).pow(networkDecimals)).multipliedBy(Number(exchangeRate)).toFixed(2)}` : '';
-  const totalUsd = exchangeRate ? `$${new BigNumber(totalSats).dividedBy(new BigNumber(10).pow(networkDecimals)).multipliedBy(Number(exchangeRate)).toFixed(2)}` : '';
+  const amountUsdValue = exchangeRate ? formatFiatDisplay(new BigNumber(invoiceAmountSats).dividedBy(new BigNumber(10).pow(networkDecimals)).multipliedBy(Number(exchangeRate)).toFixed(2), fiat) : '';
+  const feeUsd = exchangeRate ? formatFiatDisplay(new BigNumber(feeSats).dividedBy(new BigNumber(10).pow(networkDecimals)).multipliedBy(Number(exchangeRate)).toFixed(2), fiat) : '';
+  const totalUsd = exchangeRate ? formatFiatDisplay(new BigNumber(totalSats).dividedBy(new BigNumber(10).pow(networkDecimals)).multipliedBy(Number(exchangeRate)).toFixed(2), fiat) : '';
 
   // Format invoice display
   let invoiceDisplay = lightning.invoice;

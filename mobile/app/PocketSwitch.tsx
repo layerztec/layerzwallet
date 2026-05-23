@@ -15,11 +15,14 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
+import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
+import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 import { overlayBackgroundSections } from '@shared/constants/Colors';
 
 const TotalBalanceSection = () => {
   const availableNetworks = useAvailableNetworks();
-  const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN, 'USD');
+  const fiat = useSelectedFiat();
+  const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN);
 
   // Get balances for all accounts (hooks must be called unconditionally)
   const { accountBalance: balance0 } = useAccountBalance(0, availableNetworks);
@@ -39,7 +42,7 @@ const TotalBalanceSection = () => {
     <View style={styles.totalBalanceSection}>
       <ThemedText style={styles.totalBalanceLabel}>Total balance</ThemedText>
       <ThemedText type="sfProRounded" style={styles.totalBalanceAmount}>
-        ${totalUsd}
+        {formatFiatDisplay(totalUsd, fiat)}
       </ThemedText>
     </View>
   );
@@ -48,7 +51,8 @@ const ListItem = ({ item, onPress, accountNumber, currentAccountNumber }: { item
   const availableNetworks = useAvailableNetworks();
   const IconComponent = item.iconCollection === 'ion' ? Ionicons : item.iconCollection === 'material-community' ? MaterialCommunityIcons : Foundation;
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
-  const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN, 'USD');
+  const fiat = useSelectedFiat();
+  const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN);
 
   const active = accountNumber === currentAccountNumber;
 
@@ -66,7 +70,7 @@ const ListItem = ({ item, onPress, accountNumber, currentAccountNumber }: { item
         </ThemedText>
       </View>
       <View style={styles.usdContainer}>
-        <ThemedText style={styles.usdBalance}>${usdBalance}</ThemedText>
+        <ThemedText style={styles.usdBalance}>{formatFiatDisplay(usdBalance, fiat)}</ThemedText>
       </View>
     </Pressable>
   );

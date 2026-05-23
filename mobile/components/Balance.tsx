@@ -14,9 +14,12 @@ import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
+import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
+import { useTokenExchangeRate } from '@shared/hooks/useTokenExchangeRate';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, NETWORK_ARK, Networks } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
@@ -25,8 +28,9 @@ import { USDT_TOKENS } from '@shared/models/token-list';
 const Balance = forwardRef<{ refresh: () => void }>((props, ref) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
+  const fiat = useSelectedFiat();
   const { balance, mutate } = useBalance(network, accountNumber, BackgroundExecutor);
-  const { exchangeRate } = useExchangeRate(network, 'USD');
+  const { exchangeRate } = useExchangeRate(network);
   const ticker = getTickerByNetwork(network);
 
   useImperativeHandle(ref, () => ({
@@ -50,7 +54,7 @@ const Balance = forwardRef<{ refresh: () => void }>((props, ref) => {
         <ThemedText type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={true} numberOfLines={1} testID="LayerActualBalance">
           {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
         </ThemedText>
-        <ThemedText style={styles.balanceUsd}>${displaySubBalance}</ThemedText>
+        <ThemedText style={styles.balanceUsd}>{formatFiatDisplay(displaySubBalance, fiat)}</ThemedText>
       </View>
     </View>
   );
@@ -68,6 +72,7 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
   const { onSelectNetwork = () => {}, selectedNetwork = undefined, showTotalBalance = true } = props;
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
+  const fiat = useSelectedFiat();
 
   // Lightning network aggregates balances from Spark, Ark, and Liquid networks
   // Each underlying network has its own balance and exchange rate
@@ -76,9 +81,9 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
   const { balance: sparkBalance, mutate: mutateSpark } = useBalance(NETWORK_SPARK, accountNumber, BackgroundExecutor);
   const { balance: arkBalance, mutate: mutateArk } = useBalance(NETWORK_ARK, accountNumber, BackgroundExecutor);
   const { balance: liquidBalance, mutate: mutateLiquid } = useBalance(liquidNetwork, accountNumber, BackgroundExecutor);
-  const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK, 'USD');
-  const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARK, 'USD');
-  const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, 'USD');
+  const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK);
+  const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARK);
+  const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork);
 
   // delay rendering of adjustsFontSizeToFit to avoid layout issues on Android
   const [adjustsFontSizeToFit, setAdjustsFontSizeToFit] = useState(false);
@@ -171,7 +176,10 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
       const networkImage = getNetworkImageAsset(network);
       const networkIconContent = networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null;
       const formattedBalance = balance !== undefined ? formatBalance(balance, Number(getDecimalsByNetwork(network)), 8) : '—';
-      const formattedFiatBalance = exchangeRate !== undefined && balance !== undefined ? '$' + formatFiatBalance(balance, Number(getDecimalsByNetwork(network)), Number(exchangeRate)) : '$—';
+      const formattedFiatBalance =
+        exchangeRate !== undefined && balance !== undefined
+          ? formatFiatDisplay(formatFiatBalance(balance, Number(getDecimalsByNetwork(network)), Number(exchangeRate)), fiat)
+          : formatFiatDisplay('—', fiat);
       const ticker = getTickerByNetwork(network);
 
       return (
@@ -190,7 +198,7 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
         </Pressable>
       );
     });
-  }, [network, sparkBalance, liquidBalance, sparkExchangeRate, liquidExchangeRate, arkBalance, arkExchangeRate, selectedNetwork, onSelectNetwork]);
+  }, [network, sparkBalance, liquidBalance, sparkExchangeRate, liquidExchangeRate, arkBalance, arkExchangeRate, selectedNetwork, onSelectNetwork, fiat]);
 
   return (
     <>
@@ -200,7 +208,7 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
             <ThemedText onLayout={handleLayout} type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={adjustsFontSizeToFit} numberOfLines={1} testID="LayerActualBalance">
               {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
             </ThemedText>
-            <ThemedText style={styles.balanceUsd}>${displaySubBalance}</ThemedText>
+            <ThemedText style={styles.balanceUsd}>{formatFiatDisplay(displaySubBalance, fiat)}</ThemedText>
           </View>
 
           <View style={styles.balanceNetworkIcons}>{icons}</View>
@@ -223,21 +231,28 @@ const TokenRow = ({
   network,
   token,
   setTokenBalances,
+  fallbackExchangeRate,
   onSelect,
   isSelected,
 }: {
   network: Networks;
   token: CachedTokenInfo;
   setTokenBalances: React.Dispatch<React.SetStateAction<TTokenBalances>>;
+  fallbackExchangeRate?: number;
   onSelect?: (tokenId: string, network: Networks) => void;
   isSelected?: boolean;
 }) => {
   const { accountNumber } = useContext(AccountNumberContext);
+  const fiat = useSelectedFiat();
   const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundExecutor);
+  const { tokenExchangeRate } = useTokenExchangeRate(network, token.id);
   const networkImage = getNetworkImageAsset(network);
   const networkIconContent = networkImage ? <Image source={networkImage} style={styles.networkImage} contentFit="contain" /> : null;
 
-  const formattedBalance = formatBalance(balance ?? token.balance ?? '0', token.decimals, 2 /* only need 2 for USD */);
+  const effectiveBalance = balance ?? token.balance ?? '0';
+  const formattedBalance = formatBalance(effectiveBalance, token.decimals, 2 /* stablecoin-like rows */);
+  const effectiveTokenExchangeRate = tokenExchangeRate ?? fallbackExchangeRate;
+  const formattedFiatBalance = effectiveTokenExchangeRate ? formatFiatDisplay(formatFiatBalance(effectiveBalance, token.decimals, effectiveTokenExchangeRate), fiat) : formatFiatDisplay('—', fiat);
 
   useEffect(() => {
     // Use balance from hook if available, otherwise fallback to token.balance from discovery
@@ -260,6 +275,7 @@ const TokenRow = ({
           {token.symbol}
           {formattedBalance}
         </ThemedText>
+        <ThemedText style={styles.listBalanceFiat}>{formattedFiatBalance}</ThemedText>
       </View>
     </Container>
   );
@@ -275,6 +291,8 @@ type BalanceUsdtProps = {
 export const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceUsdtProps>(({ onSelectToken = undefined, selectedToken = undefined, showTotalBalance = true }, ref) => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
+  const fiat = useSelectedFiat();
+  const { exchangeRate } = useExchangeRate(network);
   const { tokenList: rsTokenListOrig, mutate: mutateRsTokens } = useTokenDiscovery(NETWORK_ROOTSTOCK, accountNumber, BackgroundExecutor, LayerzStorage);
   const { tokenList: liquidTokenListOrig, mutate: mutateLiquidTokens } = useTokenDiscovery(NETWORK_LIQUID, accountNumber, BackgroundExecutor, LayerzStorage);
   const { tokenList: sparkTokenListOrig, mutate: mutateSparkTokens } = useTokenDiscovery(NETWORK_SPARK, accountNumber, BackgroundExecutor, LayerzStorage);
@@ -325,17 +343,33 @@ export const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceUsdtProps>
     return b.toFixed(2);
   }, [tokenBalances, rsTokenMap]);
 
+  const displaySubBalance = useMemo(() => {
+    if (!exchangeRate) return '—';
+    const fiatValue = BN(displayBalance).times(exchangeRate).toFixed(2);
+    return formatFiatDisplay(fiatValue, fiat);
+  }, [displayBalance, exchangeRate, fiat]);
+
   const rows = useMemo(() => {
     const result = [];
     for (const network of [NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK]) {
       const tokens = USDT_TOKENS[network];
       for (const token of tokens) {
         if (!rsTokenMap[token]) continue;
-        result.push(<TokenRow key={token} network={network as Networks} token={rsTokenMap[token]} setTokenBalances={setTokenBalances} onSelect={onSelectToken} isSelected={selectedToken === token} />);
+        result.push(
+          <TokenRow
+            key={token}
+            network={network as Networks}
+            token={rsTokenMap[token]}
+            setTokenBalances={setTokenBalances}
+            fallbackExchangeRate={exchangeRate}
+            onSelect={onSelectToken}
+            isSelected={selectedToken === token}
+          />
+        );
       }
     }
     return result;
-  }, [rsTokenMap, onSelectToken, selectedToken]);
+  }, [rsTokenMap, onSelectToken, selectedToken, exchangeRate]);
 
   const icons = useMemo(() => {
     const networks = [NETWORK_ROOTSTOCK, NETWORK_LIQUID, NETWORK_SPARK];
@@ -358,6 +392,7 @@ export const BalanceUsdt = forwardRef<{ refresh: () => void }, BalanceUsdtProps>
             <ThemedText onLayout={handleLayout} type="sfProRounded" style={styles.balanceAmount} adjustsFontSizeToFit={adjustsFontSizeToFit} numberOfLines={1} testID="LayerActualBalance">
               {displayBalance} <ThemedText style={styles.balanceTicker}>{ticker}</ThemedText>
             </ThemedText>
+            <ThemedText style={styles.balanceUsd}>{displaySubBalance}</ThemedText>
           </View>
 
           <View style={styles.balanceNetworkIcons}>{icons}</View>

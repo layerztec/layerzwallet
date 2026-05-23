@@ -7,7 +7,7 @@ import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wal
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
-import { SETTINGS_CONFIG } from '@shared/hooks/SettingsContext';
+import { AppSettings, SETTINGS_CONFIG } from '@shared/hooks/SettingsContext';
 import { useSettings } from '@shared/hooks/useSettings';
 import { Csprng } from '../../class/rng';
 import { ThemedText } from '../../components/ThemedText';
@@ -39,9 +39,9 @@ const SettingsPage: React.FC = () => {
     setAccountNumber(parseInt(value));
   };
 
-  const handleSettingChange = async (key: string, value: string | boolean) => {
+  const handleSettingChange = async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     try {
-      await updateSetting(key as any, value);
+      await updateSetting(key, value);
     } catch (error) {
       console.error('Error updating setting:', error);
     }
@@ -66,18 +66,18 @@ const SettingsPage: React.FC = () => {
 
       {/* App Settings Section */}
       <div style={{ textAlign: 'left', fontSize: '16px', marginBottom: '20px' }}>
-        {Object.keys(SETTINGS_CONFIG).map((key) => {
-          const config = SETTINGS_CONFIG[key as keyof typeof SETTINGS_CONFIG];
-          const currentValue = settings[key as keyof typeof SETTINGS_CONFIG];
+        {(Object.keys(SETTINGS_CONFIG) as (keyof AppSettings)[]).map((key) => {
+          const config = SETTINGS_CONFIG[key];
+          const currentValue = settings[key];
 
           return (
             <div key={key} style={{ marginBottom: '15px' }}>
               <ThemedText>{key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}:</ThemedText>
               <div style={{ marginTop: '5px' }}>
-                <Select id={`setting-${key}`} value={currentValue} onChange={(e) => handleSettingChange(key, e.target.value)}>
+                <Select id={`setting-${key}`} value={currentValue} onChange={(e) => handleSettingChange(key, e.target.value as AppSettings[typeof key])}>
                   {config.options.map((option: string) => (
                     <option key={option} value={option}>
-                      {option === 'never' ? 'Never' : option === 'ON' ? 'On' : option === 'OFF' ? 'Off' : option.length === 2 ? option.toUpperCase() : option.charAt(0).toUpperCase() + option.slice(1)}
+                      {option === 'never' ? 'Never' : option === 'ON' ? 'On' : option === 'OFF' ? 'Off' : option === option.toUpperCase() ? option : option.charAt(0).toUpperCase() + option.slice(1)}
                     </option>
                   ))}
                 </Select>

@@ -5,6 +5,8 @@ import { StyleSheet, TextInput, View } from 'react-native';
 
 import { overlayBackgroundDeeper } from '@shared/constants/Colors';
 import { getAssetInfo } from '@shared/models/asset-info';
+import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
+import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 import { AssetId } from '@shared/types/asset';
 import { Denomination } from '@shared/types/transfer';
 import Pressable from '../Pressable';
@@ -38,6 +40,7 @@ export default function TransferAmountSection({
   exchangeRate,
   onDenominationSwitch,
 }: TransferAmountSectionProps) {
+  const fiat = useSelectedFiat();
   const inputRef = useRef<TextInput>(null);
   const [localDisplayValue, setLocalDisplayValue] = useState('');
   const isFocused = useRef(false);
@@ -98,13 +101,13 @@ export default function TransferAmountSection({
   const secondaryValue = useMemo(() => {
     if (!hasRate) return '';
     if (denomination === 'Native') {
-      const fiat = nativeToFiat(amount);
-      return fiat ? `$${fiat}` : '';
+      const fiatValue = nativeToFiat(amount);
+      return fiatValue ? formatFiatDisplay(fiatValue, fiat) : '';
     } else {
       const ticker = asset ? getAssetInfo(asset).ticker : '';
       return amount && amount !== '' ? `${amount} ${ticker}` : '';
     }
-  }, [amount, denomination, asset, nativeToFiat, hasRate]);
+  }, [amount, denomination, asset, nativeToFiat, hasRate, fiat]);
 
   const canSwitch = hasRate && !!onDenominationSwitch;
   const containerStyle = type === 'send' ? styles.sendContainer : styles.receiveContainer;
@@ -130,7 +133,7 @@ export default function TransferAmountSection({
       </Pressable>
       <View style={styles.bottomRow}>
         <Pressable style={styles.secondaryContainer} onPress={canSwitch ? handleDenominationSwitch : undefined} disabled={!canSwitch} activeOpacity={canSwitch ? 0.7 : 1}>
-          <ThemedText style={styles.secondaryText}>{secondaryValue || '$0.00'}</ThemedText>
+          <ThemedText style={styles.secondaryText}>{secondaryValue || formatFiatDisplay('0.00', fiat)}</ThemedText>
           {canSwitch && <Ionicons name="swap-vertical" size={14} color="rgba(255, 255, 255, 0.4)" style={styles.swapIcon} />}
         </Pressable>
       </View>

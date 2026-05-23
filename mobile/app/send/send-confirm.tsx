@@ -24,7 +24,9 @@ import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
+import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
 import { getDecimalsByNetwork, getIsAccountBased, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
+import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 import { formatBalance } from '@shared/modules/string-utils';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT } from '@shared/types/networks';
 import { useSendFlow } from './_layout';
@@ -40,7 +42,8 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const { network: contextNetwork } = useContext(NetworkContext);
   const { network, address, amount, createdTransaction, memo, liquidPrepareResult } = useSendFlow();
   const { accountNumber } = useContext(AccountNumberContext);
-  const { exchangeRate } = useCachedExchangeRate(network, 'USD');
+  const fiat = useSelectedFiat();
+  const { exchangeRate } = useCachedExchangeRate(network);
 
   const displayNetwork = contextNetwork === NETWORK_USDT ? contextNetwork : network;
 
@@ -123,8 +126,8 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const isTokenSend = !!token;
 
   // USD conversions
-  const amountUsdValue = exchangeRate && !isTokenSend ? `$${BigNumber(amount).multipliedBy(Number(exchangeRate)).toFixed(2)}` : '';
-  const usdFee = exchangeRate ? `$${feeInNativeUnits.multipliedBy(Number(exchangeRate)).toFixed(2)}` : '';
+  const amountUsdValue = exchangeRate && !isTokenSend ? formatFiatDisplay(BigNumber(amount).multipliedBy(Number(exchangeRate)).toFixed(2), fiat) : '';
+  const usdFee = exchangeRate ? formatFiatDisplay(feeInNativeUnits.multipliedBy(Number(exchangeRate)).toFixed(2), fiat) : '';
 
   // Total calculation
   let totalUsd: string;
@@ -136,7 +139,7 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
     totalDisplay = `${amount} ${ticker}`;
   } else {
     const totalAmount = BigNumber(amount).plus(feeInNativeUnits);
-    totalUsd = exchangeRate ? `$${totalAmount.multipliedBy(Number(exchangeRate)).toFixed(2)}` : '';
+    totalUsd = exchangeRate ? formatFiatDisplay(totalAmount.multipliedBy(Number(exchangeRate)).toFixed(2), fiat) : '';
     totalDisplay = `${totalAmount.toFixed()} ${ticker}`;
   }
 

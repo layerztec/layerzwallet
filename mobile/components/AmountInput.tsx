@@ -7,6 +7,8 @@ import Pressable from './Pressable';
 
 import { ThemedText } from './ThemedText';
 import { overlayBackgroundDeeper } from '@shared/constants/Colors';
+import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
+import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 
 export interface AmountInputProps {
   value: string;
@@ -37,6 +39,7 @@ export default function AmountInput({
   disabled = false,
   testID,
 }: AmountInputProps) {
+  const fiat = useSelectedFiat();
   const inputRef = useRef<TextInput>(null);
   const [localDisplayValue, setLocalDisplayValue] = useState('');
   const isFocused = useRef(false);
@@ -133,12 +136,12 @@ export default function AmountInput({
 
   const secondaryValue = useMemo(() => {
     if (denomination === 'Native') {
-      const fiat = nativeToFiat(value);
-      return `${fiat} USD`;
+      const fiatValue = nativeToFiat(value);
+      return formatFiatDisplay(fiatValue, fiat);
     } else {
       return `${value} ${ticker}`;
     }
-  }, [value, denomination, ticker, nativeToFiat]);
+  }, [value, denomination, ticker, nativeToFiat, fiat]);
 
   const canSwitchDenomination = !!exchangeRateNumber && !!onDenominationSwitch;
 
@@ -146,11 +149,11 @@ export default function AmountInput({
     if (denomination === 'Fiat' && exchangeRateNumber) {
       const balanceBN = new BigNumber(balance);
       const fiatBalance = balanceBN.multipliedBy(exchangeRateNumber);
-      return `$${fiatBalance.toFixed(2)}`;
+      return formatFiatDisplay(fiatBalance.toFixed(2), fiat);
     } else {
       return `${balance} ${ticker}`;
     }
-  }, [balance, denomination, exchangeRateNumber, ticker]);
+  }, [balance, denomination, exchangeRateNumber, ticker, fiat]);
 
   return (
     <Pressable style={styles.container} onPress={handleContainerPress} activeOpacity={1} testID={testID}>

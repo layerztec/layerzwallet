@@ -30,7 +30,7 @@ const SendAmountLightning: React.FC = () => {
   assert(lightning && lightning.layer, 'Lightning context not found');
   const { layer } = lightning;
   const { balance } = useBalance(layer, accountNumber, BackgroundExecutor);
-  const { exchangeRate } = useCachedExchangeRate(NETWORK_BITCOIN, 'USD');
+  const { exchangeRate } = useCachedExchangeRate(NETWORK_BITCOIN);
 
   const [localAmount, setLocalAmount] = useState(amount);
   const [localMemo, setLocalMemo] = useState('');

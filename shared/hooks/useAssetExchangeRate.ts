@@ -14,8 +14,8 @@ export function useAssetExchangeRate(assetId: AssetId | undefined): { exchangeRa
   const network: Networks = assetInfo?.network ?? NETWORK_BITCOIN;
   const isToken = !!assetInfo?.tokenId;
 
-  const { exchangeRate: nativeRate } = useExchangeRate(network, 'USD');
-  const { tokenExchangeRate } = useTokenExchangeRate(network, assetInfo?.tokenId ?? '', 'USD');
+  const { exchangeRate: nativeRate } = useExchangeRate(network);
+  const { tokenExchangeRate } = useTokenExchangeRate(network, assetInfo?.tokenId ?? '');
 
   if (!assetInfo) return { exchangeRate: undefined };
 

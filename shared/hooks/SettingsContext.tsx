@@ -1,6 +1,7 @@
 import React, { createContext, ReactNode, useEffect, useState } from 'react';
 
 import { IStorage, STORAGE_KEY_SETTINGS } from '../types/IStorage';
+import { SUPPORTED_FIAT_CURRENCIES } from '../types/fiat';
 
 // Define all possible settings with their types, possible values, and defaults
 export const SETTINGS_CONFIG = {
@@ -13,6 +14,10 @@ export const SETTINGS_CONFIG = {
   showTestnets: {
     options: ['ON', 'OFF'] as const,
     default: 'OFF' as const,
+  },
+  currency: {
+    options: SUPPORTED_FIAT_CURRENCIES,
+    default: 'USD' as const,
   },
   seedEncrypted: {
     options: ['ON', 'OFF'] as const,

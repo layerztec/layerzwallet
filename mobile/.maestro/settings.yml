@@ -1,0 +1,87 @@
+appId: com.layerzwallet.mobile
+---
+# Create wallet first
+- runFlow:
+    file: subflows/wallet-creation.yml
+
+# --- Currency Selection Test ---
+
+# Navigate to Settings
+- tapOn:
+    id: SettingsButton
+- assertVisible:
+    id: SettingsScreenTitle
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Open Currency screen
+- tapOn:
+    id: CurrencyButton
+- assertVisible:
+    id: CurrencyScreenTitle
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# USD should be selected by default
+- assertVisible:
+    id: CurrencyOption-USD
+
+# Select EUR
+- tapOn:
+    id: CurrencyOption-EUR
+
+# Go back to Home and verify balance is rendered in EUR (€ symbol)
+- runFlow: subflows/back.yml
+- runFlow: subflows/back.yml
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible:
+    id: LayerActualBalance
+- assertVisible:
+    text: '€.*'
+
+# Go back to Settings > Currency and switch back to USD
+- tapOn:
+    id: SettingsButton
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn:
+    id: CurrencyButton
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn:
+    id: CurrencyOption-USD
+
+# Go back to Home and verify balance is rendered in USD ($ symbol)
+- runFlow: subflows/back.yml
+- runFlow: subflows/back.yml
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible:
+    id: LayerActualBalance
+- assertVisible:
+    text: '\$.*'
+
+# --- About Screen Test ---
+
+# Navigate to Settings > About
+- tapOn:
+    id: SettingsButton
+- assertVisible:
+    id: SettingsScreenTitle
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Open About screen
+- tapOn:
+    id: AboutButton
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Verify About screen content
+- assertVisible:
+    text: Blog
+- assertVisible:
+    text: Terms of Service
+- assertVisible:
+    text: Privacy Policy

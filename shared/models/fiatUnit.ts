@@ -195,7 +195,7 @@ export type TFiatUnit = {
   symbol: string;
   locale: string;
   country: string;
-  source: 'CoinDesk' | 'Yadio' | 'Exir' | 'coinpaprika' | 'Bitstamp' | 'Kraken';
+  source: keyof typeof FiatUnitSource;
 };
 
 export type TFiatUnits = {

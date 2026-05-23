@@ -78,6 +78,15 @@ jobs:
       flow_path:
         - .maestro/send-spark.yml
 
+  settings:
+    needs: [build_ios_for_e2e]
+    type: maestro
+    params:
+      retries: 5
+      build_id: ${{ needs.build_ios_for_e2e.outputs.build_id }}
+      flow_path:
+        - .maestro/settings.yml
+
   send_token:
     needs: [build_ios_for_e2e]
     type: maestro

@@ -30,7 +30,7 @@ export const withAsset = <P extends object>(Component: React.ComponentType<P & S
     const { accountNumber } = useContext(AccountNumberContext);
     const { balance: tokenBalance } = useTokenBalance(network, accountNumber, token!, BackgroundExecutor);
     const { tokenList } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
-    const { tokenExchangeRate } = useTokenExchangeRate(network, token ?? '', 'USD');
+    const { tokenExchangeRate } = useTokenExchangeRate(network, token ?? '');
     const tokenInfo = tokenList.find((t) => t.id === token);
 
     if (!tokenInfo) {
@@ -45,7 +45,7 @@ export const withAsset = <P extends object>(Component: React.ComponentType<P & S
     const { accountNumber } = useContext(AccountNumberContext);
 
     const { balance: networkBalance } = useBalance(network, accountNumber, BackgroundExecutor);
-    const { exchangeRate: networkExchangeRate } = useExchangeRate(network, 'USD');
+    const { exchangeRate: networkExchangeRate } = useExchangeRate(network);
 
     return <Component {...props} balance={networkBalance} exchangeRate={networkExchangeRate} ticker={getTickerByNetwork(network)} token={undefined} decimals={getDecimalsByNetwork(network)} />;
   };

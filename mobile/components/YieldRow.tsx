@@ -8,8 +8,10 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';
+import { useSelectedFiat } from '@shared/hooks/useSelectedFiat';
 import { useYieldDiscovery, YieldBearingCachedTokenInfo } from '@shared/hooks/useYieldDiscovery';
 import { getTokenIconColor } from '@shared/models/token-list';
+import { formatFiatDisplay } from '@shared/modules/fiat-utils';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { useTokenExchangeRate } from '@shared/hooks/useTokenExchangeRate';
 import { Networks } from '@shared/types/networks';
@@ -25,8 +27,9 @@ const YieldRow: React.FC<{ token: YieldBearingCachedTokenInfo; onPress: (token: 
   network,
 }) => {
   const { accountNumber } = useContext(AccountNumberContext);
+  const fiat = useSelectedFiat();
   const { balance } = useTokenBalance(network, accountNumber, token.id, BackgroundExecutor);
-  const { tokenExchangeRate } = useTokenExchangeRate(network, token.id, 'USD');
+  const { tokenExchangeRate } = useTokenExchangeRate(network, token.id);
 
   // Calculate formatted balance to determine visibility
   const effectiveBalance = balance ?? token.balance ?? '0';
@@ -83,7 +86,9 @@ const YieldRow: React.FC<{ token: YieldBearingCachedTokenInfo; onPress: (token: 
         <ThemedText style={styles.tokenAmount} testID={`token-amount-${token.id}`}>
           {formattedBalance} {token?.symbol}
         </ThemedText>
-        <ThemedText style={styles.tokenPrice}>{balance && tokenExchangeRate && tokenExchangeRate > 0 ? '$' + formatFiatBalance(balance, token.decimals, tokenExchangeRate) : null}</ThemedText>
+        <ThemedText style={styles.tokenPrice}>
+          {balance && tokenExchangeRate && tokenExchangeRate > 0 ? formatFiatDisplay(formatFiatBalance(balance, token.decimals, tokenExchangeRate), fiat) : null}
+        </ThemedText>
       </View>
     </Pressable>
   );
