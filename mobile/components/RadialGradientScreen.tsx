@@ -3,19 +3,21 @@ import { NativeScrollEvent, NativeSyntheticEvent, RefreshControl, StyleSheet, Vi
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { getNetworkPrimaryColor } from '@shared/constants/Colors';
+import { getNetworkPrimaryColor, globalDarkBackground } from '@shared/constants/Colors';
 import { RadialGradient } from './RadialGradient';
 
 interface RadialGradientScreenProps {
   children: React.ReactNode;
   style?: ViewStyle;
   network?: string;
+  /** Solid black background; no network gradient (e.g. Earn tab). */
+  plainBlack?: boolean;
   scroll?: boolean;
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   refreshControl?: React.ReactElement<React.ComponentProps<typeof RefreshControl>>;
 }
 
-const RadialGradientScreen: React.FC<RadialGradientScreenProps> = ({ children, style, network = 'base', scroll = false, onScroll, refreshControl }) => {
+const RadialGradientScreen: React.FC<RadialGradientScreenProps> = ({ children, style, network = 'base', plainBlack = false, scroll = false, onScroll, refreshControl }) => {
   const primaryColor = getNetworkPrimaryColor(network);
   const colorList = [
     { offset: '0%', color: primaryColor, opacity: '1' },
@@ -24,9 +26,13 @@ const RadialGradientScreen: React.FC<RadialGradientScreenProps> = ({ children, s
 
   return (
     <View style={styles.container}>
-      <View style={styles.gradientWrapper}>
-        <RadialGradient colorList={colorList} x="50%" y="-20.71%" rx="109.91%" ry="76.76%" />
-      </View>
+      {plainBlack ? (
+        <View style={[styles.gradientWrapper, { backgroundColor: globalDarkBackground }]} />
+      ) : (
+        <View style={styles.gradientWrapper}>
+          <RadialGradient colorList={colorList} x="50%" y="-20.71%" rx="109.91%" ry="76.76%" />
+        </View>
+      )}
       {scroll ? (
         <Animated.ScrollView
           style={styles.scrollView}

@@ -7,44 +7,43 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import DetachedSheet from '@/components/DetachedSheet';
 import { ThemedText } from '@/components/ThemedText';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountItem, AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAccountBalance } from '@shared/hooks/useAccountBalance';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
+import { useSparkUsdbEarnMetrics } from '@shared/hooks/useSparkUsdbEarnMetrics';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { overlayBackgroundSections } from '@shared/constants/Colors';
 
-const TotalBalanceSection = () => {
-  const availableNetworks = useAvailableNetworks();
-  const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN, 'USD');
-
-  // Get balances for all accounts (hooks must be called unconditionally)
-  const { accountBalance: balance0 } = useAccountBalance(0, availableNetworks);
-  const { accountBalance: balance1 } = useAccountBalance(1, availableNetworks);
-  const { accountBalance: balance2 } = useAccountBalance(2, availableNetworks);
-  const { accountBalance: balance3 } = useAccountBalance(3, availableNetworks);
-  const { accountBalance: balance4 } = useAccountBalance(4, availableNetworks);
-
-  const totalBalance = useMemo(() => {
-    const balances = [balance0, balance1, balance2, balance3, balance4].slice(0, accountItems.length);
-    return balances.reduce((sum, bal) => sum + (parseInt(bal) || 0), 0).toString();
-  }, [balance0, balance1, balance2, balance3, balance4]);
-
-  const totalUsd = totalBalance && exchangeRate ? formatFiatBalance(totalBalance, getDecimalsByNetwork(NETWORK_BITCOIN), exchangeRate) : '—';
-
+const TotalBalanceSection = ({ totalUsdDisplay }: { totalUsdDisplay: string }) => {
   return (
     <View style={styles.totalBalanceSection}>
       <ThemedText style={styles.totalBalanceLabel}>Total balance</ThemedText>
       <ThemedText type="sfProRounded" style={styles.totalBalanceAmount}>
-        ${totalUsd}
+        ${totalUsdDisplay}
       </ThemedText>
     </View>
   );
 };
-const ListItem = ({ item, onPress, accountNumber, currentAccountNumber }: { item: AccountItem; onPress: () => void; accountNumber: number; currentAccountNumber: number }) => {
+
+const ListItem = ({
+  item,
+  onPress,
+  accountNumber,
+  currentAccountNumber,
+  sparkUsdbAllocatedUsd,
+}: {
+  item: AccountItem;
+  onPress: () => void;
+  accountNumber: number;
+  currentAccountNumber: number;
+  /** Spark USDB allocated position in USD (token balance not in native pocket sum). BTC yield is already in Spark native balance. */
+  sparkUsdbAllocatedUsd: number;
+}) => {
   const availableNetworks = useAvailableNetworks();
   const IconComponent = item.iconCollection === 'ion' ? Ionicons : item.iconCollection === 'material-community' ? MaterialCommunityIcons : Foundation;
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
@@ -52,7 +51,11 @@ const ListItem = ({ item, onPress, accountNumber, currentAccountNumber }: { item
 
   const active = accountNumber === currentAccountNumber;
 
-  const usdBalance = accountBalance && exchangeRate ? formatFiatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), exchangeRate) : '—';
+  const usdBalance = useMemo(() => {
+    if (!exchangeRate) return '—';
+    const btcUsd = accountBalance ? parseFloat(formatFiatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), exchangeRate)) : 0;
+    return (btcUsd + sparkUsdbAllocatedUsd).toFixed(2);
+  }, [accountBalance, exchangeRate, sparkUsdbAllocatedUsd]);
 
   return (
     <Pressable style={[styles.item, active && styles.activeItem]} onPress={onPress} scaleOnPress={0.97}>
@@ -77,6 +80,37 @@ export default function PocketSwitch() {
   const { network } = useContext(NetworkContext);
   const { accountNumber: currentAccountNumber, setAccountNumber } = useContext(AccountNumberContext);
 
+  const availableNetworks = useAvailableNetworks();
+  const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN, 'USD');
+
+  const { accountBalance: balance0 } = useAccountBalance(0, availableNetworks);
+  const { accountBalance: balance1 } = useAccountBalance(1, availableNetworks);
+  const { accountBalance: balance2 } = useAccountBalance(2, availableNetworks);
+  const { accountBalance: balance3 } = useAccountBalance(3, availableNetworks);
+  const { accountBalance: balance4 } = useAccountBalance(4, availableNetworks);
+
+  const earnMetrics0 = useSparkUsdbEarnMetrics(0, BackgroundExecutor);
+  const earnMetrics1 = useSparkUsdbEarnMetrics(1, BackgroundExecutor);
+  const earnMetrics2 = useSparkUsdbEarnMetrics(2, BackgroundExecutor);
+  const earnMetrics3 = useSparkUsdbEarnMetrics(3, BackgroundExecutor);
+  const earnMetrics4 = useSparkUsdbEarnMetrics(4, BackgroundExecutor);
+
+  const totalUsdDisplay = useMemo(() => {
+    if (!exchangeRate) return '—';
+    const balances = [balance0, balance1, balance2, balance3, balance4].slice(0, accountItems.length);
+    const btcSumSats = balances.reduce((sum, bal) => sum + (parseInt(bal, 10) || 0), 0);
+    const btcUsd = parseFloat(formatFiatBalance(String(btcSumSats), getDecimalsByNetwork(NETWORK_BITCOIN), exchangeRate));
+    const earnMetrics = [earnMetrics0, earnMetrics1, earnMetrics2, earnMetrics3, earnMetrics4].slice(0, accountItems.length);
+    /** USDB only — matches token not in native balance; BTC yield already in Spark sats above. */
+    const usdbEarnSum = earnMetrics.reduce((sum, m) => sum + m.allocatedUsd, 0);
+    return (btcUsd + usdbEarnSum).toFixed(2);
+  }, [exchangeRate, balance0, balance1, balance2, balance3, balance4, earnMetrics0, earnMetrics1, earnMetrics2, earnMetrics3, earnMetrics4]);
+
+  const sparkUsdbAllocatedByAccount = useMemo(
+    () => [earnMetrics0, earnMetrics1, earnMetrics2, earnMetrics3, earnMetrics4].slice(0, accountItems.length).map((m) => m.allocatedUsd),
+    [earnMetrics0, earnMetrics1, earnMetrics2, earnMetrics3, earnMetrics4]
+  );
+
   const handleClose = () => {
     router.back();
   };
@@ -90,17 +124,21 @@ export default function PocketSwitch() {
     <DetachedSheet variant={network} onClose={handleClose}>
       <SafeAreaView style={styles.safeArea} edges={Platform.OS === 'ios' ? ['left', 'right', 'bottom'] : ['left', 'right']}>
         <View style={styles.container}>
-          {/* Total Balance Section */}
-          <TotalBalanceSection />
+          <TotalBalanceSection totalUsdDisplay={totalUsdDisplay} />
 
-          {/* Header */}
           <View style={styles.header}>
             <ThemedText style={styles.title}>Pockets</ThemedText>
           </View>
-          {/* Target Networks List */}
           <View style={styles.listContainer}>
             {accountItems.map((item, index) => (
-              <ListItem key={index} accountNumber={index} currentAccountNumber={currentAccountNumber} item={item} onPress={() => handleSelect(index)} />
+              <ListItem
+                key={index}
+                accountNumber={index}
+                currentAccountNumber={currentAccountNumber}
+                item={item}
+                sparkUsdbAllocatedUsd={sparkUsdbAllocatedByAccount[index] ?? 0}
+                onPress={() => handleSelect(index)}
+              />
             ))}
           </View>
         </View>

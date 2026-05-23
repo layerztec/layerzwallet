@@ -1,6 +1,7 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
+import EarnBalanceSummary from '@/components/EarnBalanceSummary';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import SectionContainer from '@/components/SectionContainer';
@@ -11,6 +12,7 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { useSparkUsdbEarnMetrics } from '@shared/hooks/useSparkUsdbEarnMetrics';
 import { useYieldDiscovery, YieldBearingCachedTokenInfo, YIELD_TOKEN_DEFINITIONS_BY_NETWORK } from '@shared/hooks/useYieldDiscovery';
 import { getTokenInfo } from '@shared/models/token-list';
 import { AssetId } from '@shared/types/asset';
@@ -37,6 +39,8 @@ export default function YieldListScreen() {
   const { yieldList: botanixYield } = useYieldDiscovery(NETWORK_BOTANIX, accountNumber, BackgroundExecutor, LayerzStorage);
   const { yieldList: citreaYield } = useYieldDiscovery(NETWORK_CITREA, accountNumber, BackgroundExecutor, LayerzStorage);
   const { yieldList: sparkYield } = useYieldDiscovery(NETWORK_SPARK, accountNumber, BackgroundExecutor, LayerzStorage);
+
+  const { earnTotalUsd, rewards30dUsd, rewardsLifetimeUsd, isLoading: earnMetricsLoading } = useSparkUsdbEarnMetrics(accountNumber, BackgroundExecutor);
 
   const allYields = useMemo<YieldWithNetwork[]>(
     () => [
@@ -84,6 +88,7 @@ export default function YieldListScreen() {
     <RadialGradientScreen network={network} scroll={true}>
       <ScreenHeader title="Earn" />
       <View style={styles.list}>
+        <EarnBalanceSummary earnTotalUsd={earnTotalUsd} rewards30dUsd={rewards30dUsd} rewardsLifetimeUsd={rewardsLifetimeUsd} isLoading={earnMetricsLoading} />
         <SectionContainer title="Allocated" contentStyle={styles.sectionRows}>
           {allYields.map((yieldToken) => (
             <YieldRow
