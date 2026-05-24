@@ -95,8 +95,10 @@ const SendAddress: React.FC = () => {
         <View style={styles.container}>
           <View style={styles.inputSection}>
             <View style={styles.inputContainer}>
-              <Pressable style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1} accessible={false}>
-                <ThemedText style={styles.inputLabel}>To</ThemedText>
+              <View style={styles.inputWrapper}>
+                <Pressable onPress={handleInputWrapperPress} accessible={false} noFeedback>
+                  <ThemedText style={styles.inputLabel}>To</ThemedText>
+                </Pressable>
                 <TextInput
                   ref={inputRef}
                   testID="send-address-input"
@@ -109,7 +111,7 @@ const SendAddress: React.FC = () => {
                   onChangeText={setLocalAddress}
                   value={localAddress}
                 />
-              </Pressable>
+              </View>
               <Pressable style={styles.scanButton} onPress={handleScanQR}>
                 <Ionicons name="scan-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
               </Pressable>
