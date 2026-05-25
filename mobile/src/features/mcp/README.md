@@ -48,7 +48,7 @@ features/mcp/
     ├── mcp-calls.ts          ← Tool registrations (the wallet API surface)
     ├── tunnel.ts             ← WebSocket client + auto-reconnect
     ├── mcp-activity-log.ts   ← In-memory store for the last 5 actions (UI)
-    └── mcp-constants.ts      ← Shared constants (MCP_BALANCE_ACCOUNT_NUMBER, ...)
+    └── mcp-constants.ts      ← MCP-only constants (e.g. lightning fee cap)
 ```
 
 `components/toast-config.tsx` lives at app-level `mobile/components/` — it's shared across features.
@@ -101,7 +101,7 @@ Conventions:
 - **Always** call `showMcpSuccessToast(summary, detail?)` on success — it both shows the user-visible dark toast (`type: 'mcpAiSuccess'`) and pushes the activity-log line under the Home status row. The toast is the user's only signal that the LLM did something.
 - Return shape is fixed: `{ content: [{ type: 'text', text: <stringified-json> }] }` on success, plus `isError: true` on failure.
 - All amounts cross the wire as **smallest-unit integer strings** (e.g. satoshis, not BTC). Use `mcpPositiveBaseUnitsString` and let the LLM resolve decimals via `get_network_balance` (returns `decimals`).
-- Wallets always use `MCP_BALANCE_ACCOUNT_NUMBER` (4) — the dedicated MCP pocket. Don't read the user's current `accountNumber` context.
+- Wallets always use `MCP_BALANCE_ACCOUNT_NUMBER` from `@shared/hooks/AccountNumberContext` (4141) — the dedicated MCP pocket. Don't read the user's current `accountNumber` context.
 - The `network` argument is always **mainnet-only** for the user-facing surface (`mcpListableNetworks()` filters testnets / lightning aliases / USDT).
 
 ## Security model

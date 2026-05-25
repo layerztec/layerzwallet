@@ -13,6 +13,7 @@ import Toast from 'react-native-toast-message';
 import { walletCanHaveNfts } from '@shared/class/wallets/interface-can-have-nfts';
 import { walletCanHaveTokens } from '@shared/class/wallets/interface-can-have-tokens';
 import { walletSupportsLightning } from '@shared/class/wallets/interface-lightning-wallet';
+import { MCP_BALANCE_ACCOUNT_NUMBER } from '@shared/hooks/AccountNumberContext';
 import { exchangeRateFetcher } from '@shared/hooks/useExchangeRate';
 import { balanceFetcher } from '@shared/hooks/useBalance';
 import { getTransferServiceManager, setFlashnetAccountNumber, useTransferService } from '@shared/hooks/useTransferService';
@@ -39,7 +40,7 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AnalyticsEvents, trackAnalyticsEvent } from '@/src/modules/analytics';
 
 import { pushMcpActivityLog } from './mcp-activity-log';
-import { MCP_BALANCE_ACCOUNT_NUMBER, MCP_LIGHTNING_PAY_MAX_FEE_PERCENT } from './mcp-constants';
+import { MCP_LIGHTNING_PAY_MAX_FEE_PERCENT } from './mcp-constants';
 
 function mcpCallLog(line: string): void {
   console.log('[mcp-call] ' + line);
