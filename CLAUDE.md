@@ -157,7 +157,7 @@ Each Layer2 follows a specific pattern:
 **Bitcoin (UTXO-based)**
 - Uses `WatchOnlyWallet` wrapping `HDSegwitBech32Wallet`
 - BIP84 derivation: `m/84'/0'/{account}'`
-- Electrum server (electrum.layerzwallet.com) for balance/tx/UTXO queries
+- Electrum server (electrum2.layerzwallet.com:50005) for balance/tx/UTXO queries
 - Gap limit of 20 for address discovery
 
 **EVM Chains (Rootstock, Botanix, Citrea, Alpen)**

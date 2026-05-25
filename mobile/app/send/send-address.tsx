@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as bip21 from 'bip21';
 import { Stack, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import Pressable from '../../components/Pressable';
 
 import RadialGradientScreen from '@/components/RadialGradientScreen';
@@ -91,51 +91,46 @@ const SendAddress: React.FC = () => {
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenSendHeader network={network} title={`Send ${getTickerByNetwork(network)}`} />
 
-      <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
-        <View style={styles.container}>
-          <View style={styles.inputSection}>
-            <View style={styles.inputContainer}>
-              <Pressable style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1} testID="send-address-input">
-                <ThemedText style={styles.inputLabel}>To</ThemedText>
-                <TextInput
-                  ref={inputRef}
-                  style={styles.input}
-                  placeholder="Enter address"
-                  placeholderTextColor="rgba(255, 255, 255, 0.8)"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  onChangeText={setLocalAddress}
-                  value={localAddress}
-                />
-              </Pressable>
-              <Pressable style={styles.scanButton} onPress={handleScanQR}>
-                <Ionicons name="scan-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
-              </Pressable>
-            </View>
-
-            {errorMessage && (
-              <View style={styles.errorContainer}>
-                <Ionicons name="close" size={16} color="white" />
-                <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>
-              </View>
-            )}
+      <View style={styles.container}>
+        <View style={styles.inputSection}>
+          <View style={styles.inputContainer}>
+            <Pressable style={styles.inputWrapper} onPress={handleInputWrapperPress} activeOpacity={1} testID="send-address-input">
+              <ThemedText style={styles.inputLabel}>To</ThemedText>
+              <TextInput
+                ref={inputRef}
+                style={styles.input}
+                placeholder="Enter address"
+                placeholderTextColor="rgba(255, 255, 255, 0.8)"
+                autoCapitalize="none"
+                autoCorrect={false}
+                onChangeText={setLocalAddress}
+                value={localAddress}
+              />
+            </Pressable>
+            <Pressable style={styles.scanButton} onPress={handleScanQR}>
+              <Ionicons name="scan-outline" size={24} color="rgba(255, 255, 255, 0.8)" />
+            </Pressable>
           </View>
 
-          <TokensView onTokenPress={handleTokenPress} selectedToken={token} />
-
-          <Pressable style={[styles.continueButton, !localAddress.trim() && styles.disabledButton]} onPress={handleContinue} disabled={!localAddress.trim()} testID="send-address-next-button">
-            <ThemedText style={styles.continueButtonText}>Next</ThemedText>
-          </Pressable>
+          {errorMessage && (
+            <View style={styles.errorContainer}>
+              <Ionicons name="close" size={16} color="white" />
+              <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>
+            </View>
+          )}
         </View>
-      </KeyboardAvoidingView>
+
+        <TokensView onTokenPress={handleTokenPress} selectedToken={token} />
+
+        <Pressable style={[styles.continueButton, !localAddress.trim() && styles.disabledButton]} onPress={handleContinue} disabled={!localAddress.trim()} testID="send-address-next-button">
+          <ThemedText style={styles.continueButtonText}>Next</ThemedText>
+        </Pressable>
+      </View>
     </RadialGradientScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  keyboardAvoidingView: {
-    flex: 1,
-  },
   container: {
     flex: 1,
     paddingHorizontal: 16,

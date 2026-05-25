@@ -18,7 +18,7 @@ beforeAll(async () => {
 });
 
 test.skip('can do websocket electrum request', async () => {
-  const socket = new WebSocket('wss://electrum.layerzwallet.com:50004');
+  const socket = new WebSocket('wss://electrum2.layerzwallet.com:50005');
   let gotMessage = false;
 
   socket.addEventListener('open', (event) => {
@@ -118,7 +118,7 @@ describe('BlueElectrum', () => {
     assert.ok(!(await BlueElectrum.testConnection('joyreactor.cc', 443)));
     assert.ok(!(await BlueElectrum.testConnection('joyreactor.cc', 80)));
 
-    assert.ok(await BlueElectrum.testConnection('electrum.layerzwallet.com', 50004));
+    assert.ok(await BlueElectrum.testConnection('electrum2.layerzwallet.com', 50005));
   });
 
   it('ElectrumClient can estimate fees', async () => {

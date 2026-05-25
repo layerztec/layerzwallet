@@ -5,6 +5,15 @@ appId: com.layerzwallet.mobile
 - tapOn:
     id: 'send-address-input'
 - waitForAnimationToEnd
+# Extra wait so the iOS soft keyboard has time to fully present before the first
+# eraseText/inputText. Maestro's `Keyboard (First Match)` probe hard-fails after 92s
+# when the keyboard isn't up yet; the default ~300ms waitForAnimationToEnd is not
+# always enough on CI simulators (especially when the simulator is in a state where
+# the hardware keyboard suppresses the soft keyboard on first focus).
+- runFlow:
+    file: sleep.yml
+    env:
+      TIMEOUT: 1500
 - eraseText: 1
 - inputText: 'spark1pgssyjcyyyp'
 - runFlow:
@@ -27,3 +36,16 @@ appId: com.layerzwallet.mobile
     env:
       TIMEOUT: 1000
 - assertNotVisible: 'Invalid address'
+# Dismiss the soft keyboard so the bottom Next button is reachable.
+# (Without this the IME covers send-address-next-button on Android, and on iOS the
+# button sits below the keyboard since send-address.tsx no longer uses KeyboardAvoidingView.)
+# We tap an empty area instead of `hideKeyboard` because that command hard-fails on
+# iOS when the keyboard has no inputAccessoryView/Done button, even after the keyboard
+# successfully dismisses. Mirrors the convention in swap.yml of tapping a non-input area.
+# y=22% lands in the padding between the address card (ends ~y=24% of screen) and the
+# Tokens section header (starts ~y=32%). Critically, this point is *above* any soft
+# keyboard on both iOS (top ~y=65%) and Android (top ~y=55%), so the tap can't accidentally
+# land on a keyboard key like 50%,50% would on Android.
+- tapOn:
+    point: '50%,22%'
+- waitForAnimationToEnd
