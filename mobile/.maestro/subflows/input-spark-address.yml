@@ -27,3 +27,8 @@ appId: com.layerzwallet.mobile
     env:
       TIMEOUT: 1000
 - assertNotVisible: 'Invalid address'
+# Dismiss the soft keyboard so the bottom Next button is reachable.
+# (Without this the IME covers send-address-next-button on Android, and on iOS the
+# button sits below the keyboard since send-address.tsx no longer uses KeyboardAvoidingView.)
+- hideKeyboard
+- waitForAnimationToEnd
