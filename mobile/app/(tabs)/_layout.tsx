@@ -5,8 +5,7 @@ import React, { useContext } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 
 import CustomTabBarBackground from '@/components/ui/CustomTabBarBackground';
-import { MCP_BALANCE_ACCOUNT_NUMBER } from '@/src/features/mcp/modules/mcp-constants';
-import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { AccountNumberContext, MCP_BALANCE_ACCOUNT_NUMBER } from '@shared/hooks/AccountNumberContext';
 
 // Use custom tab bar only on iOS 18–25 for a reliable background. iOS 26+ and Android use native tabs.
 const iosVersion = Platform.OS === 'ios' ? (typeof Platform.Version === 'string' ? parseInt(String(Platform.Version), 10) : Number(Platform.Version)) : 0;

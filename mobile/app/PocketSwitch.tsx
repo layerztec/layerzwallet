@@ -22,16 +22,16 @@ const TotalBalanceSection = () => {
   const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN, 'USD');
 
   // Get balances for all accounts (hooks must be called unconditionally)
-  const { accountBalance: balance0 } = useAccountBalance(0, availableNetworks);
-  const { accountBalance: balance1 } = useAccountBalance(1, availableNetworks);
-  const { accountBalance: balance2 } = useAccountBalance(2, availableNetworks);
-  const { accountBalance: balance3 } = useAccountBalance(3, availableNetworks);
-  const { accountBalance: balance4 } = useAccountBalance(4, availableNetworks);
+  const { accountBalance: balance0 } = useAccountBalance(accountItems[0].accountNumber, availableNetworks);
+  const { accountBalance: balance1 } = useAccountBalance(accountItems[1].accountNumber, availableNetworks);
+  const { accountBalance: balance2 } = useAccountBalance(accountItems[2].accountNumber, availableNetworks);
+  const { accountBalance: balance3 } = useAccountBalance(accountItems[3].accountNumber, availableNetworks);
+  const { accountBalance: balanceMcp } = useAccountBalance(accountItems[4].accountNumber, availableNetworks);
 
   const totalBalance = useMemo(() => {
-    const balances = [balance0, balance1, balance2, balance3, balance4].slice(0, accountItems.length);
+    const balances = [balance0, balance1, balance2, balance3, balanceMcp].slice(0, accountItems.length);
     return balances.reduce((sum, bal) => sum + (parseInt(bal) || 0), 0).toString();
-  }, [balance0, balance1, balance2, balance3, balance4]);
+  }, [balance0, balance1, balance2, balance3, balanceMcp]);
 
   const totalUsd = totalBalance && exchangeRate ? formatFiatBalance(totalBalance, getDecimalsByNetwork(NETWORK_BITCOIN), exchangeRate) : '—';
 
@@ -44,13 +44,13 @@ const TotalBalanceSection = () => {
     </View>
   );
 };
-const ListItem = ({ item, onPress, accountNumber, currentAccountNumber }: { item: AccountItem; onPress: () => void; accountNumber: number; currentAccountNumber: number }) => {
+const ListItem = ({ item, onPress, currentAccountNumber }: { item: AccountItem; onPress: () => void; currentAccountNumber: number }) => {
   const availableNetworks = useAvailableNetworks();
   const IconComponent = item.iconCollection === 'ion' ? Ionicons : item.iconCollection === 'material-community' ? MaterialCommunityIcons : Foundation;
-  const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
+  const { accountBalance } = useAccountBalance(item.accountNumber, availableNetworks);
   const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN, 'USD');
 
-  const active = accountNumber === currentAccountNumber;
+  const active = item.accountNumber === currentAccountNumber;
 
   const usdBalance = accountBalance && exchangeRate ? formatFiatBalance(accountBalance, getDecimalsByNetwork(NETWORK_BITCOIN), exchangeRate) : '—';
 
@@ -81,8 +81,8 @@ export default function PocketSwitch() {
     router.back();
   };
 
-  const handleSelect = (index: number) => {
-    setAccountNumber(index);
+  const handleSelect = (accountNumber: number) => {
+    setAccountNumber(accountNumber);
     router.back();
   };
 
@@ -99,8 +99,8 @@ export default function PocketSwitch() {
           </View>
           {/* Target Networks List */}
           <View style={styles.listContainer}>
-            {accountItems.map((item, index) => (
-              <ListItem key={index} accountNumber={index} currentAccountNumber={currentAccountNumber} item={item} onPress={() => handleSelect(index)} />
+            {accountItems.map((item) => (
+              <ListItem key={item.accountNumber} item={item} currentAccountNumber={currentAccountNumber} onPress={() => handleSelect(item.accountNumber)} />
             ))}
           </View>
         </View>

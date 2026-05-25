@@ -9,6 +9,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+import { MCP_BALANCE_ACCOUNT_NUMBER } from '@shared/hooks/AccountNumberContext';
 import { registerWalletMcpCalls } from '../../features/mcp/modules/mcp-calls';
 import { FlashnetTransferService } from '@shared/services/transfer-service-flashnet';
 import { TransferServiceManager } from '@shared/services/transfer-service-manager';
@@ -17,7 +18,6 @@ import { TransferServiceManager } from '@shared/services/transfer-service-manage
 const BTC_PUBKEY = '020202020202020202020202020202020202020202020202020202020202020202';
 const USDB_PUBKEY = '3206c93b24a4d18ea19d0a9a213204af2c7e74a6d16c7535cc5d33eca4ad1eca';
 const POOL_ID = 'pool-btc-usdb';
-const MCP_ACCOUNT = 4;
 
 // vi.hoisted — vi.mock factories are lifted above imports, so their closures need
 // stable references that exist at hoist time. SDK call spies live here so we can
@@ -217,7 +217,7 @@ describe('MCP swap tools', () => {
   });
 
   describe('get_swap_quote — wiring guarantees', () => {
-    it('pins all swap activity to MCP_BALANCE_ACCOUNT_NUMBER (4), even if a UI flow set a different one', async () => {
+    it('pins all swap activity to MCP_BALANCE_ACCOUNT_NUMBER, even if a UI flow set a different one', async () => {
       // Pretend the UI was on account 7 right before the agent came in.
       flashnet.setCurrentAccountNumber(7);
 
@@ -228,11 +228,11 @@ describe('MCP swap tools', () => {
       });
 
       // Spark wallet for the MCP account must have been initialized.
-      expect(lazyInitWallet).toHaveBeenCalledWith('spark', MCP_ACCOUNT);
+      expect(lazyInitWallet).toHaveBeenCalledWith('spark', MCP_BALANCE_ACCOUNT_NUMBER);
 
       // FlashnetTransferService.ensureClient resolves its wallet via getSparkWallet(currentAccountNumber).
-      // If the wrapper had failed to re-point the service at MCP_ACCOUNT, this would be called with 7.
-      expect(getSparkWallet).toHaveBeenCalledWith(MCP_ACCOUNT);
+      // If the wrapper had failed to re-point the service at MCP_BALANCE_ACCOUNT_NUMBER, this would be called with 7.
+      expect(getSparkWallet).toHaveBeenCalledWith(MCP_BALANCE_ACCOUNT_NUMBER);
       expect(getSparkWallet).not.toHaveBeenCalledWith(7);
     });
 
@@ -422,8 +422,8 @@ describe('MCP swap tools', () => {
 
       await handlers.get('execute_swap')!({ quote_id: quoteId });
 
-      // Execute must have asked for account 4's wallet, not 9.
-      expect(getSparkWallet).toHaveBeenCalledWith(MCP_ACCOUNT);
+      // Execute must have asked for the MCP pocket wallet, not 9.
+      expect(getSparkWallet).toHaveBeenCalledWith(MCP_BALANCE_ACCOUNT_NUMBER);
       expect(getSparkWallet).not.toHaveBeenCalledWith(9);
     });
 
