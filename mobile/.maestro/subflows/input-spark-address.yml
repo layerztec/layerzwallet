@@ -30,5 +30,13 @@ appId: com.layerzwallet.mobile
 # Dismiss the soft keyboard so the bottom Next button is reachable.
 # (Without this the IME covers send-address-next-button on Android, and on iOS the
 # button sits below the keyboard since send-address.tsx no longer uses KeyboardAvoidingView.)
-- hideKeyboard
+# We tap an empty area instead of `hideKeyboard` because that command hard-fails on
+# iOS when the keyboard has no inputAccessoryView/Done button, even after the keyboard
+# successfully dismisses. Mirrors the convention in swap.yml of tapping a non-input area.
+# y=22% lands in the padding between the address card (ends ~y=24% of screen) and the
+# Tokens section header (starts ~y=32%). Critically, this point is *above* any soft
+# keyboard on both iOS (top ~y=65%) and Android (top ~y=55%), so the tap can't accidentally
+# land on a keyboard key like 50%,50% would on Android.
+- tapOn:
+    point: '50%,22%'
 - waitForAnimationToEnd
