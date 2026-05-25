@@ -5,6 +5,15 @@ appId: com.layerzwallet.mobile
 - tapOn:
     id: 'send-address-input'
 - waitForAnimationToEnd
+# Extra wait so the iOS soft keyboard has time to fully present before the first
+# eraseText/inputText. Maestro's `Keyboard (First Match)` probe hard-fails after 92s
+# when the keyboard isn't up yet; the default ~300ms waitForAnimationToEnd is not
+# always enough on CI simulators (especially when the simulator is in a state where
+# the hardware keyboard suppresses the soft keyboard on first focus).
+- runFlow:
+    file: sleep.yml
+    env:
+      TIMEOUT: 1500
 - eraseText: 1
 - inputText: 'spark1pgssyjcyyyp'
 - runFlow:
