@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gradientBackground: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 20,
     overflow: 'hidden',
   },

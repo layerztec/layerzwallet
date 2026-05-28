@@ -11,6 +11,7 @@ import { connectTunnel, disconnectTunnel, getTunnelConnectionStatus, subscribeTu
 
 export function McpTunnelStatusRow() {
   const router = useRouter();
+  const tunnelUrlRoute = './McpTunnelUrlModal' as const;
   const status = useSyncExternalStore(subscribeTunnelConnection, getTunnelConnectionStatus, getTunnelConnectionStatus);
   const activityLines = useSyncExternalStore(subscribeMcpActivityLog, getMcpActivityLog, getMcpActivityLog);
   const connecting = status === 'connecting';
@@ -27,7 +28,7 @@ export function McpTunnelStatusRow() {
           <View style={[styles.dot, { backgroundColor: dot }]} />
           <ThemedText style={styles.pillText}>{pill}</ThemedText>
         </View>
-        <Pressable style={styles.detailPressable} onPress={() => router.push('/McpTunnelUrlModal')} accessibilityRole="button" accessibilityLabel="Agent tunnel URL">
+        <Pressable style={styles.detailPressable} onPress={() => router.push(tunnelUrlRoute)} accessibilityRole="button" accessibilityLabel="Agent tunnel URL">
           <ThemedText style={styles.detail} numberOfLines={1}>
             {detail}
           </ThemedText>
@@ -36,7 +37,7 @@ export function McpTunnelStatusRow() {
           onPress={() => {
             if (status === 'connected') void disconnectTunnel();
             else if (status === 'disconnected') {
-              void connectTunnel().then(() => router.push('/McpTunnelUrlModal'));
+              void connectTunnel().then(() => router.push(tunnelUrlRoute));
             }
           }}
           disabled={connecting}

@@ -53,6 +53,10 @@ export type HomeProps = {
   fromOnboarding?: string;
 };
 
+type TransferExecutionTransaction = CommonTransaction & {
+  transferExecution?: unknown;
+};
+
 export default function Home() {
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
@@ -103,6 +107,7 @@ export default function Home() {
   // context re-emission, or a parent re-render that changes the `router`
   // identity) can't both push the modal and stack two sheets.
   const activateModalPresentedForRef = useRef<number | null>(null);
+  const mcpActivateRoute = './McpAgentActivateModal' as const;
   useEffect(() => {
     if (accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER) {
       activateModalPresentedForRef.current = null;
@@ -114,7 +119,7 @@ export default function Home() {
     void (async () => {
       const wantsTunnelOn = await getTunnelAutostartOnLaunch();
       if (cancelled || wantsTunnelOn) return;
-      router.push('/McpAgentActivateModal');
+      router.push(mcpActivateRoute);
     })();
     return () => {
       cancelled = true;
@@ -223,7 +228,7 @@ export default function Home() {
   ];
 
   const handleTransactionDetails = (transaction: CommonTransaction) => {
-    const transferExecution = (transaction as any).transferExecution;
+    const transferExecution = (transaction as TransferExecutionTransaction).transferExecution;
     if (transferExecution) {
       router.push({
         pathname: '/TransferDetails',
@@ -403,7 +408,7 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   blackBackground: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'black',
     flex: 1,
     paddingHorizontal: 16,
@@ -426,7 +431,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   modalHeaderOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     bottom: undefined,
     zIndex: 20,
   },
@@ -509,7 +514,7 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   whiteFlashOverlayAnimated: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'white',
     zIndex: 9998,
     pointerEvents: 'none',

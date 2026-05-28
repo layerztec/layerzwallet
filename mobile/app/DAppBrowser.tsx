@@ -1495,7 +1495,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   absoluteFill: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   modalContainer: {
     // (deprecated) kept for backward compatibility in styles object
