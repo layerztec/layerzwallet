@@ -10,7 +10,7 @@ import Pressable from '@/components/Pressable';
 import { ThemedText } from '@/components/ThemedText';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 
-import { getTunnelConnectionStatus, getTunnelPublicUrl, subscribeTunnelConnection } from '../modules/tunnel';
+import { getTunnelConnectionStatus, getTunnelPublicUrl, subscribeTunnelConnection } from '@shared/features/mcp/modules/tunnel';
 
 export default function McpTunnelUrlModal() {
   const router = useRouter();

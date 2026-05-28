@@ -73,6 +73,18 @@ export async function saveBitcoinXpubs(storage: IStorage, mnemonic: string) {
   }
 }
 
+async function ensureBitcoinXpub(storage: IStorage, accountNumber: number): Promise<string> {
+  const existing = await storage.getItem(STORAGE_KEY_BTC_XPUB + accountNumber);
+  if (existing) return existing;
+  if (!masterSeed) throw new Error('No xpub for this account number');
+  const btcWallet = new HDSegwitBech32Wallet();
+  btcWallet.setSecret(masterSeed);
+  btcWallet.setDerivationPath(`m/84'/0'/${accountNumber}'`);
+  const xpub = btcWallet.getXpub();
+  await storage.setItem(STORAGE_KEY_BTC_XPUB + accountNumber, xpub);
+  return xpub;
+}
+
 export async function saveWalletState(storage: IStorage, wallet: WatchOnlyWallet, network: Networks, accountNumber: number) {
   try {
     const serialized = await WalletSerializer.serialize(wallet);
@@ -220,8 +232,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     let wallet: WatchOnlyWallet;
     switch (network) {
       case NETWORK_BITCOIN: {
-        const xpub = await storage.getItem(STORAGE_KEY_BTC_XPUB + accountNumber);
-        if (!xpub) throw new Error('No xpub for this account number');
+        const xpub = await ensureBitcoinXpub(storage, accountNumber);
         wallet = new WatchOnlyWallet();
         wallet.setSecret(xpub);
         wallet.init();
