@@ -3,12 +3,12 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 // The TunnelHttpRequest / TunnelHttpResponse types are intentionally duplicated:
-// once on the device in mobile/src/features/mcp/modules/tunnel.ts and once on the
+// once in the wallet at shared/features/mcp/modules/tunnel-types.ts and once on the
 // server in mcp-websocket-tunnel/server.ts (separate Bun project, no shared deps).
 // This test guards against silent drift between the two definitions.
 
-const MOBILE_TUNNEL = resolve(__dirname, '../../features/mcp/modules/tunnel.ts');
-const SERVER_TUNNEL = resolve(__dirname, '../../../../mcp-websocket-tunnel/server.ts');
+const WALLET_TUNNEL_TYPES = resolve(__dirname, '../../features/mcp/modules/tunnel-types.ts');
+const SERVER_TUNNEL = resolve(__dirname, '../../../mcp-websocket-tunnel/server.ts');
 
 function extractTypeBody(source: string, typeName: string): string {
   const re = new RegExp(`(?:export\\s+)?type\\s+${typeName}\\s*=\\s*\\{([\\s\\S]*?)\\};`, 'm');
@@ -30,19 +30,19 @@ function normalize(body: string): string {
     .trim();
 }
 
-describe('Tunnel HTTP types parity (mobile <-> server)', () => {
-  const mobileSource = readFileSync(MOBILE_TUNNEL, 'utf8');
+describe('Tunnel HTTP types parity (wallet <-> server)', () => {
+  const walletSource = readFileSync(WALLET_TUNNEL_TYPES, 'utf8');
   const serverSource = readFileSync(SERVER_TUNNEL, 'utf8');
 
   test('TunnelHttpRequest is identical on both sides', () => {
-    const mobile = extractTypeBody(mobileSource, 'TunnelHttpRequest');
+    const wallet = extractTypeBody(walletSource, 'TunnelHttpRequest');
     const server = extractTypeBody(serverSource, 'TunnelHttpRequest');
-    expect(mobile).toBe(server);
+    expect(wallet).toBe(server);
   });
 
   test('TunnelHttpResponse is identical on both sides', () => {
-    const mobile = extractTypeBody(mobileSource, 'TunnelHttpResponse');
+    const wallet = extractTypeBody(walletSource, 'TunnelHttpResponse');
     const server = extractTypeBody(serverSource, 'TunnelHttpResponse');
-    expect(mobile).toBe(server);
+    expect(wallet).toBe(server);
   });
 });

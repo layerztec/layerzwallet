@@ -6,8 +6,8 @@ import { StyleSheet, View } from 'react-native';
 import Pressable from '@/components/Pressable';
 import { ThemedText } from '@/components/ThemedText';
 
-import { getMcpActivityLog, mcpActivityLogIsFull, subscribeMcpActivityLog } from '../modules/mcp-activity-log';
-import { connectTunnel, disconnectTunnel, getTunnelConnectionStatus, subscribeTunnelConnection } from '../modules/tunnel';
+import { getMcpActivityLog, mcpActivityLogIsFull, subscribeMcpActivityLog } from '@shared/features/mcp/modules/mcp-activity-log';
+import { connectTunnel, disconnectTunnel, getTunnelConnectionStatus, subscribeTunnelConnection } from '@shared/features/mcp/modules/tunnel';
 
 export function McpTunnelStatusRow() {
   const router = useRouter();

@@ -7,9 +7,13 @@ import { CommonTokenTransfer } from '../types/common-transaction';
 
 // kept as a separate json just because in evm world token list is standard by itself and
 // json files can be shared, imported etc
-const evmList: EVMTokenInfo[] = require('./tokenlist.json');
-const liquidList: LiquidTokenInfo[] = require('./tokenlist-liquid.json');
-const sparkList: SparkTokenInfo[] = require('./tokenlist-spark.json');
+import evmListJson from './tokenlist.json';
+import liquidListJson from './tokenlist-liquid.json';
+import sparkListJson from './tokenlist-spark.json';
+
+const evmList: EVMTokenInfo[] = evmListJson;
+const liquidList: LiquidTokenInfo[] = liquidListJson;
+const sparkList: SparkTokenInfo[] = sparkListJson;
 
 export function evmToCommonTokenInfo(token: EVMTokenInfo): TokenInfo {
   return {

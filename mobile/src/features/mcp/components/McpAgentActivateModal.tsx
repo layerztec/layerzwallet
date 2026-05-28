@@ -9,7 +9,7 @@ import Pressable from '@/components/Pressable';
 import { ThemedText } from '@/components/ThemedText';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 
-import { connectTunnel } from '../modules/tunnel';
+import { connectTunnel } from '@shared/features/mcp/modules/tunnel';
 
 /**
  * Bottom-sheet shown when the user lands on the MCP automation account while the

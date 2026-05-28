@@ -14,7 +14,7 @@ import Balance from '@/components/Balance';
 import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
 import { McpAgentDashboard } from '@/src/features/mcp/components/McpAgentDashboard';
 import { McpTunnelStatusRow } from '@/src/features/mcp/components/McpTunnelStatusRow';
-import { getTunnelAutostartOnLaunch } from '@/src/features/mcp/modules/tunnel';
+import { getTunnelAutostartOnLaunch } from '@shared/features/mcp/modules/tunnel';
 import NftsView from '@/components/NftsView';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
 import StickyHeader from '@/components/StickyHeader';
