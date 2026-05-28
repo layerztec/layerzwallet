@@ -40,15 +40,9 @@ export default function AmountInput({
   const inputRef = useRef<TextInput>(null);
   const [localDisplayValue, setLocalDisplayValue] = useState('');
   const isFocused = useRef(false);
-  const conversionCache = useRef<Map<string, string>>(new Map()); // convert cache
 
   const exchangeRateNumber = useMemo(() => {
     return exchangeRate ? Number(exchangeRate) : undefined;
-  }, [exchangeRate]);
-
-  useEffect(() => {
-    conversionCache.current.clear();
-    // Clear cache when exchange rate changes
   }, [exchangeRate]);
 
   // Convert native to fiat
@@ -56,16 +50,11 @@ export default function AmountInput({
     (nativeValue: string): string => {
       if (nativeValue === '0') return '0';
       if (!exchangeRateNumber || !nativeValue || nativeValue === '') return '—';
-      const cached = conversionCache.current.get(nativeValue);
-      if (cached !== undefined) {
-        return cached;
-      }
       const native = new BigNumber(nativeValue);
       const result = native.multipliedBy(exchangeRateNumber).toFixed(2);
       if (isNaN(Number(result))) {
         return '—';
       }
-      conversionCache.current.set(nativeValue, result);
       return result;
     },
     [exchangeRateNumber]
@@ -76,17 +65,11 @@ export default function AmountInput({
     (fiatValue: string): string => {
       if (fiatValue === '0') return '0';
       if (!exchangeRateNumber || !fiatValue || fiatValue === '') return '—';
-      for (const [nativeKey, fiatValueInCache] of conversionCache.current.entries()) {
-        if (fiatValueInCache === fiatValue) {
-          return nativeKey;
-        }
-      }
       const fiat = new BigNumber(fiatValue);
       const result = fiat.dividedBy(exchangeRateNumber).toFixed(decimals);
       if (isNaN(Number(result))) {
         return '—';
       }
-      conversionCache.current.set(result, fiatValue);
       return result;
     },
     [exchangeRateNumber, decimals]

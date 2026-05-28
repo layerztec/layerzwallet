@@ -130,9 +130,7 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
           });
 
           if (!isUserCancel && !isSystemCancel && error !== 'user_fallback') {
-            console.debug('BiometricLogin: Auto-retrying authentication after failure');
-            performAuthentication(isInitialAuth);
-            return;
+            console.debug('BiometricLogin: Auto-retry disabled; showing manual retry state');
           }
 
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -200,7 +198,10 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
         userCancelled: authState.userCancelled,
       });
 
-      performAuthentication(true);
+      const timeout = setTimeout(() => {
+        void performAuthentication(true);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [
     autoTrigger,

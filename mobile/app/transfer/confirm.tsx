@@ -28,6 +28,11 @@ import { useTransferFlow } from '@/src/transfer/TransferFlowContext';
 const DISMISS_THRESHOLD = 150;
 const CLAIM_OPTIONS_HEIGHT = 40 * 2; // 2 option rows
 
+function setSharedValue(sharedValue: { value: unknown }, nextValue: unknown) {
+  'worklet';
+  sharedValue.value = nextValue;
+}
+
 export default function TransferConfirm() {
   const router = useRouter();
   const { height: screenHeight } = useWindowDimensions();
@@ -68,7 +73,7 @@ export default function TransferConfirm() {
   const translateY = useSharedValue(screenHeight);
 
   useEffect(() => {
-    translateY.value = withTiming(0, { duration: 300 });
+    setSharedValue(translateY, withTiming(0, { duration: 300 }));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Clear quote on unmount so going back to index doesn't reuse a consumed quote
@@ -235,22 +240,25 @@ export default function TransferConfirm() {
   }, [router]);
 
   const animateDismiss = useCallback(() => {
-    translateY.value = withTiming(screenHeight, { duration: 250 }, () => {
-      runOnJS(handleDismiss)();
-    });
+    setSharedValue(
+      translateY,
+      withTiming(screenHeight, { duration: 250 }, () => {
+        runOnJS(handleDismiss)();
+      })
+    );
   }, [translateY, screenHeight, handleDismiss]);
 
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
       if (event.translationY > 0) {
-        translateY.value = event.translationY;
+        setSharedValue(translateY, event.translationY);
       }
     })
     .onEnd((event) => {
       if (event.translationY > DISMISS_THRESHOLD || event.velocityY > 1000) {
         runOnJS(animateDismiss)();
       } else {
-        translateY.value = withTiming(0, { duration: 200 });
+        setSharedValue(translateY, withTiming(0, { duration: 200 }));
       }
     });
 
@@ -265,13 +273,13 @@ export default function TransferConfirm() {
   const toggleClaim = () => {
     const next = !claimExpanded;
     setClaimExpanded(next);
-    claimAnim.value = withTiming(next ? 1 : 0, { duration: 250 });
+    setSharedValue(claimAnim, withTiming(next ? 1 : 0, { duration: 250 }));
   };
 
   const selectClaim = (mode: 'auto' | 'manual') => {
     setClaimMode(mode);
     setClaimExpanded(false);
-    claimAnim.value = withTiming(0, { duration: 250 });
+    setSharedValue(claimAnim, withTiming(0, { duration: 250 }));
   };
 
   const claimOptionsStyle = useAnimatedStyle(() => ({

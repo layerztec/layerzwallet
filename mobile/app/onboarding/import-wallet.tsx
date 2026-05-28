@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -47,8 +47,8 @@ export default function ImportWalletScreen() {
   const buttonTransition = useSequentialSpringAnimation(400);
   const scanButtonTransition = useSequentialSpringAnimation(500);
 
-  const glowAnimation = useRef(new Animated.Value(0)).current;
-  const fadeAnimation = useRef(new Animated.Value(1)).current;
+  const glowAnimation = useMemo(() => new Animated.Value(0), []);
+  const fadeAnimation = useMemo(() => new Animated.Value(1), []);
 
   useEffect(() => {
     if (isLoading) {

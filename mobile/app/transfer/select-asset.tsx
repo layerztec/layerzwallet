@@ -21,6 +21,11 @@ export type SelectAssetParams = {
 
 const DISMISS_THRESHOLD = 150;
 
+function setSharedValue(sharedValue: { value: unknown }, nextValue: unknown) {
+  'worklet';
+  sharedValue.value = nextValue;
+}
+
 export default function SelectAsset() {
   const router = useRouter();
   const { height: screenHeight } = useWindowDimensions();
@@ -35,7 +40,7 @@ export default function SelectAsset() {
   const scrollOffset = useSharedValue(0);
 
   useEffect(() => {
-    translateY.value = withTiming(0, { duration: 300 });
+    setSharedValue(translateY, withTiming(0, { duration: 300 }));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const side = params.side || 'send';
@@ -65,9 +70,12 @@ export default function SelectAsset() {
   }, [router]);
 
   const animateDismiss = useCallback(() => {
-    translateY.value = withTiming(screenHeight, { duration: 250 }, () => {
-      runOnJS(handleDismiss)();
-    });
+    setSharedValue(
+      translateY,
+      withTiming(screenHeight, { duration: 250 }, () => {
+        runOnJS(handleDismiss)();
+      })
+    );
   }, [translateY, screenHeight, handleDismiss]);
 
   const handleSelectAsset = (asset: AssetId) => {
@@ -90,14 +98,14 @@ export default function SelectAsset() {
     .onUpdate((event) => {
       // Only allow dragging down when scrolled to top
       if (scrollOffset.value <= 0 && event.translationY > 0) {
-        translateY.value = event.translationY;
+        setSharedValue(translateY, event.translationY);
       }
     })
     .onEnd((event) => {
       if (event.translationY > DISMISS_THRESHOLD || event.velocityY > 1000) {
         runOnJS(animateDismiss)();
       } else {
-        translateY.value = withTiming(0, { duration: 200 });
+        setSharedValue(translateY, withTiming(0, { duration: 200 }));
       }
     });
 
@@ -164,7 +172,7 @@ export default function SelectAsset() {
                   keyboardShouldPersistTaps="handled"
                   keyboardDismissMode="on-drag"
                   onScroll={(e) => {
-                    scrollOffset.value = e.nativeEvent.contentOffset.y;
+                    setSharedValue(scrollOffset, e.nativeEvent.contentOffset.y);
                   }}
                   scrollEventThrottle={16}
                   ListEmptyComponent={

@@ -132,6 +132,11 @@ const createBrowserTab = (url: string, id?: string): BrowserTab => ({
 
 const createHomeTab = (network: string, id?: string): BrowserTab => createBrowserTab(getHomeUrl(network), id);
 
+function setSharedValue(sharedValue: { value: unknown }, nextValue: unknown) {
+  'worklet';
+  sharedValue.value = nextValue;
+}
+
 export type DappBrowserProps = {
   url?: string;
 };
@@ -182,6 +187,7 @@ const DAppBrowser: React.FC = () => {
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [btcAddress, setBtcAddress] = useState<string>('');
   const [autofillEnabled, setAutofillEnabled] = useState<boolean>(true);
+  const [swipeBackNonce, setSwipeBackNonce] = useState(0);
 
   const webviewOpacity = useSharedValue(1);
   const tabsOpacity = useSharedValue(0);
@@ -284,48 +290,91 @@ const DAppBrowser: React.FC = () => {
   }));
 
   const panGesture = Gesture.Pan().enabled(false);
+  const goBack = useCallback(() => {
+    const tab = tabs.find((t) => t.id === activeTabId);
+    if (!tab || tab.historyIndex <= 0) return;
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
-        const isFromLeftEdge = gestureState.moveX < BROWSER_CONSTANTS.GESTURE.EDGE_THRESHOLD;
-        const isSwipingRight = gestureState.dx > BROWSER_CONSTANTS.GESTURE.MIN_SWIPE_DX;
-        return isHorizontalSwipe && isFromLeftEdge && isSwipingRight && (activeTab?.canGoBack || false);
-      },
-      onPanResponderGrant: () => {
-        swipeProgress.value = 0;
-        swipeOverlayOpacity.value = 0.3;
-      },
-      onPanResponderMove: (_, gestureState) => {
-        const progress = Math.min(Math.max(gestureState.dx / BROWSER_CONSTANTS.GESTURE.SWIPE_DISTANCE, 0), 1);
-        swipeProgress.value = progress;
-        swipeOverlayOpacity.value = 0.3 * (1 - progress);
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        const shouldGoBack = gestureState.dx > BROWSER_CONSTANTS.GESTURE.SWIPE_THRESHOLD && gestureState.vx > BROWSER_CONSTANTS.GESTURE.SWIPE_VELOCITY;
+    const newIndex = tab.historyIndex - 1;
+    const historyItem = tab.history[newIndex];
 
-        if (shouldGoBack && activeTab?.canGoBack) {
-          swipeProgress.value = withTiming(1, { duration: BROWSER_CONSTANTS.ANIMATION.QUICK }, (finished) => {
-            if (finished) {
-              runOnJS(goBack)();
-              swipeProgress.value = 0;
-              swipeOverlayOpacity.value = 0;
+    isManualNavigation.current = true;
+    lastManualNavigationUrl.current = historyItem.url;
+    setTabs((prev) =>
+      prev.map((t) =>
+        t.id === activeTabId
+          ? {
+              ...t,
+              historyIndex: newIndex,
+              url: historyItem.url,
+              title: historyItem.title,
+              canGoBack: newIndex > 0,
             }
-          });
-          swipeOverlayOpacity.value = withTiming(0, { duration: BROWSER_CONSTANTS.ANIMATION.QUICK });
-        } else {
-          swipeProgress.value = withSpring(0, { damping: 10, stiffness: 100 });
-          swipeOverlayOpacity.value = withTiming(0, { duration: 200 });
-        }
-      },
-      onPanResponderTerminate: () => {
-        swipeProgress.value = withSpring(0, { damping: 10, stiffness: 100 });
-        swipeOverlayOpacity.value = withTiming(0, { duration: 200 });
-      },
-    })
-  ).current;
+          : t
+      )
+    );
+
+    setAddressBarValue(historyItem.url, { ensureStartVisible: true });
+    webviewRef.current?.injectJavaScript(`window.location.href = '${historyItem.url}';`);
+  }, [tabs, activeTabId, setAddressBarValue]);
+  const triggerGoBack = useCallback(() => {
+    setSwipeBackNonce((prev) => prev + 1);
+  }, []);
+
+  useEffect(() => {
+    if (swipeBackNonce > 0) {
+      const timeout = setTimeout(() => {
+        goBack();
+      }, 0);
+      return () => clearTimeout(timeout);
+    }
+  }, [swipeBackNonce, goBack]);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_, gestureState) => {
+          const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+          const isFromLeftEdge = gestureState.moveX < BROWSER_CONSTANTS.GESTURE.EDGE_THRESHOLD;
+          const isSwipingRight = gestureState.dx > BROWSER_CONSTANTS.GESTURE.MIN_SWIPE_DX;
+          return isHorizontalSwipe && isFromLeftEdge && isSwipingRight && (activeTab?.canGoBack || false);
+        },
+        onPanResponderGrant: () => {
+          setSharedValue(swipeProgress, 0);
+          setSharedValue(swipeOverlayOpacity, 0.3);
+        },
+        onPanResponderMove: (_, gestureState) => {
+          const progress = Math.min(Math.max(gestureState.dx / BROWSER_CONSTANTS.GESTURE.SWIPE_DISTANCE, 0), 1);
+          setSharedValue(swipeProgress, progress);
+          setSharedValue(swipeOverlayOpacity, 0.3 * (1 - progress));
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          const shouldGoBack = gestureState.dx > BROWSER_CONSTANTS.GESTURE.SWIPE_THRESHOLD && gestureState.vx > BROWSER_CONSTANTS.GESTURE.SWIPE_VELOCITY;
+
+          if (shouldGoBack && activeTab?.canGoBack) {
+            setSharedValue(
+              swipeProgress,
+              withTiming(1, { duration: BROWSER_CONSTANTS.ANIMATION.QUICK }, (finished) => {
+                if (finished) {
+                  runOnJS(triggerGoBack)();
+                  setSharedValue(swipeProgress, 0);
+                  setSharedValue(swipeOverlayOpacity, 0);
+                }
+              })
+            );
+            setSharedValue(swipeOverlayOpacity, withTiming(0, { duration: BROWSER_CONSTANTS.ANIMATION.QUICK }));
+          } else {
+            setSharedValue(swipeProgress, withSpring(0, { damping: 10, stiffness: 100 }));
+            setSharedValue(swipeOverlayOpacity, withTiming(0, { duration: 200 }));
+          }
+        },
+        onPanResponderTerminate: () => {
+          setSharedValue(swipeProgress, withSpring(0, { damping: 10, stiffness: 100 }));
+          setSharedValue(swipeOverlayOpacity, withTiming(0, { duration: 200 }));
+        },
+      }),
+    [activeTab?.canGoBack, triggerGoBack, swipeOverlayOpacity, swipeProgress]
+  );
 
   useEffect(() => {
     navigation.setOptions({
@@ -728,7 +777,10 @@ const DAppBrowser: React.FC = () => {
 
   useEffect(() => {
     if (!addressInput.trim()) {
-      setShowAddressSuggestions(false);
+      const timeout = setTimeout(() => {
+        setShowAddressSuggestions(false);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [addressInput]);
 
@@ -769,9 +821,12 @@ const DAppBrowser: React.FC = () => {
       const existingTab = tabs.find((tab) => tab.url === params.url);
       if (!existingTab) {
         const newTab = createBrowserTab(params.url!);
-        setTabs((prev) => [...prev, newTab]);
-        setActiveTabId(newTab.id);
-        setAddressBarValue(newTab.url, { ensureStartVisible: true });
+        const timeout = setTimeout(() => {
+          setTabs((prev) => [...prev, newTab]);
+          setActiveTabId(newTab.id);
+          setAddressBarValue(newTab.url, { ensureStartVisible: true });
+        }, 0);
+        return () => clearTimeout(timeout);
       }
     }
   }, [params.url, isRestoringTabs, tabs, setAddressBarValue]);
@@ -860,9 +915,9 @@ const DAppBrowser: React.FC = () => {
   const showTabsOverviewAnimated = async () => {
     setShowTabsOverview(true);
 
-    webviewOpacity.value = withTiming(0, { duration: BROWSER_CONSTANTS.ANIMATION.STANDARD });
-    tabsOpacity.value = withTiming(1, { duration: BROWSER_CONSTANTS.ANIMATION.STANDARD });
-    addressBarTranslateY.value = withTiming(-120, { duration: BROWSER_CONSTANTS.ANIMATION.STANDARD });
+    setSharedValue(webviewOpacity, withTiming(0, { duration: BROWSER_CONSTANTS.ANIMATION.STANDARD }));
+    setSharedValue(tabsOpacity, withTiming(1, { duration: BROWSER_CONSTANTS.ANIMATION.STANDARD }));
+    setSharedValue(addressBarTranslateY, withTiming(-120, { duration: BROWSER_CONSTANTS.ANIMATION.STANDARD }));
 
     // Capture current tab screenshot only if missing (don't replace an existing preview on overlay open)
     if (activeTabId) {
@@ -898,13 +953,16 @@ const DAppBrowser: React.FC = () => {
   };
 
   const hideTabsOverview = () => {
-    webviewOpacity.value = withTiming(1, { duration: BROWSER_CONSTANTS.ANIMATION.FAST });
-    tabsOpacity.value = withTiming(0, { duration: BROWSER_CONSTANTS.ANIMATION.FAST });
-    addressBarTranslateY.value = withTiming(0, { duration: BROWSER_CONSTANTS.ANIMATION.FAST }, (finished) => {
-      if (finished) {
-        runOnJS(setShowTabsOverview)(false);
-      }
-    });
+    setSharedValue(webviewOpacity, withTiming(1, { duration: BROWSER_CONSTANTS.ANIMATION.FAST }));
+    setSharedValue(tabsOpacity, withTiming(0, { duration: BROWSER_CONSTANTS.ANIMATION.FAST }));
+    setSharedValue(
+      addressBarTranslateY,
+      withTiming(0, { duration: BROWSER_CONSTANTS.ANIMATION.FAST }, (finished) => {
+        if (finished) {
+          runOnJS(setShowTabsOverview)(false);
+        }
+      })
+    );
   };
 
   const toggleTabsOverview = () => {
@@ -1011,33 +1069,6 @@ const DAppBrowser: React.FC = () => {
     webviewRef.current?.reload();
   };
 
-  const goBack = () => {
-    const tab = tabs.find((t) => t.id === activeTabId);
-    if (!tab || tab.historyIndex <= 0) return;
-
-    const newIndex = tab.historyIndex - 1;
-    const historyItem = tab.history[newIndex];
-
-    isManualNavigation.current = true;
-    lastManualNavigationUrl.current = historyItem.url;
-    setTabs((prev) =>
-      prev.map((t) =>
-        t.id === activeTabId
-          ? {
-              ...t,
-              historyIndex: newIndex,
-              url: historyItem.url,
-              title: historyItem.title,
-              canGoBack: newIndex > 0,
-            }
-          : t
-      )
-    );
-
-    setAddressBarValue(historyItem.url, { ensureStartVisible: true });
-    webviewRef.current?.injectJavaScript(`window.location.href = '${historyItem.url}';`);
-  };
-
   const injectAutofillScript = useCallback((address: string) => {
     const script = `
       (function() {
@@ -1116,20 +1147,23 @@ const DAppBrowser: React.FC = () => {
       setIsLoading(progress < 1);
 
       if (progress < 1) {
-        progressOpacity.value = 1;
+        setSharedValue(progressOpacity, 1);
       }
 
-      progressWidth.value = withTiming(progress, { duration: BROWSER_CONSTANTS.ANIMATION.INSTANT }, (finished) => {
-        if (finished && progress >= 1) {
-          progressOpacity.value = withTiming(0, { duration: BROWSER_CONSTANTS.ANIMATION.STANDARD });
+      setSharedValue(
+        progressWidth,
+        withTiming(progress, { duration: BROWSER_CONSTANTS.ANIMATION.INSTANT }, (finished) => {
+          if (finished && progress >= 1) {
+            setSharedValue(progressOpacity, withTiming(0, { duration: BROWSER_CONSTANTS.ANIMATION.STANDARD }));
 
-          setTimeout(async () => {
-            if (activeTabId) {
-              await captureTabScreenshot(activeTabId, BROWSER_CONSTANTS.TIMEOUTS.SCREENSHOT_DELAY);
-            }
-          }, BROWSER_CONSTANTS.TIMEOUTS.POST_LOAD_CAPTURE);
-        }
-      });
+            setTimeout(async () => {
+              if (activeTabId) {
+                await captureTabScreenshot(activeTabId, BROWSER_CONSTANTS.TIMEOUTS.SCREENSHOT_DELAY);
+              }
+            }, BROWSER_CONSTANTS.TIMEOUTS.POST_LOAD_CAPTURE);
+          }
+        })
+      );
     },
     [progressWidth, progressOpacity, activeTabId, captureTabScreenshot]
   );

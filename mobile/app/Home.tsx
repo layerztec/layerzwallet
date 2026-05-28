@@ -49,6 +49,11 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const MODAL_MIN_HEIGHT = 120; // Height when dragged down (header + some content)
 const MODAL_MAX_HEIGHT = SCREEN_HEIGHT; // Full height modal
 
+function setSharedValue(sharedValue: { value: unknown }, nextValue: unknown) {
+  'worklet';
+  sharedValue.value = nextValue;
+}
+
 export type HomeProps = {
   fromOnboarding?: string;
 };
@@ -92,8 +97,8 @@ export default function Home() {
   useEffect(() => {
     if (params.fromOnboarding === 'true') {
       const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
-      modalTranslateY.value = maxTranslate;
-      currentModalPosition.value = maxTranslate;
+      setSharedValue(modalTranslateY, maxTranslate);
+      setSharedValue(currentModalPosition, maxTranslate);
     }
   }, [params.fromOnboarding, modalTranslateY, currentModalPosition]);
 
@@ -161,22 +166,28 @@ export default function Home() {
       const selectedNetwork = networks[index];
       // Create white flash transition effect
       const flashDuration = 150;
-      whiteFlashAnim.value = withTiming(1, { duration: flashDuration }, () => {
-        whiteFlashAnim.value = withTiming(0, { duration: flashDuration }, () => {
-          // After flash animation completes, expand modal to full height
-          currentModalPosition.value = 0;
-          modalTranslateY.value = withTiming(0, { duration: 400 });
-        });
-        scheduleOnRN(setNetwork, selectedNetwork);
-      });
+      setSharedValue(
+        whiteFlashAnim,
+        withTiming(1, { duration: flashDuration }, () => {
+          setSharedValue(
+            whiteFlashAnim,
+            withTiming(0, { duration: flashDuration }, () => {
+              // After flash animation completes, expand modal to full height
+              setSharedValue(currentModalPosition, 0);
+              setSharedValue(modalTranslateY, withTiming(0, { duration: 400 }));
+            })
+          );
+          scheduleOnRN(setNetwork, selectedNetwork);
+        })
+      );
     }
   };
 
   const handleNetworkSelect = () => {
     // Minimize modal to show network tiles in black background area
     const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
-    currentModalPosition.value = maxTranslate;
-    modalTranslateY.value = withTiming(maxTranslate, { duration: 300 });
+    setSharedValue(currentModalPosition, maxTranslate);
+    setSharedValue(modalTranslateY, withTiming(maxTranslate, { duration: 300 }));
   };
 
   const goToSettings = () => {
@@ -268,7 +279,7 @@ export default function Home() {
   // Handle scroll events for sticky header animation
   const handleScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
-      scrollY.value = event.contentOffset.y;
+      setSharedValue(scrollY, event.contentOffset.y);
     },
   });
 
@@ -285,7 +296,7 @@ export default function Home() {
   const panGesture = Gesture.Pan()
     .onStart(() => {
       // Store the current modal position when gesture starts
-      gestureStartPosition.value = modalTranslateY.value;
+      setSharedValue(gestureStartPosition, modalTranslateY.value);
     })
     .onUpdate((event) => {
       const { translationY } = event;
@@ -302,7 +313,7 @@ export default function Home() {
         constrainedPosition = maxTranslate;
       }
 
-      modalTranslateY.value = constrainedPosition;
+      setSharedValue(modalTranslateY, constrainedPosition);
     })
     .onEnd((event) => {
       const { translationY, velocityY } = event;
@@ -313,12 +324,12 @@ export default function Home() {
 
       if (shouldSnapToMin) {
         // Snap to minimized state (translate down so only header is visible)
-        currentModalPosition.value = maxTranslate;
-        modalTranslateY.value = withTiming(maxTranslate, { duration: 300 });
+        setSharedValue(currentModalPosition, maxTranslate);
+        setSharedValue(modalTranslateY, withTiming(maxTranslate, { duration: 300 }));
       } else {
         // Snap to expanded state (translate back to original position)
-        currentModalPosition.value = 0;
-        modalTranslateY.value = withTiming(0, { duration: 300 });
+        setSharedValue(currentModalPosition, 0);
+        setSharedValue(modalTranslateY, withTiming(0, { duration: 300 }));
       }
     })
     .activeOffsetY([-10, 10])

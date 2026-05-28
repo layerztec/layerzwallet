@@ -47,6 +47,10 @@ LogBox.ignoreLogs(['Require cycle:', 'Open debugger to view warnings.']);
 // is safe to invoke as soon as the tunnel resolves (TunnelBootstrap mounts later).
 configureMcp(mobileMcpDeps, { name: 'layerz-wallet-mobile' });
 
+function setTransferCompletedHandler(transferService: { onTransferCompleted?: (execution: TransferExecution) => void }, handler: ((execution: TransferExecution) => void) | undefined) {
+  transferService.onTransferCompleted = handler;
+}
+
 const onJSError = (error: unknown) => handleError(error, 'JAVASCRIPT_ERROR');
 
 const consoleLogOrig = console.log;
@@ -85,7 +89,7 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    transferService.onTransferCompleted = (execution: TransferExecution) => {
+    setTransferCompletedHandler(transferService, (execution: TransferExecution) => {
       let sat = 0;
 
       // trying to decypher satoshi amount of the swap:
@@ -124,10 +128,10 @@ export default function RootLayout() {
         id: execution.id,
         sat,
       });
-    };
+    });
 
     return () => {
-      transferService.onTransferCompleted = undefined;
+      setTransferCompletedHandler(transferService, undefined);
     };
   }, [transferService]);
 

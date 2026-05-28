@@ -106,7 +106,10 @@ const WithdrawLightning: React.FC = () => {
   }, [lnurl]);
 
   useEffect(() => {
-    loadWithdrawRequest();
+    const timeout = setTimeout(() => {
+      void loadWithdrawRequest();
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [loadWithdrawRequest]);
 
   const handleLayerSelect = (selectedNetwork: Networks) => {
