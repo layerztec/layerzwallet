@@ -9,10 +9,11 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { MCP_BALANCE_ACCOUNT_NUMBER } from '@shared/hooks/AccountNumberContext';
+import { MCP_BALANCE_ACCOUNT_NUMBER } from '../../hooks/AccountNumberContext';
 import { registerWalletMcpCalls } from '../../features/mcp/modules/mcp-calls';
-import { FlashnetTransferService } from '@shared/services/transfer-service-flashnet';
-import { TransferServiceManager } from '@shared/services/transfer-service-manager';
+import type { McpCallDeps } from '../../features/mcp/modules/mcp-deps';
+import { FlashnetTransferService } from '../../services/transfer-service-flashnet';
+import { TransferServiceManager } from '../../services/transfer-service-manager';
 
 // Constants must match the production code (`transfer-service-flashnet.ts`).
 const BTC_PUBKEY = '020202020202020202020202020202020202020202020202020202020202020202';
@@ -44,17 +45,13 @@ vi.mock('@flashnet/sdk', () => ({
   isFlashnetError: vi.fn().mockReturnValue(false),
 }));
 
-vi.mock('react-native-toast-message', () => ({ default: { show: vi.fn() } }));
-vi.mock('@/src/class/layerz-storage', () => ({ LayerzStorage: { getItem: vi.fn().mockResolvedValue(''), setItem: vi.fn().mockResolvedValue(undefined) } }));
-vi.mock('@/src/modules/background-executor', () => ({ BackgroundExecutor: { lazyInitWallet } }));
-vi.mock('@/src/modules/analytics', () => ({ AnalyticsEvents: { McpCall: 'mcp_call' }, trackAnalyticsEvent: vi.fn() }));
-vi.mock('@shared/hooks/useTransferService', () => ({
+vi.mock('../../hooks/useTransferService', () => ({
   useTransferService,
   getTransferServiceManager,
   setFlashnetAccountNumber,
 }));
-vi.mock('@shared/hooks/useExchangeRate', () => ({ exchangeRateFetcher: vi.fn() }));
-vi.mock('@shared/hooks/useBalance', () => ({ balanceFetcher: vi.fn() }));
+vi.mock('../../hooks/useExchangeRate', () => ({ exchangeRateFetcher: vi.fn() }));
+vi.mock('../../hooks/useBalance', () => ({ balanceFetcher: vi.fn() }));
 vi.mock('../../features/mcp/modules/mcp-activity-log', () => ({ pushMcpActivityLog: vi.fn() }));
 
 type ToolHandler = (input: any) => Promise<{ content: { text: string }[]; isError?: boolean }>;
@@ -77,17 +74,31 @@ function makeRealStack() {
   };
   const flashnet = new FlashnetTransferService(realStorage as any, getSparkWallet);
   const manager = new TransferServiceManager([flashnet]);
-  return { flashnet, manager, storageMap };
+  return { flashnet, manager, storageMap, realStorage };
 }
 
-function buildHandlers(): Map<string, ToolHandler> {
+/**
+ * Build the injected `McpCallDeps` for `registerWalletMcpCalls`. The shared MCP
+ * surface is platform-agnostic — every dependency comes through here, so the
+ * test can plug in its own storage / wallet runtime / toast no-op.
+ */
+function makeFakeDeps(storage: { getItem: (k: string) => Promise<string>; setItem: (k: string, v: string) => Promise<void> }): McpCallDeps {
+  return {
+    storage: storage as any,
+    backgroundCaller: { lazyInitWallet } as any,
+    showSuccessToast: vi.fn(),
+    trackToolCall: vi.fn(),
+  };
+}
+
+function buildHandlers(deps: McpCallDeps): Map<string, ToolHandler> {
   const handlers = new Map<string, ToolHandler>();
   const fakeServer = {
     registerTool: vi.fn((name: string, _config: unknown, handler: ToolHandler) => {
       handlers.set(name, handler);
     }),
   };
-  registerWalletMcpCalls(fakeServer as any);
+  registerWalletMcpCalls(fakeServer as any, deps);
   return handlers;
 }
 
@@ -131,7 +142,7 @@ describe('MCP swap tools', () => {
     getTransferServiceManager.mockReturnValue(manager);
     useTransferService.mockReturnValue(manager);
 
-    handlers = buildHandlers();
+    handlers = buildHandlers(makeFakeDeps(stack.realStorage));
   });
 
   describe('get_swap_quote — happy path', () => {
