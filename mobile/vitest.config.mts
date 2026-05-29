@@ -1,6 +1,9 @@
+import { createRequire } from 'node:module';
 import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
 import fs from 'fs';
+
+const require = createRequire(import.meta.url);
 
 export default defineConfig({
   test: {
@@ -27,7 +30,7 @@ export default defineConfig({
         return aliases;
       }, {
         '@shared': resolve(__dirname, '../shared'), // Add @shared alias
-        '@arkade-os/sdk/adapters/expo': resolve(nodeModulesPath, '@arkade-os/sdk/dist/esm/adapters/expo.js'), // Explicit alias for expo adapter
+        '@arkade-os/sdk/adapters/expo': require.resolve('@arkade-os/sdk/adapters/expo'),
       });
 
       // console.log(ret);
