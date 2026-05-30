@@ -1,0 +1,145 @@
+import {
+  BindingLiquidSdk,
+  connect,
+  defaultConfig,
+  PrepareReceiveRequest,
+  ReceivePaymentRequest,
+  PrepareSendRequest,
+  SendPaymentRequest,
+  GetPaymentRequest,
+  ListPaymentsRequest,
+} from "@breeztech/breez-sdk-liquid";
+import {
+  BreezConnection,
+  IBreezAdapter,
+  getAssertMetadata,
+} from "@shared/class/wallets/breez-wallet";
+
+const API_KEY = process.env.EXPO_PUBLIC_BREEZ_API_KEY;
+
+class BreezAdapter implements IBreezAdapter {
+  private initialized: boolean = false;
+  private cc: BreezConnection | undefined;
+  private sdk?: BindingLiquidSdk;
+  private sdkLock: Promise<void> = Promise.resolve();
+
+  // This function is used to ensure that the SDK is initialized before calling the function
+  // It also ensures that the SDK is not initialized multiple times at the same times
+  private withLockAndSdk<T, Args extends any[]>(
+    fn: (sdk: BindingLiquidSdk, ...args: Args) => Promise<T>,
+  ): (connection: BreezConnection, ...args: Args) => Promise<T> {
+    return async (connection: BreezConnection, ...args: Args): Promise<T> => {
+      let releaseLock: () => void = () => {};
+      const lockPromise = new Promise<void>(
+        (resolve) => (releaseLock = resolve),
+      );
+      await this.sdkLock; // Wait for any ongoing SDK initialization to complete
+      this.sdkLock = lockPromise; // Set new lock
+
+      try {
+        const sdk = await this.getSdk(connection);
+        return await fn(sdk, ...args);
+      } finally {
+        releaseLock();
+      }
+    };
+  }
+
+  private async getSdk(connection: BreezConnection) {
+    if (!this.initialized) {
+      // Desktop uses the breez "bundle" entry: WASM is initialized when the module is first imported.
+      this.initialized = true;
+    }
+    if (
+      connection.mnemonic === this.cc?.mnemonic &&
+      connection.network === this.cc?.network &&
+      this.sdk
+    ) {
+      return this.sdk;
+    }
+    await this.sdk?.disconnect();
+    const config = defaultConfig(connection.network, API_KEY);
+    config.assetMetadata = getAssertMetadata(connection.network);
+    this.sdk = await connect({ mnemonic: connection.mnemonic, config });
+    this.cc = connection;
+    return this.sdk;
+  }
+
+  private async getInfo(sdk: BindingLiquidSdk) {
+    return await sdk.getInfo();
+  }
+
+  private async fetchLightningLimits(sdk: BindingLiquidSdk) {
+    return await sdk.fetchLightningLimits();
+  }
+
+  private async prepareReceivePayment(
+    sdk: BindingLiquidSdk,
+    args: PrepareReceiveRequest,
+  ) {
+    return await sdk.prepareReceivePayment(args);
+  }
+
+  private async receivePayment(
+    sdk: BindingLiquidSdk,
+    args: ReceivePaymentRequest,
+  ) {
+    return await sdk.receivePayment(args);
+  }
+
+  private async prepareSendPayment(
+    sdk: BindingLiquidSdk,
+    args: PrepareSendRequest,
+  ) {
+    return await sdk.prepareSendPayment(args);
+  }
+
+  private async sendPayment(sdk: BindingLiquidSdk, args: SendPaymentRequest) {
+    return await sdk.sendPayment(args);
+  }
+
+  private async getPayment(sdk: BindingLiquidSdk, args: GetPaymentRequest) {
+    return await sdk.getPayment(args);
+  }
+
+  private async listPayments(sdk: BindingLiquidSdk, args: ListPaymentsRequest) {
+    return await sdk.listPayments(args);
+  }
+
+  get api() {
+    const getInfo = this.withLockAndSdk(this.getInfo.bind(this));
+    const fetchLightningLimits = this.withLockAndSdk(
+      this.fetchLightningLimits.bind(this),
+    );
+    const prepareReceivePayment = this.withLockAndSdk(
+      this.prepareReceivePayment.bind(this),
+    );
+    const receivePayment = this.withLockAndSdk(this.receivePayment.bind(this));
+    const prepareSendPayment = this.withLockAndSdk(
+      this.prepareSendPayment.bind(this),
+    );
+    const sendPayment = this.withLockAndSdk(this.sendPayment.bind(this));
+    const getPayment = this.withLockAndSdk(this.getPayment.bind(this));
+    const listPayments = this.withLockAndSdk(this.listPayments.bind(this));
+
+    return {
+      getInfo,
+      fetchLightningLimits,
+      prepareReceivePayment,
+      receivePayment,
+      prepareSendPayment,
+      sendPayment,
+      getPayment,
+      listPayments,
+    };
+  }
+
+  async disconnect() {
+    await this.sdk?.disconnect();
+    this.sdk = undefined;
+    this.initialized = false;
+    this.cc = undefined;
+  }
+}
+
+globalThis.breezAdapter = new BreezAdapter();

@@ -15,6 +15,7 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 
 import { registerWalletMcpCalls } from './mcp-calls';
 import type { McpCallDeps } from './mcp-deps';
+import { MCP_SERVER_INSTRUCTIONS } from './mcp-instructions';
 import type { TunnelHttpRequest, TunnelHttpResponse } from './tunnel-types';
 
 type McpInstance = {
@@ -115,7 +116,10 @@ async function syntheticInitialize(instance: McpInstance, protocolVersion: strin
 
 function buildMcpServer(): McpServer {
   const deps = requireConfiguredDeps();
-  const mcp = new McpServer(configuredServerInfo, { capabilities: { tools: {} } });
+  const mcp = new McpServer(configuredServerInfo, {
+    capabilities: { tools: {} },
+    instructions: MCP_SERVER_INSTRUCTIONS,
+  });
   registerWalletMcpCalls(mcp, deps);
   return mcp;
 }

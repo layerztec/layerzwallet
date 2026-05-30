@@ -27,6 +27,7 @@ import { AssetId } from '../../../types/asset';
 import {
   getAvailableNetworks,
   NETWORK_ARK,
+  NETWORK_ARK_MUTINYNET,
   NETWORK_BITCOIN,
   NETWORK_LIGHTNING,
   NETWORK_LIGHTNING_TESTNET,
@@ -41,6 +42,7 @@ import { EXECUTION_INSTANT } from '../../../types/transfer';
 import { pushMcpActivityLog } from './mcp-activity-log';
 import { MCP_LIGHTNING_PAY_MAX_FEE_PERCENT } from './mcp-constants';
 import type { McpCallDeps } from './mcp-deps';
+import { MCP_BASE_UNITS_GUIDANCE } from './mcp-instructions';
 
 function mcpCallLog(line: string): void {
   console.log('[mcp-call] ' + line);
@@ -52,20 +54,20 @@ function bolt11Preview(bolt: string, max = 28): string {
 }
 
 /** Networks whose lazy-init wallet can pay BOLT11 Lightning invoices. */
-const MCP_LIGHTNING_PAY_NETWORKS = [NETWORK_SPARK, NETWORK_ARK, NETWORK_LIQUID] as const;
+const MCP_LIGHTNING_PAY_NETWORKS = [NETWORK_SPARK, NETWORK_LIQUID] as const;
 
 const mcpLightningPayNetworkSchema = z.enum(MCP_LIGHTNING_PAY_NETWORKS);
 
-/** Mainnet-style networks exposed to MCP (no testnets, Lightning, or USDT). */
+/** Mainnet-style networks exposed to MCP (no testnets, Lightning, USDT, or Ark). */
 function mcpListableNetworks(): Networks[] {
-  return getAvailableNetworks().filter((n) => !getIsTestnet(n) && n !== NETWORK_LIGHTNING && n !== NETWORK_LIGHTNING_TESTNET && n !== NETWORK_USDT);
+  return getAvailableNetworks().filter((n) => !getIsTestnet(n) && n !== NETWORK_LIGHTNING && n !== NETWORK_LIGHTNING_TESTNET && n !== NETWORK_USDT && n !== NETWORK_ARK && n !== NETWORK_ARK_MUTINYNET);
 }
 
 /** Positive integer string for token amounts in smallest units (no precision loss). */
 const mcpPositiveBaseUnitsString = z.string().regex(/^[1-9]\d*$/, 'Must be a positive integer string in smallest token units (no decimals), e.g. "1000000".');
 
 /** Networks supported by list_tokens / transfer_token. */
-const MCP_TOKEN_NETWORKS = [NETWORK_SPARK, NETWORK_ARK, NETWORK_STACKS] as const;
+const MCP_TOKEN_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
 const mcpTokenNetworkSchema = z.enum(MCP_TOKEN_NETWORKS);
 
 /** Networks supported by list_nfts / transfer_nft. */
@@ -73,7 +75,7 @@ const MCP_NFT_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
 const mcpNftNetworkSchema = z.enum(MCP_NFT_NETWORKS);
 
 /** Networks supported by get_receive_address (account-based wallets exposed to MCP). */
-const MCP_RECEIVE_ADDRESS_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS, NETWORK_ARK] as const;
+const MCP_RECEIVE_ADDRESS_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
 const mcpReceiveAddressNetworkSchema = z.enum(MCP_RECEIVE_ADDRESS_NETWORKS);
 
 /**
@@ -135,9 +137,12 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     'get_network_balance',
     {
       title: 'Get balance for a network',
-      description: 'Returns `balance_base_units` (smallest units), ticker, and decimals. Use the `network` id exactly as returned by list_networks.',
+      description:
+        'Returns `balance_base_units` (smallest units), `ticker`, and `decimals`. Use the `network` id exactly as returned by list_networks.\n\n' +
+        MCP_BASE_UNITS_GUIDANCE +
+        '\n\nFor Spark BTC swaps (`get_swap_quote` with `send_asset` `native:spark`), pass this `balance_base_units` **as-is** into `send_amount_base_units` when swapping the full balance (or a smaller integer ≤ balance) — do not scale it.',
       inputSchema: {
-        network: z.string().min(1).describe('Network id from list_networks, e.g. bitcoin, arkade, liquid.'),
+        network: z.string().min(1).describe('Network id from list_networks, e.g. bitcoin, spark, liquid.'),
       },
     },
     async ({ network: networkName }) => {
@@ -210,7 +215,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     'get_receive_address',
     {
       title: 'Get receive address for a network',
-      description: `Returns the wallet's receive address for \`network\`. Use this when the user wants to receive funds on-chain (Spark address, Stacks principal, or Arkade ark1… address). Supported networks: ${MCP_RECEIVE_ADDRESS_NETWORKS.join(', ')}. Address format varies per network (Spark: spark1…; Stacks: SP…; Arkade: ark1…); pass it back to senders verbatim.`,
+      description: `Returns the wallet's receive address for \`network\`. Use this when the user wants to receive funds on-chain (Spark address or Stacks principal). Supported networks: ${MCP_RECEIVE_ADDRESS_NETWORKS.join(', ')}. Address format varies per network (Spark: spark1…; Stacks: SP…); pass it back to senders verbatim.`,
       inputSchema: {
         network: mcpReceiveAddressNetworkSchema.describe(`Network id; one of: ${MCP_RECEIVE_ADDRESS_NETWORKS.join(', ')}.`),
       },
@@ -249,7 +254,11 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     'list_tokens',
     {
       title: 'List fungible tokens and balances for a network',
-      description: `Returns fungible tokens (not NFTs) with balance in smallest units (\`balance_base_units\` string), decimals, symbol, and \`token_id\`. Refreshes balances first. \`network\` must be one of: ${MCP_TOKEN_NETWORKS.join(', ')}. **Each \`token_id\` in the response must be copied exactly** (same string, character-for-character) into \`transfer_token\`; do not shorten, reformat, or infer from name/symbol.`,
+      description:
+        `Returns fungible tokens (not NFTs) with \`balance_base_units\` (smallest units), \`decimals\`, \`symbol\`, and \`token_id\`. Refreshes balances first. \`network\` must be one of: ${MCP_TOKEN_NETWORKS.join(', ')}.\n\n` +
+        MCP_BASE_UNITS_GUIDANCE +
+        "\n\nFor USDB swaps on Spark (`get_swap_quote` with `send_asset` `token:spark:usdb`), use that token's `balance_base_units` **as-is** for `send_amount_base_units` when selling the full balance.\n\n" +
+        '**Each `token_id` in the response must be copied exactly** (same string, character-for-character) into `transfer_token`; do not shorten, reformat, or infer from name/symbol.',
       inputSchema: {
         network: mcpTokenNetworkSchema.describe(`Network id; only ${MCP_TOKEN_NETWORKS.join(', ')} supported today.`),
       },
@@ -310,7 +319,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
           .min(1)
           .describe('Exact `token_id` string from list_tokens for the same `network` — copy verbatim from tool output (no edits). Leading/trailing whitespace is trimmed only.'),
         amount_base_units: mcpPositiveBaseUnitsString.describe('Amount to send in smallest token units (positive integer string).'),
-        receiver_address: z.string().min(1).describe('Recipient address (Spark: spark1…; Arkade: ark1…; Stacks: SP… / ST… principal).'),
+        receiver_address: z.string().min(1).describe('Recipient address (Spark: spark1…; Stacks: SP… / ST… principal).'),
       },
     },
     async ({ network, token_id, amount_base_units, receiver_address }) => {
@@ -328,13 +337,6 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
               text: JSON.stringify({ error: 'Invalid Spark receiver address.', network }, null, 2),
             },
           ],
-        };
-      }
-      if (network === NETWORK_ARK && !validateAddress(NETWORK_ARK, addr)) {
-        mcpCallLog(`transfer_token: error - invalid Arkade address`);
-        return {
-          isError: true,
-          content: [{ type: 'text', text: JSON.stringify({ error: 'Invalid Arkade receiver address.', network }, null, 2) }],
         };
       }
       if (network === NETWORK_STACKS && !validateAddress(NETWORK_STACKS, addr)) {
@@ -356,25 +358,6 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
               text: JSON.stringify(
                 {
                   error: `STX transfer amount exceeds maximum supported (${Number.MAX_SAFE_INTEGER} micro-STX). Split the transfer or use a smaller amount.`,
-                  network,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
-      }
-      if (network === NETWORK_ARK && amount > BigInt(Number.MAX_SAFE_INTEGER)) {
-        mcpCallLog(`transfer_token: error - amount exceeds Arkade wallet limit`);
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  error: `Amount exceeds maximum supported for Arkade transfers (${Number.MAX_SAFE_INTEGER} base units). Send a smaller amount or split the transfer.`,
                   network,
                 },
                 null,
@@ -695,7 +678,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     'create_lightning_invoice',
     {
       title: 'Create Lightning invoice (BOLT11)',
-      description: `Creates a BOLT11 receive invoice on \`network\`: ${MCP_LIGHTNING_PAY_NETWORKS.join(',')} (same layers as pay_lightning_invoice). \`sats\` is the amount to request. Arkade requires **more than 333 sats**. Optional \`memo\` is the invoice description. Response includes the bolt11 string in \`invoice\`. Handle \`invoice\` extra carefully - it must be passed exactly - malformed/mangled invoices will not work; dont rely on chat transcription, use EXACT values as returned by MCP.`,
+      description: `Creates a BOLT11 receive invoice on \`network\`: ${MCP_LIGHTNING_PAY_NETWORKS.join(',')} (same layers as pay_lightning_invoice). \`sats\` is the amount to request. Optional \`memo\` is the invoice description. Response includes the bolt11 string in \`invoice\`. Handle \`invoice\` extra carefully - it must be passed exactly - malformed/mangled invoices will not work; dont rely on chat transcription, use EXACT values as returned by MCP.`,
       inputSchema: {
         sats: z.number().int().positive().describe('Requested amount in satoshis.'),
         memo: z.string().optional().describe('Optional description / memo on the invoice.'),
@@ -706,19 +689,6 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
       mcpCallLog(`create_lightning_invoice: start - ${network}, ${sats} sats${memo?.trim() ? ', memo set' : ''}`);
       trackMcpCall(deps, 'create_lightning_invoice');
       try {
-        if (network === NETWORK_ARK && sats <= 333) {
-          mcpCallLog(`create_lightning_invoice: error - Arkade needs >333 sats (got ${sats})`);
-          return {
-            isError: true,
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({ error: 'Arkade Lightning invoices must be greater than 333 sats.', network, sats }, null, 2),
-              },
-            ],
-          };
-        }
-
         const w = await backgroundCaller.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
         if (!walletSupportsLightning(w)) {
           mcpCallLog(`create_lightning_invoice: error - wallet has no Lightning receive on ${network}`);
@@ -906,6 +876,8 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
       title: 'Quote an in-wallet swap (no funds move)',
       description:
         'Returns a quote for swapping `send_amount_base_units` of `send_asset` into `receive_asset`. Currently only BTC↔USDB on Spark. The response includes a `quote_id` you must pass verbatim to `execute_swap` to actually trade. Quotes expire at `expires_at_unix` (typically 60s, TELL USER HOW MUCH TIME IS LEFT); call this tool again after expiry. **No funds move on this call** — it only stages the swap so the user/agent can review fees before committing.\n\n' +
+        MCP_BASE_UNITS_GUIDANCE +
+        '\n\n**Where `send_amount_base_units` comes from:** call `get_network_balance` on `spark` for `native:spark` (BTC/sats), or `list_tokens` on `spark` for `token:spark:usdb` — copy `balance_base_units` verbatim (or a smaller amount ≤ balance). The wallet converts base units → human amount internally; you must not multiply by `10^decimals` before calling this tool.\n\n' +
         '**Present the EXACT outcome to the user with zero mental math.** `receive_amount_base_units`, `effective_exchange_rate`, and `rate` are all already net of the AMM fee — quote them verbatim, do **NOT** subtract anything on top.\n\n' +
         '- `effective_exchange_rate`: precomputed BTC price in USDB the user is actually paying, factoring in fees (e.g. "99500.00"). Always normalized to USDB-per-BTC regardless of swap direction, so the user can compare it directly to a market BTC price. Prefer this over `rate` when presenting — `rate` reads poorly in the USDB→BTC direction ("1 USDB = 0.00001 BTC").\n' +
         '- `effective_fee_rate`: precomputed `fee_base_units / send_amount_base_units × 100` as a percent string. Always surface it for transparency about what the AMM is keeping — but show it as transparency, **not** as a further deduction on top of the rate/amounts.\n\n' +
@@ -914,7 +886,9 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
       inputSchema: {
         send_asset: mcpSwapAssetSchema.describe(`Asset to sell. One of: ${MCP_SWAP_ASSET_IDS.join(', ')}.`),
         receive_asset: mcpSwapAssetSchema.describe(`Asset to buy. Must differ from \`send_asset\`. One of: ${MCP_SWAP_ASSET_IDS.join(', ')}.`),
-        send_amount_base_units: mcpPositiveBaseUnitsString.describe("Amount to sell, in the send asset's smallest units (sats for BTC, 6-decimal base units for USDB)."),
+        send_amount_base_units: mcpPositiveBaseUnitsString.describe(
+          "Amount to sell in the send asset's smallest units (sats for native:spark, 6-decimal units for token:spark:usdb). Copy from balance_base_units — never multiply by 10^decimals."
+        ),
       },
     },
     async ({ send_asset, receive_asset, send_amount_base_units }) => {

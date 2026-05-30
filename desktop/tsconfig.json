@@ -1,0 +1,27 @@
+{
+	"compilerOptions": {
+		"target": "ES2020",
+		"useDefineForClassFields": true,
+		"lib": ["ES2020", "DOM", "DOM.Iterable"],
+		"module": "ESNext",
+		"skipLibCheck": true,
+		"moduleResolution": "bundler",
+		"allowImportingTsExtensions": true,
+		"isolatedModules": true,
+		"moduleDetection": "force",
+		"noEmit": true,
+		"jsx": "react-jsx",
+		"strict": true,
+		"noFallthroughCasesInSwitch": false,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"resolveJsonModule": true,
+		"baseUrl": ".",
+		"paths": {
+			"@shared/*": ["./src/mainview/shared-link/*"],
+			"@/*": ["./src/mainview/*"]
+		}
+	},
+	"include": ["src", "src/mainview/typings/globals.d.ts"],
+	"exclude": ["node_modules", "dist", "build", "../../package/dist", "src/mainview/shared-link/tests", "src/mainview/shared-link/**/tests"]
+}

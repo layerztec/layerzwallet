@@ -1,0 +1,28 @@
+.action-popup-action {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+}
+
+.action-popup-action-text {
+	font-size: 16px;
+	color: #ffffff;
+}
+
+.action-popup-action-icon {
+	width: 36px;
+	height: 36px;
+	background: rgba(255, 255, 255, 0.2);
+	border-radius: 100px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.action-popup-action-icon img {
+	width: 24px;
+	height: 24px;
+	object-fit: contain;
+}

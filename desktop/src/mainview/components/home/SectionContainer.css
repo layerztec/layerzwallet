@@ -1,0 +1,62 @@
+.home-section {
+	margin-bottom: 32px;
+}
+
+.home-scroll > *:last-child .home-section,
+.home-scroll > .home-section:last-child {
+	margin-bottom: 0;
+}
+
+.home-section-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 12px;
+}
+
+.home-section-title {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 500;
+	color: #ffffff;
+}
+
+.home-section-view-all {
+	border: none;
+	background: rgba(255, 255, 255, 0.1);
+	padding: 6px 12px;
+	border-radius: 8px;
+	font-size: 13px;
+	font-weight: 500;
+	color: rgba(255, 255, 255, 0.8);
+	cursor: pointer;
+}
+
+.home-section-view-all:hover {
+	background: rgba(255, 255, 255, 0.14);
+}
+
+.home-section-card {
+	background: rgba(255, 255, 255, 0.08);
+	border-radius: 12px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	overflow: hidden;
+	padding: 8px 0;
+}
+
+.home-section-hidden {
+	position: absolute;
+	opacity: 0;
+	height: 0;
+	width: 0;
+	margin-bottom: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.home-section-error {
+	font-size: 16px;
+	color: rgba(255, 100, 100, 0.8);
+	text-align: center;
+	margin-top: 8px;
+}
