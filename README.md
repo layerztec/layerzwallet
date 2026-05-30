@@ -68,6 +68,8 @@ TBD
 ## e2e (mobile)
 
 We are using Maestro since it's the only recommended option for Expo EAS. Test flows are located in `mobile/.maestro/`.
+
+On pull requests, Android and iOS Maestro E2E workflows run only after you add the GitHub label **`run-mobile-e2e`**. New commits do not re-trigger E2E until you remove and re-apply the label (or run `eas workflow:run` manually from `mobile/`).
 We are also relying on Expo EAS for builds, so a generic workflow to run e2e tests on USB-connected Android device would be:
 
 - get a list of builds from EAS: `eas build:list` (optionally trigger the build manually first: `eas build --platform android --profile preview --message="debug smth" --no-wait`)
@@ -80,6 +82,17 @@ We are also relying on Expo EAS for builds, so a generic workflow to run e2e tes
 
 * local android build: `eas build --platform android --profile preview --local`
 * ext build: `npm run build`
+
+### Store submits (EAS Workflows)
+
+Production builds and store submission run automatically on pushes to **`master`** via `mobile/.eas/workflows/submit-android.yml` (Play Store + release APK) and `submit-ios.yml` (TestFlight). They run **only when that push changes files under `mobile/`**; merges that touch only `ext/`, `shared/`, docs, etc. do not trigger them.
+
+To submit without a `mobile/` change (or to re-run after a skipped push), from `mobile/`:
+
+```
+eas workflow:run .eas/workflows/submit-android.yml
+eas workflow:run .eas/workflows/submit-ios.yml
+```
 
 ## iOS Dev Client (TestFlight)
 
