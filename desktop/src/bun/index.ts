@@ -7,7 +7,7 @@ import Electrobun, {
 } from "electrobun/bun";
 
 import { desktopStorage } from "./desktop-storage";
-import { desktopSecureStorage } from "./desktop-secure-storage";
+import { applyLinuxWindowIcon } from "./linux-window-icon";
 import type { DesktopAppRPC } from "../shared/desktop-storage-rpc";
 
 const DEV_SERVER_PORT = 5173;
@@ -59,10 +59,6 @@ const rpc = BrowserView.defineRPC<DesktopAppRPC>({
       storageSetItem: ({ key, value }) =>
         desktopStorage.setItem(key, value).then(() => null),
       storageClear: () => desktopStorage.clear().then(() => null),
-      secureStorageGetItem: ({ key }) => desktopSecureStorage.getItem(key),
-      secureStorageSetItem: ({ key, value }) =>
-        desktopSecureStorage.setItem(key, value).then(() => null),
-      secureStorageClear: () => desktopSecureStorage.clear().then(() => null),
     },
     messages: {},
   },
@@ -79,6 +75,8 @@ const mainWindow = new BrowserWindow({
     y: 200,
   },
 });
+
+applyLinuxWindowIcon(mainWindow.ptr);
 
 // Open http(s) links from the webview in the system browser (e.g. Terms of Service).
 // BrowserView.on() does not expose new-window-open; use the global emitter with a webview id suffix.

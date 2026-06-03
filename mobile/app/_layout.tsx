@@ -66,7 +66,6 @@ function TunnelBootstrap() {
       handleRequest: handleMcpRequest,
       storage: LayerzStorage,
       appLifecycle: mobileAppLifecycle,
-      url: process.env.EXPO_PUBLIC_MCP_TUNNEL_URL,
       onSessionChange: ({ publicUrl, idChanged }) => {
         if (__DEV__) console.log('[mcp] PUBLIC URL:', publicUrl);
         if (idChanged) resetMcpSessions();

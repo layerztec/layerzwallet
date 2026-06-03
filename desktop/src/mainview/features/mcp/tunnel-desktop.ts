@@ -28,18 +28,6 @@ export {
   subscribeTunnelConnection,
 };
 
-/** Vite `define` uses `''` when unset; treat that like mobile's missing env. */
-function readTunnelUrl(): string | undefined {
-  const raw =
-    typeof process !== "undefined"
-      ? process.env.EXPO_PUBLIC_MCP_TUNNEL_URL
-      : undefined;
-  const trimmed = raw?.trim();
-  return trimmed ? trimmed : undefined;
-}
-
-const tunnelUrl = readTunnelUrl();
-
 let bootstrapPromise: Promise<void> | null = null;
 
 /** Idempotent: wires MCP + calls `startTunnel` once per app session. */
@@ -57,7 +45,6 @@ export function ensureTunnelBootstrapped(): Promise<void> {
         handleRequest: handleMcpRequest,
         storage: LayerzStorage,
         appLifecycle: desktopAppLifecycle,
-        url: tunnelUrl,
         onSessionChange: ({ publicUrl, idChanged }) => {
           if (__DEV__) console.log("[mcp] PUBLIC URL:", publicUrl);
           if (idChanged) resetMcpSessions();

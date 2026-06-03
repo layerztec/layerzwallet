@@ -26,7 +26,6 @@ import {
   STORAGE_KEY_ACCEPTED_TOS,
   STORAGE_KEY_EVM_XPUB,
   STORAGE_KEY_MNEMONIC,
-  STORAGE_KEY_WHITELIST,
   STORAGE_KEY_SEED_VERIFIED,
 } from "@shared/types/IStorage";
 import {
@@ -37,11 +36,10 @@ import {
   NETWORK_SPARK,
   NETWORK_STACKS,
 } from "@shared/types/networks";
-import { BrowserBridge } from "../class/browser-bridge";
 import { LayerzStorage } from "../class/layerz-storage";
 import { Csprng } from "../class/rng";
 import { SecureStorage } from "../class/secure-storage";
-import { decrypt, encrypt } from "../modules/encryption";
+import { encrypt } from "../modules/encryption";
 import { StacksWallet } from "@shared/class/wallets/stacks-wallet";
 import { HDSegwitBech32Wallet } from "@shared/class/wallets/hd-segwit-bech32-wallet";
 
@@ -67,8 +65,8 @@ export async function getOnchainDepositAddress(
 }
 
 /**
- * A drop-in replacement for BackgroundCaller in `ext` project. Since we have only one js context on mobile,
- * no need to handle calls via messages, we can just execute them on the spot
+ * Direct `IBackgroundCaller` implementation for desktop (single JS context, no extension messaging).
+ * dApp browser / in-page provider is not supported on this build target.
  */
 export const BackgroundExecutor: IBackgroundCaller = {
   setMasterSeed(seed: string): Promise<void> {
@@ -255,64 +253,19 @@ export const BackgroundExecutor: IBackgroundCaller = {
     };
   },
 
-  async whitelistDapp(dapp) {
-    let whitelist: string[] = [];
-    try {
-      whitelist = JSON.parse(
-        await LayerzStorage.getItem(STORAGE_KEY_WHITELIST),
-      );
-    } catch {}
+  async whitelistDapp(_dapp: string) {},
 
-    try {
-      whitelist.push(dapp);
-      const unique = Array.from(new Set(whitelist));
-      await LayerzStorage.setItem(
-        STORAGE_KEY_WHITELIST,
-        JSON.stringify(unique),
-      );
-    } catch {}
-  },
-
-  async unwhitelistDapp(dapp) {
-    let whitelist: string[] = [];
-    try {
-      whitelist = JSON.parse(
-        await LayerzStorage.getItem(STORAGE_KEY_WHITELIST),
-      );
-    } catch {}
-
-    try {
-      whitelist = whitelist.filter((item) => item !== dapp);
-      await LayerzStorage.setItem(
-        STORAGE_KEY_WHITELIST,
-        JSON.stringify(whitelist),
-      );
-    } catch {}
-  },
+  async unwhitelistDapp(_dapp: string) {},
 
   async getWhitelist() {
-    try {
-      return (
-        JSON.parse(await LayerzStorage.getItem(STORAGE_KEY_WHITELIST)) || []
-      );
-    } catch {
-      return [];
-    }
+    return [];
   },
 
   async log(data) {
     console.log(data);
   },
 
-  async openPopup(...params: OpenPopupRequest) {
-    const bridge = BrowserBridge.getInstance();
-    if (bridge) {
-      const [method, methodParams, id, from] = params;
-      bridge.openActionScreen(method, methodParams, from, id);
-    } else {
-      console.error("BrowserBridge not available for openPopup");
-    }
-  },
+  async openPopup(..._params: OpenPopupRequest) {},
 
   async getBtcSendData(accountNumber) {
     if (!BlueElectrum.mainConnected) {

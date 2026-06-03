@@ -1,7 +1,7 @@
 {
-	"name": "layerzwallet-desktop",
-	"version": "1.0.0",
-	"description": "Layerz Wallet desktop app (Electrobun + React)",
+	"name": "layerzwallet",
+	"version": "1.6.0",
+	"description": "Layerz Wallet desktop app",
 	"scripts": {
 		"postinstall": "rm -f node_modules/silent-payments/tsconfig.json",
 		"start": "vite build && electrobun dev",

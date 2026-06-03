@@ -15,6 +15,5 @@ export async function resetAppState(): Promise<void> {
   }
 
   await getDesktopRpc().request.storageClear({});
-  await getDesktopRpc().request.secureStorageClear({});
   window.location.reload();
 }

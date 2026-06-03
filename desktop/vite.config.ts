@@ -59,10 +59,6 @@ export default defineConfig(({ mode }) => {
     process.env.EXPO_PUBLIC_BREEZ_API_KEY ??
     env.EXPO_PUBLIC_BREEZ_API_KEY ??
     "";
-  const mcpTunnelUrl =
-    process.env.EXPO_PUBLIC_MCP_TUNNEL_URL ??
-    env.EXPO_PUBLIC_MCP_TUNNEL_URL ??
-    "";
   const sharedRoot = path.resolve(__dirname, "src/mainview/shared-link");
 
   return {
@@ -284,7 +280,6 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       "process.env.EXPO_PUBLIC_BREEZ_API_KEY": JSON.stringify(breezApiKey),
-      "process.env.EXPO_PUBLIC_MCP_TUNNEL_URL": JSON.stringify(mcpTunnelUrl),
       "process.env.NODE_ENV": JSON.stringify(mode),
       "process.browser": JSON.stringify(true),
       __DEV__: JSON.stringify(mode !== "production"),

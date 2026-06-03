@@ -10,12 +10,6 @@ export type DesktopAppRPC = {
         response: null;
       };
       storageClear: { params: Record<string, never>; response: null };
-      secureStorageGetItem: { params: { key: string }; response: string };
-      secureStorageSetItem: {
-        params: { key: string; value: string };
-        response: null;
-      };
-      secureStorageClear: { params: Record<string, never>; response: null };
     };
     messages: Record<string, never>;
   }>;

@@ -1,14 +1,6 @@
-import { IStorage } from "@shared/types/IStorage";
+import { LayerzStorage } from "./layerz-storage";
 
-import { getDesktopRpc } from "../modules/init-electrobun";
-
-/** Encrypted-at-rest secrets via Bun RPC (separate from LayerzStorage). */
-export const SecureStorage: IStorage = {
-  async setItem(key: string, value: string) {
-    await getDesktopRpc().request.secureStorageSetItem({ key, value });
-  },
-
-  async getItem(key: string): Promise<string> {
-    return getDesktopRpc().request.secureStorageGetItem({ key });
-  },
-};
+/**
+ * Same as LayerzStorage on desktop (and ext). A separate secure store is only meaningful on mobile.
+ */
+export const SecureStorage = LayerzStorage;

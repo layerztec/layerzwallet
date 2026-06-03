@@ -29,11 +29,17 @@ describe('codebase', function () {
     const extPckg = JSON.parse(fs.readFileSync(resolve(__dirname, '../../../ext/package.json'), 'utf8'));
     const mobilePckg = JSON.parse(fs.readFileSync(resolve(__dirname, '../../../mobile/package.json'), 'utf8'));
     const mobileAppjson = JSON.parse(fs.readFileSync(resolve(__dirname, '../../../mobile/app.json'), 'utf8'));
+    const desktopPckg = JSON.parse(fs.readFileSync(resolve(__dirname, '../../../desktop/package.json'), 'utf8'));
+    const desktopElectrobunConfig = fs.readFileSync(resolve(__dirname, '../../../desktop/electrobun.config.ts'), 'utf8');
+    const desktopElectrobunVersion = desktopElectrobunConfig.match(/version:\s*"([^"]+)"/)?.[1];
 
     assert.ok(extPckg.version);
 
     assert.strictEqual(extPckg.version, mobilePckg.version);
     assert.strictEqual(extPckg.version, mobileAppjson.expo.version);
+    assert.strictEqual(extPckg.version, desktopPckg.version);
+    assert.ok(desktopElectrobunVersion, 'desktop electrobun.config.ts must define app.version');
+    assert.strictEqual(extPckg.version, desktopElectrobunVersion);
   });
 
   it('all SETTINGS_CONFIG default values are among possible options', function () {
