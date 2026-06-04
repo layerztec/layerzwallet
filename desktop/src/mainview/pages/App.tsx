@@ -20,7 +20,7 @@ import { ActionPopupProvider } from "../contexts/ActionPopupContext";
 import { AskMnemonicContextProvider } from "../hooks/AskMnemonicContext";
 import { AskPasswordContextProvider } from "../hooks/AskPasswordContext";
 import { BackgroundCaller } from "../modules/background-caller";
-import { Messenger } from "../modules/messenger-stub";
+import { Messenger } from "../modules/messenger";
 import { TunnelBootstrap } from "../components/mcp/TunnelBootstrap";
 import { DesktopOmitArkNetworkGuard } from "../components/DesktopOmitArkNetworkGuard";
 import ActionPopupModal from "./ActionPopupModal";
@@ -168,7 +168,7 @@ const App: React.FC = () => {
             <InitializationContextProvider
               storage={LayerzStorage}
               backgroundCaller={BackgroundCaller}
-              platform="EXT"
+              platform="DESKTOP"
             >
               <SettingsContextProvider storage={LayerzStorage}>
                 <AccountNumberContextProvider

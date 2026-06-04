@@ -201,7 +201,6 @@ export const BackgroundExecutor: IBackgroundCaller = {
     const xpub = EvmWallet.mnemonicToXpub(mnemonic);
     await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, mnemonic);
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
-    await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
 
     return { mnemonic };

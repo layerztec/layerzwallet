@@ -6,9 +6,9 @@ import Electrobun, {
   Utils,
 } from "electrobun/bun";
 
-import { desktopStorage } from "./desktop-storage";
+import { handleMessage } from "./background-message-controller";
 import { applyLinuxWindowIcon } from "./linux-window-icon";
-import type { DesktopAppRPC } from "../shared/desktop-storage-rpc";
+import type { DesktopAppRPC } from "../shared/desktop-messages";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -55,10 +55,7 @@ const url = await getMainViewUrl();
 const rpc = BrowserView.defineRPC<DesktopAppRPC>({
   handlers: {
     requests: {
-      storageGetItem: ({ key }) => desktopStorage.getItem(key),
-      storageSetItem: ({ key, value }) =>
-        desktopStorage.setItem(key, value).then(() => null),
-      storageClear: () => desktopStorage.clear().then(() => null),
+      processMessage: (message) => handleMessage(message),
     },
     messages: {},
   },
