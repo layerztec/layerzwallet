@@ -31,7 +31,7 @@ describe('codebase', function () {
     const mobileAppjson = JSON.parse(fs.readFileSync(resolve(__dirname, '../../../mobile/app.json'), 'utf8'));
     const desktopPckg = JSON.parse(fs.readFileSync(resolve(__dirname, '../../../desktop/package.json'), 'utf8'));
     const desktopElectrobunConfig = fs.readFileSync(resolve(__dirname, '../../../desktop/electrobun.config.ts'), 'utf8');
-    const desktopElectrobunVersion = desktopElectrobunConfig.match(/version:\s*"([^"]+)"/)?.[1];
+    const desktopElectrobunVersion = desktopElectrobunConfig.match(/version:\s*['"]([^'"]+)['"]/)?.[1];
 
     assert.ok(extPckg.version);
 
