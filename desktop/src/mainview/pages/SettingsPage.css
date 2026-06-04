@@ -1,0 +1,68 @@
+.diagnostics {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.diagnostics-status {
+  font-weight: 600;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.diagnostics-status--ok {
+  color: rgba(52, 199, 89, 1);
+  background: rgba(52, 199, 89, 0.12);
+}
+
+.diagnostics-status--fail {
+  color: rgba(255, 59, 48, 1);
+  background: rgba(255, 59, 48, 0.12);
+}
+
+.diagnostics-row {
+  display: grid;
+  grid-template-columns: 18px minmax(140px, auto) 1fr;
+  gap: 8px;
+  align-items: baseline;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.diagnostics-row--pending {
+  display: block;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.diagnostics-row-icon {
+  font-weight: 700;
+}
+
+.diagnostics-row--ok .diagnostics-row-icon {
+  color: rgba(52, 199, 89, 1);
+}
+
+.diagnostics-row--fail .diagnostics-row-icon {
+  color: rgba(255, 59, 48, 1);
+}
+
+.diagnostics-row--fail {
+  background: rgba(255, 59, 48, 0.1);
+}
+
+.diagnostics-row-name {
+  font-weight: 600;
+}
+
+.diagnostics-row-detail {
+  color: rgba(255, 255, 255, 0.6);
+  font-family: monospace;
+  font-size: 11px;
+  word-break: break-word;
+}
