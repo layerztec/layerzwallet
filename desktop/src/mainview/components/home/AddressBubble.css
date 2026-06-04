@@ -1,77 +1,77 @@
 .wallet-address-row {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	margin-top: 20px;
-	margin-bottom: 20px;
-	gap: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  gap: 10px;
 }
 
 .wallet-address-bubble {
-	background: #2a2a2a;
-	border-radius: 12px;
-	padding: 10px 12px;
-	color: rgba(255, 255, 255, 0.92);
-	font-size: 13px;
-	line-height: 18px;
-	font-weight: 500;
-	word-break: break-word;
-	text-align: left;
-	box-sizing: border-box;
-	display: inline-block;
+  background: #2a2a2a;
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  word-break: break-word;
+  text-align: left;
+  box-sizing: border-box;
+  display: inline-block;
 }
 
 .wallet-address-bubble-line {
-	display: flex;
-	justify-content: space-between;
-	width: 100%;
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .wallet-address-bubble-strong {
-	font-weight: 600;
-	color: #ffffff;
+  font-weight: 600;
+  color: #ffffff;
 }
 
 .wallet-address-bubble-strong--start {
-	margin-right: 1ch;
+  margin-right: 1ch;
 }
 
 .wallet-address-bubble-strong--end {
-	margin-left: 1ch;
+  margin-left: 1ch;
 }
 
 .wallet-address-copied-tooltip {
-	position: absolute;
-	top: -20px;
-	right: 50%;
-	background-color: #333;
-	color: #fff;
-	padding: 10px 20px;
-	border-radius: 8px;
-	font-size: 16px;
-	transform: translateX(50%);
-	box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-	opacity: 1;
-	animation: wallet-address-copied-fade 4s ease forwards;
-	transition: all 0.5s ease;
-	transform-origin: center;
+  position: absolute;
+  top: -20px;
+  right: 50%;
+  background-color: #333;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  transform: translateX(50%);
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  opacity: 1;
+  animation: wallet-address-copied-fade 4s ease forwards;
+  transition: all 0.5s ease;
+  transform-origin: center;
 }
 
 @keyframes wallet-address-copied-fade {
-	0% {
-		opacity: 0;
-		transform: translateX(50%) scale(0.8);
-	}
-	20% {
-		opacity: 1;
-		transform: translateX(50%) scale(1);
-	}
-	80% {
-		opacity: 1;
-		transform: translateX(50%) scale(1);
-	}
-	100% {
-		opacity: 0;
-		transform: translateX(50%) scale(0.8);
-	}
+  0% {
+    opacity: 0;
+    transform: translateX(50%) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translateX(50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translateX(50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(50%) scale(0.8);
+  }
 }

@@ -1,7 +1,7 @@
-import { IStorage } from "@shared/types/IStorage";
+import { IStorage } from '@shared/types/IStorage';
 
-import { DesktopMessageType } from "../../shared/desktop-messages";
-import { Messenger } from "../modules/messenger";
+import { DesktopMessageType } from '../../shared/desktop-messages';
+import { Messenger } from '../modules/messenger';
 
 /** File-backed storage via Bun RPC — CEF does not persist views:// localStorage on Linux. */
 export const LayerzStorage: IStorage = {

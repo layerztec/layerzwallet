@@ -1,1 +1,1 @@
-export { BackgroundExecutor as BackgroundCaller } from "./background-executor";
+export { BackgroundExecutor as BackgroundCaller } from './background-executor';

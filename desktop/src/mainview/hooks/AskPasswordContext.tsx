@@ -1,13 +1,12 @@
-import React, { createContext, ReactNode, useState } from "react";
-import { Button, Input, Modal } from "../pages/DesignSystem";
+import React, { createContext, ReactNode, useState } from 'react';
+import { Button, Input, Modal } from '../pages/DesignSystem';
 
 interface IAskPasswordContext {
   askPassword: () => Promise<string>;
 }
 
 export const AskPasswordContext = createContext<IAskPasswordContext>({
-  askPassword: (): Promise<string> =>
-    Promise.reject("askPassword: this should never happen"),
+  askPassword: (): Promise<string> => Promise.reject('askPassword: this should never happen'),
 });
 
 type ResolverFunction = (resolveValue: string) => void;
@@ -16,14 +15,10 @@ type ResolverFunction = (resolveValue: string) => void;
  * This provider provides an async function `askPassword()` that shows Dialog asking for a user password, and
  * resolved to a string that user typed.
  */
-export const AskPasswordContextProvider: React.FC<{ children: ReactNode }> = (
-  props,
-) => {
+export const AskPasswordContextProvider: React.FC<{ children: ReactNode }> = (props) => {
   const [isAskingPassword, setIsAskingPassword] = useState<boolean>(false);
-  const [password, setPassword] = useState<string>("");
-  const [resolverFunc, setResolverFunc] = React.useState<ResolverFunction>(
-    () => () => {},
-  );
+  const [password, setPassword] = useState<string>('');
+  const [resolverFunc, setResolverFunc] = React.useState<ResolverFunction>(() => () => {});
 
   const askPassword = (): Promise<string> => {
     setIsAskingPassword(true);
@@ -33,21 +28,17 @@ export const AskPasswordContextProvider: React.FC<{ children: ReactNode }> = (
     });
   };
 
-  const handlePasswordChange = (event: {
-    target: { value: React.SetStateAction<string> };
-  }) => {
+  const handlePasswordChange = (event: { target: { value: React.SetStateAction<string> } }) => {
     setPassword(event.target.value);
   };
 
   const onOkClick = async () => {
     resolverFunc(password);
     // cleanup:
-    setPassword("");
-    const passwordInput = document.getElementById(
-      "password-provider-input",
-    ) as HTMLInputElement;
+    setPassword('');
+    const passwordInput = document.getElementById('password-provider-input') as HTMLInputElement;
     if (passwordInput) {
-      passwordInput.value = "";
+      passwordInput.value = '';
     }
     setIsAskingPassword(false);
   };
@@ -58,7 +49,7 @@ export const AskPasswordContextProvider: React.FC<{ children: ReactNode }> = (
       {isAskingPassword && (
         <Modal closable={false}>
           <h2>Unlock your wallet:</h2>
-          <div style={{ width: "90%" }}>
+          <div style={{ width: '90%' }}>
             <Input
               id="password-provider-input"
               data-testid="password-provider-input"
@@ -67,7 +58,7 @@ export const AskPasswordContextProvider: React.FC<{ children: ReactNode }> = (
               placeholder="Type password"
               onChange={handlePasswordChange}
               onKeyDown={(e) => {
-                if (e.key === "Enter") onOkClick();
+                if (e.key === 'Enter') onOkClick();
               }}
             />
           </div>

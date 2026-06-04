@@ -1,14 +1,9 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from 'react';
 
-import { getNetworkPrimaryColor } from "@shared/constants/Colors";
-import {
-  NETWORK_LIGHTNING,
-  NETWORK_LIGHTNING_TESTNET,
-  NETWORK_USDT,
-  Networks,
-} from "@shared/types/networks";
+import { getNetworkPrimaryColor } from '@shared/constants/Colors';
+import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_USDT, Networks } from '@shared/types/networks';
 
-import "./DetachedSheet.css";
+import './DetachedSheet.css';
 
 type DetachedSheetProps = {
   children: React.ReactNode;
@@ -18,26 +13,15 @@ type DetachedSheetProps = {
 };
 
 /** Web port of mobile `DetachedSheet` (bottom sheet + network radial gradient). */
-export const DetachedSheet: React.FC<DetachedSheetProps> = ({
-  children,
-  variant,
-  layerNetwork,
-  onClose,
-}) => {
+export const DetachedSheet: React.FC<DetachedSheetProps> = ({ children, variant, layerNetwork, onClose }) => {
   const effectiveNetwork = useMemo(() => {
-    if (
-      layerNetwork === NETWORK_LIGHTNING ||
-      layerNetwork === NETWORK_LIGHTNING_TESTNET
-    ) {
+    if (layerNetwork === NETWORK_LIGHTNING || layerNetwork === NETWORK_LIGHTNING_TESTNET) {
       return NETWORK_LIGHTNING;
     }
     if (layerNetwork === NETWORK_USDT) {
       return NETWORK_USDT;
     }
-    if (
-      variant === NETWORK_LIGHTNING ||
-      variant === NETWORK_LIGHTNING_TESTNET
-    ) {
+    if (variant === NETWORK_LIGHTNING || variant === NETWORK_LIGHTNING_TESTNET) {
       return NETWORK_LIGHTNING;
     }
     if (variant === NETWORK_USDT) {
@@ -50,24 +34,15 @@ export const DetachedSheet: React.FC<DetachedSheetProps> = ({
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === 'Escape') onClose();
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
   return (
-    <div
-      className="detached-sheet-overlay"
-      role="presentation"
-      onClick={onClose}
-    >
-      <div
-        className="detached-sheet-panel"
-        role="dialog"
-        aria-modal="true"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="detached-sheet-overlay" role="presentation" onClick={onClose}>
+      <div className="detached-sheet-panel" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <div className="detached-sheet-bg" aria-hidden>
           <div
             className="detached-sheet-gradient"

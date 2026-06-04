@@ -1,8 +1,5 @@
-import {
-  DesktopMessageType,
-  type DesktopMessage,
-} from "../shared/desktop-messages";
-import { desktopStorage } from "./desktop-storage";
+import { DesktopMessageType, type DesktopMessage } from '../shared/desktop-messages';
+import { desktopStorage } from './desktop-storage';
 
 /**
  * Bun-side dispatcher for renderer messages — the desktop analog of ext's

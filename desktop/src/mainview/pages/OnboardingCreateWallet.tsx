@@ -1,16 +1,10 @@
-import {
-  EStep,
-  InitializationContext,
-} from "@shared/hooks/InitializationContext";
-import React, { useContext, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 
-import { MnemonicWordGrid } from "../components/onboarding/MnemonicWordGrid";
-import {
-  OnboardingPrimaryButton,
-  OnboardingShell,
-} from "../components/onboarding/OnboardingShell";
-import { BackgroundCaller } from "../modules/background-caller";
+import { MnemonicWordGrid } from '../components/onboarding/MnemonicWordGrid';
+import { OnboardingPrimaryButton, OnboardingShell } from '../components/onboarding/OnboardingShell';
+import { BackgroundCaller } from '../modules/background-caller';
 
 type LocationState = {
   mnemonic?: string;
@@ -24,22 +18,15 @@ const OnboardingCreateWallet: React.FC = () => {
   const location = useLocation();
   const state = (location.state ?? {}) as LocationState;
   const { setStep } = useContext(InitializationContext);
-  const [recoveryPhrase, setRecoveryPhrase] = useState<string>(
-    state.mnemonic ?? "",
-  );
-  const [isLoading, setIsLoading] = useState(
-    Boolean(state.showLoading && state.mnemonic),
-  );
-  const [error, setError] = useState("");
+  const [recoveryPhrase, setRecoveryPhrase] = useState<string>(state.mnemonic ?? '');
+  const [isLoading, setIsLoading] = useState(Boolean(state.showLoading && state.mnemonic));
+  const [error, setError] = useState('');
 
-  const words = useMemo(
-    () => (recoveryPhrase ? recoveryPhrase.split(" ") : []),
-    [recoveryPhrase],
-  );
+  const words = useMemo(() => (recoveryPhrase ? recoveryPhrase.split(' ') : []), [recoveryPhrase]);
 
   const goToPassword = () => {
     setStep(EStep.PASSWORD);
-    navigate("/onboarding-create-password");
+    navigate('/onboarding-create-password');
   };
 
   useEffect(() => {
@@ -47,7 +34,7 @@ const OnboardingCreateWallet: React.FC = () => {
 
     (async () => {
       try {
-        let mnemonic = state.mnemonic ?? "";
+        let mnemonic = state.mnemonic ?? '';
 
         if (!mnemonic) {
           const hasMnemonic = await BackgroundCaller.hasMnemonic();
@@ -59,7 +46,7 @@ const OnboardingCreateWallet: React.FC = () => {
         }
 
         if (!mnemonic) {
-          setError("No recovery phrase available");
+          setError('No recovery phrase available');
           setIsLoading(false);
           return;
         }
@@ -75,7 +62,7 @@ const OnboardingCreateWallet: React.FC = () => {
         setIsLoading(false);
       } catch (e) {
         if (!cancelled) {
-          setError("Failed to create wallet");
+          setError('Failed to create wallet');
           setIsLoading(false);
         }
       }
@@ -88,7 +75,7 @@ const OnboardingCreateWallet: React.FC = () => {
 
   return (
     <OnboardingShell
-      onBack={() => navigate("/onboarding-create-wallet-intro")}
+      onBack={() => navigate('/onboarding-create-wallet-intro')}
       bodyAlign="top"
       footer={
         !isLoading && !error && recoveryPhrase ? (
@@ -100,18 +87,14 @@ const OnboardingCreateWallet: React.FC = () => {
     >
       {isLoading ? (
         <>
-          <h1 className="onboarding-title onboarding-title--sm">
-            Creating your wallet...
-          </h1>
+          <h1 className="onboarding-title onboarding-title--sm">Creating your wallet...</h1>
           <MnemonicWordGrid words={[]} loading />
         </>
       ) : error ? (
         <p className="onboarding-error">{error}</p>
       ) : (
         <>
-          <h1 className="onboarding-title onboarding-title--sm">
-            This is your recovery phrase
-          </h1>
+          <h1 className="onboarding-title onboarding-title--sm">This is your recovery phrase</h1>
           <p className="onboarding-subtitle">
             Make sure to write it down as shown here.
             <br />

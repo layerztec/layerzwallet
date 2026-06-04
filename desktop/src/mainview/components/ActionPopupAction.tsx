@@ -1,9 +1,9 @@
-import React from "react";
+import React from 'react';
 
-import { Networks } from "@shared/types/networks";
-import { getNetworkImageUrl } from "../utils/network-assets";
+import { Networks } from '@shared/types/networks';
+import { getNetworkImageUrl } from '../utils/network-assets';
 
-import "./ActionPopupAction.css";
+import './ActionPopupAction.css';
 
 /** Web port of mobile `Action` rows inside action popups. */
 export const ActionPopupAction: React.FC<{

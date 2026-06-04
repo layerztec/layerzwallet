@@ -1,16 +1,13 @@
-import { AccountNumberContext } from "@shared/hooks/AccountNumberContext";
-import {
-  EStep,
-  InitializationContext,
-} from "@shared/hooks/InitializationContext";
-import React, { useContext, useState } from "react";
-import { useNavigate } from "react-router";
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
+import React, { useContext, useState } from 'react';
+import { useNavigate } from 'react-router';
 
-import { OnboardingShell } from "../components/onboarding/OnboardingShell";
-import { BackgroundCaller } from "../modules/background-caller";
-import { successIcon } from "../utils/onboarding-assets";
+import { OnboardingShell } from '../components/onboarding/OnboardingShell';
+import { BackgroundCaller } from '../modules/background-caller';
+import { successIcon } from '../utils/onboarding-assets';
 
-const TOS_URL = "https://layerzwallet.com/tos";
+const TOS_URL = 'https://layerzwallet.com/tos';
 
 const OnboardingTos: React.FC = () => {
   const navigate = useNavigate();
@@ -24,9 +21,7 @@ const OnboardingTos: React.FC = () => {
 
   const handleAgree = async () => {
     if (!backupChecked || !termsChecked) {
-      window.alert(
-        "You must confirm that you have backed up your recovery phrase and accept the terms of service to continue.",
-      );
+      window.alert('You must confirm that you have backed up your recovery phrase and accept the terms of service to continue.');
       return;
     }
 
@@ -35,15 +30,15 @@ const OnboardingTos: React.FC = () => {
       await BackgroundCaller.acceptTermsOfService();
       setAccountNumber(0);
       setStep(EStep.READY);
-      navigate("/home");
+      navigate('/home');
     } catch (error) {
-      console.error("Error accepting terms:", error);
+      console.error('Error accepting terms:', error);
       setIsLoading(false);
     }
   };
 
-  const toggleCheckbox = (type: "backup" | "terms") => {
-    if (type === "backup") {
+  const toggleCheckbox = (type: 'backup' | 'terms') => {
+    if (type === 'backup') {
       setBackupChecked((v) => !v);
     } else {
       setTermsChecked((v) => !v);
@@ -54,13 +49,8 @@ const OnboardingTos: React.FC = () => {
     <OnboardingShell
       bodyAlign="top"
       footer={
-        <button
-          type="button"
-          className="onboarding-btn onboarding-btn--soft"
-          onClick={handleAgree}
-          disabled={!isButtonEnabled}
-        >
-          {isLoading ? "Processing..." : "Let's go"}
+        <button type="button" className="onboarding-btn onboarding-btn--soft" onClick={handleAgree} disabled={!isButtonEnabled}>
+          {isLoading ? 'Processing...' : "Let's go"}
         </button>
       }
     >
@@ -72,30 +62,15 @@ const OnboardingTos: React.FC = () => {
             <br />
             successfully
           </h1>
-          <p className="onboarding-subtitle">
-            You are now ready to access your wallet and unlock the full
-            potential that Bitcoin has to offer via Layer2
-          </p>
+          <p className="onboarding-subtitle">You are now ready to access your wallet and unlock the full potential that Bitcoin has to offer via Layer2</p>
         </div>
 
         <div className="onboarding-tos__checkboxes">
-          <button
-            type="button"
-            className="onboarding-checkbox-row"
-            onClick={() => toggleCheckbox("backup")}
-          >
-            <span
-              className={`onboarding-checkbox${backupChecked ? " onboarding-checkbox--checked" : ""}`}
-              aria-hidden
-            >
-              {backupChecked ? (
-                <span className="onboarding-checkbox__mark">✓</span>
-              ) : null}
+          <button type="button" className="onboarding-checkbox-row" onClick={() => toggleCheckbox('backup')}>
+            <span className={`onboarding-checkbox${backupChecked ? ' onboarding-checkbox--checked' : ''}`} aria-hidden>
+              {backupChecked ? <span className="onboarding-checkbox__mark">✓</span> : null}
             </span>
-            <span className="onboarding-checkbox-label">
-              I have backed up my recovery phrase and I understand I cannot
-              recover my wallet without it.
-            </span>
+            <span className="onboarding-checkbox-label">I have backed up my recovery phrase and I understand I cannot recover my wallet without it.</span>
           </button>
 
           <div
@@ -103,33 +78,22 @@ const OnboardingTos: React.FC = () => {
             role="checkbox"
             aria-checked={termsChecked}
             tabIndex={0}
-            onClick={() => toggleCheckbox("terms")}
+            onClick={() => toggleCheckbox('terms')}
             onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
+              if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                toggleCheckbox("terms");
+                toggleCheckbox('terms');
               }
             }}
           >
-            <span
-              className={`onboarding-checkbox${termsChecked ? " onboarding-checkbox--checked" : ""}`}
-              aria-hidden
-            >
-              {termsChecked ? (
-                <span className="onboarding-checkbox__mark">✓</span>
-              ) : null}
+            <span className={`onboarding-checkbox${termsChecked ? ' onboarding-checkbox--checked' : ''}`} aria-hidden>
+              {termsChecked ? <span className="onboarding-checkbox__mark">✓</span> : null}
             </span>
             <span className="onboarding-checkbox-label">
-              I have read and accept the{" "}
-              <a
-                href={TOS_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="onboarding-checkbox-link"
-                onClick={(e) => e.stopPropagation()}
-              >
+              I have read and accept the{' '}
+              <a href={TOS_URL} target="_blank" rel="noopener noreferrer" className="onboarding-checkbox-link" onClick={(e) => e.stopPropagation()}>
                 Terms of Service
-              </a>{" "}
+              </a>{' '}
               of Layerz Tec Ltd.
             </span>
           </div>

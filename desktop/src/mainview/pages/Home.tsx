@@ -1,39 +1,28 @@
-import { ArrowDownLeft, ChevronDown, Settings } from "lucide-react";
-import React, { useContext, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { ArrowDownLeft, ChevronDown, Settings } from 'lucide-react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router';
 
-import {
-  ensureTunnelBootstrapped,
-  getTunnelAutostartOnLaunch,
-} from "../features/mcp/tunnel-desktop";
+import { ensureTunnelBootstrapped, getTunnelAutostartOnLaunch } from '../features/mcp/tunnel-desktop';
 
-import {
-  accountItems,
-  AccountNumberContext,
-  getAccountItem,
-  MCP_BALANCE_ACCOUNT_NUMBER,
-} from "@shared/hooks/AccountNumberContext";
-import { NetworkContext } from "@shared/hooks/NetworkContext";
-import { useAvailableNetworks } from "../hooks/useAvailableNetworks";
-import { capitalizeFirstLetter } from "@shared/modules/string-utils";
-import { getNetworkPrimaryColor } from "@shared/constants/Colors";
+import { accountItems, AccountNumberContext, getAccountItem, MCP_BALANCE_ACCOUNT_NUMBER } from '@shared/hooks/AccountNumberContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { useAvailableNetworks } from '../hooks/useAvailableNetworks';
+import { capitalizeFirstLetter } from '@shared/modules/string-utils';
+import { getNetworkPrimaryColor } from '@shared/constants/Colors';
 
-import { DropdownSelect } from "../components/DropdownSelect";
-import { NetworkDropdownLabel } from "../components/NetworkDropdownLabel";
-import {
-  AccountPocketIcon,
-  AccountPocketOptionLabel,
-} from "../components/home/AccountPocketIcon";
-import { HomeActionButton } from "../components/home/HomeActionButton";
-import { HomeBalance } from "../components/home/HomeBalance";
-import { NftsView } from "../components/home/NftsView";
-import { TokensView } from "../components/home/TokensView";
-import { McpAgentActivateModal } from "../components/mcp/McpAgentActivateModal";
-import { McpAgentDashboard } from "../components/mcp/McpAgentDashboard";
-import { McpTunnelStatusRow } from "../components/mcp/McpTunnelStatusRow";
-import { RadialGradientScreen } from "../components/home/RadialGradientScreen";
-import { getNetworkImageUrl } from "../utils/network-assets";
-import "./Home.css";
+import { DropdownSelect } from '../components/DropdownSelect';
+import { NetworkDropdownLabel } from '../components/NetworkDropdownLabel';
+import { AccountPocketIcon, AccountPocketOptionLabel } from '../components/home/AccountPocketIcon';
+import { HomeActionButton } from '../components/home/HomeActionButton';
+import { HomeBalance } from '../components/home/HomeBalance';
+import { NftsView } from '../components/home/NftsView';
+import { TokensView } from '../components/home/TokensView';
+import { McpAgentActivateModal } from '../components/mcp/McpAgentActivateModal';
+import { McpAgentDashboard } from '../components/mcp/McpAgentDashboard';
+import { McpTunnelStatusRow } from '../components/mcp/McpTunnelStatusRow';
+import { RadialGradientScreen } from '../components/home/RadialGradientScreen';
+import { getNetworkImageUrl } from '../utils/network-assets';
+import './Home.css';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -42,10 +31,7 @@ const Home: React.FC = () => {
   const availableNetworks = useAvailableNetworks();
   const networkIconUrl = getNetworkImageUrl(network);
   const accountItem = getAccountItem(accountNumber);
-  const accountLabel =
-    accountItem.name.length > 10
-      ? `${accountItem.name.substring(0, 10)}…`
-      : accountItem.name;
+  const accountLabel = accountItem.name.length > 10 ? `${accountItem.name.substring(0, 10)}…` : accountItem.name;
   const networkLabel = capitalizeFirstLetter(network);
   const networkAccentColor = getNetworkPrimaryColor(network);
 
@@ -79,7 +65,7 @@ const Home: React.FC = () => {
   };
 
   const handleReceive = () => {
-    navigate("/receive");
+    navigate('/receive');
   };
 
   return (
@@ -101,22 +87,12 @@ const Home: React.FC = () => {
             <>
               <AccountPocketIcon item={accountItem} variant="header" />
               <span className="home-pocket-label">{accountLabel}</span>
-              <ChevronDown
-                size={16}
-                color="rgba(255, 255, 255, 0.8)"
-                aria-hidden
-              />
+              <ChevronDown size={16} color="rgba(255, 255, 255, 0.8)" aria-hidden />
             </>
           )}
         />
 
-        <button
-          type="button"
-          className="home-icon-button"
-          onClick={() => navigate("/settings")}
-          aria-label="Settings"
-          data-testid="settings-button"
-        >
+        <button type="button" className="home-icon-button" onClick={() => navigate('/settings')} aria-label="Settings" data-testid="settings-button">
           <Settings size={24} />
         </button>
       </header>
@@ -148,21 +124,12 @@ const Home: React.FC = () => {
 
         <HomeBalance />
 
-        {accountNumber === MCP_BALANCE_ACCOUNT_NUMBER ? (
-          <McpTunnelStatusRow />
-        ) : null}
-        {accountNumber === MCP_BALANCE_ACCOUNT_NUMBER ? (
-          <McpAgentDashboard />
-        ) : null}
+        {accountNumber === MCP_BALANCE_ACCOUNT_NUMBER ? <McpTunnelStatusRow /> : null}
+        {accountNumber === MCP_BALANCE_ACCOUNT_NUMBER ? <McpAgentDashboard /> : null}
 
         {accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER ? (
           <div className="home-actions">
-            <HomeActionButton
-              title="Receive"
-              icon={ArrowDownLeft}
-              onClick={handleReceive}
-              testId="ReceiveButton"
-            />
+            <HomeActionButton title="Receive" icon={ArrowDownLeft} onClick={handleReceive} testId="ReceiveButton" />
           </div>
         ) : null}
 
@@ -170,9 +137,7 @@ const Home: React.FC = () => {
         <NftsView />
       </div>
 
-      {showActivateModal ? (
-        <McpAgentActivateModal onClose={dismissActivateModal} />
-      ) : null}
+      {showActivateModal ? <McpAgentActivateModal onClose={dismissActivateModal} /> : null}
     </RadialGradientScreen>
   );
 };

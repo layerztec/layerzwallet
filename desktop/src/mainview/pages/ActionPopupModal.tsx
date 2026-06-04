@@ -1,9 +1,9 @@
-import { X } from "lucide-react";
-import React, { useEffect } from "react";
-import { useNavigate } from "react-router";
+import { X } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router';
 
-import { useActionPopup } from "../contexts/ActionPopupContext";
-import "./ActionPopupModal.css";
+import { useActionPopup } from '../contexts/ActionPopupContext';
+import './ActionPopupModal.css';
 
 /** Web port of mobile `ActionPopupModal`. */
 const ActionPopupModal: React.FC = () => {
@@ -31,38 +31,23 @@ const ActionPopupModal: React.FC = () => {
   }
 
   return (
-    <div
-      className="action-popup-overlay"
-      role="presentation"
-      onClick={handleClose}
-    >
-      <div
-        className="action-popup-sheet"
-        role="dialog"
-        aria-modal="true"
-        aria-label={title ?? "Actions"}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="action-popup-overlay" role="presentation" onClick={handleClose}>
+      <div className="action-popup-sheet" role="dialog" aria-modal="true" aria-label={title ?? 'Actions'} onClick={(e) => e.stopPropagation()}>
         <div className="action-popup-header">
           <div style={{ width: 32 }} aria-hidden />
-          <p className="action-popup-title">{title ?? ""}</p>
-          <button
-            type="button"
-            className="action-popup-close"
-            onClick={handleClose}
-            aria-label="Close menu"
-          >
+          <p className="action-popup-title">{title ?? ''}</p>
+          <button type="button" className="action-popup-close" onClick={handleClose} aria-label="Close menu">
             <X size={18} />
           </button>
         </div>
         <div className="action-popup-actions">
           {actions.map((action, index) => {
-            const isSection = action.variant === "section";
+            const isSection = action.variant === 'section';
             return (
               <button
                 key={index}
                 type="button"
-                className={`action-popup-item${isSection ? " action-popup-item--section" : ""}`}
+                className={`action-popup-item${isSection ? ' action-popup-item--section' : ''}`}
                 disabled={action.disabled || isSection}
                 onClick={() => {
                   if (!action.disabled && !isSection) {

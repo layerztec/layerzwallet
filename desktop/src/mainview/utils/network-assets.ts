@@ -14,18 +14,18 @@ import {
   NETWORK_STACKS,
   NETWORK_USDT,
   Networks,
-} from "@shared/types/networks";
+} from '@shared/types/networks';
 
-import alpenIcon from "../../../../mobile/assets/images/ui/network/alpen.png";
-import bitcoinIcon from "../../../../mobile/assets/images/ui/network/bitcoin.png";
-import botanixIcon from "../../../../mobile/assets/images/ui/network/botanix.png";
-import citreaIcon from "../../../../mobile/assets/images/ui/network/citrea.png";
-import lightningIcon from "../../../../mobile/assets/images/ui/network/lightning.png";
-import liquidIcon from "../../../../mobile/assets/images/ui/network/liquid.png";
-import rootstockIcon from "../../../../mobile/assets/images/ui/network/rootstock.png";
-import sparkIcon from "../../../../mobile/assets/images/ui/network/spark.png";
-import stacksIcon from "../../../../mobile/assets/images/ui/network/stacks.png";
-import tetherIcon from "../../../../mobile/assets/images/ui/network/tether.png";
+import alpenIcon from '../../../../mobile/assets/images/ui/network/alpen.png';
+import bitcoinIcon from '../../../../mobile/assets/images/ui/network/bitcoin.png';
+import botanixIcon from '../../../../mobile/assets/images/ui/network/botanix.png';
+import citreaIcon from '../../../../mobile/assets/images/ui/network/citrea.png';
+import lightningIcon from '../../../../mobile/assets/images/ui/network/lightning.png';
+import liquidIcon from '../../../../mobile/assets/images/ui/network/liquid.png';
+import rootstockIcon from '../../../../mobile/assets/images/ui/network/rootstock.png';
+import sparkIcon from '../../../../mobile/assets/images/ui/network/spark.png';
+import stacksIcon from '../../../../mobile/assets/images/ui/network/stacks.png';
+import tetherIcon from '../../../../mobile/assets/images/ui/network/tether.png';
 
 const networkImages: Partial<Record<Networks, string>> = {
   [NETWORK_BITCOIN]: bitcoinIcon,

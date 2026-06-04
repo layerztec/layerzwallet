@@ -1,11 +1,7 @@
-import { Electroview } from "electrobun/view";
+import { Electroview } from 'electrobun/view';
 
-import type { IMessenger } from "@shared/modules/messenger";
-import type {
-  DesktopAppRPC,
-  DesktopMessage,
-  DesktopMessageTypeMap,
-} from "../../shared/desktop-messages";
+import type { IMessenger } from '@shared/modules/messenger';
+import type { DesktopAppRPC, DesktopMessage, DesktopMessageTypeMap } from '../../shared/desktop-messages';
 
 type DesktopRpc = ReturnType<typeof Electroview.defineRPC<DesktopAppRPC>>;
 
@@ -39,19 +35,16 @@ class DesktopMessenger implements IMessenger {
   async sendResponseFromContentScriptToContentScript() {}
 
   async sendGenericMessageToBackground(): Promise<never> {
-    throw new Error("Desktop wallet does not use background messaging");
+    throw new Error('Desktop wallet does not use background messaging');
   }
 
   /** Renderer→Bun transport for desktop-native messages (currently storage). */
-  async send<T extends keyof DesktopMessageTypeMap>(
-    type: T,
-    params: DesktopMessageTypeMap[T]["params"],
-  ): Promise<DesktopMessageTypeMap[T]["response"]> {
+  async send<T extends keyof DesktopMessageTypeMap>(type: T, params: DesktopMessageTypeMap[T]['params']): Promise<DesktopMessageTypeMap[T]['response']> {
     const response = await this.getRpc().request.processMessage({
       type,
       params,
     } as DesktopMessage);
-    return response as DesktopMessageTypeMap[T]["response"];
+    return response as DesktopMessageTypeMap[T]['response'];
   }
 }
 

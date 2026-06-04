@@ -1,32 +1,21 @@
-import { Lock } from "lucide-react";
-import React, { useContext, useMemo } from "react";
-import { useNavigate } from "react-router";
+import { Lock } from 'lucide-react';
+import React, { useContext, useMemo } from 'react';
+import { useNavigate } from 'react-router';
 
-import type { ReceiveTokenProps } from "../../pages/Receive";
-import { ActionPopupAction } from "../ActionPopupAction";
-import { ActionPopupButton } from "../ActionPopupButton";
-import { WalletToolButton } from "../home/WalletToolButton";
-import { AccountNumberContext } from "@shared/hooks/AccountNumberContext";
-import { NetworkContext } from "@shared/hooks/NetworkContext";
-import { useAccountBalance } from "@shared/hooks/useAccountBalance";
-import { useAvailableNetworks } from "../../hooks/useAvailableNetworks";
-import { useExchangeRate } from "@shared/hooks/useExchangeRate";
-import {
-  getDecimalsByNetwork,
-  getTickerByNetwork,
-} from "@shared/models/network-getters";
-import { formatBalance, formatFiatBalance } from "@shared/modules/string-utils";
-import {
-  NETWORK_BITCOIN,
-  NETWORK_LIGHTNING,
-  NETWORK_LIGHTNING_TESTNET,
-  NETWORK_LIQUID,
-  NETWORK_ROOTSTOCK,
-  NETWORK_SPARK,
-  NETWORK_USDT,
-} from "@shared/types/networks";
+import type { ReceiveTokenProps } from '../../pages/Receive';
+import { ActionPopupAction } from '../ActionPopupAction';
+import { ActionPopupButton } from '../ActionPopupButton';
+import { WalletToolButton } from '../home/WalletToolButton';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { useAccountBalance } from '@shared/hooks/useAccountBalance';
+import { useAvailableNetworks } from '../../hooks/useAvailableNetworks';
+import { useExchangeRate } from '@shared/hooks/useExchangeRate';
+import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
+import { NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT } from '@shared/types/networks';
 
-import "./McpAgentDashboard.css";
+import './McpAgentDashboard.css';
 
 const noop = () => {};
 
@@ -36,29 +25,23 @@ export const McpAgentDashboard: React.FC = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const availableNetworks = useAvailableNetworks();
-  const { accountBalance } = useAccountBalance(
-    accountNumber,
-    availableNetworks,
-  );
-  const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN, "USD");
+  const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
+  const { exchangeRate } = useExchangeRate(NETWORK_BITCOIN, 'USD');
 
   const [budgetFiat, budgetSats] = useMemo<[string, string]>(() => {
     const decimals = getDecimalsByNetwork(NETWORK_BITCOIN);
-    if (!accountBalance) return ["—", "— sats"];
+    if (!accountBalance) return ['—', '— sats'];
     const nativeBtc = `${formatBalance(accountBalance, decimals, 8)} ${getTickerByNetwork(NETWORK_BITCOIN)}`;
-    if (!exchangeRate) return ["—", nativeBtc];
-    return [
-      `$${formatFiatBalance(accountBalance, decimals, exchangeRate)}`,
-      nativeBtc,
-    ];
+    if (!exchangeRate) return ['—', nativeBtc];
+    return [`$${formatFiatBalance(accountBalance, decimals, exchangeRate)}`, nativeBtc];
   }, [accountBalance, exchangeRate]);
 
   const handleAddFunds = () => {
-    navigate("/receive");
+    navigate('/receive');
   };
 
   const handleReceiveOnLightningAddress = () => {
-    navigate("/receive-on-lightning-address");
+    navigate('/receive-on-lightning-address');
   };
 
   const handleReceiveTokenViaRootstock = () => {
@@ -78,38 +61,22 @@ export const McpAgentDashboard: React.FC = () => {
 
   const usdtReceiveActions = [
     {
-      children: (
-        <ActionPopupAction
-          network={NETWORK_ROOTSTOCK}
-          text="Receive via Rootstock"
-        />
-      ),
+      children: <ActionPopupAction network={NETWORK_ROOTSTOCK} text="Receive via Rootstock" />,
       onClick: handleReceiveTokenViaRootstock,
     },
     {
-      children: (
-        <ActionPopupAction network={NETWORK_LIQUID} text="Receive via Liquid" />
-      ),
+      children: <ActionPopupAction network={NETWORK_LIQUID} text="Receive via Liquid" />,
       onClick: handleReceiveTokenViaLiquid,
     },
     {
-      children: (
-        <ActionPopupAction network={NETWORK_SPARK} text="Receive via Spark" />
-      ),
+      children: <ActionPopupAction network={NETWORK_SPARK} text="Receive via Spark" />,
       onClick: handleReceiveTokenViaSpark,
     },
     { children: <ActionPopupAction text="Cancel" />, onClick: noop },
   ];
 
   const addFundsButton = (
-    <WalletToolButton
-      onClick={
-        network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET
-          ? handleReceiveOnLightningAddress
-          : handleAddFunds
-      }
-      aria-label="Add funds"
-    >
+    <WalletToolButton onClick={network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? handleReceiveOnLightningAddress : handleAddFunds} aria-label="Add funds">
       Add funds
     </WalletToolButton>
   );
@@ -121,10 +88,7 @@ export const McpAgentDashboard: React.FC = () => {
           <p className="mcp-dashboard-card-title">Tools</p>
           <div className="mcp-dashboard-tool-buttons">
             {network === NETWORK_USDT ? (
-              <ActionPopupButton
-                actions={usdtReceiveActions}
-                title="Layer to receive"
-              >
+              <ActionPopupButton actions={usdtReceiveActions} title="Layer to receive">
                 {addFundsButton}
               </ActionPopupButton>
             ) : (
@@ -134,12 +98,7 @@ export const McpAgentDashboard: React.FC = () => {
         </div>
 
         <div className="mcp-dashboard-right-column">
-          <button
-            type="button"
-            className="mcp-dashboard-budget-card"
-            onClick={noop}
-            aria-label="Budget"
-          >
+          <button type="button" className="mcp-dashboard-budget-card" onClick={noop} aria-label="Budget">
             <p className="mcp-dashboard-card-title">Budget</p>
             <p className="mcp-dashboard-budget-amount">{budgetFiat}</p>
             <p className="mcp-dashboard-budget-sats">{budgetSats}</p>
@@ -150,12 +109,7 @@ export const McpAgentDashboard: React.FC = () => {
             </div>
           </button>
 
-          <button
-            type="button"
-            className="mcp-dashboard-permissions-card"
-            onClick={() => navigate("/mcp-permissions-modal")}
-            aria-label="Permissions"
-          >
+          <button type="button" className="mcp-dashboard-permissions-card" onClick={() => navigate('/mcp-permissions-modal')} aria-label="Permissions">
             <div className="mcp-dashboard-lock-icon" aria-hidden>
               <Lock size={15} strokeWidth={2.5} />
             </div>

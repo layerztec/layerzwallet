@@ -1,15 +1,13 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from 'react';
 
-import { capitalizeFirstLetter } from "@shared/modules/string-utils";
+import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 
-import { getNetworkPrimaryColor } from "@shared/constants/Colors";
-
-import { DropdownSelect } from "../components/DropdownSelect";
+import { DropdownSelect } from '../components/DropdownSelect';
 
 export const SelectFeeSlider: React.FC<
   {
     onChange: (value: number) => void;
-  } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange">
+  } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'>
 > = ({ onChange, ...props }) => {
   return (
     <input
@@ -62,38 +60,38 @@ export const ActionPopupButton: React.FC<{
     if (showPopup) {
       const handleClickOutside = (event: MouseEvent) => {
         const target = event.target as Element;
-        if (!target.closest("[data-popup-container]")) {
+        if (!target.closest('[data-popup-container]')) {
           handleClose();
         }
       };
 
       // Use setTimeout to avoid immediate closure
       setTimeout(() => {
-        document.addEventListener("click", handleClickOutside);
+        document.addEventListener('click', handleClickOutside);
       }, 100);
 
-      return () => document.removeEventListener("click", handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
     }
   }, [showPopup]);
 
   return (
-    <div style={{ position: "relative", display: "inline-block", zIndex: 1 }}>
+    <div style={{ position: 'relative', display: 'inline-block', zIndex: 1 }}>
       <button
         ref={buttonRef}
         onClick={handleClick}
         style={{
-          backgroundColor: "#0c1f6c",
-          color: "#fbfff9",
-          border: "0px solid white",
-          padding: "10px 20px",
-          borderRadius: "9px",
-          cursor: "pointer",
-          fontSize: "20px",
-          transition: "background-color 0.3s",
-          display: "inline-flex",
-          alignItems: "center",
-          whiteSpace: "nowrap",
-          margin: "0 5px 5px 0",
+          backgroundColor: '#0c1f6c',
+          color: '#fbfff9',
+          border: '0px solid white',
+          padding: '10px 20px',
+          borderRadius: '9px',
+          cursor: 'pointer',
+          fontSize: '20px',
+          transition: 'background-color 0.3s',
+          display: 'inline-flex',
+          alignItems: 'center',
+          whiteSpace: 'nowrap',
+          margin: '0 5px 5px 0',
         }}
       >
         {children}
@@ -103,19 +101,19 @@ export const ActionPopupButton: React.FC<{
         <div
           data-popup-container
           style={{
-            position: "fixed",
+            position: 'fixed',
             top: popupPosition.y,
             left: popupPosition.x,
-            backgroundColor: "white",
-            border: "1px solid #ccc",
-            borderRadius: "8px",
-            padding: "10px",
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+            backgroundColor: 'white',
+            border: '1px solid #ccc',
+            borderRadius: '8px',
+            padding: '10px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
             zIndex: 1000,
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-            minWidth: "200px",
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            minWidth: '200px',
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -124,18 +122,18 @@ export const ActionPopupButton: React.FC<{
               key={index}
               onClick={() => handleActionClick(action.onClick)}
               style={{
-                backgroundColor: "#282c34",
-                color: "white",
-                border: "1px solid white",
-                padding: "10px 20px",
-                borderRadius: "5px",
-                cursor: "pointer",
-                fontSize: "16px",
-                transition: "background-color 0.3s",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                width: "100%",
+                backgroundColor: '#282c34',
+                color: 'white',
+                border: '1px solid white',
+                padding: '10px 20px',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                transition: 'background-color 0.3s',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                width: '100%',
               }}
             >
               {action.label}
@@ -148,24 +146,16 @@ export const ActionPopupButton: React.FC<{
 };
 
 // Switch Component
-export const Switch = <T extends string>({
-  items,
-  activeItem,
-  onItemClick,
-}: {
-  items: T[];
-  activeItem: T;
-  onItemClick: (item: T) => void;
-}) => {
+export const Switch = <T extends string>({ items, activeItem, onItemClick }: { items: T[]; activeItem: T; onItemClick: (item: T) => void }) => {
   return (
     <div
       style={{
-        display: "flex",
-        flexWrap: "wrap",
-        backgroundColor: "#1c3a88",
-        borderRadius: "8px",
-        padding: "4px",
-        width: "100%",
+        display: 'flex',
+        flexWrap: 'wrap',
+        backgroundColor: '#1c3a88',
+        borderRadius: '8px',
+        padding: '4px',
+        width: '100%',
       }}
     >
       {items.map((item) => (
@@ -173,15 +163,15 @@ export const Switch = <T extends string>({
           key={item}
           onClick={() => onItemClick(item)}
           style={{
-            padding: "8px 16px",
-            border: "none",
-            borderRadius: "6px",
-            backgroundColor: item === activeItem ? "#fbfff9" : "transparent",
-            color: item === activeItem ? "black" : "#666",
-            fontWeight: item === activeItem ? "bold" : "normal",
-            cursor: "pointer",
-            transition: "all 0.3s ease",
-            outline: "none",
+            padding: '8px 16px',
+            border: 'none',
+            borderRadius: '6px',
+            backgroundColor: item === activeItem ? '#fbfff9' : 'transparent',
+            color: item === activeItem ? 'black' : '#666',
+            fontWeight: item === activeItem ? 'bold' : 'normal',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            outline: 'none',
           }}
         >
           {capitalizeFirstLetter(item)}
@@ -192,70 +182,62 @@ export const Switch = <T extends string>({
 };
 
 // Button Component
-export const Button: React.FC<
-  React.ButtonHTMLAttributes<HTMLButtonElement> & { disabled?: boolean }
-> = ({ children, disabled, style, ...props }) => (
+export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { disabled?: boolean }> = ({ children, disabled, style, ...props }) => (
   <button
     {...props}
     disabled={disabled}
     style={{
-      backgroundColor: "#0b1f5b",
-      color: "#fbfff9",
-      border: "0px solid white",
-      padding: "10px 20px",
-      borderRadius: "9px",
-      cursor: disabled ? "not-allowed" : "pointer",
-      fontSize: "20px",
-      transition: "background-color 0.3s",
+      backgroundColor: '#0b1f5b',
+      color: '#fbfff9',
+      border: '0px solid white',
+      padding: '10px 20px',
+      borderRadius: '9px',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      fontSize: '20px',
+      transition: 'background-color 0.3s',
       opacity: disabled ? 0.5 : 1,
-      display: "inline-flex",
-      alignItems: "center",
-      whiteSpace: "nowrap",
-      margin: "0 5px 5px 0",
+      display: 'inline-flex',
+      alignItems: 'center',
+      whiteSpace: 'nowrap',
+      margin: '0 5px 5px 0',
       ...style, // Merge any custom styles passed as props
     }}
   >
     {React.Children.map(children, (child) => (
-      <span
-        style={{ display: "flex", alignItems: "center", marginRight: "5px" }}
-      >
-        {child}
-      </span>
+      <span style={{ display: 'flex', alignItems: 'center', marginRight: '5px' }}>{child}</span>
     ))}
   </button>
 );
 
 // WideButton Component
-export const WideButton: React.FC<
-  React.ButtonHTMLAttributes<HTMLButtonElement> & { disabled?: boolean }
-> = ({ children, disabled, ...props }) => (
+export const WideButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { disabled?: boolean }> = ({ children, disabled, ...props }) => (
   <button
     {...props}
     disabled={disabled}
     style={{
-      backgroundColor: "#0c1f6c",
-      color: "#fbfff9",
-      border: "0px solid white",
-      padding: "10px 20px",
-      borderRadius: "9px",
-      cursor: disabled ? "not-allowed" : "pointer",
-      fontSize: "20px",
-      transition: "background-color 0.3s",
+      backgroundColor: '#0c1f6c',
+      color: '#fbfff9',
+      border: '0px solid white',
+      padding: '10px 20px',
+      borderRadius: '9px',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      fontSize: '20px',
+      transition: 'background-color 0.3s',
       opacity: disabled ? 0.5 : 1,
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      width: "100%",
-      margin: "0 5px 5px 0",
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: '100%',
+      margin: '0 5px 5px 0',
     }}
   >
     {React.Children.map(children, (child) => (
       <span
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          margin: "0 5px",
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 5px',
         }}
       >
         {child}
@@ -315,43 +297,43 @@ export const HodlButton: React.FC<
       onTouchStart={startProgress}
       onTouchEnd={stopProgress}
       style={{
-        backgroundColor: "#0c1f6c",
-        color: "#fbfff9",
-        border: "0px solid white",
-        padding: "10px 20px",
-        borderRadius: "9px",
-        cursor: disabled ? "not-allowed" : "pointer",
-        fontSize: "20px",
-        transition: "background-color 0.3s",
+        backgroundColor: '#0c1f6c',
+        color: '#fbfff9',
+        border: '0px solid white',
+        padding: '10px 20px',
+        borderRadius: '9px',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        fontSize: '20px',
+        transition: 'background-color 0.3s',
         opacity: disabled ? 0.5 : 1,
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        width: "100%",
-        margin: "0 5px 5px 0",
-        position: "relative",
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: '100%',
+        margin: '0 5px 5px 0',
+        position: 'relative',
       }}
     >
       {holding && (
         <div
           style={{
-            position: "absolute",
+            position: 'absolute',
             bottom: 0,
             left: 0,
             width: `${progress}%`,
-            height: "5px",
-            backgroundColor: "white",
-            transition: "width 0.1s linear",
+            height: '5px',
+            backgroundColor: 'white',
+            transition: 'width 0.1s linear',
           }}
         />
       )}
       {React.Children.map(children, (child) => (
         <span
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            margin: "0 5px",
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 5px',
             zIndex: 1,
           }}
         >
@@ -363,18 +345,16 @@ export const HodlButton: React.FC<
 };
 
 // Input Component
-export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (
-  props,
-) => {
+export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => {
   const defaultStyle = {
-    width: "95%",
-    padding: "10px",
-    marginBottom: "10px",
-    border: "1px solid #282c34",
-    borderRadius: "5px",
-    fontSize: "16px",
-    color: "#282c34",
-    backgroundColor: "white",
+    width: '95%',
+    padding: '10px',
+    marginBottom: '10px',
+    border: '1px solid #282c34',
+    borderRadius: '5px',
+    fontSize: '16px',
+    color: '#282c34',
+    backgroundColor: 'white',
   };
 
   const combinedStyle = {
@@ -386,36 +366,32 @@ export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (
 };
 
 // TextArea Component
-export const TextArea: React.FC<
-  React.TextareaHTMLAttributes<HTMLTextAreaElement>
-> = (props) => (
+export const TextArea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = (props) => (
   <textarea
     {...props}
     style={{
-      width: "95%",
-      padding: "10px",
-      border: "1px solid #282c34",
-      borderRadius: "5px",
-      fontSize: "16px",
-      minHeight: "100px",
-      color: "#282c34",
-      backgroundColor: "white",
+      width: '95%',
+      padding: '10px',
+      border: '1px solid #282c34',
+      borderRadius: '5px',
+      fontSize: '16px',
+      minHeight: '100px',
+      color: '#282c34',
+      backgroundColor: 'white',
     }}
   />
 );
 
 // Bubble Component
-export const Bubble: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => (
+export const Bubble: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div
     style={{
-      backgroundColor: "#0b1f5b",
-      borderRadius: "20px",
-      padding: "10px 20px",
-      marginBottom: "5px",
-      marginRight: "5px",
-      display: "inline-block",
+      backgroundColor: '#0b1f5b',
+      borderRadius: '20px',
+      padding: '10px 20px',
+      marginBottom: '5px',
+      marginRight: '5px',
+      display: 'inline-block',
     }}
   >
     {children}
@@ -423,28 +399,26 @@ export const Bubble: React.FC<{ children: React.ReactNode }> = ({
 );
 
 // Radio Button Component
-export const RadioButton: React.FC<
-  React.InputHTMLAttributes<HTMLInputElement> & { label: string }
-> = ({ label, ...props }) => (
+export const RadioButton: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, ...props }) => (
   <label
     style={{
-      display: "flex",
-      alignItems: "center",
-      cursor: "pointer",
-      color: "#282c34",
+      display: 'flex',
+      alignItems: 'center',
+      cursor: 'pointer',
+      color: '#282c34',
     }}
   >
     <input
       type="radio"
       {...props}
       style={{
-        appearance: "none",
-        width: "20px",
-        height: "20px",
-        border: "2px solid #282c34",
-        borderRadius: "50%",
-        marginRight: "10px",
-        position: "relative",
+        appearance: 'none',
+        width: '20px',
+        height: '20px',
+        border: '2px solid #282c34',
+        borderRadius: '50%',
+        marginRight: '10px',
+        position: 'relative',
       }}
     />
     <span>{label}</span>
@@ -466,28 +440,26 @@ export const RadioButton: React.FC<
 );
 
 // Checkbox Component
-export const Checkbox: React.FC<
-  React.InputHTMLAttributes<HTMLInputElement> & { label: string }
-> = ({ label, ...props }) => (
+export const Checkbox: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, ...props }) => (
   <label
     style={{
-      display: "flex",
-      alignItems: "center",
-      cursor: "pointer",
-      color: "#282c34",
+      display: 'flex',
+      alignItems: 'center',
+      cursor: 'pointer',
+      color: '#282c34',
     }}
   >
     <input
       type="checkbox"
       {...props}
       style={{
-        appearance: "none",
-        width: "20px",
-        height: "20px",
-        border: "2px solid #282c34",
-        borderRadius: "3px",
-        marginRight: "10px",
-        position: "relative",
+        appearance: 'none',
+        width: '20px',
+        height: '20px',
+        border: '2px solid #282c34',
+        borderRadius: '3px',
+        marginRight: '10px',
+        position: 'relative',
       }}
     />
     <span>{label}</span>
@@ -508,9 +480,7 @@ export const Checkbox: React.FC<
 );
 
 // Select Component — native <select> popups do not render in CEF on Linux
-export const Select: React.FC<
-  React.SelectHTMLAttributes<HTMLSelectElement> & { menuAccentColor?: string }
-> = ({
+export const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement> & { menuAccentColor?: string; 'data-testid'?: string }> = ({
   children,
   value,
   onChange,
@@ -527,21 +497,21 @@ export const Select: React.FC<
         children?: React.ReactNode;
       };
       return {
-        value: optionProps.value ?? "",
-        label: optionProps.children ?? optionProps.value ?? "",
+        value: optionProps.value ?? '',
+        label: optionProps.children ?? optionProps.value ?? '',
       };
     });
 
   return (
     <DropdownSelect
       variant="form"
-      value={(value ?? "") as string | number}
+      value={(value ?? '') as string | number}
       options={options}
       disabled={disabled}
-      testId={id ?? props["data-testid"]}
-      triggerTestId={id ?? props["data-testid"]}
+      testId={id ?? props['data-testid']}
+      triggerTestId={id ?? props['data-testid']}
       menuAccentColor={menuAccentColor}
-      ariaLabel={props["aria-label"] ?? "Select option"}
+      ariaLabel={props['aria-label'] ?? 'Select option'}
       onChange={(next) => {
         onChange?.({
           target: { value: String(next) },
@@ -555,12 +525,12 @@ export const Select: React.FC<
 export const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div
     style={{
-      width: "95%",
-      height: "100%",
-      backgroundImage: "linear-gradient(to bottom, #0c1f6c, #1c3a88)",
-      border: "0px solid #ebebeb",
-      borderRadius: "0px",
-      padding: "20px",
+      width: '95%',
+      height: '100%',
+      backgroundImage: 'linear-gradient(to bottom, #0c1f6c, #1c3a88)',
+      border: '0px solid #ebebeb',
+      borderRadius: '0px',
+      padding: '20px',
     }}
   >
     {children}
@@ -568,15 +538,13 @@ export const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 // Toggle Switch Component
-export const ToggleSwitch: React.FC<
-  React.InputHTMLAttributes<HTMLInputElement>
-> = (props) => (
+export const ToggleSwitch: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
   <label
     style={{
-      display: "inline-block",
-      width: "60px",
-      height: "34px",
-      position: "relative",
+      display: 'inline-block',
+      width: '60px',
+      height: '34px',
+      position: 'relative',
     }}
   >
     <input
@@ -590,15 +558,15 @@ export const ToggleSwitch: React.FC<
     />
     <span
       style={{
-        position: "absolute",
-        cursor: "pointer",
+        position: 'absolute',
+        cursor: 'pointer',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: "#ccc",
-        transition: ".4s",
-        borderRadius: "34px",
+        backgroundColor: '#ccc',
+        transition: '.4s',
+        borderRadius: '34px',
       }}
     />
     <style>{`
@@ -623,7 +591,7 @@ export const ToggleSwitch: React.FC<
   </label>
 );
 
-export { AddressBubble } from "../components/home/AddressBubble";
+export { AddressBubble } from '../components/home/AddressBubble';
 
 // Modal Component
 export const Modal: React.FC<{
@@ -631,7 +599,7 @@ export const Modal: React.FC<{
   width?: string;
   onClose?: () => void;
   closable?: boolean;
-}> = ({ children, width = "400px", onClose, closable = true }) => {
+}> = ({ children, width = '400px', onClose, closable = true }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -658,34 +626,34 @@ export const Modal: React.FC<{
     <>
       <div
         style={{
-          position: "fixed",
+          position: 'fixed',
           top: 0,
           left: 0,
-          width: "100%",
-          height: "100%",
-          backgroundColor: "rgba(0,0,0,0.5)",
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0,0,0,0.5)',
           opacity: isVisible ? 1 : 0,
-          transition: "opacity 0.3s ease-in-out",
+          transition: 'opacity 0.3s ease-in-out',
           zIndex: 999,
-          cursor: closable ? "pointer" : "default",
+          cursor: closable ? 'pointer' : 'default',
         }}
         onClick={handleClose}
       />
       <div
         style={{
-          position: "fixed",
-          top: "50%",
-          left: "50%",
-          transform: `translate(-50%, ${isVisible ? "-50%" : "-45%"})`,
-          border: "1px solid gray",
-          backgroundColor: "white",
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: `translate(-50%, ${isVisible ? '-50%' : '-45%'})`,
+          border: '1px solid gray',
+          backgroundColor: 'white',
           opacity: isVisible ? 1 : 0,
-          transition: "all 0.3s ease-in-out",
+          transition: 'all 0.3s ease-in-out',
           zIndex: 1000,
           width: width,
-          padding: "20px",
-          borderRadius: "8px",
-          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+          padding: '20px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
         }}
       >
         {children}
@@ -696,32 +664,30 @@ export const Modal: React.FC<{
 
 // Main Component to showcase all elements
 export default function DesignSystem() {
-  const [radioValue, setRadioValue] = useState("");
+  const [radioValue, setRadioValue] = useState('');
   const [checkboxValue, setCheckboxValue] = useState(false);
   const [toggleValue, setToggleValue] = useState(false);
 
   return (
     <div
       style={{
-        minHeight: "100vh",
-        padding: "20px",
-        backgroundColor: "white",
-        color: "#282c34",
-        fontFamily: "Arial, sans-serif",
+        minHeight: '100vh',
+        padding: '20px',
+        backgroundColor: 'white',
+        color: '#282c34',
+        fontFamily: 'Arial, sans-serif',
       }}
     >
-      <h1 style={{ textAlign: "center", marginBottom: "40px" }}>
-        Design System
-      </h1>
+      <h1 style={{ textAlign: 'center', marginBottom: '40px' }}>Design System</h1>
 
       <Card>
         <h2>Buttons</h2>
-        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
           <Button>Primary Button</Button>
           <Button
             style={{
-              backgroundColor: "transparent",
-              border: "2px solid #282c34",
+              backgroundColor: 'transparent',
+              border: '2px solid #282c34',
             }}
           >
             Secondary Button
@@ -729,17 +695,17 @@ export default function DesignSystem() {
         </div>
 
         <h2>Inputs</h2>
-        <div style={{ marginBottom: "20px" }}>
+        <div style={{ marginBottom: '20px' }}>
           <Input placeholder="Enter text here" />
         </div>
 
         <h2>TextArea</h2>
-        <div style={{ marginBottom: "20px" }}>
+        <div style={{ marginBottom: '20px' }}>
           <TextArea placeholder="Enter longer text here" />
         </div>
 
         <h2>Bubbles</h2>
-        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
           <Bubble>Bubble 1</Bubble>
           <Bubble>Bubble 2</Bubble>
         </div>
@@ -747,39 +713,23 @@ export default function DesignSystem() {
         <h2>Radio Buttons</h2>
         <div
           style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            marginBottom: "20px",
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            marginBottom: '20px',
           }}
         >
-          <RadioButton
-            label="Option 1"
-            name="radioGroup"
-            value="1"
-            checked={radioValue === "1"}
-            onChange={(e) => setRadioValue(e.target.value)}
-          />
-          <RadioButton
-            label="Option 2"
-            name="radioGroup"
-            value="2"
-            checked={radioValue === "2"}
-            onChange={(e) => setRadioValue(e.target.value)}
-          />
+          <RadioButton label="Option 1" name="radioGroup" value="1" checked={radioValue === '1'} onChange={(e) => setRadioValue(e.target.value)} />
+          <RadioButton label="Option 2" name="radioGroup" value="2" checked={radioValue === '2'} onChange={(e) => setRadioValue(e.target.value)} />
         </div>
 
         <h2>Checkboxes</h2>
-        <div style={{ marginBottom: "20px" }}>
-          <Checkbox
-            label="Check me"
-            checked={checkboxValue}
-            onChange={(e) => setCheckboxValue(e.target.checked)}
-          />
+        <div style={{ marginBottom: '20px' }}>
+          <Checkbox label="Check me" checked={checkboxValue} onChange={(e) => setCheckboxValue(e.target.checked)} />
         </div>
 
         <h2>Select</h2>
-        <div style={{ marginBottom: "20px" }}>
+        <div style={{ marginBottom: '20px' }}>
           <Select>
             <option value="">Select an option</option>
             <option value="1">Option 1</option>
@@ -788,28 +738,25 @@ export default function DesignSystem() {
         </div>
 
         <h2>Toggle Switch</h2>
-        <div style={{ marginBottom: "20px" }}>
-          <ToggleSwitch
-            checked={toggleValue}
-            onChange={(e) => setToggleValue(e.target.checked)}
-          />
+        <div style={{ marginBottom: '20px' }}>
+          <ToggleSwitch checked={toggleValue} onChange={(e) => setToggleValue(e.target.checked)} />
         </div>
 
         <h2>Action Popup Button</h2>
-        <div style={{ marginBottom: "20px" }}>
+        <div style={{ marginBottom: '20px' }}>
           <ActionPopupButton
             actions={[
               {
-                label: "Default Action",
-                onClick: () => alert("Default action triggered!"),
+                label: 'Default Action',
+                onClick: () => alert('Default action triggered!'),
               },
               {
-                label: "Secondary Action",
-                onClick: () => alert("Secondary action triggered!"),
+                label: 'Secondary Action',
+                onClick: () => alert('Secondary action triggered!'),
               },
               {
-                label: "Cancel",
-                onClick: () => alert("Cancel action triggered!"),
+                label: 'Cancel',
+                onClick: () => alert('Cancel action triggered!'),
               },
             ]}
           >

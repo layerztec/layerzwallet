@@ -6,9 +6,9 @@
  * singleton state. All desktop code must import tunnel APIs from this file.
  */
 
-import { LayerzStorage } from "../../class/layerz-storage";
+import { LayerzStorage } from '../../class/layerz-storage';
 
-import { desktopAppLifecycle, desktopMcpDeps } from "./modules/mcp-platform";
+import { desktopAppLifecycle, desktopMcpDeps } from './modules/mcp-platform';
 
 import {
   connectTunnel as connectTunnelShared,
@@ -18,15 +18,9 @@ import {
   getTunnelPublicUrl,
   startTunnel,
   subscribeTunnelConnection,
-} from "@shared/features/mcp/modules/tunnel";
+} from '@shared/features/mcp/modules/tunnel';
 
-export {
-  disconnectTunnel,
-  getTunnelAutostartOnLaunch,
-  getTunnelConnectionStatus,
-  getTunnelPublicUrl,
-  subscribeTunnelConnection,
-};
+export { disconnectTunnel, getTunnelAutostartOnLaunch, getTunnelConnectionStatus, getTunnelPublicUrl, subscribeTunnelConnection };
 
 let bootstrapPromise: Promise<void> | null = null;
 
@@ -34,19 +28,18 @@ let bootstrapPromise: Promise<void> | null = null;
 export function ensureTunnelBootstrapped(): Promise<void> {
   if (!bootstrapPromise) {
     bootstrapPromise = (async () => {
-      const adapters = await import("../../modules/load-adapters");
+      const adapters = await import('../../modules/load-adapters');
       await adapters.ensureWalletAdapters();
 
-      const { configureMcp, handleMcpRequest, resetMcpSessions } =
-        await import("@shared/features/mcp/modules/mcp");
-      configureMcp(desktopMcpDeps, { name: "layerz-wallet-desktop" });
+      const { configureMcp, handleMcpRequest, resetMcpSessions } = await import('@shared/features/mcp/modules/mcp');
+      configureMcp(desktopMcpDeps, { name: 'layerz-wallet-desktop' });
 
       await startTunnel({
         handleRequest: handleMcpRequest,
         storage: LayerzStorage,
         appLifecycle: desktopAppLifecycle,
         onSessionChange: ({ publicUrl, idChanged }) => {
-          if (__DEV__) console.log("[mcp] PUBLIC URL:", publicUrl);
+          if (__DEV__) console.log('[mcp] PUBLIC URL:', publicUrl);
           if (idChanged) resetMcpSessions();
         },
       });

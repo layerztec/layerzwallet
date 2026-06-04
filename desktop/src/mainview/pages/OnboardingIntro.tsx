@@ -1,12 +1,8 @@
-import React from "react";
-import { useNavigate } from "react-router";
+import React from 'react';
+import { useNavigate } from 'react-router';
 
-import {
-  OnboardingPrimaryButton,
-  OnboardingSecondaryButton,
-  OnboardingShell,
-} from "../components/onboarding/OnboardingShell";
-import { layerzLogo } from "../utils/onboarding-assets";
+import { OnboardingPrimaryButton, OnboardingSecondaryButton, OnboardingShell } from '../components/onboarding/OnboardingShell';
+import { layerzLogo } from '../utils/onboarding-assets';
 
 const OnboardingIntro: React.FC = () => {
   const navigate = useNavigate();
@@ -15,16 +11,8 @@ const OnboardingIntro: React.FC = () => {
     <OnboardingShell
       footer={
         <>
-          <OnboardingPrimaryButton
-            onClick={() => navigate("/onboarding-create-wallet-intro")}
-          >
-            Create Wallet
-          </OnboardingPrimaryButton>
-          <OnboardingSecondaryButton
-            onClick={() => navigate("/onboarding-import-wallet")}
-          >
-            Import Wallet
-          </OnboardingSecondaryButton>
+          <OnboardingPrimaryButton onClick={() => navigate('/onboarding-create-wallet-intro')}>Create Wallet</OnboardingPrimaryButton>
+          <OnboardingSecondaryButton onClick={() => navigate('/onboarding-import-wallet')}>Import Wallet</OnboardingSecondaryButton>
         </>
       }
     >

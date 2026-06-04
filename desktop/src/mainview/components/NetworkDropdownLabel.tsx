@@ -1,7 +1,7 @@
-import { capitalizeFirstLetter } from "@shared/modules/string-utils";
-import { Networks } from "@shared/types/networks";
+import { capitalizeFirstLetter } from '@shared/modules/string-utils';
+import { Networks } from '@shared/types/networks';
 
-import { getNetworkImageUrl } from "../utils/network-assets";
+import { getNetworkImageUrl } from '../utils/network-assets';
 
 type NetworkDropdownLabelProps = {
   network: Networks;
@@ -17,9 +17,7 @@ export function NetworkDropdownLabel({ network }: NetworkDropdownLabelProps) {
           <img src={iconUrl} alt="" />
         </span>
       ) : null}
-      <span className="dropdown-network-option-label">
-        {capitalizeFirstLetter(network)}
-      </span>
+      <span className="dropdown-network-option-label">{capitalizeFirstLetter(network)}</span>
     </span>
   );
 }

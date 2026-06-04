@@ -1,17 +1,9 @@
-import React, {
-  useCallback,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { createPortal } from "react-dom";
+import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
-import { darkenHex, hexToRgba } from "@shared/constants/Colors";
+import { darkenHex, hexToRgba } from '@shared/constants/Colors';
 
-import "./DropdownSelect.css";
+import './DropdownSelect.css';
 
 export type DropdownOption<T extends string | number> = {
   value: T;
@@ -26,15 +18,12 @@ type DropdownSelectProps<T extends string | number> = {
   ariaLabel: string;
   className?: string;
   triggerClassName?: string;
-  variant?: "default" | "form";
+  variant?: 'default' | 'form';
   disabled?: boolean;
   testId?: string;
   triggerTestId?: string;
   menuAccentColor?: string;
-  renderTrigger?: (
-    selected: DropdownOption<T>,
-    isOpen: boolean,
-  ) => React.ReactNode;
+  renderTrigger?: (selected: DropdownOption<T>, isOpen: boolean) => React.ReactNode;
 };
 
 function valuesEqual<T extends string | number>(a: T, b: T): boolean {
@@ -48,7 +37,7 @@ export function DropdownSelect<T extends string | number>({
   ariaLabel,
   className,
   triggerClassName,
-  variant = "default",
+  variant = 'default',
   disabled,
   testId,
   triggerTestId,
@@ -62,15 +51,14 @@ export function DropdownSelect<T extends string | number>({
   const menuRef = useRef<HTMLUListElement>(null);
   const menuId = useId();
 
-  const selected =
-    options.find((o) => valuesEqual(o.value, value)) ?? options[0];
+  const selected = options.find((o) => valuesEqual(o.value, value)) ?? options[0];
 
   const accentMenuStyle = useMemo((): React.CSSProperties | undefined => {
     if (!menuAccentColor) {
       return undefined;
     }
     return {
-      ["--dropdown-accent" as string]: menuAccentColor,
+      ['--dropdown-accent' as string]: menuAccentColor,
       background: `linear-gradient(180deg, ${darkenHex(menuAccentColor, 0.32)} 0%, #050505 88%)`,
       borderColor: hexToRgba(menuAccentColor, 0.45),
       boxShadow: `0 12px 32px rgba(0, 0, 0, 0.55), 0 0 0 1px ${hexToRgba(menuAccentColor, 0.12)}`,
@@ -113,33 +101,30 @@ export function DropdownSelect<T extends string | number>({
 
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
-      if (
-        rootRef.current?.contains(target) ||
-        menuRef.current?.contains(target)
-      ) {
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) {
         return;
       }
       close();
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === 'Escape') {
         close();
       }
     };
 
     const onScrollOrResize = () => updateMenuPosition();
 
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    window.addEventListener("resize", onScrollOrResize);
-    window.addEventListener("scroll", onScrollOrResize, true);
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('scroll', onScrollOrResize, true);
 
     return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("resize", onScrollOrResize);
-      window.removeEventListener("scroll", onScrollOrResize, true);
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('scroll', onScrollOrResize, true);
     };
   }, [close, isOpen, updateMenuPosition]);
 
@@ -160,23 +145,11 @@ export function DropdownSelect<T extends string | number>({
   );
 
   return (
-    <div
-      ref={rootRef}
-      className={[
-        "dropdown-select",
-        variant === "form" ? "dropdown-select--form" : "",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      data-testid={testId}
-    >
+    <div ref={rootRef} className={['dropdown-select', variant === 'form' ? 'dropdown-select--form' : '', className].filter(Boolean).join(' ')} data-testid={testId}>
       <button
         ref={triggerRef}
         type="button"
-        className={["dropdown-select-trigger", triggerClassName]
-          .filter(Boolean)
-          .join(" ")}
+        className={['dropdown-select-trigger', triggerClassName].filter(Boolean).join(' ')}
         onClick={toggle}
         disabled={disabled}
         aria-label={ariaLabel}
@@ -185,9 +158,7 @@ export function DropdownSelect<T extends string | number>({
         aria-controls={isOpen ? menuId : undefined}
         data-testid={triggerTestId}
       >
-        {renderTrigger && selected
-          ? renderTrigger(selected, isOpen)
-          : defaultTrigger}
+        {renderTrigger && selected ? renderTrigger(selected, isOpen) : defaultTrigger}
       </button>
 
       {isOpen && selected
@@ -195,12 +166,7 @@ export function DropdownSelect<T extends string | number>({
             <ul
               ref={menuRef}
               id={menuId}
-              className={[
-                "dropdown-select-menu",
-                menuAccentColor ? "dropdown-select-menu--accent" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
+              className={['dropdown-select-menu', menuAccentColor ? 'dropdown-select-menu--accent' : ''].filter(Boolean).join(' ')}
               style={{ ...menuStyle, ...accentMenuStyle }}
               role="listbox"
               aria-label={ariaLabel}
@@ -209,14 +175,7 @@ export function DropdownSelect<T extends string | number>({
                 <li key={String(option.value)} role="presentation">
                   <button
                     type="button"
-                    className={[
-                      "dropdown-select-option",
-                      valuesEqual(option.value, value)
-                        ? "dropdown-select-option--selected"
-                        : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
+                    className={['dropdown-select-option', valuesEqual(option.value, value) ? 'dropdown-select-option--selected' : ''].filter(Boolean).join(' ')}
                     role="option"
                     aria-selected={valuesEqual(option.value, value)}
                     data-testid={option.testId}
@@ -227,7 +186,7 @@ export function DropdownSelect<T extends string | number>({
                 </li>
               ))}
             </ul>,
-            document.body,
+            document.body
           )
         : null}
     </div>

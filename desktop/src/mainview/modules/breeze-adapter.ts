@@ -8,12 +8,8 @@ import {
   SendPaymentRequest,
   GetPaymentRequest,
   ListPaymentsRequest,
-} from "@breeztech/breez-sdk-liquid";
-import {
-  BreezConnection,
-  IBreezAdapter,
-  getAssertMetadata,
-} from "@shared/class/wallets/breez-wallet";
+} from '@breeztech/breez-sdk-liquid';
+import { BreezConnection, IBreezAdapter, getAssertMetadata } from '@shared/class/wallets/breez-wallet';
 
 const API_KEY = process.env.EXPO_PUBLIC_BREEZ_API_KEY;
 
@@ -25,14 +21,10 @@ class BreezAdapter implements IBreezAdapter {
 
   // This function is used to ensure that the SDK is initialized before calling the function
   // It also ensures that the SDK is not initialized multiple times at the same times
-  private withLockAndSdk<T, Args extends any[]>(
-    fn: (sdk: BindingLiquidSdk, ...args: Args) => Promise<T>,
-  ): (connection: BreezConnection, ...args: Args) => Promise<T> {
+  private withLockAndSdk<T, Args extends any[]>(fn: (sdk: BindingLiquidSdk, ...args: Args) => Promise<T>): (connection: BreezConnection, ...args: Args) => Promise<T> {
     return async (connection: BreezConnection, ...args: Args): Promise<T> => {
       let releaseLock: () => void = () => {};
-      const lockPromise = new Promise<void>(
-        (resolve) => (releaseLock = resolve),
-      );
+      const lockPromise = new Promise<void>((resolve) => (releaseLock = resolve));
       await this.sdkLock; // Wait for any ongoing SDK initialization to complete
       this.sdkLock = lockPromise; // Set new lock
 
@@ -50,11 +42,7 @@ class BreezAdapter implements IBreezAdapter {
       // Desktop uses the breez "bundle" entry: WASM is initialized when the module is first imported.
       this.initialized = true;
     }
-    if (
-      connection.mnemonic === this.cc?.mnemonic &&
-      connection.network === this.cc?.network &&
-      this.sdk
-    ) {
+    if (connection.mnemonic === this.cc?.mnemonic && connection.network === this.cc?.network && this.sdk) {
       return this.sdk;
     }
     await this.sdk?.disconnect();
@@ -73,24 +61,15 @@ class BreezAdapter implements IBreezAdapter {
     return await sdk.fetchLightningLimits();
   }
 
-  private async prepareReceivePayment(
-    sdk: BindingLiquidSdk,
-    args: PrepareReceiveRequest,
-  ) {
+  private async prepareReceivePayment(sdk: BindingLiquidSdk, args: PrepareReceiveRequest) {
     return await sdk.prepareReceivePayment(args);
   }
 
-  private async receivePayment(
-    sdk: BindingLiquidSdk,
-    args: ReceivePaymentRequest,
-  ) {
+  private async receivePayment(sdk: BindingLiquidSdk, args: ReceivePaymentRequest) {
     return await sdk.receivePayment(args);
   }
 
-  private async prepareSendPayment(
-    sdk: BindingLiquidSdk,
-    args: PrepareSendRequest,
-  ) {
+  private async prepareSendPayment(sdk: BindingLiquidSdk, args: PrepareSendRequest) {
     return await sdk.prepareSendPayment(args);
   }
 
@@ -108,16 +87,10 @@ class BreezAdapter implements IBreezAdapter {
 
   get api() {
     const getInfo = this.withLockAndSdk(this.getInfo.bind(this));
-    const fetchLightningLimits = this.withLockAndSdk(
-      this.fetchLightningLimits.bind(this),
-    );
-    const prepareReceivePayment = this.withLockAndSdk(
-      this.prepareReceivePayment.bind(this),
-    );
+    const fetchLightningLimits = this.withLockAndSdk(this.fetchLightningLimits.bind(this));
+    const prepareReceivePayment = this.withLockAndSdk(this.prepareReceivePayment.bind(this));
     const receivePayment = this.withLockAndSdk(this.receivePayment.bind(this));
-    const prepareSendPayment = this.withLockAndSdk(
-      this.prepareSendPayment.bind(this),
-    );
+    const prepareSendPayment = this.withLockAndSdk(this.prepareSendPayment.bind(this));
     const sendPayment = this.withLockAndSdk(this.sendPayment.bind(this));
     const getPayment = this.withLockAndSdk(this.getPayment.bind(this));
     const listPayments = this.withLockAndSdk(this.listPayments.bind(this));

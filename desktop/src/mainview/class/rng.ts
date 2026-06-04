@@ -1,4 +1,4 @@
-import { ICsprng } from "@shared/types/ICsprng";
+import { ICsprng } from '@shared/types/ICsprng';
 
 export const Csprng: ICsprng = {
   async randomBytes(size: number): Promise<Uint8Array> {

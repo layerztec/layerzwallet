@@ -1,69 +1,69 @@
 .detached-sheet-overlay {
-	position: fixed;
-	inset: 0;
-	z-index: 1100;
-	display: flex;
-	align-items: flex-end;
-	justify-content: center;
-	background: rgba(0, 0, 0, 0.45);
-	padding: 0 12px 16px;
-	box-sizing: border-box;
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 0 12px 16px;
+  box-sizing: border-box;
 }
 
 .detached-sheet-panel {
-	position: relative;
-	width: 100%;
-	max-width: 520px;
-	border-radius: 32px;
-	overflow: hidden;
-	border: 2px solid rgba(255, 255, 255, 0.1);
-	box-sizing: border-box;
-	max-height: min(92vh, 720px);
-	display: flex;
-	flex-direction: column;
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  border-radius: 32px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+  max-height: min(92vh, 720px);
+  display: flex;
+  flex-direction: column;
 }
 
 .detached-sheet-bg {
-	position: absolute;
-	inset: 0;
-	pointer-events: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .detached-sheet-blur {
-	position: absolute;
-	inset: 0;
-	backdrop-filter: blur(50px);
-	-webkit-backdrop-filter: blur(50px);
-	background: rgba(255, 255, 255, 0.06);
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .detached-sheet-gradient {
-	position: absolute;
-	inset: 0;
-	background-color: #000000;
+  position: absolute;
+  inset: 0;
+  background-color: #000000;
 }
 
 .detached-sheet-handle-wrap {
-	display: flex;
-	justify-content: center;
-	padding-top: 10px;
-	padding-bottom: 4px;
-	flex-shrink: 0;
-	position: relative;
-	z-index: 1;
+  display: flex;
+  justify-content: center;
+  padding-top: 10px;
+  padding-bottom: 4px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .detached-sheet-handle {
-	width: 40px;
-	height: 5px;
-	border-radius: 3px;
-	background: rgba(255, 255, 255, 0.5);
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .detached-sheet-content {
-	position: relative;
-	z-index: 1;
-	overflow-y: auto;
-	flex: 1;
-	min-height: 0;
+  position: relative;
+  z-index: 1;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }

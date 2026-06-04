@@ -1,4 +1,4 @@
-import type { RPCSchema } from "electrobun/bun";
+import type { RPCSchema } from 'electrobun/bun';
 
 /**
  * Renderer ↔ Bun message contract for desktop-native operations.
@@ -31,7 +31,7 @@ export type DesktopMessageTypeMap = {
 export type DesktopMessage = {
   [K in keyof DesktopMessageTypeMap]: {
     type: K;
-    params: DesktopMessageTypeMap[K]["params"];
+    params: DesktopMessageTypeMap[K]['params'];
   };
 }[keyof DesktopMessageTypeMap];
 

@@ -8,11 +8,11 @@ Desktop is a **Vite** app: secrets are inlined when Vite **builds** or when the 
 
 Set `EXPO_PUBLIC_BREEZ_API_KEY` (required for Liquid / Breez) in any of these places:
 
-| Location | Notes |
-|----------|--------|
-| `desktop/.env` | Recommended for desktop-only work |
-| `mobile/.env` | Loaded automatically (same monorepo key as mobile) |
-| Shell before `bun run start` | `export EXPO_PUBLIC_BREEZ_API_KEY=...` |
+| Location                     | Notes                                              |
+| ---------------------------- | -------------------------------------------------- |
+| `desktop/.env`               | Recommended for desktop-only work                  |
+| `mobile/.env`                | Loaded automatically (same monorepo key as mobile) |
+| Shell before `bun run start` | `export EXPO_PUBLIC_BREEZ_API_KEY=...`             |
 
 ```bash
 cp desktop/.env.example desktop/.env

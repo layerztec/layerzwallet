@@ -5,6 +5,6 @@ export async function ensureWalletAdapters(): Promise<void> {
     return;
   }
   adaptersLoaded = true;
-  await import("./breeze-adapter");
-  await import("./spark-adapter");
+  await import('./breeze-adapter');
+  await import('./spark-adapter');
 }

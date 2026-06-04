@@ -1,14 +1,14 @@
-import { existsSync } from "fs";
-import { join, resolve } from "path";
-import { dlopen, FFIType, suffix } from "bun:ffi";
+import { existsSync } from 'fs';
+import { join, resolve } from 'path';
+import { dlopen, FFIType, suffix, type Pointer } from 'bun:ffi';
 
 /** Set GTK / _NET_WM_ICON from the bundled appIcon.png (Elementary dock, task switcher). */
 export function applyLinuxWindowIcon(windowPtr: unknown): void {
-  if (process.platform !== "linux" || !windowPtr) {
+  if (process.platform !== 'linux' || !windowPtr) {
     return;
   }
 
-  const iconPath = resolve(process.cwd(), "../Resources/appIcon.png");
+  const iconPath = resolve(process.cwd(), '../Resources/appIcon.png');
   if (!existsSync(iconPath)) {
     console.warn(`[linux-window-icon] Icon not found: ${iconPath}`);
     return;
@@ -22,8 +22,8 @@ export function applyLinuxWindowIcon(windowPtr: unknown): void {
         returns: FFIType.void,
       },
     });
-    lib.symbols.setWindowIcon(windowPtr, Buffer.from(`${iconPath}\0`));
+    lib.symbols.setWindowIcon(windowPtr as Pointer, Buffer.from(`${iconPath}\0`));
   } catch (error) {
-    console.warn("[linux-window-icon] setWindowIcon failed:", error);
+    console.warn('[linux-window-icon] setWindowIcon failed:', error);
   }
 }
