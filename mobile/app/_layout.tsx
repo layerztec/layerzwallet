@@ -35,6 +35,7 @@ import { toastConfig } from '@/components/toast-config';
 import { configureMcp, handleMcpRequest, resetMcpSessions } from '@shared/features/mcp/modules/mcp';
 import { startTunnel } from '@shared/features/mcp/modules/tunnel';
 import { mobileAppLifecycle, mobileMcpDeps } from '@/src/features/mcp/modules/mcp-platform';
+import { TunnelKeepAwake } from '@/src/features/mcp/components/TunnelKeepAwake';
 import { appendLog, applogFilePath, handleError } from '@/src/modules/error-handler';
 import { TransferFlowProvider } from '@/src/transfer/TransferFlowContext';
 import { buildSwapCompletedProperties } from '@shared/modules/swap-analytics';
@@ -150,6 +151,7 @@ export default function RootLayout() {
           <AskPasswordContextProvider>
             <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} platform={'MOBILE'}>
               <TunnelBootstrap />
+              <TunnelKeepAwake />
               <SettingsContextProvider storage={LayerzStorage}>
                 <AuthStateContextProvider>
                   <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
