@@ -13,6 +13,7 @@ import { isValidSparkAddress } from '@buildonspark/spark-sdk';
 import * as z from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { EvmWallet } from '../../../class/evm-wallet';
 import { walletCanHaveNfts } from '../../../class/wallets/interface-can-have-nfts';
 import { walletCanHaveTokens } from '../../../class/wallets/interface-can-have-tokens';
 import { walletSupportsLightning } from '../../../class/wallets/interface-lightning-wallet';
@@ -22,8 +23,8 @@ import { balanceFetcher } from '../../../hooks/useBalance';
 import { tokenBalanceFetcher } from '../../../hooks/useTokenBalance';
 import { getTransferServiceManager, setFlashnetAccountNumber, useTransferService } from '../../../hooks/useTransferService';
 import { getAssetInfo } from '../../../models/asset-info';
-import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '../../../models/network-getters';
-import { getTokenList } from '../../../models/token-list';
+import { getDecimalsByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '../../../models/network-getters';
+import { getTokenInfo, getTokenList } from '../../../models/token-list';
 import { validateAddress, type TSupportedLazyInitWalletNetworks } from '../../../modules/wallet-utils';
 import { AssetId } from '../../../types/asset';
 import {
@@ -69,13 +70,12 @@ function mcpListableNetworks(): Networks[] {
 const mcpPositiveBaseUnitsString = z.string().regex(/^[1-9]\d*$/, 'Must be a positive integer string in smallest token units (no decimals), e.g. "1000000".');
 
 /**
- * Networks `transfer_token` can write to — i.e. wallets that self-discover held tokens via the
- * SDK (`InterfaceCanHaveTokens`). Also used as the discovery branch of `list_tokens`. Kept narrow
- * because EVM token transfer uses a different pipeline (createTokenTransferTransaction + gas) not
- * wired into MCP yet. Pairs with the read-only superset {@link MCP_TOKEN_READ_NETWORKS}.
+ * Networks whose wallets self-discover held tokens via the SDK (`InterfaceCanHaveTokens`) and
+ * transfer through `wallet.transferToken(...)`. Also the discovery branch of `list_tokens`.
+ * EVM token transfer takes a separate code path (see {@link MCP_EVM_TOKEN_TRANSFER_NETWORKS}),
+ * so this stays narrow. Pairs with the read-only superset {@link MCP_TOKEN_READ_NETWORKS}.
  */
 const MCP_TOKEN_WRITE_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
-const mcpTokenWriteNetworkSchema = z.enum(MCP_TOKEN_WRITE_NETWORKS);
 
 /**
  * Networks `list_tokens` can read. Superset of {@link MCP_TOKEN_WRITE_NETWORKS}: also includes every
@@ -91,6 +91,27 @@ const MCP_TOKEN_READ_NETWORKS: Networks[] = (() => {
   return [...set];
 })();
 const mcpTokenReadNetworkSchema = z.enum(MCP_TOKEN_READ_NETWORKS as [string, ...string[]]);
+
+/**
+ * EVM networks `transfer_token` can write to: the EVM members of the curated read set. EVM wallets
+ * don't implement `InterfaceCanHaveTokens`; they transfer via the same low-level path as the UI
+ * token-send screen (`createTokenTransferTransaction → prepareTransaction → signTransaction →
+ * broadcastTransaction`). Derived so new curated EVM chains are picked up automatically.
+ */
+const MCP_EVM_TOKEN_TRANSFER_NETWORKS: Networks[] = MCP_TOKEN_READ_NETWORKS.filter((n) => getIsEVM(n));
+
+/**
+ * All networks `transfer_token` accepts: SDK token-interface wallets (Spark/Stacks) plus EVM L2s.
+ * The handler routes EVM networks through the UI token-send path and the rest through
+ * `wallet.transferToken(...)`.
+ */
+const MCP_TOKEN_TRANSFER_NETWORKS: Networks[] = [...MCP_TOKEN_WRITE_NETWORKS, ...MCP_EVM_TOKEN_TRANSFER_NETWORKS];
+// Cast to a non-empty tuple of `Networks` (not `string`) so the schema's inferred type — and thus
+// the handler's `network` param — stays `Networks`, avoiding a downstream `as Networks` cast.
+const mcpTokenTransferNetworkSchema = z.enum(MCP_TOKEN_TRANSFER_NETWORKS as [Networks, ...Networks[]]);
+
+/** Max EVM fee "speed up" multiplier exposed to MCP. */
+const MCP_EVM_FEE_MULTIPLIER_MAX = 5;
 
 /** Networks supported by list_nfts / transfer_nft. */
 const MCP_NFT_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
@@ -362,22 +383,120 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     'transfer_token',
     {
       title: 'Transfer fungible token on a network',
-      description: `Sends \`amount_base_units\` (smallest units, integer string — same as list_tokens \`balance_base_units\`) of \`token_id\` to \`receiver_address\`. \`network\` must be one of: ${MCP_TOKEN_WRITE_NETWORKS.join(', ')}. Call list_tokens first; **pass \`token_id\` exactly as returned** (verbatim string from the tool output). Malformed or chat-transcribed ids will fail; use the exact value from MCP JSON, not a human summary.`,
+      description: `Sends \`amount_base_units\` (smallest units, integer string — same as list_tokens \`balance_base_units\`) of \`token_id\` to \`receiver_address\`. \`network\` must be one of: ${MCP_TOKEN_TRANSFER_NETWORKS.join(', ')}. Call list_tokens first; **pass \`token_id\` exactly as returned** (verbatim string from the tool output). Malformed or chat-transcribed ids will fail; use the exact value from MCP JSON, not a human summary. On EVM chains (${MCP_EVM_TOKEN_TRANSFER_NETWORKS.join(', ')}) \`token_id\` is the ERC-20 contract address and the transfer pays gas in the chain's native coin; only tokens from list_tokens are supported.`,
       inputSchema: {
-        network: mcpTokenWriteNetworkSchema.describe(`Network id; only ${MCP_TOKEN_WRITE_NETWORKS.join(', ')} supported today.`),
+        network: mcpTokenTransferNetworkSchema.describe(`Network id; one of: ${MCP_TOKEN_TRANSFER_NETWORKS.join(', ')}.`),
         token_id: z
           .string()
           .min(1)
-          .describe('Exact `token_id` string from list_tokens for the same `network` — copy verbatim from tool output (no edits). Leading/trailing whitespace is trimmed only.'),
+          .describe(
+            'Exact `token_id` string from list_tokens for the same `network` — copy verbatim from tool output (no edits). For EVM chains this is the ERC-20 contract address. Leading/trailing whitespace is trimmed only.'
+          ),
         amount_base_units: mcpPositiveBaseUnitsString.describe('Amount to send in smallest token units (positive integer string).'),
-        receiver_address: z.string().min(1).describe('Recipient address (Spark: spark1…; Stacks: SP… / ST… principal).'),
+        receiver_address: z.string().min(1).describe('Recipient address (Spark: spark1…; Stacks: SP… / ST… principal; EVM: 0x… address).'),
+        fee_multiplier: z
+          .number()
+          .int()
+          .min(1)
+          .max(MCP_EVM_FEE_MULTIPLIER_MAX)
+          .optional()
+          .describe(
+            `EVM only: gas-price "speed up" multiplier, integer 1-${MCP_EVM_FEE_MULTIPLIER_MAX} (default 1 = network default). Higher values pay more gas for faster inclusion. Ignored on non-EVM networks.`
+          ),
       },
     },
-    async ({ network, token_id, amount_base_units, receiver_address }) => {
+    async ({ network, token_id, amount_base_units, receiver_address, fee_multiplier }) => {
+      const net = network;
       const tid = token_id.trim();
       const addr = receiver_address.trim();
-      mcpCallLog(`transfer_token: start - ${network}, token ${tid.slice(0, 12)}… amount ${amount_base_units}`);
+      const feeMultiplier = fee_multiplier ?? 1;
+      mcpCallLog(`transfer_token: start - ${net}, token ${tid.slice(0, 12)}… amount ${amount_base_units}`);
       trackMcpCall(deps, 'transfer_token');
+
+      if (getIsEVM(net)) {
+        if (!EvmWallet.isAddressValid(addr)) {
+          mcpCallLog(`transfer_token: error - invalid EVM address (${net})`);
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'Invalid EVM receiver address.', network: net }, null, 2) }],
+          };
+        }
+        try {
+          // Resolve curated token metadata (throws for unlisted contracts → caught below).
+          const token = getTokenInfo(tid);
+
+          // Mirror the UI EVM token-send path (e.g. mobile SendTokenEvm.tsx): build the ERC-20
+          // transfer, prepare gas with the fee multiplier, sign with the master seed, broadcast.
+          const evm = new EvmWallet();
+          const fromAddress = await backgroundCaller.getAddress(net, MCP_BALANCE_ACCOUNT_NUMBER);
+
+          // Pre-flight balance check (the UI asserts the same) so we don't broadcast a tx that
+          // would revert on-chain and waste gas.
+          const tokenBalance = await tokenBalanceFetcher({ cacheKey: 'mcpTransferToken', accountNumber: MCP_BALANCE_ACCOUNT_NUMBER, network: net, tokenContractAddress: tid, backgroundCaller });
+          if (BigInt(tokenBalance ?? '0') < BigInt(amount_base_units)) {
+            mcpCallLog(`transfer_token: error - insufficient token balance (${tokenBalance ?? '0'} < ${amount_base_units})`);
+            return {
+              isError: true,
+              content: [
+                { type: 'text', text: JSON.stringify({ error: 'Insufficient token balance.', network: net, token_id: tid, amount_base_units, balance_base_units: tokenBalance ?? '0' }, null, 2) },
+              ],
+            };
+          }
+
+          const paymentTransaction = await evm.createTokenTransferTransaction(fromAddress, addr, token, amount_base_units);
+          const feeData = await evm.getFeeData(net);
+          const prepared = await evm.prepareTransaction(paymentTransaction, net, feeData, BigInt(feeMultiplier));
+
+          let baseFee = 0n;
+          try {
+            baseFee = await evm.getBaseFeePerGas(net);
+          } catch {}
+          const fee = evm.calculateMinFee(baseFee, prepared);
+
+          const mnemonic = await backgroundCaller.getMasterSeed();
+          const signedTx = await evm.signTransaction(prepared, mnemonic, MCP_BALANCE_ACCOUNT_NUMBER);
+          const transfer_id = await evm.broadcastTransaction(net, signedTx);
+          if (!transfer_id || typeof transfer_id !== 'string') {
+            mcpCallLog('transfer_token: error - broadcast did not return a txid (EVM)');
+            return {
+              isError: true,
+              content: [{ type: 'text', text: JSON.stringify({ error: 'Transfer did not return an id.', network: net }, null, 2) }],
+            };
+          }
+          mcpCallLog(`transfer_token: ok - ${net} ${transfer_id}`);
+          showMcpSuccess(deps, `Sent token (${net})`, transfer_id.slice(0, 16));
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    success: true,
+                    network: net,
+                    transfer_id,
+                    token_id: tid,
+                    amount_base_units,
+                    receiver_address: addr,
+                    fee_base_units: fee,
+                    fee_ticker: getTickerByNetwork(net),
+                    fee_multiplier: feeMultiplier,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        } catch (e) {
+          const message = e instanceof Error ? e.message : String(e);
+          mcpCallLog(`transfer_token: error - ${net}: ${message}`);
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: message, network: net }, null, 2) }],
+          };
+        }
+      }
+
       if (network === NETWORK_SPARK && !isValidSparkAddress(addr)) {
         mcpCallLog(`transfer_token: error - invalid Spark address`);
         return {
@@ -423,10 +542,10 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
         await balanceFetcher({
           cacheKey: 'mcpTransferToken',
           accountNumber: MCP_BALANCE_ACCOUNT_NUMBER,
-          network,
+          network: net,
           backgroundCaller,
         });
-        const w = await backgroundCaller.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
+        const w = await backgroundCaller.lazyInitWallet(net as TSupportedLazyInitWalletNetworks, MCP_BALANCE_ACCOUNT_NUMBER);
         if (!walletCanHaveTokens(w)) {
           mcpCallLog(`transfer_token: error - no token support (${network})`);
           return {
