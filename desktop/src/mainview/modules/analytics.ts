@@ -1,6 +1,7 @@
-import { init, trackEvent, dispose } from '@aptabase/react-native';
-
+import { init, trackEvent } from '@aptabase/web';
 import type { AnalyticsEventPropertiesMap, AnalyticsEvents, AnalyticsPropertyValue } from '@shared/types/analytics';
+
+import { version as appVersion } from '../../../package.json';
 import { handleError } from './error-handler';
 
 let isAnalyticsEnabled = false;
@@ -13,7 +14,10 @@ export const initializeAnalytics = (aptabaseAppKey?: string) => {
   }
 
   try {
-    init(aptabaseAppKey);
+    init(aptabaseAppKey, {
+      appVersion,
+      isDebug: process.env.NODE_ENV !== 'production',
+    });
     console.log('Analytics initialized successfully');
     isAnalyticsEnabled = true;
   } catch (error) {
@@ -28,23 +32,13 @@ export const trackAnalyticsEvent = <TEventName extends AnalyticsEvents>(eventNam
   }
 
   try {
-    trackEvent(eventName, properties as Record<string, AnalyticsPropertyValue>);
+    // @aptabase/web's trackEvent is fire-and-forget (returns a promise); swallow rejections so analytics never breaks the app.
+    void trackEvent(eventName, properties as Record<string, AnalyticsPropertyValue>).catch((error) => {
+      handleError(error, `analytics:trackEvent:${eventName}`);
+    });
     console.log('Analytics event logged:', eventName, JSON.stringify(properties));
   } catch (error) {
     handleError(error, `analytics:trackEvent:${eventName}`);
     console.error(`Analytics failed during trackEvent:${eventName}:`, error);
-  }
-};
-
-export const disposeAnalytics = () => {
-  if (!isAnalyticsEnabled) {
-    return;
-  }
-
-  try {
-    dispose();
-  } catch (error) {
-    handleError(error, 'analytics:dispose');
-    console.error('Analytics failed during dispose:', error);
   }
 };

@@ -5,6 +5,9 @@
  */
 
 import { LayerzStorage } from '../../../class/layerz-storage';
+import { AnalyticsEvents } from '@shared/types/analytics';
+
+import { trackAnalyticsEvent } from '../../../modules/analytics';
 import { BackgroundCaller } from '../../../modules/background-caller';
 import type { AppLifecycle, McpCallDeps } from '@shared/features/mcp/modules/mcp-deps';
 
@@ -17,6 +20,7 @@ export const desktopMcpDeps: McpCallDeps = {
   },
   trackToolCall: (toolName) => {
     console.log('[mcp] tool call:', toolName);
+    trackAnalyticsEvent(AnalyticsEvents.McpCall, { tool_name: toolName });
   },
 };
 

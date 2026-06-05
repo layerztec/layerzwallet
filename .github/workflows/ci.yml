@@ -299,10 +299,11 @@ jobs:
             arch: x64
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
-    # Only the EXPO_PUBLIC_* vars the desktop build actually inlines/consumes (Vite + breez adapter + Garden provider).
+    # Only the EXPO_PUBLIC_* vars the desktop build actually inlines/consumes (Vite + breez adapter + Garden provider + Aptabase analytics).
     env:
       EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
       EXPO_PUBLIC_GARDEN_APP_ID: ${{ secrets.EXPO_PUBLIC_GARDEN_APP_ID }}
+      EXPO_PUBLIC_APTABASE_KEY: ${{ secrets.EXPO_PUBLIC_APTABASE_KEY }}
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
@@ -335,10 +336,11 @@ jobs:
   desktop-build-linux:
     runs-on: ubuntu-latest # x64
     timeout-minutes: 30
-    # Only the EXPO_PUBLIC_* vars the desktop build actually inlines/consumes (Vite + breez adapter + Garden provider).
+    # Only the EXPO_PUBLIC_* vars the desktop build actually inlines/consumes (Vite + breez adapter + Garden provider + Aptabase analytics).
     env:
       EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
       EXPO_PUBLIC_GARDEN_APP_ID: ${{ secrets.EXPO_PUBLIC_GARDEN_APP_ID }}
+      EXPO_PUBLIC_APTABASE_KEY: ${{ secrets.EXPO_PUBLIC_APTABASE_KEY }}
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
@@ -371,10 +373,11 @@ jobs:
   desktop-build-windows:
     runs-on: windows-latest # x64
     timeout-minutes: 30
-    # Only the EXPO_PUBLIC_* vars the desktop build actually inlines/consumes (Vite + breez adapter + Garden provider).
+    # Only the EXPO_PUBLIC_* vars the desktop build actually inlines/consumes (Vite + breez adapter + Garden provider + Aptabase analytics).
     env:
       EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
       EXPO_PUBLIC_GARDEN_APP_ID: ${{ secrets.EXPO_PUBLIC_GARDEN_APP_ID }}
+      EXPO_PUBLIC_APTABASE_KEY: ${{ secrets.EXPO_PUBLIC_APTABASE_KEY }}
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
