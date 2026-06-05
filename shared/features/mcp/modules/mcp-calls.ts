@@ -19,10 +19,12 @@ import { walletSupportsLightning } from '../../../class/wallets/interface-lightn
 import { MCP_BALANCE_ACCOUNT_NUMBER } from '../../../hooks/AccountNumberContext';
 import { exchangeRateFetcher } from '../../../hooks/useExchangeRate';
 import { balanceFetcher } from '../../../hooks/useBalance';
+import { tokenBalanceFetcher } from '../../../hooks/useTokenBalance';
 import { getTransferServiceManager, setFlashnetAccountNumber, useTransferService } from '../../../hooks/useTransferService';
 import { getAssetInfo } from '../../../models/asset-info';
 import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '../../../models/network-getters';
-import { validateAddress } from '../../../modules/wallet-utils';
+import { getTokenList } from '../../../models/token-list';
+import { validateAddress, type TSupportedLazyInitWalletNetworks } from '../../../modules/wallet-utils';
 import { AssetId } from '../../../types/asset';
 import {
   getAvailableNetworks,
@@ -66,9 +68,29 @@ function mcpListableNetworks(): Networks[] {
 /** Positive integer string for token amounts in smallest units (no precision loss). */
 const mcpPositiveBaseUnitsString = z.string().regex(/^[1-9]\d*$/, 'Must be a positive integer string in smallest token units (no decimals), e.g. "1000000".');
 
-/** Networks supported by list_tokens / transfer_token. */
-const MCP_TOKEN_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
-const mcpTokenNetworkSchema = z.enum(MCP_TOKEN_NETWORKS);
+/**
+ * Networks `transfer_token` can write to — i.e. wallets that self-discover held tokens via the
+ * SDK (`InterfaceCanHaveTokens`). Also used as the discovery branch of `list_tokens`. Kept narrow
+ * because EVM token transfer uses a different pipeline (createTokenTransferTransaction + gas) not
+ * wired into MCP yet. Pairs with the read-only superset {@link MCP_TOKEN_READ_NETWORKS}.
+ */
+const MCP_TOKEN_WRITE_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
+const mcpTokenWriteNetworkSchema = z.enum(MCP_TOKEN_WRITE_NETWORKS);
+
+/**
+ * Networks `list_tokens` can read. Superset of {@link MCP_TOKEN_WRITE_NETWORKS}: also includes every
+ * mainnet network that ships a curated token list (EVM L2s like Rootstock/Botanix, plus Liquid),
+ * for which there is no on-chain discovery — we enumerate the list and query each balance.
+ * Derived from the bundled token list so new curated networks are picked up automatically.
+ */
+const MCP_TOKEN_READ_NETWORKS: Networks[] = (() => {
+  const set = new Set<Networks>([...MCP_TOKEN_WRITE_NETWORKS]);
+  for (const n of mcpListableNetworks()) {
+    if (getTokenList(n).length > 0) set.add(n);
+  }
+  return [...set];
+})();
+const mcpTokenReadNetworkSchema = z.enum(MCP_TOKEN_READ_NETWORKS as [string, ...string[]]);
 
 /** Networks supported by list_nfts / transfer_nft. */
 const MCP_NFT_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
@@ -266,46 +288,64 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     {
       title: 'List fungible tokens and balances for a network',
       description:
-        `Returns fungible tokens (not NFTs) with \`balance_base_units\` (smallest units), \`decimals\`, \`symbol\`, and \`token_id\`. Refreshes balances first. \`network\` must be one of: ${MCP_TOKEN_NETWORKS.join(', ')}.\n\n` +
+        `Returns fungible tokens (not NFTs) you currently hold (non-zero balance), each with \`balance_base_units\` (smallest units), \`decimals\`, \`symbol\`, and \`token_id\`. Refreshes balances first. \`network\` must be one of: ${MCP_TOKEN_READ_NETWORKS.join(', ')}.\n\n` +
         MCP_BASE_UNITS_GUIDANCE +
         "\n\nFor USDB swaps on Spark (`get_swap_quote` with `send_asset` `token:spark:usdb`), use that token's `balance_base_units` **as-is** for `send_amount_base_units` when selling the full balance.\n\n" +
         '**Each `token_id` in the response must be copied exactly** (same string, character-for-character) into `transfer_token`; do not shorten, reformat, or infer from name/symbol.',
       inputSchema: {
-        network: mcpTokenNetworkSchema.describe(`Network id; only ${MCP_TOKEN_NETWORKS.join(', ')} supported today.`),
+        network: mcpTokenReadNetworkSchema.describe(`Network id; one of: ${MCP_TOKEN_READ_NETWORKS.join(', ')}.`),
       },
     },
     async ({ network }) => {
-      mcpCallLog(`list_tokens: start - ${network}`);
+      const net = network as Networks;
+      mcpCallLog(`list_tokens: start - ${net}`);
       trackMcpCall(deps, 'list_tokens');
       try {
-        await balanceFetcher({
-          cacheKey: 'mcpListTokens',
-          accountNumber: MCP_BALANCE_ACCOUNT_NUMBER,
-          network,
-          backgroundCaller,
-        });
-        const w = await backgroundCaller.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
-        if (!walletCanHaveTokens(w)) {
-          mcpCallLog(`list_tokens: error - wallet cannot hold tokens (${network})`);
-          return {
-            isError: true,
-            content: [{ type: 'text', text: JSON.stringify({ error: 'Wallet does not expose token balances for this network.', network }, null, 2) }],
-          };
+        let tokens: Array<{ token_id: string; name: string; symbol: string; decimals: number; balance_base_units: string }>;
+
+        if ((MCP_TOKEN_WRITE_NETWORKS as readonly string[]).includes(net)) {
+          // Account-based wallets (Spark/Stacks) self-discover held tokens via the SDK.
+          await balanceFetcher({ cacheKey: 'mcpListTokens', accountNumber: MCP_BALANCE_ACCOUNT_NUMBER, network: net, backgroundCaller });
+          const w = await backgroundCaller.lazyInitWallet(net as TSupportedLazyInitWalletNetworks, MCP_BALANCE_ACCOUNT_NUMBER);
+          if (!walletCanHaveTokens(w)) {
+            mcpCallLog(`list_tokens: error - wallet cannot hold tokens (${net})`);
+            return {
+              isError: true,
+              content: [{ type: 'text', text: JSON.stringify({ error: 'Wallet does not expose token balances for this network.', network: net }, null, 2) }],
+            };
+          }
+          if (net === NETWORK_STACKS) {
+            await w.fetchTokenBalances();
+          }
+          tokens = w.getTokenBalances().map((t) => ({
+            token_id: t.id,
+            name: t.name,
+            symbol: t.symbol,
+            decimals: t.decimals,
+            balance_base_units: t.balance ?? '0',
+          }));
+        } else {
+          // EVM/Liquid have no on-chain token discovery: enumerate the curated token list and
+          // query each balance (ERC20 balanceOf / Breez asset balances), keeping only held tokens.
+          const candidates = getTokenList(net);
+          const balances = await Promise.all(
+            candidates.map((t) => tokenBalanceFetcher({ cacheKey: 'mcpListTokens', accountNumber: MCP_BALANCE_ACCOUNT_NUMBER, network: net, tokenContractAddress: t.id, backgroundCaller }))
+          );
+          tokens = candidates
+            .map((t, i) => ({
+              token_id: t.id,
+              name: t.name,
+              symbol: t.symbol,
+              decimals: t.decimals,
+              balance_base_units: balances[i] ?? '0',
+            }))
+            .filter((t) => t.balance_base_units !== '0' && t.balance_base_units !== '');
         }
-        if (network === NETWORK_STACKS) {
-          await w.fetchTokenBalances();
-        }
-        const tokens = w.getTokenBalances().map((t) => ({
-          token_id: t.id,
-          name: t.name,
-          symbol: t.symbol,
-          decimals: t.decimals,
-          balance_base_units: t.balance ?? '0',
-        }));
-        mcpCallLog(`list_tokens: ok - ${network}, ${tokens.length} token(s)`);
-        showMcpSuccess(deps, `Listed tokens (${network})`, `${tokens.length} token(s)`);
+
+        mcpCallLog(`list_tokens: ok - ${net}, ${tokens.length} token(s)`);
+        showMcpSuccess(deps, `Listed tokens (${net})`, `${tokens.length} token(s)`);
         return {
-          content: [{ type: 'text', text: JSON.stringify({ network, tokens }, null, 2) }],
+          content: [{ type: 'text', text: JSON.stringify({ network: net, tokens }, null, 2) }],
         };
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
@@ -322,9 +362,9 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     'transfer_token',
     {
       title: 'Transfer fungible token on a network',
-      description: `Sends \`amount_base_units\` (smallest units, integer string — same as list_tokens \`balance_base_units\`) of \`token_id\` to \`receiver_address\`. \`network\` must be one of: ${MCP_TOKEN_NETWORKS.join(', ')}. Call list_tokens first; **pass \`token_id\` exactly as returned** (verbatim string from the tool output). Malformed or chat-transcribed ids will fail; use the exact value from MCP JSON, not a human summary.`,
+      description: `Sends \`amount_base_units\` (smallest units, integer string — same as list_tokens \`balance_base_units\`) of \`token_id\` to \`receiver_address\`. \`network\` must be one of: ${MCP_TOKEN_WRITE_NETWORKS.join(', ')}. Call list_tokens first; **pass \`token_id\` exactly as returned** (verbatim string from the tool output). Malformed or chat-transcribed ids will fail; use the exact value from MCP JSON, not a human summary.`,
       inputSchema: {
-        network: mcpTokenNetworkSchema.describe(`Network id; only ${MCP_TOKEN_NETWORKS.join(', ')} supported today.`),
+        network: mcpTokenWriteNetworkSchema.describe(`Network id; only ${MCP_TOKEN_WRITE_NETWORKS.join(', ')} supported today.`),
         token_id: z
           .string()
           .min(1)
