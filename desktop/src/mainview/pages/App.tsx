@@ -19,6 +19,8 @@ import { BackgroundCaller } from '../modules/background-caller';
 import { Messenger } from '../modules/messenger';
 import { TunnelBootstrap } from '../components/mcp/TunnelBootstrap';
 import { DesktopOmitArkNetworkGuard } from '../components/DesktopOmitArkNetworkGuard';
+import { SwapAnalyticsBootstrap } from '../components/SwapAnalyticsBootstrap';
+import AutoClaimMonitor from '../components/AutoClaimMonitor';
 import ActionPopupModal from './ActionPopupModal';
 import McpPermissionsModal from './McpPermissionsModal';
 import McpTunnelUrlModal from './McpTunnelUrlModal';
@@ -82,6 +84,7 @@ const AppContent: React.FC = () => {
         return (
           <>
             <TunnelBootstrap />
+            <SwapAnalyticsBootstrap />
             <Routes>
               <Route element={<WalletShell />}>
                 <Route path="/home" />
@@ -129,6 +132,7 @@ const App: React.FC = () => {
                 <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller} messenger={Messenger}>
                   <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller} messenger={Messenger}>
                     <DesktopOmitArkNetworkGuard />
+                    <AutoClaimMonitor />
                     <ActionPopupProvider>
                       <AppContent />
                     </ActionPopupProvider>

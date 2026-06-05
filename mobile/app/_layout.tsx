@@ -8,7 +8,6 @@ import { AppState, AppStateStatus, LogBox, Platform } from 'react-native';
 import 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
 import { SWRConfig } from 'swr';
-import BigNumber from 'bignumber.js';
 
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
@@ -38,7 +37,7 @@ import { startTunnel } from '@shared/features/mcp/modules/tunnel';
 import { mobileAppLifecycle, mobileMcpDeps } from '@/src/features/mcp/modules/mcp-platform';
 import { appendLog, applogFilePath, handleError } from '@/src/modules/error-handler';
 import { TransferFlowProvider } from '@/src/transfer/TransferFlowContext';
-import { TransferExecution } from '@shared/types/transfer';
+import { buildSwapCompletedProperties } from '@shared/modules/swap-analytics';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -85,45 +84,8 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    transferService.onTransferCompleted = (execution: TransferExecution) => {
-      let sat = 0;
-
-      // trying to decypher satoshi amount of the swap:
-      // if one of the assets in pair is pegged to btc we use that, with SEND being a priority, so
-      // its later in code
-      switch (execution.receiveAsset) {
-        case 'native:arkade':
-        case 'native:bitcoin':
-        case 'native:citrea':
-        case 'native:lightning':
-        case 'native:botanix':
-        case 'native:liquid':
-        case 'native:spark':
-          sat = new BigNumber(execution.receiveAmount).multipliedBy(1e8).toNumber();
-          break;
-      }
-
-      switch (execution.sendAsset) {
-        case 'native:arkade':
-        case 'native:bitcoin':
-        case 'native:citrea':
-        case 'native:lightning':
-        case 'native:botanix':
-        case 'native:liquid':
-        case 'native:spark':
-          sat = new BigNumber(execution.sendAmount).multipliedBy(1e8).toNumber();
-          break;
-      }
-
-      // if we ever have token-to-token swaps we will have to decide how to resolve sat equivalent here
-
-      trackAnalyticsEvent(AnalyticsEvents.SwapCompleted, {
-        provider: execution.serviceName,
-        sendAsset: execution.sendAsset,
-        receiveAsset: execution.receiveAsset,
-        id: execution.id,
-        sat,
-      });
+    transferService.onTransferCompleted = (execution) => {
+      trackAnalyticsEvent(AnalyticsEvents.SwapCompleted, buildSwapCompletedProperties(execution));
     };
 
     return () => {
