@@ -13,7 +13,16 @@ export enum DesktopMessageType {
   STORAGE_GET_ITEM,
   STORAGE_SET_ITEM,
   STORAGE_CLEAR,
+  SHOW_NOTIFICATION,
 }
+
+/** Native OS notification options (subset of Electrobun's `Utils.NotificationOptions`). */
+export type DesktopNotificationOptions = {
+  title: string;
+  body?: string;
+  subtitle?: string;
+  silent?: boolean;
+};
 
 export type DesktopMessageTypeMap = {
   [DesktopMessageType.STORAGE_GET_ITEM]: {
@@ -25,6 +34,10 @@ export type DesktopMessageTypeMap = {
     response: null;
   };
   [DesktopMessageType.STORAGE_CLEAR]: { params: []; response: null };
+  [DesktopMessageType.SHOW_NOTIFICATION]: {
+    params: [options: DesktopNotificationOptions];
+    response: null;
+  };
 };
 
 /** Discriminated envelope crossing the RPC channel. */

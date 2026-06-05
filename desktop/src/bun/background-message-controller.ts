@@ -1,3 +1,5 @@
+import { Utils } from 'electrobun/bun';
+
 import { DesktopMessageType, type DesktopMessage } from '../shared/desktop-messages';
 import { desktopStorage } from './desktop-storage';
 
@@ -17,6 +19,10 @@ export async function handleMessage(message: DesktopMessage): Promise<unknown> {
 
     case DesktopMessageType.STORAGE_CLEAR:
       await desktopStorage.clear();
+      return null;
+
+    case DesktopMessageType.SHOW_NOTIFICATION:
+      Utils.showNotification(message.params[0]);
       return null;
 
     default: {

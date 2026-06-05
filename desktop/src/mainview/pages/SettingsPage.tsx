@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { RadialGradientScreen } from '../components/home/RadialGradientScreen';
 import { ThemedText } from '../components/ThemedText';
+import { showDesktopNotification } from '../modules/notifications';
 import { resetAppState } from '../modules/reset-app-state';
 import { runSelfDiagnostics, type DiagnosticResult } from '../modules/self-diagnostics';
 import { WalletToolButton } from '../components/home/WalletToolButton';
@@ -31,6 +32,14 @@ const SettingsPage: React.FC = () => {
     } finally {
       setIsDiagnosing(false);
     }
+  };
+
+  const handleTestNotification = async () => {
+    await showDesktopNotification({
+      title: 'Layerz Wallet',
+      subtitle: 'Test notification',
+      body: 'If you can see this, native OS notifications are working.',
+    });
   };
 
   const handleClearStorage = async () => {
@@ -61,6 +70,9 @@ const SettingsPage: React.FC = () => {
           </WalletToolButton>
           <WalletToolButton block onClick={handleRunDiagnostics} disabled={isDiagnosing} data-testid="run-diagnostics-button">
             {isDiagnosing ? 'Running self-test…' : 'Run self-test'}
+          </WalletToolButton>
+          <WalletToolButton block onClick={handleTestNotification} data-testid="test-notification-button">
+            Send test notification
           </WalletToolButton>
           <WalletToolButton block onClick={handleClearStorage} disabled={isResetting} data-testid="clear-storage-button">
             {isResetting ? 'Clearing…' : 'Clear storage'}
