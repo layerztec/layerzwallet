@@ -14,6 +14,7 @@ import * as z from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { EvmWallet } from '../../../class/evm-wallet';
+import { BreezWallet } from '../../../class/wallets/breez-wallet';
 import { walletCanHaveNfts } from '../../../class/wallets/interface-can-have-nfts';
 import { walletCanHaveTokens } from '../../../class/wallets/interface-can-have-tokens';
 import { walletSupportsLightning } from '../../../class/wallets/interface-lightning-wallet';
@@ -101,11 +102,19 @@ const mcpTokenReadNetworkSchema = z.enum(MCP_TOKEN_READ_NETWORKS as [string, ...
 const MCP_EVM_TOKEN_TRANSFER_NETWORKS: Networks[] = MCP_TOKEN_READ_NETWORKS.filter((n) => getIsEVM(n));
 
 /**
- * All networks `transfer_token` accepts: SDK token-interface wallets (Spark/Stacks) plus EVM L2s.
- * The handler routes EVM networks through the UI token-send path and the rest through
- * `wallet.transferToken(...)`.
+ * Liquid networks `transfer_token` can write to. Liquid (Breez) wallets don't implement
+ * `InterfaceCanHaveTokens` either; they transfer via the same Breez SDK path as the UI token-send
+ * screen (`prepareSendPayment` with an asset amount → `sendPayment`). Derived from the read set so
+ * it only appears when Liquid is a listable mainnet (today: just `liquid`).
  */
-const MCP_TOKEN_TRANSFER_NETWORKS: Networks[] = [...MCP_TOKEN_WRITE_NETWORKS, ...MCP_EVM_TOKEN_TRANSFER_NETWORKS];
+const MCP_LIQUID_TOKEN_TRANSFER_NETWORKS: Networks[] = MCP_TOKEN_READ_NETWORKS.filter((n) => n === NETWORK_LIQUID);
+
+/**
+ * All networks `transfer_token` accepts: SDK token-interface wallets (Spark/Stacks), EVM L2s, and
+ * Liquid. The handler routes EVM networks through the UI EVM token-send path, Liquid through the
+ * Breez SDK send path, and the rest through `wallet.transferToken(...)`.
+ */
+const MCP_TOKEN_TRANSFER_NETWORKS: Networks[] = [...MCP_TOKEN_WRITE_NETWORKS, ...MCP_EVM_TOKEN_TRANSFER_NETWORKS, ...MCP_LIQUID_TOKEN_TRANSFER_NETWORKS];
 // Cast to a non-empty tuple of `Networks` (not `string`) so the schema's inferred type — and thus
 // the handler's `network` param — stays `Networks`, avoiding a downstream `as Networks` cast.
 const mcpTokenTransferNetworkSchema = z.enum(MCP_TOKEN_TRANSFER_NETWORKS as [Networks, ...Networks[]]);
@@ -383,7 +392,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     'transfer_token',
     {
       title: 'Transfer fungible token on a network',
-      description: `Sends \`amount_base_units\` (smallest units, integer string — same as list_tokens \`balance_base_units\`) of \`token_id\` to \`receiver_address\`. \`network\` must be one of: ${MCP_TOKEN_TRANSFER_NETWORKS.join(', ')}. Call list_tokens first; **pass \`token_id\` exactly as returned** (verbatim string from the tool output). Malformed or chat-transcribed ids will fail; use the exact value from MCP JSON, not a human summary. On EVM chains (${MCP_EVM_TOKEN_TRANSFER_NETWORKS.join(', ')}) \`token_id\` is the ERC-20 contract address and the transfer pays gas in the chain's native coin; only tokens from list_tokens are supported.`,
+      description: `Sends \`amount_base_units\` (smallest units, integer string — same as list_tokens \`balance_base_units\`) of \`token_id\` to \`receiver_address\`. \`network\` must be one of: ${MCP_TOKEN_TRANSFER_NETWORKS.join(', ')}. Call list_tokens first; **pass \`token_id\` exactly as returned** (verbatim string from the tool output). Malformed or chat-transcribed ids will fail; use the exact value from MCP JSON, not a human summary. On EVM chains (${MCP_EVM_TOKEN_TRANSFER_NETWORKS.join(', ')}) \`token_id\` is the ERC-20 contract address and the transfer pays gas in the chain's native coin. On Liquid \`token_id\` is the Liquid asset id and the fee is paid in L-BTC. Only tokens from list_tokens are supported.`,
       inputSchema: {
         network: mcpTokenTransferNetworkSchema.describe(`Network id; one of: ${MCP_TOKEN_TRANSFER_NETWORKS.join(', ')}.`),
         token_id: z
@@ -393,7 +402,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
             'Exact `token_id` string from list_tokens for the same `network` — copy verbatim from tool output (no edits). For EVM chains this is the ERC-20 contract address. Leading/trailing whitespace is trimmed only.'
           ),
         amount_base_units: mcpPositiveBaseUnitsString.describe('Amount to send in smallest token units (positive integer string).'),
-        receiver_address: z.string().min(1).describe('Recipient address (Spark: spark1…; Stacks: SP… / ST… principal; EVM: 0x… address).'),
+        receiver_address: z.string().min(1).describe('Recipient address (Spark: spark1…; Stacks: SP… / ST… principal; EVM: 0x… address; Liquid: lq1… / VJ… address).'),
         fee_multiplier: z
           .number()
           .int()
@@ -480,6 +489,93 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                     fee_base_units: fee,
                     fee_ticker: getTickerByNetwork(net),
                     fee_multiplier: feeMultiplier,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        } catch (e) {
+          const message = e instanceof Error ? e.message : String(e);
+          mcpCallLog(`transfer_token: error - ${net}: ${message}`);
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: message, network: net }, null, 2) }],
+          };
+        }
+      }
+
+      if (net === NETWORK_LIQUID) {
+        if (!BreezWallet.isAddressValid(addr)) {
+          mcpCallLog(`transfer_token: error - invalid Liquid address`);
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'Invalid Liquid receiver address.', network: net }, null, 2) }],
+          };
+        }
+        try {
+          // Resolve curated token metadata (throws for unlisted asset ids → caught below).
+          const token = getTokenInfo(tid);
+
+          const wallet = await backgroundCaller.lazyInitWallet(NETWORK_LIQUID, MCP_BALANCE_ACCOUNT_NUMBER);
+          if (!(wallet instanceof BreezWallet)) {
+            mcpCallLog(`transfer_token: error - not a Breez wallet (liquid)`);
+            return {
+              isError: true,
+              content: [{ type: 'text', text: JSON.stringify({ error: 'Wallet does not support Liquid token transfers.', network: net }, null, 2) }],
+            };
+          }
+
+          // Pre-flight balance check (the UI validates the same) so we don't attempt a transfer
+          // the SDK would reject.
+          const tokenBalance = await tokenBalanceFetcher({
+            cacheKey: 'mcpTransferToken',
+            accountNumber: MCP_BALANCE_ACCOUNT_NUMBER,
+            network: NETWORK_LIQUID,
+            tokenContractAddress: tid,
+            backgroundCaller,
+          });
+          if (BigInt(tokenBalance ?? '0') < BigInt(amount_base_units)) {
+            mcpCallLog(`transfer_token: error - insufficient token balance (${tokenBalance ?? '0'} < ${amount_base_units})`);
+            return {
+              isError: true,
+              content: [
+                { type: 'text', text: JSON.stringify({ error: 'Insufficient token balance.', network: net, token_id: tid, amount_base_units, balance_base_units: tokenBalance ?? '0' }, null, 2) },
+              ],
+            };
+          }
+
+          // Mirror the UI Liquid token-send path (mobile send/send-amount-usdt.tsx → send-confirm.tsx):
+          // prepareSendPayment with an asset amount, then sendPayment. The SDK takes a human (decimal)
+          // receiver amount, not base units — convert exactly from the integer base-unit string.
+          const receiverAmount = new BigNumber(amount_base_units).dividedBy(new BigNumber(10).pow(token.decimals)).toNumber();
+          const prepareResponse = await wallet.prepareSendPayment({ destination: addr, amount: { type: 'asset', toAsset: tid, receiverAmount } });
+          const sendResponse = await wallet.sendPayment({ prepareResponse });
+          const transfer_id = sendResponse.payment.txId;
+          if (!transfer_id) {
+            mcpCallLog('transfer_token: error - send did not return a txid (liquid)');
+            return {
+              isError: true,
+              content: [{ type: 'text', text: JSON.stringify({ error: 'Transfer did not return an id.', network: net }, null, 2) }],
+            };
+          }
+          mcpCallLog(`transfer_token: ok - ${net} ${transfer_id}`);
+          showMcpSuccess(deps, `Sent token (${net})`, transfer_id.slice(0, 16));
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    success: true,
+                    network: net,
+                    transfer_id,
+                    token_id: tid,
+                    amount_base_units,
+                    receiver_address: addr,
+                    fee_base_units: String(prepareResponse.feesSat ?? ''),
+                    fee_ticker: 'L-BTC',
                   },
                   null,
                   2
