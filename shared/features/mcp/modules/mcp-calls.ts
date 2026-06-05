@@ -74,10 +74,6 @@ const mcpTokenNetworkSchema = z.enum(MCP_TOKEN_NETWORKS);
 const MCP_NFT_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
 const mcpNftNetworkSchema = z.enum(MCP_NFT_NETWORKS);
 
-/** Networks supported by get_receive_address (account-based wallets exposed to MCP). */
-const MCP_RECEIVE_ADDRESS_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
-const mcpReceiveAddressNetworkSchema = z.enum(MCP_RECEIVE_ADDRESS_NETWORKS);
-
 /**
  * AssetIds the MCP swap tools accept. Today: only BTC↔USDB on Spark (Flashnet AMM).
  * Adding more pairs is purely additive: extend this list and the routing falls through
@@ -85,10 +81,6 @@ const mcpReceiveAddressNetworkSchema = z.enum(MCP_RECEIVE_ADDRESS_NETWORKS);
  */
 const MCP_SWAP_ASSET_IDS = ['native:spark', 'token:spark:usdb'] as const satisfies readonly AssetId[];
 const mcpSwapAssetSchema = z.enum(MCP_SWAP_ASSET_IDS);
-
-function walletHasOffchainReceiveAddress(w: unknown): w is { getOffchainReceiveAddress(): Promise<string> } {
-  return typeof w === 'object' && w !== null && typeof (w as { getOffchainReceiveAddress?: unknown }).getOffchainReceiveAddress === 'function';
-}
 
 function normalizeBolt11Invoice(raw: string): string {
   const t = raw.trim();
@@ -215,24 +207,43 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     'get_receive_address',
     {
       title: 'Get receive address for a network',
-      description: `Returns the wallet's receive address for \`network\`. Use this when the user wants to receive funds on-chain (Spark address or Stacks principal). Supported networks: ${MCP_RECEIVE_ADDRESS_NETWORKS.join(', ')}. Address format varies per network (Spark: spark1…; Stacks: SP…); pass it back to senders verbatim.`,
+      description:
+        "Returns the wallet's receive address for `network` (use the id exactly as returned by list_networks). Use this when the user wants to receive funds. " +
+        'Address format varies per network — Bitcoin: bc1…; EVM chains (rootstock, botanix, citrea): 0x… (the same address works across all EVM chains); Liquid: lq1…/VJL…; Spark: spark1…; Stacks: SP… principal. ' +
+        'Pass the returned address back to senders verbatim.',
       inputSchema: {
-        network: mcpReceiveAddressNetworkSchema.describe(`Network id; one of: ${MCP_RECEIVE_ADDRESS_NETWORKS.join(', ')}.`),
+        network: z.string().min(1).describe('Network id from list_networks, e.g. bitcoin, rootstock, liquid, spark, stacks.'),
       },
     },
-    async ({ network }) => {
-      mcpCallLog(`get_receive_address: start - ${network}`);
+    async ({ network: networkName }) => {
+      const trimmed = networkName.trim();
+      mcpCallLog(`get_receive_address: start - ${trimmed}`);
       trackMcpCall(deps, 'get_receive_address');
+      const allowed = mcpListableNetworks();
+      const network = allowed.find((n) => n === trimmed);
+
+      if (!network) {
+        mcpCallLog(`get_receive_address: error - unknown network "${trimmed}"`);
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: `Unknown network "${networkName}". Use a string from list_networks.`,
+                  networks: allowed,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
       try {
-        const w = await backgroundCaller.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
-        if (!walletHasOffchainReceiveAddress(w)) {
-          mcpCallLog(`get_receive_address: error - wallet has no receive address on ${network}`);
-          return {
-            isError: true,
-            content: [{ type: 'text', text: JSON.stringify({ error: 'Wallet does not expose a receive address on this network.', network }, null, 2) }],
-          };
-        }
-        const address = await w.getOffchainReceiveAddress();
+        const address = await backgroundCaller.getAddress(network, MCP_BALANCE_ACCOUNT_NUMBER);
         const ticker = getTickerByNetwork(network);
         mcpCallLog(`get_receive_address: ok - ${network} (${ticker}), ${address.slice(0, 16)}…`);
         showMcpSuccess(deps, `Receive address (${network})`, address.slice(0, 12) + '…');
