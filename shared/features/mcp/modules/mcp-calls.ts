@@ -119,6 +119,17 @@ const MCP_TOKEN_TRANSFER_NETWORKS: Networks[] = [...MCP_TOKEN_WRITE_NETWORKS, ..
 // the handler's `network` param — stays `Networks`, avoiding a downstream `as Networks` cast.
 const mcpTokenTransferNetworkSchema = z.enum(MCP_TOKEN_TRANSFER_NETWORKS as [Networks, ...Networks[]]);
 
+/**
+ * Networks `transfer_native` can send the chain's native coin on (e.g. RBTC on Rootstock,
+ * cBTC on Citrea). Generic across networks — extended per-network as branches are added to the
+ * handler. Today only EVM mainnets are wired up (they need no curated token list, just the
+ * chain's gas coin, and reuse the UI coin-send path: `createPaymentTransaction →
+ * prepareTransaction → signTransaction → broadcastTransaction`). Derived so new networks are
+ * picked up automatically once their handler branch lands.
+ */
+const MCP_NATIVE_TRANSFER_NETWORKS: Networks[] = mcpListableNetworks().filter((n) => getIsEVM(n));
+const mcpNativeTransferNetworkSchema = z.enum(MCP_NATIVE_TRANSFER_NETWORKS as [Networks, ...Networks[]]);
+
 /** Max EVM fee "speed up" multiplier exposed to MCP. */
 const MCP_EVM_FEE_MULTIPLIER_MAX = 5;
 
@@ -734,6 +745,121 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
         return {
           isError: true,
           content: [{ type: 'text', text: JSON.stringify({ error: message, network }, null, 2) }],
+        };
+      }
+    }
+  );
+
+  mcp.registerTool(
+    'transfer_native',
+    {
+      title: "Transfer a network's native coin",
+      description: `Sends \`amount_base_units\` (smallest units, integer string — same scale as get_network_balance \`balance_base_units\`) of the network's native coin to \`receiver_address\`. \`network\` must be one of: ${MCP_NATIVE_TRANSFER_NETWORKS.join(', ')}. The fee is paid in that same native coin and deducted on top of \`amount_base_units\`. For fungible tokens use transfer_token instead.`,
+      inputSchema: {
+        network: mcpNativeTransferNetworkSchema.describe(`Network id; one of: ${MCP_NATIVE_TRANSFER_NETWORKS.join(', ')}.`),
+        amount_base_units: mcpPositiveBaseUnitsString.describe('Amount of native coin to send in smallest units (positive integer string; e.g. wei on EVM chains).'),
+        receiver_address: z.string().min(1).describe('Recipient address for the chosen network (e.g. 0x… on EVM chains). Leading/trailing whitespace is trimmed only.'),
+        fee_multiplier: z
+          .number()
+          .int()
+          .min(1)
+          .max(MCP_EVM_FEE_MULTIPLIER_MAX)
+          .optional()
+          .describe(
+            `EVM only: gas-price "speed up" multiplier, integer 1-${MCP_EVM_FEE_MULTIPLIER_MAX} (default 1 = network default). Higher values pay more gas for faster inclusion. Ignored on non-EVM networks.`
+          ),
+      },
+    },
+    async ({ network, amount_base_units, receiver_address, fee_multiplier }) => {
+      const net = network;
+      const addr = receiver_address.trim();
+      const feeMultiplier = fee_multiplier ?? 1;
+      mcpCallLog(`transfer_native: start - ${net}, amount ${amount_base_units}`);
+      trackMcpCall(deps, 'transfer_native');
+
+      if (!EvmWallet.isAddressValid(addr)) {
+        mcpCallLog(`transfer_native: error - invalid EVM address (${net})`);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: 'Invalid EVM receiver address.', network: net }, null, 2) }],
+        };
+      }
+
+      try {
+        // Mirror the UI EVM coin-send path: build the value transfer, prepare gas with the fee
+        // multiplier, sign with the master seed, broadcast.
+        const evm = new EvmWallet();
+        const fromAddress = await backgroundCaller.getAddress(net, MCP_BALANCE_ACCOUNT_NUMBER);
+
+        const paymentTransaction = await evm.createPaymentTransaction(fromAddress, addr, amount_base_units);
+        const feeData = await evm.getFeeData(net);
+        const prepared = await evm.prepareTransaction(paymentTransaction, net, feeData, BigInt(feeMultiplier));
+
+        let baseFee = 0n;
+        try {
+          baseFee = await evm.getBaseFeePerGas(net);
+        } catch {}
+        const fee = evm.calculateMinFee(baseFee, prepared);
+
+        // Pre-flight: native balance must cover amount + gas (the UI's getSendQuote asserts the
+        // same) so we don't broadcast a tx that would fail at the node.
+        const nativeBalance = await balanceFetcher({ cacheKey: 'mcpTransferNative', accountNumber: MCP_BALANCE_ACCOUNT_NUMBER, network: net, backgroundCaller });
+        if (BigInt(nativeBalance ?? '0') < BigInt(amount_base_units) + BigInt(fee)) {
+          mcpCallLog(`transfer_native: error - insufficient balance (have ${nativeBalance ?? '0'}, need amount+fee)`);
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  { error: `Insufficient ${getTickerByNetwork(net)} balance for amount + gas.`, network: net, amount_base_units, fee_base_units: fee, balance_base_units: nativeBalance ?? '0' },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+
+        const mnemonic = await backgroundCaller.getMasterSeed();
+        const signedTx = await evm.signTransaction(prepared, mnemonic, MCP_BALANCE_ACCOUNT_NUMBER);
+        const transfer_id = await evm.broadcastTransaction(net, signedTx);
+        if (!transfer_id || typeof transfer_id !== 'string') {
+          mcpCallLog('transfer_native: error - broadcast did not return a txid');
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'Transfer did not return an id.', network: net }, null, 2) }],
+          };
+        }
+        mcpCallLog(`transfer_native: ok - ${net} ${transfer_id}`);
+        showMcpSuccess(deps, `Sent ${getTickerByNetwork(net)} (${net})`, transfer_id.slice(0, 16));
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: true,
+                  network: net,
+                  transfer_id,
+                  amount_base_units,
+                  receiver_address: addr,
+                  fee_base_units: fee,
+                  fee_ticker: getTickerByNetwork(net),
+                  fee_multiplier: feeMultiplier,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        mcpCallLog(`transfer_native: error - ${net}: ${message}`);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: message, network: net }, null, 2) }],
         };
       }
     }
