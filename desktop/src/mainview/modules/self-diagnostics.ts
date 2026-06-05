@@ -83,6 +83,23 @@ export async function runSelfDiagnostics(): Promise<DiagnosticResult[]> {
     })
   );
 
+  // --- Individual env var presence (verify each is wired in at runtime; prefix dropped to save space) ---
+  // Each must be referenced statically (`process.env.EXPO_PUBLIC_*`) so Vite's `define` inlines it;
+  // a dynamic `process.env[name]` lookup is NOT replaced at build time and would always read empty.
+  const envVars: ReadonlyArray<[name: string, value: string | undefined]> = [
+    ['APTABASE_KEY', process.env.EXPO_PUBLIC_APTABASE_KEY],
+    ['BREEZ_API_KEY', process.env.EXPO_PUBLIC_BREEZ_API_KEY],
+    ['GARDEN_APP_ID', process.env.EXPO_PUBLIC_GARDEN_APP_ID],
+  ];
+  for (const [name, value] of envVars) {
+    results.push(
+      await check(`env ${name}`, async () => {
+        assert(typeof value === 'string' && value.length > 0, 'missing or empty');
+        return `present (${(value as string).length} chars)`;
+      })
+    );
+  }
+
   // --- Renderer↔Bun storage bridge (CEF does not persist views:// localStorage on Linux) ---
   results.push(
     await check('Storage RPC round-trip', async () => {
