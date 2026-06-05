@@ -285,8 +285,19 @@ jobs:
   # `bun run build` => `vite build && electrobun build --env=stable`; the distributable output
   # lands in desktop/artifacts/ (flat, {channel}-{os}-{arch}- prefixed). The mac config sets
   # neither codesign nor notarize, so unsigned stable builds succeed without Apple credentials.
+  # Electrobun builds for the host arch only, so each macOS arch needs its own runner.
+  # Both pin macOS 15 (avoids macos-latest drift): macos-15 = arm64, macos-15-intel = x64
+  # (the last Intel image GitHub offers, supported until ~Aug 2027).
   desktop-build-macos:
-    runs-on: macos-latest # Apple Silicon (arm64)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15 # Apple Silicon
+            arch: arm64
+          - runner: macos-15-intel # Intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     # Only the EXPO_PUBLIC_* vars the desktop build actually inlines/consumes (Vite + breez adapter + Garden provider).
     env:
@@ -317,7 +328,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-macos-arm64
+          name: desktop-macos-${{ matrix.arch }}
           path: desktop/artifacts/**
           if-no-files-found: error
 
