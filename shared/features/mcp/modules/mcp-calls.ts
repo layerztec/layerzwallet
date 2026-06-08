@@ -13,12 +13,14 @@ import { isValidSparkAddress } from '@buildonspark/spark-sdk';
 import * as z from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import * as BlueElectrum from '../../../blue_modules/BlueElectrum';
 import { EvmWallet } from '../../../class/evm-wallet';
 import { BreezWallet, LBTC_ASSET_IDS } from '../../../class/wallets/breez-wallet';
 import { walletCanHaveNfts } from '../../../class/wallets/interface-can-have-nfts';
 import { walletCanHaveTokens } from '../../../class/wallets/interface-can-have-tokens';
 import { walletIsAccountBased } from '../../../class/wallets/interface-account-based-wallet';
 import { walletSupportsLightning } from '../../../class/wallets/interface-lightning-wallet';
+import { walletCanSendQuote } from '../../../class/wallets/interface-send-quotable';
 import { MCP_BALANCE_ACCOUNT_NUMBER } from '../../../hooks/AccountNumberContext';
 import { exchangeRateFetcher } from '../../../hooks/useExchangeRate';
 import { balanceFetcher } from '../../../hooks/useBalance';
@@ -31,6 +33,7 @@ import { validateAddress, type TSupportedLazyInitWalletNetworks } from '../../..
 import { getApiUsersByUsername, getApiUsersBySparkAddressBySparkAddress, postApiUsers } from '../../../openapi/generated/layerzme';
 import { createClient } from '../../../openapi/generated/layerzme/client';
 import { AssetId } from '../../../types/asset';
+import type { SendQuote } from '../../../types/send-quote';
 import {
   getAvailableNetworks,
   NETWORK_ARK,
@@ -141,6 +144,14 @@ const mcpNativeTransferNetworkSchema = z.enum(MCP_NATIVE_TRANSFER_NETWORKS as [N
 /** Max EVM fee "speed up" multiplier exposed to MCP. */
 const MCP_EVM_FEE_MULTIPLIER_MAX = 5;
 
+/**
+ * Reject a Bitcoin send quote whose fee would exceed this percent of the send amount. There is no
+ * `fee_rate` upper bound — the agent owns the rate it picks — so this is the one guardrail against a
+ * fat-fingered rate (or a pathological UTXO set) burning the wallet. It also rejects dust-sized sends
+ * where the fee naturally dominates, which is intended (on-chain BTC is not for tiny amounts).
+ */
+const MCP_BTC_MAX_FEE_PERCENT_OF_AMOUNT = 30;
+
 /** Networks supported by list_nfts / transfer_nft. */
 const MCP_NFT_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
 const mcpNftNetworkSchema = z.enum(MCP_NFT_NETWORKS);
@@ -189,6 +200,16 @@ function layerzMeClient() {
 
 export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void {
   const { storage, backgroundCaller } = deps;
+
+  /**
+   * In-memory staging for native Bitcoin send quotes: `quote_id` → the prepared `SendQuote` (carries the
+   * unsigned PSBT in `_prepared`, and echoes the request — address/amount/feeRate — plus the fee, so
+   * nothing else needs storing). Closure-scoped (not module-level) so each registered server gets its own
+   * store — test-isolated, no cross-session leak. Single-use: removed only on a *successful*
+   * `execute_bitcoin_send`. No TTL — a PSBT is valid until its inputs are spent; a stale quote just fails
+   * to broadcast and the agent re-quotes.
+   */
+  const btcSendQuotes = new Map<string, SendQuote>();
 
   mcp.registerTool(
     'list_networks',
@@ -1008,6 +1029,226 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
         isError: true,
         content: [{ type: 'text', text: JSON.stringify({ error: `Native transfer is not supported for network "${net}".`, network: net }, null, 2) }],
       };
+    }
+  );
+
+  // ── Native (on-chain) Bitcoin send ──────────────────────────────────────────────────────────────
+  // Bitcoin is UTXO-based and irreversible, so it gets a quote→execute flow (like get_swap_quote /
+  // execute_swap) rather than a slot in transfer_native: get_bitcoin_fee_rates → get_bitcoin_send_quote
+  // → execute_bitcoin_send. These are thin adapters over the WatchOnlyWallet's InterfaceSendQuotable
+  // (getSendQuote / executeSendQuote) — the same engine the UI Bitcoin send screens use.
+
+  mcp.registerTool(
+    'get_bitcoin_fee_rates',
+    {
+      title: 'Get Bitcoin fee rate options (sat/vByte)',
+      description:
+        'Returns reference on-chain Bitcoin fee rates in sat/vByte as `{ low, medium, high }`. Pick one (or any integer in between) to pass as `fee_rate` to `get_bitcoin_send_quote`. Higher rate = faster confirmation. Read-only; no funds move.',
+    },
+    async () => {
+      mcpCallLog('get_bitcoin_fee_rates: start');
+      trackMcpCall(deps, 'get_bitcoin_fee_rates');
+      try {
+        if (!BlueElectrum.mainConnected) await BlueElectrum.connectMain();
+        const { fast, medium, slow } = await BlueElectrum.estimateFees();
+        mcpCallLog(`get_bitcoin_fee_rates: ok - low ${slow}, medium ${medium}, high ${fast} sat/vByte`);
+        showMcpSuccess(deps, 'Fetched Bitcoin fee rates', `low ${slow} · med ${medium} · high ${fast} sat/vB`);
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ low: slow, medium, high: fast, unit: 'sat/vByte' }, null, 2) }],
+        };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        mcpCallLog(`get_bitcoin_fee_rates: error - ${message}`);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: message }, null, 2) }],
+        };
+      }
+    }
+  );
+
+  mcp.registerTool(
+    'get_bitcoin_send_quote',
+    {
+      title: 'Quote a native Bitcoin (on-chain) send',
+      description:
+        'Prepares an on-chain Bitcoin (BTC) send of `amount_base_units` sats to `receiver_address` at `fee_rate` (sat/vByte). Returns a `quote_id` plus the exact `fee_base_units` (sats) and `total_base_units` (amount + fee) so you can review the fee before committing. **No funds move on this call** — call `execute_bitcoin_send` with the `quote_id` to actually sign and broadcast.\n\n' +
+        MCP_BASE_UNITS_GUIDANCE +
+        `\n\n\`amount_base_units\` is sats — the same scale as get_network_balance \`balance_base_units\` for bitcoin. Get \`fee_rate\` from get_bitcoin_fee_rates (low/medium/high) or pick any integer sat/vByte. The quote is rejected if the fee would exceed ${MCP_BTC_MAX_FEE_PERCENT_OF_AMOUNT}% of the amount (lower fee_rate or send more).`,
+      inputSchema: {
+        receiver_address: z.string().min(1).describe('Recipient Bitcoin address (bc1…, 3…, or 1…). Leading/trailing whitespace is trimmed only.'),
+        amount_base_units: mcpPositiveBaseUnitsString.describe('Amount to send in sats (positive integer string).'),
+        fee_rate: z.number().int().min(1).describe('Fee rate in sat/vByte. Use a value from get_bitcoin_fee_rates (low/medium/high) or any integer you choose — no upper bound, you own this choice.'),
+      },
+    },
+    async ({ receiver_address, amount_base_units, fee_rate }) => {
+      const addr = receiver_address.trim();
+      mcpCallLog(`get_bitcoin_send_quote: start - amount ${amount_base_units} sats, fee_rate ${fee_rate} sat/vByte`);
+      trackMcpCall(deps, 'get_bitcoin_send_quote');
+
+      if (!validateAddress(NETWORK_BITCOIN, addr)) {
+        mcpCallLog('get_bitcoin_send_quote: error - invalid Bitcoin address');
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: 'Invalid Bitcoin receiver address.', network: NETWORK_BITCOIN }, null, 2) }],
+        };
+      }
+
+      try {
+        const w = await backgroundCaller.lazyInitWallet(NETWORK_BITCOIN, MCP_BALANCE_ACCOUNT_NUMBER);
+        if (!walletCanSendQuote(w)) {
+          mcpCallLog('get_bitcoin_send_quote: error - wallet cannot quote sends');
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'Wallet does not support Bitcoin sends.', network: NETWORK_BITCOIN }, null, 2) }],
+          };
+        }
+
+        // getSendQuote connects Electrum, fetches balance + UTXOs, runs coinselect at fee_rate, and
+        // builds the unsigned PSBT. It throws on insufficient funds (caught below). No funds move.
+        const quote = await w.getSendQuote({ toAddress: addr, amount: amount_base_units, feeRate: fee_rate });
+
+        const amount = BigInt(amount_base_units);
+        const fee = BigInt(quote.fee);
+        if (fee * 100n > amount * BigInt(MCP_BTC_MAX_FEE_PERCENT_OF_AMOUNT)) {
+          mcpCallLog(`get_bitcoin_send_quote: error - fee ${fee} exceeds ${MCP_BTC_MAX_FEE_PERCENT_OF_AMOUNT}% of amount ${amount}`);
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    error: `Fee (${fee.toString()} sats) exceeds ${MCP_BTC_MAX_FEE_PERCENT_OF_AMOUNT}% of the send amount (${amount.toString()} sats). Lower fee_rate or send a larger amount.`,
+                    network: NETWORK_BITCOIN,
+                    fee_base_units: quote.fee,
+                    amount_base_units,
+                    fee_rate,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+
+        const quoteId = crypto.randomUUID();
+        btcSendQuotes.set(quoteId, quote);
+
+        mcpCallLog(`get_bitcoin_send_quote: ok - quote_id ${quoteId}, fee ${quote.fee} sats`);
+        showMcpSuccess(deps, 'Quoted Bitcoin send', `${amount_base_units} sats · fee ${quote.fee} sats`);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  quote_id: quoteId,
+                  network: NETWORK_BITCOIN,
+                  receiver_address: addr,
+                  amount_base_units,
+                  fee_base_units: quote.fee,
+                  fee_rate,
+                  fee_ticker: 'BTC',
+                  total_base_units: (amount + fee).toString(),
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        mcpCallLog(`get_bitcoin_send_quote: error - ${message}`);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: message, network: NETWORK_BITCOIN }, null, 2) }],
+        };
+      }
+    }
+  );
+
+  mcp.registerTool(
+    'execute_bitcoin_send',
+    {
+      title: 'Execute a previously quoted Bitcoin send',
+      description:
+        'Signs and broadcasts the on-chain Bitcoin send staged by an earlier `get_bitcoin_send_quote`. Pass `quote_id` exactly as returned. This is **irreversible** once it returns a `transfer_id` (the txid). Each `quote_id` is single-use; an unknown or already-used id returns an error (re-quote). If a coin in the quote was spent elsewhere in the meantime the broadcast fails — re-quote and try again.',
+      inputSchema: {
+        quote_id: z.string().min(1).describe('Exact `quote_id` from get_bitcoin_send_quote — copy verbatim. Leading/trailing whitespace is trimmed.'),
+      },
+    },
+    async ({ quote_id }) => {
+      const qid = quote_id.trim();
+      mcpCallLog(`execute_bitcoin_send: start - quote_id ${qid}`);
+      trackMcpCall(deps, 'execute_bitcoin_send');
+
+      const quote = btcSendQuotes.get(qid);
+      if (!quote) {
+        mcpCallLog('execute_bitcoin_send: error - unknown or already-used quote_id');
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: 'Unknown or already-used quote_id. Call get_bitcoin_send_quote again.', quote_id: qid }, null, 2) }],
+        };
+      }
+
+      try {
+        const w = await backgroundCaller.lazyInitWallet(NETWORK_BITCOIN, MCP_BALANCE_ACCOUNT_NUMBER);
+        if (!walletCanSendQuote(w)) {
+          mcpCallLog('execute_bitcoin_send: error - wallet cannot execute sends');
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'Wallet does not support Bitcoin sends.', network: NETWORK_BITCOIN }, null, 2) }],
+          };
+        }
+
+        const mnemonic = await backgroundCaller.getMasterSeed();
+        const transfer_id = await w.executeSendQuote(quote, mnemonic, MCP_BALANCE_ACCOUNT_NUMBER);
+        if (!transfer_id || typeof transfer_id !== 'string') {
+          mcpCallLog('execute_bitcoin_send: error - broadcast did not return a txid');
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'Transfer did not return an id.', network: NETWORK_BITCOIN }, null, 2) }],
+          };
+        }
+
+        // Single-use: consume the quote only after a successful broadcast, so a failed attempt
+        // (e.g. a coin spent elsewhere) leaves the entry for the agent to inspect / re-quote.
+        btcSendQuotes.delete(qid);
+
+        mcpCallLog(`execute_bitcoin_send: ok - ${transfer_id}`);
+        showMcpSuccess(deps, 'Sent BTC (bitcoin)', transfer_id.slice(0, 16));
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: true,
+                  network: NETWORK_BITCOIN,
+                  transfer_id,
+                  receiver_address: quote.request.toAddress,
+                  amount_base_units: quote.request.amount,
+                  fee_base_units: quote.fee,
+                  fee_rate: quote.request.feeRate,
+                  fee_ticker: 'BTC',
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        mcpCallLog(`execute_bitcoin_send: error - ${message}`);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: message, network: NETWORK_BITCOIN }, null, 2) }],
+        };
+      }
     }
   );
 
