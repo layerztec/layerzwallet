@@ -28,6 +28,8 @@ import { getAssetInfo } from '../../../models/asset-info';
 import { getDecimalsByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '../../../models/network-getters';
 import { getTokenInfo, getTokenList } from '../../../models/token-list';
 import { validateAddress, type TSupportedLazyInitWalletNetworks } from '../../../modules/wallet-utils';
+import { getApiUsersByUsername, getApiUsersBySparkAddressBySparkAddress, postApiUsers } from '../../../openapi/generated/layerzme';
+import { createClient } from '../../../openapi/generated/layerzme/client';
 import { AssetId } from '../../../types/asset';
 import {
   getAvailableNetworks,
@@ -171,6 +173,18 @@ function showMcpSuccess(deps: McpCallDeps, actionSummary: string, detail?: strin
 
 function trackMcpCall(deps: McpCallDeps, toolName: string): void {
   deps.trackToolCall?.(toolName);
+}
+
+/**
+ * Layerz Lightning Addresses are served by the layerz.me SparkHub (Spark-backed). Usernames are
+ * registered/looked up over plain HTTP via the generated client — there is no wallet/SDK method for
+ * this; the mobile claim/receive screens hit the same endpoints.
+ */
+const LAYERZ_ME_DOMAIN = 'layerz.me';
+const LAYERZ_ME_BASE_URL = 'https://layerz.me';
+
+function layerzMeClient() {
+  return createClient({ baseUrl: LAYERZ_ME_BASE_URL });
 }
 
 export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void {
@@ -1389,6 +1403,135 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
         return {
           isError: true,
           content: [{ type: 'text', text: JSON.stringify({ error: message, network }, null, 2) }],
+        };
+      }
+    }
+  );
+
+  mcp.registerTool(
+    'get_lightning_address',
+    {
+      title: 'Get your Lightning Address',
+      description: `Returns THIS wallet's own Lightning Address (Spark, \`name@${LAYERZ_ME_DOMAIN}\`). Anyone can pay you at this address from any Lightning wallet. If no human-readable username has been claimed, the address falls back to \`<spark-address>@${LAYERZ_ME_DOMAIN}\` — still fully payable; call \`claim_lightning_address\` to get a friendly \`name@${LAYERZ_ME_DOMAIN}\`. Read-only; no funds move.`,
+    },
+    async () => {
+      mcpCallLog('get_lightning_address: start');
+      trackMcpCall(deps, 'get_lightning_address');
+      try {
+        const sparkAddress = await backgroundCaller.getAddress(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
+
+        let username: string | null = null;
+        try {
+          const { data } = await getApiUsersBySparkAddressBySparkAddress({ client: layerzMeClient(), path: { sparkAddress }, responseStyle: 'fields', throwOnError: false });
+          if (data?.username) username = data.username;
+        } catch (e) {
+          // The default `<spark-address>@layerz.me` is always valid, so a username lookup failure is
+          // non-fatal — fall back to it rather than failing the whole call.
+          const message = e instanceof Error ? e.message : String(e);
+          mcpCallLog(`get_lightning_address: username lookup failed, using default address - ${message}`);
+        }
+
+        const lightningAddress = `${username ?? sparkAddress}@${LAYERZ_ME_DOMAIN}`;
+        mcpCallLog(`get_lightning_address: ok - ${lightningAddress}`);
+        showMcpSuccess(deps, 'Lightning Address', lightningAddress);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  lightning_address: lightningAddress,
+                  spark_address: sparkAddress,
+                  username,
+                  claimed: username !== null,
+                  domain: LAYERZ_ME_DOMAIN,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        mcpCallLog(`get_lightning_address: error - ${message}`);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: message }, null, 2) }],
+        };
+      }
+    }
+  );
+
+  mcp.registerTool(
+    'claim_lightning_address',
+    {
+      title: 'Claim a Lightning Address username',
+      description: `Registers \`username\` so this wallet's Lightning Address becomes \`<username>@${LAYERZ_ME_DOMAIN}\` (Spark). The username is bound to your Spark address; pick something memorable. Fails if it is already taken. After claiming, \`get_lightning_address\` returns the new address. Publishes a public username — it does NOT move funds.`,
+      inputSchema: {
+        username: z.string().min(1).describe(`Desired username (the part before @${LAYERZ_ME_DOMAIN}). Trimmed and lowercased automatically; must be currently unused.`),
+      },
+    },
+    async ({ username: usernameRaw }) => {
+      const username = usernameRaw.trim().toLowerCase();
+      mcpCallLog(`claim_lightning_address: start - "${username}"`);
+      trackMcpCall(deps, 'claim_lightning_address');
+      try {
+        if (!username) {
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'Username must not be empty.' }, null, 2) }],
+          };
+        }
+
+        const client = layerzMeClient();
+        const sparkAddress = await backgroundCaller.getAddress(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
+
+        const { data: existing } = await getApiUsersByUsername({ client, path: { username }, responseStyle: 'fields', throwOnError: false });
+        if (existing?.username) {
+          mcpCallLog(`claim_lightning_address: error - "${username}" already taken`);
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: `Username "${username}" is unavailable.` }, null, 2) }],
+          };
+        }
+
+        const { data: claim } = await postApiUsers({ client, body: { username, sparkAddress }, responseStyle: 'fields', throwOnError: true });
+        if (!claim?.username) {
+          mcpCallLog('claim_lightning_address: error - layerz.me did not confirm the claim');
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'Unable to claim username.' }, null, 2) }],
+          };
+        }
+
+        const lightningAddress = `${claim.username}@${LAYERZ_ME_DOMAIN}`;
+        mcpCallLog(`claim_lightning_address: ok - ${lightningAddress}`);
+        showMcpSuccess(deps, `Claimed Lightning Address ${lightningAddress}`);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: true,
+                  lightning_address: lightningAddress,
+                  username: claim.username,
+                  spark_address: sparkAddress,
+                  domain: LAYERZ_ME_DOMAIN,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        mcpCallLog(`claim_lightning_address: error - ${message}`);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: message }, null, 2) }],
         };
       }
     }
