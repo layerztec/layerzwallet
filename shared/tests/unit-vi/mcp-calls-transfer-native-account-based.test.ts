@@ -167,7 +167,7 @@ describe('MCP transfer_native (account-based: Spark & Stacks share one codepath)
     ['', 'empty string'],
     [null, 'null'],
     [undefined, 'undefined'],
-  ])('treats a pay() result of %s (%s) — no valid txid — as an error, without a success toast', async (badTxid) => {
+  ])('treats a pay() result of %s (%s) — no valid txid — as an error, without a success toast', async (badTxid, _label) => {
     const deps = makeFakeDeps();
     handlers = buildHandlers(deps);
     mockSparkPay.mockResolvedValueOnce(badTxid as any);

@@ -14,7 +14,7 @@ import * as z from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { EvmWallet } from '../../../class/evm-wallet';
-import { BreezWallet } from '../../../class/wallets/breez-wallet';
+import { BreezWallet, LBTC_ASSET_IDS } from '../../../class/wallets/breez-wallet';
 import { walletCanHaveNfts } from '../../../class/wallets/interface-can-have-nfts';
 import { walletCanHaveTokens } from '../../../class/wallets/interface-can-have-tokens';
 import { walletIsAccountBased } from '../../../class/wallets/interface-account-based-wallet';
@@ -126,11 +126,14 @@ const mcpTokenTransferNetworkSchema = z.enum(MCP_TOKEN_TRANSFER_NETWORKS as [Net
  *  - EVM mainnets (RBTC on Rootstock, cBTC on Citrea, …): no curated token list needed, reuse the
  *    UI coin-send path (`createPaymentTransaction → prepareTransaction → signTransaction →
  *    broadcastTransaction`).
+ *  - Liquid (L-BTC): Breez wallet — L-BTC is the default Liquid *asset*, sent via `prepareSendPayment`
+ *    (`{ type: 'asset', toAsset: <L-BTC asset id>, receiverAmount }`) → `sendPayment`, exactly like
+ *    the UI native send screen and the transfer_token Liquid branch.
  *  - Spark (BTC) and Stacks (sBTC, its main balance): single-address `InterfaceAccountBasedWallet`
  *    wallets, sent via `pay(address, amountSats)` — the same call the UI SendAccountBased screen uses.
  * EVM set is derived so new EVM mainnets are picked up automatically.
  */
-const MCP_NATIVE_TRANSFER_NETWORKS: Networks[] = [...mcpListableNetworks().filter((n) => getIsEVM(n)), NETWORK_SPARK, NETWORK_STACKS];
+const MCP_NATIVE_TRANSFER_NETWORKS: Networks[] = [...mcpListableNetworks().filter((n) => getIsEVM(n)), NETWORK_LIQUID, NETWORK_SPARK, NETWORK_STACKS];
 const mcpNativeTransferNetworkSchema = z.enum(MCP_NATIVE_TRANSFER_NETWORKS as [Networks, ...Networks[]]);
 
 /** Max EVM fee "speed up" multiplier exposed to MCP. */
@@ -852,6 +855,70 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                     fee_ticker: getTickerByNetwork(net),
                     fee_multiplier: feeMultiplier,
                   },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        } catch (e) {
+          const message = e instanceof Error ? e.message : String(e);
+          mcpCallLog(`transfer_native: error - ${net}: ${message}`);
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: message, network: net }, null, 2) }],
+          };
+        }
+      }
+
+      // Liquid native L-BTC send. Mirrors the UI native send (mobile send/send-amount-liquid.tsx
+      // → send/send-confirm.tsx, ext SendLiquid.tsx) and the transfer_token Liquid branch: L-BTC is
+      // just a Liquid *asset* (the L-BTC asset id), sent via `prepareSendPayment` with a decimal
+      // `receiverAmount` then `sendPayment`. The Breez SDK takes a human (decimal) amount, so convert
+      // from the integer sats string (amount_base_units / 10^decimals).
+      if (net === NETWORK_LIQUID) {
+        if (!BreezWallet.isAddressValid(addr)) {
+          mcpCallLog(`transfer_native: error - invalid Liquid address`);
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'Invalid Liquid receiver address.', network: net }, null, 2) }],
+          };
+        }
+
+        try {
+          const wallet = await backgroundCaller.lazyInitWallet(NETWORK_LIQUID, MCP_BALANCE_ACCOUNT_NUMBER);
+          if (!(wallet instanceof BreezWallet)) {
+            mcpCallLog(`transfer_native: error - not a Breez wallet (liquid)`);
+            return {
+              isError: true,
+              content: [{ type: 'text', text: JSON.stringify({ error: 'Wallet does not support native transfers on this network.', network: net }, null, 2) }],
+            };
+          }
+
+          // L-BTC is the UI's default Liquid asset (LBTC_ASSET_IDS). MCP only exposes mainnet Liquid,
+          // so the mainnet asset id is correct. Breez wants a decimal receiver amount → convert from sats.
+          // The SDK enforces balance/fee itself (an insufficient send throws → surfaced below), so no
+          // pre-flight balance check — same as the account-based branch.
+          const decimals = getDecimalsByNetwork(net);
+          const receiverAmount = new BigNumber(amount_base_units).dividedBy(new BigNumber(10).pow(decimals)).toNumber();
+          const prepareResponse = await wallet.prepareSendPayment({ destination: addr, amount: { type: 'asset', toAsset: LBTC_ASSET_IDS.mainnet, receiverAmount } });
+          const sendResponse = await wallet.sendPayment({ prepareResponse });
+          const transfer_id = sendResponse.payment.txId;
+          if (!transfer_id) {
+            mcpCallLog('transfer_native: error - send did not return a txid (liquid)');
+            return {
+              isError: true,
+              content: [{ type: 'text', text: JSON.stringify({ error: 'Transfer did not return an id.', network: net }, null, 2) }],
+            };
+          }
+          mcpCallLog(`transfer_native: ok - ${net} ${transfer_id}`);
+          showMcpSuccess(deps, `Sent ${getTickerByNetwork(net)} (${net})`, transfer_id.slice(0, 16));
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  { success: true, network: net, transfer_id, amount_base_units, receiver_address: addr, fee_base_units: String(prepareResponse.feesSat ?? ''), fee_ticker: 'L-BTC' },
                   null,
                   2
                 ),
