@@ -14,7 +14,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useYieldDiscovery, YieldBearingCachedTokenInfo, YIELD_TOKEN_DEFINITIONS_BY_NETWORK } from '@shared/hooks/useYieldDiscovery';
 import { getTokenInfo } from '@shared/models/token-list';
 import { AssetId } from '@shared/types/asset';
-import { NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { NETWORK_CITREA, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { router } from 'expo-router';
 
 const USDB_YIELD_TOKEN_ID = 'btkn1xgrvjwey5ngcagvap2dzzvsy4uk8ua9x69k82dwvt5e7ef9drm9qztux87';
@@ -31,20 +31,15 @@ const availableYields = (Object.entries(YIELD_TOKEN_DEFINITIONS_BY_NETWORK) as [
 );
 
 export default function YieldListScreen() {
-  const { network, setNetwork } = useContext(NetworkContext);
+  const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
 
-  const { yieldList: botanixYield } = useYieldDiscovery(NETWORK_BOTANIX, accountNumber, BackgroundExecutor, LayerzStorage);
   const { yieldList: citreaYield } = useYieldDiscovery(NETWORK_CITREA, accountNumber, BackgroundExecutor, LayerzStorage);
   const { yieldList: sparkYield } = useYieldDiscovery(NETWORK_SPARK, accountNumber, BackgroundExecutor, LayerzStorage);
 
   const allYields = useMemo<YieldWithNetwork[]>(
-    () => [
-      ...botanixYield.map((y): YieldWithNetwork => ({ ...y, network: NETWORK_BOTANIX })),
-      ...citreaYield.map((y): YieldWithNetwork => ({ ...y, network: NETWORK_CITREA })),
-      ...sparkYield.map((y): YieldWithNetwork => ({ ...y, network: NETWORK_SPARK })),
-    ],
-    [botanixYield, citreaYield, sparkYield]
+    () => [...citreaYield.map((y): YieldWithNetwork => ({ ...y, network: NETWORK_CITREA })), ...sparkYield.map((y): YieldWithNetwork => ({ ...y, network: NETWORK_SPARK }))],
+    [citreaYield, sparkYield]
   );
 
   const [visibleAllocatedIds, setVisibleAllocatedIds] = useState<Set<string>>(new Set());
@@ -65,12 +60,6 @@ export default function YieldListScreen() {
 
   const handleYieldPress = async (_token: YieldBearingCachedTokenInfo) => {
     switch (_token.id) {
-      case '0xF4586028FFdA7Eca636864F80f8a3f2589E33795':
-        // botanix yield
-        setNetwork(NETWORK_BOTANIX);
-        await new Promise((res) => setTimeout(res, 100)); // propagate network change
-        router.push({ pathname: '/(tabs)/explorer', params: { url: 'https://yield.botanixlabs.com' } });
-        break;
       case USDB_YIELD_TOKEN_ID:
         router.push({
           pathname: '/transfer',

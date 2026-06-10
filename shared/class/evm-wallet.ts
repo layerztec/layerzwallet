@@ -306,8 +306,8 @@ export class EvmWallet implements InterfaceSendQuotable {
   }
 
   /**
-   * Fetch latest block number. We can't use etherscan because Botanix blockexplorer(routescan)
-   * doesn't support module: 'block', action: 'eth_block_number'
+   * Fetch latest block number. We can't use etherscan because some block explorers (e.g. routescan)
+   * don't support module: 'block', action: 'eth_block_number'
    */
   private async fetchLatestBlockNumberFromExplorer(baseUrl: string): Promise<number> {
     if (!this.network) throw new Error('Network not set');

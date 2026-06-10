@@ -1,4 +1,4 @@
-import { Networks, NETWORK_BITCOIN, NETWORK_CITREA_TESTNET, NETWORK_BOTANIX, NETWORK_ROOTSTOCK, NETWORK_CITREA } from '../types/networks';
+import { Networks, NETWORK_BITCOIN, NETWORK_CITREA_TESTNET, NETWORK_ROOTSTOCK, NETWORK_CITREA } from '../types/networks';
 import { PartnerInfo } from '../types/partner-info';
 
 const partnersList: PartnerInfo[] = [
@@ -31,13 +31,6 @@ const partnersList: PartnerInfo[] = [
     description: 'Secure Cold Wallet for Effortless Transactions',
   },
   {
-    name: 'Check out Botanix Dapps',
-    network: NETWORK_BOTANIX,
-    url: 'https://botanixlabs.com/use',
-    imgUrl: 'https://bridge.botanixlabs.com/images/white-logo.png',
-    description: '',
-  },
-  {
     name: 'Citrea Faucet',
     network: NETWORK_CITREA_TESTNET,
     url: 'https://citrea.xyz/faucet',
@@ -50,20 +43,6 @@ const partnersList: PartnerInfo[] = [
     url: 'https://citrea.xyz/ecosystem',
     imgUrl: '',
     description: '',
-  },
-  {
-    name: 'Bridge',
-    network: NETWORK_BOTANIX,
-    url: 'https://bridge.botanixlabs.com',
-    imgUrl: 'https://yield.botanixlabs.com/images/white-logo.png',
-    description: 'Bridge Bitcoin to Botanix',
-  },
-  {
-    name: 'Yield',
-    network: NETWORK_BOTANIX,
-    url: 'https://yield.botanixlabs.com/',
-    imgUrl: 'https://bridge.botanixlabs.com/images/white-logo.png',
-    description: 'Bitcoin in - More Bitcoin out. Backed by economic activity',
   },
   {
     name: 'Oku Trade',

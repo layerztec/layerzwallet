@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { test } from 'vitest';
 import { SwapProviderBoltz } from '../../models/swap-provider-boltz';
-import { NETWORK_BITCOIN, NETWORK_BOTANIX_TESTNET, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK } from '../../types/networks';
+import { NETWORK_BITCOIN, NETWORK_CITREA_TESTNET, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK } from '../../types/networks';
 import { getSwapPairs, getSwapProvidersList } from '../../models/swap-providers-list';
 import { SwapPlatform, SO_LIQUID_USDT } from '@shared/types/swap';
 
@@ -10,12 +10,12 @@ test('throws on incorrect swap pair', async () => {
 
   let errMsg = '';
   try {
-    await swapper.swap(NETWORK_LIQUID_TESTNET, () => {}, NETWORK_BOTANIX_TESTNET, 1, '0x123');
+    await swapper.swap(NETWORK_LIQUID_TESTNET, () => {}, NETWORK_CITREA_TESTNET, 1, '0x123');
   } catch (error: any) {
     errMsg = error.message;
   }
 
-  assert.strictEqual(errMsg, 'Swap pair liquid_testnet->botanix_testnet not supported by Boltz');
+  assert.strictEqual(errMsg, 'Swap pair liquid_testnet->citrea_testnet not supported by Boltz');
 });
 
 test('accepts correct swap pair', async () => {

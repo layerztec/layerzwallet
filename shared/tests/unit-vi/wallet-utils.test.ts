@@ -7,8 +7,6 @@ import {
   NETWORK_ARK,
   NETWORK_ARK_MUTINYNET,
   NETWORK_BITCOIN,
-  NETWORK_BOTANIX,
-  NETWORK_BOTANIX_TESTNET,
   NETWORK_CITREA_TESTNET,
   NETWORK_LIQUID,
   NETWORK_ROOTSTOCK,
@@ -126,8 +124,6 @@ describe('wallet-utils', () => {
       it('should validate valid EVM addresses', () => {
         const validAddress = '0x9858EfFD232B4033E47d90003D41EC34EcaEda94';
         expect(validateAddress(NETWORK_SEPOLIA, validAddress)).toBe(true);
-        expect(validateAddress(NETWORK_BOTANIX, validAddress)).toBe(true);
-        expect(validateAddress(NETWORK_BOTANIX_TESTNET, validAddress)).toBe(true);
         expect(validateAddress(NETWORK_ALPEN_TESTNET, validAddress)).toBe(true);
         expect(validateAddress(NETWORK_CITREA_TESTNET, validAddress)).toBe(true);
       });

@@ -32,30 +32,6 @@
     "logoURI": "https://assets.coingecko.com/coins/images/5070/small/RBTC-logo.png?1718152038"
   },
   {
-    "symbol": "WBTC",
-    "name": "Wrapped BTC",
-    "address": "0x321f90864fb21cdcddd0d67fe5e4cbc812ec9e64",
-    "decimals": 18,
-    "chainId": 3636,
-    "logoURI": ""
-  },
-  {
-    "symbol": "stBTC",
-    "name": "Staked Bitcoin",
-    "address": "0xF4586028FFdA7Eca636864F80f8a3f2589E33795",
-    "decimals": 18,
-    "chainId": 3637,
-    "logoURI": "https://imgproxy-mainnet.routescan.io/W1gPh_ltBM3759nyHWrWExfQ2nbGieqMIfZfvPljyOw/pr:thumb_32/aHR0cHM6Ly9jbXMtY2RuLmF2YXNjYW4uY29tL2NtczIvc3RidGMuMjlhMjQyNDJjNGM1LndlYnA"
-  },
-  {
-    "symbol": "pBTC",
-    "name": "Pegged Bitcoin",
-    "address": "0x0D2437F93Fed6EA64Ef01cCde385FB1263910C56",
-    "decimals": 18,
-    "chainId": 3637,
-    "logoURI": "https://imgproxy-mainnet.routescan.io/e_3MwRG54DBVaNdx901mhhdKqlktyxRR3G_eyWB3muI/pr:thumb_32/aHR0cHM6Ly9jbXMtY2RuLmF2YXNjYW4uY29tL2NtczIvcGJ0Yy5hYjM3NDIwYzE1Njgud2VicA"
-  },
-  {
     "symbol": "ctUSD",
     "name": "Citrea USD",
     "address": "0x8D82c4E3c936C7B5724A382a9c5a4E6Eb7aB6d5D",
