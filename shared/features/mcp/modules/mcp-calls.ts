@@ -52,7 +52,7 @@ import { EXECUTION_INSTANT } from '../../../types/transfer';
 import { pushMcpActivityLog } from './mcp-activity-log';
 import { MCP_LIGHTNING_PAY_MAX_FEE_PERCENT } from './mcp-constants';
 import type { McpCallDeps } from './mcp-deps';
-import { MCP_BASE_UNITS_GUIDANCE } from './mcp-instructions';
+import { MCP_BASE_UNITS_GUIDANCE, mcpBaseUnitsToHumanReadable } from './mcp-instructions';
 
 function mcpCallLog(line: string): void {
   console.log('[mcp-call] ' + line);
@@ -61,6 +61,10 @@ function mcpCallLog(line: string): void {
 function bolt11Preview(bolt: string, max = 28): string {
   const t = bolt.trim();
   return t.length <= max ? t : `${t.slice(0, max)}…`;
+}
+
+function mcpBalanceFields(baseUnits: string, decimals: number): { balance_base_units: string; balance_human_readable: string | null } {
+  return { balance_base_units: baseUnits, balance_human_readable: mcpBaseUnitsToHumanReadable(baseUnits, decimals) };
 }
 
 /** Networks whose lazy-init wallet can pay BOLT11 Lightning invoices. */
@@ -234,7 +238,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     {
       title: 'Get balance for a network',
       description:
-        'Returns `balance_base_units` (smallest units), `ticker`, and `decimals`. Use the `network` id exactly as returned by list_networks.\n\n' +
+        'Returns `balance_base_units` (smallest units), `balance_human_readable` (decimal string for showing the user), `ticker`, and `decimals`. Use the `network` id exactly as returned by list_networks.\n\n' +
         MCP_BASE_UNITS_GUIDANCE +
         '\n\nFor Spark BTC swaps (`get_swap_quote` with `send_asset` `native:spark`), pass this `balance_base_units` **as-is** into `send_amount_base_units` when swapping the full balance (or a smaller integer ≤ balance) — do not scale it.',
       inputSchema: {
@@ -287,6 +291,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                 {
                   network,
                   balance_base_units: balance ?? null,
+                  balance_human_readable: balance != null ? mcpBaseUnitsToHumanReadable(balance, decimals) : null,
                   ticker,
                   decimals,
                 },
@@ -370,7 +375,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     {
       title: 'List fungible tokens and balances for a network',
       description:
-        `Returns fungible tokens (not NFTs) you currently hold (non-zero balance), each with \`balance_base_units\` (smallest units), \`decimals\`, \`symbol\`, and \`token_id\`. Refreshes balances first. \`network\` must be one of: ${MCP_TOKEN_READ_NETWORKS.join(', ')}.\n\n` +
+        `Returns fungible tokens (not NFTs) you currently hold (non-zero balance), each with \`balance_base_units\` (smallest units), \`balance_human_readable\` (decimal string for showing the user), \`decimals\`, \`symbol\`, and \`token_id\`. Refreshes balances first. \`network\` must be one of: ${MCP_TOKEN_READ_NETWORKS.join(', ')}.\n\n` +
         MCP_BASE_UNITS_GUIDANCE +
         "\n\nFor USDB swaps on Spark (`get_swap_quote` with `send_asset` `token:spark:usdb`), use that token's `balance_base_units` **as-is** for `send_amount_base_units` when selling the full balance.\n\n" +
         '**Each `token_id` in the response must be copied exactly** (same string, character-for-character) into `transfer_token`; do not shorten, reformat, or infer from name/symbol.',
@@ -383,7 +388,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
       mcpCallLog(`list_tokens: start - ${net}`);
       trackMcpCall(deps, 'list_tokens');
       try {
-        let tokens: Array<{ token_id: string; name: string; symbol: string; decimals: number; balance_base_units: string }>;
+        let tokens: Array<{ token_id: string; name: string; symbol: string; decimals: number; balance_base_units: string; balance_human_readable: string | null }>;
 
         if ((MCP_TOKEN_WRITE_NETWORKS as readonly string[]).includes(net)) {
           // Account-based wallets (Spark/Stacks) self-discover held tokens via the SDK.
@@ -399,13 +404,17 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
           if (net === NETWORK_STACKS) {
             await w.fetchTokenBalances();
           }
-          tokens = w.getTokenBalances().map((t) => ({
-            token_id: t.id,
-            name: t.name,
-            symbol: t.symbol,
-            decimals: t.decimals,
-            balance_base_units: t.balance ?? '0',
-          }));
+          tokens = w.getTokenBalances().map((t) => {
+            const balance_base_units = t.balance ?? '0';
+            return {
+              token_id: t.id,
+              name: t.name,
+              symbol: t.symbol,
+              decimals: t.decimals,
+              balance_base_units,
+              balance_human_readable: mcpBaseUnitsToHumanReadable(balance_base_units, t.decimals),
+            };
+          });
         } else {
           // EVM/Liquid have no on-chain token discovery: enumerate the curated token list and
           // query each balance (ERC20 balanceOf / Breez asset balances), keeping only held tokens.
@@ -414,13 +423,17 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
             candidates.map((t) => tokenBalanceFetcher({ cacheKey: 'mcpListTokens', accountNumber: MCP_BALANCE_ACCOUNT_NUMBER, network: net, tokenContractAddress: t.id, backgroundCaller }))
           );
           tokens = candidates
-            .map((t, i) => ({
-              token_id: t.id,
-              name: t.name,
-              symbol: t.symbol,
-              decimals: t.decimals,
-              balance_base_units: balances[i] ?? '0',
-            }))
+            .map((t, i) => {
+              const balance_base_units = balances[i] ?? '0';
+              return {
+                token_id: t.id,
+                name: t.name,
+                symbol: t.symbol,
+                decimals: t.decimals,
+                balance_base_units,
+                balance_human_readable: mcpBaseUnitsToHumanReadable(balance_base_units, t.decimals),
+              };
+            })
             .filter((t) => t.balance_base_units !== '0' && t.balance_base_units !== '');
         }
 
@@ -499,7 +512,10 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
             return {
               isError: true,
               content: [
-                { type: 'text', text: JSON.stringify({ error: 'Insufficient token balance.', network: net, token_id: tid, amount_base_units, balance_base_units: tokenBalance ?? '0' }, null, 2) },
+                {
+                  type: 'text',
+                  text: JSON.stringify({ error: 'Insufficient token balance.', network: net, token_id: tid, amount_base_units, ...mcpBalanceFields(tokenBalance ?? '0', token.decimals) }, null, 2),
+                },
               ],
             };
           }
@@ -593,7 +609,10 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
             return {
               isError: true,
               content: [
-                { type: 'text', text: JSON.stringify({ error: 'Insufficient token balance.', network: net, token_id: tid, amount_base_units, balance_base_units: tokenBalance ?? '0' }, null, 2) },
+                {
+                  type: 'text',
+                  text: JSON.stringify({ error: 'Insufficient token balance.', network: net, token_id: tid, amount_base_units, ...mcpBalanceFields(tokenBalance ?? '0', token.decimals) }, null, 2),
+                },
               ],
             };
           }
@@ -741,7 +760,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                     network,
                     token_id: tid,
                     amount_base_units,
-                    balance_base_units: holding.balance ?? '0',
+                    ...mcpBalanceFields(holding.balance ?? '0', holding.decimals),
                   },
                   null,
                   2
@@ -854,7 +873,13 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                 {
                   type: 'text',
                   text: JSON.stringify(
-                    { error: `Insufficient ${getTickerByNetwork(net)} balance for amount + gas.`, network: net, amount_base_units, fee_base_units: fee, balance_base_units: nativeBalance ?? '0' },
+                    {
+                      error: `Insufficient ${getTickerByNetwork(net)} balance for amount + gas.`,
+                      network: net,
+                      amount_base_units,
+                      fee_base_units: fee,
+                      ...mcpBalanceFields(nativeBalance ?? '0', getDecimalsByNetwork(net)),
+                    },
                     null,
                     2
                   ),

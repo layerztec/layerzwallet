@@ -2,9 +2,25 @@
  * MCP server `instructions` (initialize) and shared agent guidance for tool descriptions.
  */
 
+import BigNumber from 'bignumber.js';
+
 /** Reused in tool descriptions and server instructions. */
 export const MCP_BASE_UNITS_GUIDANCE =
-  '**Amount units:** Every `*_base_units` field is **already** the smallest on-chain/SDK unit (positive integer string, no decimal point). The `decimals` field is display metadata only — **do not** multiply by `10^decimals` to "convert to base units". Wrong: `balance_base_units * 10^8` (or `* 10^decimals`). Right: copy `balance_base_units` verbatim into amount fields, or use a smaller integer ≤ balance.';
+  '**Amount units:** Every `*_base_units` field is **already** the smallest on-chain/SDK unit (positive integer string, no decimal point). The `decimals` field is display metadata only — **do not** multiply by `10^decimals` to "convert to base units". Wrong: `balance_base_units * 10^8` (or `* 10^decimals`). Right: copy `balance_base_units` verbatim into amount fields, or use a smaller integer ≤ balance. When both `balance_base_units` and `balance_human_readable` are returned, **quote `balance_human_readable` to the user** (with `ticker` / `symbol`) and use `balance_base_units` only for sends/swaps.';
+
+/**
+ * Decimal string for presenting a base-unit balance to the user (e.g. sats → BTC). Returns `null` when
+ * `baseUnits` is null/empty. Trims trailing zeros after the decimal point.
+ */
+export function mcpBaseUnitsToHumanReadable(baseUnits: string | null | undefined, decimals: number): string | null {
+  if (baseUnits == null || baseUnits === '') return null;
+  const n = new BigNumber(baseUnits);
+  if (!n.isFinite() || n.isNegative()) return null;
+  return n
+    .dividedBy(new BigNumber(10).pow(decimals))
+    .toFixed(decimals)
+    .replace(/\.?0+$/, '');
+}
 
 /**
  * Returned on MCP `initialize` for hosts that inject server instructions into the model context.
@@ -14,6 +30,8 @@ export const MCP_SERVER_INSTRUCTIONS = [
   'You are connected to the Layerz Wallet MCP server. Use only the tools exposed here; do not guess wallet state.',
   '',
   MCP_BASE_UNITS_GUIDANCE,
+  '',
+  '**Balances:** Tools that return `balance_base_units` also return `balance_human_readable` — show the human-readable value (with ticker/symbol) to the user; never do decimal math yourself.',
   '',
   '**Swaps (Spark BTC ↔ USDB):**',
   '1. `get_network_balance` (network `spark`) for selling BTC, or `list_tokens` (network `spark`) for selling USDB.',
