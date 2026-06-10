@@ -78,9 +78,6 @@ export const tokenExchangeRateFetcher = async (arg: tokenExchangeRateFetcherArg)
     // different kinds of wrapped BTC:
     // TODO: maybe worth configuring somewhere; also, think about the case of de-peg
     case '0x21EdC56532b6E92E676aA260B2a1f968B20EB1F5':
-    case '0x0D2437F93Fed6EA64Ef01cCde385FB1263910C56':
-    case '0xF4586028FFdA7Eca636864F80f8a3f2589E33795':
-    case '0x321f90864fb21cdcddd0d67fe5e4cbc812ec9e64':
     case '0x542FDA317318eBf1d3DeAF76E0B632741a7e677d':
       return await getFiatRate(fiat);
   }

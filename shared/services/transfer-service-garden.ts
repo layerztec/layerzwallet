@@ -13,17 +13,16 @@ const PRUNE_AGE_SECONDS = 7 * 24 * 60 * 60;
 /**
  * Garden API returns `amount` in the chain's smallest unit:
  * - Bitcoin: 8 decimals (satoshis) — 10000 = 0.00010000 BTC
- * - Botanix: 18 decimals (wei)      — 99790000000000 = 0.00009979 BTC
  * The `display` field already has the correct human-readable value.
  */
 const CHAIN_DECIMALS: Record<string, number> = {
   'bitcoin:btc': 8,
-  'botanix:btc': 18,
 };
 
-// BTC → Botanix only for now (UTXO source = simple deposit).
-// Botanix → BTC requires EVM tx signing — deferred.
-const GARDEN_PAIRS: TransferPair[] = [{ sendAssetId: 'native:bitcoin', receiveAssetId: 'native:botanix' }];
+// No pairs at the moment: the only supported pair was BTC → Botanix,
+// which was removed when Botanix shut down. Infrastructure is kept in
+// case Garden is re-pointed at other chains later.
+const GARDEN_PAIRS: TransferPair[] = [];
 
 interface GardenPersistedTransfer {
   execution: TransferExecution;

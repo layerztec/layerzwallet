@@ -6,7 +6,7 @@ import { EXECUTION_DEPOSIT, ITransferService, TimelineStep, TransferExecution, T
 import { getExchangeTimelineSteps } from './transfer-service-sideshift';
 
 const LBTC_TESTNET: AssetId = 'native:liquid_testnet';
-const BTC_BOTANIX_TESTNET: AssetId = 'native:botanix_testnet';
+const CBTC_CITREA_TESTNET: AssetId = 'native:citrea_testnet';
 
 let nextId = 1;
 
@@ -16,8 +16,8 @@ export class FakeTransferService implements ITransferService {
 
   getSupportedPairs(): TransferPair[] {
     return [
-      { sendAssetId: LBTC_TESTNET, receiveAssetId: BTC_BOTANIX_TESTNET },
-      { sendAssetId: BTC_BOTANIX_TESTNET, receiveAssetId: LBTC_TESTNET },
+      { sendAssetId: LBTC_TESTNET, receiveAssetId: CBTC_CITREA_TESTNET },
+      { sendAssetId: CBTC_CITREA_TESTNET, receiveAssetId: LBTC_TESTNET },
     ];
   }
 
