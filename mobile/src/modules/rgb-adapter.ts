@@ -1,18 +1,24 @@
 import { sha256 } from '@noble/hashes/sha256';
-import { UTEXOWallet } from '@utexo/rgb-sdk-rn';
-import { Directory, Paths } from 'expo-file-system';
+import { PasswordRLNSigner, UTEXOWallet, resolveUnlockParams, type UTEXOWalletNodeParams } from '@utexo/rgb-sdk-rn';
+import { Directory, File, Paths } from 'expo-file-system';
 
-import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet } from '@shared/types/rgb-adapter';
+import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet, RgbNetwork } from '@shared/types/rgb-adapter';
 
 const RGB_DATA_ROOT = 'rgb';
 
-/**
- * Hashes the raw mnemonic — no trim/lowercase — to match the normalization used
- * by `mobile/src/modules/breeze-adapter.ts` (`sha256(mnemonic)`). Upstream,
- * `sanitizeAndValidateMnemonic` in `shared/modules/wallet-utils.ts` canonicalises
- * mnemonics before they reach storage, so by the time this runs the mnemonic
- * string is already trimmed + lowercased.
- */
+// rgb-sdk-rn beta.14 maps RGB network names to the RLN node's `network` string.
+// 'testnet' → 'signet' (utexo testnet runs on signet). Mainnet not yet enabled
+// on this branch — we still treat 'mainnet' as RGB utexo mainnet for now.
+function toRlnNetwork(network: RgbNetwork): string {
+  return network === 'testnet' ? 'signet' : 'mainnet';
+}
+
+// Ports the RLN node listens on locally. Fixed because every device only runs
+// one RLN node at a time (one wallet active). If these ever clash with another
+// process, the device-side bind would surface — we'll deal with conflict then.
+const DAEMON_LISTENING_PORT = 3001;
+const LDK_PEER_LISTENING_PORT = 9736;
+
 function mnemonicFingerprint(mnemonic: string): string {
   const digest = sha256(new TextEncoder().encode(mnemonic));
   let hex = '';
@@ -20,91 +26,102 @@ function mnemonicFingerprint(mnemonic: string): string {
   return hex;
 }
 
-/**
- * Returns a per-mnemonic data directory. Isolating state by mnemonic prevents
- * the SDK from re-opening a previous wallet's rgb-lib sled store when the user
- * wipes the app and imports a different seed — the pattern mirrors
- * `breeze-adapter.ts` which uses `sha256(mnemonic)` for the same reason.
- *
- * Returned as a `Directory` (not a string) because expo-file-system's
- * `Directory` constructor requires an *absolute URI* on Android — passing a
- * bare POSIX path crashes with `IllegalArgumentException: URI is not absolute`.
- * Convert to the SDK's expected POSIX form via `dataDirSdkPath` only at the
- * native-call boundary.
- */
-function dataDirFor(mnemonic: string, network: IRgbAdapterCreateParams['network']): Directory {
+// Password protects the RLN node's on-disk encrypted key store. We don't have
+// the user's wallet password in this layer, so derive deterministically from
+// the mnemonic — same-strength secret, unlocks the same wallet across restarts.
+function rlnPassword(mnemonic: string): string {
+  const digest = sha256(new TextEncoder().encode(`rgb-rln-password-v1\0${mnemonic}`));
+  let hex = '';
+  for (let i = 0; i < digest.length; i++) hex += digest[i].toString(16).padStart(2, '0');
+  return hex;
+}
+
+function dataDirFor(mnemonic: string, network: RgbNetwork): Directory {
   const root = new Directory(Paths.document, RGB_DATA_ROOT, network, mnemonicFingerprint(mnemonic));
   if (!root.exists) root.create({ intermediates: true });
   return root;
 }
 
-/** Strips the `file://` URI prefix; the RN SDK expects a POSIX path. */
 function dataDirSdkPath(dir: Directory): string {
   return dir.uri.replace(/^file:\/\//, '');
 }
 
-/**
- * rgb-lib throws these messages when the local sled store can't be parsed —
- * usually from an interrupted write (app killed mid-commit) or a schema bump
- * across an SDK upgrade. The Android binding self-heals (see RgbModule.kt:271);
- * iOS doesn't, so we mirror the recovery here.
- */
-function isCorruptStore(e: unknown): boolean {
-  const msg = (e as { message?: string })?.message ?? String(e);
-  return /bincode error while reading entry/i.test(msg) || /failed to fill whole buffer/i.test(msg);
+// Sentinel file under the RGB data dir. Presence ⇒ RLN node already initialized
+// at least once → call `unlock()`. Absence ⇒ first run → call `init()` then mark.
+// Using a sentinel rather than introspecting the SDK's internal state keeps the
+// init/unlock branch decision in our control across SDK upgrades.
+const INIT_MARKER = '.rgb-rln-initialized';
+
+function initMarker(dir: Directory): File {
+  return new File(dir, INIT_MARKER);
 }
 
-/**
- * Native dirs the iOS rgb-sdk-rn binding actually writes to. The `dataDir` we
- * pass to `WalletManager` is **ignored** by `_initializeWallet` in
- * `RgbSwiftHelper.swift:210`, which hardcodes `Documents/<network>/` (with
- * `network = toNativeNetwork(<sdk-network>)`). Each `UTEXOWallet` opens TWO
- * sub-wallets: a layer1 wallet on the bridge bitcoin chain, and a utexo
- * sidechain wallet that the SDK maps to `signet`. So for either preset we
- * have two on-disk dirs we have to wipe to recover.
- *
- * Tracked upstream: https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/20
- */
-function nativeWalletDirs(network: IRgbAdapterCreateParams['network']): Directory[] {
-  const layer1 = network === 'testnet' ? 'testnet' : 'mainnet';
-  return [new Directory(Paths.document, layer1), new Directory(Paths.document, 'signet')];
+// `IRgbWallet` (from shared/types) still references VSS methods that beta.14's
+// `UTEXOWallet` no longer exposes — extension is on beta.9 and uses the real
+// methods, so we can't drop them from the shape yet. Stub them here as no-ops:
+// safe because mobile's beta.14 SDK handles VSS internally via `vssUrl` in the
+// node params, and the shared backup-state ledger does not enforce these calls.
+const NOOP_VSS_BACKUP_INFO = { backupExists: false, backupRequired: false, serverVersion: null };
+
+function shimVssMethods(wallet: UTEXOWallet): IRgbWallet {
+  return new Proxy(wallet, {
+    get(target, prop, receiver) {
+      switch (prop) {
+        case 'vssBackup':
+          return async () => 0;
+        case 'vssBackupInfo':
+          return async () => NOOP_VSS_BACKUP_INFO;
+        case 'configureVssBackup':
+        case 'disableVssAutoBackup':
+          return async () => undefined;
+        case 'getDefaultVssConfig':
+          return async () => undefined;
+        default:
+          return Reflect.get(target, prop, receiver);
+      }
+    },
+  }) as unknown as IRgbWallet;
+}
+
+function buildNodeParams(dir: Directory, network: RgbNetwork, vssServerUrl: string | undefined): UTEXOWalletNodeParams {
+  return {
+    storageDirPath: dataDirSdkPath(dir),
+    daemonListeningPort: DAEMON_LISTENING_PORT,
+    ldkPeerListeningPort: LDK_PEER_LISTENING_PORT,
+    network: toRlnNetwork(network),
+    vssUrl: vssServerUrl ?? null,
+  };
 }
 
 class RgbAdapter implements IRgbAdapter {
+  // Lightning surface (channels/peers/invoices) exists in beta.14 but isn't
+  // wired into UI yet. Keep the flag off until we expose it deliberately.
   readonly capabilities = { lightning: false } as const;
 
   async createWallet({ mnemonic, network, vssServerUrl }: IRgbAdapterCreateParams): Promise<IRgbWallet> {
-    const open = async () => {
-      const wallet = new UTEXOWallet(mnemonic, {
-        network,
-        dataDir: dataDirSdkPath(dataDirFor(mnemonic, network)),
-        vssServerUrl,
-      });
-      await wallet.initialize();
-      return wallet;
-    };
-    try {
-      return await open();
-    } catch (e) {
-      if (!isCorruptStore(e)) throw e;
-      for (const dir of nativeWalletDirs(network)) {
-        if (dir.exists) dir.delete();
-      }
-      const adapterDir = dataDirFor(mnemonic, network);
-      if (adapterDir.exists) adapterDir.delete();
-      return open();
+    const dir = dataDirFor(mnemonic, network);
+    const marker = initMarker(dir);
+    const rlnNet = toRlnNetwork(network);
+    const password = rlnPassword(mnemonic);
+
+    const params = buildNodeParams(dir, network, vssServerUrl);
+    const signer = new PasswordRLNSigner(password, mnemonic);
+    const wallet = new UTEXOWallet(params, signer);
+
+    if (!marker.exists) {
+      await wallet.init();
+      marker.create();
     }
+
+    await wallet.unlock(resolveUnlockParams(rlnNet, {}));
+    return shimVssMethods(wallet);
   }
 
-  async restoreFromVss({ mnemonic, network, vssServerUrl }: IRgbAdapterCreateParams): Promise<IRgbWallet> {
-    const dir = dataDirFor(mnemonic, network);
-    // rgb-lib refuses to restore over an existing wallet dir
-    // (`WalletDirAlreadyExists`). If we already have local state, skip the VSS
-    // step — `createWallet` will reopen the existing sled stores in place.
-    if (!new Directory(dir, 'layer1').exists) {
-      await UTEXOWallet.restoreFromVss(mnemonic, dataDirSdkPath(dir), vssServerUrl ? { serverUrl: vssServerUrl } : undefined);
-    }
-    return this.createWallet({ mnemonic, network, vssServerUrl });
+  // VSS restore is now driven by the SDK during `init()` / `unlock()` via
+  // `vssUrl` + `vssAllowEmptyRestore`. Callers that asked for an explicit
+  // restore get the same wallet `createWallet` would produce.
+  async restoreFromVss(params: IRgbAdapterCreateParams): Promise<IRgbWallet> {
+    return this.createWallet(params);
   }
 }
 
