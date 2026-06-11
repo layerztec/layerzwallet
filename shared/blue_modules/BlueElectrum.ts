@@ -72,7 +72,7 @@ type Peer = {
   path?: string;
 };
 
-export const hardcodedPeers: Peer[] = [{ host: 'electrum.layerzwallet.com', port: 50004 }];
+export const hardcodedPeers: Peer[] = [{ host: 'electrum2.layerzwallet.com', port: 50005 }];
 
 let mainClient: WsElectrumClient;
 export let mainConnected: boolean = false;

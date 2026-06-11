@@ -1,6 +1,10 @@
 /**
  * Wallet MCP surface — add or change tools / call behaviour here.
  * No HTTP, tunnel, or session lifecycle (that stays in `mcp.ts`).
+ *
+ * Platform-specific bits (toast notifications, analytics, storage, wallet
+ * runtime) are injected via `McpCallDeps`; this file imports nothing from
+ * `react-native`, AsyncStorage, mobile-only modules, etc.
  */
 
 import BigNumber from 'bignumber.js';
@@ -8,18 +12,18 @@ import * as bolt11 from 'bolt11';
 import { isValidSparkAddress } from '@buildonspark/spark-sdk';
 import * as z from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import Toast from 'react-native-toast-message';
 
-import { walletCanHaveNfts } from '@shared/class/wallets/interface-can-have-nfts';
-import { walletCanHaveTokens } from '@shared/class/wallets/interface-can-have-tokens';
-import { walletSupportsLightning } from '@shared/class/wallets/interface-lightning-wallet';
-import { exchangeRateFetcher } from '@shared/hooks/useExchangeRate';
-import { balanceFetcher } from '@shared/hooks/useBalance';
-import { getTransferServiceManager, setFlashnetAccountNumber, useTransferService } from '@shared/hooks/useTransferService';
-import { getAssetInfo } from '@shared/models/asset-info';
-import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters';
-import { validateAddress } from '@shared/modules/wallet-utils';
-import { AssetId } from '@shared/types/asset';
+import { walletCanHaveNfts } from '../../../class/wallets/interface-can-have-nfts';
+import { walletCanHaveTokens } from '../../../class/wallets/interface-can-have-tokens';
+import { walletSupportsLightning } from '../../../class/wallets/interface-lightning-wallet';
+import { MCP_BALANCE_ACCOUNT_NUMBER } from '../../../hooks/AccountNumberContext';
+import { exchangeRateFetcher } from '../../../hooks/useExchangeRate';
+import { balanceFetcher } from '../../../hooks/useBalance';
+import { getTransferServiceManager, setFlashnetAccountNumber, useTransferService } from '../../../hooks/useTransferService';
+import { getAssetInfo } from '../../../models/asset-info';
+import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '../../../models/network-getters';
+import { validateAddress } from '../../../modules/wallet-utils';
+import { AssetId } from '../../../types/asset';
 import {
   getAvailableNetworks,
   NETWORK_ARK,
@@ -31,22 +35,15 @@ import {
   NETWORK_STACKS,
   NETWORK_USDT,
   type Networks,
-} from '@shared/types/networks';
-import { EXECUTION_INSTANT } from '@shared/types/transfer';
-
-import { LayerzStorage } from '@/src/class/layerz-storage';
-import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { AnalyticsEvents, trackAnalyticsEvent } from '@/src/modules/analytics';
+} from '../../../types/networks';
+import { EXECUTION_INSTANT } from '../../../types/transfer';
 
 import { pushMcpActivityLog } from './mcp-activity-log';
-import { MCP_BALANCE_ACCOUNT_NUMBER, MCP_LIGHTNING_PAY_MAX_FEE_PERCENT } from './mcp-constants';
+import { MCP_LIGHTNING_PAY_MAX_FEE_PERCENT } from './mcp-constants';
+import type { McpCallDeps } from './mcp-deps';
 
 function mcpCallLog(line: string): void {
   console.log('[mcp-call] ' + line);
-}
-
-function trackMcpCall(toolName: string): void {
-  trackAnalyticsEvent(AnalyticsEvents.McpCall, { tool_name: toolName });
 }
 
 function bolt11Preview(bolt: string, max = 28): string {
@@ -100,18 +97,22 @@ function normalizeBolt11Invoice(raw: string): string {
   return t;
 }
 
-function showMcpSuccessToast(actionSummary: string, detail?: string): void {
+/**
+ * Always pushes to the in-memory activity log (UI subscribes via `subscribeMcpActivityLog`).
+ * Optionally surfaces a native toast via `deps.showSuccessToast` (platform-specific chrome).
+ */
+function showMcpSuccess(deps: McpCallDeps, actionSummary: string, detail?: string): void {
   pushMcpActivityLog(actionSummary);
-  Toast.show({
-    type: 'mcpAiSuccess',
-    text1: `AI action: ${actionSummary}`,
-    ...(detail ? { text2: detail } : {}),
-    position: 'top',
-    visibilityTime: 5500,
-  });
+  deps.showSuccessToast?.(actionSummary, detail);
 }
 
-export function registerWalletMcpCalls(mcp: McpServer): void {
+function trackMcpCall(deps: McpCallDeps, toolName: string): void {
+  deps.trackToolCall?.(toolName);
+}
+
+export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void {
+  const { storage, backgroundCaller } = deps;
+
   mcp.registerTool(
     'list_networks',
     {
@@ -120,10 +121,10 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
     },
     async () => {
       mcpCallLog('list_networks: start');
-      trackMcpCall('list_networks');
+      trackMcpCall(deps, 'list_networks');
       const networks = mcpListableNetworks();
       mcpCallLog(`list_networks: ok - ${networks.length} network(s): ${networks.join(', ')}`);
-      showMcpSuccessToast('Listed networks', `${networks.length} network(s)`);
+      showMcpSuccess(deps, 'Listed networks', `${networks.length} network(s)`);
       return {
         content: [{ type: 'text', text: JSON.stringify({ networks }, null, 2) }],
       };
@@ -142,7 +143,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
     async ({ network: networkName }) => {
       const trimmed = networkName.trim();
       mcpCallLog(`get_network_balance: start - network=${trimmed}`);
-      trackMcpCall('get_network_balance');
+      trackMcpCall(deps, 'get_network_balance');
       const allowed = mcpListableNetworks();
       const network = allowed.find((n) => n === trimmed);
 
@@ -171,12 +172,12 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
           cacheKey: 'balanceFetcher',
           accountNumber: MCP_BALANCE_ACCOUNT_NUMBER,
           network,
-          backgroundCaller: BackgroundExecutor,
+          backgroundCaller,
         });
         const ticker = getTickerByNetwork(network);
         const decimals = getDecimalsByNetwork(network);
         mcpCallLog(`get_network_balance: ok - ${network} (${ticker}), balance ${balance != null ? 'fetched' : 'null'}`);
-        showMcpSuccessToast('Fetched balance for ' + network);
+        showMcpSuccess(deps, 'Fetched balance for ' + network);
         return {
           content: [
             {
@@ -216,9 +217,9 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
     },
     async ({ network }) => {
       mcpCallLog(`get_receive_address: start - ${network}`);
-      trackMcpCall('get_receive_address');
+      trackMcpCall(deps, 'get_receive_address');
       try {
-        const w = await BackgroundExecutor.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
+        const w = await backgroundCaller.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
         if (!walletHasOffchainReceiveAddress(w)) {
           mcpCallLog(`get_receive_address: error - wallet has no receive address on ${network}`);
           return {
@@ -229,7 +230,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
         const address = await w.getOffchainReceiveAddress();
         const ticker = getTickerByNetwork(network);
         mcpCallLog(`get_receive_address: ok - ${network} (${ticker}), ${address.slice(0, 16)}…`);
-        showMcpSuccessToast(`Receive address (${network})`, address.slice(0, 12) + '…');
+        showMcpSuccess(deps, `Receive address (${network})`, address.slice(0, 12) + '…');
         return {
           content: [{ type: 'text', text: JSON.stringify({ network, ticker, address }, null, 2) }],
         };
@@ -255,15 +256,15 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
     },
     async ({ network }) => {
       mcpCallLog(`list_tokens: start - ${network}`);
-      trackMcpCall('list_tokens');
+      trackMcpCall(deps, 'list_tokens');
       try {
         await balanceFetcher({
           cacheKey: 'mcpListTokens',
           accountNumber: MCP_BALANCE_ACCOUNT_NUMBER,
           network,
-          backgroundCaller: BackgroundExecutor,
+          backgroundCaller,
         });
-        const w = await BackgroundExecutor.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
+        const w = await backgroundCaller.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
         if (!walletCanHaveTokens(w)) {
           mcpCallLog(`list_tokens: error - wallet cannot hold tokens (${network})`);
           return {
@@ -282,7 +283,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
           balance_base_units: t.balance ?? '0',
         }));
         mcpCallLog(`list_tokens: ok - ${network}, ${tokens.length} token(s)`);
-        showMcpSuccessToast(`Listed tokens (${network})`, `${tokens.length} token(s)`);
+        showMcpSuccess(deps, `Listed tokens (${network})`, `${tokens.length} token(s)`);
         return {
           content: [{ type: 'text', text: JSON.stringify({ network, tokens }, null, 2) }],
         };
@@ -316,7 +317,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
       const tid = token_id.trim();
       const addr = receiver_address.trim();
       mcpCallLog(`transfer_token: start - ${network}, token ${tid.slice(0, 12)}… amount ${amount_base_units}`);
-      trackMcpCall('transfer_token');
+      trackMcpCall(deps, 'transfer_token');
       if (network === NETWORK_SPARK && !isValidSparkAddress(addr)) {
         mcpCallLog(`transfer_token: error - invalid Spark address`);
         return {
@@ -389,9 +390,9 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
           cacheKey: 'mcpTransferToken',
           accountNumber: MCP_BALANCE_ACCOUNT_NUMBER,
           network,
-          backgroundCaller: BackgroundExecutor,
+          backgroundCaller,
         });
-        const w = await BackgroundExecutor.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
+        const w = await backgroundCaller.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
         if (!walletCanHaveTokens(w)) {
           mcpCallLog(`transfer_token: error - no token support (${network})`);
           return {
@@ -458,7 +459,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
           };
         }
         mcpCallLog(`transfer_token: ok - ${network} ${transfer_id}`);
-        showMcpSuccessToast(`Sent token (${network})`, transfer_id.slice(0, 16));
+        showMcpSuccess(deps, `Sent token (${network})`, transfer_id.slice(0, 16));
         return {
           content: [
             {
@@ -500,9 +501,9 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
     },
     async ({ network }) => {
       mcpCallLog(`list_nfts: start - ${network}`);
-      trackMcpCall('list_nfts');
+      trackMcpCall(deps, 'list_nfts');
       try {
-        const w = await BackgroundExecutor.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
+        const w = await backgroundCaller.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
         if (!walletCanHaveNfts(w)) {
           mcpCallLog(`list_nfts: error - wallet cannot hold NFTs (${network})`);
           return {
@@ -520,7 +521,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
           image: n.image,
         }));
         mcpCallLog(`list_nfts: ok - ${network}, ${nfts.length} nft(s)`);
-        showMcpSuccessToast(`Listed NFTs (${network})`, `${nfts.length} item(s)`);
+        showMcpSuccess(deps, `Listed NFTs (${network})`, `${nfts.length} item(s)`);
         return {
           content: [{ type: 'text', text: JSON.stringify({ network, nfts }, null, 2) }],
         };
@@ -555,7 +556,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
       const tid = token_id.trim();
       const addr = receiver_address.trim();
       mcpCallLog(`transfer_nft: start - ${network}, contract ${contract.slice(0, 12)}… token ${tid.slice(0, 12)}…`);
-      trackMcpCall('transfer_nft');
+      trackMcpCall(deps, 'transfer_nft');
 
       if (network === NETWORK_SPARK && !isValidSparkAddress(addr)) {
         mcpCallLog(`transfer_nft: error - invalid Spark address`);
@@ -573,7 +574,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
       }
 
       try {
-        const w = await BackgroundExecutor.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
+        const w = await backgroundCaller.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
         if (!walletCanHaveNfts(w)) {
           mcpCallLog(`transfer_nft: error - no NFT support (${network})`);
           return {
@@ -615,7 +616,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
           };
         }
         mcpCallLog(`transfer_nft: ok - ${network} ${transfer_id}`);
-        showMcpSuccessToast(`Sent NFT (${network})`, transfer_id.slice(0, 16));
+        showMcpSuccess(deps, `Sent NFT (${network})`, transfer_id.slice(0, 16));
         return {
           content: [
             {
@@ -654,7 +655,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
     },
     async () => {
       mcpCallLog('get_btc_usd_rate: start');
-      trackMcpCall('get_btc_usd_rate');
+      trackMcpCall(deps, 'get_btc_usd_rate');
       try {
         const usdPerBtc = await exchangeRateFetcher({
           cacheKey: 'exchangeRateFetcher',
@@ -662,7 +663,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
           fiat: 'USD',
         });
         mcpCallLog(`get_btc_usd_rate: ok - ~$${usdPerBtc.toFixed(2)} per 1 BTC`);
-        showMcpSuccessToast('Fetched BTC/USD', `~$${usdPerBtc.toFixed(2)} / BTC`);
+        showMcpSuccess(deps, 'Fetched BTC/USD', `~$${usdPerBtc.toFixed(2)} / BTC`);
         return {
           content: [
             {
@@ -703,7 +704,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
     },
     async ({ sats, memo, network }) => {
       mcpCallLog(`create_lightning_invoice: start - ${network}, ${sats} sats${memo?.trim() ? ', memo set' : ''}`);
-      trackMcpCall('create_lightning_invoice');
+      trackMcpCall(deps, 'create_lightning_invoice');
       try {
         if (network === NETWORK_ARK && sats <= 333) {
           mcpCallLog(`create_lightning_invoice: error - Arkade needs >333 sats (got ${sats})`);
@@ -718,7 +719,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
           };
         }
 
-        const w = await BackgroundExecutor.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
+        const w = await backgroundCaller.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
         if (!walletSupportsLightning(w)) {
           mcpCallLog(`create_lightning_invoice: error - wallet has no Lightning receive on ${network}`);
           return {
@@ -734,7 +735,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
 
         const { invoice, serviceFeeSat } = await w.createLightningInvoice(sats, memo ?? '');
         mcpCallLog(`create_lightning_invoice: ok - ${network}, ${sats} sats, service fee ${serviceFeeSat} sats, invoice starts ${bolt11Preview(invoice)}`);
-        showMcpSuccessToast('Created Lightning invoice', `${memo ?? ''} ${network} · ${sats} sats`);
+        showMcpSuccess(deps, 'Created Lightning invoice', `${memo ?? ''} ${network} · ${sats} sats`);
         return {
           content: [
             {
@@ -777,7 +778,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
     async ({ invoice: invoiceRaw, network }) => {
       const invoice = normalizeBolt11Invoice(invoiceRaw);
       mcpCallLog(`is_invoice_paid: start - ${network}, invoice ${bolt11Preview(invoice)}`);
-      trackMcpCall('is_invoice_paid');
+      trackMcpCall(deps, 'is_invoice_paid');
 
       try {
         bolt11.decode(invoice);
@@ -795,10 +796,10 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
         };
       }
 
-      showMcpSuccessToast('Checking if Lightning invoice is paid');
+      showMcpSuccess(deps, 'Checking if Lightning invoice is paid');
 
       try {
-        const w = await BackgroundExecutor.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
+        const w = await backgroundCaller.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
         if (!walletSupportsLightning(w)) {
           mcpCallLog(`is_invoice_paid: error - no Lightning support on ${network}`);
           return {
@@ -846,11 +847,11 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
     async ({ invoice: invoiceRaw, network }) => {
       const invoice = normalizeBolt11Invoice(invoiceRaw);
       mcpCallLog(`pay_lightning_invoice: start - ${network}, invoice ${bolt11Preview(invoice)}`);
-      trackMcpCall('pay_lightning_invoice');
-      showMcpSuccessToast('Paying Lightning invoice...');
+      trackMcpCall(deps, 'pay_lightning_invoice');
+      showMcpSuccess(deps, 'Paying Lightning invoice...');
 
       try {
-        const w = await BackgroundExecutor.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
+        const w = await backgroundCaller.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
         if (!walletSupportsLightning(w)) {
           mcpCallLog(`pay_lightning_invoice: error - no Lightning pay on ${network}`);
           return {
@@ -879,7 +880,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
         }
 
         mcpCallLog(`pay_lightning_invoice: ok - paid on ${network}`);
-        showMcpSuccessToast('Paid Lightning invoice!', network);
+        showMcpSuccess(deps, 'Paid Lightning invoice!', network);
         return {
           content: [
             {
@@ -918,7 +919,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
     },
     async ({ send_asset, receive_asset, send_amount_base_units }) => {
       mcpCallLog(`get_swap_quote: start - ${send_asset} -> ${receive_asset}, amount ${send_amount_base_units}`);
-      trackMcpCall('get_swap_quote');
+      trackMcpCall(deps, 'get_swap_quote');
 
       if (send_asset === receive_asset) {
         mcpCallLog('get_swap_quote: error - send_asset and receive_asset are the same');
@@ -929,8 +930,8 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
       }
 
       try {
-        useTransferService(LayerzStorage); // ensure the singleton + Flashnet service are constructed
-        await BackgroundExecutor.lazyInitWallet(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
+        useTransferService(storage); // ensure the singleton + Flashnet service are constructed
+        await backgroundCaller.lazyInitWallet(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
         setFlashnetAccountNumber(MCP_BALANCE_ACCOUNT_NUMBER);
 
         const manager = getTransferServiceManager();
@@ -975,7 +976,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
         mcpCallLog(
           `get_swap_quote: ok - ${summary}, price ${effectiveExchangeRate} USDB/BTC, fee ${feeBaseUnitsStr} ${quote.feeTicker} base units (${effectiveFeeRate}%), impact ${quote.priceImpactPct ?? '?'}%, quote_id ${execution.id}`
         );
-        showMcpSuccessToast('Quoted swap', summary);
+        showMcpSuccess(deps, 'Quoted swap', summary);
 
         return {
           content: [
@@ -1029,7 +1030,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
     async ({ quote_id }) => {
       const qid = quote_id.trim();
       mcpCallLog(`execute_swap: start - quote_id ${qid}`);
-      trackMcpCall('execute_swap');
+      trackMcpCall(deps, 'execute_swap');
 
       try {
         const manager = getTransferServiceManager();
@@ -1059,7 +1060,7 @@ export function registerWalletMcpCalls(mcp: McpServer): void {
         const summary = `${completed.sendAmount} ${sendInfo.ticker} \u2192 ${completed.receiveAmount} ${receiveInfo.ticker}`;
 
         mcpCallLog(`execute_swap: ok - ${summary}`);
-        showMcpSuccessToast('Swapped', summary);
+        showMcpSuccess(deps, 'Swapped', summary);
 
         return {
           content: [

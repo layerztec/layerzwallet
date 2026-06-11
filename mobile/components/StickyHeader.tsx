@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from './ThemedText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AccountItem, AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
+import { AccountNumberContext, getAccountItem } from '@shared/hooks/AccountNumberContext';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { handleQrIntent } from '@/src/modules/scan-routing';
 import { Ionicons, Foundation, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -21,7 +21,7 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { accountNumber } = React.useContext(AccountNumberContext);
-  const accountItem: AccountItem = accountItems[accountNumber];
+  const accountItem = getAccountItem(accountNumber);
   const { scanQr } = useContext(ScanQrContext);
 
   // Animated border opacity based on scroll position

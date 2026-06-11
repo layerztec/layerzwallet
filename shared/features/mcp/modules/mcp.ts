@@ -1,6 +1,12 @@
 /**
  * MCP over HTTP — session / transport / tunnel bridging (`handleMcpRequest`).
- * MCP call surface: `mcp-calls.ts`. Tunnel: `tunnel.ts`.
+ *
+ * Platform-specific deps (storage, wallet runtime, toast, analytics) flow in
+ * via `configureMcp(deps)` which must be called once at app boot before any
+ * tunnel traffic arrives. `mcp-calls.ts` reads those deps to invoke wallet
+ * operations; this file knows nothing about the platform.
+ *
+ * MCP call surface: `./mcp-calls.ts`. Tunnel transport: `./tunnel.ts`.
  */
 
 import { DEFAULT_NEGOTIATED_PROTOCOL_VERSION, isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
@@ -8,12 +14,17 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 
 import { registerWalletMcpCalls } from './mcp-calls';
-import type { TunnelHttpRequest, TunnelHttpResponse } from './tunnel';
+import type { McpCallDeps } from './mcp-deps';
+import type { TunnelHttpRequest, TunnelHttpResponse } from './tunnel-types';
 
 type McpInstance = {
   server: McpServer;
   transport: WebStandardStreamableHTTPServerTransport;
 };
+
+type ServerInfo = { name: string; version: string };
+
+const DEFAULT_SERVER_INFO: ServerInfo = { name: 'layerz-wallet', version: '0.1.0' };
 
 const mcpInstances = new Map<string, McpInstance>();
 
@@ -26,6 +37,27 @@ const BARE_KEY = '\0bare';
  * (e.g. a 180s `pay_lightning_invoice` on session A) don't block other clients' calls.
  */
 const postChains = new Map<string, Promise<void>>();
+
+let configuredDeps: McpCallDeps | null = null;
+let configuredServerInfo: ServerInfo = DEFAULT_SERVER_INFO;
+
+/**
+ * Wire the platform-specific dependencies. Call **once** at app boot, before any
+ * `handleMcpRequest` invocation. Subsequent calls overwrite (e.g. in tests).
+ */
+export function configureMcp(deps: McpCallDeps, serverInfo?: Partial<ServerInfo>): void {
+  configuredDeps = deps;
+  if (serverInfo) {
+    configuredServerInfo = { ...DEFAULT_SERVER_INFO, ...serverInfo };
+  }
+}
+
+function requireConfiguredDeps(): McpCallDeps {
+  if (!configuredDeps) {
+    throw new Error('[mcp] configureMcp(deps) must be called before handling MCP requests.');
+  }
+  return configuredDeps;
+}
 
 async function runPostSerialized<T>(key: string, fn: () => Promise<T>): Promise<T> {
   const prev = postChains.get(key) ?? Promise.resolve();
@@ -82,8 +114,9 @@ async function syntheticInitialize(instance: McpInstance, protocolVersion: strin
 }
 
 function buildMcpServer(): McpServer {
-  const mcp = new McpServer({ name: 'layerz-wallet-mobile', version: '0.1.0' }, { capabilities: { tools: {} } });
-  registerWalletMcpCalls(mcp);
+  const deps = requireConfiguredDeps();
+  const mcp = new McpServer(configuredServerInfo, { capabilities: { tools: {} } });
+  registerWalletMcpCalls(mcp, deps);
   return mcp;
 }
 

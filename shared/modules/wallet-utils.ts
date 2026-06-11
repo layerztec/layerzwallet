@@ -16,8 +16,6 @@ import {
   NETWORK_ARK,
   NETWORK_ARK_MUTINYNET,
   NETWORK_BITCOIN,
-  NETWORK_BOTANIX,
-  NETWORK_BOTANIX_TESTNET,
   NETWORK_CITREA_TESTNET,
   NETWORK_LIQUID,
   NETWORK_LIQUID_TESTNET,
@@ -76,6 +74,18 @@ export async function saveBitcoinXpubs(storage: IStorage, mnemonic: string) {
     const btcXpub = btcWallet.getXpub();
     await storage.setItem(STORAGE_KEY_BTC_XPUB + accountNum, btcXpub);
   }
+}
+
+async function ensureBitcoinXpub(storage: IStorage, accountNumber: number): Promise<string> {
+  const existing = await storage.getItem(STORAGE_KEY_BTC_XPUB + accountNumber);
+  if (existing) return existing;
+  if (!masterSeed) throw new Error('No xpub for this account number');
+  const btcWallet = new HDSegwitBech32Wallet();
+  btcWallet.setSecret(masterSeed);
+  btcWallet.setDerivationPath(`m/84'/0'/${accountNumber}'`);
+  const xpub = btcWallet.getXpub();
+  await storage.setItem(STORAGE_KEY_BTC_XPUB + accountNumber, xpub);
+  return xpub;
 }
 
 export async function saveWalletState(storage: IStorage, wallet: WatchOnlyWallet, network: Networks, accountNumber: number) {
@@ -237,8 +247,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
     let wallet: WatchOnlyWallet;
     switch (network) {
       case NETWORK_BITCOIN: {
-        const xpub = await storage.getItem(STORAGE_KEY_BTC_XPUB + accountNumber);
-        if (!xpub) throw new Error('No xpub for this account number');
+        const xpub = await ensureBitcoinXpub(storage, accountNumber);
         wallet = new WatchOnlyWallet();
         wallet.setSecret(xpub);
         wallet.init();
@@ -327,8 +336,6 @@ export function validateAddress(network: Networks, address: string): boolean {
         return RgbWallet.isAddressValid(a);
       // EVM networks
       case NETWORK_ROOTSTOCK:
-      case NETWORK_BOTANIX:
-      case NETWORK_BOTANIX_TESTNET:
       case NETWORK_ALPEN_TESTNET:
       case NETWORK_SEPOLIA:
       case NETWORK_CITREA_TESTNET:

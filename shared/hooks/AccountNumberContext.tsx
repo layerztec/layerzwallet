@@ -7,39 +7,27 @@ import { Networks } from '../types/networks';
 import { STORAGE_SELECTED_NETWORK } from './NetworkContext';
 import { IStorage } from '../types/IStorage';
 
+/** Dedicated wallet account index for the AI Agent / MCP pocket (BIP account'). */
+export const MCP_BALANCE_ACCOUNT_NUMBER = 4141;
+
 export interface AccountItem {
+  accountNumber: number;
   name: string;
   icon: string;
   iconCollection: string;
 }
 
-export const accountItems: AccountItem[] = [
-  {
-    name: 'Daily',
-    icon: 'wallet-outline',
-    iconCollection: 'ion',
-  },
-  {
-    name: 'Investment',
-    icon: 'bar-chart-outline',
-    iconCollection: 'ion',
-  },
-  {
-    name: 'Lifestyle',
-    icon: 'cart-outline',
-    iconCollection: 'ion',
-  },
-  {
-    name: 'Emergency',
-    icon: 'sound',
-    iconCollection: 'foundation',
-  },
-  {
-    name: 'AI Agent',
-    icon: 'robot-outline',
-    iconCollection: 'material-community',
-  },
+export const accountItems: readonly AccountItem[] = [
+  { accountNumber: 0, name: 'Daily', icon: 'wallet-outline', iconCollection: 'ion' },
+  { accountNumber: 1, name: 'Investment', icon: 'bar-chart-outline', iconCollection: 'ion' },
+  { accountNumber: 2, name: 'Lifestyle', icon: 'cart-outline', iconCollection: 'ion' },
+  { accountNumber: 3, name: 'Emergency', icon: 'sound', iconCollection: 'foundation' },
+  { accountNumber: MCP_BALANCE_ACCOUNT_NUMBER, name: 'AI Agent', icon: 'robot-outline', iconCollection: 'material-community' },
 ] as const;
+
+export function getAccountItem(accountNumber: number): AccountItem {
+  return accountItems.find((item) => item.accountNumber === accountNumber) ?? accountItems[0];
+}
 
 type AccountNumber = number;
 
@@ -92,7 +80,7 @@ export const AccountNumberContextProvider: React.FC<AccountNumberContextProvider
       (async () => {
         try {
           const response = (await props.storage.getItem(STORAGE_SELECTED_NETWORK)) as Networks;
-          const addressResponse = await props.backgroundCaller.getAddress(response || DEFAULT_NETWORK, accountNumber);
+          const addressResponse = await props.backgroundCaller.getAddress(response || DEFAULT_NETWORK, value);
           await props.messenger.sendEventCallbackFromPopupToContentScript({
             for: 'webpage',
             event: 'accountsChanged',

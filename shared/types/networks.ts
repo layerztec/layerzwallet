@@ -1,8 +1,6 @@
 export const NETWORK_BITCOIN = 'bitcoin' as const;
 export const NETWORK_SEPOLIA = 'sepolia' as const;
 export const NETWORK_ROOTSTOCK = 'rootstock' as const;
-export const NETWORK_BOTANIX = 'botanix' as const;
-export const NETWORK_BOTANIX_TESTNET = 'botanix_testnet' as const;
 export const NETWORK_ALPEN_TESTNET = 'alpen_testnet' as const;
 export const NETWORK_CITREA = 'citrea' as const;
 export const NETWORK_CITREA_TESTNET = 'citrea_testnet' as const;
@@ -22,8 +20,6 @@ const NetworksIterator = {
   BITCOIN: NETWORK_BITCOIN,
   SEPOLIA: NETWORK_SEPOLIA,
   ROOTSTOCK: NETWORK_ROOTSTOCK,
-  BOTANIX: NETWORK_BOTANIX,
-  BOTANIX_TESTNET: NETWORK_BOTANIX_TESTNET,
   ALPEN_TESTNET: NETWORK_ALPEN_TESTNET,
   CITREA: NETWORK_CITREA,
   CITREA_TESTNET: NETWORK_CITREA_TESTNET,

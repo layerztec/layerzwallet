@@ -15,14 +15,17 @@ const storage: IStorage = {
   },
 };
 
-const BTC_ASSET: AssetId = 'native:bitcoin';
-const BOTANIX_ASSET: AssetId = 'native:botanix';
-
-const isInsufficientLiquidity = (err: unknown): boolean => err instanceof GardenApiError && /insufficient liquidity/i.test(err.message);
+// Garden pairs come and go: a pair may have no liquidity, no solver route, or
+// reference an asset Garden doesn't list. All mean "try the next candidate /
+// skip" rather than fail — only genuine client/auth errors should throw.
+const isPairUnavailable = (err: unknown): boolean => err instanceof GardenApiError && /insufficient liquidity|no order pair found|invalid (to|from)_asset/i.test(err.message);
 
 // Candidate Garden pairs to probe. `serviceSendAsset`/`serviceReceiveAsset` are
 // set only when the pair is mapped in `garden-mappings.ts` — service-level
 // tests can use those; raw-API tests work with any pair.
+// No pair is currently mapped (BTC → Botanix was removed with the Botanix
+// shutdown), so service-level tests skip until Garden is re-pointed at
+// another chain.
 type Candidate = {
   gardenFrom: string;
   gardenTo: string;
@@ -31,7 +34,6 @@ type Candidate = {
 };
 
 const CANDIDATES: Candidate[] = [
-  { gardenFrom: 'bitcoin:btc', gardenTo: 'botanix:btc', serviceSendAsset: BTC_ASSET, serviceReceiveAsset: BOTANIX_ASSET },
   { gardenFrom: 'bitcoin:btc', gardenTo: 'spark:btc', serviceSendAsset: null, serviceReceiveAsset: null },
   { gardenFrom: 'bitcoin:btc', gardenTo: 'citrea:cbtc', serviceSendAsset: null, serviceReceiveAsset: null },
 ];
@@ -49,10 +51,10 @@ describe('Garden Finance API integration', () => {
         console.log(`Using working Garden pair: ${c.gardenFrom} → ${c.gardenTo}`);
         return;
       } catch (err) {
-        if (!isInsufficientLiquidity(err)) throw err;
+        if (!isPairUnavailable(err)) throw err;
       }
     }
-    console.warn('No Garden pair returned liquidity — skipping dependent tests');
+    console.warn('No Garden pair currently tradeable — skipping dependent tests');
   }, 30_000);
 
   it('GET /quote returns valid amounts for BTC→<dest>', async (ctx) => {
@@ -109,12 +111,10 @@ describe('Garden Finance API integration', () => {
     console.log('Send:', quote.sendAmount, 'Receive:', quote.receiveAmount);
   });
 
-  it('getSupportedPairs returns BTC→Botanix', () => {
+  it('getSupportedPairs returns no pairs', () => {
     const service = new GardenTransferService(storage, APP_ID);
     const pairs = service.getSupportedPairs();
-    expect(pairs).toHaveLength(1);
-    expect(pairs[0].sendAssetId).toBe(BTC_ASSET);
-    expect(pairs[0].receiveAssetId).toBe(BOTANIX_ASSET);
+    expect(pairs).toEqual([]);
   });
 
   it('getPairInfo returns valid rate', async (ctx) => {

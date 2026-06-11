@@ -5,7 +5,7 @@ import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
-import { setFlashnetAccountNumber, setNativeDepositSwapsFetcher, useTransferService } from '@shared/hooks/useTransferService';
+import { setFlashnetAccountNumber, setNativeDepositSwapsFetcher, setSparkExitAccountNumber, useTransferService } from '@shared/hooks/useTransferService';
 import { swapFetcher } from '@shared/hooks/useSwaps';
 import { TransferServiceManager } from '@shared/services/transfer-service-manager';
 import { AssetId } from '@shared/types/asset';
@@ -55,10 +55,11 @@ export function TransferFlowProvider({ children }: { children: ReactNode }) {
     setNativeDepositSwapsFetcher((network, acct) => swapFetcher({ cacheKey: 'ndSwapFetcher', accountNumber: acct, network, backgroundCaller: BackgroundExecutor }));
   }, [step]);
 
-  // Ensure Spark wallet is initialized so Flashnet swaps can work
+  // Ensure Spark wallet is initialized so Flashnet swaps and SparkExit withdrawals can work
   useEffect(() => {
     if (step !== EStep.READY) return;
     setFlashnetAccountNumber(accountNumber);
+    setSparkExitAccountNumber(accountNumber);
     BackgroundExecutor.lazyInitWallet(NETWORK_SPARK, accountNumber).catch(() => {});
   }, [accountNumber, step]);
 

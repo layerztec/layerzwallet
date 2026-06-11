@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { generateNewAccount, generateWallet, getStxAddress, Wallet as SdkWallet } from '@stacks/wallet-sdk';
+import { deriveAccount, DerivationType, generateWallet, getRootNode, getStxAddress, Wallet as SdkWallet } from '@stacks/wallet-sdk';
 import { createClient } from '@stacks/blockchain-api-client';
 import { broadcastTransaction, makeContractCall, makeSTXTokenTransfer, noneCV, SignedTokenTransferOptions, standardPrincipalCV, uintCV, validateStacksAddress } from '@stacks/transactions';
 
@@ -44,9 +44,26 @@ export class StacksWallet extends ArkWallet implements InterfaceAccountBasedWall
   setAccountNumber(value: number) {
     assert(this._sdkWallet, 'Stacks wallet is not initialized');
 
-    while (this._sdkWallet.accounts.length < value + 1) {
-      this._sdkWallet = generateNewAccount(this._sdkWallet); // adds a new account to an existing wallet object, immutable, NOT in-place
+    if (this._sdkWallet.accounts[value]) {
+      this._accountNumber = value;
+      return;
     }
+
+    // generateNewAccount() only derives the next sequential index; looping to reach
+    // a high account (e.g. MCP_BALANCE_ACCOUNT_NUMBER = 4141) would derive thousands of keys.
+    const account = deriveAccount({
+      rootNode: getRootNode(this._sdkWallet),
+      index: value,
+      salt: this._sdkWallet.salt,
+      stxDerivationType: DerivationType.Wallet,
+    });
+
+    const accounts = this._sdkWallet.accounts.slice();
+    accounts[value] = account;
+    this._sdkWallet = {
+      ...this._sdkWallet,
+      accounts,
+    };
 
     this._accountNumber = value;
   }

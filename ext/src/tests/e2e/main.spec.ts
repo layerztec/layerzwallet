@@ -188,11 +188,14 @@ test('can switch network', async ({ page, extensionId }) => {
   // await page.selectOption('[id="networkSelect"]', 'optimism');
   await page.getByRole('button', { name: 'Rootstock' }).click(); // allow connecting to the Dapp
 
-  // navigating back to the dapp to check current network
+  // navigating back to the dapp to check current network. reloading the dapp
+  // drops its EIP-6963 provider selection, so we must re-select it; the dapp
+  // then auto-reconnects since the permission is already granted.
   await page.goto('https://metamask.github.io/test-dapp/');
-  await sleep(4_000); // waiting for a page to interact with injected provider and load that stuff
-  const spanText2 = await page.locator('span[id="network"]').textContent();
-  expect(parseInt(String(spanText2))).toEqual(30); // current selected network is 10
+  await page.getByText(/Use Layerz Wallet/).click();
+
+  // selected network is now Rootstock (chainId 30)
+  await expect(page.locator('span[id="network"]')).toHaveText('30', { timeout: 30_000 });
 });
 
 test('onboarding: does not have mnemonic', async ({ page, extensionId }) => {

@@ -1,6 +1,8 @@
 on:
   push:
     branches: ['master']
+    paths:
+      - mobile/**
 
 concurrency:
   cancel_in_progress: true

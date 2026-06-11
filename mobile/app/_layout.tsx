@@ -33,8 +33,9 @@ import { useTransferService } from '@shared/hooks/useTransferService';
 import { ProtectedRouteStack } from '@/components/ProtectedRouteStack';
 import { ActionPopupProvider } from '@/contexts/ActionPopupContext';
 import { toastConfig } from '@/components/toast-config';
-import { handleMcpRequest, resetMcpSessions } from '@/src/features/mcp/modules/mcp';
-import { startTunnel } from '@/src/features/mcp/modules/tunnel';
+import { configureMcp, handleMcpRequest, resetMcpSessions } from '@shared/features/mcp/modules/mcp';
+import { startTunnel } from '@shared/features/mcp/modules/tunnel';
+import { mobileAppLifecycle, mobileMcpDeps } from '@/src/features/mcp/modules/mcp-platform';
 import { appendLog, applogFilePath, handleError } from '@/src/modules/error-handler';
 import { TransferFlowProvider } from '@/src/transfer/TransferFlowContext';
 import { TransferExecution } from '@shared/types/transfer';
@@ -42,6 +43,10 @@ import { TransferExecution } from '@shared/types/transfer';
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 LogBox.ignoreLogs(['Require cycle:', 'Open debugger to view warnings.']);
+
+// Wire platform-specific MCP deps synchronously at module load so `handleMcpRequest`
+// is safe to invoke as soon as the tunnel resolves (TunnelBootstrap mounts later).
+configureMcp(mobileMcpDeps, { name: 'layerz-wallet-mobile' });
 
 const onJSError = (error: unknown) => handleError(error, 'JAVASCRIPT_ERROR');
 
@@ -60,6 +65,9 @@ function TunnelBootstrap() {
   useEffect(() => {
     void startTunnel({
       handleRequest: handleMcpRequest,
+      storage: LayerzStorage,
+      appLifecycle: mobileAppLifecycle,
+      url: process.env.EXPO_PUBLIC_MCP_TUNNEL_URL,
       onSessionChange: ({ publicUrl, idChanged }) => {
         if (__DEV__) console.log('[mcp] PUBLIC URL:', publicUrl);
         if (idChanged) resetMcpSessions();
@@ -89,7 +97,6 @@ export default function RootLayout() {
         case 'native:bitcoin':
         case 'native:citrea':
         case 'native:lightning':
-        case 'native:botanix':
         case 'native:liquid':
         case 'native:spark':
           sat = new BigNumber(execution.receiveAmount).multipliedBy(1e8).toNumber();
@@ -101,7 +108,6 @@ export default function RootLayout() {
         case 'native:bitcoin':
         case 'native:citrea':
         case 'native:lightning':
-        case 'native:botanix':
         case 'native:liquid':
         case 'native:spark':
           sat = new BigNumber(execution.sendAmount).multipliedBy(1e8).toNumber();

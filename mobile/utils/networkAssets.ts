@@ -3,8 +3,6 @@ import {
   NETWORK_LIQUID,
   NETWORK_LIQUID_TESTNET,
   NETWORK_ROOTSTOCK,
-  NETWORK_BOTANIX,
-  NETWORK_BOTANIX_TESTNET,
   NETWORK_ALPEN_TESTNET,
   NETWORK_ARK_MUTINYNET,
   NETWORK_CITREA_TESTNET,
@@ -78,9 +76,6 @@ export const getNetworkImageAsset = (network: string): string | null => {
       return require('../assets/images/ui/network/stacks.png');
     case NETWORK_ROOTSTOCK:
       return require('../assets/images/ui/network/rootstock.png');
-    case NETWORK_BOTANIX:
-    case NETWORK_BOTANIX_TESTNET:
-      return require('../assets/images/ui/network/botanix.png');
     case NETWORK_ALPEN_TESTNET:
       return require('../assets/images/ui/network/alpen.png');
     case NETWORK_ARK_MUTINYNET:
