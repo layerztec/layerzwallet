@@ -100,7 +100,6 @@ export default function RootLayout() {
         case 'native:bitcoin':
         case 'native:citrea':
         case 'native:lightning':
-        case 'native:botanix':
         case 'native:liquid':
         case 'native:spark':
           sat = new BigNumber(execution.receiveAmount).multipliedBy(1e8).toNumber();
@@ -112,7 +111,6 @@ export default function RootLayout() {
         case 'native:bitcoin':
         case 'native:citrea':
         case 'native:lightning':
-        case 'native:botanix':
         case 'native:liquid':
         case 'native:spark':
           sat = new BigNumber(execution.sendAmount).multipliedBy(1e8).toNumber();

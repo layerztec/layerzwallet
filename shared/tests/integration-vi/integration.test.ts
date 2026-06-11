@@ -7,7 +7,7 @@ import { balanceFetcher } from '../../hooks/useBalance';
 import { tokenBalanceFetcher } from '../../hooks/useTokenBalance';
 import { getTokenList } from '../../models/token-list';
 import { IBackgroundCaller } from '../../types/IBackgroundCaller';
-import { NETWORK_BOTANIX_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SEPOLIA, NETWORK_ALPEN_TESTNET } from '../../types/networks';
+import { NETWORK_ROOTSTOCK, NETWORK_SEPOLIA, NETWORK_ALPEN_TESTNET } from '../../types/networks';
 import { exchangeRateFetcher } from '../../hooks/useExchangeRate';
 
 const backgroundCallerMock2: IBackgroundCaller = {
@@ -135,7 +135,7 @@ test('can fetch exchange rate', async (context) => {
 
   const rate2 = await exchangeRateFetcher({
     cacheKey: 'exchangeRateFetcher',
-    network: NETWORK_BOTANIX_TESTNET,
+    network: NETWORK_ALPEN_TESTNET,
     fiat: 'USD',
   });
 

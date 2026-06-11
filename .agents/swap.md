@@ -57,11 +57,10 @@ getTrackingUrl?(execution): string | undefined
 
 ### Garden Finance (`shared/services/transfer-service-garden.ts`)
 
-- **Pairs**: BTC → Botanix only (reverse requires EVM tx signing — deferred)
+- **Pairs**: none at the moment — the only supported pair was BTC → Botanix, removed when Botanix shut down. Infrastructure kept in case Garden is re-pointed at other chains.
 - **Model**: Atomic swap deposit. Requires `fromAddress` for HTLC refund.
 - **API**: `shared/services/garden-api.ts` — `api.garden.finance/v2`, auth via `garden-app-id` header
-- **Mappings**: `shared/services/garden-mappings.ts`
-- **Decimals**: bitcoin=8, botanix=18 (BigNumber.js conversion)
+- **Mappings**: `shared/services/garden-mappings.ts` (only `native:bitcoin` mapped)
 - **Tracking**: `explorer.garden.finance/order/{providerId}`
 - Conditional on `EXPO_PUBLIC_GARDEN_APP_ID` env var
 
@@ -113,7 +112,7 @@ getTrackingUrl?(execution): string | undefined
 
 ### Fake (`shared/services/transfer-service-fake.ts`)
 
-- **Pairs**: Liquid Testnet BTC <-> Botanix Testnet BTC
+- **Pairs**: Liquid Testnet BTC <-> Citrea Testnet cBTC
 - **Model**: Dev/test stub. Instant completion. Throws error when amount=1.
 - Only available in `__DEV__` mode
 

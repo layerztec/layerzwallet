@@ -15,8 +15,6 @@ import {
   NETWORK_ARK,
   NETWORK_ARK_MUTINYNET,
   NETWORK_BITCOIN,
-  NETWORK_BOTANIX,
-  NETWORK_BOTANIX_TESTNET,
   NETWORK_CITREA_TESTNET,
   NETWORK_LIQUID,
   NETWORK_LIQUID_TESTNET,
@@ -306,8 +304,6 @@ export function validateAddress(network: Networks, address: string): boolean {
         return StacksWallet.isAddressValid(a);
       // EVM networks
       case NETWORK_ROOTSTOCK:
-      case NETWORK_BOTANIX:
-      case NETWORK_BOTANIX_TESTNET:
       case NETWORK_ALPEN_TESTNET:
       case NETWORK_SEPOLIA:
       case NETWORK_CITREA_TESTNET:

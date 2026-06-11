@@ -4,6 +4,7 @@ import { ExpoArkProvider, ExpoIndexerProvider } from '@arkade-os/sdk/adapters/ex
 import ecc from '@bitcoinerlab/secp256k1';
 import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex } from '@noble/hashes/utils';
+import { parseStoredTransactionList, parseStoredUtxoList, parseStoredVtxoList, stringifyTransactionList, stringifyUtxoList, stringifyVtxoList } from './ark-wallet-storage';
 import assert from 'assert';
 import BIP32Factory from 'bip32';
 import * as bip39 from 'bip39';
@@ -98,14 +99,66 @@ class NamespacedStorage {
     if (!raw) return fallback;
 
     try {
-      return JSON.parse(raw) as T;
-    } catch {
+      const parsed: unknown = JSON.parse(raw);
+      if (parsed === null) return fallback;
+      return parsed as T;
+    } catch (error) {
+      console.error('ARK storage: failed to read', this.key(suffix), error);
       return fallback;
     }
   }
 
   async writeJson(suffix: string, value: unknown): Promise<void> {
     await this.storage.setItem(this.key(suffix), JSON.stringify(value));
+  }
+
+  async clearCoinCacheForAddresses(addresses: string[]): Promise<void> {
+    await Promise.all(addresses.flatMap((address) => [this.storage.setItem(this.key(`wallet:vtxos:${address}`), '[]'), this.storage.setItem(this.key(`wallet:utxos:${address}`), '[]')]));
+  }
+
+  async readVtxos(address: string): Promise<ExtendedVirtualCoin[]> {
+    const raw = await this.storage.getItem(this.key(`wallet:vtxos:${address}`));
+    if (!raw) return [];
+    try {
+      return parseStoredVtxoList(raw);
+    } catch (error) {
+      console.error('ARK storage: failed to parse vtxos for', address, error);
+      return [];
+    }
+  }
+
+  async writeVtxos(address: string, vtxos: ExtendedVirtualCoin[]): Promise<void> {
+    await this.storage.setItem(this.key(`wallet:vtxos:${address}`), stringifyVtxoList(vtxos));
+  }
+
+  async readUtxos(address: string): Promise<ExtendedCoin[]> {
+    const raw = await this.storage.getItem(this.key(`wallet:utxos:${address}`));
+    if (!raw) return [];
+    try {
+      return parseStoredUtxoList(raw);
+    } catch (error) {
+      console.error('ARK storage: failed to parse utxos for', address, error);
+      return [];
+    }
+  }
+
+  async writeUtxos(address: string, utxos: ExtendedCoin[]): Promise<void> {
+    await this.storage.setItem(this.key(`wallet:utxos:${address}`), stringifyUtxoList(utxos));
+  }
+
+  async readTransactions(address: string): Promise<ArkTransaction[]> {
+    const raw = await this.storage.getItem(this.key(`wallet:txs:${address}`));
+    if (!raw) return [];
+    try {
+      return parseStoredTransactionList(raw);
+    } catch (error) {
+      console.error('ARK storage: failed to parse transactions for', address, error);
+      return [];
+    }
+  }
+
+  async writeTransactions(address: string, txs: ArkTransaction[]): Promise<void> {
+    await this.storage.setItem(this.key(`wallet:txs:${address}`), stringifyTransactionList(txs));
   }
 }
 
@@ -129,53 +182,47 @@ class LayerzWalletRepository {
    */
   async clear(): Promise<void> {
     const addresses = await this.getTrackedAddresses();
-    await Promise.all(
-      addresses.flatMap((address) => [
-        this.storage.writeJson(`wallet:vtxos:${address}`, []),
-        this.storage.writeJson(`wallet:utxos:${address}`, []),
-        this.storage.writeJson(`wallet:txs:${address}`, []),
-      ])
-    );
+    await Promise.all(addresses.flatMap((address) => [this.storage.writeVtxos(address, []), this.storage.writeUtxos(address, []), this.storage.writeTransactions(address, [])]));
     await this.storage.writeJson('wallet:addresses', []);
     await this.storage.writeJson('wallet:state', null);
   }
 
   async getVtxos(address: string): Promise<ExtendedVirtualCoin[]> {
-    return this.storage.readJson<ExtendedVirtualCoin[]>(`wallet:vtxos:${address}`, []);
+    return this.storage.readVtxos(address);
   }
 
   async saveVtxos(address: string, vtxos: ExtendedVirtualCoin[]): Promise<void> {
     const existing = await this.getVtxos(address);
     await this.trackAddress(address);
-    await this.storage.writeJson(
-      `wallet:vtxos:${address}`,
+    await this.storage.writeVtxos(
+      address,
       mergeByKey(existing, vtxos, (item) => `${item.txid}:${item.vout}`)
     );
   }
 
   async deleteVtxos(address: string): Promise<void> {
-    await this.storage.writeJson(`wallet:vtxos:${address}`, []);
+    await this.storage.writeVtxos(address, []);
   }
 
   async getUtxos(address: string): Promise<ExtendedCoin[]> {
-    return this.storage.readJson<ExtendedCoin[]>(`wallet:utxos:${address}`, []);
+    return this.storage.readUtxos(address);
   }
 
   async saveUtxos(address: string, utxos: ExtendedCoin[]): Promise<void> {
     const existing = await this.getUtxos(address);
     await this.trackAddress(address);
-    await this.storage.writeJson(
-      `wallet:utxos:${address}`,
+    await this.storage.writeUtxos(
+      address,
       mergeByKey(existing, utxos, (item) => `${item.txid}:${item.vout}`)
     );
   }
 
   async deleteUtxos(address: string): Promise<void> {
-    await this.storage.writeJson(`wallet:utxos:${address}`, []);
+    await this.storage.writeUtxos(address, []);
   }
 
   async getTransactionHistory(address: string): Promise<ArkTransaction[]> {
-    return this.storage.readJson<ArkTransaction[]>(`wallet:txs:${address}`, []);
+    return this.storage.readTransactions(address);
   }
 
   /**
@@ -187,14 +234,14 @@ class LayerzWalletRepository {
   async saveTransactions(address: string, txs: ArkTransaction[]): Promise<void> {
     const existing = await this.getTransactionHistory(address);
     await this.trackAddress(address);
-    await this.storage.writeJson(
-      `wallet:txs:${address}`,
+    await this.storage.writeTransactions(
+      address,
       mergeByKey(existing, txs, (tx) => `${tx.key.boardingTxid}:${tx.key.commitmentTxid}:${tx.key.arkTxid}`)
     );
   }
 
   async deleteTransactions(address: string): Promise<void> {
-    await this.storage.writeJson(`wallet:txs:${address}`, []);
+    await this.storage.writeTransactions(address, []);
   }
 
   async getWalletState(): Promise<WalletState | null> {
@@ -479,6 +526,30 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     this._manager = new VtxoManager(wallet, {
       enabled: true, // Enable expiration monitoring
     });
+
+    await this._runOneTimeVtxoRecovery(storage);
+  }
+
+  /**
+   * One-time recovery for wallets whose local VTXO cache was corrupted by older
+   * code. Clears the SDK sync cursor so the next balance/history fetch
+   * re-bootstraps from the indexer and re-persists with the corrected codec.
+   */
+  private async _runOneTimeVtxoRecovery(storage: NamespacedStorage): Promise<void> {
+    const RECOVERY_FLAG = 'recovery:vtxoStorageV1';
+
+    try {
+      if (await storage.readJson<boolean>(RECOVERY_FLAG, false)) return;
+
+      const addresses = await storage.readJson<string[]>('wallet:addresses', []);
+      if (addresses.length > 0) {
+        await storage.clearCoinCacheForAddresses(addresses);
+      }
+      await this._wallet?.clearSyncCursor();
+      await storage.writeJson(RECOVERY_FLAG, true);
+    } catch (error) {
+      globalThis.handleError?.(error, 'ark-wallet.ts');
+    }
   }
 
   async initLightningSwaps() {
@@ -524,6 +595,14 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     await this._populateArkTokenCacheFromWalletBalance(balance);
     this._lastBalanceFetch = Date.now();
     return balance.available;
+  }
+
+  /** Force a full VTXO re-sync from the Ark indexer on the next balance fetch. */
+  async resyncFromIndexer() {
+    assert(this._wallet, 'Ark wallet not initialized');
+    await this._wallet.clearSyncCursor();
+    // the next balance fetch performs the full re-bootstrap and re-caches everything
+    return this.getOffchainBalance();
   }
 
   private async _populateArkTokenCacheFromWalletBalance(balance: WalletBalance): Promise<void> {

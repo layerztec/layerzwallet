@@ -1,6 +1,6 @@
 # Testplan:
 # - Navigate to transfer flow
-# - Select testnet pair: tL-BTC -> BTC (Botanix Testnet) via Fake service
+# - Select testnet pair: tL-BTC -> cBTC (Citrea Testnet) via Fake service
 # - Enter amount 0.01
 # - Wait for quote from Fake service
 # - Continue to confirm screen
@@ -91,7 +91,7 @@ appId: com.layerzwallet.mobile
     id: 'TransferAsset-native:liquid_testnet'
 - waitForAnimationToEnd
 
-# Select receive asset: BTC (Botanix Testnet)
+# Select receive asset: cBTC (Citrea Testnet)
 - tapOn:
     id: 'TransferReceive-asset-pill'
 - extendedWaitUntil:
@@ -99,11 +99,11 @@ appId: com.layerzwallet.mobile
     timeout: 5000
 - scrollUntilVisible:
     element:
-      id: 'TransferAsset-native:botanix_testnet'
+      id: 'TransferAsset-native:citrea_testnet'
     direction: DOWN
     timeout: 20000
 - tapOn:
-    id: 'TransferAsset-native:botanix_testnet'
+    id: 'TransferAsset-native:citrea_testnet'
 - waitForAnimationToEnd
 
 # Enter send amount

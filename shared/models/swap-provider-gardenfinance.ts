@@ -1,22 +1,22 @@
 import assert from 'assert';
-import { DoSwapResponse, SwapPair, SwapPlatform, SwapProvider } from '../types/swap';
-import { NETWORK_BITCOIN, NETWORK_BOTANIX, Networks } from '../types/networks';
+import { DoSwapResponse, SwapPair, SwapProvider } from '../types/swap';
+import { NETWORK_BITCOIN, Networks } from '../types/networks';
 import BigNumber from 'bignumber.js';
 import { getDecimalsByNetwork } from '../models/network-getters';
 
 /**
- * handles Botanix swaps.
+ * handles swaps via Garden Finance dapp.
  * we currently take no commission on them.
+ *
+ * No pairs at the moment: the only supported pair was BTC <-> Botanix,
+ * which was removed when Botanix shut down. Infrastructure is kept in
+ * case Garden is re-pointed at other chains later.
  */
 export class SwapProviderGardenFinance implements SwapProvider {
   name = 'Garden Finance';
 
   getSupportedPairs(): SwapPair[] {
-    return [
-      // btc <-> botanix
-      { from: NETWORK_BITCOIN, to: NETWORK_BOTANIX, platform: SwapPlatform.ALL },
-      { from: NETWORK_BOTANIX, to: NETWORK_BITCOIN, platform: SwapPlatform.ALL },
-    ];
+    return [];
   }
 
   async swap(from: Networks, setNetwork: (network: Networks) => void, to: Networks, amountIn: number, userWalletAddress: string): Promise<DoSwapResponse> {
@@ -30,9 +30,6 @@ export class SwapProviderGardenFinance implements SwapProvider {
       case NETWORK_BITCOIN:
         sendAsset = 'bitcoin';
         break;
-      case NETWORK_BOTANIX:
-        sendAsset = 'botanix';
-        break;
       default:
         throw new Error(`Swap from ${from} not supported by ${this.name}`);
     }
@@ -41,9 +38,6 @@ export class SwapProviderGardenFinance implements SwapProvider {
     switch (to) {
       case NETWORK_BITCOIN:
         receiveAsset = 'bitcoin';
-        break;
-      case NETWORK_BOTANIX:
-        receiveAsset = 'botanix';
         break;
       default:
         throw new Error(`Swap to ${to} not supported by ${this.name}`);

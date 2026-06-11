@@ -1,11 +1,111 @@
 import assert from 'assert';
 import { test, vi } from 'vitest';
 import { ArkTransaction, TxType } from '@arkade-os/sdk';
+import type { ExtendedVirtualCoin } from '@arkade-os/sdk';
 
 import { ArkWallet } from '../../class/wallets/ark-wallet';
+import { deserializeVtxo, parseStoredVtxoList, serializeVtxo, stringifyVtxoList } from '../../class/wallets/ark-wallet-storage';
 import { IStorage } from '../../types/IStorage';
 import { NETWORK_ARK } from '../../types/networks';
 import { DeepPartial } from '../../class/wallets/types';
+
+const minimalTapLeaf = (): ExtendedVirtualCoin['forfeitTapLeafScript'] => {
+  const internalKey = new Uint8Array(32).fill(9);
+  const cb = { version: 192, internalKey, merklePath: [] as Uint8Array[] };
+  const script = new Uint8Array([0x51, 0x20, ...internalKey]);
+  return [cb, script];
+};
+
+const minimalVtxo = (overrides: Partial<ExtendedVirtualCoin> = {}): ExtendedVirtualCoin =>
+  ({
+    txid: 'a'.repeat(64),
+    vout: 0,
+    value: 2100,
+    createdAt: new Date(1756199879000),
+    tapTree: new Uint8Array([1, 2, 3, 255]),
+    forfeitTapLeafScript: minimalTapLeaf(),
+    intentTapLeafScript: minimalTapLeaf(),
+    script: '5120' + '00'.repeat(32),
+    status: { confirmed: true, block_time: 1756199879 },
+    virtualStatus: { state: 'preconfirmed', commitmentTxIds: [] },
+    isSpent: false,
+    isUnrolled: false,
+    isRecoverable: false,
+    isSwept: false,
+    isPreconfirmed: true,
+    isPending: false,
+    isLeaf: false,
+    settledBy: undefined,
+    arkTxId: undefined,
+    assets: [{ assetId: 'token-1', amount: 12345678901234567890n }],
+    ...overrides,
+  }) as ExtendedVirtualCoin;
+
+test('ark vtxo storage round-trips SDK-shaped fields', () => {
+  const vtxo = minimalVtxo();
+  const stored = serializeVtxo(vtxo);
+  const restored = deserializeVtxo(stored);
+
+  assert.ok(restored.createdAt instanceof Date);
+  assert.strictEqual(restored.createdAt.getTime(), 1756199879000);
+  assert.ok(restored.tapTree instanceof Uint8Array);
+  assert.deepEqual(Array.from(restored.tapTree), [1, 2, 3, 255]);
+  assert.ok(Array.isArray(restored.forfeitTapLeafScript));
+  assert.ok(restored.forfeitTapLeafScript[1] instanceof Uint8Array);
+  assert.strictEqual(typeof restored.assets?.[0].amount, 'bigint');
+  assert.strictEqual(restored.assets?.[0].amount, 12345678901234567890n);
+});
+
+test('ark vtxo storage parses legacy plain-JSON cache rows', () => {
+  const tapLeaf = minimalTapLeaf();
+  const legacyRow = {
+    ...minimalVtxo({ assets: undefined }),
+    createdAt: '2026-03-15T22:46:00.000Z',
+    tapTree: Object.fromEntries([...minimalVtxo().tapTree.entries()]),
+    forfeitTapLeafScript: [
+      {
+        version: tapLeaf[0].version,
+        internalKey: Object.fromEntries([...tapLeaf[0].internalKey.entries()]),
+        merklePath: tapLeaf[0].merklePath.map((p) => Object.fromEntries([...p.entries()])),
+      },
+      Object.fromEntries([...tapLeaf[1].entries()]),
+    ],
+    intentTapLeafScript: [
+      {
+        version: tapLeaf[0].version,
+        internalKey: Object.fromEntries([...tapLeaf[0].internalKey.entries()]),
+        merklePath: tapLeaf[0].merklePath.map((p) => Object.fromEntries([...p.entries()])),
+      },
+      Object.fromEntries([...tapLeaf[1].entries()]),
+    ],
+  };
+
+  const parsed = parseStoredVtxoList(JSON.stringify([legacyRow]));
+  assert.strictEqual(parsed.length, 1);
+  assert.ok(parsed[0].createdAt instanceof Date);
+  assert.strictEqual(typeof parsed[0].createdAt.getTime(), 'number');
+  assert.ok(!Number.isNaN(parsed[0].createdAt.getTime()));
+  assert.ok(parsed[0].tapTree instanceof Uint8Array);
+});
+
+test('ark vtxo storage drops rows that cannot be coerced', () => {
+  const parsed = parseStoredVtxoList(JSON.stringify([{ txid: 'bad', vout: 0, value: 1 }]));
+  assert.deepEqual(parsed, []);
+});
+
+test('persisted vtxo list uses SDK hex encoding', () => {
+  const vtxo = minimalVtxo();
+  const raw = JSON.parse(stringifyVtxoList([vtxo]))[0];
+
+  assert.strictEqual(typeof raw.tapTree, 'string');
+  assert.strictEqual(typeof raw.forfeitTapLeafScript.cb, 'string');
+  assert.strictEqual(typeof raw.forfeitTapLeafScript.s, 'string');
+  assert.strictEqual(typeof raw.createdAt, 'number');
+
+  const loaded = parseStoredVtxoList(stringifyVtxoList([vtxo]));
+  assert.strictEqual(loaded.length, 1);
+  assert.strictEqual(loaded[0].createdAt.getTime(), vtxo.createdAt.getTime());
+});
 
 const _cache: Record<string, string> = {};
 const storageMock: IStorage = {
@@ -53,6 +153,9 @@ test('ark mainnet can getCommonTransactions', async (context) => {
     getTransactionHistory: vi.fn().mockImplementation(() => {
       return transfers as ArkTransaction[];
     }),
+    assetManager: {
+      getAssetDetails: vi.fn().mockResolvedValue({ metadata: {} }),
+    },
   };
 
   const transactions = await w.getCommonTransactions();
