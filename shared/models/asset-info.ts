@@ -1,6 +1,6 @@
 import { AllNetworkInfos } from './all-network-infos';
 import { getTokenInfo, USDT_TOKENS } from './token-list';
-import { NETWORK_BITCOIN, NETWORK_BOTANIX_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
+import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '../types/networks';
 import { ASSET_IDS, AssetId, AssetInfo } from '../types/asset';
 
 const ASSET_ID_SET = new Set<string>(ASSET_IDS);
@@ -21,7 +21,6 @@ function getNativeName(network: Networks): string {
 
   if (network === NETWORK_BITCOIN) return 'Bitcoin';
   if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) return 'Liquid Bitcoin';
-  if (network === NETWORK_BOTANIX_TESTNET) return 'Botanix BTC';
   if (ticker.includes('BTC')) return `${displayName} BTC`;
 
   return `${displayName} ${ticker}`;

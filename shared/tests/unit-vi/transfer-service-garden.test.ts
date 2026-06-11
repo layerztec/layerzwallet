@@ -5,8 +5,11 @@ import { GardenTransferService, deriveGardenStatus } from '../../services/transf
 import { STORAGE_KEY_GARDEN_TRANSFERS } from '../../types/IStorage';
 import { DepositAddressExecution, EXECUTION_DEPOSIT, TransferQuote } from '../../types/transfer';
 
+// Garden currently only maps 'native:bitcoin' (BTC <-> Botanix pairs were removed
+// with the Botanix shutdown), so mechanics tests use BTC on both sides.
 const BTC_ASSET = 'native:bitcoin' as const;
-const BOTANIX_ASSET = 'native:botanix' as const;
+// any valid AssetId works for persistence tests — it never goes through Garden mappings
+const CITREA_ASSET = 'native:citrea' as const;
 
 function createMockStorage() {
   const store: Record<string, string> = {};
@@ -27,7 +30,7 @@ function makeExecution(overrides: Partial<DepositAddressExecution> = {}): Deposi
     sendAmount: '0.0005',
     receiveAmount: '0.000495',
     sendAsset: BTC_ASSET,
-    receiveAsset: BOTANIX_ASSET,
+    receiveAsset: CITREA_ASSET,
     createdAt: 0,
     updatedAt: 0,
     accountNumber: 0,
@@ -66,7 +69,7 @@ function makeOrder(overrides: Omit<Partial<GardenOrder>, 'source_swap' | 'destin
     order_id: 'order-123',
     created_at: new Date().toISOString(),
     source_swap: makeSwap(srcOverrides),
-    destination_swap: makeSwap({ chain: 'botanix', asset: 'botanix:btc', ...dstOverrides }),
+    destination_swap: makeSwap({ swap_id: 'swap-2', ...dstOverrides }),
     nonce: '1',
     version: '1',
     solver_id: 'solver-1',
@@ -90,10 +93,9 @@ describe('GardenTransferService', () => {
   });
 
   describe('getSupportedPairs', () => {
-    it('returns BTC → Botanix pair', () => {
+    it('returns no pairs (BTC → Botanix was removed with the Botanix shutdown)', () => {
       const pairs = service.getSupportedPairs();
-      expect(pairs).toHaveLength(1);
-      expect(pairs[0]).toEqual({ sendAssetId: BTC_ASSET, receiveAssetId: BOTANIX_ASSET });
+      expect(pairs).toEqual([]);
     });
   });
 
@@ -108,7 +110,7 @@ describe('GardenTransferService', () => {
               solver_id: 'solver-abc',
               estimated_time: 600,
               source: { asset: 'bitcoin:btc', amount: '50000', display: '0.0005', value: '50' },
-              destination: { asset: 'botanix:btc', amount: '49500', display: '0.000495', value: '49.5' },
+              destination: { asset: 'bitcoin:btc', amount: '49500', display: '0.000495', value: '49.5' },
               slippage: 100,
               fee: 100,
               fixed_fee: '0.5',
@@ -117,11 +119,15 @@ describe('GardenTransferService', () => {
         })
       );
 
-      const quote = await service.getQuote(BTC_ASSET, BOTANIX_ASSET, '0.0005');
+      const quote = await service.getQuote(BTC_ASSET, BTC_ASSET, '0.0005');
       expect(quote.providerQuoteId).toBe('solver-abc');
       expect(quote.sendAmount).toBe('0.0005');
       expect(quote.receiveAmount).toBe('0.000495');
       expect(quote.estimatedTime).toBe(600);
+    });
+
+    it('throws for assets not mapped to Garden', async () => {
+      await expect(service.getQuote(BTC_ASSET, CITREA_ASSET, '0.0005')).rejects.toThrow('not supported by Garden');
     });
 
     it('throws when no quote available', async () => {
@@ -133,13 +139,13 @@ describe('GardenTransferService', () => {
         })
       );
 
-      await expect(service.getQuote(BTC_ASSET, BOTANIX_ASSET, '0.0005')).rejects.toThrow('No quote available from Garden');
+      await expect(service.getQuote(BTC_ASSET, BTC_ASSET, '0.0005')).rejects.toThrow('No quote available from Garden');
     });
 
     it('surfaces API errors', async () => {
       fetchSpy.mockImplementation(() => mockFetchResponse({ status: 'Error', error: 'Amount below minimum' }, false, 400));
 
-      await expect(service.getQuote(BTC_ASSET, BOTANIX_ASSET, '0.0000001')).rejects.toThrow('Amount below minimum');
+      await expect(service.getQuote(BTC_ASSET, BTC_ASSET, '0.0000001')).rejects.toThrow('Amount below minimum');
     });
   });
 
@@ -148,7 +154,7 @@ describe('GardenTransferService', () => {
       id: 'garden-123',
       providerQuoteId: 'solver-abc',
       sendAsset: BTC_ASSET,
-      receiveAsset: BOTANIX_ASSET,
+      receiveAsset: BTC_ASSET,
       sendAmount: '0.0005',
       receiveAmount: '0.000495',
       rate: '1 BTC = 0.99000000 BTC',
@@ -172,7 +178,7 @@ describe('GardenTransferService', () => {
         })
       );
 
-      const execution = await service.executeTransfer(makeQuote(), 0, '0xSettleBotanix', 'bc1qsource...');
+      const execution = await service.executeTransfer(makeQuote(), 0, 'bc1qsettle...', 'bc1qsource...');
       expect(execution.id).toBe('order-xyz');
       expect(execution.status).toBe('waiting');
       expect(execution.depositAddress).toBe('bc1qdeposit...');
@@ -191,14 +197,14 @@ describe('GardenTransferService', () => {
     });
 
     it('throws when fromAddress is missing', async () => {
-      await expect(service.executeTransfer(makeQuote(), 0, '0xSettleBotanix')).rejects.toThrow('Garden requires a source address');
+      await expect(service.executeTransfer(makeQuote(), 0, 'bc1qsettle...')).rejects.toThrow('Garden requires a source address');
     });
 
     it('throws on expired quote', async () => {
       const expiredQuote = makeQuote();
       expiredQuote.expiresAt = Math.floor(Date.now() / 1000) - 100;
 
-      await expect(service.executeTransfer(expiredQuote, 0, '0xSettleBotanix', 'bc1qsource...')).rejects.toThrow('Quote has expired');
+      await expect(service.executeTransfer(expiredQuote, 0, 'bc1qsettle...', 'bc1qsource...')).rejects.toThrow('Quote has expired');
     });
   });
 
@@ -219,7 +225,7 @@ describe('GardenTransferService', () => {
             sendAmount: '0.0005',
             receiveAmount: '0.000495',
             sendAsset: BTC_ASSET,
-            receiveAsset: BOTANIX_ASSET,
+            receiveAsset: CITREA_ASSET,
             createdAt: Math.floor(Date.now() / 1000),
             updatedAt: 0,
             accountNumber: 0,
@@ -227,7 +233,7 @@ describe('GardenTransferService', () => {
           },
           gardenOrderId: 'order-1',
           sourceAsset: 'bitcoin:btc',
-          destinationAsset: 'botanix:btc',
+          destinationAsset: 'bitcoin:btc',
         },
       ]);
 
@@ -255,7 +261,7 @@ describe('GardenTransferService', () => {
             sendAmount: '0.0005',
             receiveAmount: '0.000495',
             sendAsset: BTC_ASSET,
-            receiveAsset: BOTANIX_ASSET,
+            receiveAsset: CITREA_ASSET,
             createdAt: Math.floor(Date.now() / 1000),
             updatedAt: 0,
             accountNumber: 0,
@@ -263,7 +269,7 @@ describe('GardenTransferService', () => {
           },
           gardenOrderId: 'order-1',
           sourceAsset: 'bitcoin:btc',
-          destinationAsset: 'botanix:btc',
+          destinationAsset: 'bitcoin:btc',
         },
       ]);
 
@@ -295,7 +301,7 @@ describe('GardenTransferService', () => {
             sendAmount: '0.0005',
             receiveAmount: '0.000495',
             sendAsset: BTC_ASSET,
-            receiveAsset: BOTANIX_ASSET,
+            receiveAsset: CITREA_ASSET,
             createdAt: oldTimestamp,
             updatedAt: 0,
             accountNumber: 0,
@@ -303,7 +309,7 @@ describe('GardenTransferService', () => {
           },
           gardenOrderId: 'order-old',
           sourceAsset: 'bitcoin:btc',
-          destinationAsset: 'botanix:btc',
+          destinationAsset: 'bitcoin:btc',
         },
       ]);
 
@@ -324,7 +330,7 @@ describe('GardenTransferService', () => {
             sendAmount: '0.0005',
             receiveAmount: '0.000495',
             sendAsset: BTC_ASSET,
-            receiveAsset: BOTANIX_ASSET,
+            receiveAsset: CITREA_ASSET,
             createdAt: Math.floor(Date.now() / 1000),
             updatedAt: 0,
             accountNumber: 0,
@@ -332,7 +338,7 @@ describe('GardenTransferService', () => {
           },
           gardenOrderId: 'order-1',
           sourceAsset: 'bitcoin:btc',
-          destinationAsset: 'botanix:btc',
+          destinationAsset: 'bitcoin:btc',
         },
       ]);
 

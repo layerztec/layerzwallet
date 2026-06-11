@@ -1,6 +1,6 @@
 import useSWR from 'swr';
 import { useMemo } from 'react';
-import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT, Networks } from '../types/networks';
+import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_CITREA, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT, Networks } from '../types/networks';
 import { getFiatRate } from '../models/fiatUnit';
 import { getIsTestnet } from '../models/network-getters';
 
@@ -46,7 +46,6 @@ export function useExchangeRate(network: Networks, fiat: TFiat) {
     case NETWORK_SPARK:
     case NETWORK_ARK:
     case NETWORK_LIQUID:
-    case NETWORK_BOTANIX:
     case NETWORK_CITREA:
     case NETWORK_ROOTSTOCK:
     case NETWORK_STACKS:
