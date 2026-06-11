@@ -12,7 +12,6 @@ Experience the future of Bitcoin with Layer2-focused wallet. Bitcoin-only, non-c
 
 - [x] Bitcoin base layer
 - [x] Rootstock
-- [x] Botanix
 - [x] Citrea (testnet)
 - [x] Alpen (testnet)
 - [x] Liquid & Liquid assets
