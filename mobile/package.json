@@ -97,6 +97,8 @@
     "expo-file-system": "~56.0.7",
     "expo-font": "~56.0.5",
     "expo-haptics": "~56.0.3",
+    "@react-navigation/bottom-tabs": "^7.15.5",
+    "@react-navigation/native": "^7.1.33",
     "expo-image": "~56.0.11",
     "expo-linear-gradient": "~56.0.4",
     "expo-linking": "~56.0.14",
