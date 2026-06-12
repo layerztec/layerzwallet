@@ -1,6 +1,8 @@
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router';
 
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { RadialGradientScreen } from '../components/home/RadialGradientScreen';
 import { ThemedText } from '../components/ThemedText';
@@ -14,6 +16,8 @@ import './SettingsPage.css';
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const { network } = useContext(NetworkContext);
+  const { setStep } = useContext(InitializationContext);
+  const { setAccountNumber } = useContext(AccountNumberContext);
   const [isResetting, setIsResetting] = useState(false);
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [results, setResults] = useState<DiagnosticResult[] | null>(null);
@@ -50,10 +54,14 @@ const SettingsPage: React.FC = () => {
     setIsResetting(true);
     try {
       await resetAppState();
+      setAccountNumber(-1);
+      navigate('/');
+      setStep(EStep.INTRO);
     } catch (err) {
       console.error('Failed to reset app state:', err);
-      setIsResetting(false);
       alert('Failed to clear storage. See console for details.');
+    } finally {
+      setIsResetting(false);
     }
   };
 

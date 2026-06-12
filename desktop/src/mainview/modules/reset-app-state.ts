@@ -4,7 +4,7 @@ import { DesktopMessageType } from '../../shared/desktop-messages';
 import { BackgroundCaller } from './background-caller';
 import { Messenger } from './messenger';
 
-/** Wipes persisted storage, in-memory wallet cache, and reloads the app. */
+/** Wipes persisted storage and in-memory wallet cache. Caller must navigate to onboarding. */
 export async function resetAppState(): Promise<void> {
   await BackgroundCaller.clear();
   setMasterSeed('');
@@ -16,5 +16,4 @@ export async function resetAppState(): Promise<void> {
   }
 
   await Messenger.send(DesktopMessageType.STORAGE_CLEAR, []);
-  window.location.reload();
 }
