@@ -1,0 +1,46 @@
+.wallet-tool-button {
+  background: #2a2a2a;
+  border: none;
+  border-radius: 12px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  cursor: pointer;
+  min-height: 36px;
+  font: inherit;
+  color: #ffffff;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  transition: background-color 0.15s ease;
+}
+
+.wallet-tool-button:hover:not(:disabled) {
+  background: #333333;
+}
+
+.wallet-tool-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wallet-tool-button--block {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.wallet-tool-button svg {
+  flex-shrink: 0;
+}
+
+.wallet-tool-button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}

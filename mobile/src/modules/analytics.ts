@@ -1,30 +1,7 @@
 import { init, trackEvent, dispose } from '@aptabase/react-native';
 
+import type { AnalyticsEventPropertiesMap, AnalyticsEvents, AnalyticsPropertyValue } from '@shared/types/analytics';
 import { handleError } from './error-handler';
-
-export type AnalyticsPropertyValue = string | number | boolean;
-
-export enum AnalyticsEvents {
-  AppStarted = 'app_started',
-  SwapCompleted = 'swap_completed',
-  McpCall = 'mcp_call',
-}
-
-type NoAnalyticsProperties = Record<never, never>;
-
-export type AnalyticsEventPropertiesMap = {
-  [AnalyticsEvents.AppStarted]: NoAnalyticsProperties;
-  [AnalyticsEvents.SwapCompleted]: {
-    provider: string;
-    id: string;
-    sendAsset: string;
-    receiveAsset: string;
-    sat: number;
-  };
-  [AnalyticsEvents.McpCall]: {
-    tool_name: string;
-  };
-};
 
 let isAnalyticsEnabled = false;
 

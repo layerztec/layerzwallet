@@ -363,12 +363,24 @@ export class WatchOnlyWallet extends LegacyWallet implements InterfaceSendQuotab
     const root = bip32.fromSeed(seed as Buffer);
 
     for (let i = 0; i < psbt.inputCount; i++) {
-      for (const der of psbt.data.inputs[i].bip32Derivation ?? []) {
+      const derivations = psbt.data.inputs[i].bip32Derivation ?? [];
+      let signed = false;
+      let lastError: unknown;
+      for (const der of derivations) {
         try {
           const child = root.derivePath(der.path);
           if (!child.privateKey) continue;
           psbt.signInput(i, ECPair.fromPrivateKey(child.privateKey));
-        } catch (_) {}
+          signed = true;
+        } catch (e) {
+          lastError = e;
+        }
+      }
+      if (!signed) {
+        // Without this, finalizeAllInputs() fails with an opaque "Can not finalize input #N".
+        const paths = derivations.map((d) => d.path).join(', ') || '(none)';
+        const reason = lastError instanceof Error ? lastError.message : 'no signable key derived';
+        throw new Error(`Could not sign input #${i} (bip32 derivation paths: ${paths}): ${reason}`);
       }
     }
 

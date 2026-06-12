@@ -4,6 +4,7 @@ Experience the future of Bitcoin with Layer2-focused wallet. Bitcoin-only, non-c
 
 * Mobile apps (iOS/Android)
 * Browser extension
+* Desktop apps (macOS/Linux/Windows)
 
 > **Developer Preview Release**
 > This is an early access version for developers. Use with caution and report any issues you encounter.
@@ -30,7 +31,7 @@ Experience the future of Bitcoin with Layer2-focused wallet. Bitcoin-only, non-c
 
 # Project structure
 
-This is a monorepo with 2 subprojects, `mobile/` & `ext/`. Mobile app is built with React Native (Expo), Extension is built with React.
+This is a monorepo with 3 subprojects, `mobile/`, `ext/` & `desktop/`. Mobile app is built with React Native (Expo), Extension is built with React, and the Desktop app is built with [Electrobun](https://electrobun.dev) (Bun runtime) + Vite/React.
 Shared code (anything that can be reused, cryptography, network fetchers, react hooks) are shared in `shared/`
 
 
@@ -52,6 +53,16 @@ Shared code (anything that can be reused, cryptography, network fetchers, react 
 - Use Dev build to scan QR code from terminal
 
 Development build for android (produces apk that has to load bundle remotely): `eas build --platform android --profile development-simulator --local`
+
+## Installing and Running (desktop)
+
+The desktop app uses [Bun](https://bun.sh) (see `desktop/bun.lock`), not npm.
+
+- Run `bun install` to install the dependencies.
+- Run `bun start` to build the views (Vite) and launch the app (`electrobun dev`).
+- Run `bun run dev` for a watch-mode dev build.
+
+> On Linux the app bundles CEF (Chromium Embedded Framework) instead of WebKitGTK, which is weak for the WASM-heavy wallet UI.
 
 ## Tests
 
@@ -81,6 +92,9 @@ We are also relying on Expo EAS for builds, so a generic workflow to run e2e tes
 
 * local android build: `eas build --platform android --profile preview --local`
 * ext build: `npm run build`
+* desktop build: `bun run build` (from `desktop/`) — runs Vite + `electrobun build --env=stable`, emitting distributables to `desktop/artifacts/`.
+
+Electrobun only builds for the host platform/arch, so desktop distributables are produced in CI on a runner per OS: the `desktop-build-macos` (arm64), `desktop-build-linux` (x64), and `desktop-build-windows` (x64) jobs in `.github/workflows/ci.yml` run `bun run build` and upload the `artifacts/` folder.
 
 ### Store submits (EAS Workflows)
 

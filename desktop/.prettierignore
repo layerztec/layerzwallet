@@ -1,0 +1,8 @@
+# Ignore artifacts:
+build
+dist
+coverage
+
+# shared/ is a symlink (src/mainview/shared-link -> ../../shared); it is owned/formatted
+# by ext & mobile. Don't traverse the symlink and re-format the whole shared repo from here.
+src/mainview/shared-link

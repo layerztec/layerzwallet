@@ -11,9 +11,6 @@ jobs:
     env:
       TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
       EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
-      EXPO_PUBLIC_BOLTZ_API_URL: ${{ secrets.EXPO_PUBLIC_BOLTZ_API_URL }}
-      EXPO_PUBLIC_ARK_SERVER_URL: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_URL }}
-      EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project
@@ -39,9 +36,6 @@ jobs:
     env:
       TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
       EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
-      EXPO_PUBLIC_BOLTZ_API_URL: ${{ secrets.EXPO_PUBLIC_BOLTZ_API_URL }}
-      EXPO_PUBLIC_ARK_SERVER_URL: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_URL }}
-      EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project
@@ -111,9 +105,6 @@ jobs:
     env:
       TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
       EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
-      EXPO_PUBLIC_BOLTZ_API_URL: ${{ secrets.EXPO_PUBLIC_BOLTZ_API_URL }}
-      EXPO_PUBLIC_ARK_SERVER_URL: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_URL }}
-      EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project
@@ -194,9 +185,6 @@ jobs:
     env:
       TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
       EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
-      EXPO_PUBLIC_BOLTZ_API_URL: ${{ secrets.EXPO_PUBLIC_BOLTZ_API_URL }}
-      EXPO_PUBLIC_ARK_SERVER_URL: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_URL }}
-      EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project
@@ -222,9 +210,6 @@ jobs:
     env:
       TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
       EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
-      EXPO_PUBLIC_BOLTZ_API_URL: ${{ secrets.EXPO_PUBLIC_BOLTZ_API_URL }}
-      EXPO_PUBLIC_ARK_SERVER_URL: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_URL }}
-      EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY: ${{ secrets.EXPO_PUBLIC_ARK_SERVER_PUBLIC_KEY }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project
@@ -272,3 +257,152 @@ jobs:
           npx expo customize tsconfig.json
           ls .expo/types/router.d.ts
           npm run lint
+
+  desktop-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Specify node version
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # desktop is a Bun project (bun.lock, no package-lock.json); npm ci can't resolve its peer deps.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: cd desktop && bun install --frozen-lockfile
+
+      - name: Run lint
+        run: cd desktop && bun run lint
+
+  # Electrobun always builds for the host platform/arch, so we need one runner per target OS.
+  # `bun run build` => `vite build && electrobun build --env=stable`; the distributable output
+  # lands in desktop/artifacts/ (flat, {channel}-{os}-{arch}- prefixed). The mac config sets
+  # neither codesign nor notarize, so unsigned stable builds succeed without Apple credentials.
+  # Electrobun builds for the host arch only, so each macOS arch needs its own runner.
+  # Both pin macOS 15 (avoids macos-latest drift): macos-15 = arm64, macos-15-intel = x64
+  # (the last Intel image GitHub offers, supported until ~Aug 2027).
+  desktop-build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15 # Apple Silicon
+            arch: arm64
+          - runner: macos-15-intel # Intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    # Only the EXPO_PUBLIC_* vars the desktop build actually inlines/consumes (Vite + breez adapter + Garden provider + Aptabase analytics).
+    env:
+      EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
+      EXPO_PUBLIC_GARDEN_APP_ID: ${{ secrets.EXPO_PUBLIC_GARDEN_APP_ID }}
+      EXPO_PUBLIC_APTABASE_KEY: ${{ secrets.EXPO_PUBLIC_APTABASE_KEY }}
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Specify node version
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        working-directory: desktop
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        working-directory: desktop
+        run: bun run build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos-${{ matrix.arch }}
+          path: desktop/artifacts/**
+          if-no-files-found: error
+
+  desktop-build-linux:
+    runs-on: ubuntu-latest # x64
+    timeout-minutes: 30
+    # Only the EXPO_PUBLIC_* vars the desktop build actually inlines/consumes (Vite + breez adapter + Garden provider + Aptabase analytics).
+    env:
+      EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
+      EXPO_PUBLIC_GARDEN_APP_ID: ${{ secrets.EXPO_PUBLIC_GARDEN_APP_ID }}
+      EXPO_PUBLIC_APTABASE_KEY: ${{ secrets.EXPO_PUBLIC_APTABASE_KEY }}
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Specify node version
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        working-directory: desktop
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        working-directory: desktop
+        run: bun run build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-linux-x64
+          path: desktop/artifacts/**
+          if-no-files-found: error
+
+  desktop-build-windows:
+    runs-on: windows-latest # x64
+    timeout-minutes: 30
+    # Only the EXPO_PUBLIC_* vars the desktop build actually inlines/consumes (Vite + breez adapter + Garden provider + Aptabase analytics).
+    env:
+      EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
+      EXPO_PUBLIC_GARDEN_APP_ID: ${{ secrets.EXPO_PUBLIC_GARDEN_APP_ID }}
+      EXPO_PUBLIC_APTABASE_KEY: ${{ secrets.EXPO_PUBLIC_APTABASE_KEY }}
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Specify node version
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        working-directory: desktop
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        working-directory: desktop
+        run: bun run build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows-x64
+          path: desktop/artifacts/**
+          if-no-files-found: error
