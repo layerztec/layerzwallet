@@ -1,8 +1,6 @@
 import {
   NETWORK_ALPEN_TESTNET,
   NETWORK_BITCOIN,
-  NETWORK_BOTANIX,
-  NETWORK_BOTANIX_TESTNET,
   NETWORK_CITREA,
   NETWORK_CITREA_TESTNET,
   NETWORK_LIGHTNING,
@@ -18,7 +16,6 @@ import {
 
 import alpenIcon from '../../../../mobile/assets/images/ui/network/alpen.png';
 import bitcoinIcon from '../../../../mobile/assets/images/ui/network/bitcoin.png';
-import botanixIcon from '../../../../mobile/assets/images/ui/network/botanix.png';
 import citreaIcon from '../../../../mobile/assets/images/ui/network/citrea.png';
 import lightningIcon from '../../../../mobile/assets/images/ui/network/lightning.png';
 import liquidIcon from '../../../../mobile/assets/images/ui/network/liquid.png';
@@ -35,8 +32,6 @@ const networkImages: Partial<Record<Networks, string>> = {
   [NETWORK_LIQUID]: liquidIcon,
   [NETWORK_LIQUID_TESTNET]: liquidIcon,
   [NETWORK_ROOTSTOCK]: rootstockIcon,
-  [NETWORK_BOTANIX]: botanixIcon,
-  [NETWORK_BOTANIX_TESTNET]: botanixIcon,
   [NETWORK_ALPEN_TESTNET]: alpenIcon,
   [NETWORK_CITREA]: citreaIcon,
   [NETWORK_CITREA_TESTNET]: citreaIcon,

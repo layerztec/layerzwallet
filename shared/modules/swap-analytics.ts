@@ -5,7 +5,7 @@ import type { AssetId } from '../types/asset';
 import type { TransferExecution } from '../types/transfer';
 
 /** Assets whose native unit is 1:1 with BTC, so their amount can be expressed directly in sats. */
-const BTC_PEGGED_ASSETS: ReadonlySet<AssetId> = new Set<AssetId>(['native:arkade', 'native:bitcoin', 'native:citrea', 'native:lightning', 'native:botanix', 'native:liquid', 'native:spark']);
+const BTC_PEGGED_ASSETS: ReadonlySet<AssetId> = new Set<AssetId>(['native:arkade', 'native:bitcoin', 'native:citrea', 'native:lightning', 'native:liquid', 'native:spark']);
 
 /**
  * Builds the `swap_completed` analytics properties from a completed transfer.

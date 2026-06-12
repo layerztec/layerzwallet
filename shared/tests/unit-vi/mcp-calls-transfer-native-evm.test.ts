@@ -1,5 +1,5 @@
 /**
- * Tests the MCP `transfer_native` tool for EVM networks (rootstock, botanix, citrea).
+ * Tests the MCP `transfer_native` tool for EVM networks (rootstock, citrea).
  *
  * EVM wallets are stateless and don't implement any token interface for the native coin. The
  * handler mirrors the app's manual EVM coin-send screen / the EVM branch of `transfer_token`:
@@ -18,7 +18,7 @@ import { MCP_BALANCE_ACCOUNT_NUMBER } from '../../hooks/AccountNumberContext';
 import { registerWalletMcpCalls } from '../../features/mcp/modules/mcp-calls';
 import type { McpCallDeps } from '../../features/mcp/modules/mcp-deps';
 import { getTickerByNetwork } from '../../models/network-getters';
-import { NETWORK_ROOTSTOCK, NETWORK_BOTANIX, NETWORK_CITREA } from '../../types/networks';
+import { NETWORK_ROOTSTOCK, NETWORK_CITREA } from '../../types/networks';
 
 // Heavy module graph pulled in at import time by mcp-calls.ts — stub it so the surface stays
 // cheap and deterministic (mirrors mcp-calls-receive-address.test.ts).
@@ -143,13 +143,13 @@ describe('MCP transfer_native (EVM)', () => {
 
   it('feeds the fee_multiplier into prepareTransaction (gas speed-up)', async () => {
     await handlers.get('transfer_native')!({
-      network: NETWORK_BOTANIX,
+      network: NETWORK_CITREA,
       amount_base_units: '1000',
       receiver_address: RECIPIENT,
       fee_multiplier: 3,
     });
 
-    expect(mockPrepareTransaction).toHaveBeenCalledWith(expect.anything(), NETWORK_BOTANIX, expect.anything(), 3n);
+    expect(mockPrepareTransaction).toHaveBeenCalledWith(expect.anything(), NETWORK_CITREA, expect.anything(), 3n);
   });
 
   it('rejects an invalid EVM receiver address without touching the wallet', async () => {

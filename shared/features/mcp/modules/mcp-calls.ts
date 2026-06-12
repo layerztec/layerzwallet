@@ -90,7 +90,7 @@ const MCP_TOKEN_WRITE_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
 
 /**
  * Networks `list_tokens` can read. Superset of {@link MCP_TOKEN_WRITE_NETWORKS}: also includes every
- * mainnet network that ships a curated token list (EVM L2s like Rootstock/Botanix, plus Liquid),
+ * mainnet network that ships a curated token list (EVM L2s like Rootstock/Citrea, plus Liquid),
  * for which there is no on-chain discovery — we enumerate the list and query each balance.
  * Derived from the bundled token list so new curated networks are picked up automatically.
  */
@@ -318,7 +318,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
       title: 'Get receive address for a network',
       description:
         "Returns the wallet's receive address for `network` (use the id exactly as returned by list_networks). Use this when the user wants to receive funds. " +
-        'Address format varies per network — Bitcoin: bc1…; EVM chains (rootstock, botanix, citrea): 0x… (the same address works across all EVM chains); Liquid: lq1…/VJL…; Spark: spark1…; Stacks: SP… principal. ' +
+        'Address format varies per network — Bitcoin: bc1…; EVM chains (rootstock, citrea): 0x… (the same address works across all EVM chains); Liquid: lq1…/VJL…; Spark: spark1…; Stacks: SP… principal. ' +
         'Pass the returned address back to senders verbatim.',
       inputSchema: {
         network: z.string().min(1).describe('Network id from list_networks, e.g. bitcoin, rootstock, liquid, spark, stacks.'),

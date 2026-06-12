@@ -15,7 +15,7 @@ import { MCP_BALANCE_ACCOUNT_NUMBER } from '../../hooks/AccountNumberContext';
 import { registerWalletMcpCalls } from '../../features/mcp/modules/mcp-calls';
 import type { McpCallDeps } from '../../features/mcp/modules/mcp-deps';
 import { getTickerByNetwork } from '../../models/network-getters';
-import { NETWORK_BITCOIN, NETWORK_ROOTSTOCK, NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_LIQUID, NETWORK_SPARK, NETWORK_STACKS, type Networks } from '../../types/networks';
+import { NETWORK_BITCOIN, NETWORK_ROOTSTOCK, NETWORK_CITREA, NETWORK_LIQUID, NETWORK_SPARK, NETWORK_STACKS, type Networks } from '../../types/networks';
 
 // mcp-calls.ts imports the transfer-service + rate/balance fetchers at module load.
 // get_receive_address uses none of them, but we stub the heavy graph so importing
@@ -36,7 +36,6 @@ function parseToolJson(result: { content: { text: string }[] }): any {
 const ADDRESS_BY_NETWORK: Record<string, string> = {
   [NETWORK_BITCOIN]: 'bc1qexamplebitcoinreceiveaddr0000000000',
   [NETWORK_ROOTSTOCK]: '0xRootstockEvmReceiveAddress0000000000000',
-  [NETWORK_BOTANIX]: '0xBotanixEvmReceiveAddress00000000000000',
   [NETWORK_CITREA]: '0xCitreaEvmReceiveAddress000000000000000',
   [NETWORK_LIQUID]: 'lq1qliquidexamplereceiveaddress000000000',
   [NETWORK_SPARK]: 'spark1exampleoffchainreceiveaddress0000',
@@ -74,7 +73,7 @@ describe('MCP get_receive_address', () => {
   });
 
   // The whole point of this change: parity with the app's Receive flow for every listable network.
-  const LISTABLE_NETWORKS: Networks[] = [NETWORK_BITCOIN, NETWORK_ROOTSTOCK, NETWORK_BOTANIX, NETWORK_CITREA, NETWORK_LIQUID, NETWORK_SPARK, NETWORK_STACKS];
+  const LISTABLE_NETWORKS: Networks[] = [NETWORK_BITCOIN, NETWORK_ROOTSTOCK, NETWORK_CITREA, NETWORK_LIQUID, NETWORK_SPARK, NETWORK_STACKS];
 
   it.each(LISTABLE_NETWORKS)('returns the receive address for %s via the unified getAddress', async (network) => {
     const result = await handlers.get('get_receive_address')!({ network });
