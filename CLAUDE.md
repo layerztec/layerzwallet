@@ -160,7 +160,7 @@ Each Layer2 follows a specific pattern:
 - Electrum server (electrum2.layerzwallet.com:50005) for balance/tx/UTXO queries
 - Gap limit of 20 for address discovery
 
-**EVM Chains (Rootstock, Botanix, Citrea, Alpen)**
+**EVM Chains (Rootstock, Citrea, Alpen)**
 - Single `EvmWallet` class handles ALL EVM chains
 - HD path: `m/44'/60'/0'/0/{account}`
 - Uses ethers.js JsonRpcProvider
