@@ -3,6 +3,28 @@ import type { UTEXOWalletCore, VssBackupConfig } from '@utexo/rgb-sdk-core';
 export type RgbNetwork = 'mainnet' | 'testnet';
 
 /**
+ * RGB-over-Lightning receive result. The LSP issues both invoices in lockstep:
+ *   - `lnInvoice` is paid by anyone with sats (LSP fronts the asset).
+ *   - `rgbInvoice` is paid by anyone with the on-chain RGB asset.
+ * Either path settles the same logical receive.
+ */
+export interface RgbLnReceiveResult {
+  lnInvoice: string;
+  rgbInvoice: string;
+  mappingId: string;
+}
+
+/**
+ * Asset-aware Lightning methods. Optional on `IRgbWallet`: mobile wires it via
+ * `UtexoLsp` (rgb-sdk-rn beta.14+); extension's rgb-sdk-web has no LSP path
+ * yet, so this is undefined there. Use the presence of the method as the
+ * feature-detect handle in shared code.
+ */
+export interface IRgbLnReceive {
+  lightningReceiveAsset(params: { amountSats: number; amountRgb: number; assetId: string; expirySeconds?: number }): Promise<RgbLnReceiveResult>;
+}
+
+/**
  * Subset of UTEXOWalletCore that `shared/` consumes. Platform adapters return
  * either the real UTEXOWallet instance (mobile) or a forwarding shim (extension
  * popup → offscreen document), both of which satisfy this shape.
@@ -41,7 +63,8 @@ export type IRgbWallet = Pick<
   | 'configureVssBackup'
   | 'disableVssAutoBackup'
   | 'getDefaultVssConfig'
->;
+> &
+  Partial<IRgbLnReceive>;
 
 export interface IRgbAdapterCreateParams {
   mnemonic: string;

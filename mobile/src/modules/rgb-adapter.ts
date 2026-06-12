@@ -1,8 +1,9 @@
 import { sha256 } from '@noble/hashes/sha256';
-import { PasswordRLNSigner, UTEXOWallet, resolveUnlockParams, type UTEXOWalletNodeParams } from '@utexo/rgb-sdk-rn';
+import { PasswordRLNSigner, UTEXOWallet, resolveUnlockParams, type UTEXOWalletNodeParams, type UtexoLsp } from '@utexo/rgb-sdk-rn';
 import { Directory, File, Paths } from 'expo-file-system';
 
-import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet, RgbNetwork } from '@shared/types/rgb-adapter';
+import { RGB_LSP_BASE_URL } from '../constants/rgb-lsp';
+import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet, RgbLnReceiveResult, RgbNetwork } from '@shared/types/rgb-adapter';
 
 const RGB_DATA_ROOT = 'rgb';
 
@@ -76,6 +77,8 @@ function shimVssMethods(wallet: UTEXOWallet): IRgbWallet {
           return async () => undefined;
         case 'getDefaultVssConfig':
           return async () => undefined;
+        case 'lightningReceiveAsset':
+          return (params: Parameters<typeof lightningReceiveAsset>[1]) => lightningReceiveAsset(target as UTEXOWallet, params);
         default:
           return Reflect.get(target, prop, receiver);
       }
@@ -84,19 +87,58 @@ function shimVssMethods(wallet: UTEXOWallet): IRgbWallet {
 }
 
 function buildNodeParams(dir: Directory, network: RgbNetwork, vssServerUrl: string | undefined): UTEXOWalletNodeParams {
+  const rlnNet = toRlnNetwork(network);
   return {
     storageDirPath: dataDirSdkPath(dir),
     daemonListeningPort: DAEMON_LISTENING_PORT,
     ldkPeerListeningPort: LDK_PEER_LISTENING_PORT,
-    network: toRlnNetwork(network),
+    network: rlnNet,
     vssUrl: vssServerUrl ?? null,
+    lspBaseUrl: RGB_LSP_BASE_URL[rlnNet === 'signet' ? 'signet' : 'mainnet'],
   };
 }
 
+/**
+ * Lazily attach a UtexoLsp instance on first LN call. `createLsp()` reaches the
+ * configured LSP HTTP endpoint to fetch its peer pubkey, then `connect()`
+ * establishes the LDK P2P link — both can fail (network, misconfigured baseUrl)
+ * and we surface the error to the caller verbatim. Cached per wallet so the
+ * HTTP probe doesn't repeat for every receive.
+ */
+const lspByWallet = new WeakMap<UTEXOWallet, Promise<UtexoLsp>>();
+
+function ensureLsp(wallet: UTEXOWallet): Promise<UtexoLsp> {
+  let pending = lspByWallet.get(wallet);
+  if (!pending) {
+    pending = (async () => {
+      const lsp = await wallet.createLsp();
+      await lsp.connect();
+      return lsp;
+    })();
+    lspByWallet.set(wallet, pending);
+  }
+  return pending;
+}
+
+async function lightningReceiveAsset(wallet: UTEXOWallet, params: { amountSats: number; amountRgb: number; assetId: string; expirySeconds?: number }): Promise<RgbLnReceiveResult> {
+  const lsp = await ensureLsp(wallet);
+  // First-time receive for an asset requires a usable RGB channel — JIT opened
+  // by the LSP after `connect()`. Subsequent receives reuse the existing
+  // channel. `waitForChannel` no-ops fast when one is already ready.
+  await lsp.waitForChannel(params.assetId);
+  return lsp.receiveAsset({
+    assetId: params.assetId,
+    amountSats: params.amountSats,
+    amountRgb: params.amountRgb,
+    expirySeconds: params.expirySeconds,
+  });
+}
+
 class RgbAdapter implements IRgbAdapter {
-  // Lightning surface (channels/peers/invoices) exists in beta.14 but isn't
-  // wired into UI yet. Keep the flag off until we expose it deliberately.
-  readonly capabilities = { lightning: false } as const;
+  // Mobile SDK has the LN surface (UtexoLsp / channels / invoices). Shared
+  // code still gates UI on this flag plus per-network checks because LN is
+  // only usable when an LSP base URL is configured (see rgb-lsp.ts).
+  readonly capabilities = { lightning: true } as const;
 
   async createWallet({ mnemonic, network, vssServerUrl }: IRgbAdapterCreateParams): Promise<IRgbWallet> {
     const dir = dataDirFor(mnemonic, network);
