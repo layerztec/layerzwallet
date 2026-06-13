@@ -28,6 +28,12 @@ export interface ISparkAdapter {
 const STORAGE_KEY_NFT = 'SPARK_NFT_METADATA';
 const STORAGE_KEY = 'SPARK_TOKEN_METADATA';
 
+/**
+ * On-chain confirmations a Bitcoin deposit to the static deposit address needs before Spark lets us
+ * claim it. Per Spark docs; not exposed by the SDK, so this is the canonical source for it.
+ */
+export const SPARK_STATIC_DEPOSIT_CONFIRMATIONS = 3;
+
 // Static cache for token icon URLs that we fetched from the API
 const _tokenIconCache: Record<string, string> = {};
 
@@ -521,7 +527,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
       const tx = txs1[output.txid];
       const timestamp = tx.blocktime ? tx.blocktime * 1000 : new Date().getTime();
       const confirmations = tx.confirmations ?? 0;
-      const claimable = confirmations >= 3; // according to Spark docs, 3 confirmations are needed to claim a swap
+      const claimable = confirmations >= SPARK_STATIC_DEPOSIT_CONFIRMATIONS;
       return {
         network: NETWORK_SPARK,
         id: output.txid,
@@ -532,7 +538,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
         explorerUrl: `${explorerBase}/tx/${output.txid}`,
         // we only want to show confirmations for 'pending' swaps
         confirmations: !claimable ? confirmations : undefined,
-        targetConfirmations: !claimable ? 3 : undefined,
+        targetConfirmations: !claimable ? SPARK_STATIC_DEPOSIT_CONFIRMATIONS : undefined,
       };
     });
     swaps.push(...unclaimedSwaps);

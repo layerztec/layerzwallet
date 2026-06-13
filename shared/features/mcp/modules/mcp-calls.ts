@@ -16,6 +16,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as BlueElectrum from '../../../blue_modules/BlueElectrum';
 import { EvmWallet } from '../../../class/evm-wallet';
 import { BreezWallet, LBTC_ASSET_IDS } from '../../../class/wallets/breez-wallet';
+import { SparkWallet, SPARK_STATIC_DEPOSIT_CONFIRMATIONS } from '../../../class/wallets/spark-wallet';
 import { walletCanHaveNfts } from '../../../class/wallets/interface-can-have-nfts';
 import { walletCanHaveTokens } from '../../../class/wallets/interface-can-have-tokens';
 import { walletIsAccountBased } from '../../../class/wallets/interface-account-based-wallet';
@@ -47,7 +48,7 @@ import {
   NETWORK_USDT,
   type Networks,
 } from '../../../types/networks';
-import { EXECUTION_INSTANT } from '../../../types/transfer';
+import { EXECUTION_CLAIM, EXECUTION_INSTANT, type NativeClaimExecution } from '../../../types/transfer';
 
 import { pushMcpActivityLog } from './mcp-activity-log';
 import { MCP_LIGHTNING_PAY_MAX_FEE_PERCENT } from './mcp-constants';
@@ -1272,6 +1273,211 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
         return {
           isError: true,
           content: [{ type: 'text', text: JSON.stringify({ error: message, network: NETWORK_BITCOIN }, null, 2) }],
+        };
+      }
+    }
+  );
+
+  // ── On-chain BTC → Spark (deposit + claim) ──────────────────────────────────────────────────────
+  // Moving native (L1) BTC into the Spark balance is a deposit-address flow, not an instant swap, so
+  // it can't ride on get_swap_quote/execute_swap (those are Flashnet's atomic in-wallet trades). It
+  // composes the existing Bitcoin send tools instead: get_spark_deposit_address → get_bitcoin_send_quote
+  // → execute_bitcoin_send → (3 confirmations) → claim_spark_deposit. The deposit address is the
+  // SparkWallet's static on-chain address; claiming credits the confirmed UTXO(s) to the Spark balance.
+
+  mcp.registerTool(
+    'get_spark_deposit_address',
+    {
+      title: 'Get the on-chain Bitcoin deposit address for Spark',
+      description:
+        "Returns the wallet's **static on-chain Bitcoin deposit address** for funding the Spark balance with native (L1) BTC. This is NOT the same as `get_receive_address` for `spark` (which returns a `spark1…` address for Spark-native transfers) — this is a Bitcoin `bc1…` address you send on-chain BTC to.\n\n" +
+        'Full flow to move on-chain BTC into Spark:\n' +
+        '1. Call this tool to get the `deposit_address`.\n' +
+        '2. Send BTC to it on-chain with `get_bitcoin_send_quote` (`receiver_address` = this address) then `execute_bitcoin_send`. An external sender works too.\n' +
+        `3. Wait for **${SPARK_STATIC_DEPOSIT_CONFIRMATIONS} on-chain confirmations** (~30+ min).\n` +
+        '4. Call `claim_spark_deposit` to credit the funds to the Spark balance.\n\n' +
+        'The address is static and reusable — it can receive multiple deposits. Read-only; no funds move.',
+    },
+    async () => {
+      mcpCallLog('get_spark_deposit_address: start');
+      trackMcpCall(deps, 'get_spark_deposit_address');
+      try {
+        const w = await backgroundCaller.lazyInitWallet(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
+        if (!(w instanceof SparkWallet)) {
+          mcpCallLog('get_spark_deposit_address: error - wallet does not support Spark deposits');
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'Wallet does not support on-chain Spark deposits.', network: NETWORK_SPARK }, null, 2) }],
+          };
+        }
+
+        const deposit_address = await w.getOnchainDepositAddress();
+        mcpCallLog(`get_spark_deposit_address: ok - ${deposit_address.slice(0, 16)}…`);
+        showMcpSuccess(deps, 'Spark deposit address', deposit_address.slice(0, 12) + '…');
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  network: NETWORK_SPARK,
+                  deposit_address,
+                  deposit_chain: NETWORK_BITCOIN,
+                  confirmations_required: SPARK_STATIC_DEPOSIT_CONFIRMATIONS,
+                  next_step: `Send on-chain BTC to deposit_address via get_bitcoin_send_quote + execute_bitcoin_send, then call claim_spark_deposit once it has ${SPARK_STATIC_DEPOSIT_CONFIRMATIONS} confirmations.`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        mcpCallLog(`get_spark_deposit_address: error - ${message}`);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: message, network: NETWORK_SPARK }, null, 2) }],
+        };
+      }
+    }
+  );
+
+  mcp.registerTool(
+    'claim_spark_deposit',
+    {
+      title: 'Claim on-chain BTC deposited to the Spark address',
+      description: `Credits on-chain BTC sent to the Spark deposit address (see \`get_spark_deposit_address\`) into the Spark balance. A deposit becomes claimable only after **${SPARK_STATIC_DEPOSIT_CONFIRMATIONS} on-chain confirmations**. By default this claims **every** currently-claimable deposit; pass \`txid\` to claim one specific deposit. Returns each claimed deposit with its Spark \`transfer_id\` and \`credited_base_units\` (sats). If nothing is claimable yet, returns the \`pending\` deposits with their confirmation progress so you can tell the user how long to wait. Each deposit can only be claimed once.`,
+      inputSchema: {
+        txid: z
+          .string()
+          .min(1)
+          .optional()
+          .describe(
+            "Optional: the on-chain deposit txid to claim (the `transfer_id` from `execute_bitcoin_send`, or a txid from this tool's `pending` list). Omit to claim every claimable deposit. Leading/trailing whitespace is trimmed."
+          ),
+      },
+    },
+    async ({ txid }) => {
+      const wantTxid = txid?.trim();
+      mcpCallLog(`claim_spark_deposit: start${wantTxid ? ` - txid ${wantTxid}` : ' - all claimable'}`);
+      trackMcpCall(deps, 'claim_spark_deposit');
+      try {
+        const w = await backgroundCaller.lazyInitWallet(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
+        if (!(w instanceof SparkWallet)) {
+          mcpCallLog('claim_spark_deposit: error - wallet does not support Spark deposits');
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'Wallet does not support on-chain Spark deposits.', network: NETWORK_SPARK }, null, 2) }],
+          };
+        }
+
+        const swaps = await w.getCommonSwaps();
+        const claimable = swaps.filter((s) => s.status === 'claimable' && (!wantTxid || s.id === wantTxid));
+
+        if (claimable.length === 0) {
+          const pending = swaps
+            .filter((s) => s.status === 'pending' && (!wantTxid || s.id === wantTxid))
+            .map((s) => ({
+              txid: s.id,
+              confirmations: s.confirmations ?? 0,
+              target_confirmations: s.targetConfirmations ?? SPARK_STATIC_DEPOSIT_CONFIRMATIONS,
+              amount_base_units: s.amount != null ? String(s.amount) : null,
+            }));
+          mcpCallLog(`claim_spark_deposit: nothing claimable (${pending.length} pending)`);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    claimed: [],
+                    pending,
+                    message: wantTxid
+                      ? `Deposit ${wantTxid} is not claimable yet (needs ${SPARK_STATIC_DEPOSIT_CONFIRMATIONS} confirmations) or was not found.`
+                      : `No claimable deposits. Pending deposits (if any) need ${SPARK_STATIC_DEPOSIT_CONFIRMATIONS} confirmations.`,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+
+        const claimed: { txid: string; transfer_id?: string; credited_base_units: string }[] = [];
+        const failed: { txid: string; error: string }[] = [];
+        for (const swap of claimable) {
+          try {
+            const quote = await w.getDepositQuote(swap.id);
+            const transferId = await w.claimDepositSpark(quote);
+            claimed.push({ txid: swap.id, transfer_id: transferId, credited_base_units: String(quote.creditAmountSats) });
+
+            // Count the claim as a completed BTC → Spark swap. This path bypasses the
+            // TransferServiceManager (so `onTransferCompleted` never fires for it), so we emit the
+            // `swap_completed` event ourselves via the platform-injected hook. Provider 'Native' and the
+            // BTC→Spark asset pair mirror what the UI-driven NativeDeposit flow reports.
+            const now = Math.floor(Date.now() / 1000);
+            const creditBtc = new BigNumber(quote.creditAmountSats).div(1e8).toFixed();
+            const completedExecution: NativeClaimExecution = {
+              type: EXECUTION_CLAIM,
+              id: transferId ?? swap.id,
+              status: 'completed',
+              sendAsset: 'native:bitcoin',
+              receiveAsset: 'native:spark',
+              sendAmount: creditBtc,
+              receiveAmount: creditBtc,
+              createdAt: swap.timestamp ? Math.floor(swap.timestamp / 1000) : now,
+              updatedAt: now,
+              accountNumber: MCP_BALANCE_ACCOUNT_NUMBER,
+              serviceName: 'Native',
+              depositTxid: swap.id,
+              receiveTransferId: transferId,
+              autoClaim: false,
+              autoClaimAttempts: 0,
+            };
+            deps.trackSwapCompleted?.(completedExecution);
+          } catch (e) {
+            failed.push({ txid: swap.id, error: e instanceof Error ? e.message : String(e) });
+          }
+        }
+
+        if (claimed.length === 0) {
+          mcpCallLog(`claim_spark_deposit: error - all ${failed.length} claim(s) failed`);
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'All claim attempts failed.', network: NETWORK_SPARK, failed }, null, 2) }],
+          };
+        }
+
+        const totalSats = claimed.reduce((acc, c) => acc + Number(c.credited_base_units), 0);
+        mcpCallLog(`claim_spark_deposit: ok - claimed ${claimed.length}, ${totalSats} sats${failed.length ? `, ${failed.length} failed` : ''}`);
+        showMcpSuccess(deps, 'Claimed Spark deposit', `${claimed.length} deposit(s) · ${totalSats} sats`);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: true,
+                  network: NETWORK_SPARK,
+                  claimed,
+                  failed: failed.length ? failed : undefined,
+                  total_credited_base_units: String(totalSats),
+                  fee_ticker: 'BTC',
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        mcpCallLog(`claim_spark_deposit: error - ${message}`);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: message, network: NETWORK_SPARK }, null, 2) }],
         };
       }
     }

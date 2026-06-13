@@ -164,6 +164,17 @@ Two tools expose Flashnet to remote AI agents. They run on `MCP_BALANCE_ACCOUNT_
 
 Adding more pairs is purely additive: extend `MCP_SWAP_ASSET_IDS` and ensure the relevant provider quotes the pair and implements `executeInstantSwap`. The manager routes by `executionOwners` so any such provider works without touching the MCP layer.
 
+### On-chain BTC → Spark (deposit + claim)
+
+Moving native (L1) BTC into the Spark balance is the `NativeDeposit` flow (deposit address + async claim), which does **not** fit `execute_swap`'s instant contract (same reason `SparkExit` is left out). Instead of routing through the TransferServiceManager, the MCP exposes two thin tools over `SparkWallet` (on `MCP_BALANCE_ACCOUNT_NUMBER`) and reuses the existing Bitcoin-send tools for the actual on-chain move:
+
+- **`get_spark_deposit_address()`** — `lazyInitWallet(NETWORK_SPARK, 4141)` (narrowed via `instanceof SparkWallet`) → `getOnchainDepositAddress()` (the SDK's static `bc1…` deposit address). Returns `{ deposit_address, deposit_chain: 'bitcoin', confirmations_required, next_step }`. `confirmations_required` comes from the canonical `SPARK_STATIC_DEPOSIT_CONFIRMATIONS` exported by `spark-wallet.ts` (same constant `getCommonSwaps` uses), not a local literal. Distinct from `get_receive_address('spark')`, which returns the `spark1…` Spark-native address.
+- **`claim_spark_deposit(txid?)`** — `getCommonSwaps()` → filter `status === 'claimable'` (≥3 confs) → for each, `getDepositQuote(txid)` + `claimDepositSpark(quote)`. Claims all claimable by default, or one when `txid` is given. Returns `{ claimed:[{txid, transfer_id, credited_base_units}], failed?, total_credited_base_units }`; when nothing is claimable it returns `{ claimed:[], pending:[{txid, confirmations, target_confirmations, amount_base_units}] }` so the agent can report wait time. Partial failures are collected; all-failed surfaces as an MCP error. Self-contained — does **not** depend on the UI `AutoClaimMonitor` (which is tied to the selected UI account, not 4141). Each successful claim fires a `swap_completed` analytics event (provider `Native`, `native:bitcoin → native:spark`) via the `deps.trackSwapCompleted` hook — this path bypasses the TransferServiceManager, so `onTransferCompleted` would otherwise never run for it.
+
+Full agent flow: `get_spark_deposit_address` → `get_bitcoin_send_quote`/`execute_bitcoin_send` (send to that address) → wait 3 confirmations → `claim_spark_deposit`.
+
+Tests: `shared/tests/unit-vi/mcp-calls-spark-deposit.test.ts`.
+
 ## Tests
 
 - `shared/tests/unit-vi/transfer-service-sideshift.test.ts`
