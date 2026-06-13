@@ -240,6 +240,36 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     const id = (await this._readLnInvoiceIdMap())[invoice];
     if (!id) return false;
 
+    return this._isReceiveRequestPaid(id);
+  }
+
+  async isInvoicePaidByHash(preimageHash: string): Promise<boolean> {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+    if (!preimageHash) throw new Error('No preimage hash provided');
+
+    // we only persist invoice->id, not hash->id, so we decode every issued invoice we know about
+    // and find the one whose payment hash matches. the map is bounded by how many invoices this
+    // account has ever created, so a linear scan is fine.
+    const target = preimageHash.toLowerCase();
+    const map = await this._readLnInvoiceIdMap();
+    for (const [invoice, id] of Object.entries(map)) {
+      try {
+        const decoded = bolt11.decode(invoice);
+        for (const tag of decoded.tags) {
+          if (tag.tagName === 'payment_hash' && String(tag.data).toLowerCase() === target) {
+            return this._isReceiveRequestPaid(id);
+          }
+        }
+      } catch {
+        // ignore malformed persisted invoices, dont let one bad record break the lookup
+      }
+    }
+    return false;
+  }
+
+  private async _isReceiveRequestPaid(id: string): Promise<boolean> {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+
     const lightningPaymentStatus = await this._sdkWallet.getLightningReceiveRequest(id);
 
     if (lightningPaymentStatus?.status === 'LIGHTNING_PAYMENT_RECEIVED') return true;
