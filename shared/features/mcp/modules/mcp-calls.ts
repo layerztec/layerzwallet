@@ -1278,6 +1278,101 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     }
   );
 
+  mcp.registerTool(
+    'get_bitcoin_transaction',
+    {
+      title: 'Look up a Bitcoin transaction by txid',
+      description:
+        'Fetches an on-chain Bitcoin transaction by `txid` (the `transfer_id` returned by `execute_bitcoin_send`, or any other Bitcoin txid). Returns confirmation status, block info, size, and a compact summary of inputs/outputs (output addresses + amounts). Use this to check whether a send has confirmed and how deep, or to inspect any Bitcoin transaction. Read-only; no funds move.\n\n' +
+        'Output amounts are in sats (`value_base_units`) — same scale as `get_network_balance` for bitcoin — and are paired with `value_human_readable` (BTC, with `ticker` on the payload). `status` is `confirmed` when `confirmations >= 1`, otherwise `mempool`. Input prevouts are returned as `{txid, vout}` pointers; input amounts (and therefore the fee) are not reconstructed (would require N+1 lookups). Quote `*_human_readable` to the user; use `*_base_units` only for further programmatic calls.',
+      inputSchema: {
+        txid: z
+          .string()
+          .regex(/^[0-9a-fA-F]{64}$/, 'txid must be a 64-char hex string (as returned by `execute_bitcoin_send` in `transfer_id`).')
+          .describe('Bitcoin transaction id, 64-char hex. Pass exactly as returned by `execute_bitcoin_send` (`transfer_id`) — do not transcribe from chat.'),
+      },
+    },
+    async ({ txid }) => {
+      const txidNorm = txid.trim().toLowerCase();
+      mcpCallLog(`get_bitcoin_transaction: start - ${txidNorm}`);
+      trackMcpCall(deps, 'get_bitcoin_transaction');
+      try {
+        if (!BlueElectrum.mainConnected) await BlueElectrum.connectMain();
+        const result = await BlueElectrum.multiGetTransactionByTxid([txidNorm], true);
+        const tx = result[txidNorm];
+        if (!tx) {
+          mcpCallLog(`get_bitcoin_transaction: not found - ${txidNorm}`);
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    error: 'Transaction not found. The txid may be invalid, not yet broadcast, or evicted from the mempool.',
+                    txid: txidNorm,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+
+        const confirmations = typeof tx.confirmations === 'number' ? tx.confirmations : 0;
+        const status = confirmations >= 1 ? 'confirmed' : 'mempool';
+
+        const btcDecimals = getDecimalsByNetwork(NETWORK_BITCOIN);
+
+        let totalOutputSats = new BigNumber(0);
+        const outputs = (tx.vout ?? []).map((o) => {
+          const sats = new BigNumber(o.value).multipliedBy(1e8).integerValue(BigNumber.ROUND_HALF_UP).toFixed(0);
+          totalOutputSats = totalOutputSats.plus(sats);
+          return {
+            n: o.n,
+            value_base_units: sats,
+            value_human_readable: mcpBaseUnitsToHumanReadable(sats, btcDecimals),
+            address: o.scriptPubKey?.addresses?.[0] ?? null,
+          };
+        });
+
+        const inputs = (tx.vin ?? []).map((i) => ({ txid: i.txid, vout: i.vout }));
+
+        const totalOutput = totalOutputSats.toFixed(0);
+        const payload = {
+          txid: tx.txid,
+          status,
+          confirmations,
+          blockhash: tx.blockhash || null,
+          block_time: tx.blocktime || tx.time || null,
+          size: tx.size,
+          vsize: tx.vsize,
+          input_count: inputs.length,
+          inputs,
+          output_count: outputs.length,
+          outputs,
+          total_output_base_units: totalOutput,
+          total_output_human_readable: mcpBaseUnitsToHumanReadable(totalOutput, btcDecimals),
+          ticker: getTickerByNetwork(NETWORK_BITCOIN),
+        };
+
+        mcpCallLog(`get_bitcoin_transaction: ok - ${txidNorm} ${status} confirmations=${confirmations}`);
+        showMcpSuccess(deps, 'Fetched Bitcoin transaction', `${status} · ${confirmations} conf`);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
+        };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        mcpCallLog(`get_bitcoin_transaction: error - ${message}`);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: message, txid: txidNorm }, null, 2) }],
+        };
+      }
+    }
+  );
+
   // ── On-chain BTC → Spark (deposit + claim) ──────────────────────────────────────────────────────
   // Moving native (L1) BTC into the Spark balance is a deposit-address flow, not an instant swap, so
   // it can't ride on get_swap_quote/execute_swap (those are Flashnet's atomic in-wallet trades). It
