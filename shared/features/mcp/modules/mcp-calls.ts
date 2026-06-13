@@ -1688,15 +1688,16 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     'create_lightning_invoice',
     {
       title: 'Create Lightning invoice (BOLT11)',
-      description: `Creates a BOLT11 receive invoice on \`network\`: ${MCP_LIGHTNING_PAY_NETWORKS.join(',')} (same layers as pay_lightning_invoice). \`sats\` is the amount to request. Optional \`memo\` is the invoice description. Response includes the BOLT11 string in \`invoice\` and the BOLT11 payment hash in \`payment_hash\` (64 hex chars). Track payment status with \`is_invoice_paid\` using the \`payment_hash\`. Handle \`payment_hash\` extra carefully - it must be passed exactly - malformed/mangled strings will not work; dont rely on chat transcription, use EXACT values as returned by MCP.`,
+      description: `Creates a BOLT11 receive invoice on \`network\`: ${MCP_LIGHTNING_PAY_NETWORKS.join(',')} (same layers as pay_lightning_invoice). If \`network\` is omitted it defaults to \`${NETWORK_SPARK}\`. \`sats\` is the amount to request. Optional \`memo\` is the invoice description. Response includes the BOLT11 string in \`invoice\` and the BOLT11 payment hash in \`payment_hash\` (64 hex chars). Track payment status with \`is_invoice_paid\` using the \`payment_hash\`. Handle \`payment_hash\` extra carefully - it must be passed exactly - malformed/mangled strings will not work; dont rely on chat transcription, use EXACT values as returned by MCP.`,
       inputSchema: {
         sats: z.number().int().positive().describe('Requested amount in satoshis.'),
         memo: z.string().optional().describe('Optional description / memo on the invoice.'),
-        network: mcpLightningPayNetworkSchema.describe(`Wallet layer: ${MCP_LIGHTNING_PAY_NETWORKS.join(',')}.`),
+        network: mcpLightningPayNetworkSchema.optional().describe(`Wallet layer: ${MCP_LIGHTNING_PAY_NETWORKS.join(',')}. Defaults to \`${NETWORK_SPARK}\` when omitted.`),
       },
     },
-    async ({ sats, memo, network }) => {
-      mcpCallLog(`create_lightning_invoice: start - ${network}, ${sats} sats${memo?.trim() ? ', memo set' : ''}`);
+    async ({ sats, memo, network: networkRaw }) => {
+      const network = networkRaw ?? NETWORK_SPARK;
+      mcpCallLog(`create_lightning_invoice: start - ${network}, ${sats} sats${memo?.trim() ? ' (' + memo?.trim() + ')' : ''}`);
       trackMcpCall(deps, 'create_lightning_invoice');
       try {
         const w = await backgroundCaller.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
@@ -1713,7 +1714,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
           };
         }
 
-        const { invoice, serviceFeeSat } = await w.createLightningInvoice(sats, memo ?? '');
+        const { invoice, serviceFeeSat } = await w.createLightningInvoice(sats, memo ?? 'Created by Layerz Wallet AI');
         const paymentHash = String(bolt11.decode(invoice).tags.find((t) => t.tagName === 'payment_hash')?.data ?? '');
         if (!paymentHash) throw new Error('payment_hash tag not found in BOLT11 invoice');
         mcpCallLog(`create_lightning_invoice: ok - ${network}, ${sats} sats, service fee ${serviceFeeSat} sats, invoice starts ${bolt11Preview(invoice)}, payment_hash ${paymentHash}`);
