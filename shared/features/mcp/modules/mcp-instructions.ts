@@ -39,9 +39,11 @@ export const MCP_SERVER_INSTRUCTIONS = [
   '3. Present the quote to the user; pass `quote_id` verbatim to `execute_swap`. Quotes expire in ~60s.',
   '4. `get_swap_quote` does not move funds; `execute_swap` is irreversible.',
   '',
-  '**Tokens & IDs:** Copy `token_id`, `quote_id`, and BOLT11 invoices exactly from tool JSON — never from chat summaries.',
+  '**Tokens & IDs:** Copy `token_id`, `quote_id`, BOLT11 invoices, and `payment_hash` exactly from tool JSON — never from chat summaries.',
   '',
-  '**Lightning:** `pay_lightning_invoice` blocks until done (often 15–60s+). Use HTTP read timeout ≥120s. Do not retry the same invoice without checking payment status.',
+  '**Lightning:**',
+  '- `pay_lightning_invoice` blocks until done (often 15–60s+). Use HTTP read timeout ≥120s. Do not retry the same invoice without checking payment status.',
+  '- `create_lightning_invoice` returns both `invoice` (BOLT11) and `payment_hash`. To check if it was paid, call `is_invoice_paid` with the `payment_hash`.',
   '',
   '**Networks:** Call `list_networks` first; use network ids exactly as returned.',
 ].join('\n');
