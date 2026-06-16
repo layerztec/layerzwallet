@@ -2103,7 +2103,8 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
         'Returns a quote for swapping `send_amount_base_units` of `send_asset` into `receive_asset`. Currently only BTC↔USDB on Spark. The response includes a `quote_id` you must pass verbatim to `execute_swap` to actually trade. Quotes expire at `expires_at_unix` (typically 60s, TELL USER HOW MUCH TIME IS LEFT); call this tool again after expiry. **No funds move on this call** — it only stages the swap so the user/agent can review fees before committing.\n\n' +
         MCP_BASE_UNITS_GUIDANCE +
         '\n\n**Where `send_amount_base_units` comes from:** call `get_network_balance` on `spark` for `native:spark` (BTC/sats), or `list_tokens` on `spark` for `token:spark:usdb` — copy `balance_base_units` verbatim (or a smaller amount ≤ balance). The wallet converts base units → human amount internally; you must not multiply by `10^decimals` before calling this tool.\n\n' +
-        '**Present the EXACT outcome to the user with zero mental math.** `receive_amount_base_units`, `effective_exchange_rate`, and `rate` are all already net of the AMM fee — quote them verbatim, do **NOT** subtract anything on top.\n\n' +
+        '**Present the EXACT outcome to the user with zero mental math.** The response already contains both machine units (`*_base_units`) and ready-to-show decimal strings (`send_amount_human_readable`, `receive_amount_human_readable`); `receive_amount_*`, `effective_exchange_rate`, and `rate` are all already net of the AMM fee — quote them verbatim, do **NOT** subtract anything on top.\n\n' +
+        '- `send_amount_human_readable` / `receive_amount_human_readable`: precomputed decimal strings (e.g. "0.001", "99.5") for the send and receive amounts. **Quote these verbatim to the user** (with the asset ticker); never divide a `*_base_units` value by `10^decimals` yourself — the wallet has already done the decimal math.\n' +
         '- `effective_exchange_rate`: precomputed BTC price in USDB the user is actually paying, factoring in fees (e.g. "99500.00"). Always normalized to USDB-per-BTC regardless of swap direction, so the user can compare it directly to a market BTC price. Prefer this over `rate` when presenting — `rate` reads poorly in the USDB→BTC direction ("1 USDB = 0.00001 BTC").\n' +
         '- `effective_fee_rate`: precomputed `fee_base_units / send_amount_base_units × 100` as a percent string. Always surface it for transparency about what the AMM is keeping — but show it as transparency, **not** as a further deduction on top of the rate/amounts.\n\n' +
         'Good: "You\'ll send 0.001 BTC and receive 99.5 USDB (effective price: 99,500 USDB per BTC, includes a 0.4% AMM fee)."\n' +
@@ -2153,6 +2154,11 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
 
         const receiveAmountBaseUnits = new BigNumber(quote.receiveAmount).times(new BigNumber(10).pow(receiveInfo.decimals)).integerValue(BigNumber.ROUND_FLOOR).toFixed(0);
 
+        // Human-readable decimal strings derived from the exact base-unit values we return, so the
+        // two always agree. The agent must NOT recompute these — quote them verbatim to the user.
+        const sendAmountHumanReadable = mcpBaseUnitsToHumanReadable(send_amount_base_units, sendInfo.decimals);
+        const receiveAmountHumanReadable = mcpBaseUnitsToHumanReadable(receiveAmountBaseUnits, receiveInfo.decimals);
+
         // Trading fee as a percentage of the user's input (e.g. "0.4000" for 0.4%).
         // Kept as smallest-unit math (fee_base_units / send_amount_base_units) so it stays exact
         // regardless of asset decimals. `quote.rate` is already the post-fee effective rate,
@@ -2187,7 +2193,9 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   send_asset,
                   receive_asset,
                   send_amount_base_units,
+                  send_amount_human_readable: sendAmountHumanReadable,
                   receive_amount_base_units: receiveAmountBaseUnits,
+                  receive_amount_human_readable: receiveAmountHumanReadable,
                   fee_base_units: feeBaseUnitsStr,
                   fee_asset: send_asset,
                   fee_ticker: quote.feeTicker,
@@ -2221,7 +2229,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     {
       title: 'Execute a previously quoted swap',
       description:
-        'Executes the swap staged by an earlier `get_swap_quote` call. Pass `quote_id` exactly as returned. The trade is atomic (a few seconds, no on-chain confirmations on Spark) and **irreversible** once it returns success. Each `quote_id` can only be executed **once**; expired or already-executed quotes return an error and you must re-quote. Slippage is capped at 3% (300 bps); execution fails rather than filling beyond that.',
+        'Executes the swap staged by an earlier `get_swap_quote` call. Pass `quote_id` exactly as returned. The trade is atomic (a few seconds, no on-chain confirmations on Spark) and **irreversible** once it returns success. Each `quote_id` can only be executed **once**; expired or already-executed quotes return an error and you must re-quote. Slippage is capped at 3% (300 bps); execution fails rather than filling beyond that.\n\nThe response returns both `*_base_units` and ready-to-show `send_amount_human_readable` / `receive_amount_human_readable` decimal strings — **quote the human-readable values verbatim** to the user; never divide base units by `10^decimals` yourself.',
       inputSchema: {
         quote_id: z.string().min(1).describe('Exact `quote_id` from `get_swap_quote` — copy verbatim. Leading/trailing whitespace is trimmed.'),
       },
@@ -2256,6 +2264,8 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
         const receiveInfo = getAssetInfo(completed.receiveAsset);
         const receiveBaseUnits = new BigNumber(completed.receiveAmount).times(new BigNumber(10).pow(receiveInfo.decimals)).integerValue(BigNumber.ROUND_FLOOR).toFixed(0);
         const sendBaseUnits = new BigNumber(completed.sendAmount).times(new BigNumber(10).pow(sendInfo.decimals)).integerValue(BigNumber.ROUND_FLOOR).toFixed(0);
+        const sendAmountHumanReadable = mcpBaseUnitsToHumanReadable(sendBaseUnits, sendInfo.decimals);
+        const receiveAmountHumanReadable = mcpBaseUnitsToHumanReadable(receiveBaseUnits, receiveInfo.decimals);
         const summary = `${completed.sendAmount} ${sendInfo.ticker} \u2192 ${completed.receiveAmount} ${receiveInfo.ticker}`;
 
         mcpCallLog(`execute_swap: ok - ${summary}`);
@@ -2272,7 +2282,9 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   send_asset: completed.sendAsset,
                   receive_asset: completed.receiveAsset,
                   send_amount_base_units: sendBaseUnits,
+                  send_amount_human_readable: sendAmountHumanReadable,
                   receive_amount_base_units: receiveBaseUnits,
+                  receive_amount_human_readable: receiveAmountHumanReadable,
                   service: completed.serviceName,
                 },
                 null,

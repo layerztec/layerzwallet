@@ -36,7 +36,7 @@ export const MCP_SERVER_INSTRUCTIONS = [
   '**Swaps (Spark BTC ↔ USDB):**',
   '1. `get_network_balance` (network `spark`) for selling BTC, or `list_tokens` (network `spark`) for selling USDB.',
   '2. Copy `balance_base_units` verbatim into `get_swap_quote` `send_amount_base_units` (or a smaller integer ≤ balance).',
-  '3. Present the quote to the user; pass `quote_id` verbatim to `execute_swap`. Quotes expire in ~60s.',
+  '3. Present the quote to the user using `send_amount_human_readable` / `receive_amount_human_readable` (already decimal-corrected — never divide base units yourself); pass `quote_id` verbatim to `execute_swap`. Quotes expire in ~60s.',
   '4. `get_swap_quote` does not move funds; `execute_swap` is irreversible.',
   '',
   '**Tokens & IDs:** Copy `token_id`, `quote_id`, BOLT11 invoices, and `payment_hash` exactly from tool JSON — never from chat summaries.',
