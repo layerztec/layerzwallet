@@ -9,6 +9,7 @@
 
 import type { IBackgroundCaller } from '../../../types/IBackgroundCaller';
 import type { IStorage } from '../../../types/IStorage';
+import type { TransferExecution } from '../../../types/transfer';
 
 /**
  * Wallet-tool dependencies. Supplied once via `configureMcp(...)` (see `./mcp.ts`)
@@ -28,6 +29,14 @@ export type McpCallDeps = {
   showSuccessToast?: (summary: string, detail?: string) => void;
   /** Analytics hook called on every tool invocation (`{ tool_name }` payload at the call site). */
   trackToolCall?: (toolName: string) => void;
+  /**
+   * Fire the `swap_completed` analytics event for an MCP-driven transfer that completes outside the
+   * TransferServiceManager (so `onTransferCompleted` never runs for it) — today, a successful
+   * `claim_spark_deposit` (on-chain BTC → Spark deposit). Platforms wire this to
+   * `trackAnalyticsEvent(SwapCompleted, buildSwapCompletedProperties(execution))`, the same call the
+   * UI/manager path uses, so the event schema stays identical.
+   */
+  trackSwapCompleted?: (execution: TransferExecution) => void;
 };
 
 /**

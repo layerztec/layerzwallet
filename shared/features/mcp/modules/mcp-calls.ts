@@ -16,6 +16,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as BlueElectrum from '../../../blue_modules/BlueElectrum';
 import { EvmWallet } from '../../../class/evm-wallet';
 import { BreezWallet, LBTC_ASSET_IDS } from '../../../class/wallets/breez-wallet';
+import { SparkWallet, SPARK_STATIC_DEPOSIT_CONFIRMATIONS } from '../../../class/wallets/spark-wallet';
 import { walletCanHaveNfts } from '../../../class/wallets/interface-can-have-nfts';
 import { walletCanHaveTokens } from '../../../class/wallets/interface-can-have-tokens';
 import { walletIsAccountBased } from '../../../class/wallets/interface-account-based-wallet';
@@ -47,7 +48,7 @@ import {
   NETWORK_USDT,
   type Networks,
 } from '../../../types/networks';
-import { EXECUTION_INSTANT } from '../../../types/transfer';
+import { EXECUTION_CLAIM, EXECUTION_INSTANT, type NativeClaimExecution } from '../../../types/transfer';
 
 import { pushMcpActivityLog } from './mcp-activity-log';
 import { MCP_LIGHTNING_PAY_MAX_FEE_PERCENT } from './mcp-constants';
@@ -1278,6 +1279,306 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
   );
 
   mcp.registerTool(
+    'get_bitcoin_transaction',
+    {
+      title: 'Look up a Bitcoin transaction by txid',
+      description:
+        'Fetches an on-chain Bitcoin transaction by `txid` (the `transfer_id` returned by `execute_bitcoin_send`, or any other Bitcoin txid). Returns confirmation status, block info, size, and a compact summary of inputs/outputs (output addresses + amounts). Use this to check whether a send has confirmed and how deep, or to inspect any Bitcoin transaction. Read-only; no funds move.\n\n' +
+        'Output amounts are in sats (`value_base_units`) — same scale as `get_network_balance` for bitcoin — and are paired with `value_human_readable` (BTC, with `ticker` on the payload). `status` is `confirmed` when `confirmations >= 1`, otherwise `mempool`. Input prevouts are returned as `{txid, vout}` pointers; input amounts (and therefore the fee) are not reconstructed (would require N+1 lookups). Quote `*_human_readable` to the user; use `*_base_units` only for further programmatic calls.',
+      inputSchema: {
+        txid: z
+          .string()
+          .regex(/^[0-9a-fA-F]{64}$/, 'txid must be a 64-char hex string (as returned by `execute_bitcoin_send` in `transfer_id`).')
+          .describe('Bitcoin transaction id, 64-char hex. Pass exactly as returned by `execute_bitcoin_send` (`transfer_id`) — do not transcribe from chat.'),
+      },
+    },
+    async ({ txid }) => {
+      const txidNorm = txid.trim().toLowerCase();
+      mcpCallLog(`get_bitcoin_transaction: start - ${txidNorm}`);
+      trackMcpCall(deps, 'get_bitcoin_transaction');
+      try {
+        if (!BlueElectrum.mainConnected) await BlueElectrum.connectMain();
+        const result = await BlueElectrum.multiGetTransactionByTxid([txidNorm], true);
+        const tx = result[txidNorm];
+        if (!tx) {
+          mcpCallLog(`get_bitcoin_transaction: not found - ${txidNorm}`);
+          return {
+            isError: true,
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    error: 'Transaction not found. The txid may be invalid, not yet broadcast, or evicted from the mempool.',
+                    txid: txidNorm,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+
+        const confirmations = typeof tx.confirmations === 'number' ? tx.confirmations : 0;
+        const status = confirmations >= 1 ? 'confirmed' : 'mempool';
+
+        const btcDecimals = getDecimalsByNetwork(NETWORK_BITCOIN);
+
+        let totalOutputSats = new BigNumber(0);
+        const outputs = (tx.vout ?? []).map((o) => {
+          const sats = new BigNumber(o.value).multipliedBy(1e8).integerValue(BigNumber.ROUND_HALF_UP).toFixed(0);
+          totalOutputSats = totalOutputSats.plus(sats);
+          return {
+            n: o.n,
+            value_base_units: sats,
+            value_human_readable: mcpBaseUnitsToHumanReadable(sats, btcDecimals),
+            address: o.scriptPubKey?.addresses?.[0] ?? null,
+          };
+        });
+
+        const inputs = (tx.vin ?? []).map((i) => ({ txid: i.txid, vout: i.vout }));
+
+        const totalOutput = totalOutputSats.toFixed(0);
+        const payload = {
+          txid: tx.txid,
+          status,
+          confirmations,
+          blockhash: tx.blockhash || null,
+          block_time: tx.blocktime || tx.time || null,
+          size: tx.size,
+          vsize: tx.vsize,
+          input_count: inputs.length,
+          inputs,
+          output_count: outputs.length,
+          outputs,
+          total_output_base_units: totalOutput,
+          total_output_human_readable: mcpBaseUnitsToHumanReadable(totalOutput, btcDecimals),
+          ticker: getTickerByNetwork(NETWORK_BITCOIN),
+        };
+
+        mcpCallLog(`get_bitcoin_transaction: ok - ${txidNorm} ${status} confirmations=${confirmations}`);
+        showMcpSuccess(deps, 'Fetched Bitcoin transaction', `${status} · ${confirmations} conf`);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
+        };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        mcpCallLog(`get_bitcoin_transaction: error - ${message}`);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: message, txid: txidNorm }, null, 2) }],
+        };
+      }
+    }
+  );
+
+  // ── On-chain BTC → Spark (deposit + claim) ──────────────────────────────────────────────────────
+  // Moving native (L1) BTC into the Spark balance is a deposit-address flow, not an instant swap, so
+  // it can't ride on get_swap_quote/execute_swap (those are Flashnet's atomic in-wallet trades). It
+  // composes the existing Bitcoin send tools instead: get_spark_deposit_address → get_bitcoin_send_quote
+  // → execute_bitcoin_send → (3 confirmations) → claim_spark_deposit. The deposit address is the
+  // SparkWallet's static on-chain address; claiming credits the confirmed UTXO(s) to the Spark balance.
+
+  mcp.registerTool(
+    'get_spark_deposit_address',
+    {
+      title: 'Get the on-chain Bitcoin deposit address for Spark',
+      description:
+        "Returns the wallet's **static on-chain Bitcoin deposit address** for funding the Spark balance with native (L1) BTC. This is NOT the same as `get_receive_address` for `spark` (which returns a `spark1…` address for Spark-native transfers) — this is a Bitcoin `bc1…` address you send on-chain BTC to.\n\n" +
+        'Full flow to move on-chain BTC into Spark:\n' +
+        '1. Call this tool to get the `deposit_address`.\n' +
+        '2. Send BTC to it on-chain with `get_bitcoin_send_quote` (`receiver_address` = this address) then `execute_bitcoin_send`. An external sender works too.\n' +
+        `3. Wait for **${SPARK_STATIC_DEPOSIT_CONFIRMATIONS} on-chain confirmations** (~30+ min).\n` +
+        '4. Call `claim_spark_deposit` to credit the funds to the Spark balance.\n\n' +
+        'The address is static and reusable — it can receive multiple deposits. Read-only; no funds move.',
+    },
+    async () => {
+      mcpCallLog('get_spark_deposit_address: start');
+      trackMcpCall(deps, 'get_spark_deposit_address');
+      try {
+        const w = await backgroundCaller.lazyInitWallet(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
+        if (!(w instanceof SparkWallet)) {
+          mcpCallLog('get_spark_deposit_address: error - wallet does not support Spark deposits');
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'Wallet does not support on-chain Spark deposits.', network: NETWORK_SPARK }, null, 2) }],
+          };
+        }
+
+        const deposit_address = await w.getOnchainDepositAddress();
+        mcpCallLog(`get_spark_deposit_address: ok - ${deposit_address.slice(0, 16)}…`);
+        showMcpSuccess(deps, 'Spark deposit address', deposit_address.slice(0, 12) + '…');
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  network: NETWORK_SPARK,
+                  deposit_address,
+                  deposit_chain: NETWORK_BITCOIN,
+                  confirmations_required: SPARK_STATIC_DEPOSIT_CONFIRMATIONS,
+                  next_step: `Send on-chain BTC to deposit_address via get_bitcoin_send_quote + execute_bitcoin_send, then call claim_spark_deposit once it has ${SPARK_STATIC_DEPOSIT_CONFIRMATIONS} confirmations.`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        mcpCallLog(`get_spark_deposit_address: error - ${message}`);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: message, network: NETWORK_SPARK }, null, 2) }],
+        };
+      }
+    }
+  );
+
+  mcp.registerTool(
+    'claim_spark_deposit',
+    {
+      title: 'Claim on-chain BTC deposited to the Spark address',
+      description: `Credits on-chain BTC sent to the Spark deposit address (see \`get_spark_deposit_address\`) into the Spark balance. A deposit becomes claimable only after **${SPARK_STATIC_DEPOSIT_CONFIRMATIONS} on-chain confirmations**. By default this claims **every** currently-claimable deposit; pass \`txid\` to claim one specific deposit. Returns each claimed deposit with its Spark \`transfer_id\` and \`credited_base_units\` (sats). If nothing is claimable yet, returns the \`pending\` deposits with their confirmation progress so you can tell the user how long to wait. Each deposit can only be claimed once.`,
+      inputSchema: {
+        txid: z
+          .string()
+          .min(1)
+          .optional()
+          .describe(
+            "Optional: the on-chain deposit txid to claim (the `transfer_id` from `execute_bitcoin_send`, or a txid from this tool's `pending` list). Omit to claim every claimable deposit. Leading/trailing whitespace is trimmed."
+          ),
+      },
+    },
+    async ({ txid }) => {
+      const wantTxid = txid?.trim();
+      mcpCallLog(`claim_spark_deposit: start${wantTxid ? ` - txid ${wantTxid}` : ' - all claimable'}`);
+      trackMcpCall(deps, 'claim_spark_deposit');
+      try {
+        const w = await backgroundCaller.lazyInitWallet(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
+        if (!(w instanceof SparkWallet)) {
+          mcpCallLog('claim_spark_deposit: error - wallet does not support Spark deposits');
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'Wallet does not support on-chain Spark deposits.', network: NETWORK_SPARK }, null, 2) }],
+          };
+        }
+
+        const swaps = await w.getCommonSwaps();
+        const claimable = swaps.filter((s) => s.status === 'claimable' && (!wantTxid || s.id === wantTxid));
+
+        if (claimable.length === 0) {
+          const pending = swaps
+            .filter((s) => s.status === 'pending' && (!wantTxid || s.id === wantTxid))
+            .map((s) => ({
+              txid: s.id,
+              confirmations: s.confirmations ?? 0,
+              target_confirmations: s.targetConfirmations ?? SPARK_STATIC_DEPOSIT_CONFIRMATIONS,
+              amount_base_units: s.amount != null ? String(s.amount) : null,
+            }));
+          mcpCallLog(`claim_spark_deposit: nothing claimable (${pending.length} pending)`);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    claimed: [],
+                    pending,
+                    message: wantTxid
+                      ? `Deposit ${wantTxid} is not claimable yet (needs ${SPARK_STATIC_DEPOSIT_CONFIRMATIONS} confirmations) or was not found.`
+                      : `No claimable deposits. Pending deposits (if any) need ${SPARK_STATIC_DEPOSIT_CONFIRMATIONS} confirmations.`,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+
+        const claimed: { txid: string; transfer_id?: string; credited_base_units: string }[] = [];
+        const failed: { txid: string; error: string }[] = [];
+        for (const swap of claimable) {
+          try {
+            const quote = await w.getDepositQuote(swap.id);
+            const transferId = await w.claimDepositSpark(quote);
+            claimed.push({ txid: swap.id, transfer_id: transferId, credited_base_units: String(quote.creditAmountSats) });
+
+            // Count the claim as a completed BTC → Spark swap. This path bypasses the
+            // TransferServiceManager (so `onTransferCompleted` never fires for it), so we emit the
+            // `swap_completed` event ourselves via the platform-injected hook. Provider 'Native' and the
+            // BTC→Spark asset pair mirror what the UI-driven NativeDeposit flow reports.
+            const now = Math.floor(Date.now() / 1000);
+            const creditBtc = new BigNumber(quote.creditAmountSats).div(1e8).toFixed();
+            const completedExecution: NativeClaimExecution = {
+              type: EXECUTION_CLAIM,
+              id: transferId ?? swap.id,
+              status: 'completed',
+              sendAsset: 'native:bitcoin',
+              receiveAsset: 'native:spark',
+              sendAmount: creditBtc,
+              receiveAmount: creditBtc,
+              createdAt: swap.timestamp ? Math.floor(swap.timestamp / 1000) : now,
+              updatedAt: now,
+              accountNumber: MCP_BALANCE_ACCOUNT_NUMBER,
+              serviceName: 'Native',
+              depositTxid: swap.id,
+              receiveTransferId: transferId,
+              autoClaim: false,
+              autoClaimAttempts: 0,
+            };
+            deps.trackSwapCompleted?.(completedExecution);
+          } catch (e) {
+            failed.push({ txid: swap.id, error: e instanceof Error ? e.message : String(e) });
+          }
+        }
+
+        if (claimed.length === 0) {
+          mcpCallLog(`claim_spark_deposit: error - all ${failed.length} claim(s) failed`);
+          return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify({ error: 'All claim attempts failed.', network: NETWORK_SPARK, failed }, null, 2) }],
+          };
+        }
+
+        const totalSats = claimed.reduce((acc, c) => acc + Number(c.credited_base_units), 0);
+        mcpCallLog(`claim_spark_deposit: ok - claimed ${claimed.length}, ${totalSats} sats${failed.length ? `, ${failed.length} failed` : ''}`);
+        showMcpSuccess(deps, 'Claimed Spark deposit', `${claimed.length} deposit(s) · ${totalSats} sats`);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: true,
+                  network: NETWORK_SPARK,
+                  claimed,
+                  failed: failed.length ? failed : undefined,
+                  total_credited_base_units: String(totalSats),
+                  fee_ticker: 'BTC',
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        mcpCallLog(`claim_spark_deposit: error - ${message}`);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: JSON.stringify({ error: message, network: NETWORK_SPARK }, null, 2) }],
+        };
+      }
+    }
+  );
+
+  mcp.registerTool(
     'list_nfts',
     {
       title: 'List NFTs owned on a network',
@@ -1482,15 +1783,16 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     'create_lightning_invoice',
     {
       title: 'Create Lightning invoice (BOLT11)',
-      description: `Creates a BOLT11 receive invoice on \`network\`: ${MCP_LIGHTNING_PAY_NETWORKS.join(',')} (same layers as pay_lightning_invoice). \`sats\` is the amount to request. Optional \`memo\` is the invoice description. Response includes the bolt11 string in \`invoice\`. Handle \`invoice\` extra carefully - it must be passed exactly - malformed/mangled invoices will not work; dont rely on chat transcription, use EXACT values as returned by MCP.`,
+      description: `Creates a BOLT11 receive invoice on \`network\`: ${MCP_LIGHTNING_PAY_NETWORKS.join(',')} (same layers as pay_lightning_invoice). If \`network\` is omitted it defaults to \`${NETWORK_SPARK}\`. \`sats\` is the amount to request. Optional \`memo\` is the invoice description. Response includes the BOLT11 string in \`invoice\` and the BOLT11 payment hash in \`payment_hash\` (64 hex chars). Track payment status with \`is_invoice_paid\` using the \`payment_hash\`. Handle \`payment_hash\` extra carefully - it must be passed exactly - malformed/mangled strings will not work; dont rely on chat transcription, use EXACT values as returned by MCP.`,
       inputSchema: {
         sats: z.number().int().positive().describe('Requested amount in satoshis.'),
         memo: z.string().optional().describe('Optional description / memo on the invoice.'),
-        network: mcpLightningPayNetworkSchema.describe(`Wallet layer: ${MCP_LIGHTNING_PAY_NETWORKS.join(',')}.`),
+        network: mcpLightningPayNetworkSchema.optional().describe(`Wallet layer: ${MCP_LIGHTNING_PAY_NETWORKS.join(',')}. Defaults to \`${NETWORK_SPARK}\` when omitted.`),
       },
     },
-    async ({ sats, memo, network }) => {
-      mcpCallLog(`create_lightning_invoice: start - ${network}, ${sats} sats${memo?.trim() ? ', memo set' : ''}`);
+    async ({ sats, memo, network: networkRaw }) => {
+      const network = networkRaw ?? NETWORK_SPARK;
+      mcpCallLog(`create_lightning_invoice: start - ${network}, ${sats} sats${memo?.trim() ? ' (' + memo?.trim() + ')' : ''}`);
       trackMcpCall(deps, 'create_lightning_invoice');
       try {
         const w = await backgroundCaller.lazyInitWallet(network, MCP_BALANCE_ACCOUNT_NUMBER);
@@ -1507,8 +1809,10 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
           };
         }
 
-        const { invoice, serviceFeeSat } = await w.createLightningInvoice(sats, memo ?? '');
-        mcpCallLog(`create_lightning_invoice: ok - ${network}, ${sats} sats, service fee ${serviceFeeSat} sats, invoice starts ${bolt11Preview(invoice)}`);
+        const { invoice, serviceFeeSat } = await w.createLightningInvoice(sats, memo ?? 'Created by Layerz Wallet AI');
+        const paymentHash = String(bolt11.decode(invoice).tags.find((t) => t.tagName === 'payment_hash')?.data ?? '');
+        if (!paymentHash) throw new Error('payment_hash tag not found in BOLT11 invoice');
+        mcpCallLog(`create_lightning_invoice: ok - ${network}, ${sats} sats, service fee ${serviceFeeSat} sats, invoice starts ${bolt11Preview(invoice)}, payment_hash ${paymentHash}`);
         showMcpSuccess(deps, 'Created Lightning invoice', `${memo ?? ''} ${network} · ${sats} sats`);
         return {
           content: [
@@ -1517,6 +1821,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
               text: JSON.stringify(
                 {
                   invoice,
+                  payment_hash: paymentHash,
                   network,
                   sats,
                   ...(memo != null && memo !== '' ? { memo } : {}),
@@ -1543,32 +1848,19 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     'is_invoice_paid',
     {
       title: 'Check if Lightning invoice is paid',
-      description: `Returns whether the given BOLT11 invoice that we created has been paid, as seen by this wallet on \`network\` (${MCP_LIGHTNING_PAY_NETWORKS.join(',')}). Use the same network the invoice was created on.`,
+      description: `Returns whether an invoice that we created has been paid, looked up by its BOLT11 payment hash (the \`payment_hash\` field returned from \`create_lightning_invoice\`). Use the same network the invoice was created on (${MCP_LIGHTNING_PAY_NETWORKS.join(',')}).`,
       inputSchema: {
-        invoice: z.string().min(1).describe('BOLT11 invoice (lnbc…) or lightning:lnbc… URI.'),
+        payment_hash: z
+          .string()
+          .regex(/^[0-9a-fA-F]{64}$/, 'payment_hash must be 64 hex chars (the `payment_hash` field returned from create_lightning_invoice).')
+          .describe('BOLT11 payment hash, 64-char hex string. Returned as `payment_hash` from create_lightning_invoice.'),
         network: mcpLightningPayNetworkSchema.describe(`Wallet layer: ${MCP_LIGHTNING_PAY_NETWORKS.join(',')}.`),
       },
     },
-    async ({ invoice: invoiceRaw, network }) => {
-      const invoice = normalizeBolt11Invoice(invoiceRaw);
-      mcpCallLog(`is_invoice_paid: start - ${network}, invoice ${bolt11Preview(invoice)}`);
+    async ({ payment_hash: paymentHashRaw, network }) => {
+      const paymentHash = paymentHashRaw.trim().toLowerCase();
+      mcpCallLog(`is_invoice_paid: start - ${network}, payment_hash ${paymentHash}`);
       trackMcpCall(deps, 'is_invoice_paid');
-
-      try {
-        bolt11.decode(invoice);
-      } catch (e) {
-        const message = e instanceof Error ? e.message : String(e);
-        mcpCallLog(`is_invoice_paid: error - invalid BOLT11: ${message}`);
-        return {
-          isError: true,
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({ error: `Invalid BOLT11 invoice: ${message}`, network }, null, 2),
-            },
-          ],
-        };
-      }
 
       showMcpSuccess(deps, 'Checking if Lightning invoice is paid');
 
@@ -1587,13 +1879,13 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
           };
         }
 
-        const paid = await w.isInvoicePaid(invoice);
+        const paid = await w.isInvoicePaidByHash(paymentHash);
         mcpCallLog(`is_invoice_paid: ok - ${network}, paid=${paid}`);
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify({ paid, network }, null, 2),
+              text: JSON.stringify({ paid, network, payment_hash: paymentHash }, null, 2),
             },
           ],
         };
@@ -1811,7 +2103,8 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
         'Returns a quote for swapping `send_amount_base_units` of `send_asset` into `receive_asset`. Currently only BTC↔USDB on Spark. The response includes a `quote_id` you must pass verbatim to `execute_swap` to actually trade. Quotes expire at `expires_at_unix` (typically 60s, TELL USER HOW MUCH TIME IS LEFT); call this tool again after expiry. **No funds move on this call** — it only stages the swap so the user/agent can review fees before committing.\n\n' +
         MCP_BASE_UNITS_GUIDANCE +
         '\n\n**Where `send_amount_base_units` comes from:** call `get_network_balance` on `spark` for `native:spark` (BTC/sats), or `list_tokens` on `spark` for `token:spark:usdb` — copy `balance_base_units` verbatim (or a smaller amount ≤ balance). The wallet converts base units → human amount internally; you must not multiply by `10^decimals` before calling this tool.\n\n' +
-        '**Present the EXACT outcome to the user with zero mental math.** `receive_amount_base_units`, `effective_exchange_rate`, and `rate` are all already net of the AMM fee — quote them verbatim, do **NOT** subtract anything on top.\n\n' +
+        '**Present the EXACT outcome to the user with zero mental math.** The response already contains both machine units (`*_base_units`) and ready-to-show decimal strings (`send_amount_human_readable`, `receive_amount_human_readable`); `receive_amount_*`, `effective_exchange_rate`, and `rate` are all already net of the AMM fee — quote them verbatim, do **NOT** subtract anything on top.\n\n' +
+        '- `send_amount_human_readable` / `receive_amount_human_readable`: precomputed decimal strings (e.g. "0.001", "99.5") for the send and receive amounts. **Quote these verbatim to the user** (with the asset ticker); never divide a `*_base_units` value by `10^decimals` yourself — the wallet has already done the decimal math.\n' +
         '- `effective_exchange_rate`: precomputed BTC price in USDB the user is actually paying, factoring in fees (e.g. "99500.00"). Always normalized to USDB-per-BTC regardless of swap direction, so the user can compare it directly to a market BTC price. Prefer this over `rate` when presenting — `rate` reads poorly in the USDB→BTC direction ("1 USDB = 0.00001 BTC").\n' +
         '- `effective_fee_rate`: precomputed `fee_base_units / send_amount_base_units × 100` as a percent string. Always surface it for transparency about what the AMM is keeping — but show it as transparency, **not** as a further deduction on top of the rate/amounts.\n\n' +
         'Good: "You\'ll send 0.001 BTC and receive 99.5 USDB (effective price: 99,500 USDB per BTC, includes a 0.4% AMM fee)."\n' +
@@ -1861,6 +2154,11 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
 
         const receiveAmountBaseUnits = new BigNumber(quote.receiveAmount).times(new BigNumber(10).pow(receiveInfo.decimals)).integerValue(BigNumber.ROUND_FLOOR).toFixed(0);
 
+        // Human-readable decimal strings derived from the exact base-unit values we return, so the
+        // two always agree. The agent must NOT recompute these — quote them verbatim to the user.
+        const sendAmountHumanReadable = mcpBaseUnitsToHumanReadable(send_amount_base_units, sendInfo.decimals);
+        const receiveAmountHumanReadable = mcpBaseUnitsToHumanReadable(receiveAmountBaseUnits, receiveInfo.decimals);
+
         // Trading fee as a percentage of the user's input (e.g. "0.4000" for 0.4%).
         // Kept as smallest-unit math (fee_base_units / send_amount_base_units) so it stays exact
         // regardless of asset decimals. `quote.rate` is already the post-fee effective rate,
@@ -1895,7 +2193,9 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   send_asset,
                   receive_asset,
                   send_amount_base_units,
+                  send_amount_human_readable: sendAmountHumanReadable,
                   receive_amount_base_units: receiveAmountBaseUnits,
+                  receive_amount_human_readable: receiveAmountHumanReadable,
                   fee_base_units: feeBaseUnitsStr,
                   fee_asset: send_asset,
                   fee_ticker: quote.feeTicker,
@@ -1929,7 +2229,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     {
       title: 'Execute a previously quoted swap',
       description:
-        'Executes the swap staged by an earlier `get_swap_quote` call. Pass `quote_id` exactly as returned. The trade is atomic (a few seconds, no on-chain confirmations on Spark) and **irreversible** once it returns success. Each `quote_id` can only be executed **once**; expired or already-executed quotes return an error and you must re-quote. Slippage is capped at 3% (300 bps); execution fails rather than filling beyond that.',
+        'Executes the swap staged by an earlier `get_swap_quote` call. Pass `quote_id` exactly as returned. The trade is atomic (a few seconds, no on-chain confirmations on Spark) and **irreversible** once it returns success. Each `quote_id` can only be executed **once**; expired or already-executed quotes return an error and you must re-quote. Slippage is capped at 3% (300 bps); execution fails rather than filling beyond that.\n\nThe response returns both `*_base_units` and ready-to-show `send_amount_human_readable` / `receive_amount_human_readable` decimal strings — **quote the human-readable values verbatim** to the user; never divide base units by `10^decimals` yourself.',
       inputSchema: {
         quote_id: z.string().min(1).describe('Exact `quote_id` from `get_swap_quote` — copy verbatim. Leading/trailing whitespace is trimmed.'),
       },
@@ -1964,6 +2264,8 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
         const receiveInfo = getAssetInfo(completed.receiveAsset);
         const receiveBaseUnits = new BigNumber(completed.receiveAmount).times(new BigNumber(10).pow(receiveInfo.decimals)).integerValue(BigNumber.ROUND_FLOOR).toFixed(0);
         const sendBaseUnits = new BigNumber(completed.sendAmount).times(new BigNumber(10).pow(sendInfo.decimals)).integerValue(BigNumber.ROUND_FLOOR).toFixed(0);
+        const sendAmountHumanReadable = mcpBaseUnitsToHumanReadable(sendBaseUnits, sendInfo.decimals);
+        const receiveAmountHumanReadable = mcpBaseUnitsToHumanReadable(receiveBaseUnits, receiveInfo.decimals);
         const summary = `${completed.sendAmount} ${sendInfo.ticker} \u2192 ${completed.receiveAmount} ${receiveInfo.ticker}`;
 
         mcpCallLog(`execute_swap: ok - ${summary}`);
@@ -1980,7 +2282,9 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   send_asset: completed.sendAsset,
                   receive_asset: completed.receiveAsset,
                   send_amount_base_units: sendBaseUnits,
+                  send_amount_human_readable: sendAmountHumanReadable,
                   receive_amount_base_units: receiveBaseUnits,
+                  receive_amount_human_readable: receiveAmountHumanReadable,
                   service: completed.serviceName,
                 },
                 null,

@@ -7,6 +7,8 @@
 import { LayerzStorage } from '../../../class/layerz-storage';
 import { AnalyticsEvents } from '@shared/types/analytics';
 
+import { buildSwapCompletedProperties } from '@shared/modules/swap-analytics';
+
 import { trackAnalyticsEvent } from '../../../modules/analytics';
 import { BackgroundCaller } from '../../../modules/background-caller';
 import { showDesktopNotification } from '../../../modules/notifications';
@@ -23,6 +25,9 @@ export const desktopMcpDeps: McpCallDeps = {
   trackToolCall: (toolName) => {
     console.log('[mcp] tool call:', toolName);
     trackAnalyticsEvent(AnalyticsEvents.McpCall, { tool_name: toolName });
+  },
+  trackSwapCompleted: (execution) => {
+    trackAnalyticsEvent(AnalyticsEvents.SwapCompleted, buildSwapCompletedProperties(execution));
   },
 };
 

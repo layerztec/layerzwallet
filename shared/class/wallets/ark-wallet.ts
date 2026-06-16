@@ -792,16 +792,28 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   }
 
   async isInvoicePaid(invoice: string): Promise<boolean> {
+    const { paymentHash } = decodeInvoice(invoice);
+    if (!paymentHash) throw new Error('Payment hash not found in invoice');
+    return this.isInvoicePaidByHash(paymentHash);
+  }
+
+  async isInvoicePaidByHash(preimageHash: string): Promise<boolean> {
     assert(this._arkadeLightning, 'Ark Lightning not initialized');
+    if (!preimageHash) throw new Error('No preimage hash provided');
 
     await this._attemptToClaimPendingVHTLCs();
 
+    const target = preimageHash.toLowerCase();
     for (const swap of (await this._arkadeLightning.getSwapHistory()) ?? []) {
-      if (swap.status === 'invoice.settled' && swap.type === 'reverse' && swap.response.invoice === invoice) {
-        return true;
+      if (swap.status !== 'invoice.settled' || swap.type !== 'reverse') continue;
+      try {
+        const { paymentHash } = decodeInvoice(swap.response.invoice);
+        if (paymentHash?.toLowerCase() === target) return true;
+      } catch {
+        // ignore malformed persisted invoices, dont let one bad record break the lookup
       }
     }
-    return Promise.resolve(false);
+    return false;
   }
 
   async payLightningInvoice(invoice: string): Promise<boolean> {

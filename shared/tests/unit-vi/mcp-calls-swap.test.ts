@@ -168,6 +168,10 @@ describe('MCP swap tools', () => {
       const body = parseToolJson(result);
       // Real conversion: 99.500000 (human) × 10^6 = 99,500,000 base units USDB.
       expect(body.receive_amount_base_units).toBe('99500000');
+      // Human-readable strings are derived from the exact base-unit values above so the agent
+      // never has to divide by 10^decimals. 100,000 sats = 0.001 BTC; 99,500,000 = 99.5 USDB.
+      expect(body.send_amount_human_readable).toBe('0.001');
+      expect(body.receive_amount_human_readable).toBe('99.5');
       // Fee derived from pool bps: 100,000 sats × 40 bps / 10,000 = 400 sats.
       // Crucially, this is computed from `pool.lpFeeBps + hostFeeBps`, NOT from
       // `simulation.feePaidAssetIn` (49750 in the mock) — if a regression went back to
@@ -211,6 +215,9 @@ describe('MCP swap tools', () => {
       const body = parseToolJson(result);
       // 50000 sats from the AMM converts back to '50000' sats base units (no rounding).
       expect(body.receive_amount_base_units).toBe('50000');
+      // 50,000,000 USDB units = 50 USDB; 50,000 sats = 0.0005 BTC. Decimal math is done in-wallet.
+      expect(body.send_amount_human_readable).toBe('50');
+      expect(body.receive_amount_human_readable).toBe('0.0005');
       // Fee derived from pool bps: 50,000,000 USDB units × 40 bps / 10,000 = 200,000 USDB units.
       // This is in the INPUT asset's smallest units (USDB) — direction-asymmetric vs the BTC→USDB
       // case which yielded 400 sats. A regression that hardcoded sats or forgot to use the input
@@ -400,6 +407,10 @@ describe('MCP swap tools', () => {
       // wrapper reports realized (not quoted) amounts to the agent.
       expect(body.receive_amount_base_units).toBe('99400000');
       expect(body.send_amount_base_units).toBe('100000');
+      // Human-readable strings mirror the realized base-unit amounts: 100,000 sats = 0.001 BTC,
+      // 99,400,000 USDB units = 99.4 USDB.
+      expect(body.send_amount_human_readable).toBe('0.001');
+      expect(body.receive_amount_human_readable).toBe('99.4');
       expect(body.service).toBe('Flashnet');
     });
 

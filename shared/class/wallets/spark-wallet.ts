@@ -28,6 +28,12 @@ export interface ISparkAdapter {
 const STORAGE_KEY_NFT = 'SPARK_NFT_METADATA';
 const STORAGE_KEY = 'SPARK_TOKEN_METADATA';
 
+/**
+ * On-chain confirmations a Bitcoin deposit to the static deposit address needs before Spark lets us
+ * claim it. Per Spark docs; not exposed by the SDK, so this is the canonical source for it.
+ */
+export const SPARK_STATIC_DEPOSIT_CONFIRMATIONS = 3;
+
 // Static cache for token icon URLs that we fetched from the API
 const _tokenIconCache: Record<string, string> = {};
 
@@ -233,6 +239,36 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
 
     const id = (await this._readLnInvoiceIdMap())[invoice];
     if (!id) return false;
+
+    return this._isReceiveRequestPaid(id);
+  }
+
+  async isInvoicePaidByHash(preimageHash: string): Promise<boolean> {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
+    if (!preimageHash) throw new Error('No preimage hash provided');
+
+    // we only persist invoice->id, not hash->id, so we decode every issued invoice we know about
+    // and find the one whose payment hash matches. the map is bounded by how many invoices this
+    // account has ever created, so a linear scan is fine.
+    const target = preimageHash.toLowerCase();
+    const map = await this._readLnInvoiceIdMap();
+    for (const [invoice, id] of Object.entries(map)) {
+      try {
+        const decoded = bolt11.decode(invoice);
+        for (const tag of decoded.tags) {
+          if (tag.tagName === 'payment_hash' && String(tag.data).toLowerCase() === target) {
+            return this._isReceiveRequestPaid(id);
+          }
+        }
+      } catch {
+        // ignore malformed persisted invoices, dont let one bad record break the lookup
+      }
+    }
+    return false;
+  }
+
+  private async _isReceiveRequestPaid(id: string): Promise<boolean> {
+    if (!this._sdkWallet) throw new Error('Spark wallet not initialized');
 
     const lightningPaymentStatus = await this._sdkWallet.getLightningReceiveRequest(id);
 
@@ -521,7 +557,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
       const tx = txs1[output.txid];
       const timestamp = tx.blocktime ? tx.blocktime * 1000 : new Date().getTime();
       const confirmations = tx.confirmations ?? 0;
-      const claimable = confirmations >= 3; // according to Spark docs, 3 confirmations are needed to claim a swap
+      const claimable = confirmations >= SPARK_STATIC_DEPOSIT_CONFIRMATIONS;
       return {
         network: NETWORK_SPARK,
         id: output.txid,
@@ -532,7 +568,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
         explorerUrl: `${explorerBase}/tx/${output.txid}`,
         // we only want to show confirmations for 'pending' swaps
         confirmations: !claimable ? confirmations : undefined,
-        targetConfirmations: !claimable ? 3 : undefined,
+        targetConfirmations: !claimable ? SPARK_STATIC_DEPOSIT_CONFIRMATIONS : undefined,
       };
     });
     swaps.push(...unclaimedSwaps);
