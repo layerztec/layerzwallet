@@ -2,6 +2,7 @@ import { Utils } from 'electrobun/bun';
 
 import { DesktopMessageType, type DesktopMessage } from '../shared/desktop-messages';
 import { desktopStorage } from './desktop-storage';
+import { startLocalMcpServer, stopLocalMcpServer } from './local-mcp-server';
 
 /**
  * Bun-side dispatcher for renderer messages — the desktop analog of ext's
@@ -23,6 +24,13 @@ export async function handleMessage(message: DesktopMessage): Promise<unknown> {
 
     case DesktopMessageType.SHOW_NOTIFICATION:
       Utils.showNotification(message.params[0]);
+      return null;
+
+    case DesktopMessageType.MCP_LOCAL_SERVER_START:
+      return startLocalMcpServer();
+
+    case DesktopMessageType.MCP_LOCAL_SERVER_STOP:
+      stopLocalMcpServer();
       return null;
 
     default: {

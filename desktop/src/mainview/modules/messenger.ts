@@ -21,7 +21,17 @@ class DesktopMessenger implements IMessenger {
   private getRpc(): DesktopRpc {
     if (!this.rpc) {
       const rpc = Electroview.defineRPC<DesktopAppRPC>({
-        handlers: { requests: {}, messages: {} },
+        handlers: {
+          requests: {
+            // Bun's local MCP listener forwards each HTTP request here. Lazy-import the
+            // MCP handler so wallet/MCP code stays out of the boot bundle until used.
+            mcpHandleHttp: async (req) => {
+              const { handleLocalMcpHttp } = await import('../features/mcp/mcp-desktop');
+              return handleLocalMcpHttp(req);
+            },
+          },
+          messages: {},
+        },
       });
       new Electroview({ rpc });
       this.rpc = rpc;

@@ -1,11 +1,14 @@
 import { useEffect } from 'react';
 
-import { ensureTunnelBootstrapped } from '../../features/mcp/tunnel-desktop';
+import { ensureMcpBootstrapped, teardownMcpTransport } from '../../features/mcp/tunnel-desktop';
 
-/** One-shot tunnel bootstrap when wallet shell is ready. */
+/** One-shot MCP bootstrap when wallet shell is ready (tunnel client + restore local mode). */
 export function TunnelBootstrap() {
   useEffect(() => {
-    void ensureTunnelBootstrapped();
+    void ensureMcpBootstrapped();
+    return () => {
+      void teardownMcpTransport();
+    };
   }, []);
 
   return null;
