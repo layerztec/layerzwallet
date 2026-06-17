@@ -2,7 +2,7 @@ import { Pause, Play } from 'lucide-react';
 import React, { useSyncExternalStore } from 'react';
 import { useNavigate } from 'react-router';
 
-import { connectTunnel, disconnectTunnel, getTunnelConnectionStatus, subscribeTunnelConnection } from '../../features/mcp/tunnel-desktop';
+import { activateMcp, getMcpStatus, pauseMcp, subscribeMcp } from '../../features/mcp/tunnel-desktop';
 
 import { McpActivityLog } from './McpActivityLog';
 import './McpTunnelStatusRow.css';
@@ -10,7 +10,7 @@ import './McpTunnelStatusRow.css';
 /** Desktop port of mobile `McpTunnelStatusRow`. */
 export const McpTunnelStatusRow: React.FC = () => {
   const navigate = useNavigate();
-  const status = useSyncExternalStore(subscribeTunnelConnection, getTunnelConnectionStatus, getTunnelConnectionStatus);
+  const status = useSyncExternalStore(subscribeMcp, getMcpStatus, getMcpStatus);
   const connecting = status === 'connecting';
 
   const pill = status === 'connected' ? 'Active' : status === 'connecting' ? 'Connecting...' : 'Inactive';
@@ -31,9 +31,9 @@ export const McpTunnelStatusRow: React.FC = () => {
           type="button"
           className={`mcp-tunnel-circle-btn${connecting ? ' mcp-tunnel-circle-btn--dimmed' : ''}`}
           onClick={() => {
-            if (status === 'connected') void disconnectTunnel();
+            if (status === 'connected') void pauseMcp();
             else if (status === 'disconnected') {
-              void connectTunnel().then(() => navigate('/mcp-tunnel-url-modal'));
+              void activateMcp().then(() => navigate('/mcp-tunnel-url-modal'));
             }
           }}
           disabled={connecting}

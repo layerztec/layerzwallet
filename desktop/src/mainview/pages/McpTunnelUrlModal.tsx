@@ -3,17 +3,19 @@ import React, { useContext, useEffect, useState, useSyncExternalStore } from 're
 import { useNavigate } from 'react-router';
 
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { getTunnelConnectionStatus, getTunnelPublicUrl, subscribeTunnelConnection } from '../features/mcp/tunnel-desktop';
+import { getMcpLocalMode, getMcpPublicUrl, getMcpStatus, subscribeMcp } from '../features/mcp/tunnel-desktop';
 
 import { DetachedSheet } from '../components/DetachedSheet';
+import { McpLocalModeToggle } from '../components/mcp/McpLocalModeToggle';
 import './McpTunnelUrlModal.css';
 
 /** Web port of mobile `McpTunnelUrlModal`. */
 const McpTunnelUrlModal: React.FC = () => {
   const navigate = useNavigate();
   const { network } = useContext(NetworkContext);
-  const publicUrl = useSyncExternalStore(subscribeTunnelConnection, getTunnelPublicUrl, getTunnelPublicUrl);
-  const status = useSyncExternalStore(subscribeTunnelConnection, getTunnelConnectionStatus, getTunnelConnectionStatus);
+  const publicUrl = useSyncExternalStore(subscribeMcp, getMcpPublicUrl, getMcpPublicUrl);
+  const status = useSyncExternalStore(subscribeMcp, getMcpStatus, getMcpStatus);
+  const localMode = useSyncExternalStore(subscribeMcp, getMcpLocalMode, getMcpLocalMode);
 
   const urlLine = publicUrl ?? (status === 'connecting' ? 'Connecting…' : 'Not available yet');
   const [copied, setCopied] = useState(false);
@@ -60,7 +62,15 @@ const McpTunnelUrlModal: React.FC = () => {
           </button>
         </div>
 
-        <p className="mcp-tunnel-url-hint">Copy this URL for your AI provider. Anyone with the link can run MCP actions on this wallet — keep it secret.</p>
+        <McpLocalModeToggle />
+
+        <p className="mcp-tunnel-url-hint">
+          {!publicUrl
+            ? 'Inactive — press play on the Agent screen to start it, then the URL appears here.'
+            : localMode
+              ? 'Copy this URL for a local AI agent. The token in the link is its key: anyone on your network who has it can run wallet actions, so only share it on a network you trust.'
+              : 'Copy this URL for your AI provider. The token in the link is its key: anyone with it can run MCP actions on this wallet — keep it secret.'}
+        </p>
       </div>
     </DetachedSheet>
   );

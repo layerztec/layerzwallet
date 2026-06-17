@@ -2,7 +2,7 @@ import { ArrowDownLeft, ChevronDown, Settings } from 'lucide-react';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { ensureTunnelBootstrapped, getTunnelAutostartOnLaunch } from '../features/mcp/tunnel-desktop';
+import { ensureMcpBootstrapped, isMcpActivated } from '../features/mcp/tunnel-desktop';
 
 import { accountItems, AccountNumberContext, getAccountItem, MCP_BALANCE_ACCOUNT_NUMBER } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -48,10 +48,10 @@ const Home: React.FC = () => {
 
     let cancelled = false;
     void (async () => {
-      await ensureTunnelBootstrapped();
+      await ensureMcpBootstrapped();
       if (cancelled) return;
-      const wantsTunnelOn = await getTunnelAutostartOnLaunch();
-      if (cancelled || wantsTunnelOn) return;
+      const activated = await isMcpActivated();
+      if (cancelled || activated) return;
       setShowActivateModal(true);
     })();
     return () => {

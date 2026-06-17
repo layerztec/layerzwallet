@@ -43,6 +43,12 @@ export type StartTunnelOptions = {
   /** Override the default tunnel URL (e.g. for tests). */
   url?: string;
   /**
+   * When `false`, never auto-connect on launch even if the persisted autostart flag is `'1'`.
+   * Desktop local-only mode passes `false` so a stale flag (e.g. left by a crash mid-switch)
+   * can't open the public socket. Defaults to honoring the stored flag.
+   */
+  allowAutoConnect?: boolean;
+  /**
    * Called whenever the tunnel session id changes. The first time it fires
    * delivers the initial public URL; on resume the same URL is returned so
    * external agents don't need to reconfigure.
@@ -203,7 +209,7 @@ export async function startTunnel(opts: StartTunnelOptions): Promise<void> {
     });
   }
 
-  const autostart = await getTunnelAutostartOnLaunch();
+  const autostart = opts.allowAutoConnect === false ? false : await getTunnelAutostartOnLaunch();
 
   try {
     // IStorage returns '' on miss (no `null`); coerce to null so we don't pass `?sessionId=`.

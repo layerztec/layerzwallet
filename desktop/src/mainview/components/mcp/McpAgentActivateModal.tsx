@@ -3,9 +3,10 @@ import React, { useContext } from 'react';
 import { useNavigate } from 'react-router';
 
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { connectTunnel } from '../../features/mcp/tunnel-desktop';
+import { activateMcp } from '../../features/mcp/tunnel-desktop';
 
 import { DetachedSheet } from '../DetachedSheet';
+import { McpLocalModeToggle } from './McpLocalModeToggle';
 import '../../pages/McpAgentActivateModal.css';
 
 type McpAgentActivateModalProps = {
@@ -19,7 +20,7 @@ export const McpAgentActivateModal: React.FC<McpAgentActivateModalProps> = ({ on
 
   const handleActivate = () => {
     onClose();
-    void connectTunnel();
+    void activateMcp();
     navigate('/mcp-tunnel-url-modal');
   };
 
@@ -32,6 +33,7 @@ export const McpAgentActivateModal: React.FC<McpAgentActivateModalProps> = ({ on
         <Bot className="mcp-agent-activate-icon" size={52} strokeWidth={1.5} aria-hidden />
         <h2 className="mcp-agent-activate-title">Agent</h2>
         <p className="mcp-agent-activate-subtitle">Automate payments, trade and control your wallet from your messaging or AI provider.</p>
+        <McpLocalModeToggle />
         <button type="button" className="mcp-agent-activate-btn" onClick={handleActivate} aria-label="Activate agent" data-testid="McpAgentActivateButton">
           Activate
         </button>

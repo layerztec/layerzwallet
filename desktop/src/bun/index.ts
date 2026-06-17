@@ -2,6 +2,7 @@ import Electrobun, { BrowserView, BrowserWindow, GlobalShortcut, Updater, Utils 
 
 import { handleMessage } from './background-message-controller';
 import { applyLinuxWindowIcon } from './linux-window-icon';
+import { configureLocalMcpServer } from './local-mcp-server';
 import type { DesktopAppRPC } from '../shared/desktop-messages';
 
 const DEV_SERVER_PORT = 5173;
@@ -43,6 +44,9 @@ async function getMainViewUrl(): Promise<string> {
 const url = await getMainViewUrl();
 
 const rpc = BrowserView.defineRPC<DesktopAppRPC>({
+  // Bun → renderer MCP calls (`mcpHandleHttp`) can be slow — a `pay_lightning_invoice`
+  // may take minutes. Raise the default 1s RPC timeout so they aren't cut off mid-flight.
+  maxRequestTime: 190_000,
   handlers: {
     requests: {
       processMessage: (message) => handleMessage(message),
@@ -64,6 +68,10 @@ const mainWindow = new BrowserWindow({
 });
 
 applyLinuxWindowIcon(mainWindow.ptr);
+
+// Bridge the local MCP listener (Bun) to the wallet's MCP handler (renderer). The
+// listener itself is started/stopped on demand via MCP_LOCAL_SERVER_START/STOP.
+configureLocalMcpServer((req) => mainWindow.webview.rpc!.request.mcpHandleHttp(req));
 
 // Open http(s) links from the webview in the system browser (e.g. Terms of Service).
 // BrowserView.on() does not expose new-window-open; use the global emitter with a webview id suffix.
