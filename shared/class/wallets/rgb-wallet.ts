@@ -4,7 +4,7 @@ import { AllNetworkInfos } from '../../models/all-network-infos';
 import { CommonTokenTransfer, CommonTransaction } from '../../types/common-transaction';
 import { Networks, NETWORK_RGB, NETWORK_RGB_TESTNET } from '../../types/networks';
 import { CachedTokenInfo } from '../../types/token-info';
-import { IRgbAdapter, IRgbWallet, RgbNetwork } from '../../types/rgb-adapter';
+import { IRgbAdapter, IRgbWallet, RgbLnReceiveResult, RgbNetwork } from '../../types/rgb-adapter';
 import { getRgbBackupStateStorageKey, getRgbInitializedStorageKey, IStorage } from '../../types/IStorage';
 import { AbstractWallet } from './abstract-wallet';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
@@ -452,6 +452,24 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     // a reinstall. See tasks/ship-rgb.md.
     await this.tryBackup({ critical: true });
     return { assetId: asset.assetId, ticker: asset.ticker, name: asset.name, precision: asset.precision };
+  }
+
+  /**
+   * Asset-aware Lightning receive via the LSP composed flow. Returns both the
+   * BOLT11 (sats payer route) and the RGB invoice (on-chain asset route) that
+   * settle the same logical receive.
+   *
+   * Throws if the underlying SDK has no LN surface (extension uses
+   * rgb-sdk-web, which is still on a pre-LSP build) or if the LSP base URL /
+   * asset id constants haven't been populated for the active network yet
+   * (see `mobile/src/constants/rgb-lsp.ts`).
+   */
+  async lightningReceiveAsset(params: { assetId: string; amountSats: number; amountRgb: number; expirySeconds?: number }): Promise<RgbLnReceiveResult> {
+    const sdk = this.sdk();
+    if (!sdk.lightningReceiveAsset) {
+      throw new Error('Lightning receive is not supported by this build');
+    }
+    return sdk.lightningReceiveAsset(params);
   }
 
   async pay(receiverAddress: string, amountSats: number): Promise<string> {

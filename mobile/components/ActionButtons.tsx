@@ -110,9 +110,13 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
   // (new /receive-rgb-token screen). Surface both via the popup pattern that
   // USDT already uses.
   const handleReceiveRgbToken = () => router.push('/receive-rgb-token');
+  // Only show the LN-receive option on signet (rgb_testnet) — mainnet stays
+  // hidden until the LSP URL + USDT asset id come back from UTEXO.
+  const handleReceiveRgbLn = () => router.push('/receive-rgb-ln');
   const rgbReceiveActions = [
     { children: <Action network={network} text="Receive sats" />, onClick: handleReceive },
     { children: <Action network={network} text="Receive RGB asset" />, onClick: handleReceiveRgbToken },
+    ...(network === NETWORK_RGB_TESTNET ? [{ children: <Action network={network} text="Receive USDT over Lightning" />, onClick: handleReceiveRgbLn }] : []),
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
