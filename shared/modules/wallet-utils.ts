@@ -236,6 +236,11 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       const serializedData = await storage.getItem(storageKey);
       if (serializedData) {
         const wallet = await WalletSerializer.deserialize(serializedData);
+        // Wallets persisted by older builds carry the class-default path (m/84'/0'/0') instead of the
+        // real account path; PSBT signing derives keys from this metadata, so pin it on every restore.
+        if (network === NETWORK_BITCOIN && wallet instanceof WatchOnlyWallet) {
+          wallet.setDerivationPath(`m/84'/0'/${accountNumber}'`);
+        }
         cachedWallets[network][accountNumber] = wallet;
         return wallet;
       }
@@ -251,6 +256,10 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
         wallet = new WatchOnlyWallet();
         wallet.setSecret(xpub);
         wallet.init();
+        // The xpub above is derived at m/84'/0'/{accountNumber}'. Without this, the inner HD wallet
+        // keeps the class default m/84'/0'/0', the PSBT's bip32Derivation paths point at the wrong
+        // account, and executeSendQuote can't sign ("Can not finalize input #0").
+        wallet.setDerivationPath(`m/84'/0'/${accountNumber}'`);
         break;
       }
       default:

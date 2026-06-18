@@ -8,7 +8,6 @@ import { AppState, AppStateStatus, LogBox, Platform } from 'react-native';
 import 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
 import { SWRConfig } from 'swr';
-import BigNumber from 'bignumber.js';
 
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
@@ -24,8 +23,9 @@ import { AuthStateContextProvider } from '@/src/hooks/AuthStateContext';
 import { ScanQrContextProvider } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { Messenger } from '@/src/modules/messenger';
-import { AnalyticsEvents, trackAnalyticsEvent } from '@/src/modules/analytics';
+import { trackAnalyticsEvent } from '@/src/modules/analytics';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
+import { AnalyticsEvents } from '@shared/types/analytics';
 import { InitializationContextProvider } from '@shared/hooks/InitializationContext';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
@@ -36,9 +36,10 @@ import { toastConfig } from '@/components/toast-config';
 import { configureMcp, handleMcpRequest, resetMcpSessions } from '@shared/features/mcp/modules/mcp';
 import { startTunnel } from '@shared/features/mcp/modules/tunnel';
 import { mobileAppLifecycle, mobileMcpDeps } from '@/src/features/mcp/modules/mcp-platform';
+import { TunnelKeepAwake } from '@/src/features/mcp/components/TunnelKeepAwake';
 import { appendLog, applogFilePath, handleError } from '@/src/modules/error-handler';
 import { TransferFlowProvider } from '@/src/transfer/TransferFlowContext';
-import { TransferExecution } from '@shared/types/transfer';
+import { buildSwapCompletedProperties } from '@shared/modules/swap-analytics';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -67,7 +68,6 @@ function TunnelBootstrap() {
       handleRequest: handleMcpRequest,
       storage: LayerzStorage,
       appLifecycle: mobileAppLifecycle,
-      url: process.env.EXPO_PUBLIC_MCP_TUNNEL_URL,
       onSessionChange: ({ publicUrl, idChanged }) => {
         if (__DEV__) console.log('[mcp] PUBLIC URL:', publicUrl);
         if (idChanged) resetMcpSessions();
@@ -86,43 +86,8 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    transferService.onTransferCompleted = (execution: TransferExecution) => {
-      let sat = 0;
-
-      // trying to decypher satoshi amount of the swap:
-      // if one of the assets in pair is pegged to btc we use that, with SEND being a priority, so
-      // its later in code
-      switch (execution.receiveAsset) {
-        case 'native:arkade':
-        case 'native:bitcoin':
-        case 'native:citrea':
-        case 'native:lightning':
-        case 'native:liquid':
-        case 'native:spark':
-          sat = new BigNumber(execution.receiveAmount).multipliedBy(1e8).toNumber();
-          break;
-      }
-
-      switch (execution.sendAsset) {
-        case 'native:arkade':
-        case 'native:bitcoin':
-        case 'native:citrea':
-        case 'native:lightning':
-        case 'native:liquid':
-        case 'native:spark':
-          sat = new BigNumber(execution.sendAmount).multipliedBy(1e8).toNumber();
-          break;
-      }
-
-      // if we ever have token-to-token swaps we will have to decide how to resolve sat equivalent here
-
-      trackAnalyticsEvent(AnalyticsEvents.SwapCompleted, {
-        provider: execution.serviceName,
-        sendAsset: execution.sendAsset,
-        receiveAsset: execution.receiveAsset,
-        id: execution.id,
-        sat,
-      });
+    transferService.onTransferCompleted = (execution) => {
+      trackAnalyticsEvent(AnalyticsEvents.SwapCompleted, buildSwapCompletedProperties(execution));
     };
 
     return () => {
@@ -187,6 +152,7 @@ export default function RootLayout() {
           <AskPasswordContextProvider>
             <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} platform={'MOBILE'}>
               <TunnelBootstrap />
+              <TunnelKeepAwake />
               <SettingsContextProvider storage={LayerzStorage}>
                 <AuthStateContextProvider>
                   <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>

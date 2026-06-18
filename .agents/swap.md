@@ -57,11 +57,10 @@ getTrackingUrl?(execution): string | undefined
 
 ### Garden Finance (`shared/services/transfer-service-garden.ts`)
 
-- **Pairs**: BTC → Botanix only (reverse requires EVM tx signing — deferred)
+- **Pairs**: none at the moment — the only supported pair was BTC → Botanix, removed when Botanix shut down. Infrastructure kept in case Garden is re-pointed at other chains.
 - **Model**: Atomic swap deposit. Requires `fromAddress` for HTLC refund.
 - **API**: `shared/services/garden-api.ts` — `api.garden.finance/v2`, auth via `garden-app-id` header
-- **Mappings**: `shared/services/garden-mappings.ts`
-- **Decimals**: bitcoin=8, botanix=18 (BigNumber.js conversion)
+- **Mappings**: `shared/services/garden-mappings.ts` (only `native:bitcoin` mapped)
 - **Tracking**: `explorer.garden.finance/order/{providerId}`
 - Conditional on `EXPO_PUBLIC_GARDEN_APP_ID` env var
 
@@ -113,7 +112,7 @@ getTrackingUrl?(execution): string | undefined
 
 ### Fake (`shared/services/transfer-service-fake.ts`)
 
-- **Pairs**: Liquid Testnet BTC <-> Botanix Testnet BTC
+- **Pairs**: Liquid Testnet BTC <-> Citrea Testnet cBTC
 - **Model**: Dev/test stub. Instant completion. Throws error when amount=1.
 - Only available in `__DEV__` mode
 
@@ -164,6 +163,17 @@ Two tools expose Flashnet to remote AI agents. They run on `MCP_BALANCE_ACCOUNT_
 - **`execute_swap(quote_id)`** — `manager.executeInstantSwap(quote_id)` → `commitTransfer()` (persists completed row). The manager looks up the owning service from `executionOwners` (populated in `executeTransfer`), so the agent only needs `quote_id`. Idempotency: the manager pops the owner entry on execute and the owning service pops the quote from its pending map; replay fails with _"No pending swap found"_. Quote expiry is enforced by Flashnet's internal `PENDING_SWAP_TTL` (5 min) on top of `TransferQuote.expiresAt` (60 s).
 
 Adding more pairs is purely additive: extend `MCP_SWAP_ASSET_IDS` and ensure the relevant provider quotes the pair and implements `executeInstantSwap`. The manager routes by `executionOwners` so any such provider works without touching the MCP layer.
+
+### On-chain BTC → Spark (deposit + claim)
+
+Moving native (L1) BTC into the Spark balance is the `NativeDeposit` flow (deposit address + async claim), which does **not** fit `execute_swap`'s instant contract (same reason `SparkExit` is left out). Instead of routing through the TransferServiceManager, the MCP exposes two thin tools over `SparkWallet` (on `MCP_BALANCE_ACCOUNT_NUMBER`) and reuses the existing Bitcoin-send tools for the actual on-chain move:
+
+- **`get_spark_deposit_address()`** — `lazyInitWallet(NETWORK_SPARK, 4141)` (narrowed via `instanceof SparkWallet`) → `getOnchainDepositAddress()` (the SDK's static `bc1…` deposit address). Returns `{ deposit_address, deposit_chain: 'bitcoin', confirmations_required, next_step }`. `confirmations_required` comes from the canonical `SPARK_STATIC_DEPOSIT_CONFIRMATIONS` exported by `spark-wallet.ts` (same constant `getCommonSwaps` uses), not a local literal. Distinct from `get_receive_address('spark')`, which returns the `spark1…` Spark-native address.
+- **`claim_spark_deposit(txid?)`** — `getCommonSwaps()` → filter `status === 'claimable'` (≥3 confs) → for each, `getDepositQuote(txid)` + `claimDepositSpark(quote)`. Claims all claimable by default, or one when `txid` is given. Returns `{ claimed:[{txid, transfer_id, credited_base_units}], failed?, total_credited_base_units }`; when nothing is claimable it returns `{ claimed:[], pending:[{txid, confirmations, target_confirmations, amount_base_units}] }` so the agent can report wait time. Partial failures are collected; all-failed surfaces as an MCP error. Self-contained — does **not** depend on the UI `AutoClaimMonitor` (which is tied to the selected UI account, not 4141). Each successful claim fires a `swap_completed` analytics event (provider `Native`, `native:bitcoin → native:spark`) via the `deps.trackSwapCompleted` hook — this path bypasses the TransferServiceManager, so `onTransferCompleted` would otherwise never run for it.
+
+Full agent flow: `get_spark_deposit_address` → `get_bitcoin_send_quote`/`execute_bitcoin_send` (send to that address) → wait 3 confirmations → `claim_spark_deposit`.
+
+Tests: `shared/tests/unit-vi/mcp-calls-spark-deposit.test.ts`.
 
 ## Tests
 

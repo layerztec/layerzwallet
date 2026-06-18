@@ -1,0 +1,25 @@
+.mcp-activity-log {
+  margin-top: 10px;
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mcp-activity-line {
+  font-size: 14px;
+  line-height: 20px;
+  margin: 0;
+}
+
+.mcp-activity-line--older {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.mcp-activity-line--fading {
+  color: rgba(255, 255, 255, 0.22);
+}
+
+.mcp-activity-line--latest {
+  color: rgba(255, 255, 255, 0.96);
+}

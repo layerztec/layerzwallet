@@ -18,7 +18,9 @@ import Toast from 'react-native-toast-message';
 
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
-import { AnalyticsEvents, trackAnalyticsEvent } from '@/src/modules/analytics';
+import { trackAnalyticsEvent } from '@/src/modules/analytics';
+import { AnalyticsEvents } from '@shared/types/analytics';
+import { buildSwapCompletedProperties } from '@shared/modules/swap-analytics';
 
 import type { AppLifecycle, McpCallDeps } from '@shared/features/mcp/modules/mcp-deps';
 
@@ -36,6 +38,9 @@ export const mobileMcpDeps: McpCallDeps = {
   },
   trackToolCall: (toolName) => {
     trackAnalyticsEvent(AnalyticsEvents.McpCall, { tool_name: toolName });
+  },
+  trackSwapCompleted: (execution) => {
+    trackAnalyticsEvent(AnalyticsEvents.SwapCompleted, buildSwapCompletedProperties(execution));
   },
 };
 

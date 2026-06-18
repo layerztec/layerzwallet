@@ -27,7 +27,7 @@ interface InitializationProviderProps {
   children: ReactNode;
   storage: IStorage;
   backgroundCaller: IBackgroundCaller;
-  platform: 'EXT' | 'MOBILE';
+  platform: 'EXT' | 'MOBILE' | 'DESKTOP';
 }
 
 export const InitializationContextProvider: React.FC<InitializationProviderProps> = (props) => {
@@ -55,8 +55,8 @@ export const InitializationContextProvider: React.FC<InitializationProviderProps
 
       if (!hasMnemonic) {
         s = EStep.INTRO;
-      } else if (platform === 'EXT' && hasMnemonic && !hasEncryptedMnemonic) {
-        // on EXT its OBLIGATORY to encrypt seed since its less secure environment
+      } else if ((platform === 'EXT' || platform === 'DESKTOP') && hasMnemonic && !hasEncryptedMnemonic) {
+        // on EXT/DESKTOP its OBLIGATORY to encrypt seed since its less secure environment (seed sits in a plaintext file)
         s = EStep.PASSWORD;
       } else if (!hasAcceptedTermsOfService) {
         s = EStep.TOS;

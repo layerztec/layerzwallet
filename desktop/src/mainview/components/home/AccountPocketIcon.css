@@ -1,0 +1,31 @@
+.account-pocket-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+
+.account-pocket-icon--menu {
+  width: 40px;
+  height: 40px;
+  border-radius: 19px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.account-pocket-icon__glyph--material {
+  margin-top: -3px;
+}
+
+.dropdown-account-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dropdown-account-option-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

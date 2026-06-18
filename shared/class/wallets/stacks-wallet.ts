@@ -248,9 +248,15 @@ export class StacksWallet extends ArkWallet implements InterfaceAccountBasedWall
     assert(address, 'Recipient address is required');
     assert(Number.isFinite(amount) && amount > 0, 'Amount must be a positive number');
 
-    // Ensure cached sBTC balance is sufficient
+    // Ensure cached sBTC balance is sufficient. Warm callers (the UI, after token discovery)
+    // already have it cached; cold callers (e.g. MCP) may not — fetch on demand so pay() is
+    // self-contained and callers don't have to remember to prime token balances first.
     const sbtcTokenId = sbtcId;
-    const sbtc = this._tokenBalances.find((t) => t.id === sbtcTokenId);
+    let sbtc = this._tokenBalances.find((t) => t.id === sbtcTokenId);
+    if (!sbtc) {
+      await this.fetchTokenBalances();
+      sbtc = this._tokenBalances.find((t) => t.id === sbtcTokenId);
+    }
     assert(sbtc && sbtc.balance != null, 'sBTC token balance is unavailable');
     const available = BigInt(sbtc.balance);
     assert(available >= BigInt(amount), `Insufficient sBTC balance. Have ${available}, need ${BigInt(amount)}`);

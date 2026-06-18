@@ -1,0 +1,12 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: Inter-Regular, Arial, sans-serif;
+}
+
+#root {
+  height: 100%;
+  overflow: hidden;
+}

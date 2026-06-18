@@ -187,9 +187,15 @@ export class BreezWallet implements InterfaceLightningWallet, InterfaceSendQuota
       throw new Error('Payment hash not found in invoice');
     }
 
+    return this.isInvoicePaidByHash(paymentHash);
+  }
+
+  async isInvoicePaidByHash(preimageHash: string): Promise<boolean> {
+    if (!preimageHash) throw new Error('No preimage hash provided');
+
     const paymentByHash = await this.adapter.api.getPayment(this.connection, {
       type: 'paymentHash', // unreliable, could not find type for it, had to find it in breez sources and hardcode it
-      paymentHash,
+      paymentHash: preimageHash,
     });
 
     switch (

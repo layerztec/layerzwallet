@@ -19,7 +19,8 @@ if (
 }
 
 import Bugsnag from '@bugsnag/expo';
-import { AnalyticsEvents, initializeAnalytics, trackAnalyticsEvent } from './src/modules/analytics';
+import { initializeAnalytics, trackAnalyticsEvent } from './src/modules/analytics';
+import { AnalyticsEvents } from '@shared/types/analytics';
 import { getDeviceIdentifier } from './src/utils/device-id';
 import { isMaestroMode } from './src/hooks/AuthStateContext';
 import { handleError } from './src/modules/error-handler';
