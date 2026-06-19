@@ -17,7 +17,10 @@ export interface RgbLnReceiveResult {
 /** Outcome shape for `lightningSendAsset` — narrowed from the SDK's full
  *  response so shared code doesn't depend on rgb-sdk-rn / rgb-sdk-web types. */
 export interface RgbLnSendResult {
-  paymentHash: string;
+  /** On-chain RGB transfer txid the LSP submits once the LN payment settles.
+   *  This is the only persistent identifier the SDK returns; use it as the
+   *  payment receipt and to look the transfer up in `listTransfers`. */
+  txid: string;
   /** Best-effort status echo from the LSP. May still settle async. */
   status?: string;
 }

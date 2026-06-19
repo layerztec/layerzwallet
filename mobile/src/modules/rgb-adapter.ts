@@ -158,12 +158,10 @@ async function awaitLightningReceiveSettlement(wallet: UTEXOWallet, params: { ln
 async function lightningSendAsset(wallet: UTEXOWallet, params: { rgbInvoice: string }): Promise<RgbLnSendResult> {
   const lsp = await ensureLsp(wallet);
   const r = await lsp.sendAsset({ rgbInvoice: params.rgbInvoice });
-  // The LSP response shape mixes the on-chain LSP confirmation with the
-  // LN `sendResult` from the local node. We surface only the bits the UI
-  // needs — paymentHash + a status string if either layer provides one.
-  const paymentHash = (r as { paymentHash?: string }).paymentHash ?? (r.sendResult as { paymentHash?: string }).paymentHash ?? '';
-  const status = (r.sendResult as { status?: string }).status ?? (r as { status?: string }).status;
-  return { paymentHash, status };
+  // The SDK returns SendAssetResult = LspOnchainSendResponse (rgb/ln
+  // invoice echoes) + `sendResult: LightningSendRequest` which carries the
+  // actual on-chain txid + optional status. Surface only what the UI needs.
+  return { txid: r.sendResult.txid, status: r.sendResult.status };
 }
 
 class RgbAdapter implements IRgbAdapter {

@@ -1199,9 +1199,9 @@ describe('RgbWallet', () => {
 
     describe('lightningSendAsset', () => {
       it('forwards to the sdk wallet and returns the narrowed result', async () => {
-        const lightningSendAsset = vi.fn().mockResolvedValue({ paymentHash: 'abc123', status: 'Succeeded' });
+        const lightningSendAsset = vi.fn().mockResolvedValue({ txid: 'abc123', status: 'Succeeded' });
         const { w } = await unlocked({ lightningSendAsset } as Partial<IRgbWallet>);
-        await expect(w.lightningSendAsset({ rgbInvoice: 'rgb:dest' })).resolves.toEqual({ paymentHash: 'abc123', status: 'Succeeded' });
+        await expect(w.lightningSendAsset({ rgbInvoice: 'rgb:dest' })).resolves.toEqual({ txid: 'abc123', status: 'Succeeded' });
         expect(lightningSendAsset).toHaveBeenCalledWith({ rgbInvoice: 'rgb:dest' });
       });
 

@@ -79,7 +79,7 @@ export default function SendRgbLnScreen() {
             <Ionicons name="checkmark-circle" size={64} color="#4CAF50" style={styles.successIcon} />
             <ThemedText style={styles.successTitle}>Payment submitted</ThemedText>
             {result.status ? <ThemedText style={styles.successSubtitle}>Status: {result.status}</ThemedText> : null}
-            {result.paymentHash ? <ThemedText style={styles.hash}>Hash: {result.paymentHash}</ThemedText> : null}
+            {result.txid ? <ThemedText style={styles.hash}>Txid: {result.txid}</ThemedText> : null}
           </View>
           <Button title="Done" onPress={() => router.back()} />
         </View>
