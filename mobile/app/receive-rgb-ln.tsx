@@ -75,7 +75,16 @@ export default function ReceiveRgbLnScreen() {
       setResult(r);
     } catch (e: any) {
       console.warn('lightningReceiveAsset failed:', e);
-      setError(e?.message ?? 'Failed to generate Lightning invoice');
+      // The most common first-time failure is the LSP's JIT channel never
+      // opens because the wallet has no on-chain tBTC yet — the SDK surfaces
+      // that as `LspChannelTimeoutError` after `waitForChannel` exhausts its
+      // 120s deadline. Humanize so the user knows what to do next instead
+      // of staring at "No usable RGB channel after 120s".
+      if (e?.name === 'LspChannelTimeoutError') {
+        setError('No Lightning channel yet. Top up the wallet with on-chain tBTC first, then try again.');
+      } else {
+        setError(e?.message ?? 'Failed to generate Lightning invoice');
+      }
     } finally {
       setIsGenerating(false);
     }
