@@ -4,7 +4,66 @@ Branch: `rgb-two`. Both RGB networks are flagged `isTestnet: true` so they
 hide behind the "Show Testnets" toggle until upstream blockers clear.
 This doc is for picking the work back up later.
 
-## beta.10 assessment — DO NOT bump yet (2026-05-22)
+## Current state (2026-06-19) — beta.17 + USDT-over-LN
+
+Pins (mobile): `@utexo/rgb-sdk-rn@1.0.0-beta.17` + `@utexo/rgb-sdk-core@1.0.0-beta.4`.
+ext stays on `@utexo/rgb-sdk-web@1.0.0-beta.9` — UTEXO still hasn't shipped a
+web build with the LSP / RLN surface, so the LN scope is mobile-only.
+
+Three of the four beta.10 blockers below are resolved by beta.11+:
+
+- **bitcoind RPC** — beta.14 added `resolveUnlockParams(network, params)`
+  which accepts an indexer URL instead. Mobile adapter uses
+  `getNetworkDefaults('signet')` → indexer + proxy fall in from the SDK; no
+  bitcoind creds needed on the device.
+- **VSS gone** — beta.14 reintroduced `vssUrl` as a wallet-construction
+  param; the SDK runs VSS internally. Mobile adapter shims the old
+  `vssBackup*` methods on the returned wallet as no-ops so the shared
+  `IRgbAdapter` shape still satisfies ext (beta.9, real VSS) and mobile
+  (beta.14+, SDK-managed VSS) at once.
+- **`IRgbAdapter` ~50% incompatible** — covered by the shim above plus the
+  new constructor wiring (`UTEXOWalletNodeParams` + `PasswordRLNSigner`,
+  password derived deterministically from mnemonic, init/unlock guarded
+  by a `.rgb-rln-initialized` sentinel file).
+
+The "ext cannot follow" blocker is still real and unchanged. LN UI is
+gated to `rgb_testnet` so it never appears on ext.
+
+### LN integration (Phase A→B→C)
+
+- **A. Scaffold** — `IRgbWallet` got `Partial<IRgbLnReceive>` with three
+  asset-aware methods: `lightningReceiveAsset`, `lightningSendAsset`,
+  `awaitLightningReceiveSettlement`. Mobile adapter delegates each to a
+  cached `UtexoLsp` (one-per-wallet via WeakMap).
+- **B. UI receive** — `mobile/app/receive-rgb-ln.tsx`. Tab view shows
+  BOLT11 + RGB invoice with QR + copy. Settlement row polls the LSP for
+  90s and renders waiting/settled/timed-out/error states.
+- **B. UI send** — `mobile/app/send-rgb-ln.tsx`. Paste/scan an `rgb:`
+  invoice → `lsp.sendAsset` → payment hash + status echo.
+- **Action sheets** — both Send and Receive on `rgb_testnet` open a
+  sheet with the LN option; mainnet sees only the on-chain paths.
+- **Constants** — `mobile/src/constants/rgb-lsp.ts`:
+  `signet → 'https://lsp-signet.utexo.com'` and USDT asset id
+  `rgb:YKIEjkhU-iqVFK0y-bfDUio6-bukqH7o-dxjctKB-5TuQ7aM` (both lifted from
+  `UTEXO-Protocol/rgb-sdk-rn-demo`). Mainnet entries are still `null`
+  pending UTEXO publishing prod endpoints — the receive screen surfaces a
+  visible warning when either is null.
+
+### Still pending live verification
+
+- iOS sim live test of the LN receive flow.
+- Android live test (compile passes, sim run not done).
+- Real LSP roundtrip: confirm `lsp.connect()` reaches the signet LSP and
+  `waitForChannel(USDT)` actually opens a JIT inbound channel.
+
+### Patches
+
+None needed for `@utexo/rgb-sdk-rn`. beta.17 fixed `Rgb.mm`
+`bitcoindRpcPort` nullability natively so the beta.14 patch was dropped.
+`mobile/patches/` only carries the breez podspec widening + the stacks
+wallet-sdk patch — neither is RGB.
+
+## beta.10 assessment — superseded (kept for history, 2026-05-22)
 
 UTEXO closed rgb-sdk-rn #21, #22, #25, #26, #27, #28, #29, #30 claiming fixes
 in `@utexo/rgb-sdk-rn@1.0.0-beta.10`. The fixes are real — verified against
