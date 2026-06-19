@@ -3,7 +3,7 @@ import { PasswordRLNSigner, UTEXOWallet, resolveUnlockParams, type UTEXOWalletNo
 import { Directory, File, Paths } from 'expo-file-system';
 
 import { RGB_LSP_BASE_URL } from '../constants/rgb-lsp';
-import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet, RgbLnReceiveResult, RgbNetwork } from '@shared/types/rgb-adapter';
+import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet, RgbLnReceiveResult, RgbLnSendResult, RgbNetwork } from '@shared/types/rgb-adapter';
 
 const RGB_DATA_ROOT = 'rgb';
 
@@ -79,6 +79,8 @@ function shimVssMethods(wallet: UTEXOWallet): IRgbWallet {
           return async () => undefined;
         case 'lightningReceiveAsset':
           return (params: Parameters<typeof lightningReceiveAsset>[1]) => lightningReceiveAsset(target as UTEXOWallet, params);
+        case 'lightningSendAsset':
+          return (params: Parameters<typeof lightningSendAsset>[1]) => lightningSendAsset(target as UTEXOWallet, params);
         default:
           return Reflect.get(target, prop, receiver);
       }
@@ -132,6 +134,17 @@ async function lightningReceiveAsset(wallet: UTEXOWallet, params: { amountSats: 
     amountRgb: params.amountRgb,
     expirySeconds: params.expirySeconds,
   });
+}
+
+async function lightningSendAsset(wallet: UTEXOWallet, params: { rgbInvoice: string }): Promise<RgbLnSendResult> {
+  const lsp = await ensureLsp(wallet);
+  const r = await lsp.sendAsset({ rgbInvoice: params.rgbInvoice });
+  // The LSP response shape mixes the on-chain LSP confirmation with the
+  // LN `sendResult` from the local node. We surface only the bits the UI
+  // needs — paymentHash + a status string if either layer provides one.
+  const paymentHash = (r as { paymentHash?: string }).paymentHash ?? (r.sendResult as { paymentHash?: string }).paymentHash ?? '';
+  const status = (r.sendResult as { status?: string }).status ?? (r as { status?: string }).status;
+  return { paymentHash, status };
 }
 
 class RgbAdapter implements IRgbAdapter {

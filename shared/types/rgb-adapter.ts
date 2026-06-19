@@ -14,6 +14,14 @@ export interface RgbLnReceiveResult {
   mappingId: string;
 }
 
+/** Outcome shape for `lightningSendAsset` — narrowed from the SDK's full
+ *  response so shared code doesn't depend on rgb-sdk-rn / rgb-sdk-web types. */
+export interface RgbLnSendResult {
+  paymentHash: string;
+  /** Best-effort status echo from the LSP. May still settle async. */
+  status?: string;
+}
+
 /**
  * Asset-aware Lightning methods. Optional on `IRgbWallet`: mobile wires it via
  * `UtexoLsp` (rgb-sdk-rn beta.14+); extension's rgb-sdk-web has no LSP path
@@ -22,6 +30,9 @@ export interface RgbLnReceiveResult {
  */
 export interface IRgbLnReceive {
   lightningReceiveAsset(params: { amountSats: number; amountRgb: number; assetId: string; expirySeconds?: number }): Promise<RgbLnReceiveResult>;
+  /** Pay a recipient's RGB invoice via the LSP. The LSP fronts the BOLT11,
+   *  we pay it, LSP forwards the asset on settle. */
+  lightningSendAsset(params: { rgbInvoice: string }): Promise<RgbLnSendResult>;
 }
 
 /**

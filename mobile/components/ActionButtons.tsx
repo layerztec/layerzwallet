@@ -46,6 +46,16 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
     }
   };
 
+  // RGB send action sheet: on-chain RGB invoice (existing /send flow) vs
+  // USDT-over-Lightning (new /send-rgb-ln flow). LN entry only appears on
+  // signet — mainnet stays hidden until UTEXO publishes prod constants.
+  const handleSendRgbLn = () => router.push('/send-rgb-ln');
+  const rgbSendActions = [
+    { children: <Action network={network} text="Send via RGB on-chain" />, onClick: handleSend },
+    ...(network === NETWORK_RGB_TESTNET ? [{ children: <Action network={network} text="Send USDT over Lightning" />, onClick: handleSendRgbLn }] : []),
+    { children: <Action text="Cancel" />, onClick: () => {} },
+  ];
+
   const handleReceive = () => {
     router.push('/Receive');
   };
@@ -125,6 +135,14 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
     if (network === NETWORK_USDT) {
       return (
         <ActionPopupButton actions={usdtSendActions} title="Choose network to send">
+          <HomeActionButton title="Send" icon={{ name: 'call-made', type: 'material', size: 24 }} onPress={() => {}} testID="SendButton" />
+        </ActionPopupButton>
+      );
+    }
+
+    if (network === NETWORK_RGB_TESTNET) {
+      return (
+        <ActionPopupButton actions={rgbSendActions} title="How to send">
           <HomeActionButton title="Send" icon={{ name: 'call-made', type: 'material', size: 24 }} onPress={() => {}} testID="SendButton" />
         </ActionPopupButton>
       );

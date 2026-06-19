@@ -4,7 +4,7 @@ import { AllNetworkInfos } from '../../models/all-network-infos';
 import { CommonTokenTransfer, CommonTransaction } from '../../types/common-transaction';
 import { Networks, NETWORK_RGB, NETWORK_RGB_TESTNET } from '../../types/networks';
 import { CachedTokenInfo } from '../../types/token-info';
-import { IRgbAdapter, IRgbWallet, RgbLnReceiveResult, RgbNetwork } from '../../types/rgb-adapter';
+import { IRgbAdapter, IRgbWallet, RgbLnReceiveResult, RgbLnSendResult, RgbNetwork } from '../../types/rgb-adapter';
 import { getRgbBackupStateStorageKey, getRgbInitializedStorageKey, IStorage } from '../../types/IStorage';
 import { AbstractWallet } from './abstract-wallet';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
@@ -470,6 +470,19 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
       throw new Error('Lightning receive is not supported by this build');
     }
     return sdk.lightningReceiveAsset(params);
+  }
+
+  /**
+   * Asset-aware Lightning send via the LSP. Caller passes the recipient's
+   * `rgb:` invoice; LSP fronts a BOLT11, the local node pays it, and the LSP
+   * forwards the RGB asset on settle.
+   */
+  async lightningSendAsset(params: { rgbInvoice: string }): Promise<RgbLnSendResult> {
+    const sdk = this.sdk();
+    if (!sdk.lightningSendAsset) {
+      throw new Error('Lightning send is not supported by this build');
+    }
+    return sdk.lightningSendAsset(params);
   }
 
   async pay(receiverAddress: string, amountSats: number): Promise<string> {
