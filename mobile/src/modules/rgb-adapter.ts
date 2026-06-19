@@ -3,7 +3,7 @@ import { PasswordRLNSigner, UTEXOWallet, resolveUnlockParams, type UTEXOWalletNo
 import { Directory, File, Paths } from 'expo-file-system';
 
 import { RGB_LSP_BASE_URL } from '../constants/rgb-lsp';
-import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet, RgbLnReceiveResult, RgbLnSendResult, RgbNetwork } from '@shared/types/rgb-adapter';
+import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet, RgbLnReceiveResult, RgbLnSendResult, RgbLnSettlementOutcome, RgbNetwork } from '@shared/types/rgb-adapter';
 
 const RGB_DATA_ROOT = 'rgb';
 
@@ -81,6 +81,8 @@ function shimVssMethods(wallet: UTEXOWallet): IRgbWallet {
           return (params: Parameters<typeof lightningReceiveAsset>[1]) => lightningReceiveAsset(target as UTEXOWallet, params);
         case 'lightningSendAsset':
           return (params: Parameters<typeof lightningSendAsset>[1]) => lightningSendAsset(target as UTEXOWallet, params);
+        case 'awaitLightningReceiveSettlement':
+          return (params: Parameters<typeof awaitLightningReceiveSettlement>[1]) => awaitLightningReceiveSettlement(target as UTEXOWallet, params);
         default:
           return Reflect.get(target, prop, receiver);
       }
@@ -134,6 +136,11 @@ async function lightningReceiveAsset(wallet: UTEXOWallet, params: { amountSats: 
     amountRgb: params.amountRgb,
     expirySeconds: params.expirySeconds,
   });
+}
+
+async function awaitLightningReceiveSettlement(wallet: UTEXOWallet, params: { lnInvoice: string; timeoutMs?: number }): Promise<RgbLnSettlementOutcome> {
+  const lsp = await ensureLsp(wallet);
+  return lsp.awaitReceiveSettlement(params.lnInvoice, { timeoutMs: params.timeoutMs });
 }
 
 async function lightningSendAsset(wallet: UTEXOWallet, params: { rgbInvoice: string }): Promise<RgbLnSendResult> {

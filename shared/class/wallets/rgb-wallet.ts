@@ -4,7 +4,7 @@ import { AllNetworkInfos } from '../../models/all-network-infos';
 import { CommonTokenTransfer, CommonTransaction } from '../../types/common-transaction';
 import { Networks, NETWORK_RGB, NETWORK_RGB_TESTNET } from '../../types/networks';
 import { CachedTokenInfo } from '../../types/token-info';
-import { IRgbAdapter, IRgbWallet, RgbLnReceiveResult, RgbLnSendResult, RgbNetwork } from '../../types/rgb-adapter';
+import { IRgbAdapter, IRgbWallet, RgbLnReceiveResult, RgbLnSendResult, RgbLnSettlementOutcome, RgbNetwork } from '../../types/rgb-adapter';
 import { getRgbBackupStateStorageKey, getRgbInitializedStorageKey, IStorage } from '../../types/IStorage';
 import { AbstractWallet } from './abstract-wallet';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
@@ -483,6 +483,20 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
       throw new Error('Lightning send is not supported by this build');
     }
     return sdk.lightningSendAsset(params);
+  }
+
+  /**
+   * Polls the LSP until the receive settles or the wait deadline elapses.
+   * Resolves with `'settled'` once payment + RGB transfer both confirm,
+   * `'timed_out'` if the deadline passed without a terminal status. Throws
+   * (via the SDK's LspSettlementError) on Failed / Expired.
+   */
+  async awaitLightningReceiveSettlement(params: { lnInvoice: string; timeoutMs?: number }): Promise<RgbLnSettlementOutcome> {
+    const sdk = this.sdk();
+    if (!sdk.awaitLightningReceiveSettlement) {
+      throw new Error('Lightning settlement polling is not supported by this build');
+    }
+    return sdk.awaitLightningReceiveSettlement(params);
   }
 
   async pay(receiverAddress: string, amountSats: number): Promise<string> {

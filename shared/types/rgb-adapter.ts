@@ -28,11 +28,16 @@ export interface RgbLnSendResult {
  * yet, so this is undefined there. Use the presence of the method as the
  * feature-detect handle in shared code.
  */
+export type RgbLnSettlementOutcome = 'settled' | 'timed_out';
+
 export interface IRgbLnReceive {
   lightningReceiveAsset(params: { amountSats: number; amountRgb: number; assetId: string; expirySeconds?: number }): Promise<RgbLnReceiveResult>;
   /** Pay a recipient's RGB invoice via the LSP. The LSP fronts the BOLT11,
    *  we pay it, LSP forwards the asset on settle. */
   lightningSendAsset(params: { rgbInvoice: string }): Promise<RgbLnSendResult>;
+  /** Poll until the receive settles or times out. The UI uses this to flip
+   *  from "Waiting for payment" to "Received". Throws on Failed / Expired. */
+  awaitLightningReceiveSettlement(params: { lnInvoice: string; timeoutMs?: number }): Promise<RgbLnSettlementOutcome>;
 }
 
 /**

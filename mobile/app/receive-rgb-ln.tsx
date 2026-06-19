@@ -1,8 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Stack, useRouter } from 'expo-router';
-import React, { useContext, useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import React, { useContext, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import Button from '@/components/Button';
@@ -16,7 +17,7 @@ import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { NETWORK_RGB, NETWORK_RGB_TESTNET } from '@shared/types/networks';
-import type { RgbLnReceiveResult } from '@shared/types/rgb-adapter';
+import type { RgbLnReceiveResult, RgbLnSettlementOutcome } from '@shared/types/rgb-adapter';
 
 type LspNet = 'signet' | 'mainnet';
 
@@ -36,6 +37,11 @@ export default function ReceiveRgbLnScreen() {
   const [result, setResult] = useState<RgbLnReceiveResult | null>(null);
   const [activeTab, setActiveTab] = useState<'ln' | 'rgb'>('ln');
   const [isCopied, setIsCopied] = useState(false);
+  const [settlement, setSettlement] = useState<'waiting' | RgbLnSettlementOutcome | 'error'>('waiting');
+  const [settlementError, setSettlementError] = useState<string | null>(null);
+  // `cancelled` guards against a state update after the user navigated away.
+  // It's a ref so the cleanup closure sees the latest value without rebinding.
+  const settlementCancelledRef = useRef(false);
 
   if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) {
     return (
@@ -89,6 +95,33 @@ export default function ReceiveRgbLnScreen() {
     }
   };
 
+  // Kick the settlement watcher once the invoice exists. 90s window strikes
+  // a balance between "user gets prompt feedback" and "real-world LSP routing
+  // latency"; the underlying SDK happily polls forever if we let it.
+  useEffect(() => {
+    if (!result) return;
+    settlementCancelledRef.current = false;
+    setSettlement('waiting');
+    setSettlementError(null);
+    (async () => {
+      try {
+        const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        if (settlementCancelledRef.current) return;
+        if (!(wallet instanceof RgbWallet)) return;
+        const outcome = await wallet.awaitLightningReceiveSettlement({ lnInvoice: result.lnInvoice, timeoutMs: 90_000 });
+        if (settlementCancelledRef.current) return;
+        setSettlement(outcome);
+      } catch (e: any) {
+        if (settlementCancelledRef.current) return;
+        setSettlement('error');
+        setSettlementError(e?.message ?? 'Settlement check failed');
+      }
+    })();
+    return () => {
+      settlementCancelledRef.current = true;
+    };
+  }, [result, network, accountNumber]);
+
   const copyActive = async () => {
     if (!result) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -129,6 +162,30 @@ export default function ReceiveRgbLnScreen() {
               ? 'Sender pays in sats. The LSP fronts the USDT to your channel on settle.'
               : 'Sender pays the RGB asset directly on-chain. Same logical receive — only one path settles.'}
           </ThemedText>
+
+          <View style={styles.settlementRow}>
+            {settlement === 'waiting' ? (
+              <>
+                <ActivityIndicator color="#4FC3F7" />
+                <ThemedText style={styles.settlementText}>Waiting for payment…</ThemedText>
+              </>
+            ) : settlement === 'settled' ? (
+              <>
+                <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                <ThemedText style={styles.settlementText}>Settled</ThemedText>
+              </>
+            ) : settlement === 'timed_out' ? (
+              <>
+                <Ionicons name="time-outline" size={20} color="#FFAB00" />
+                <ThemedText style={styles.settlementText}>Still pending — close this screen and check transactions later.</ThemedText>
+              </>
+            ) : (
+              <>
+                <Ionicons name="alert-circle-outline" size={20} color="#FF6B6B" />
+                <ThemedText style={styles.settlementText}>{settlementError ?? 'Settlement failed'}</ThemedText>
+              </>
+            )}
+          </View>
 
           <Button title="Done" onPress={() => router.back()} />
         </ScrollView>
@@ -179,4 +236,6 @@ const styles = StyleSheet.create({
   invoiceText: { color: 'white', fontSize: 12, fontFamily: 'Courier' },
   copyHint: { color: '#888', fontSize: 12, marginTop: 6, textAlign: 'center' },
   helpText: { color: '#aaa', fontSize: 13, marginVertical: 8 },
+  settlementRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 4 },
+  settlementText: { color: 'white', fontSize: 14, flex: 1 },
 });
