@@ -39,8 +39,10 @@ export interface IRgbLnReceive {
    *  we pay it, LSP forwards the asset on settle. */
   lightningSendAsset(params: { rgbInvoice: string }): Promise<RgbLnSendResult>;
   /** Poll until the receive settles or times out. The UI uses this to flip
-   *  from "Waiting for payment" to "Received". Throws on Failed / Expired. */
-  awaitLightningReceiveSettlement(params: { lnInvoice: string; timeoutMs?: number }): Promise<RgbLnSettlementOutcome>;
+   *  from "Waiting for payment" to "Received". Throws on Failed / Expired.
+   *  Pass an `AbortSignal` so unmount can stop the HTTP polling instead of
+   *  letting it run out the timeout window. */
+  awaitLightningReceiveSettlement(params: { lnInvoice: string; timeoutMs?: number; signal?: AbortSignal }): Promise<RgbLnSettlementOutcome>;
 }
 
 /**

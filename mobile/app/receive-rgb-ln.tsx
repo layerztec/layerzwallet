@@ -99,12 +99,17 @@ export default function ReceiveRgbLnScreen() {
     settlementCancelledRef.current = false;
     setSettlement('waiting');
     setSettlementError(null);
+    // AbortController so unmount actually stops the HTTP polling chain
+    // instead of letting it run until the 90s deadline. The cancelled ref
+    // still gates setState in case an in-flight microtask resolves after
+    // the abort but before the catch runs.
+    const controller = new AbortController();
     (async () => {
       try {
         const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
         if (settlementCancelledRef.current) return;
         if (!(wallet instanceof RgbWallet)) return;
-        const outcome = await wallet.awaitLightningReceiveSettlement({ lnInvoice: result.lnInvoice, timeoutMs: 90_000 });
+        const outcome = await wallet.awaitLightningReceiveSettlement({ lnInvoice: result.lnInvoice, timeoutMs: 90_000, signal: controller.signal });
         if (settlementCancelledRef.current) return;
         setSettlement(outcome);
       } catch (e: any) {
@@ -115,6 +120,7 @@ export default function ReceiveRgbLnScreen() {
     })();
     return () => {
       settlementCancelledRef.current = true;
+      controller.abort();
     };
   }, [result, network, accountNumber]);
 

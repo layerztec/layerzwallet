@@ -150,9 +150,9 @@ async function lightningReceiveAsset(wallet: UTEXOWallet, params: { amountSats: 
   });
 }
 
-async function awaitLightningReceiveSettlement(wallet: UTEXOWallet, params: { lnInvoice: string; timeoutMs?: number }): Promise<RgbLnSettlementOutcome> {
+async function awaitLightningReceiveSettlement(wallet: UTEXOWallet, params: { lnInvoice: string; timeoutMs?: number; signal?: AbortSignal }): Promise<RgbLnSettlementOutcome> {
   const lsp = await ensureLsp(wallet);
-  return lsp.awaitReceiveSettlement(params.lnInvoice, { timeoutMs: params.timeoutMs });
+  return lsp.awaitReceiveSettlement(params.lnInvoice, { timeoutMs: params.timeoutMs, signal: params.signal });
 }
 
 async function lightningSendAsset(wallet: UTEXOWallet, params: { rgbInvoice: string }): Promise<RgbLnSendResult> {

@@ -491,7 +491,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    * `'timed_out'` if the deadline passed without a terminal status. Throws
    * (via the SDK's LspSettlementError) on Failed / Expired.
    */
-  async awaitLightningReceiveSettlement(params: { lnInvoice: string; timeoutMs?: number }): Promise<RgbLnSettlementOutcome> {
+  async awaitLightningReceiveSettlement(params: { lnInvoice: string; timeoutMs?: number; signal?: AbortSignal }): Promise<RgbLnSettlementOutcome> {
     const sdk = this.sdk();
     if (!sdk.awaitLightningReceiveSettlement) {
       throw new Error('Lightning settlement polling is not supported by this build');
