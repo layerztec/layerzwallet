@@ -108,6 +108,10 @@ function buildNodeParams(dir: Directory, network: RgbNetwork, vssServerUrl: stri
  * establishes the LDK P2P link — both can fail (network, misconfigured baseUrl)
  * and we surface the error to the caller verbatim. Cached per wallet so the
  * HTTP probe doesn't repeat for every receive.
+ *
+ * Failed promises are evicted from the cache so the next call retries from
+ * scratch — otherwise a transient network blip during the first LN tap would
+ * permanently poison the wallet's LSP slot until process restart.
  */
 const lspByWallet = new WeakMap<UTEXOWallet, Promise<UtexoLsp>>();
 
@@ -120,6 +124,14 @@ function ensureLsp(wallet: UTEXOWallet): Promise<UtexoLsp> {
       return lsp;
     })();
     lspByWallet.set(wallet, pending);
+    pending.catch(() => {
+      // Drop the rejected promise so the next caller gets a fresh attempt.
+      // Only drop the entry if it's still ours — a successful retry could
+      // have replaced it while this catch ran.
+      if (lspByWallet.get(wallet) === pending) {
+        lspByWallet.delete(wallet);
+      }
+    });
   }
   return pending;
 }

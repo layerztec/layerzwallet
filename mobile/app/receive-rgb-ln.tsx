@@ -16,14 +16,12 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_RGB, NETWORK_RGB_TESTNET } from '@shared/types/networks';
+import { NETWORK_RGB_TESTNET } from '@shared/types/networks';
 import type { RgbLnReceiveResult, RgbLnSettlementOutcome } from '@shared/types/rgb-adapter';
 
-type LspNet = 'signet' | 'mainnet';
-
-function lspNetFor(network: string): LspNet {
-  return network === NETWORK_RGB_TESTNET ? 'signet' : 'mainnet';
-}
+// The LN-receive flow is signet-only for now; mainnet stays gated behind
+// flag `showTestnets` *and* hidden in ActionButtons. This screen also guards
+// itself (below) so a deep link can't bypass the action sheet.
 
 export default function ReceiveRgbLnScreen() {
   const router = useRouter();
@@ -43,23 +41,22 @@ export default function ReceiveRgbLnScreen() {
   // It's a ref so the cleanup closure sees the latest value without rebinding.
   const settlementCancelledRef = useRef(false);
 
-  if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) {
+  if (network !== NETWORK_RGB_TESTNET) {
     return (
       <RadialGradientScreen network={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title="Receive USDT (Lightning)" />
         <View style={styles.body}>
-          <ThemedText style={styles.error}>Switch to an RGB network to receive over Lightning.</ThemedText>
+          <ThemedText style={styles.error}>USDT Lightning receive is only enabled on RGB signet right now.</ThemedText>
         </View>
       </RadialGradientScreen>
     );
   }
 
-  const lspNet = lspNetFor(network);
-  const usdtAssetId = RGB_LN_ASSETS[lspNet].usdt;
-  const lspBaseUrl = RGB_LSP_BASE_URL[lspNet];
+  const usdtAssetId = RGB_LN_ASSETS.signet.usdt;
+  const lspBaseUrl = RGB_LSP_BASE_URL.signet;
 
-  const configurationError = !lspBaseUrl ? `LSP base URL not configured for ${lspNet}` : !usdtAssetId ? `USDT asset id not configured for ${lspNet}` : null;
+  const configurationError = !lspBaseUrl ? 'LSP base URL not configured for signet' : !usdtAssetId ? 'USDT asset id not configured for signet' : null;
 
   const generate = async () => {
     setError(null);

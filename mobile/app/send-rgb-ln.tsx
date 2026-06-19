@@ -13,7 +13,7 @@ import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { NETWORK_RGB, NETWORK_RGB_TESTNET } from '@shared/types/networks';
+import { NETWORK_RGB_TESTNET } from '@shared/types/networks';
 import type { RgbLnSendResult } from '@shared/types/rgb-adapter';
 
 export default function SendRgbLnScreen() {
@@ -27,13 +27,13 @@ export default function SendRgbLnScreen() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RgbLnSendResult | null>(null);
 
-  if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) {
+  if (network !== NETWORK_RGB_TESTNET) {
     return (
       <RadialGradientScreen network={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title="Send USDT (Lightning)" />
         <View style={styles.body}>
-          <ThemedText style={styles.error}>Switch to an RGB network to send over Lightning.</ThemedText>
+          <ThemedText style={styles.error}>USDT Lightning send is only enabled on RGB signet right now.</ThemedText>
         </View>
       </RadialGradientScreen>
     );
