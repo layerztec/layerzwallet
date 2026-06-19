@@ -41,18 +41,6 @@ export default function ReceiveRgbLnScreen() {
   // It's a ref so the cleanup closure sees the latest value without rebinding.
   const settlementCancelledRef = useRef(false);
 
-  if (network !== NETWORK_RGB_TESTNET) {
-    return (
-      <RadialGradientScreen network={network}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <ScreenHeader title="Receive USDT (Lightning)" />
-        <View style={styles.body}>
-          <ThemedText style={styles.error}>USDT Lightning receive is only enabled on RGB signet right now.</ThemedText>
-        </View>
-      </RadialGradientScreen>
-    );
-  }
-
   const usdtAssetId = RGB_LN_ASSETS.signet.usdt;
   const lspBaseUrl = RGB_LSP_BASE_URL.signet;
 
@@ -60,6 +48,7 @@ export default function ReceiveRgbLnScreen() {
 
   const generate = async () => {
     setError(null);
+    if (network !== NETWORK_RGB_TESTNET) return; // gated at the top of the render too
     if (configurationError) {
       setError(configurationError);
       return;
@@ -97,6 +86,7 @@ export default function ReceiveRgbLnScreen() {
   // latency"; the underlying SDK happily polls forever if we let it.
   useEffect(() => {
     if (!result) return;
+    if (network !== NETWORK_RGB_TESTNET) return;
     settlementCancelledRef.current = false;
     setSettlement('waiting');
     setSettlementError(null);
@@ -126,6 +116,18 @@ export default function ReceiveRgbLnScreen() {
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
+
+  if (network !== NETWORK_RGB_TESTNET) {
+    return (
+      <RadialGradientScreen network={network}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ScreenHeader title="Receive USDT (Lightning)" />
+        <View style={styles.body}>
+          <ThemedText style={styles.error}>USDT Lightning receive is only enabled on RGB signet right now.</ThemedText>
+        </View>
+      </RadialGradientScreen>
+    );
+  }
 
   if (result) {
     const active = activeTab === 'ln' ? result.lnInvoice : result.rgbInvoice;
