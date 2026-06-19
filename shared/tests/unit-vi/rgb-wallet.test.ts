@@ -1170,4 +1170,59 @@ describe('RgbWallet', () => {
       });
     });
   });
+
+  describe('lightning', () => {
+    const USDT = 'rgb:YKIEjkhU-iqVFK0y-bfDUio6-bukqH7o-dxjctKB-5TuQ7aM';
+
+    async function unlocked(overrides: Partial<IRgbWallet> = {}) {
+      const { sdkWallet } = installAdapter(overrides);
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init(makeMemoryStorage());
+      return { w, sdkWallet };
+    }
+
+    describe('lightningReceiveAsset', () => {
+      it('forwards to the sdk wallet and returns its result', async () => {
+        const lightningReceiveAsset = vi.fn().mockResolvedValue({ lnInvoice: 'lnbc1...', rgbInvoice: 'rgb:abc', mappingId: 'm1' });
+        const { w, sdkWallet } = await unlocked({ lightningReceiveAsset } as Partial<IRgbWallet>);
+        const r = await w.lightningReceiveAsset({ assetId: USDT, amountSats: 5000, amountRgb: 1000000 });
+        expect(r).toEqual({ lnInvoice: 'lnbc1...', rgbInvoice: 'rgb:abc', mappingId: 'm1' });
+        expect((sdkWallet as any).lightningReceiveAsset).toHaveBeenCalledWith({ assetId: USDT, amountSats: 5000, amountRgb: 1000000 });
+      });
+
+      it('throws a clear error when the sdk wallet has no LN surface', async () => {
+        const { w } = await unlocked();
+        await expect(w.lightningReceiveAsset({ assetId: USDT, amountSats: 5000, amountRgb: 1000000 })).rejects.toThrow(/Lightning receive is not supported/i);
+      });
+    });
+
+    describe('lightningSendAsset', () => {
+      it('forwards to the sdk wallet and returns the narrowed result', async () => {
+        const lightningSendAsset = vi.fn().mockResolvedValue({ paymentHash: 'abc123', status: 'Succeeded' });
+        const { w } = await unlocked({ lightningSendAsset } as Partial<IRgbWallet>);
+        await expect(w.lightningSendAsset({ rgbInvoice: 'rgb:dest' })).resolves.toEqual({ paymentHash: 'abc123', status: 'Succeeded' });
+        expect(lightningSendAsset).toHaveBeenCalledWith({ rgbInvoice: 'rgb:dest' });
+      });
+
+      it('throws when the sdk wallet has no LN surface', async () => {
+        const { w } = await unlocked();
+        await expect(w.lightningSendAsset({ rgbInvoice: 'rgb:dest' })).rejects.toThrow(/Lightning send is not supported/i);
+      });
+    });
+
+    describe('awaitLightningReceiveSettlement', () => {
+      it('forwards to the sdk wallet and propagates the outcome', async () => {
+        const awaitLightningReceiveSettlement = vi.fn().mockResolvedValue('settled');
+        const { w } = await unlocked({ awaitLightningReceiveSettlement } as Partial<IRgbWallet>);
+        await expect(w.awaitLightningReceiveSettlement({ lnInvoice: 'lnbc1...', timeoutMs: 90_000 })).resolves.toBe('settled');
+        expect(awaitLightningReceiveSettlement).toHaveBeenCalledWith({ lnInvoice: 'lnbc1...', timeoutMs: 90_000 });
+      });
+
+      it('throws when the sdk wallet has no LN surface', async () => {
+        const { w } = await unlocked();
+        await expect(w.awaitLightningReceiveSettlement({ lnInvoice: 'lnbc1...' })).rejects.toThrow(/Lightning settlement polling is not supported/i);
+      });
+    });
+  });
 });
