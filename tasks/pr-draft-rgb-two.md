@@ -96,15 +96,37 @@ Four debugging fixes landed during this run:
    the receive request, so the pre-wait blocked forever on a fresh
    wallet. Drop the pre-wait; `receiveAsset` triggers the channel open.
 
+## P2P USDT-over-LN attempt (2026-06-22, iOS sim1 ↔ android emulator)
+
+What worked:
+- iOS sim1 wallet1 funded (faucet 50k sats), Receive USDT over LN →
+  LSP JIT channel + BOLT11 + RGB invoice rendered.
+- Android emulator wallet2 imported, switched to rgb_testnet, on-chain
+  tBTC transfer from wallet1 (25k sats) arrived + synced.
+- Wallet2 → Receive USDT over LN → LSP opened its JIT channel,
+  returned BOLT11 + RGB invoice on android too.
+
+What blocked:
+- Wallet1 trying to PAY wallet2's invoice fails with LSP HTTP 400
+  "invalid request" on both paths:
+  - `lightningSendAsset` (LSP-mediated, takes rgb: invoice) → 400
+  - `payLightningInvoice` (direct LN pay, takes BOLT11) → 400
+- Hypotheses: wallet1 has inbound channel from its earlier receive
+  but no outbound capacity for sending; LSP doesn't route outbound
+  without explicit channel setup; or sendAsset needs explicit
+  `ln: {amtMsat, ...}` params our adapter doesn't supply.
+- Needs UTEXO clarification on the send-flow preconditions.
+
 ## Known gaps / follow-ups
 
-- Need a separate LN-paying wallet (different sim or external lightning
-  client) to confirm the `settled` outcome end-to-end. Self-loop won't
-  do it — same wallet can't pay its own invoice.
-- Android live test of the LN screens not done (compile-only).
+- P2P send blocked on the "invalid request" finding above.
 - Mainnet entries in `rgb-lsp.ts` still `null`; mainnet LN flow hides
   itself behind that, but UTEXO needs to publish prod endpoints before
   mainnet ships.
+- Cloud backup is TODO — beta.10+ removed VSS, UTEXO confirmed it's
+  coming back. Adapter shims the old VSS methods as no-ops; reconnect
+  the shared backup ledger when SDK ships it (see TODO in
+  `mobile/src/modules/rgb-adapter.ts`).
 - After the network rename existing wallets (created against the
   `signet` network string before commit `7e07f099`) are on a different
   keychain derivation and won't see their old UTXOs. Reinstall + reimport
