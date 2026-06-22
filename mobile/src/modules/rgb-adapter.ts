@@ -144,10 +144,11 @@ function ensureLsp(wallet: UTEXOWallet): Promise<UtexoLsp> {
 
 async function lightningReceiveAsset(wallet: UTEXOWallet, params: { amountSats: number; amountRgb: number; assetId: string; expirySeconds?: number }): Promise<RgbLnReceiveResult> {
   const lsp = await ensureLsp(wallet);
-  // First-time receive for an asset requires a usable RGB channel — JIT opened
-  // by the LSP after `connect()`. Subsequent receives reuse the existing
-  // channel. `waitForChannel` no-ops fast when one is already ready.
-  await lsp.waitForChannel(params.assetId);
+  // Do NOT pre-call `waitForChannel(assetId)` here — JIT channels are opened
+  // by the LSP *during* `receiveAsset` (server creates the invoice + opens
+  // the inbound channel on-demand). Pre-waiting blocks indefinitely on a
+  // fresh wallet because no channel exists yet and the LSP has no trigger
+  // to open one without a payment request.
   return lsp.receiveAsset({
     assetId: params.assetId,
     amountSats: params.amountSats,
