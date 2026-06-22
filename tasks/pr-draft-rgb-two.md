@@ -63,11 +63,22 @@ non-breaking for ext.
 
 ## Known gaps / follow-ups
 
-- Faucet to fund the wallet before LN receive — the layer-side
-  `~/z/rgb-faucet.sh` (Thunderstack hosted RLN) is currently returning
-  `{"error":"Node is locked"}` / gateway timeouts. Operator-side issue.
-- No live end-to-end roundtrip (BOLT11 paid → RGB asset settled) yet,
-  pending faucet.
+- Faucet: the new `node ~/z/rgb-faucet/bin/faucet.js` (drives the
+  `@Utexo_RLN_bot` Telegram bot) delivers tBTC reliably; UTEXO esplora
+  confirms the on-chain receive.
+- Two debugging discoveries late in the loop:
+  1. The signet USDT asset id used by the LSP is **not** the value in
+     `UTEXO-Protocol/rgb-sdk-rn-demo` (`rgb:YKIE…`) — that asset doesn't
+     exist on the running LSP. The live faucet bot's `getnodeinfo`
+     returns `rgb:2l_MeWlj-…` (ticker UTST). Constants updated.
+  2. The SDK's network string `'signet'` and `'utexo'` point at
+     *different chains* — `signet` defaults to iriswallet's electrum +
+     RGB proxy, `utexo` defaults to `esplora-api.utexo.com` + utexo
+     proxy. The faucet / LSP / asset all live on the utexo chain.
+     Adapter now uses `'utexo'`. Pre-fix wallets need a reinstall
+     (different keychain derivation per chain).
+- Live end-to-end roundtrip (BOLT11 paid → RGB asset settled) still
+  pending — both fixes need a clean app reinstall to verify.
 - Android live test of the LN screens not done (compile-only).
 - Mainnet entries in `rgb-lsp.ts` still `null`; mainnet LN flow hides
   itself behind that, but UTEXO needs to publish prod endpoints before
