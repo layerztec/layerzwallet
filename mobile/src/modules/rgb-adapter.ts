@@ -258,8 +258,20 @@ class RgbAdapter implements IRgbAdapter {
     // `createWallet` can hand out a fresh wallet next time without the
     // "RLN node already exists for storageDirPath" guard tripping.
     try {
-      await wallet.init();
-      if (!marker.exists) marker.create();
+      // `init()` = createNode + signer.initNode. Both are "register this
+      // node in the binding" steps. On a fresh wallet they succeed in
+      // sequence. On cold start with existing on-disk keys the
+      // signer.initNode call throws "conflict with current node state"
+      // because the on-disk keys already match the supplied mnemonic —
+      // the binding has nothing to do. Swallow that specific error;
+      // unlock can proceed normally.
+      try {
+        await wallet.init();
+        if (!marker.exists) marker.create();
+      } catch (initErr: any) {
+        const msg = (initErr?.message ?? String(initErr)).toString();
+        if (!/conflict with current node state|already exists|already initialized/i.test(msg)) throw initErr;
+      }
       await wallet.unlock(resolveUnlockParams(rlnNet, {}));
     } catch (e) {
       try {
