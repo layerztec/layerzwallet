@@ -107,15 +107,18 @@ What worked:
   returned BOLT11 + RGB invoice on android too.
 
 What blocked:
-- Wallet1 trying to PAY wallet2's invoice fails with LSP HTTP 400
-  "invalid request" on both paths:
-  - `lightningSendAsset` (LSP-mediated, takes rgb: invoice) → 400
-  - `payLightningInvoice` (direct LN pay, takes BOLT11) → 400
-- Hypotheses: wallet1 has inbound channel from its earlier receive
-  but no outbound capacity for sending; LSP doesn't route outbound
-  without explicit channel setup; or sendAsset needs explicit
-  `ln: {amtMsat, ...}` params our adapter doesn't supply.
-- Needs UTEXO clarification on the send-flow preconditions.
+- Wallet1 cannot pay ANY outgoing invoice:
+  - wallet2's RGB invoice via `lightningSendAsset` → "invalid request"
+  - wallet2's BOLT11 via `payLightningInvoice` → "invalid request"
+  - **Faucet bot's plain-sats BOLT11 via `payLightningInvoice` →
+    also "invalid request"** (rules out invoice-format suspicion)
+- Wallet1 only has inbound capacity from its earlier receive
+  (LSP-supplied JIT channel is inbound-only for the receiver).
+  Without outbound channel capacity wallet1 can't pay anything.
+- Open question for UTEXO: does each wallet need to explicitly
+  `openChannel` to the LSP (or to a peer like the faucet bot's LN
+  node) before sending, or is the LSP supposed to also push outbound
+  on demand?
 
 ## Known gaps / follow-ups
 
