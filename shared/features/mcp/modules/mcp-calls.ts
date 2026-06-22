@@ -31,8 +31,9 @@ import { getAssetInfo } from '../../../models/asset-info';
 import { getDecimalsByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '../../../models/network-getters';
 import { getTokenInfo, getTokenList } from '../../../models/token-list';
 import { validateAddress, type TSupportedLazyInitWalletNetworks } from '../../../modules/wallet-utils';
-import { getApiUsersByUsername, getApiUsersBySparkAddressBySparkAddress, postApiUsers } from '../../../openapi/generated/layerzme';
+import { getApiUsersByUsername, postApiUsers } from '../../../openapi/generated/layerzme';
 import { createClient } from '../../../openapi/generated/layerzme/client';
+import { formatLayerzLightningAddress, LAYERZ_ME_DOMAIN, lookupLayerzLightningAddress } from '../../../modules/layerz-lightning-address';
 import { AssetId } from '../../../types/asset';
 import type { SendQuote } from '../../../types/send-quote';
 import {
@@ -194,9 +195,8 @@ function trackMcpCall(deps: McpCallDeps, toolName: string): void {
 /**
  * Layerz Lightning Addresses are served by the layerz.me SparkHub (Spark-backed). Usernames are
  * registered/looked up over plain HTTP via the generated client — there is no wallet/SDK method for
- * this; the mobile claim/receive screens hit the same endpoints.
+ * this; see `lookupLayerzLightningAddress()` in `modules/layerz-lightning-address.ts`.
  */
-const LAYERZ_ME_DOMAIN = 'layerz.me';
 const LAYERZ_ME_BASE_URL = 'https://layerz.me';
 
 function layerzMeClient() {
@@ -1977,19 +1977,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
       trackMcpCall(deps, 'get_lightning_address');
       try {
         const sparkAddress = await backgroundCaller.getAddress(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
-
-        let username: string | null = null;
-        try {
-          const { data } = await getApiUsersBySparkAddressBySparkAddress({ client: layerzMeClient(), path: { sparkAddress }, responseStyle: 'fields', throwOnError: false });
-          if (data?.username) username = data.username;
-        } catch (e) {
-          // The default `<spark-address>@layerz.me` is always valid, so a username lookup failure is
-          // non-fatal — fall back to it rather than failing the whole call.
-          const message = e instanceof Error ? e.message : String(e);
-          mcpCallLog(`get_lightning_address: username lookup failed, using default address - ${message}`);
-        }
-
-        const lightningAddress = `${username ?? sparkAddress}@${LAYERZ_ME_DOMAIN}`;
+        const { lightningAddress, username, claimed } = await lookupLayerzLightningAddress(sparkAddress);
         mcpCallLog(`get_lightning_address: ok - ${lightningAddress}`);
         showMcpSuccess(deps, 'Lightning Address', lightningAddress);
         return {
@@ -2001,7 +1989,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   lightning_address: lightningAddress,
                   spark_address: sparkAddress,
                   username,
-                  claimed: username !== null,
+                  claimed,
                   domain: LAYERZ_ME_DOMAIN,
                 },
                 null,
@@ -2063,7 +2051,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
           };
         }
 
-        const lightningAddress = `${claim.username}@${LAYERZ_ME_DOMAIN}`;
+        const lightningAddress = formatLayerzLightningAddress(claim.username);
         mcpCallLog(`claim_lightning_address: ok - ${lightningAddress}`);
         showMcpSuccess(deps, `Claimed Lightning Address ${lightningAddress}`);
         return {
