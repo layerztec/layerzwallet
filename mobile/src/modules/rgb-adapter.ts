@@ -7,11 +7,17 @@ import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet, RgbLnReceiveResu
 
 const RGB_DATA_ROOT = 'rgb';
 
-// rgb-sdk-rn beta.14 maps RGB network names to the RLN node's `network` string.
-// 'testnet' → 'signet' (utexo testnet runs on signet). Mainnet not yet enabled
-// on this branch — we still treat 'mainnet' as RGB utexo mainnet for now.
+// rgb-sdk-rn maps RGB network names to the RLN node's `network` string. We
+// must use `'utexo'`, NOT `'signet'`: the SDK ships separate defaults for
+// each (`DEFAULT_INDEXER_URLS.signet → iriswallet electrum`,
+// `DEFAULT_INDEXER_URLS.utexo → esplora-api.utexo.com`). The faucet, LSP and
+// USDT asset all live on the UTEXO chain — pointing the wallet at iriswallet
+// signet leaves it scanning a different ledger entirely (balance stays at 0
+// even after on-chain confirmation, JIT channel for the UTST asset id never
+// opens). Mainnet is still flag-gated; the network string there will be
+// `'mainnet'` once UTEXO publishes prod endpoints.
 function toRlnNetwork(network: RgbNetwork): string {
-  return network === 'testnet' ? 'signet' : 'mainnet';
+  return network === 'testnet' ? 'utexo' : 'mainnet';
 }
 
 // Ports the RLN node listens on locally. Fixed because every device only runs
