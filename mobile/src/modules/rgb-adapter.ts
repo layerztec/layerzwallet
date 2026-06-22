@@ -180,9 +180,17 @@ class RgbAdapter implements IRgbAdapter {
     const signer = new PasswordRLNSigner(password, mnemonic);
     const wallet = new UTEXOWallet(params, signer);
 
+    // `init()` writes the node keys to disk; only safe on the very first run.
+    // On every later boot (cold app start, even when on-disk state exists),
+    // the binding's internal RLN node table is empty — we still need
+    // `rlnCreateNode` to associate the storage dir with a node id, otherwise
+    // `unlock()` fails with "RLN node is not created". The SDK exposes that
+    // path as `reinit()` (createNode without initNode).
     if (!marker.exists) {
       await wallet.init();
       marker.create();
+    } else {
+      await wallet.reinit();
     }
 
     await wallet.unlock(resolveUnlockParams(rlnNet, {}));
