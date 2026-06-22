@@ -246,12 +246,11 @@ class RgbAdapter implements IRgbAdapter {
     const signer = new PasswordRLNSigner(password, mnemonic);
     const wallet = new UTEXOWallet(params, signer);
 
-    // `init()` writes the node keys to disk; only safe on the very first run.
-    // On every later boot (cold app start, even when on-disk state exists),
-    // the binding's internal RLN node table is empty — we still need
-    // `rlnCreateNode` to associate the storage dir with a node id, otherwise
-    // `unlock()` fails with "RLN node is not created". The SDK exposes that
-    // path as `reinit()` (createNode without initNode).
+    // Always call `init()` — it does both `rlnCreateNode` (per-process
+    // binding registration) AND `signer.initNode` (which writes keys on
+    // first run, idempotent on later runs when the same mnemonic + password
+    // are supplied). The marker is kept as a hint for future flows that
+    // need "first-ever" vs "subsequent" detection but no longer gates init.
     //
     // On any failure during init/unlock the binding may already have
     // registered the storageDirPath (createNode succeeded, later step
@@ -259,12 +258,8 @@ class RgbAdapter implements IRgbAdapter {
     // `createWallet` can hand out a fresh wallet next time without the
     // "RLN node already exists for storageDirPath" guard tripping.
     try {
-      if (!marker.exists) {
-        await wallet.init();
-        marker.create();
-      } else {
-        await wallet.reinit();
-      }
+      await wallet.init();
+      if (!marker.exists) marker.create();
       await wallet.unlock(resolveUnlockParams(rlnNet, {}));
     } catch (e) {
       try {
