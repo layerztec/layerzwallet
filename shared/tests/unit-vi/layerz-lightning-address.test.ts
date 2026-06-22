@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { claimLayerzLightningAddressUsername, formatLayerzLightningAddress, lookupLayerzLightningAddress, resolveLayerzLightningAddress } from '../../modules/layerz-lightning-address';
+
 const { mockGetBySparkAddress, mockGetByUsername, mockPostUsers, mockCreateClient } = vi.hoisted(() => ({
   mockGetBySparkAddress: vi.fn(),
   mockGetByUsername: vi.fn(),
@@ -16,8 +18,6 @@ vi.mock('../../openapi/generated/layerzme', () => ({
 vi.mock('../../openapi/generated/layerzme/client', () => ({
   createClient: mockCreateClient,
 }));
-
-import { claimLayerzLightningAddressUsername, formatLayerzLightningAddress, lookupLayerzLightningAddress, resolveLayerzLightningAddress } from '../../modules/layerz-lightning-address';
 
 const SPARK_ADDRESS = 'spark1testaddress';
 
