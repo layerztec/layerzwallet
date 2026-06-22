@@ -104,7 +104,7 @@ function buildNodeParams(dir: Directory, network: RgbNetwork, vssServerUrl: stri
     ldkPeerListeningPort: LDK_PEER_LISTENING_PORT,
     network: rlnNet,
     vssUrl: vssServerUrl ?? null,
-    lspBaseUrl: RGB_LSP_BASE_URL[rlnNet === 'signet' ? 'signet' : 'mainnet'],
+    lspBaseUrl: RGB_LSP_BASE_URL[rlnNet === 'mainnet' ? 'mainnet' : 'signet'],
   };
 }
 
