@@ -79,6 +79,12 @@ function initMarker(dir: Directory): File {
 // methods, so we can't drop them from the shape yet. Stub them here as no-ops:
 // safe because mobile's beta.14 SDK handles VSS internally via `vssUrl` in the
 // node params, and the shared backup-state ledger does not enforce these calls.
+//
+// TODO(rgb-backup): UTEXO confirmed cloud backup is coming back to the
+// rgb-sdk-rn build. When it lands, rip out these shims and reconnect the
+// shared backup-state ledger (probe / banner / "had backup, now missing"
+// detection — see tasks/ship-rgb.md). Until then we ship without a real
+// cloud safety net on mobile.
 const NOOP_VSS_BACKUP_INFO = { backupExists: false, backupRequired: false, serverVersion: null };
 
 function shimVssMethods(wallet: UTEXOWallet): IRgbWallet {
