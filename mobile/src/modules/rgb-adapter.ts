@@ -20,17 +20,28 @@ function toRlnNetwork(network: RgbNetwork): string {
   return network === 'testnet' ? 'utexo' : 'mainnet';
 }
 
-// Ports the RLN node listens on locally. Fixed because every device only runs
-// one RLN node at a time (one wallet active). If these ever clash with another
-// process, the device-side bind would surface — we'll deal with conflict then.
-const DAEMON_LISTENING_PORT = 3001;
-const LDK_PEER_LISTENING_PORT = 9736;
+// Base ports for the on-device RLN node. The actual ports are offset per
+// mnemonic so two simulators (different wallets) on the same dev host don't
+// collide on loopback when running side-by-side. On a real device this just
+// shifts the port within a deterministic range; one wallet per device means
+// no in-process clash.
+const DAEMON_LISTENING_PORT_BASE = 3001;
+const LDK_PEER_LISTENING_PORT_BASE = 9736;
+// 997 keeps the result < 4998 / < 10733, well clear of the next protocol port.
+const PORT_OFFSET_MOD = 997;
 
 function mnemonicFingerprint(mnemonic: string): string {
   const digest = sha256(new TextEncoder().encode(mnemonic));
   let hex = '';
   for (let i = 0; i < 8; i++) hex += digest[i].toString(16).padStart(2, '0');
   return hex;
+}
+
+function portOffset(mnemonic: string): number {
+  const digest = sha256(new TextEncoder().encode(mnemonic));
+  // First 4 bytes as uint32 → mod ⇒ stable per-mnemonic offset.
+  const n = (digest[0] << 24) | (digest[1] << 16) | (digest[2] << 8) | digest[3];
+  return Math.abs(n) % PORT_OFFSET_MOD;
 }
 
 // Password protects the RLN node's on-disk encrypted key store. We don't have
@@ -96,12 +107,13 @@ function shimVssMethods(wallet: UTEXOWallet): IRgbWallet {
   }) as unknown as IRgbWallet;
 }
 
-function buildNodeParams(dir: Directory, network: RgbNetwork, vssServerUrl: string | undefined): UTEXOWalletNodeParams {
+function buildNodeParams(dir: Directory, mnemonic: string, network: RgbNetwork, vssServerUrl: string | undefined): UTEXOWalletNodeParams {
   const rlnNet = toRlnNetwork(network);
+  const off = portOffset(mnemonic);
   return {
     storageDirPath: dataDirSdkPath(dir),
-    daemonListeningPort: DAEMON_LISTENING_PORT,
-    ldkPeerListeningPort: LDK_PEER_LISTENING_PORT,
+    daemonListeningPort: DAEMON_LISTENING_PORT_BASE + off,
+    ldkPeerListeningPort: LDK_PEER_LISTENING_PORT_BASE + off,
     network: rlnNet,
     vssUrl: vssServerUrl ?? null,
     lspBaseUrl: RGB_LSP_BASE_URL[rlnNet === 'mainnet' ? 'mainnet' : 'signet'],
@@ -183,7 +195,7 @@ class RgbAdapter implements IRgbAdapter {
     const rlnNet = toRlnNetwork(network);
     const password = rlnPassword(mnemonic);
 
-    const params = buildNodeParams(dir, network, vssServerUrl);
+    const params = buildNodeParams(dir, mnemonic, network, vssServerUrl);
     const signer = new PasswordRLNSigner(password, mnemonic);
     const wallet = new UTEXOWallet(params, signer);
 
