@@ -485,6 +485,16 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     return sdk.lightningSendAsset(params);
   }
 
+  /** Pay a BOLT11 directly from this wallet's LN node. Used for the
+   *  asset-LN P2P path where we already hold a usable channel. */
+  async payLightningInvoice(params: { lnInvoice: string; assetId?: string; assetAmount?: number; maxFee?: number }): Promise<RgbLnSendResult> {
+    const sdk = this.sdk();
+    if (!sdk.payLightningInvoice) {
+      throw new Error('Lightning pay is not supported by this build');
+    }
+    return sdk.payLightningInvoice(params);
+  }
+
   /**
    * Polls the LSP until the receive settles or the wait deadline elapses.
    * Resolves with `'settled'` once payment + RGB transfer both confirm,

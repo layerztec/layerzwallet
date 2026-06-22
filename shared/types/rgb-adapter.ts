@@ -38,6 +38,10 @@ export interface IRgbLnReceive {
   /** Pay a recipient's RGB invoice via the LSP. The LSP fronts the BOLT11,
    *  we pay it, LSP forwards the asset on settle. */
   lightningSendAsset(params: { rgbInvoice: string }): Promise<RgbLnSendResult>;
+  /** Pay a BOLT11 invoice directly from this wallet's LN node. For asset
+   *  invoices `assetId` + `assetAmount` must match the invoice's tags;
+   *  for plain sat invoices omit them. */
+  payLightningInvoice(params: { lnInvoice: string; assetId?: string; assetAmount?: number; maxFee?: number }): Promise<RgbLnSendResult>;
   /** Poll until the receive settles or times out. The UI uses this to flip
    *  from "Waiting for payment" to "Received". Throws on Failed / Expired.
    *  Pass an `AbortSignal` so unmount can stop the HTTP polling instead of

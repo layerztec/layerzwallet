@@ -48,21 +48,27 @@ export default function SendRgbLnScreen() {
     setError(null);
     const trimmed = invoice.trim();
     if (!trimmed) {
-      setError('Paste or scan an RGB invoice.');
+      setError('Paste or scan an invoice.');
       return;
     }
-    if (!trimmed.startsWith('rgb:') && !trimmed.startsWith('utxob:')) {
-      setError('Expected an rgb: or utxob: invoice.');
+    // BOLT11 invoices start with `ln` (lnbc/lntb/lntbs). RGB on-chain
+    // invoices start with `rgb:` or `utxob:`. Auto-route by prefix:
+    //  - `ln…` → payLightningInvoice (direct LN pay through our channel)
+    //  - `rgb:` / `utxob:` → lightningSendAsset (LSP-mediated send)
+    const isBolt11 = /^ln(bc|tb|tbs)/i.test(trimmed);
+    const isRgbInvoice = trimmed.startsWith('rgb:') || trimmed.startsWith('utxob:');
+    if (!isBolt11 && !isRgbInvoice) {
+      setError('Expected a BOLT11 (ln…) or RGB (rgb:/utxob:) invoice.');
       return;
     }
     setIsSending(true);
     try {
       const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       if (!(wallet instanceof RgbWallet)) throw new Error('Wallet is not an RgbWallet');
-      const r = await wallet.lightningSendAsset({ rgbInvoice: trimmed });
+      const r = isBolt11 ? await wallet.payLightningInvoice({ lnInvoice: trimmed }) : await wallet.lightningSendAsset({ rgbInvoice: trimmed });
       setResult(r);
     } catch (e: any) {
-      console.warn('lightningSendAsset failed:', e);
+      console.warn('LN send failed:', e);
       setError(e?.message ?? 'Failed to send over Lightning');
     } finally {
       setIsSending(false);

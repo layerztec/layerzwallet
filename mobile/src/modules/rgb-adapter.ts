@@ -104,6 +104,8 @@ function shimVssMethods(wallet: UTEXOWallet): IRgbWallet {
           return (params: Parameters<typeof lightningReceiveAsset>[1]) => lightningReceiveAsset(target as UTEXOWallet, params);
         case 'lightningSendAsset':
           return (params: Parameters<typeof lightningSendAsset>[1]) => lightningSendAsset(target as UTEXOWallet, params);
+        case 'payLightningInvoice':
+          return (params: Parameters<typeof payLightningInvoice>[1]) => payLightningInvoice(target as UTEXOWallet, params);
         case 'awaitLightningReceiveSettlement':
           return (params: Parameters<typeof awaitLightningReceiveSettlement>[1]) => awaitLightningReceiveSettlement(target as UTEXOWallet, params);
         default:
@@ -187,6 +189,18 @@ async function lightningSendAsset(wallet: UTEXOWallet, params: { rgbInvoice: str
   // invoice echoes) + `sendResult: LightningSendRequest` which carries the
   // actual on-chain txid + optional status. Surface only what the UI needs.
   return { txid: r.sendResult.txid, status: r.sendResult.status };
+}
+
+async function payLightningInvoice(wallet: UTEXOWallet, params: { lnInvoice: string; assetId?: string; assetAmount?: number; maxFee?: number }): Promise<RgbLnSendResult> {
+  // Direct LN pay (no LSP roundtrip — uses our own node's channel inventory).
+  // For asset-tagged invoices the SDK validates `assetId` against the invoice.
+  const r = await wallet.payLightningInvoice({
+    lnInvoice: params.lnInvoice,
+    assetId: params.assetId,
+    assetAmount: params.assetAmount,
+    maxFee: params.maxFee,
+  });
+  return { txid: r.txid, status: r.status };
 }
 
 class RgbAdapter implements IRgbAdapter {
