@@ -225,11 +225,14 @@ class RgbAdapter implements IRgbAdapter {
     const key = walletKey(mnemonic, network);
     const cached = walletByKey.get(key);
     if (cached) return cached;
+    // `_createWallet` handles its own cleanup on failure: it calls
+    // `wallet.destroy()` (which runs `rlnDestroyNode`) and removes its own
+    // cache entry so the next caller gets a fresh attempt against a clean
+    // binding registry. Without that teardown a follow-up
+    // `new UTEXOWallet(...)` against the same storageDirPath throws
+    // "RLN node already exists for storageDirPath".
     const pending = this._createWallet({ mnemonic, network, vssServerUrl });
     walletByKey.set(key, pending);
-    pending.catch(() => {
-      if (walletByKey.get(key) === pending) walletByKey.delete(key);
-    });
     return pending;
   }
 
@@ -249,14 +252,29 @@ class RgbAdapter implements IRgbAdapter {
     // `rlnCreateNode` to associate the storage dir with a node id, otherwise
     // `unlock()` fails with "RLN node is not created". The SDK exposes that
     // path as `reinit()` (createNode without initNode).
-    if (!marker.exists) {
-      await wallet.init();
-      marker.create();
-    } else {
-      await wallet.reinit();
+    //
+    // On any failure during init/unlock the binding may already have
+    // registered the storageDirPath (createNode succeeded, later step
+    // failed). Tear down with `destroy()` so the cache eviction in
+    // `createWallet` can hand out a fresh wallet next time without the
+    // "RLN node already exists for storageDirPath" guard tripping.
+    try {
+      if (!marker.exists) {
+        await wallet.init();
+        marker.create();
+      } else {
+        await wallet.reinit();
+      }
+      await wallet.unlock(resolveUnlockParams(rlnNet, {}));
+    } catch (e) {
+      try {
+        await wallet.destroy();
+      } catch {
+        // best-effort cleanup; surface the original error
+      }
+      walletByKey.delete(walletKey(mnemonic, network));
+      throw e;
     }
-
-    await wallet.unlock(resolveUnlockParams(rlnNet, {}));
     return shimVssMethods(wallet);
   }
 
