@@ -61,28 +61,54 @@ non-breaking for ext.
   resulting `LspChannelTimeoutError` cleanly.
 - Android `assembleDebug` green.
 
+## Live verification (2026-06-22, iOS sim)
+
+- Created `wallet1` from a persisted test mnemonic (see
+  `tasks/test-wallets-rgb.local.md`).
+- Funded the wallet via `node ~/z/rgb-faucet/bin/faucet.js getbtc <addr>`
+  (50000 sats). UTEXO esplora confirmed the on-chain receive, the SDK
+  picked it up automatically (`getBtcBalance` → 44673 spendable after
+  the auto `prepareWallet` colorable-UTXO carve-off).
+- Tapped Receive → "Receive USDT over Lightning" → entered
+  `5000 sats / 1_000_000 UTST` → Generate.
+- LSP roundtrip completed: BOLT11 + RGB invoice both rendered on
+  screen, settlement poll started, eventually hit `timed_out` (no
+  external payer in this loop). The "still pending" copy appeared as
+  designed.
+- **End-to-end LN integration confirmed working on signet.**
+
+Four debugging fixes landed during this run:
+
+1. The signet USDT asset id from `UTEXO-Protocol/rgb-sdk-rn-demo`
+   (`rgb:YKIE…`) does **not** exist on the running LSP. The live faucet
+   bot's `getnodeinfo` returns `rgb:2l_MeWlj-…` (ticker UTST).
+2. The SDK's network string `'signet'` and `'utexo'` point at *different
+   chains* — `signet` defaults to iriswallet's electrum + RGB proxy,
+   `utexo` defaults to `esplora-api.utexo.com` + utexo proxy. The
+   faucet / LSP / asset all live on the utexo chain. Adapter now uses
+   `'utexo'`.
+3. After the rename, `buildNodeParams` was still keying `lspBaseUrl`
+   off `rlnNet === 'signet'`, so it fell through to the `mainnet`
+   bucket (null) and `createLsp` threw "lspBaseUrl not set". Lookup
+   inverted.
+4. The adapter pre-called `lsp.waitForChannel(assetId)` BEFORE
+   `lsp.receiveAsset` — JIT channels are opened by the LSP *during*
+   the receive request, so the pre-wait blocked forever on a fresh
+   wallet. Drop the pre-wait; `receiveAsset` triggers the channel open.
+
 ## Known gaps / follow-ups
 
-- Faucet: the new `node ~/z/rgb-faucet/bin/faucet.js` (drives the
-  `@Utexo_RLN_bot` Telegram bot) delivers tBTC reliably; UTEXO esplora
-  confirms the on-chain receive.
-- Two debugging discoveries late in the loop:
-  1. The signet USDT asset id used by the LSP is **not** the value in
-     `UTEXO-Protocol/rgb-sdk-rn-demo` (`rgb:YKIE…`) — that asset doesn't
-     exist on the running LSP. The live faucet bot's `getnodeinfo`
-     returns `rgb:2l_MeWlj-…` (ticker UTST). Constants updated.
-  2. The SDK's network string `'signet'` and `'utexo'` point at
-     *different chains* — `signet` defaults to iriswallet's electrum +
-     RGB proxy, `utexo` defaults to `esplora-api.utexo.com` + utexo
-     proxy. The faucet / LSP / asset all live on the utexo chain.
-     Adapter now uses `'utexo'`. Pre-fix wallets need a reinstall
-     (different keychain derivation per chain).
-- Live end-to-end roundtrip (BOLT11 paid → RGB asset settled) still
-  pending — both fixes need a clean app reinstall to verify.
+- Need a separate LN-paying wallet (different sim or external lightning
+  client) to confirm the `settled` outcome end-to-end. Self-loop won't
+  do it — same wallet can't pay its own invoice.
 - Android live test of the LN screens not done (compile-only).
 - Mainnet entries in `rgb-lsp.ts` still `null`; mainnet LN flow hides
   itself behind that, but UTEXO needs to publish prod endpoints before
   mainnet ships.
+- After the network rename existing wallets (created against the
+  `signet` network string before commit `7e07f099`) are on a different
+  keychain derivation and won't see their old UTXOs. Reinstall + reimport
+  from seed is the cleanest path; documented in the wallet commit.
 
 ## Commit log (rgb-two ⇢ origin/master)
 
