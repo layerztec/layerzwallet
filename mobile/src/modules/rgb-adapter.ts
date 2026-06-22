@@ -203,6 +203,18 @@ async function payLightningInvoice(wallet: UTEXOWallet, params: { lnInvoice: str
   return { txid: r.txid, status: r.status };
 }
 
+// Dedupe wallet construction per (mnemonic, network). The native binding's
+// `rlnCreateNode` registers nodes by storageDirPath — calling it twice
+// against the same path (e.g. parallel `lazyInitWallet` requests for the
+// same wallet) throws "RLN node already exists for storageDirPath". Cache
+// the first promise so concurrent and subsequent callers reuse it. Drop on
+// rejection so a transient failure doesn't poison the slot.
+const walletByKey = new Map<string, Promise<IRgbWallet>>();
+
+function walletKey(mnemonic: string, network: RgbNetwork): string {
+  return `${network}|${mnemonicFingerprint(mnemonic)}`;
+}
+
 class RgbAdapter implements IRgbAdapter {
   // Mobile SDK has the LN surface (UtexoLsp / channels / invoices). Shared
   // code still gates UI on this flag plus per-network checks because LN is
@@ -210,6 +222,18 @@ class RgbAdapter implements IRgbAdapter {
   readonly capabilities = { lightning: true } as const;
 
   async createWallet({ mnemonic, network, vssServerUrl }: IRgbAdapterCreateParams): Promise<IRgbWallet> {
+    const key = walletKey(mnemonic, network);
+    const cached = walletByKey.get(key);
+    if (cached) return cached;
+    const pending = this._createWallet({ mnemonic, network, vssServerUrl });
+    walletByKey.set(key, pending);
+    pending.catch(() => {
+      if (walletByKey.get(key) === pending) walletByKey.delete(key);
+    });
+    return pending;
+  }
+
+  private async _createWallet({ mnemonic, network, vssServerUrl }: IRgbAdapterCreateParams): Promise<IRgbWallet> {
     const dir = dataDirFor(mnemonic, network);
     const marker = initMarker(dir);
     const rlnNet = toRlnNetwork(network);
