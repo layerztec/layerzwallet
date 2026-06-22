@@ -3,18 +3,13 @@ import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { ActivityIndicator, GestureResponderEvent, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import Pressable from '../components/Pressable';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { createClient } from '@shared/openapi/generated/layerzme/client';
-import { getApiUsersByUsername, postApiUsers } from '@shared/openapi/generated/layerzme';
+import { claimLayerzLightningAddressUsername, LAYERZ_ME_DOMAIN } from '@shared/modules/layerz-lightning-address';
 import { getGradientColors } from '@/utils/gradientUtils';
 import { ThemedText } from '@/components/ThemedText';
 
 export type ClaimUsernameModalParams = {
   sparkAddress: string;
 };
-
-const layerzClient = createClient({
-  baseUrl: 'https://layerz.me',
-});
 
 export default function ClaimUsernameModalScreen() {
   const router = useRouter();
@@ -68,32 +63,20 @@ export default function ClaimUsernameModalScreen() {
 
     setIsSubmitting(true);
     try {
-      const { data: existing } = await getApiUsersByUsername({
-        client: layerzClient,
-        path: { username: u },
-        responseStyle: 'fields',
-        throwOnError: false,
-      });
-
-      if (existing?.username) {
-        setErrorMessage('Username is unavailable');
-        return;
-      }
-
-      const { data: claim } = await postApiUsers({
-        client: layerzClient,
-        body: { username: u, sparkAddress: sparkAddressString },
-        responseStyle: 'fields',
-        throwOnError: true,
-      });
-
-      if (claim?.username) {
+      const result = await claimLayerzLightningAddressUsername(sparkAddressString, u);
+      if (result.ok) {
         router.back();
         return;
       }
 
-      setErrorMessage('Unable to claim username');
-    } catch (e) {
+      if (result.reason === 'empty') {
+        setErrorMessage('Please enter a username');
+      } else if (result.reason === 'taken') {
+        setErrorMessage('Username is unavailable');
+      } else {
+        setErrorMessage('Unable to claim username');
+      }
+    } catch {
       setErrorMessage('Unable to claim username');
     } finally {
       setIsSubmitting(false);
@@ -120,7 +103,7 @@ export default function ClaimUsernameModalScreen() {
                   editable={!isSubmitting}
                 />
                 <View style={styles.suffixContainer}>
-                  <ThemedText style={styles.suffixText}>@layerz.me</ThemedText>
+                  <ThemedText style={styles.suffixText}>@{LAYERZ_ME_DOMAIN}</ThemedText>
                 </View>
               </View>
 
