@@ -6,11 +6,11 @@
       "name": "layerzwallet-desktop",
       "dependencies": {
         "@aptabase/web": "^0.5.0",
-        "@arkade-os/boltz-swap": "0.3.37",
-        "@arkade-os/sdk": "0.4.32",
+        "@arkade-os/boltz-swap": "0.3.44",
+        "@arkade-os/sdk": "0.4.39",
         "@bitcoinerlab/secp256k1": "1.2.0",
-        "@breeztech/breez-sdk-liquid": "0.12.2",
-        "@buildonspark/spark-sdk": "0.8.1",
+        "@breeztech/breez-sdk-liquid": "0.12.4",
+        "@buildonspark/spark-sdk": "0.8.6",
         "@flashnet/sdk": "0.5.9",
         "@metamask/eth-sig-util": "8.2.0",
         "@modelcontextprotocol/sdk": "^1.29.0",
@@ -83,9 +83,9 @@
 
     "@aptabase/web": ["@aptabase/web@0.5.0", "", {}, "sha512-+RFdaS0bLJtqTZyB1uG32S7tuTfJTGbG2bkdVMs3AT7yG7DP2yb6JY5rZoBf3UyW9sigFHGRkbXoAXdCMZibWA=="],
 
-    "@arkade-os/boltz-swap": ["@arkade-os/boltz-swap@0.3.37", "", { "dependencies": { "@arkade-os/sdk": "0.4.32", "@noble/curves": "2.0.1", "@noble/hashes": "2.0.1", "@scure/base": "2.0.0", "@scure/btc-signer": "2.0.1", "bip68": "1.0.4", "light-bolt11-decoder": "3.2.0" }, "peerDependencies": { "expo-background-task": ">=0.1.0", "expo-task-manager": ">=3.0.0" }, "optionalPeers": ["expo-background-task", "expo-task-manager"] }, "sha512-wP4daP/sDpUahmivaIZC8Lfvqz4lhQMWM1R8/Ib5x7NMS6k++FSs4KKQ6wjPKpweF8ULilsJdorhmLpNlEba6A=="],
+    "@arkade-os/boltz-swap": ["@arkade-os/boltz-swap@0.3.44", "", { "dependencies": { "@arkade-os/sdk": "0.4.39", "@noble/curves": "2.0.1", "@noble/hashes": "2.0.1", "@scure/base": "2.0.0", "@scure/btc-signer": "2.0.1", "bip68": "1.0.4", "light-bolt11-decoder": "3.2.0" }, "peerDependencies": { "expo-background-task": ">=0.1.0", "expo-task-manager": ">=3.0.0" }, "optionalPeers": ["expo-background-task", "expo-task-manager"] }, "sha512-18Vsgv286hsbrp/ICdAlP0XkVQBxcVh6KV3BC+MgD90+9S4GpogFO9Tlb35jpkDYbYLjyPa7quscMOE79Ff1CA=="],
 
-    "@arkade-os/sdk": ["@arkade-os/sdk@0.4.32", "", { "dependencies": { "@bitcoinerlab/descriptors-scure": "3.1.7", "@marcbachmann/cel-js": "7.3.1", "@noble/curves": "2.0.1", "@noble/secp256k1": "3.0.0", "@scure/base": "2.0.0", "@scure/bip39": "2.0.1", "@scure/btc-signer": "2.0.1", "bip68": "1.0.4", "ws-electrumx-client": "1.0.5" }, "peerDependencies": { "@react-native-async-storage/async-storage": ">=1.0.0", "expo": ">=54.0.0", "expo-background-task": "~1.0.10 || >=55.0.0", "expo-sqlite": "~16.0.10 || >=55.0.0", "expo-task-manager": "~14.0.9 || >=55.0.0" }, "optionalPeers": ["@react-native-async-storage/async-storage", "expo", "expo-background-task", "expo-sqlite", "expo-task-manager"] }, "sha512-we7eNPuuW9PWRS/B4Nlw5MHXTgJ7CuQzbdSrisH0u3P2PPQd/0FbSspEW/OQRNjMrJl+29zAEKN5kswy9MTjxA=="],
+    "@arkade-os/sdk": ["@arkade-os/sdk@0.4.39", "", { "dependencies": { "@bitcoinerlab/descriptors-scure": "3.1.7", "@marcbachmann/cel-js": "7.3.1", "@noble/curves": "2.0.1", "@noble/secp256k1": "3.0.0", "@scure/base": "2.0.0", "@scure/bip39": "2.0.1", "@scure/btc-signer": "2.0.1", "bip68": "1.0.4", "ws-electrumx-client": "1.0.5" }, "peerDependencies": { "@react-native-async-storage/async-storage": ">=1.0.0", "expo": ">=54.0.0", "expo-background-task": "~1.0.10 || >=55.0.0", "expo-sqlite": "~16.0.10 || >=55.0.0", "expo-task-manager": "~14.0.9 || >=55.0.0" }, "optionalPeers": ["@react-native-async-storage/async-storage", "expo", "expo-background-task", "expo-sqlite", "expo-task-manager"] }, "sha512-Pmj1NMKK6eV9z+XGUs+S0zK14MFnasfLxmmSYhcG9A0dn/d8KLSMxhpxHc6d6mNTpAiVEzS4u/VvSngYbtUgbA=="],
 
     "@babel/code-frame": ["@babel/code-frame@7.29.0", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.28.5", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw=="],
 
@@ -331,11 +331,11 @@
 
     "@bitcoinerlab/secp256k1": ["@bitcoinerlab/secp256k1@1.2.0", "", { "dependencies": { "@noble/curves": "^1.7.0" } }, "sha512-jeujZSzb3JOZfmJYI0ph1PVpCRV5oaexCgy+RvCXV8XlY+XFB/2n3WOcvBsKLsOw78KYgnQrQWb2HrKE4be88Q=="],
 
-    "@breeztech/breez-sdk-liquid": ["@breeztech/breez-sdk-liquid@0.12.2", "", {}, "sha512-wAQKWPZjCY9gAQlMTJLXs7jY8tEiUos7L2UG0NlUum06XGOZZ7ibKoEKup+nJ50dIgRf238YQDy3nN1UfjAT2A=="],
+    "@breeztech/breez-sdk-liquid": ["@breeztech/breez-sdk-liquid@0.12.4", "", {}, "sha512-bjUtKRqJslLVb+O+BQ8PvTJzmKGA/Yz9F/Bq65J6FQh0qHbf5UYOa941TkJKEGXkI7E8HMsZoTsERovvygyF+Q=="],
 
     "@bufbuild/protobuf": ["@bufbuild/protobuf@2.12.0", "", {}, "sha512-B/XlCaFIP8LOwzo+bz5uFzATYokcwCKQcghqnlfwSmM5eX/qTkvDBnDPs+gXtX/RyjxJ4DRikECcPJbyALA8FA=="],
 
-    "@buildonspark/spark-sdk": ["@buildonspark/spark-sdk@0.8.1", "", { "dependencies": { "@bufbuild/protobuf": "^2.2.5", "@lightsparkdev/core": "^1.5.0", "@noble/curves": "^1.9.7", "@noble/hashes": "^1.7.0", "@scure/base": "^1.2.4", "@scure/bip32": "^1.6.2", "@scure/bip39": "^1.5.4", "@scure/btc-signer": "^1.5.0", "abort-controller-x": "^0.4.3", "abortcontroller-polyfill": "^1.7.8", "async-mutex": "^0.5.0", "bare-crypto": "^1.9.2", "bare-fetch": "^3.0.0", "buffer": "^6.0.3", "eventemitter3": "^5.0.1", "js-base64": "^3.7.7", "light-bolt11-decoder": "^3.2.0", "nice-grpc": "^2.1.10", "nice-grpc-client-middleware-retry": "^3.1.10", "nice-grpc-common": "^2.0.2", "nice-grpc-web": "^3.3.7", "ts-proto": "2.8.3", "ua-parser-js": "^2.0.6", "uuidv7": "^1.0.2" }, "peerDependencies": { "react": ">=18.2.0", "react-native": ">=0.71.0", "react-native-get-random-values": ">=1.11.0" }, "optionalPeers": ["react", "react-native", "react-native-get-random-values"] }, "sha512-F+aDu14LgMli31QFAGwgTpvHedcW/A7Mvb0/PI+7WoZFjNZYvcMno65Q94/LKVNz3a7GguedkcsWdAa+uDgZWw=="],
+    "@buildonspark/spark-sdk": ["@buildonspark/spark-sdk@0.8.6", "", { "dependencies": { "@bufbuild/protobuf": "^2.2.5", "@lightsparkdev/core": "^1.5.0", "@noble/curves": "^1.9.7", "@noble/hashes": "^1.7.0", "@scure/base": "^1.2.4", "@scure/bip32": "^1.6.2", "@scure/bip39": "^1.5.4", "@scure/btc-signer": "^1.5.0", "abort-controller-x": "^0.4.3", "abortcontroller-polyfill": "^1.7.8", "async-mutex": "^0.5.0", "bare-crypto": "^1.9.2", "bare-fetch": "^3.0.0", "buffer": "^6.0.3", "eventemitter3": "^5.0.1", "js-base64": "^3.7.7", "light-bolt11-decoder": "^3.2.0", "nice-grpc": "^2.1.10", "nice-grpc-client-middleware-retry": "^3.1.10", "nice-grpc-common": "^2.0.2", "nice-grpc-web": "^3.3.7", "ts-proto": "2.8.3", "ua-parser-js": "^2.0.6", "uuidv7": "^1.0.2" }, "peerDependencies": { "react": ">=18.2.0", "react-native": ">=0.71.0", "react-native-get-random-values": ">=1.11.0" }, "optionalPeers": ["react", "react-native", "react-native-get-random-values"] }, "sha512-rpdmeDvGtXzOmRTGuGUH7HK5fJjLUbPmD01agHry/rdpdzLH/F8eHznmqK1YD/m8EvQ5l0FP/UKxfo01ehNcqw=="],
 
     "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.25.12", "", { "os": "aix", "cpu": "ppc64" }, "sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA=="],
 
@@ -2143,8 +2143,6 @@
 
     "@buildonspark/spark-sdk/@noble/curves": ["@noble/curves@1.9.7", "", { "dependencies": { "@noble/hashes": "1.8.0" } }, "sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw=="],
 
-    "@buildonspark/spark-sdk/@noble/hashes": ["@noble/hashes@1.7.1", "", {}, "sha512-B8XBPsn4vT/KJAGqDzbwztd+6Yte3P4V7iafm24bxgDe/mlRuK6xmWPuCNrKt2vDafZ8MfJLlchDG/vYafQEjQ=="],
-
     "@buildonspark/spark-sdk/@scure/base": ["@scure/base@1.2.6", "", {}, "sha512-g/nm5FgUa//MCj1gV09zTJTaM6KBAHqLN907YVQqf7zC49+DcO4B1so4ZX07Ef10Twr6nuqYEH9GEggFXA4Fmg=="],
 
     "@buildonspark/spark-sdk/@scure/bip39": ["@scure/bip39@1.6.0", "", { "dependencies": { "@noble/hashes": "~1.8.0", "@scure/base": "~1.2.5" } }, "sha512-+lF0BbLiJNwVlev4eKelw1WWLaiKXw7sSl8T6FvBlWkdX+94aGJ4o8XjUdlyhTCjd8c+B3KT3JfS8P0bLRNU6A=="],
@@ -2578,12 +2576,6 @@
     "@babel/preset-modules/@babel/types/@babel/helper-validator-identifier": ["@babel/helper-validator-identifier@7.29.7", "", {}, "sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg=="],
 
     "@bitcoinerlab/descriptors-scure/@scure/bip32/@scure/base": ["@scure/base@2.2.0", "", {}, "sha512-b8XEupJibegiXV+tDUseI8oLQc8ei3d/4Jkb2RpbHh3MfE054ov3uIz2dhFkB3FI8iwYkEh0gGCApkrYggkPNg=="],
-
-    "@buildonspark/spark-sdk/@noble/curves/@noble/hashes": ["@noble/hashes@1.8.0", "", {}, "sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A=="],
-
-    "@buildonspark/spark-sdk/@scure/bip39/@noble/hashes": ["@noble/hashes@1.8.0", "", {}, "sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A=="],
-
-    "@buildonspark/spark-sdk/@scure/btc-signer/@noble/hashes": ["@noble/hashes@1.8.0", "", {}, "sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A=="],
 
     "@buildonspark/spark-sdk/@scure/btc-signer/micro-packed": ["micro-packed@0.7.3", "", { "dependencies": { "@scure/base": "~1.2.5" } }, "sha512-2Milxs+WNC00TRlem41oRswvw31146GiSaoCT7s3Xi2gMUglW5QBeqlQaZeHr5tJx9nm3i57LNXPqxOOaWtTYg=="],
 
