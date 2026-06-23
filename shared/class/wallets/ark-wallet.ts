@@ -519,15 +519,36 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
       },
       arkProvider: new ExpoArkProvider(this._arkServerUrl),
       indexerProvider: new ExpoIndexerProvider(this._arkServerUrl),
-      arkServerPublicKey: this._arkServerPublicKey,
+      settlementConfig: {
+        deprecatedSignerMigration: true,
+      },
     });
     this._wallet = wallet;
 
-    this._manager = new VtxoManager(wallet, {
-      enabled: true, // Enable expiration monitoring
-    });
+    this._manager = await wallet.getVtxoManager();
 
     await this._runOneTimeVtxoRecovery(storage);
+    await this._runDeprecatedSignerMigration();
+  }
+
+  /**
+   * Discover VTXOs under rotated server signers and migrate them to the
+   * current signer before the operator cutoff closes cooperative spending.
+   */
+  private async _runDeprecatedSignerMigration(): Promise<void> {
+    assert(this._wallet, 'Ark wallet not initialized');
+    assert(this._manager, 'VtxoManager not initialized');
+
+    try {
+      await this._wallet.restore();
+      const report = await this._manager.migrateDeprecatedSignerVtxos();
+      if (report.vtxos?.txid || report.boarding?.txid) {
+        console.log('ARK deprecated-signer migration:', report);
+      }
+    } catch (error) {
+      globalThis.handleError?.(error, 'ark-wallet.ts');
+      console.log('ARK deprecated-signer migration error:', error);
+    }
   }
 
   /**
