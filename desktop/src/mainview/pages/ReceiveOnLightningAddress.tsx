@@ -8,8 +8,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
-import { createClient } from '@shared/openapi/generated/layerzme/client';
-import { getApiUsersBySparkAddressBySparkAddress } from '@shared/openapi/generated/layerzme';
+import { formatLayerzLightningAddress, LAYERZ_ME_DOMAIN, lookupLayerzLightningAddress } from '@shared/modules/layerz-lightning-address';
 import { NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
 
@@ -21,11 +20,6 @@ import { BackgroundCaller } from '../modules/background-caller';
 import { WideButton } from './DesignSystem';
 import './Home.css';
 import './ReceiveOnLightningAddress.css';
-
-const layerzClient = createClient({
-  baseUrl: 'https://layerz.me',
-  responseStyle: 'data',
-});
 
 const qrGifDataUrl = (text: string) => {
   const gifBytes = writeQR(text, 'gif', { scale: text.length > 43 ? 4 : 7 });
@@ -71,11 +65,18 @@ const ReceiveOnLightningAddress: React.FC = () => {
       const addressResponse = await BackgroundCaller.getAddress(network, accountNumber);
       setSparkAddress(addressResponse);
       setResolvedUsername('');
-      const lightningAddr = `${addressResponse}@layerz.me`;
-      setLightningAddress(lightningAddr);
-      const [local, domain] = lightningAddr.split('@');
+      const defaultAddr = formatLayerzLightningAddress(addressResponse);
+      setLightningAddress(defaultAddr);
+      const [local, domain] = defaultAddr.split('@');
       setLightningAddressParts({ local, domain });
-      setImgSrc(qrGifDataUrl(lightningAddr));
+      setImgSrc(qrGifDataUrl(defaultAddr));
+
+      const resolved = await lookupLayerzLightningAddress(addressResponse);
+      if (resolved.username) {
+        setResolvedUsername(resolved.username);
+        setLightningAddress(resolved.lightningAddress);
+        setImgSrc(qrGifDataUrl(resolved.lightningAddress));
+      }
     } catch (error) {
       console.error('Error fetching address:', error);
     } finally {
@@ -90,16 +91,11 @@ const ReceiveOnLightningAddress: React.FC = () => {
   const refreshResolvedUsername = useCallback(async () => {
     if (!sparkAddress || resolvedUsername) return;
     try {
-      const { data } = await getApiUsersBySparkAddressBySparkAddress({
-        client: layerzClient,
-        path: { sparkAddress },
-        responseStyle: 'fields',
-        throwOnError: false,
-      });
-      if (data?.username) {
-        setResolvedUsername(data.username);
-        setLightningAddress(`${data.username}@layerz.me`);
-        setImgSrc(qrGifDataUrl(`${data.username}@layerz.me`));
+      const resolved = await lookupLayerzLightningAddress(sparkAddress);
+      if (resolved.username) {
+        setResolvedUsername(resolved.username);
+        setLightningAddress(resolved.lightningAddress);
+        setImgSrc(qrGifDataUrl(resolved.lightningAddress));
       }
     } catch (error) {
       console.error('Error fetching username for spark address', error);
@@ -181,7 +177,7 @@ const ReceiveOnLightningAddress: React.FC = () => {
                   </div>
                   <div className="receive-lightning-address" data-testid="LightningAddressButton">
                     <span>{(resolvedUsername || lightningAddressParts?.local) ?? ''}</span>
-                    {(resolvedUsername || lightningAddressParts?.domain) && <span className="receive-lightning-domain">@{resolvedUsername ? 'layerz.me' : lightningAddressParts?.domain}</span>}
+                    {(resolvedUsername || lightningAddressParts?.domain) && <span className="receive-lightning-domain">@{resolvedUsername ? LAYERZ_ME_DOMAIN : lightningAddressParts?.domain}</span>}
                   </div>
                 </>
               ) : (

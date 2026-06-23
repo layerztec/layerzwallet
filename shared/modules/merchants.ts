@@ -184,8 +184,15 @@ export const queryForMetadata = async (payload: string): Promise<PosMetadata> =>
   return data;
 };
 
+/** @see https://api.cryptoqr.net/scanner/v1/swagger.yaml */
+export type ScanRefundAddress = {
+  address_type: 'lightning';
+  address: string;
+};
+
 /**
  * @see https://moneybadger-qr-scanner.readme.io/reference/scan
+ * @see https://api.cryptoqr.net/scanner/v1/swagger.yaml
  */
 export type ScanRequest = {
   scan_id: string;
@@ -197,6 +204,7 @@ export type ScanRequest = {
   allowed_payment_methods?: string[];
   payment_currencies?: string[];
   payment_reference?: string;
+  refund_address: ScanRefundAddress;
   requested_payment_amount?: {
     currency: string;
     denomination: string;
