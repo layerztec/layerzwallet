@@ -1,8 +1,8 @@
 diff --git a/node_modules/@breeztech/breez-sdk-liquid-react-native/android/CMakeLists.txt b/node_modules/@breeztech/breez-sdk-liquid-react-native/android/CMakeLists.txt
-index 3c3e974..5b857d6 100644
+index 92ff8b5..5a5bbcc 100644
 --- a/node_modules/@breeztech/breez-sdk-liquid-react-native/android/CMakeLists.txt
 +++ b/node_modules/@breeztech/breez-sdk-liquid-react-native/android/CMakeLists.txt
-@@ -75,3 +75,9 @@ target_link_libraries(
+@@ -83,3 +83,9 @@ target_link_libraries(
    ${LOGCAT}
    my_rust_lib
  )
