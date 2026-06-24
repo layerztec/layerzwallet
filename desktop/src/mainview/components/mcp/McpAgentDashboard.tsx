@@ -9,7 +9,7 @@ import { WalletToolButton } from '../home/WalletToolButton';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAccountBalance } from '@shared/hooks/useAccountBalance';
-import { useAvailableNetworks } from '../../hooks/useAvailableNetworks';
+import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
