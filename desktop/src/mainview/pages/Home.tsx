@@ -6,7 +6,7 @@ import { ensureMcpBootstrapped, isMcpActivated } from '../features/mcp/tunnel-de
 
 import { accountItems, AccountNumberContext, getAccountItem, MCP_BALANCE_ACCOUNT_NUMBER } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { useAvailableNetworks } from '../hooks/useAvailableNetworks';
+import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { getNetworkPrimaryColor } from '@shared/constants/Colors';
 
