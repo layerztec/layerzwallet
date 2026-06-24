@@ -8,6 +8,7 @@ import { accountItems, AccountNumberContext, getAccountItem, MCP_BALANCE_ACCOUNT
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
+import { getIsEVM } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { getNetworkPrimaryColor } from '@shared/constants/Colors';
 
@@ -36,8 +37,10 @@ const Home: React.FC = () => {
   const networkLabel = capitalizeFirstLetter(network);
   const networkAccentColor = getNetworkPrimaryColor(network);
 
-  // Send is currently only implemented for single-address (account-based) wallets via SendAccountBased.
+  // Send is implemented for single-address (account-based) wallets via SendAccountBased and for EVM wallets via SendEvm.
   const isAccountBasedNetwork = network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_STACKS;
+  const isEvmNetwork = getIsEVM(network);
+  const isSendSupported = isAccountBasedNetwork || isEvmNetwork;
 
   const [showActivateModal, setShowActivateModal] = useState(false);
   const activateDismissedRef = useRef(false);
@@ -73,7 +76,7 @@ const Home: React.FC = () => {
   };
 
   const handleSend = () => {
-    navigate('/send');
+    navigate(isEvmNetwork ? '/send-evm' : '/send');
   };
 
   return (
@@ -138,7 +141,7 @@ const Home: React.FC = () => {
         {accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER ? (
           <div className="home-actions">
             <HomeActionButton title="Receive" icon={ArrowDownLeft} onClick={handleReceive} testId="ReceiveButton" />
-            {isAccountBasedNetwork ? <HomeActionButton title="Send" icon={ArrowUpRight} onClick={handleSend} testId="SendButton" /> : null}
+            {isSendSupported ? <HomeActionButton title="Send" icon={ArrowUpRight} onClick={handleSend} testId="SendButton" /> : null}
           </div>
         ) : null}
 

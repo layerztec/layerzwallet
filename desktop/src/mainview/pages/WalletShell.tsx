@@ -6,7 +6,7 @@ import './WalletShell.css';
 
 const MODAL_PATHS = new Set(['/action-popup-modal', '/mcp-permissions-modal', '/mcp-tunnel-url-modal']);
 
-const FULL_SCREEN_PATHS = new Set(['/receive', '/receive-on-lightning-address', '/send', '/settings', '/nft-gallery', '/nft']);
+const FULL_SCREEN_PATHS = new Set(['/receive', '/receive-on-lightning-address', '/send', '/send-evm', '/settings', '/nft-gallery', '/nft']);
 
 /** Keeps Home visible under transparent modal routes (mobile `transparentModal` parity). */
 export const WalletShell: React.FC = () => {
