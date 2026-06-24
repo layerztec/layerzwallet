@@ -7,7 +7,7 @@ import { ensureMcpBootstrapped, isMcpActivated } from '../features/mcp/tunnel-de
 import { accountItems, AccountNumberContext, getAccountItem, MCP_BALANCE_ACCOUNT_NUMBER } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { getIsEVM } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { getNetworkPrimaryColor } from '@shared/constants/Colors';
@@ -37,10 +37,11 @@ const Home: React.FC = () => {
   const networkLabel = capitalizeFirstLetter(network);
   const networkAccentColor = getNetworkPrimaryColor(network);
 
-  // Send is implemented for single-address (account-based) wallets via SendAccountBased and for EVM wallets via SendEvm.
+  // Send is implemented for single-address (account-based) wallets via SendAccountBased, EVM wallets via SendEvm, and Bitcoin via SendBtc.
   const isAccountBasedNetwork = network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_STACKS;
   const isEvmNetwork = getIsEVM(network);
-  const isSendSupported = isAccountBasedNetwork || isEvmNetwork;
+  const isBitcoinNetwork = network === NETWORK_BITCOIN;
+  const isSendSupported = isAccountBasedNetwork || isEvmNetwork || isBitcoinNetwork;
 
   const [showActivateModal, setShowActivateModal] = useState(false);
   const activateDismissedRef = useRef(false);
@@ -76,7 +77,13 @@ const Home: React.FC = () => {
   };
 
   const handleSend = () => {
-    navigate(isEvmNetwork ? '/send-evm' : '/send');
+    if (isBitcoinNetwork) {
+      navigate('/send-btc');
+    } else if (isEvmNetwork) {
+      navigate('/send-evm');
+    } else {
+      navigate('/send');
+    }
   };
 
   return (

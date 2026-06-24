@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { AlertCircle, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -22,6 +22,8 @@ import AmountInput from '../components/AmountInput';
 import { RadialGradientScreen } from '../components/home/RadialGradientScreen';
 import { TokensView } from '../components/home/TokensView';
 import ScreenSendHeader from '../components/navigation/ScreenSendHeader';
+import SendConfirmView from '../components/send/SendConfirmView';
+import { sendFormStyles } from '../components/send/sendStyles';
 import { ThemedText } from '../components/ThemedText';
 import { BackgroundCaller } from '../modules/background-caller';
 
@@ -197,46 +199,17 @@ const SendEvm: React.FC = () => {
   const amountUsdValue = nativeExchangeRate && !isTokenSend ? `$${new BigNumber(amount || '0').multipliedBy(Number(nativeExchangeRate)).toFixed(2)}` : '';
   const usdFee = nativeExchangeRate ? `$${feeInNativeUnits.multipliedBy(Number(nativeExchangeRate)).toFixed(2)}` : '';
 
-  let totalUsd: string;
+  let totalUsd: string | undefined;
   let totalDisplay: string;
   if (isTokenSend) {
     // For token sends, only show the token amount (fee shown separately, in native units)
-    totalUsd = '';
+    totalUsd = undefined;
     totalDisplay = `${amount} ${assetTicker}`;
   } else {
     const totalAmount = new BigNumber(amount || '0').plus(feeInNativeUnits);
-    totalUsd = nativeExchangeRate ? `$${totalAmount.multipliedBy(Number(nativeExchangeRate)).toFixed(2)}` : '';
+    totalUsd = nativeExchangeRate ? `$${totalAmount.multipliedBy(Number(nativeExchangeRate)).toFixed(2)}` : undefined;
     totalDisplay = `${totalAmount.toFixed()} ${assetTicker}`;
   }
-
-  const formatAddressWithOpacity = (addr: string) => {
-    if (!addr) return null;
-    if (addr.length < 8) return <span style={styles.addressDisplay}>{addr}</span>;
-    const midpoint = Math.floor(addr.length / 2);
-    const firstHalf = addr.substring(0, midpoint);
-    const secondHalf = addr.substring(midpoint);
-    const first4 = addr.substring(0, 4);
-    const last4 = addr.substring(addr.length - 4);
-    const nbsp = '\u00A0';
-    return (
-      <div style={styles.addressContainer}>
-        <span style={styles.addressDisplay}>
-          <span style={{ ...styles.addressDisplay, ...styles.addressHighlight, ...styles.addressLetterSpacing }}>{first4}</span>
-          <span style={{ ...styles.addressDisplay, ...styles.addressLetterSpacing }}>
-            {nbsp}
-            {firstHalf.substring(4)}
-          </span>
-        </span>
-        <span style={styles.addressDisplay}>
-          <span style={{ ...styles.addressDisplay, ...styles.addressLetterSpacing }}>
-            {secondHalf.substring(0, secondHalf.length - 4)}
-            {nbsp}
-          </span>
-          <span style={{ ...styles.addressDisplay, ...styles.addressHighlight, ...styles.addressLetterSpacing }}>{last4}</span>
-        </span>
-      </div>
-    );
-  };
 
   // ---------- renders ----------
   if (step === 'address') {
@@ -244,14 +217,14 @@ const SendEvm: React.FC = () => {
     return (
       <RadialGradientScreen network={network} className="home-screen">
         <ScreenSendHeader network={network} title={`Send ${assetTicker}`} onBackPress={() => navigate('/home')} />
-        <div style={styles.stepContainer}>
-          <div style={styles.stepScroll}>
-            <div style={styles.inputSection}>
-              <div style={styles.addressInputContainer}>
-                <div style={styles.addressInputWrapper}>
-                  <ThemedText style={styles.addressInputLabel}>To</ThemedText>
+        <div style={sendFormStyles.stepContainer}>
+          <div style={sendFormStyles.stepScroll}>
+            <div style={sendFormStyles.inputSection}>
+              <div style={sendFormStyles.addressInputContainer}>
+                <div style={sendFormStyles.addressInputWrapper}>
+                  <ThemedText style={sendFormStyles.addressInputLabel}>To</ThemedText>
                   <input
-                    style={styles.addressInput}
+                    style={sendFormStyles.addressInput}
                     data-testid="send-address-input"
                     placeholder="Enter address"
                     autoCapitalize="none"
@@ -264,9 +237,9 @@ const SendEvm: React.FC = () => {
               </div>
 
               {errorMessage ? (
-                <div style={styles.errorRow}>
+                <div style={sendFormStyles.errorRow}>
                   <X size={16} color="white" />
-                  <ThemedText style={styles.errorRowText}>{errorMessage}</ThemedText>
+                  <ThemedText style={sendFormStyles.errorRowText}>{errorMessage}</ThemedText>
                 </div>
               ) : null}
             </div>
@@ -276,12 +249,12 @@ const SendEvm: React.FC = () => {
 
           <button
             type="button"
-            style={{ ...styles.continueButton, ...(disabled ? styles.disabledButton : null) }}
+            style={{ ...sendFormStyles.continueButton, ...(disabled ? sendFormStyles.disabledButton : null) }}
             onClick={handleAddressNext}
             disabled={disabled}
             data-testid="send-address-next-button"
           >
-            <ThemedText style={styles.continueButtonText}>Next</ThemedText>
+            <ThemedText style={sendFormStyles.continueButtonText}>Next</ThemedText>
           </button>
         </div>
       </RadialGradientScreen>
@@ -293,8 +266,8 @@ const SendEvm: React.FC = () => {
     return (
       <RadialGradientScreen network={network} className="home-screen">
         <ScreenSendHeader network={network} title={`Send ${assetTicker}`} onBackPress={() => setStep('address')} />
-        <div style={styles.stepContainer}>
-          <div style={styles.stepScroll}>
+        <div style={sendFormStyles.stepContainer}>
+          <div style={sendFormStyles.stepScroll}>
             <AmountInput
               value={amount}
               onChangeText={(text) => {
@@ -313,9 +286,9 @@ const SendEvm: React.FC = () => {
             />
 
             {errorMessage ? (
-              <div style={styles.errorRow}>
+              <div style={sendFormStyles.errorRow}>
                 <X size={16} color="white" />
-                <ThemedText style={styles.errorRowText}>{errorMessage}</ThemedText>
+                <ThemedText style={sendFormStyles.errorRowText}>{errorMessage}</ThemedText>
               </div>
             ) : null}
 
@@ -333,12 +306,12 @@ const SendEvm: React.FC = () => {
 
           <button
             type="button"
-            style={{ ...styles.continueButton, ...(disabled ? styles.disabledButton : null) }}
+            style={{ ...sendFormStyles.continueButton, ...(disabled ? sendFormStyles.disabledButton : null) }}
             onClick={prepareTransaction}
             disabled={disabled}
             data-testid="send-amount-evm-next-button"
           >
-            <ThemedText style={styles.continueButtonText}>{isPreparing ? 'Creating...' : 'Next'}</ThemedText>
+            <ThemedText style={sendFormStyles.continueButtonText}>{isPreparing ? 'Creating...' : 'Next'}</ThemedText>
           </button>
         </div>
       </RadialGradientScreen>
@@ -347,144 +320,30 @@ const SendEvm: React.FC = () => {
 
   // step === 'confirm'
   return (
-    <RadialGradientScreen network={network} className="home-screen">
-      {!isSuccess && <ScreenSendHeader network={network} title={`Send ${assetTicker}`} onBackPress={() => setStep('amount')} />}
-
-      <div style={styles.confirmContainer}>
-        <div style={styles.confirmScroll}>
-          {error ? (
-            <div style={styles.confirmErrorContainer}>
-              <AlertCircle size={40} color="#FF3B30" />
-              <ThemedText style={styles.confirmErrorTitle}>Error</ThemedText>
-              <ThemedText style={styles.confirmErrorText}>{error}</ThemedText>
-              <button type="button" style={styles.goBackButton} onClick={() => setError('')}>
-                <ThemedText style={styles.goBackButtonText}>Go Back</ThemedText>
-              </button>
-            </div>
-          ) : isSuccess ? (
-            <div style={styles.successContainer}>
-              <div style={styles.successCheck}>✓</div>
-              <ThemedText type="headline" data-testid="send-success-text">
-                Transaction Sent!
-              </ThemedText>
-            </div>
-          ) : (
-            <>
-              <div style={styles.section}>
-                <div style={styles.sectionHeader}>
-                  <ThemedText style={styles.sectionHeaderText}>Total</ThemedText>
-                </div>
-                <div style={styles.totalCard}>
-                  <ThemedText style={styles.totalAmount}>{totalDisplay}</ThemedText>
-                  {totalUsd ? <ThemedText style={styles.totalUsd}>{totalUsd}</ThemedText> : null}
-                </div>
-              </div>
-
-              <div style={styles.section}>
-                <div style={styles.sectionHeader}>
-                  <ThemedText style={styles.sectionHeaderText}>Details</ThemedText>
-                </div>
-                <div style={styles.detailsCard}>
-                  <div style={styles.detailRow}>
-                    <ThemedText style={styles.detailLabel}>Amount</ThemedText>
-                    <div style={styles.detailValueContainer}>
-                      <ThemedText style={styles.detailValue}>
-                        {amount} {assetTicker}
-                      </ThemedText>
-                      {amountUsdValue ? <ThemedText style={styles.detailUsd}>{amountUsdValue}</ThemedText> : null}
-                    </div>
-                  </div>
-
-                  <div style={styles.divider} />
-
-                  <div style={styles.detailRow}>
-                    <ThemedText style={styles.detailLabel}>Network Fee</ThemedText>
-                    <div style={styles.detailValueContainer}>
-                      <ThemedText style={styles.detailValue}>
-                        {feeInNative} {nativeTicker}
-                      </ThemedText>
-                      {usdFee ? <ThemedText style={styles.detailUsd}>{usdFee}</ThemedText> : null}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div style={styles.section}>
-                <div style={styles.sectionHeader}>
-                  <ThemedText style={styles.sectionHeaderText}>Send to</ThemedText>
-                </div>
-                <div style={styles.addressCard}>{formatAddressWithOpacity(address)}</div>
-              </div>
-            </>
-          )}
-        </div>
-
-        {!error ? (
-          <button
-            type="button"
-            style={{ ...styles.sendButton, ...(isBroadcasting ? styles.disabledButton : null) }}
-            onClick={isSuccess ? () => navigate('/home') : broadcast}
-            disabled={isBroadcasting}
-            data-testid="send-confirm-button"
-          >
-            <ThemedText style={styles.sendButtonText}>{isSuccess ? 'Back to Wallet' : isBroadcasting ? 'Sending...' : 'Confirm Send'}</ThemedText>
-          </button>
-        ) : null}
-      </div>
-    </RadialGradientScreen>
+    <SendConfirmView
+      network={network}
+      title={`Send ${assetTicker}`}
+      totalDisplay={totalDisplay}
+      totalUsd={totalUsd}
+      amount={amount}
+      amountTicker={assetTicker}
+      amountUsdValue={amountUsdValue}
+      feeInNative={feeInNative}
+      feeTicker={nativeTicker}
+      usdFee={usdFee}
+      address={address}
+      error={error}
+      isSuccess={isSuccess}
+      isBroadcasting={isBroadcasting}
+      onBack={() => setStep('amount')}
+      onConfirm={broadcast}
+      onClearError={() => setError('')}
+      onDone={() => navigate('/home')}
+    />
   );
 };
 
 const styles: Record<string, React.CSSProperties> = {
-  stepContainer: {
-    flex: '1 1 auto',
-    minHeight: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '0 16px 24px',
-  },
-  stepScroll: {
-    flex: '1 1 auto',
-    minHeight: 0,
-    overflowY: 'auto',
-  },
-  inputSection: {
-    marginBottom: 30,
-  },
-  addressInputContainer: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 20,
-    height: 64,
-    boxSizing: 'border-box',
-    paddingLeft: 24,
-    paddingRight: 12,
-    gap: 12,
-  },
-  addressInputWrapper: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-  },
-  addressInputLabel: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 14,
-    fontWeight: 400,
-    marginBottom: 4,
-  },
-  addressInput: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 16,
-    padding: 0,
-    margin: 0,
-    border: 'none',
-    outline: 'none',
-    background: 'transparent',
-    width: '100%',
-  },
   feeSection: {
     marginTop: 24,
   },
@@ -514,230 +373,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   sliderLabel: {
     color: 'rgba(255, 255, 255, 0.6)',
-  },
-  errorRow: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    gap: 6,
-  },
-  errorRowText: {
-    color: 'white',
-    fontSize: 14,
-  },
-  continueButton: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    padding: '16px 0',
-    borderRadius: 16,
-    border: 'none',
-    gap: 8,
-    marginTop: 16,
-    cursor: 'pointer',
-    width: '100%',
-    flex: '0 0 auto',
-  },
-  continueButtonText: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 16,
-    fontWeight: 600,
-  },
-  disabledButton: {
-    opacity: 0.5,
-    cursor: 'not-allowed',
-  },
-  // confirm
-  confirmContainer: {
-    flex: '1 1 auto',
-    minHeight: 0,
-    position: 'relative',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  confirmScroll: {
-    flex: '1 1 auto',
-    minHeight: 0,
-    overflowY: 'auto',
-    padding: '0 16px 112px',
-  },
-  section: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 18,
-    padding: 2,
-    marginBottom: 32,
-  },
-  sectionHeader: {
-    padding: '2px 16px 4px',
-  },
-  sectionHeaderText: {
-    fontSize: 16,
-    fontWeight: 500,
-    color: 'rgba(255, 255, 255, 0.6)',
-    textAlign: 'left',
-  },
-  totalCard: {
-    borderRadius: 20,
-    padding: '24px 0',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 4,
-  },
-  totalAmount: {
-    fontSize: 24,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-  },
-  totalUsd: {
-    fontSize: 16,
-    fontWeight: 500,
-    color: 'rgba(255, 255, 255, 0.5)',
-    textAlign: 'center',
-  },
-  detailsCard: {
-    borderRadius: 20,
-    padding: '16px 0',
-  },
-  detailRow: {
-    display: 'flex',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '0 16px',
-  },
-  detailLabel: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 16,
-    fontWeight: 400,
-  },
-  detailValueContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: 2,
-  },
-  detailValue: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 16,
-    fontWeight: 600,
-    textAlign: 'right',
-  },
-  detailUsd: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 16,
-    fontWeight: 400,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    margin: '8px 0',
-  },
-  addressCard: {
-    borderRadius: 20,
-    padding: 16,
-    minHeight: 79,
-    boxSizing: 'border-box',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addressContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    maxWidth: 380,
-    margin: '0 auto',
-  },
-  addressDisplay: {
-    fontFamily: 'monospace',
-    lineHeight: '24px',
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 18,
-    textAlign: 'center',
-    wordBreak: 'break-all',
-  },
-  addressHighlight: {
-    color: 'rgb(255, 255, 255)',
-  },
-  addressLetterSpacing: {
-    letterSpacing: 1.6,
-  },
-  confirmErrorContainer: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '60px 20px',
-  },
-  confirmErrorTitle: {
-    fontSize: 24,
-    fontWeight: 600,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  confirmErrorText: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    fontSize: 16,
-    marginBottom: 24,
-  },
-  goBackButton: {
-    backgroundColor: '#000000',
-    padding: '16px 32px',
-    borderRadius: 16,
-    width: '80%',
-    border: 'none',
-    cursor: 'pointer',
-  },
-  goBackButtonText: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 16,
-    fontWeight: 600,
-  },
-  successContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '80px 20px',
-    gap: 16,
-  },
-  successCheck: {
-    color: '#4CAF50',
-    fontSize: 64,
-    lineHeight: 1,
-  },
-  sendButton: {
-    position: 'absolute',
-    bottom: 24,
-    left: 16,
-    right: 16,
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    padding: '16px 0',
-    borderRadius: 16,
-    border: 'none',
-    gap: 8,
-    height: 56,
-    boxSizing: 'border-box',
-    cursor: 'pointer',
-    zIndex: 1000,
-  },
-  sendButtonText: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 16,
-    fontWeight: 600,
   },
 };
 
