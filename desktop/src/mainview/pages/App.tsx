@@ -26,6 +26,7 @@ import McpTunnelUrlModal from './McpTunnelUrlModal';
 import { WalletShell } from './WalletShell';
 import Receive from './Receive';
 import ReceiveOnLightningAddress from './ReceiveOnLightningAddress';
+import SendAccountBased from './SendAccountBased';
 import SettingsPage from './SettingsPage';
 import NftGallery from './NftGallery';
 import Nft from './Nft';
@@ -89,6 +90,7 @@ const AppContent: React.FC = () => {
                 <Route path="/home" />
                 <Route path="/receive" element={<Receive />} />
                 <Route path="/receive-on-lightning-address" element={<ReceiveOnLightningAddress />} />
+                <Route path="/send" element={<SendAccountBased />} />
                 <Route path="/action-popup-modal" element={<ActionPopupModal />} />
                 <Route path="/mcp-permissions-modal" element={<McpPermissionsModal />} />
                 <Route path="/mcp-tunnel-url-modal" element={<McpTunnelUrlModal />} />

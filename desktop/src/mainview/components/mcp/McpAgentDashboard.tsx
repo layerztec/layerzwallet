@@ -11,7 +11,7 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAccountBalance } from '@shared/hooks/useAccountBalance';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
-import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { getDecimalsByNetwork, getIsAccountBased, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT } from '@shared/types/networks';
 
@@ -38,6 +38,11 @@ export const McpAgentDashboard: React.FC = () => {
 
   const handleAddFunds = () => {
     navigate('/receive');
+  };
+
+  // Mirrors the Home "Send" button: account-based send flow only.
+  const handlePay = () => {
+    navigate('/send');
   };
 
   const handleReceiveOnLightningAddress = () => {
@@ -94,6 +99,11 @@ export const McpAgentDashboard: React.FC = () => {
             ) : (
               addFundsButton
             )}
+            {getIsAccountBased(network) ? (
+              <WalletToolButton onClick={handlePay} aria-label="Pay">
+                Pay
+              </WalletToolButton>
+            ) : null}
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ChevronDown, Settings } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, Settings } from 'lucide-react';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -7,6 +7,7 @@ import { ensureMcpBootstrapped, isMcpActivated } from '../features/mcp/tunnel-de
 import { accountItems, AccountNumberContext, getAccountItem, MCP_BALANCE_ACCOUNT_NUMBER } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { getNetworkPrimaryColor } from '@shared/constants/Colors';
 
@@ -34,6 +35,9 @@ const Home: React.FC = () => {
   const accountLabel = accountItem.name.length > 10 ? `${accountItem.name.substring(0, 10)}…` : accountItem.name;
   const networkLabel = capitalizeFirstLetter(network);
   const networkAccentColor = getNetworkPrimaryColor(network);
+
+  // Send is currently only implemented for single-address (account-based) wallets via SendAccountBased.
+  const isAccountBasedNetwork = network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_STACKS;
 
   const [showActivateModal, setShowActivateModal] = useState(false);
   const activateDismissedRef = useRef(false);
@@ -66,6 +70,10 @@ const Home: React.FC = () => {
 
   const handleReceive = () => {
     navigate('/receive');
+  };
+
+  const handleSend = () => {
+    navigate('/send');
   };
 
   return (
@@ -130,6 +138,7 @@ const Home: React.FC = () => {
         {accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER ? (
           <div className="home-actions">
             <HomeActionButton title="Receive" icon={ArrowDownLeft} onClick={handleReceive} testId="ReceiveButton" />
+            {isAccountBasedNetwork ? <HomeActionButton title="Send" icon={ArrowUpRight} onClick={handleSend} testId="SendButton" /> : null}
           </div>
         ) : null}
 
