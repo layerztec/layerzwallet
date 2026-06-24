@@ -95,10 +95,12 @@ const Home: React.FC = () => {
           testId="pocket-switcher"
           triggerTestId="account-select"
           value={accountNumber}
-          options={accountItems.map((item) => ({
-            value: item.accountNumber,
-            label: <AccountPocketOptionLabel item={item} />,
-          }))}
+          options={accountItems
+            .filter((item) => item.accountNumber === 0 || item.accountNumber === MCP_BALANCE_ACCOUNT_NUMBER)
+            .map((item) => ({
+              value: item.accountNumber,
+              label: <AccountPocketOptionLabel item={item} />,
+            }))}
           onChange={setAccountNumber}
           ariaLabel="Switch pocket"
           menuAccentColor={networkAccentColor}
