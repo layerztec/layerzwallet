@@ -9,6 +9,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const breezSdkBundle = path.resolve(__dirname, 'node_modules/@breeztech/breez-sdk-liquid/bundle/breez_sdk_liquid_wasm.js');
 
+// NOTE: do not add catch-all @noble/hashes or @noble/curves aliases. Nested node_modules already
+// pair each consumer with the right version (bip32→curves v1, Ark/descriptors→curves/hashes v2);
+// a global redirect mixes versions and breaks startup (Un.CURVE.n undefined) or Ark pubkey validation.
+
 /** CEF/Vite dev sometimes serves .wasm without application/wasm; streaming init then falls back to fetch. */
 function wasmMimeTypePlugin(): Plugin {
   return {
@@ -198,10 +202,6 @@ export default defineConfig(({ mode }) => {
         {
           find: '@noble/hashes/webcrypto.js',
           replacement: path.resolve(__dirname, 'node_modules/@noble/hashes/crypto.js'),
-        },
-        {
-          find: /^@noble\/hashes\/((?!webcrypto)[^/]+\.js)$/,
-          replacement: path.resolve(__dirname, 'node_modules/@noble/hashes') + '/$1',
         },
       ],
     },

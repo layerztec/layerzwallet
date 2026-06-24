@@ -68,13 +68,13 @@ function mcpBalanceFields(baseUnits: string, decimals: number): { balance_base_u
 }
 
 /** Networks whose lazy-init wallet can pay BOLT11 Lightning invoices. */
-const MCP_LIGHTNING_PAY_NETWORKS = [NETWORK_SPARK, NETWORK_LIQUID] as const;
+const MCP_LIGHTNING_PAY_NETWORKS = [NETWORK_SPARK, NETWORK_ARK, NETWORK_LIQUID] as const;
 
 const mcpLightningPayNetworkSchema = z.enum(MCP_LIGHTNING_PAY_NETWORKS);
 
-/** Mainnet-style networks exposed to MCP (no testnets, Lightning, USDT, or Ark). */
+/** Mainnet-style networks exposed to MCP (no testnets, Lightning, or USDT). Ark mainnet is listable; ark_mutinynet is filtered as a testnet. */
 function mcpListableNetworks(): Networks[] {
-  return getAvailableNetworks().filter((n) => !getIsTestnet(n) && n !== NETWORK_LIGHTNING && n !== NETWORK_LIGHTNING_TESTNET && n !== NETWORK_USDT && n !== NETWORK_ARK && n !== NETWORK_ARK_MUTINYNET);
+  return getAvailableNetworks().filter((n) => !getIsTestnet(n) && n !== NETWORK_LIGHTNING && n !== NETWORK_LIGHTNING_TESTNET && n !== NETWORK_USDT);
 }
 
 /** Positive integer string for token amounts in smallest units (no precision loss). */
@@ -86,7 +86,7 @@ const mcpPositiveBaseUnitsString = z.string().regex(/^[1-9]\d*$/, 'Must be a pos
  * EVM token transfer takes a separate code path (see {@link MCP_EVM_TOKEN_TRANSFER_NETWORKS}),
  * so this stays narrow. Pairs with the read-only superset {@link MCP_TOKEN_READ_NETWORKS}.
  */
-const MCP_TOKEN_WRITE_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
+const MCP_TOKEN_WRITE_NETWORKS = [NETWORK_SPARK, NETWORK_ARK, NETWORK_STACKS] as const;
 
 /**
  * Networks `list_tokens` can read. Superset of {@link MCP_TOKEN_WRITE_NETWORKS}: also includes every
@@ -138,11 +138,11 @@ const mcpTokenTransferNetworkSchema = z.enum(MCP_TOKEN_TRANSFER_NETWORKS as [Net
  *  - Liquid (L-BTC): Breez wallet — L-BTC is the default Liquid *asset*, sent via `prepareSendPayment`
  *    (`{ type: 'asset', toAsset: <L-BTC asset id>, receiverAmount }`) → `sendPayment`, exactly like
  *    the UI native send screen and the transfer_token Liquid branch.
- *  - Spark (BTC) and Stacks (sBTC, its main balance): single-address `InterfaceAccountBasedWallet`
+ *  - Spark (BTC), Ark (BTC) and Stacks (sBTC, its main balance): single-address `InterfaceAccountBasedWallet`
  *    wallets, sent via `pay(address, amountSats)` — the same call the UI SendAccountBased screen uses.
  * EVM set is derived so new EVM mainnets are picked up automatically.
  */
-const MCP_NATIVE_TRANSFER_NETWORKS: Networks[] = [...mcpListableNetworks().filter((n) => getIsEVM(n)), NETWORK_LIQUID, NETWORK_SPARK, NETWORK_STACKS];
+const MCP_NATIVE_TRANSFER_NETWORKS: Networks[] = [...mcpListableNetworks().filter((n) => getIsEVM(n)), NETWORK_LIQUID, NETWORK_SPARK, NETWORK_ARK, NETWORK_STACKS];
 const mcpNativeTransferNetworkSchema = z.enum(MCP_NATIVE_TRANSFER_NETWORKS as [Networks, ...Networks[]]);
 
 /** Max EVM fee "speed up" multiplier exposed to MCP. */
