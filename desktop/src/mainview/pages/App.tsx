@@ -18,7 +18,6 @@ import { AskPasswordContextProvider } from '../hooks/AskPasswordContext';
 import { BackgroundCaller } from '../modules/background-caller';
 import { Messenger } from '../modules/messenger';
 import { TunnelBootstrap } from '../components/mcp/TunnelBootstrap';
-import { DesktopOmitArkNetworkGuard } from '../components/DesktopOmitArkNetworkGuard';
 import { SwapAnalyticsBootstrap } from '../components/SwapAnalyticsBootstrap';
 import AutoClaimMonitor from '../components/AutoClaimMonitor';
 import ActionPopupModal from './ActionPopupModal';
@@ -131,7 +130,6 @@ const App: React.FC = () => {
               <SettingsContextProvider storage={LayerzStorage}>
                 <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller} messenger={Messenger}>
                   <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundCaller} messenger={Messenger}>
-                    <DesktopOmitArkNetworkGuard />
                     <AutoClaimMonitor />
                     <ActionPopupProvider>
                       <AppContent />
