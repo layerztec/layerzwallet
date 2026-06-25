@@ -110,6 +110,7 @@ describe('MCP transfer_token (Liquid branch)', () => {
     expect(body.transfer_id).toBe('liquidtxid123');
     expect(body.token_id).toBe(USDT_ASSET); // trimmed
     expect(body.amount_human_readable).toBe('1'); // 100000000 / 10^8 (USDT, 8 decimals)
+    expect(typeof body.amount_ticker).toBe('string'); // token symbol
     expect(body.receiver_address).toBe(LIQUID_RECIPIENT); // trimmed
     expect(body.fee_base_units).toBe('26');
     expect(body.fee_human_readable).toBe('0.00000026'); // 26 sats / 10^8 (L-BTC fee)

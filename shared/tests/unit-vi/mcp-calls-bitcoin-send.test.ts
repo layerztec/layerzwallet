@@ -148,6 +148,7 @@ describe('MCP get_bitcoin_send_quote', () => {
     expect(body.receiver_address).toBe(RECEIVER); // trimmed
     expect(body.amount_base_units).toBe('100000');
     expect(body.amount_human_readable).toBe('0.001'); // 100000 sats / 10^8
+    expect(body.amount_ticker).toBe('BTC');
     expect(body.fee_base_units).toBe('500');
     expect(body.fee_human_readable).toBe('0.000005'); // 500 sats / 10^8
     expect(body.fee_rate).toBe(5);
@@ -220,6 +221,7 @@ describe('MCP execute_bitcoin_send', () => {
     expect(body.receiver_address).toBe(RECEIVER);
     expect(body.amount_base_units).toBe('100000');
     expect(body.amount_human_readable).toBe('0.001'); // 100000 sats / 10^8
+    expect(body.amount_ticker).toBe('BTC');
     expect(body.fee_base_units).toBe('500');
     expect(body.fee_human_readable).toBe('0.000005'); // 500 sats / 10^8
     expect(body.fee_rate).toBe(5);
