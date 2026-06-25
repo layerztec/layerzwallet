@@ -105,6 +105,8 @@ describe('MCP transfer_native (account-based: Spark & Stacks share one codepath)
     expect(body.network).toBe(NETWORK_SPARK);
     expect(body.transfer_id).toBe('spark-transfer-id-123');
     expect(body.amount_base_units).toBe('50000');
+    expect(body.amount_human_readable).toBe('0.0005'); // 50000 / 10^8 (Spark BTC, 8 decimals)
+    expect(typeof body.amount_ticker).toBe('string'); // native ticker for the network
     expect(body.receiver_address).toBe(SPARK_RECIPIENT); // trimmed
 
     expect(lazyInitWallet).toHaveBeenCalledWith(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);

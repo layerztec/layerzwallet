@@ -147,10 +147,14 @@ describe('MCP get_bitcoin_send_quote', () => {
     expect(body.network).toBe(NETWORK_BITCOIN);
     expect(body.receiver_address).toBe(RECEIVER); // trimmed
     expect(body.amount_base_units).toBe('100000');
+    expect(body.amount_human_readable).toBe('0.001'); // 100000 sats / 10^8
+    expect(body.amount_ticker).toBe('BTC');
     expect(body.fee_base_units).toBe('500');
+    expect(body.fee_human_readable).toBe('0.000005'); // 500 sats / 10^8
     expect(body.fee_rate).toBe(5);
     expect(body.fee_ticker).toBe('BTC');
     expect(body.total_base_units).toBe('100500');
+    expect(body.total_human_readable).toBe('0.001005'); // 100500 sats / 10^8
 
     expect(mockLazyInitWallet).toHaveBeenCalledWith(NETWORK_BITCOIN, MCP_BALANCE_ACCOUNT_NUMBER);
     expect(mockGetSendQuote).toHaveBeenCalledWith({ toAddress: RECEIVER, amount: '100000', feeRate: 5 });
@@ -216,7 +220,10 @@ describe('MCP execute_bitcoin_send', () => {
     expect(body.transfer_id).toBe('txid_deadbeef');
     expect(body.receiver_address).toBe(RECEIVER);
     expect(body.amount_base_units).toBe('100000');
+    expect(body.amount_human_readable).toBe('0.001'); // 100000 sats / 10^8
+    expect(body.amount_ticker).toBe('BTC');
     expect(body.fee_base_units).toBe('500');
+    expect(body.fee_human_readable).toBe('0.000005'); // 500 sats / 10^8
     expect(body.fee_rate).toBe(5);
 
     expect(mockExecuteSendQuote).toHaveBeenCalledWith(FAKE_QUOTE, 'correct horse battery staple', MCP_BALANCE_ACCOUNT_NUMBER);

@@ -1,12 +1,11 @@
-import { Denomination } from '@shared/types/transfer';
-import { Ionicons } from '@expo/vector-icons';
 import BigNumber from 'bignumber.js';
+import { ArrowUpDown } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
-import Pressable from './Pressable';
+
+import { overlayBackgroundDeeper } from '@shared/constants/Colors';
+import { Denomination } from '@shared/types/transfer';
 
 import { ThemedText } from './ThemedText';
-import { overlayBackgroundDeeper } from '@shared/constants/Colors';
 
 export interface AmountInputProps {
   value: string;
@@ -23,6 +22,7 @@ export interface AmountInputProps {
   testID?: string;
 }
 
+/** Web port of mobile `AmountInput`. */
 export default function AmountInput({
   value,
   onChangeText,
@@ -37,10 +37,10 @@ export default function AmountInput({
   disabled = false,
   testID,
 }: AmountInputProps) {
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [localDisplayValue, setLocalDisplayValue] = useState('');
   const isFocused = useRef(false);
-  const conversionCache = useRef<Map<string, string>>(new Map()); // convert cache
+  const conversionCache = useRef<Map<string, string>>(new Map());
   // The last native value this input emitted via onChangeText. Used to tell apart the user's own
   // typing from an external value change (e.g. max/balance press) so the field re-syncs for the latter.
   const lastEmittedValue = useRef<string | null>(null);
@@ -51,10 +51,8 @@ export default function AmountInput({
 
   useEffect(() => {
     conversionCache.current.clear();
-    // Clear cache when exchange rate changes
   }, [exchangeRate]);
 
-  // Convert native to fiat
   const nativeToFiat = useCallback(
     (nativeValue: string): string => {
       if (nativeValue === '0') return '0';
@@ -74,7 +72,6 @@ export default function AmountInput({
     [exchangeRateNumber]
   );
 
-  // Convert fiat to native
   const fiatToNative = useCallback(
     (fiatValue: string): string => {
       if (fiatValue === '0') return '0';
@@ -132,7 +129,7 @@ export default function AmountInput({
     }
   };
 
-  const handleContainerPress = () => {
+  const handleContainerClick = () => {
     if (!disabled) {
       inputRef.current?.focus();
     }
@@ -169,118 +166,104 @@ export default function AmountInput({
   }, [balance, denomination, exchangeRateNumber, ticker]);
 
   return (
-    <Pressable style={styles.container} onPress={handleContainerPress} activeOpacity={1} testID={testID}>
-      {/* Max Button */}
+    <div
+      onClick={handleContainerClick}
+      data-testid={testID}
+      style={{
+        backgroundColor: overlayBackgroundDeeper,
+        borderRadius: 20,
+        padding: 16,
+        height: 86,
+        boxSizing: 'border-box',
+        position: 'relative',
+        cursor: 'text',
+      }}
+    >
       {onMaxPress && (
-        <View style={styles.maxButtonContainer}>
-          <Pressable style={styles.maxButton} onPress={onMaxPress}>
-            <ThemedText style={styles.maxButtonText}>max</ThemedText>
-          </Pressable>
-        </View>
+        <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMaxPress();
+            }}
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              borderRadius: 40,
+              border: 'none',
+              padding: '1px 8px',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.8)', fontWeight: 500 }}>max</span>
+          </button>
+        </div>
       )}
 
-      {/* Amount Input */}
-      <View style={styles.inputRow}>
-        <TextInput
+      <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 2, gap: 8 }}>
+        <input
           ref={inputRef}
-          style={styles.amountInput}
           value={localDisplayValue}
-          onChangeText={handleAmountChange}
+          onChange={(e) => handleAmountChange(e.target.value)}
           placeholder="0.00"
-          placeholderTextColor="rgba(255, 255, 255, 0.5)"
-          keyboardType="numeric"
-          editable={!disabled}
+          inputMode="decimal"
+          disabled={disabled}
           onFocus={() => (isFocused.current = true)}
           onBlur={() => (isFocused.current = false)}
-          testID={testID ? `${testID}-field` : undefined}
+          data-testid={testID ? `${testID}-field` : undefined}
+          style={{
+            fontSize: 24,
+            color: 'rgba(255, 255, 255, 0.8)',
+            fontWeight: 600,
+            padding: 0,
+            margin: 0,
+            flex: 1,
+            border: 'none',
+            outline: 'none',
+            background: 'transparent',
+            minWidth: 0,
+          }}
         />
-      </View>
+      </div>
 
-      {/* Bottom Row: Secondary Value and Balance */}
-      <View style={styles.bottomRow}>
-        <Pressable style={styles.usdContainer} onPress={canSwitchDenomination ? handleDenominationSwitch : undefined} disabled={!canSwitchDenomination} activeOpacity={canSwitchDenomination ? 0.7 : 1}>
-          <ThemedText style={[styles.usdText, !canSwitchDenomination && styles.disabledText]}>{secondaryValue}</ThemedText>
-          {canSwitchDenomination && <Ionicons name="swap-vertical" size={16} color="rgba(255, 255, 255, 0.5)" style={styles.swapIcon} />}
-        </Pressable>
+      <div style={{ marginTop: 4, display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (canSwitchDenomination) handleDenominationSwitch();
+          }}
+          disabled={!canSwitchDenomination}
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: canSwitchDenomination ? 'pointer' : 'default',
+            opacity: canSwitchDenomination ? 1 : 0.5,
+          }}
+        >
+          <span style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.5)', fontWeight: 400 }}>{secondaryValue}</span>
+          {canSwitchDenomination && <ArrowUpDown size={16} color="rgba(255, 255, 255, 0.5)" style={{ marginLeft: 6, transform: 'rotate(45deg)' }} />}
+        </button>
 
         {onBalancePress ? (
-          <Pressable onPress={onBalancePress} activeOpacity={0.7}>
-            <ThemedText style={styles.balanceText}>Balance {formattedBalance}</ThemedText>
-          </Pressable>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onBalancePress();
+            }}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+          >
+            <ThemedText style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600 }}>Balance {formattedBalance}</ThemedText>
+          </button>
         ) : (
-          <ThemedText style={styles.balanceText}>Balance {formattedBalance}</ThemedText>
+          <ThemedText style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600 }}>Balance {formattedBalance}</ThemedText>
         )}
-      </View>
-    </Pressable>
+      </div>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: overlayBackgroundDeeper,
-    borderRadius: 20,
-    padding: 16,
-    height: 86,
-    position: 'relative',
-  },
-  maxButtonContainer: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    zIndex: 1,
-  },
-  maxButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 40,
-    paddingHorizontal: 8,
-    paddingVertical: 1,
-  },
-  maxButtonText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
-  },
-  inputRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginTop: 2,
-    gap: 8,
-  },
-  amountInput: {
-    fontSize: 24,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '600',
-    fontFamily: 'Inter',
-    padding: 0,
-    margin: 0,
-    flex: 1,
-  },
-  bottomRow: {
-    marginTop: 4,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  usdContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  usdText: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontWeight: '400',
-  },
-  swapIcon: {
-    marginLeft: 6,
-    transform: [{ rotate: '45deg' }],
-  },
-  balanceText: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontWeight: '600',
-  },
-  disabledText: {
-    opacity: 0.5,
-  },
-});
