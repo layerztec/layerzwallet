@@ -31,7 +31,9 @@ type Step = 'address' | 'amount' | 'confirm';
 
 interface CreatedTransaction {
   txhex: string;
-  actualFee: number;
+  // Fee in wei / base units. Kept as a string because 18-decimal chains routinely exceed
+  // Number.MAX_SAFE_INTEGER, and parseFloat would silently lose precision.
+  actualFee: string;
 }
 
 /**
@@ -158,7 +160,7 @@ const SendEvm: React.FC = () => {
       const mnemonic = await BackgroundCaller.getMasterSeed();
       const signedBytes = await e.signTransaction(prepared, mnemonic, accountNumber);
 
-      setCreatedTransaction({ txhex: signedBytes, actualFee: parseFloat(calculatedMinFee) });
+      setCreatedTransaction({ txhex: signedBytes, actualFee: calculatedMinFee });
       setStep('confirm');
     } catch (e: any) {
       console.error('Failed to prepare transaction:', e);
@@ -193,8 +195,8 @@ const SendEvm: React.FC = () => {
   const exchangeRateString = assetExchangeRate !== undefined ? String(assetExchangeRate) : undefined;
 
   // EVM fee is computed during prepare and always denominated in the native coin.
-  const feeToUse = createdTransaction?.actualFee ?? 0;
-  const feeInNative = formatBalance(String(feeToUse), networkDecimals, 8);
+  const feeToUse = createdTransaction?.actualFee ?? '0';
+  const feeInNative = formatBalance(feeToUse, networkDecimals, 8);
   const feeInNativeUnits = new BigNumber(feeToUse).dividedBy(new BigNumber(10).pow(networkDecimals));
   const amountUsdValue = nativeExchangeRate && !isTokenSend ? `$${new BigNumber(amount || '0').multipliedBy(Number(nativeExchangeRate)).toFixed(2)}` : '';
   const usdFee = nativeExchangeRate ? `$${feeInNativeUnits.multipliedBy(Number(nativeExchangeRate)).toFixed(2)}` : '';
