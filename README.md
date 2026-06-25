@@ -73,6 +73,7 @@ TBD
 - `npx playwright install`
 - `npx playwright install-deps`
 - `./utils/add-sepolia.sh`
+- `npm run build`
 - `npm run e2e`
 
 ## e2e (mobile)
