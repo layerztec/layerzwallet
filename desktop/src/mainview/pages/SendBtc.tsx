@@ -16,6 +16,7 @@ import { sleep } from '@shared/modules/sleep';
 import { formatBalance } from '@shared/modules/string-utils';
 import { validateAddress } from '@shared/modules/wallet-utils';
 import { GetBtcSendDataResponse } from '@shared/types/IBackgroundCaller';
+import { NETWORK_BITCOIN } from '@shared/types/networks';
 
 import AmountInput from '../components/AmountInput';
 import { RadialGradientScreen } from '../components/home/RadialGradientScreen';
@@ -93,8 +94,9 @@ const SendBtc: React.FC = () => {
 
   const formattedBalance = formatBalance(balance || '0', networkDecimals);
 
-  // Load Bitcoin UTXO send data
+  // Load Bitcoin UTXO send data (only relevant while the active network is Bitcoin)
   useEffect(() => {
+    if (network !== NETWORK_BITCOIN) return;
     let cancelled = false;
     const load = async () => {
       setIsLoadingSendData(true);
@@ -111,10 +113,11 @@ const SendBtc: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [accountNumber]);
+  }, [accountNumber, network]);
 
-  // Load Bitcoin fee estimates
+  // Load Bitcoin fee estimates (only relevant while the active network is Bitcoin)
   useEffect(() => {
+    if (network !== NETWORK_BITCOIN) return;
     let cancelled = false;
     const load = async () => {
       setIsLoadingFees(true);
@@ -138,7 +141,7 @@ const SendBtc: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [network]);
 
   const isLoading = isLoadingSendData || isLoadingFees;
 
