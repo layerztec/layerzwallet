@@ -7,7 +7,18 @@ import { ensureMcpBootstrapped, isMcpActivated } from '../features/mcp/tunnel-de
 import { accountItems, AccountNumberContext, getAccountItem, MCP_BALANCE_ACCOUNT_NUMBER } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT } from '@shared/types/networks';
+import {
+  NETWORK_ARK,
+  NETWORK_ARK_MUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_LIGHTNING,
+  NETWORK_LIGHTNING_TESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_SPARK,
+  NETWORK_STACKS,
+  NETWORK_USDT,
+} from '@shared/types/networks';
 import { getIsEVM } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { getNetworkPrimaryColor } from '@shared/constants/Colors';
@@ -38,11 +49,13 @@ const Home: React.FC = () => {
   const networkLabel = capitalizeFirstLetter(network);
   const networkAccentColor = getNetworkPrimaryColor(network);
 
-  // Send is implemented for single-address (account-based) wallets via SendAccountBased, EVM wallets via SendEvm, and Bitcoin via SendBtc.
+  // Send is implemented for single-address (account-based) wallets via SendAccountBased, EVM wallets via SendEvm,
+  // Bitcoin via SendBtc, and Liquid via SendLiquid.
   const isAccountBasedNetwork = network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_STACKS;
   const isEvmNetwork = getIsEVM(network);
   const isBitcoinNetwork = network === NETWORK_BITCOIN;
-  const isSendSupported = isAccountBasedNetwork || isEvmNetwork || isBitcoinNetwork;
+  const isLiquidNetwork = network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET;
+  const isSendSupported = isAccountBasedNetwork || isEvmNetwork || isBitcoinNetwork || isLiquidNetwork;
 
   const [showActivateModal, setShowActivateModal] = useState(false);
   const activateDismissedRef = useRef(false);
@@ -82,6 +95,8 @@ const Home: React.FC = () => {
       navigate('/send-btc');
     } else if (isEvmNetwork) {
       navigate('/send-evm');
+    } else if (isLiquidNetwork) {
+      navigate('/send-liquid');
     } else {
       navigate('/send');
     }
