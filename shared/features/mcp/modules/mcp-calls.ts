@@ -67,6 +67,25 @@ function mcpBalanceFields(baseUnits: string, decimals: number): { balance_base_u
   return { balance_base_units: baseUnits, balance_human_readable: mcpBaseUnitsToHumanReadable(baseUnits, decimals) };
 }
 
+/**
+ * `amount_base_units` (smallest units, verbatim) plus `amount_human_readable` (decimal string for
+ * showing the user), computed via the amount's `decimals` — the native-coin decimals for native
+ * sends, the token's decimals for token transfers. Mirrors {@link mcpBalanceFields}.
+ */
+function mcpAmountFields(baseUnits: string, decimals: number): { amount_base_units: string; amount_human_readable: string | null } {
+  return { amount_base_units: baseUnits, amount_human_readable: mcpBaseUnitsToHumanReadable(baseUnits, decimals) };
+}
+
+/**
+ * `fee_base_units` (smallest units), `fee_human_readable` (decimal string), and `fee_ticker`. The fee
+ * is always paid in the chain's native coin, so `decimals`/`ticker` are the native ones — even for
+ * token transfers where the amount uses the token's decimals.
+ */
+function mcpFeeFields(baseUnits: string | number, decimals: number, ticker: string): { fee_base_units: string; fee_human_readable: string | null; fee_ticker: string } {
+  const feeBaseUnits = String(baseUnits ?? '');
+  return { fee_base_units: feeBaseUnits, fee_human_readable: mcpBaseUnitsToHumanReadable(feeBaseUnits, decimals), fee_ticker: ticker };
+}
+
 /** Networks whose lazy-init wallet can pay BOLT11 Lightning invoices. */
 const MCP_LIGHTNING_PAY_NETWORKS = [NETWORK_SPARK, NETWORK_ARK, NETWORK_LIQUID] as const;
 
@@ -445,7 +464,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     'transfer_token',
     {
       title: 'Transfer fungible token on a network',
-      description: `Sends \`amount_base_units\` (smallest units, integer string — same as list_tokens \`balance_base_units\`) of \`token_id\` to \`receiver_address\`. \`network\` must be one of: ${MCP_TOKEN_TRANSFER_NETWORKS.join(', ')}. Call list_tokens first; **pass \`token_id\` exactly as returned** (verbatim string from the tool output). Malformed or chat-transcribed ids will fail; use the exact value from MCP JSON, not a human summary. On EVM chains (${MCP_EVM_TOKEN_TRANSFER_NETWORKS.join(', ')}) \`token_id\` is the ERC-20 contract address and the transfer pays gas in the chain's native coin. On Liquid \`token_id\` is the Liquid asset id and the fee is paid in L-BTC. Only tokens from list_tokens are supported.`,
+      description: `Sends \`amount_base_units\` (smallest units, integer string — same as list_tokens \`balance_base_units\`) of \`token_id\` to \`receiver_address\`. \`network\` must be one of: ${MCP_TOKEN_TRANSFER_NETWORKS.join(', ')}. Call list_tokens first; **pass \`token_id\` exactly as returned** (verbatim string from the tool output). Malformed or chat-transcribed ids will fail; use the exact value from MCP JSON, not a human summary. On EVM chains (${MCP_EVM_TOKEN_TRANSFER_NETWORKS.join(', ')}) \`token_id\` is the ERC-20 contract address and the transfer pays gas in the chain's native coin. On Liquid \`token_id\` is the Liquid asset id and the fee is paid in L-BTC. Only tokens from list_tokens are supported. On success returns \`amount_human_readable\` (token decimals) and, where a fee is reported, \`fee_human_readable\` (native-coin decimals) — quote these decimal-corrected values to the user.`,
       inputSchema: {
         network: mcpTokenTransferNetworkSchema.describe(`Network id; one of: ${MCP_TOKEN_TRANSFER_NETWORKS.join(', ')}.`),
         token_id: z
@@ -502,7 +521,17 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
               content: [
                 {
                   type: 'text',
-                  text: JSON.stringify({ error: 'Insufficient token balance.', network: net, token_id: tid, amount_base_units, ...mcpBalanceFields(tokenBalance ?? '0', token.decimals) }, null, 2),
+                  text: JSON.stringify(
+                    {
+                      error: 'Insufficient token balance.',
+                      network: net,
+                      token_id: tid,
+                      ...mcpAmountFields(amount_base_units, token.decimals),
+                      ...mcpBalanceFields(tokenBalance ?? '0', token.decimals),
+                    },
+                    null,
+                    2
+                  ),
                 },
               ],
             };
@@ -540,10 +569,9 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                     network: net,
                     transfer_id,
                     token_id: tid,
-                    amount_base_units,
+                    ...mcpAmountFields(amount_base_units, token.decimals),
                     receiver_address: addr,
-                    fee_base_units: fee,
-                    fee_ticker: getTickerByNetwork(net),
+                    ...mcpFeeFields(fee, getDecimalsByNetwork(net), getTickerByNetwork(net)),
                     fee_multiplier: feeMultiplier,
                   },
                   null,
@@ -599,7 +627,17 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
               content: [
                 {
                   type: 'text',
-                  text: JSON.stringify({ error: 'Insufficient token balance.', network: net, token_id: tid, amount_base_units, ...mcpBalanceFields(tokenBalance ?? '0', token.decimals) }, null, 2),
+                  text: JSON.stringify(
+                    {
+                      error: 'Insufficient token balance.',
+                      network: net,
+                      token_id: tid,
+                      ...mcpAmountFields(amount_base_units, token.decimals),
+                      ...mcpBalanceFields(tokenBalance ?? '0', token.decimals),
+                    },
+                    null,
+                    2
+                  ),
                 },
               ],
             };
@@ -631,10 +669,9 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                     network: net,
                     transfer_id,
                     token_id: tid,
-                    amount_base_units,
+                    ...mcpAmountFields(amount_base_units, token.decimals),
                     receiver_address: addr,
-                    fee_base_units: String(prepareResponse.feesSat ?? ''),
-                    fee_ticker: 'L-BTC',
+                    ...mcpFeeFields(String(prepareResponse.feesSat ?? ''), getDecimalsByNetwork(NETWORK_LIQUID), 'L-BTC'),
                   },
                   null,
                   2
@@ -747,7 +784,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                     error: 'Insufficient token balance.',
                     network,
                     token_id: tid,
-                    amount_base_units,
+                    ...mcpAmountFields(amount_base_units, holding.decimals),
                     ...mcpBalanceFields(holding.balance ?? '0', holding.decimals),
                   },
                   null,
@@ -778,7 +815,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   network,
                   transfer_id,
                   token_id: tid,
-                  amount_base_units,
+                  ...mcpAmountFields(amount_base_units, holding.decimals),
                   receiver_address: addr,
                 },
                 null,
@@ -802,7 +839,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     'transfer_native',
     {
       title: "Transfer a network's native coin",
-      description: `Sends \`amount_base_units\` (smallest units, integer string — same scale as get_network_balance \`balance_base_units\`) of the network's native coin to \`receiver_address\`. \`network\` must be one of: ${MCP_NATIVE_TRANSFER_NETWORKS.join(', ')}. The fee is paid in that same native coin and deducted on top of \`amount_base_units\`. For fungible tokens use transfer_token instead.`,
+      description: `Sends \`amount_base_units\` (smallest units, integer string — same scale as get_network_balance \`balance_base_units\`) of the network's native coin to \`receiver_address\`. \`network\` must be one of: ${MCP_NATIVE_TRANSFER_NETWORKS.join(', ')}. The fee is paid in that same native coin and deducted on top of \`amount_base_units\`. On success returns \`amount_human_readable\` and \`fee_human_readable\` (decimal strings, already corrected via \`decimals\`) alongside the \`*_base_units\` values — quote the human-readable ones to the user. For fungible tokens use transfer_token instead.`,
       inputSchema: {
         network: mcpNativeTransferNetworkSchema.describe(`Network id; one of: ${MCP_NATIVE_TRANSFER_NETWORKS.join(', ')}.`),
         amount_base_units: mcpPositiveBaseUnitsString.describe('Amount of native coin to send in smallest units (positive integer string; e.g. wei on EVM chains).'),
@@ -864,8 +901,8 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                     {
                       error: `Insufficient ${getTickerByNetwork(net)} balance for amount + gas.`,
                       network: net,
-                      amount_base_units,
-                      fee_base_units: fee,
+                      ...mcpAmountFields(amount_base_units, getDecimalsByNetwork(net)),
+                      ...mcpFeeFields(fee, getDecimalsByNetwork(net), getTickerByNetwork(net)),
                       ...mcpBalanceFields(nativeBalance ?? '0', getDecimalsByNetwork(net)),
                     },
                     null,
@@ -897,10 +934,9 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                     success: true,
                     network: net,
                     transfer_id,
-                    amount_base_units,
+                    ...mcpAmountFields(amount_base_units, getDecimalsByNetwork(net)),
                     receiver_address: addr,
-                    fee_base_units: fee,
-                    fee_ticker: getTickerByNetwork(net),
+                    ...mcpFeeFields(fee, getDecimalsByNetwork(net), getTickerByNetwork(net)),
                     fee_multiplier: feeMultiplier,
                   },
                   null,
@@ -966,7 +1002,14 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
               {
                 type: 'text',
                 text: JSON.stringify(
-                  { success: true, network: net, transfer_id, amount_base_units, receiver_address: addr, fee_base_units: String(prepareResponse.feesSat ?? ''), fee_ticker: 'L-BTC' },
+                  {
+                    success: true,
+                    network: net,
+                    transfer_id,
+                    ...mcpAmountFields(amount_base_units, decimals),
+                    receiver_address: addr,
+                    ...mcpFeeFields(String(prepareResponse.feesSat ?? ''), decimals, 'L-BTC'),
+                  },
                   null,
                   2
                 ),
@@ -1021,7 +1064,11 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
             content: [
               {
                 type: 'text',
-                text: JSON.stringify({ success: true, network: net, transfer_id, amount_base_units, receiver_address: addr, fee_ticker: getTickerByNetwork(net) }, null, 2),
+                text: JSON.stringify(
+                  { success: true, network: net, transfer_id, ...mcpAmountFields(amount_base_units, getDecimalsByNetwork(net)), receiver_address: addr, fee_ticker: getTickerByNetwork(net) },
+                  null,
+                  2
+                ),
               },
             ],
           };
@@ -1085,7 +1132,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     {
       title: 'Quote a native Bitcoin (on-chain) send',
       description:
-        'Prepares an on-chain Bitcoin (BTC) send of `amount_base_units` sats to `receiver_address` at `fee_rate` (sat/vByte). Returns a `quote_id` plus the exact `fee_base_units` (sats) and `total_base_units` (amount + fee) so you can review the fee before committing. **No funds move on this call** — call `execute_bitcoin_send` with the `quote_id` to actually sign and broadcast.\n\n' +
+        'Prepares an on-chain Bitcoin (BTC) send of `amount_base_units` sats to `receiver_address` at `fee_rate` (sat/vByte). Returns a `quote_id` plus the exact `fee_base_units` (sats) and `total_base_units` (amount + fee), each with a decimal `*_human_readable` (BTC) counterpart, so you can review the fee before committing. **No funds move on this call** — call `execute_bitcoin_send` with the `quote_id` to actually sign and broadcast.\n\n' +
         MCP_BASE_UNITS_GUIDANCE +
         `\n\n\`amount_base_units\` is sats — the same scale as get_network_balance \`balance_base_units\` for bitcoin. Get \`fee_rate\` from get_bitcoin_fee_rates (low/medium/high) or pick any integer sat/vByte. The quote is rejected if the fee would exceed ${MCP_BTC_MAX_FEE_PERCENT_OF_AMOUNT}% of the amount (lower fee_rate or send more).`,
       inputSchema: {
@@ -1134,8 +1181,8 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   {
                     error: `Fee (${fee.toString()} sats) exceeds ${MCP_BTC_MAX_FEE_PERCENT_OF_AMOUNT}% of the send amount (${amount.toString()} sats). Lower fee_rate or send a larger amount.`,
                     network: NETWORK_BITCOIN,
-                    fee_base_units: quote.fee,
-                    amount_base_units,
+                    ...mcpAmountFields(amount_base_units, getDecimalsByNetwork(NETWORK_BITCOIN)),
+                    ...mcpFeeFields(quote.fee, getDecimalsByNetwork(NETWORK_BITCOIN), 'BTC'),
                     fee_rate,
                   },
                   null,
@@ -1160,11 +1207,11 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   quote_id: quoteId,
                   network: NETWORK_BITCOIN,
                   receiver_address: addr,
-                  amount_base_units,
-                  fee_base_units: quote.fee,
+                  ...mcpAmountFields(amount_base_units, getDecimalsByNetwork(NETWORK_BITCOIN)),
+                  ...mcpFeeFields(quote.fee, getDecimalsByNetwork(NETWORK_BITCOIN), 'BTC'),
                   fee_rate,
-                  fee_ticker: 'BTC',
                   total_base_units: (amount + fee).toString(),
+                  total_human_readable: mcpBaseUnitsToHumanReadable((amount + fee).toString(), getDecimalsByNetwork(NETWORK_BITCOIN)),
                 },
                 null,
                 2
@@ -1243,10 +1290,9 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   network: NETWORK_BITCOIN,
                   transfer_id,
                   receiver_address: quote.request.toAddress,
-                  amount_base_units: quote.request.amount,
-                  fee_base_units: quote.fee,
+                  ...mcpAmountFields(quote.request.amount, getDecimalsByNetwork(NETWORK_BITCOIN)),
+                  ...mcpFeeFields(quote.fee, getDecimalsByNetwork(NETWORK_BITCOIN), 'BTC'),
                   fee_rate: quote.request.feeRate,
-                  fee_ticker: 'BTC',
                 },
                 null,
                 2

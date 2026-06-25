@@ -31,7 +31,7 @@ export const MCP_SERVER_INSTRUCTIONS = [
   '',
   MCP_BASE_UNITS_GUIDANCE,
   '',
-  '**Balances:** Tools that return `balance_base_units` also return `balance_human_readable` — show the human-readable value (with ticker/symbol) to the user; never do decimal math yourself.',
+  '**Balances & amounts:** Tools that return a `*_base_units` field also return its `*_human_readable` decimal counterpart (e.g. `balance_human_readable`, `amount_human_readable`, `fee_human_readable`, `total_human_readable`) — show the human-readable value (with ticker/symbol) to the user; never do decimal math yourself.',
   '',
   '**Swaps (Spark BTC ↔ USDB):**',
   '1. `get_network_balance` (network `spark`) for selling BTC, or `list_tokens` (network `spark`) for selling USDB.',
