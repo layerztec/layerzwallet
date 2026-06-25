@@ -10,6 +10,7 @@
 import { ensureWalletAdapters } from '../../modules/load-adapters';
 
 import { desktopMcpDeps } from './modules/mcp-platform';
+import { version } from '../../../../package.json';
 
 import type { RequestHandler, TunnelHttpRequest, TunnelHttpResponse } from '@shared/features/mcp/modules/tunnel-types';
 
@@ -29,7 +30,7 @@ export function ensureMcpConfigured(): Promise<void> {
     configurePromise = (async () => {
       await ensureWalletAdapters();
       const { configureMcp } = await loadMcp();
-      configureMcp(desktopMcpDeps, { name: 'layerz-wallet-desktop' });
+      configureMcp(desktopMcpDeps, { name: 'layerz-wallet-desktop', version });
     })().catch((err) => {
       configurePromise = null;
       throw err;

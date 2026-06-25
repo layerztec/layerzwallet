@@ -39,6 +39,7 @@ import { TunnelKeepAwake } from '@/src/features/mcp/components/TunnelKeepAwake';
 import { appendLog, applogFilePath, handleError } from '@/src/modules/error-handler';
 import { TransferFlowProvider } from '@/src/transfer/TransferFlowContext';
 import { buildSwapCompletedProperties } from '@shared/modules/swap-analytics';
+import { version } from '../package.json';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -46,7 +47,7 @@ LogBox.ignoreLogs(['Require cycle:', 'Open debugger to view warnings.']);
 
 // Wire platform-specific MCP deps synchronously at module load so `handleMcpRequest`
 // is safe to invoke as soon as the tunnel resolves (TunnelBootstrap mounts later).
-configureMcp(mobileMcpDeps, { name: 'layerz-wallet-mobile' });
+configureMcp(mobileMcpDeps, { name: 'layerz-wallet-mobile', version });
 
 const onJSError = (error: unknown) => handleError(error, 'JAVASCRIPT_ERROR');
 
