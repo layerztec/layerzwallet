@@ -180,11 +180,12 @@ const MCP_NFT_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
 const mcpNftNetworkSchema = z.enum(MCP_NFT_NETWORKS);
 
 /**
- * AssetIds the MCP swap tools accept. Today: only BTC↔USDB on Spark (Flashnet AMM).
- * Adding more pairs is purely additive: extend this list and the routing falls through
- * to whatever provider TransferServiceManager picks.
+ * AssetIds the MCP swap tools accept: BTC↔USDB on Spark (Flashnet, in-wallet AMM) and on-chain
+ * BTC → Citrea cBTC (Atomiq, cross-chain). Adding more pairs is purely additive: extend this list
+ * and the routing falls through to whatever provider TransferServiceManager picks for the pair —
+ * cross-chain providers just need a settle address (see get_swap_quote) and `executeInstantSwap`.
  */
-const MCP_SWAP_ASSET_IDS = ['native:spark', 'token:spark:usdb'] as const satisfies readonly AssetId[];
+const MCP_SWAP_ASSET_IDS = ['native:spark', 'token:spark:usdb', 'native:bitcoin', 'native:citrea'] as const satisfies readonly AssetId[];
 const mcpSwapAssetSchema = z.enum(MCP_SWAP_ASSET_IDS);
 
 function normalizeBolt11Invoice(raw: string): string {
@@ -2125,22 +2126,23 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
   mcp.registerTool(
     'get_swap_quote',
     {
-      title: 'Quote an in-wallet swap (no funds move)',
+      title: 'Quote a swap (no funds move)',
       description:
-        'Returns a quote for swapping `send_amount_base_units` of `send_asset` into `receive_asset`. Currently only BTC↔USDB on Spark. The response includes a `quote_id` you must pass verbatim to `execute_swap` to actually trade. Quotes expire at `expires_at_unix` (typically 60s, TELL USER HOW MUCH TIME IS LEFT); call this tool again after expiry. **No funds move on this call** — it only stages the swap so the user/agent can review fees before committing.\n\n' +
+        'Returns a quote for swapping `send_amount_base_units` of `send_asset` into `receive_asset`. Supported routes: BTC↔USDB on Spark (instant in-wallet AMM) and on-chain BTC → Citrea cBTC (`native:bitcoin` → `native:citrea`, cross-chain). The response includes a `quote_id` you must pass verbatim to `execute_swap` to actually trade. Quotes expire at `expires_at_unix` (TELL USER HOW MUCH TIME IS LEFT); call this tool again after expiry. **No funds move on this call** — it only stages the swap so the user/agent can review fees before committing.\n\n' +
+        "The BTC → Citrea cBTC route is **cross-chain and NOT instant**: `execute_swap` broadcasts a real Bitcoin L1 transaction and the cBTC settles automatically on the wallet's own Citrea address after that tx confirms (typically ~30 min). The response for that route includes a `recipient_address` (the wallet's Citrea address that will receive the cBTC) and omits `effective_exchange_rate`.\n\n" +
         MCP_BASE_UNITS_GUIDANCE +
-        '\n\n**Where `send_amount_base_units` comes from:** call `get_network_balance` on `spark` for `native:spark` (BTC/sats), or `list_tokens` on `spark` for `token:spark:usdb` — copy `balance_base_units` verbatim (or a smaller amount ≤ balance). The wallet converts base units → human amount internally; you must not multiply by `10^decimals` before calling this tool.\n\n' +
-        '**Present the EXACT outcome to the user with zero mental math.** The response already contains both machine units (`*_base_units`) and ready-to-show decimal strings (`send_amount_human_readable`, `receive_amount_human_readable`); `receive_amount_*`, `effective_exchange_rate`, and `rate` are all already net of the AMM fee — quote them verbatim, do **NOT** subtract anything on top.\n\n' +
+        '\n\n**Where `send_amount_base_units` comes from:** call `get_network_balance` on `spark` for `native:spark` (BTC/sats), or `list_tokens` on `spark` for `token:spark:usdb`; for the Citrea route use an on-chain BTC balance (`native:bitcoin`, sats). Copy `balance_base_units` verbatim (or a smaller amount ≤ balance). The wallet converts base units → human amount internally; you must not multiply by `10^decimals` before calling this tool.\n\n' +
+        '**Present the EXACT outcome to the user with zero mental math.** The response already contains both machine units (`*_base_units`) and ready-to-show decimal strings (`send_amount_human_readable`, `receive_amount_human_readable`); `receive_amount_*`, `effective_exchange_rate`, and `rate` are all already net of fees — quote them verbatim, do **NOT** subtract anything on top.\n\n' +
         '- `send_amount_human_readable` / `receive_amount_human_readable`: precomputed decimal strings (e.g. "0.001", "99.5") for the send and receive amounts. **Quote these verbatim to the user** (with the asset ticker); never divide a `*_base_units` value by `10^decimals` yourself — the wallet has already done the decimal math.\n' +
-        '- `effective_exchange_rate`: precomputed BTC price in USDB the user is actually paying, factoring in fees (e.g. "99500.00"). Always normalized to USDB-per-BTC regardless of swap direction, so the user can compare it directly to a market BTC price. Prefer this over `rate` when presenting — `rate` reads poorly in the USDB→BTC direction ("1 USDB = 0.00001 BTC").\n' +
-        '- `effective_fee_rate`: precomputed `fee_base_units / send_amount_base_units × 100` as a percent string. Always surface it for transparency about what the AMM is keeping — but show it as transparency, **not** as a further deduction on top of the rate/amounts.\n\n' +
+        '- `effective_exchange_rate`: **(Spark BTC↔USDB only)** precomputed BTC price in USDB the user is actually paying, factoring in fees (e.g. "99500.00"). Always normalized to USDB-per-BTC regardless of swap direction, so the user can compare it directly to a market BTC price. Prefer this over `rate` when presenting — `rate` reads poorly in the USDB→BTC direction ("1 USDB = 0.00001 BTC"). Absent for cross-chain routes; use `rate` there.\n' +
+        '- `effective_fee_rate`: precomputed `fee_base_units / send_amount_base_units × 100` as a percent string. Always surface it for transparency about what the provider is keeping — but show it as transparency, **not** as a further deduction on top of the rate/amounts.\n\n' +
         'Good: "You\'ll send 0.001 BTC and receive 99.5 USDB (effective price: 99,500 USDB per BTC, includes a 0.4% AMM fee)."\n' +
         'Bad: "You\'ll send 0.001 BTC at 99,500 USDB per BTC, with a 0.4% fee on top." (the fee is **not** on top — it\'s already baked into `effective_exchange_rate` and `receive_amount_base_units`.)',
       inputSchema: {
         send_asset: mcpSwapAssetSchema.describe(`Asset to sell. One of: ${MCP_SWAP_ASSET_IDS.join(', ')}.`),
         receive_asset: mcpSwapAssetSchema.describe(`Asset to buy. Must differ from \`send_asset\`. One of: ${MCP_SWAP_ASSET_IDS.join(', ')}.`),
         send_amount_base_units: mcpPositiveBaseUnitsString.describe(
-          "Amount to sell in the send asset's smallest units (sats for native:spark, 6-decimal units for token:spark:usdb). Copy from balance_base_units — never multiply by 10^decimals."
+          "Amount to sell in the send asset's smallest units (sats for native:spark and native:bitcoin, 6-decimal units for token:spark:usdb). Copy from balance_base_units — never multiply by 10^decimals."
         ),
       },
     },
@@ -2157,9 +2159,19 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
       }
 
       try {
-        useTransferService(storage); // ensure the singleton + Flashnet service are constructed
-        await backgroundCaller.lazyInitWallet(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
-        setFlashnetAccountNumber(MCP_BALANCE_ACCOUNT_NUMBER);
+        useTransferService(storage); // ensure the singleton + provider services are constructed
+
+        const sendInfo = getAssetInfo(send_asset);
+        const receiveInfo = getAssetInfo(receive_asset);
+        const sameNetwork = sendInfo.network === receiveInfo.network;
+
+        // Flashnet's in-wallet AMM needs the Spark wallet warmed up and pinned to the MCP account.
+        // Cross-chain providers (e.g. Atomiq BTC→Citrea) don't, so only warm up Spark when a Spark
+        // leg is involved — a BTC→cBTC quote shouldn't pay to spin up the Spark SDK.
+        if (sendInfo.network === NETWORK_SPARK || receiveInfo.network === NETWORK_SPARK) {
+          await backgroundCaller.lazyInitWallet(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
+          setFlashnetAccountNumber(MCP_BALANCE_ACCOUNT_NUMBER);
+        }
 
         const manager = getTransferServiceManager();
         if (!manager) {
@@ -2170,14 +2182,16 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
           };
         }
 
-        const sendInfo = getAssetInfo(send_asset);
-        const receiveInfo = getAssetInfo(receive_asset);
-
         const sendAmountHuman = new BigNumber(send_amount_base_units).div(new BigNumber(10).pow(sendInfo.decimals)).toFixed();
 
         const quote = await manager.getQuote(send_asset, receive_asset, sendAmountHuman);
+
+        // In-wallet swaps (same network, e.g. Spark AMM) settle in place, so no settle address is
+        // needed. Cross-chain swaps settle to the wallet's own receive address on the destination
+        // network — stage with that recipient so execute_swap can broadcast against it.
+        const settleAddress = sameNetwork ? '' : await backgroundCaller.getAddress(receiveInfo.network, MCP_BALANCE_ACCOUNT_NUMBER);
         // Stage in-memory only (5min TTL); execute_swap persists the completed row.
-        const execution = await manager.executeTransfer(quote, MCP_BALANCE_ACCOUNT_NUMBER, '');
+        const execution = await manager.executeTransfer(quote, MCP_BALANCE_ACCOUNT_NUMBER, settleAddress);
 
         const receiveAmountBaseUnits = new BigNumber(quote.receiveAmount).times(new BigNumber(10).pow(receiveInfo.decimals)).integerValue(BigNumber.ROUND_FLOOR).toFixed(0);
 
@@ -2186,28 +2200,28 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
         const sendAmountHumanReadable = mcpBaseUnitsToHumanReadable(send_amount_base_units, sendInfo.decimals);
         const receiveAmountHumanReadable = mcpBaseUnitsToHumanReadable(receiveAmountBaseUnits, receiveInfo.decimals);
 
-        // Trading fee as a percentage of the user's input (e.g. "0.4000" for 0.4%).
-        // Kept as smallest-unit math (fee_base_units / send_amount_base_units) so it stays exact
-        // regardless of asset decimals. `quote.rate` is already the post-fee effective rate,
-        // since the AMM's amountOut is net of fees — surfacing this percentage lets the agent
-        // explain the cost of the trade alongside that rate.
-        const feeBaseUnitsStr = quote.feeBaseUnits ?? '0';
+        // Fee in the send asset's smallest units, as a percentage of the user's input (e.g. "0.4000"
+        // for 0.4%). Prefer the provider's exact base-unit fee (Flashnet sets it); fall back to
+        // deriving it from the human-readable fee, which is all some providers (e.g. Atomiq) report.
+        // `quote.rate` is already the post-fee effective rate, so this percentage is transparency only.
+        const feeBaseUnitsStr = quote.feeBaseUnits ?? (quote.fee ? new BigNumber(quote.fee).times(new BigNumber(10).pow(sendInfo.decimals)).integerValue(BigNumber.ROUND_FLOOR).toFixed(0) : '0');
         const effectiveFeeRate = new BigNumber(feeBaseUnitsStr).div(new BigNumber(send_amount_base_units)).times(100).toFixed(4);
 
-        // The actual BTC-priced-in-USDB rate the user is paying, factoring in fees.
-        // `quote.rate` is direction-specific ("1 USDB = 0.00001 BTC" reads poorly), so we
-        // always normalize to USDB-per-BTC for the BTC↔USDB pair. Uses human-unit amounts
-        // — both sides are decimal-corrected, so the ratio is exact regardless of decimals.
-        // If new swap pairs are added beyond MCP_SWAP_ASSET_IDS, revisit this normalization.
-        const sendIsBtc = send_asset === 'native:spark';
-        const usdbHuman = sendIsBtc ? quote.receiveAmount : sendAmountHuman;
-        const btcHuman = sendIsBtc ? sendAmountHuman : quote.receiveAmount;
-        const effectiveExchangeRate = new BigNumber(usdbHuman).div(new BigNumber(btcHuman)).toFixed(2);
+        // `effective_exchange_rate` is BTC↔USDB-specific (normalized to USDB-per-BTC because
+        // `quote.rate` reads poorly in the USDB→BTC direction). It's only meaningful for the Spark
+        // AMM pair; for cross-chain routes like BTC→cBTC the plain `quote.rate` already reads well,
+        // so we omit it rather than emit a misleading USDB-labelled number.
+        const isSparkUsdbPair = sendInfo.network === NETWORK_SPARK && receiveInfo.network === NETWORK_SPARK;
+        let effectiveExchangeRate: string | undefined;
+        if (isSparkUsdbPair) {
+          const sendIsBtc = send_asset === 'native:spark';
+          const usdbHuman = sendIsBtc ? quote.receiveAmount : sendAmountHuman;
+          const btcHuman = sendIsBtc ? sendAmountHuman : quote.receiveAmount;
+          effectiveExchangeRate = new BigNumber(usdbHuman).div(new BigNumber(btcHuman)).toFixed(2);
+        }
 
         const summary = `${sendAmountHuman} ${sendInfo.ticker} \u2192 ${quote.receiveAmount} ${receiveInfo.ticker}`;
-        mcpCallLog(
-          `get_swap_quote: ok - ${summary}, price ${effectiveExchangeRate} USDB/BTC, fee ${feeBaseUnitsStr} ${quote.feeTicker} base units (${effectiveFeeRate}%), impact ${quote.priceImpactPct ?? '?'}%, quote_id ${execution.id}`
-        );
+        mcpCallLog(`get_swap_quote: ok - ${summary}, fee ${feeBaseUnitsStr} ${quote.feeTicker} base units (${effectiveFeeRate}%), impact ${quote.priceImpactPct ?? '?'}%, quote_id ${execution.id}`);
         showMcpSuccess(deps, 'Quoted swap', summary);
 
         return {
@@ -2227,9 +2241,10 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   fee_asset: send_asset,
                   fee_ticker: quote.feeTicker,
                   effective_fee_rate: effectiveFeeRate,
-                  effective_exchange_rate: effectiveExchangeRate,
+                  ...(effectiveExchangeRate !== undefined ? { effective_exchange_rate: effectiveExchangeRate } : {}),
                   price_impact_pct: quote.priceImpactPct ?? '0',
                   rate: quote.rate,
+                  ...(settleAddress ? { recipient_address: settleAddress } : {}),
                   estimated_time_seconds: quote.estimatedTime,
                   expires_at_unix: quote.expiresAt,
                   service: quote.serviceName,
@@ -2256,7 +2271,10 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     {
       title: 'Execute a previously quoted swap',
       description:
-        'Executes the swap staged by an earlier `get_swap_quote` call. Pass `quote_id` exactly as returned. The trade is atomic (a few seconds, no on-chain confirmations on Spark) and **irreversible** once it returns success. Each `quote_id` can only be executed **once**; expired or already-executed quotes return an error and you must re-quote. Slippage is capped at 3% (300 bps); execution fails rather than filling beyond that.\n\nThe response returns both `*_base_units` and ready-to-show `send_amount_human_readable` / `receive_amount_human_readable` decimal strings — **quote the human-readable values verbatim** to the user; never divide base units by `10^decimals` yourself.',
+        'Executes the swap staged by an earlier `get_swap_quote` call. Pass `quote_id` exactly as returned. Each `quote_id` can only be executed **once**; expired or already-executed quotes return an error and you must re-quote.\n\n' +
+        'For the Spark BTC↔USDB AMM the trade is atomic (a few seconds, no on-chain confirmations) and **irreversible** once it returns `status: "completed"`; slippage is capped at 3% (300 bps).\n\n' +
+        'For the cross-chain BTC → Citrea cBTC route this signs and **broadcasts a real Bitcoin L1 transaction** and returns `status: "confirming"` with `deposit_txid` — the cBTC is **not** in the wallet yet. It settles automatically on the wallet\'s own Citrea address after the BTC tx confirms (~30 min). Tell the user the BTC tx was broadcast (share `tracking_url` if present) and that cBTC arrives after confirmation; **do not** claim the swap is complete unless `status` is `completed`.\n\n' +
+        'The response returns both `*_base_units` and ready-to-show `send_amount_human_readable` / `receive_amount_human_readable` decimal strings — **quote the human-readable values verbatim** to the user; never divide base units by `10^decimals` yourself.',
       inputSchema: {
         quote_id: z.string().min(1).describe('Exact `quote_id` from `get_swap_quote` — copy verbatim. Leading/trailing whitespace is trimmed.'),
       },
@@ -2295,8 +2313,14 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
         const receiveAmountHumanReadable = mcpBaseUnitsToHumanReadable(receiveBaseUnits, receiveInfo.decimals);
         const summary = `${completed.sendAmount} ${sendInfo.ticker} \u2192 ${completed.receiveAmount} ${receiveInfo.ticker}`;
 
-        mcpCallLog(`execute_swap: ok - ${summary}`);
-        showMcpSuccess(deps, 'Swapped', summary);
+        // In-wallet AMM swaps (Flashnet) return `completed` immediately. Cross-chain swaps (Atomiq
+        // BTC→cBTC) broadcast an on-chain tx and come back `confirming` with a `depositTxid`; the
+        // receive asset only lands after the on-chain tx confirms, so we flag that to the agent.
+        const trackingUrl = manager.getTrackingUrl(completed);
+        const isSettled = completed.status === 'completed';
+
+        mcpCallLog(`execute_swap: ok - ${summary}${isSettled ? '' : ` (${completed.status}${completed.depositTxid ? `, txid ${completed.depositTxid}` : ''})`}`);
+        showMcpSuccess(deps, isSettled ? 'Swapped' : 'Swap broadcast', summary);
 
         return {
           content: [
@@ -2306,12 +2330,17 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                 {
                   success: true,
                   quote_id: qid,
+                  status: completed.status,
                   send_asset: completed.sendAsset,
                   receive_asset: completed.receiveAsset,
                   send_amount_base_units: sendBaseUnits,
                   send_amount_human_readable: sendAmountHumanReadable,
                   receive_amount_base_units: receiveBaseUnits,
                   receive_amount_human_readable: receiveAmountHumanReadable,
+                  ...(completed.depositTxid ? { deposit_txid: completed.depositTxid } : {}),
+                  ...(completed.settleAddress ? { recipient_address: completed.settleAddress } : {}),
+                  ...(trackingUrl ? { tracking_url: trackingUrl } : {}),
+                  ...(isSettled ? {} : { note: 'On-chain transaction broadcast. The received asset settles to your wallet automatically once it confirms — the swap is not complete yet.' }),
                   service: completed.serviceName,
                 },
                 null,

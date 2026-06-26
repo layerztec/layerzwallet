@@ -1,4 +1,5 @@
 import { SparkWallet } from '../class/wallets/spark-wallet';
+import { AtomiqTransferService } from '../services/transfer-service-atomiq';
 import { FakeTransferService } from '../services/transfer-service-fake';
 import { FlashnetTransferService } from '../services/transfer-service-flashnet';
 import { GardenTransferService } from '../services/transfer-service-garden';
@@ -59,6 +60,7 @@ export function useTransferService(storage: IStorage): TransferServiceManager {
       console.warn('EXPO_PUBLIC_GARDEN_APP_ID not set — Garden Finance disabled');
     }
     services.push(new SymbiosisTransferService(storage));
+    services.push(new AtomiqTransferService(storage));
     _flashnetService = new FlashnetTransferService(storage, (accountNumber) => SparkWallet.getSDKWalletForAccount(accountNumber));
     services.push(_flashnetService);
     _sparkExitService = new SparkExitTransferService(storage, (accountNumber) => SparkWallet.getSDKWalletForAccount(accountNumber));
