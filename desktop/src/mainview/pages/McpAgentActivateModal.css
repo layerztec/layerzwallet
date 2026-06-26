@@ -1,0 +1,67 @@
+.mcp-agent-activate-body {
+  margin: 0 20px;
+  padding: 8px 0 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.mcp-agent-activate-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mcp-agent-activate-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.mcp-agent-activate-icon {
+  margin-bottom: 12px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.mcp-agent-activate-title {
+  font-size: 28px;
+  color: #ffffff;
+  font-weight: 600;
+  margin: 0 0 16px;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+.mcp-agent-activate-subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  line-height: 20px;
+  margin: 0 0 28px;
+  padding: 0 8px;
+}
+
+.mcp-agent-activate-btn {
+  width: 100%;
+  background: #ffffff;
+  border: none;
+  border-radius: 999px;
+  padding: 16px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #000000;
+  cursor: pointer;
+}
+
+.mcp-agent-activate-btn:hover {
+  background: rgba(255, 255, 255, 0.92);
+}

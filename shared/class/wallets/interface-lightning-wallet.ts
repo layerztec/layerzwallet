@@ -24,12 +24,23 @@ export interface InterfaceLightningWallet {
 
   isInvoicePaid(invoice: string): Promise<boolean>;
 
+  /**
+   * Checks whether an invoice that this wallet issued has been paid, looking it up by the BOLT11
+   * payment hash (aka preimage hash, i.e. `sha256(preimage)`, hex-encoded).
+   *
+   * The argument is intentionally hash-only so callers do not have to retain the full BOLT11
+   * string after creating the invoice.
+   */
+  isInvoicePaidByHash(preimageHash: string): Promise<boolean>;
+
   fetchLightningLimits(): Promise<LightningPaymentLimitsResponse>;
 
   allowLightning(): boolean;
 }
 
-const REQUIRED_METHODS = ['payLightningInvoice', 'createLightningInvoice', 'isInvoicePaid', 'fetchLightningLimits', 'allowLightning'] as const satisfies ReadonlyArray<keyof InterfaceLightningWallet>;
+const REQUIRED_METHODS = ['payLightningInvoice', 'createLightningInvoice', 'isInvoicePaid', 'isInvoicePaidByHash', 'fetchLightningLimits', 'allowLightning'] as const satisfies ReadonlyArray<
+  keyof InterfaceLightningWallet
+>;
 
 /**
  * type guard

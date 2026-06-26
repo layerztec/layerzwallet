@@ -10,6 +10,7 @@ import GradientScreen from '@/components/GradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { initiateScan, PosMetadata, queryForMetadata, ScanRequest } from '@shared/modules/merchants';
+import { resolveLayerzLightningAddress } from '@shared/modules/layerz-lightning-address';
 import { getDeviceID } from '@shared/modules/device-id';
 import { SecureStorage } from '@/src/class/secure-storage';
 import { Csprng } from '@/src/class/rng';
@@ -266,6 +267,8 @@ const PosMerchant: React.FC = () => {
     try {
       // Get the device ID
       const deviceId = await getDeviceID(SecureStorage, Csprng);
+      const sparkAddress = await BackgroundExecutor.getAddress(NETWORK_SPARK, accountNumber);
+      const refundLightningAddress = await resolveLayerzLightningAddress(sparkAddress);
 
       // Hash device ID with different salts for device_id and user_id
       const hashedDeviceId = await hashToUUID(deviceId, 'device-salt-cryptoqr');
@@ -284,6 +287,10 @@ const PosMerchant: React.FC = () => {
         user_id: hashedUserId,
         scan_data: rawParam,
         allowed_payment_methods: ['lightning'], // FIXME: should be changed to 'layerzwallet' eventually
+        refund_address: {
+          address_type: 'lightning',
+          address: refundLightningAddress,
+        },
         requested_payment_amount: {
           currency: metadata.currencyISOCode,
           denomination: metadata.denomination,

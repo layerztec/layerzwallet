@@ -519,15 +519,36 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
       },
       arkProvider: new ExpoArkProvider(this._arkServerUrl),
       indexerProvider: new ExpoIndexerProvider(this._arkServerUrl),
-      arkServerPublicKey: this._arkServerPublicKey,
+      settlementConfig: {
+        deprecatedSignerMigration: true,
+      },
     });
     this._wallet = wallet;
 
-    this._manager = new VtxoManager(wallet, {
-      enabled: true, // Enable expiration monitoring
-    });
+    this._manager = await wallet.getVtxoManager();
 
     await this._runOneTimeVtxoRecovery(storage);
+    await this._runDeprecatedSignerMigration();
+  }
+
+  /**
+   * Discover VTXOs under rotated server signers and migrate them to the
+   * current signer before the operator cutoff closes cooperative spending.
+   */
+  private async _runDeprecatedSignerMigration(): Promise<void> {
+    assert(this._wallet, 'Ark wallet not initialized');
+    assert(this._manager, 'VtxoManager not initialized');
+
+    try {
+      await this._wallet.restore();
+      const report = await this._manager.migrateDeprecatedSignerVtxos();
+      if (report.vtxos?.txid || report.boarding?.txid) {
+        console.log('ARK deprecated-signer migration:', report);
+      }
+    } catch (error) {
+      globalThis.handleError?.(error, 'ark-wallet.ts');
+      console.log('ARK deprecated-signer migration error:', error);
+    }
   }
 
   /**
@@ -792,16 +813,28 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   }
 
   async isInvoicePaid(invoice: string): Promise<boolean> {
+    const { paymentHash } = decodeInvoice(invoice);
+    if (!paymentHash) throw new Error('Payment hash not found in invoice');
+    return this.isInvoicePaidByHash(paymentHash);
+  }
+
+  async isInvoicePaidByHash(preimageHash: string): Promise<boolean> {
     assert(this._arkadeLightning, 'Ark Lightning not initialized');
+    if (!preimageHash) throw new Error('No preimage hash provided');
 
     await this._attemptToClaimPendingVHTLCs();
 
+    const target = preimageHash.toLowerCase();
     for (const swap of (await this._arkadeLightning.getSwapHistory()) ?? []) {
-      if (swap.status === 'invoice.settled' && swap.type === 'reverse' && swap.response.invoice === invoice) {
-        return true;
+      if (swap.status !== 'invoice.settled' || swap.type !== 'reverse') continue;
+      try {
+        const { paymentHash } = decodeInvoice(swap.response.invoice);
+        if (paymentHash?.toLowerCase() === target) return true;
+      } catch {
+        // ignore malformed persisted invoices, dont let one bad record break the lookup
       }
     }
-    return Promise.resolve(false);
+    return false;
   }
 
   async payLightningInvoice(invoice: string): Promise<boolean> {

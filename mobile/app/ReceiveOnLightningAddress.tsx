@@ -19,17 +19,11 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
+import { formatLayerzLightningAddress, LAYERZ_ME_DOMAIN, lookupLayerzLightningAddress } from '@shared/modules/layerz-lightning-address';
 import { NETWORK_ARK, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
-import { getApiUsersBySparkAddressBySparkAddress } from '@shared/openapi/generated/layerzme';
 
-import { createClient } from '@shared/openapi/generated/layerzme/client';
 import { ClaimUsernameModalParams } from './ClaimUsernameModal';
-
-const layerzClient = createClient({
-  baseUrl: 'https://layerz.me',
-  responseStyle: 'data',
-});
 
 const Action = ({ network, text, testID }: { network?: Networks; text: string; testID?: string }) => {
   const networkImage = network ? getNetworkImageAsset(network) : null;
@@ -84,11 +78,18 @@ export default function ReceiveOnLightningAddressScreen() {
       const addressResponse = await BackgroundExecutor.getAddress(network, accountNumber);
       setSparkAddress(addressResponse);
       setResolvedUsername('');
-      // Format as Lightning address: address@layerz.me
-      const lightningAddr = `${addressResponse}@layerz.me`;
-      setLightningAddress(lightningAddr);
-      const [local, domain] = lightningAddr.split('@');
+      const defaultAddr = formatLayerzLightningAddress(addressResponse);
+      setLightningAddress(defaultAddr);
+      const [local, domain] = defaultAddr.split('@');
       setLightningAddressParts({ local, domain });
+
+      const resolved = await lookupLayerzLightningAddress(addressResponse);
+      if (resolved.username) {
+        setResolvedUsername(resolved.username);
+        setLightningAddress(resolved.lightningAddress);
+        const [resolvedLocal, resolvedDomain] = resolved.lightningAddress.split('@');
+        setLightningAddressParts({ local: resolvedLocal, domain: resolvedDomain });
+      }
     } catch (error) {
       console.error('Error fetching address:', error);
     } finally {
@@ -106,16 +107,10 @@ export default function ReceiveOnLightningAddressScreen() {
   const refreshResolvedUsername = useCallback(async () => {
     if (!sparkAddress) return;
     try {
-      const { data } = await getApiUsersBySparkAddressBySparkAddress({
-        client: layerzClient,
-        path: { sparkAddress },
-        responseStyle: 'fields',
-        throwOnError: false,
-      });
-
-      if (data?.username) {
-        setResolvedUsername(data.username);
-        setLightningAddress(`${data.username}@layerz.me`);
+      const resolved = await lookupLayerzLightningAddress(sparkAddress);
+      if (resolved.username) {
+        setResolvedUsername(resolved.username);
+        setLightningAddress(resolved.lightningAddress);
       }
     } catch (error) {
       console.error('Error fetching username for spark address', error);
@@ -247,7 +242,9 @@ export default function ReceiveOnLightningAddressScreen() {
                   <Animated.View style={[styles.addressContainer, { transform: [{ scale: pressScaleAnim }] }]}>
                     <ThemedText style={styles.addressDisplay}>
                       {(resolvedUsername || lightningAddressParts?.local) ?? ''}
-                      {(resolvedUsername || lightningAddressParts?.domain) && <ThemedText style={styles.domainDisplay}>@{resolvedUsername ? 'layerz.me' : lightningAddressParts?.domain}</ThemedText>}
+                      {(resolvedUsername || lightningAddressParts?.domain) && (
+                        <ThemedText style={styles.domainDisplay}>@{resolvedUsername ? LAYERZ_ME_DOMAIN : lightningAddressParts?.domain}</ThemedText>
+                      )}
                     </ThemedText>
                   </Animated.View>
                 </Pressable>

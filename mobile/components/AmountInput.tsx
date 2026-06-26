@@ -40,9 +40,17 @@ export default function AmountInput({
   const inputRef = useRef<TextInput>(null);
   const [localDisplayValue, setLocalDisplayValue] = useState('');
   const isFocused = useRef(false);
+  const conversionCache = useRef<Map<string, string>>(new Map());
+  // The last native value this input emitted via onChangeText. Used to tell apart the user's own
+  // typing from an external value change (e.g. max/balance press) so the field re-syncs for the latter.
+  const lastEmittedValue = useRef<string | null>(null);
 
   const exchangeRateNumber = useMemo(() => {
     return exchangeRate ? Number(exchangeRate) : undefined;
+  }, [exchangeRate]);
+
+  useEffect(() => {
+    conversionCache.current.clear();
   }, [exchangeRate]);
 
   // Convert native to fiat
@@ -50,11 +58,16 @@ export default function AmountInput({
     (nativeValue: string): string => {
       if (nativeValue === '0') return '0';
       if (!exchangeRateNumber || !nativeValue || nativeValue === '') return '—';
+      const cached = conversionCache.current.get(nativeValue);
+      if (cached !== undefined) {
+        return cached;
+      }
       const native = new BigNumber(nativeValue);
       const result = native.multipliedBy(exchangeRateNumber).toFixed(2);
       if (isNaN(Number(result))) {
         return '—';
       }
+      conversionCache.current.set(nativeValue, result);
       return result;
     },
     [exchangeRateNumber]
@@ -64,20 +77,42 @@ export default function AmountInput({
   const fiatToNative = useCallback(
     (fiatValue: string): string => {
       if (fiatValue === '0') return '0';
-      if (!exchangeRateNumber || !fiatValue || fiatValue === '') return '—';
+      // This result becomes the native amount actually sent, so invalid/empty input must
+      // resolve to an empty value (not the '—' display placeholder, which would otherwise be
+      // stored as the amount).
+      if (!exchangeRateNumber || !fiatValue || fiatValue === '') return '';
+      // Reuse the exact native amount that produced this fiat string (keeps precision stable on
+      // round-trips), but only when the match is unambiguous: several native amounts can round to
+      // the same 2-decimal fiat label, so if more than one matches we divide instead of guessing.
+      let matchedNative: string | undefined;
+      let matchCount = 0;
+      for (const [nativeKey, fiatValueInCache] of conversionCache.current.entries()) {
+        if (fiatValueInCache === fiatValue) {
+          matchedNative = nativeKey;
+          if (++matchCount > 1) break;
+        }
+      }
+      if (matchCount === 1 && matchedNative !== undefined) {
+        return matchedNative;
+      }
       const fiat = new BigNumber(fiatValue);
       const result = fiat.dividedBy(exchangeRateNumber).toFixed(decimals);
       if (isNaN(Number(result))) {
-        return '—';
+        return '';
       }
+      conversionCache.current.set(result, fiatValue);
       return result;
     },
     [exchangeRateNumber, decimals]
   );
 
   useEffect(() => {
-    // Don't update localDisplayValue when input is focused in fiat mode
-    if (denomination === 'Fiat' && isFocused.current) {
+    // Only keep the field untouched while the user is actively typing a fiat amount. A change that
+    // didn't come from this input (max/balance press, async balance update) must always refresh the
+    // display, otherwise the field can keep stale fiat text while `value` (the native amount that is
+    // actually sent) already holds the full balance.
+    const isExternalChange = value !== lastEmittedValue.current;
+    if (denomination === 'Fiat' && isFocused.current && !isExternalChange) {
       return;
     }
     const displayValue = denomination === 'Native' ? value : nativeToFiat(value);
@@ -90,12 +125,9 @@ export default function AmountInput({
     if (normalized === '' || /^\d*\.?\d*$/.test(normalized)) {
       setLocalDisplayValue(normalized);
 
-      if (denomination === 'Fiat') {
-        const nativeValue = fiatToNative(normalized);
-        onChangeText(nativeValue);
-      } else {
-        onChangeText(normalized);
-      }
+      const nativeValue = denomination === 'Fiat' ? fiatToNative(normalized) : normalized;
+      lastEmittedValue.current = nativeValue;
+      onChangeText(nativeValue);
     }
   };
 

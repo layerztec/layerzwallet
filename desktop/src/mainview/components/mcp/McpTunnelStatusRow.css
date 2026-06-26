@@ -1,0 +1,103 @@
+.mcp-tunnel-section {
+  margin-top: 4px;
+  margin-bottom: 20px;
+}
+
+.mcp-tunnel-row {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  gap: 0;
+}
+
+.mcp-tunnel-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  padding: 6px 12px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.mcp-tunnel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mcp-tunnel-dot--inactive {
+  background: #ef4444;
+}
+
+.mcp-tunnel-dot--connecting {
+  background: #eab308;
+}
+
+.mcp-tunnel-dot--active {
+  background: #22c55e;
+}
+
+.mcp-tunnel-pill-text {
+  color: #000000;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.mcp-tunnel-detail-btn {
+  flex: 1;
+  margin-left: 12px;
+  margin-right: 8px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mcp-tunnel-detail-btn:hover .mcp-tunnel-detail {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.mcp-tunnel-detail {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 400;
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mcp-tunnel-circle-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 0;
+  color: #000000;
+}
+
+.mcp-tunnel-circle-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.mcp-tunnel-circle-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.mcp-tunnel-circle-btn--dimmed {
+  opacity: 0.38;
+}

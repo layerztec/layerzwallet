@@ -1,0 +1,269 @@
+.home-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  text-align: left;
+  --home-header-height: 56px;
+}
+
+.home-scroll {
+  /* Size to content; cap at viewport so we only scroll when needed (no flex-grown dead zone). */
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: calc(100% - var(--home-header-height));
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 18px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 8px 16px;
+  gap: 12px;
+}
+
+.home-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.8);
+  flex-shrink: 0;
+}
+
+.home-icon-button:hover {
+  color: #ffffff;
+}
+
+.home-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 8px 40px 8px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+}
+
+/* Flat header pocket control (mobile StickyHeader) — not the glass network pill */
+.home-pocket {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  min-height: 40px;
+  max-width: 200px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.home-pocket .dropdown-select-trigger {
+  width: 100%;
+  gap: 6px;
+}
+
+.home-pocket-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: -0.26px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.home-network-pill.dropdown-select {
+  align-self: flex-start;
+}
+
+.home-network-pill .dropdown-select-trigger {
+  width: 100%;
+  gap: 6px;
+}
+
+/* Content-sized pill (mobile `alignSelf: 'flex-start'`), not full-width. */
+.home-network-pill {
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 16px;
+  min-height: 44px;
+  min-width: unset;
+  padding: 6px 32px 6px 10px;
+  gap: 6px;
+}
+
+.home-pill-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.home-network-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.home-network-icon img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.home-network-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.home-network-pill .home-pill-chevron {
+  right: 10px;
+  width: 14px;
+  height: 14px;
+  background-size: 14px 14px;
+}
+
+.home-pill-chevron {
+  position: absolute;
+  right: 12px;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.8)' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.home-testnet-warning {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.home-balance {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 32px;
+  width: 100%;
+}
+
+.home-balance-amount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.home-balance-value {
+  font-size: clamp(40px, 10vw, 56px);
+  font-weight: 600;
+  line-height: 1.1;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.home-balance-ticker {
+  font-size: 24px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.home-balance-fiat {
+  margin-top: 8px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.home-actions {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding: 0 16px;
+  margin-bottom: 32px;
+}
+
+.home-action-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 88px;
+}
+
+.home-action-button-surface {
+  width: 100%;
+  height: 54px;
+  max-width: 120px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.home-action-button-surface:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.home-action-button-surface:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.home-subpage-shell {
+  min-height: 100vh;
+  padding: 16px 18px 32px;
+  box-sizing: border-box;
+}
+
+.home-subpage-shell .home-pill {
+  margin-bottom: 16px;
+}
+
+.home-action-button-label {
+  margin-top: 8px;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  letter-spacing: -0.26px;
+  text-align: center;
+}

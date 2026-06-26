@@ -11,6 +11,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import ActionButtons, { Action } from '@/components/ActionButtons';
 import BackupWarning from '@/components/BackupWarning';
 import Balance from '@/components/Balance';
+import ReceiveCta from '@/components/ReceiveCta';
 import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
 import { McpAgentDashboard } from '@/src/features/mcp/components/McpAgentDashboard';
 import { McpTunnelStatusRow } from '@/src/features/mcp/components/McpTunnelStatusRow';
@@ -39,6 +40,7 @@ import { sleep } from '@shared/modules/sleep';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { NETWORK_ARK, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { STORAGE_KEY_RECEIVE_CTA } from '@shared/types/IStorage';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { YieldBearingCachedTokenInfo } from '@shared/hooks/useYieldDiscovery';
 import { OnrampProps } from './Onramp';
@@ -85,6 +87,18 @@ export default function Home() {
   const [refreshOptions, setRefreshOptions] = useState<Partial<RefreshControlProps>>({});
   const settingsContext = useSettings();
   const hasBackedUpSeed = settingsContext.settings.seedBackedUp === 'ON';
+
+  // New-user "receive bitcoin" CTA — flag set only on wallet creation, cleared on dismiss/Receive.
+  const [showReceiveCta, setShowReceiveCta] = useState(false);
+
+  useEffect(() => {
+    LayerzStorage.getItem(STORAGE_KEY_RECEIVE_CTA).then((value) => setShowReceiveCta(!!value));
+  }, []);
+
+  const dismissReceiveCta = useCallback(() => {
+    setShowReceiveCta(false);
+    LayerzStorage.setItem(STORAGE_KEY_RECEIVE_CTA, '');
+  }, []);
 
   const handleFund = useCallback(() => {
     BackgroundExecutor.getAddress(network, accountNumber).then((address) => {
@@ -381,7 +395,10 @@ export default function Home() {
               {accountNumber === MCP_BALANCE_ACCOUNT_NUMBER ? <McpAgentDashboard /> : null}
 
               {/* Action Buttons Section (hidden on MCP automation account) */}
-              {accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER ? <ActionButtons onFundPress={handleFund} /> : null}
+              {accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER ? <ActionButtons onFundPress={handleFund} highlightReceive={showReceiveCta} onReceivePress={dismissReceiveCta} /> : null}
+
+              {/* New-user "receive bitcoin" CTA — caption below the action buttons */}
+              {showReceiveCta && accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER ? <ReceiveCta onDismiss={dismissReceiveCta} /> : null}
 
               {/* Seed Backup Warning */}
               {hasBackedUpSeed === false && <BackupWarning onPress={handleBackupSeed} />}
