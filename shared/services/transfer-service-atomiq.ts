@@ -439,7 +439,11 @@ export class AtomiqTransferService implements ITransferService {
   private buildCitreaSigner(accountNumber: number): EVMSigner {
     const hdNode = HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(this.getMnemonic()), EVM_HD_PATH).derivePath(String(accountNumber));
     const wallet = new Wallet(hdNode.privateKey, getRpcProvider(NETWORK_CITREA));
-    return new EVMSigner(wallet, wallet.address);
+    // `wallet` is a genuine ethers Signer. The cast only bridges ethers' ESM↔CJS dual-package type identities:
+    // under webpack our code resolves ethers to lib.esm while the CJS @atomiqlabs/chain-evm resolves lib.commonjs,
+    // making the (structurally identical) `Signer.provider` nominally distinct. Tie the cast to the SDK's own
+    // expected param type so it stays correct if EVMSigner's signature changes.
+    return new EVMSigner(wallet as unknown as ConstructorParameters<typeof EVMSigner>[0], wallet.address);
   }
 
   private async loadTransfers(): Promise<AtomiqPersistedTransfer[]> {
