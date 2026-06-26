@@ -25,6 +25,7 @@ import { Messenger } from '@/src/modules/messenger';
 import { trackAnalyticsEvent } from '@/src/modules/analytics';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
 import { AnalyticsEvents } from '@shared/types/analytics';
+import type { TransferExecution } from '@shared/types/transfer';
 import { InitializationContextProvider } from '@shared/hooks/InitializationContext';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsContextProvider } from '@shared/hooks/SettingsContext';

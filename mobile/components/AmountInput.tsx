@@ -40,7 +40,7 @@ export default function AmountInput({
   const inputRef = useRef<TextInput>(null);
   const [localDisplayValue, setLocalDisplayValue] = useState('');
   const isFocused = useRef(false);
-  const conversionCache = useRef<Map<string, string>>(new Map());
+  const conversionCache = useRef(new Map<string, string>());
   // The last native value this input emitted via onChangeText. Used to tell apart the user's own
   // typing from an external value change (e.g. max/balance press) so the field re-syncs for the latter.
   const lastEmittedValue = useRef<string | null>(null);
@@ -148,12 +148,15 @@ export default function AmountInput({
 
   const secondaryValue = useMemo(() => {
     if (denomination === 'Native') {
-      const fiat = nativeToFiat(value);
+      if (!exchangeRateNumber || !value || value === '') {
+        return '— USD';
+      }
+      const fiat = new BigNumber(value).multipliedBy(exchangeRateNumber).toFixed(2);
       return `${fiat} USD`;
     } else {
       return `${value} ${ticker}`;
     }
-  }, [value, denomination, ticker, nativeToFiat]);
+  }, [value, denomination, ticker, exchangeRateNumber]);
 
   const canSwitchDenomination = !!exchangeRateNumber && !!onDenominationSwitch;
 
