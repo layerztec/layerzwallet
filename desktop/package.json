@@ -8,8 +8,8 @@
     "dev": "vite build && electrobun dev --watch",
     "dev:hmr": "concurrently \"bun run hmr\" \"bun run start\"",
     "hmr": "vite --port 5173",
-    "build": "vite build && electrobun build --env=stable",
-    "build:canary": "vite build && electrobun build --env=canary",
+    "build": "NODE_OPTIONS=--max-old-space-size=4096 vite build && electrobun build --env=stable",
+    "build:canary": "NODE_OPTIONS=--max-old-space-size=4096 vite build && electrobun build --env=canary",
     "lint": "prettier '**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' --config ./.prettierrc --check && tsc --noEmit && eslint ./",
     "lint:write": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md,yml}' --config ./.prettierrc; eslint ./ --fix",
     "lint:fix": "npm run lint:write"
