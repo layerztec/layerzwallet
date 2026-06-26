@@ -19,7 +19,7 @@ import { BrowserBridge } from '@/src/class/browser-bridge';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import { DAppBrowserTabs } from './DAppBrowserTabs';

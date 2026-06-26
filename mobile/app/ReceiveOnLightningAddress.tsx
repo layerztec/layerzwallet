@@ -6,7 +6,7 @@ import { Stack, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, ScrollView, Share, StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
