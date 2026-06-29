@@ -72,6 +72,16 @@ getTrackingUrl?(execution): string | undefined
 - **Chain IDs**: Bitcoin=3652501241, Rootstock=30, Citrea=4114
 - **Tracking**: `explorer.symbiosis.finance/transactions/bitcoin/{txHash}`
 
+### Atomiq (`shared/services/transfer-service-atomiq.ts`)
+
+- **Pairs**: on-chain BTC → Citrea cBTC (`native:bitcoin` → `native:citrea`), one-way.
+- **Model**: Trust-minimized SPV-vault cross-chain swap via `@atomiqlabs/sdk` + `@atomiqlabs/chain-evm`. Two-phase stage-then-commit like Flashnet, but the commit signs+broadcasts a **real Bitcoin L1 funding tx** and the cBTC settles on Citrea automatically after that tx confirms (~30 min). Uses `EXECUTION_INSTANT` so it rides `confirm.tsx` / `execute_swap` (Confirm tap → `executeInstantSwap()` broadcasts; status walks `pending → confirming → completed`).
+- **Bitcoin funding**: collects UTXOs across the **entire BIP84 account** (all receive + change addresses) via `HDSegwitBech32Wallet.fetchBalance()` + `fetchUtxo()`, passes them to the SDK's `sendBitcoinTransaction(wallet, undefined, utxos)`, and signs each PSBT input by mapping `witnessUtxo.script → WIF`. Single-address sourcing caused a spurious "not enough balance".
+- **EVM recipient**: the settle address is the wallet's own Citrea (EVM) address — bound at `executeTransfer()` time.
+- **Storage**: SDK persistence (`IUnifiedStorage` / `IStorageManager`) is backed by `IStorage` via `shared/services/atomiq-storage.ts` (no IndexedDB on RN); swap rows under `STORAGE_KEY_ATOMIQ_TRANSFERS`.
+- **React Native polyfills**: `ensureReactNativeSdkPolyfills()` (called at the top of `ensureSwapper()`) feature-detects and patches Hermes gaps the dependency tree relies on — `AbortSignal.prototype.throwIfAborted` (SDK swap path), the static `AbortSignal.timeout`/`AbortSignal.any` (the former is used by `@atomiqlabs/btc-mempool` for fee-rate fetches; dropping it makes quoting fail with "Cannot get total fee in native token!" → "Aborted"), and `Buffer.prototype.subarray` (Hermes returns a plain `Uint8Array`, breaking `readUInt32LE`). All feature-detected, so no-op on web/desktop.
+- **Tracking**: Atomiq explorer URL via `getTrackingUrl()`.
+
 ### Flashnet AMM (`shared/services/transfer-service-flashnet.ts`)
 
 - **Pairs**: BTC <-> USDB on Spark (both directions)
@@ -155,14 +165,14 @@ getTrackingUrl?(execution): string | undefined
 - **Interface**: `InterfaceSendQuotable` (`shared/class/wallets/interface-send-quotable.ts`)
 - **Implementations**: `EvmWallet`, `BreezWallet`
 
-## MCP swap surface (`mobile/src/features/mcp/modules/mcp-calls.ts`)
+## MCP swap surface (`shared/features/mcp/modules/mcp-calls.ts`)
 
-Two tools expose Flashnet to remote AI agents. They run on `MCP_BALANCE_ACCOUNT_NUMBER` (= 4141) so they don't touch the user's primary account.
+Two **generic** tools expose the TransferServiceManager's instant-swap-capable providers to remote AI agents (currently Flashnet's Spark AMM and Atomiq's BTC→Citrea cross-chain swap — there are **no** provider-specific tools). They run on `MCP_BALANCE_ACCOUNT_NUMBER` (= 4141) so they don't touch the user's primary account. `MCP_SWAP_ASSET_IDS` = `native:spark`, `token:spark:usdb`, `native:bitcoin`, `native:citrea`.
 
-- **`get_swap_quote(send_asset, receive_asset, send_amount_base_units)`** — `send_asset` / `receive_asset` are strict `AssetId` strings (currently `native:spark` / `token:spark:usdb`). Internally: `lazyInitWallet(NETWORK_SPARK, 4)` → `setFlashnetAccountNumber(4)` → `manager.getQuote()` → `manager.executeTransfer()` (Flashnet: stages params, no funds movement — in-memory only, NOT persisted). Returns `{ quote_id, send_amount_base_units, receive_amount_base_units, fee_base_units, fee_asset, fee_ticker, price_impact_pct, rate, estimated_time_seconds, expires_at_unix, service }`.
-- **`execute_swap(quote_id)`** — `manager.executeInstantSwap(quote_id)` → `commitTransfer()` (persists completed row). The manager looks up the owning service from `executionOwners` (populated in `executeTransfer`), so the agent only needs `quote_id`. Idempotency: the manager pops the owner entry on execute and the owning service pops the quote from its pending map; replay fails with _"No pending swap found"_. Quote expiry is enforced by Flashnet's internal `PENDING_SWAP_TTL` (5 min) on top of `TransferQuote.expiresAt` (60 s).
+- **`get_swap_quote(send_asset, receive_asset, send_amount_base_units)`** — `send_asset` / `receive_asset` are strict `AssetId` strings. Internally: warms up Spark (`lazyInitWallet(NETWORK_SPARK, 4141)` → `setFlashnetAccountNumber(4141)`) **only when a Spark leg is involved** → `manager.getQuote()` → `manager.executeTransfer(quote, 4141, settleAddress)` (stages params, no funds movement — in-memory only, NOT persisted). `settleAddress` is `''` for in-wallet swaps (same network, e.g. Spark AMM) and the wallet's own receive address on the destination network for cross-chain swaps (`backgroundCaller.getAddress(receiveNetwork, 4141)`, e.g. the Citrea address for BTC→cBTC). Returns `{ quote_id, send/receive_amount_base_units + _human_readable, fee_base_units, fee_asset, fee_ticker, effective_fee_rate, price_impact_pct, rate, estimated_time_seconds, expires_at_unix, service }`, plus `effective_exchange_rate` (Spark BTC↔USDB only) and `recipient_address` (cross-chain only). `fee_base_units` prefers `quote.feeBaseUnits` and falls back to deriving from the human `quote.fee` for providers (Atomiq) that report only that.
+- **`execute_swap(quote_id)`** — `manager.executeInstantSwap(quote_id)` → `commitTransfer()` (persists). The manager looks up the owning service from `executionOwners` (populated in `executeTransfer`), so the agent only needs `quote_id`. Idempotency: the manager pops the owner entry on execute and the owning service pops the quote from its pending map; replay fails with _"No pending swap found"_. Response includes `status`; for cross-chain swaps that broadcast on-chain it also returns `deposit_txid`, `recipient_address`, `tracking_url` (when available) and a `note` that the swap is **not** complete until `status` is `completed` (Flashnet returns `completed` synchronously; Atomiq returns `confirming`).
 
-Adding more pairs is purely additive: extend `MCP_SWAP_ASSET_IDS` and ensure the relevant provider quotes the pair and implements `executeInstantSwap`. The manager routes by `executionOwners` so any such provider works without touching the MCP layer.
+Adding more pairs is purely additive: extend `MCP_SWAP_ASSET_IDS` and ensure the relevant provider quotes the pair and implements `executeInstantSwap`. The manager routes by `executionOwners`, and cross-chain providers automatically get the destination receive address as their settle address, so any such provider works without touching the MCP layer. (Deposit-address / async providers like SideShift, Symbiosis, SparkExit don't fit `execute_swap`'s instant contract and aren't exposed here.)
 
 ### On-chain BTC → Spark (deposit + claim)
 
@@ -181,6 +191,7 @@ Tests: `shared/tests/unit-vi/mcp-calls-spark-deposit.test.ts`.
 - `shared/tests/unit-vi/transfer-service-garden.test.ts`
 - `shared/tests/unit-vi/transfer-service-symbiosis.test.ts`
 - `shared/tests/unit-vi/transfer-service-flashnet.test.ts`
+- `shared/tests/unit-vi/transfer-service-atomiq.test.ts`
 - `shared/tests/unit-vi/transfer-service-spark-exit.test.ts`
 - `shared/tests/unit-vi/transfer-service-manager.test.ts`
 - `shared/tests/unit-vi/transfer-service-native-deposit.test.ts`
@@ -189,7 +200,7 @@ Tests: `shared/tests/unit-vi/mcp-calls-spark-deposit.test.ts`.
 - `shared/tests/unit-vi/use-asset-balance.test.ts`
 - `shared/tests/integration-vi/sideshift-transfer.test.ts`
 - `shared/tests/integration-vi/garden-transfer.test.ts`
-- `mobile/src/tests/unit-vi/mcp-calls-swap.test.ts` — MCP `get_swap_quote` / `execute_swap` handlers
+- `shared/tests/unit-vi/mcp-calls-swap.test.ts` — MCP `get_swap_quote` / `execute_swap` handlers (against the real Flashnet service)
 - `mobile/.maestro/swap.yml` — e2e flow with Fake service
 
 ## Adding a New Transfer Service
