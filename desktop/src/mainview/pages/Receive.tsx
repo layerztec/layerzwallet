@@ -12,9 +12,10 @@ import BigNumber from 'bignumber.js';
 import { useNavigate, useSearchParams } from 'react-router';
 import { formatBalance } from '@shared/modules/string-utils';
 import { RadialGradientScreen } from '../components/home/RadialGradientScreen';
+import ScreenSendHeader from '../components/navigation/ScreenSendHeader';
 import { ThemedText } from '../components/ThemedText';
 import './Home.css';
-import { NETWORK_SPARK, NETWORK_STACKS, Networks } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_SPARK, NETWORK_STACKS, Networks } from '@shared/types/networks';
 import { walletCanHaveTokens } from '@shared/class/wallets/interface-can-have-tokens';
 
 export type ReceiveTokenProps = {
@@ -79,7 +80,7 @@ const Receive: React.FC = () => {
 
   // Account-based token polling: cache initial holdings and detect increases
   useEffect(() => {
-    if (network !== NETWORK_STACKS && network !== NETWORK_SPARK) {
+    if (network !== NETWORK_STACKS && network !== NETWORK_SPARK && network !== NETWORK_ARK && network !== NETWORK_ARK_MUTINYNET) {
       return;
     }
 
@@ -135,18 +136,19 @@ const Receive: React.FC = () => {
     };
   }, [accountNumber, network]);
 
+  const networkTitle = `Receive on ${network.charAt(0).toUpperCase() + network.slice(1)}`;
+
   const wrapPage = (content: React.ReactNode) => (
     <RadialGradientScreen network={network} className="home-screen">
+      <ScreenSendHeader network={network} title={networkTitle} onBackPress={() => navigate('/home')} testID="receive-back-button" />
       <div className="home-subpage-shell">{content}</div>
     </RadialGradientScreen>
   );
 
   // If an account-based token was received, show dedicated success block (separate from native balance success)
-  if ((network === NETWORK_STACKS || network === NETWORK_SPARK) && stacksTokenReceiveInfo) {
+  if ((network === NETWORK_STACKS || network === NETWORK_SPARK || network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET) && stacksTokenReceiveInfo) {
     return wrapPage(
       <div style={{ position: 'relative' }}>
-        <ThemedText type="headline">Receive on {network.charAt(0).toUpperCase() + network.slice(1)}</ThemedText>
-
         <div style={{ textAlign: 'center', padding: '20px' }}>
           <div style={{ color: '#4CAF50', fontSize: '48px', marginBottom: '20px' }}>✓</div>
           <h2 style={{ color: '#4CAF50', marginBottom: '15px' }}>
@@ -188,8 +190,6 @@ const Receive: React.FC = () => {
   if (isNewBalanceGT()) {
     return wrapPage(
       <div style={{ position: 'relative' }}>
-        <ThemedText type="headline">Receive on {network.charAt(0).toUpperCase() + network.slice(1)}</ThemedText>
-
         <div style={{ textAlign: 'center', padding: '20px' }}>
           <div style={{ color: '#4CAF50', fontSize: '48px', marginBottom: '20px' }}>✓</div>
           <h2 style={{ color: '#4CAF50', marginBottom: '15px' }}>
@@ -229,7 +229,6 @@ const Receive: React.FC = () => {
 
   return wrapPage(
     <div style={{ position: 'relative' }}>
-      <ThemedText type="headline">Receive on {network.charAt(0).toUpperCase() + network.slice(1)}</ThemedText>
       <div
         style={{
           color: 'gray',
@@ -279,10 +278,6 @@ const Receive: React.FC = () => {
       ) : null}
 
       <AddressBubble address={address} showCopyButton={true} />
-
-      <WalletToolButton block onClick={() => navigate('/home')} data-testid="receive-back-button">
-        Back to Wallet
-      </WalletToolButton>
     </div>
   );
 };

@@ -132,6 +132,9 @@ describe('MCP transfer_token (EVM branch)', () => {
     expect(body.token_id).toBe(RBTC_TOKEN); // trimmed
     expect(body.receiver_address).toBe(EVM_RECIPIENT); // trimmed
     expect(body.fee_base_units).toBe('12345');
+    expect(body.fee_human_readable).toBe('0.000000000000012345'); // fee in native RBTC (18 decimals)
+    expect(typeof body.amount_human_readable).toBe('string'); // amount in token decimals
+    expect(typeof body.amount_ticker).toBe('string'); // token symbol
     expect(body.fee_ticker).toBe(getTickerByNetwork(NETWORK_ROOTSTOCK));
     expect(body.fee_multiplier).toBe(1);
 

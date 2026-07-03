@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ChevronDown, Settings } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, Settings } from 'lucide-react';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -6,7 +6,20 @@ import { ensureMcpBootstrapped, isMcpActivated } from '../features/mcp/tunnel-de
 
 import { accountItems, AccountNumberContext, getAccountItem, MCP_BALANCE_ACCOUNT_NUMBER } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
-import { useAvailableNetworks } from '../hooks/useAvailableNetworks';
+import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
+import {
+  NETWORK_ARK,
+  NETWORK_ARK_MUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_LIGHTNING,
+  NETWORK_LIGHTNING_TESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_SPARK,
+  NETWORK_STACKS,
+  NETWORK_USDT,
+} from '@shared/types/networks';
+import { getIsEVM } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { getNetworkPrimaryColor } from '@shared/constants/Colors';
 
@@ -28,12 +41,21 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
-  const availableNetworks = useAvailableNetworks();
+  // Lightning and USDT are not supported on desktop, so hide them from the network selector.
+  const availableNetworks = useAvailableNetworks().filter((n) => n !== NETWORK_LIGHTNING && n !== NETWORK_LIGHTNING_TESTNET && n !== NETWORK_USDT);
   const networkIconUrl = getNetworkImageUrl(network);
   const accountItem = getAccountItem(accountNumber);
   const accountLabel = accountItem.name.length > 10 ? `${accountItem.name.substring(0, 10)}…` : accountItem.name;
   const networkLabel = capitalizeFirstLetter(network);
   const networkAccentColor = getNetworkPrimaryColor(network);
+
+  // Send is implemented for single-address (account-based) wallets via SendAccountBased, EVM wallets via SendEvm,
+  // Bitcoin via SendBtc, and Liquid via SendLiquid.
+  const isAccountBasedNetwork = network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_STACKS;
+  const isEvmNetwork = getIsEVM(network);
+  const isBitcoinNetwork = network === NETWORK_BITCOIN;
+  const isLiquidNetwork = network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET;
+  const isSendSupported = isAccountBasedNetwork || isEvmNetwork || isBitcoinNetwork || isLiquidNetwork;
 
   const [showActivateModal, setShowActivateModal] = useState(false);
   const activateDismissedRef = useRef(false);
@@ -68,6 +90,18 @@ const Home: React.FC = () => {
     navigate('/receive');
   };
 
+  const handleSend = () => {
+    if (isBitcoinNetwork) {
+      navigate('/send-btc');
+    } else if (isEvmNetwork) {
+      navigate('/send-evm');
+    } else if (isLiquidNetwork) {
+      navigate('/send-liquid');
+    } else {
+      navigate('/send');
+    }
+  };
+
   return (
     <RadialGradientScreen network={network} className="home-screen">
       <header className="home-header">
@@ -76,10 +110,12 @@ const Home: React.FC = () => {
           testId="pocket-switcher"
           triggerTestId="account-select"
           value={accountNumber}
-          options={accountItems.map((item) => ({
-            value: item.accountNumber,
-            label: <AccountPocketOptionLabel item={item} />,
-          }))}
+          options={accountItems
+            .filter((item) => item.accountNumber === 0 || item.accountNumber === MCP_BALANCE_ACCOUNT_NUMBER)
+            .map((item) => ({
+              value: item.accountNumber,
+              label: <AccountPocketOptionLabel item={item} />,
+            }))}
           onChange={setAccountNumber}
           ariaLabel="Switch pocket"
           menuAccentColor={networkAccentColor}
@@ -130,6 +166,7 @@ const Home: React.FC = () => {
         {accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER ? (
           <div className="home-actions">
             <HomeActionButton title="Receive" icon={ArrowDownLeft} onClick={handleReceive} testId="ReceiveButton" />
+            {isSendSupported ? <HomeActionButton title="Send" icon={ArrowUpRight} onClick={handleSend} testId="SendButton" /> : null}
           </div>
         ) : null}
 

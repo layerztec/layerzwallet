@@ -9,11 +9,23 @@ import { WalletToolButton } from '../home/WalletToolButton';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAccountBalance } from '@shared/hooks/useAccountBalance';
-import { useAvailableNetworks } from '../../hooks/useAvailableNetworks';
+import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
-import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
+import { getDecimalsByNetwork, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT } from '@shared/types/networks';
+import {
+  NETWORK_ARK,
+  NETWORK_ARK_MUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_LIGHTNING,
+  NETWORK_LIGHTNING_TESTNET,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_ROOTSTOCK,
+  NETWORK_SPARK,
+  NETWORK_STACKS,
+  NETWORK_USDT,
+} from '@shared/types/networks';
 
 import './McpAgentDashboard.css';
 
@@ -36,8 +48,28 @@ export const McpAgentDashboard: React.FC = () => {
     return [`$${formatFiatBalance(accountBalance, decimals, exchangeRate)}`, nativeBtc];
   }, [accountBalance, exchangeRate]);
 
+  // Mirror Home's Send routing so "Pay" reaches the correct per-network flow (Lightning and USDT
+  // are not available on desktop, so they are intentionally not handled here).
+  const isAccountBasedNetwork = network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_STACKS;
+  const isEvmNetwork = getIsEVM(network);
+  const isBitcoinNetwork = network === NETWORK_BITCOIN;
+  const isLiquidNetwork = network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET;
+  const isSendSupported = isAccountBasedNetwork || isEvmNetwork || isBitcoinNetwork || isLiquidNetwork;
+
   const handleAddFunds = () => {
     navigate('/receive');
+  };
+
+  const handlePay = () => {
+    if (isBitcoinNetwork) {
+      navigate('/send-btc');
+    } else if (isEvmNetwork) {
+      navigate('/send-evm');
+    } else if (isLiquidNetwork) {
+      navigate('/send-liquid');
+    } else {
+      navigate('/send');
+    }
   };
 
   const handleReceiveOnLightningAddress = () => {
@@ -94,6 +126,11 @@ export const McpAgentDashboard: React.FC = () => {
             ) : (
               addFundsButton
             )}
+            {isSendSupported ? (
+              <WalletToolButton onClick={handlePay} aria-label="Pay">
+                Pay
+              </WalletToolButton>
+            ) : null}
           </div>
         </div>
 

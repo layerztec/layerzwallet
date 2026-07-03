@@ -127,8 +127,11 @@ describe('MCP transfer_native (EVM)', () => {
     expect(body.network).toBe(NETWORK_ROOTSTOCK);
     expect(body.transfer_id).toBe('0xevmnativetxid');
     expect(body.amount_base_units).toBe('100000000000000000');
+    expect(body.amount_human_readable).toBe('0.1'); // 0.1 RBTC (18 decimals)
+    expect(body.amount_ticker).toBe(getTickerByNetwork(NETWORK_ROOTSTOCK));
     expect(body.receiver_address).toBe(RECIPIENT); // trimmed
     expect(body.fee_base_units).toBe('21000000000000');
+    expect(body.fee_human_readable).toBe('0.000021'); // 21000000000000 / 10^18
     expect(body.fee_ticker).toBe(getTickerByNetwork(NETWORK_ROOTSTOCK));
     expect(body.fee_multiplier).toBe(1);
 

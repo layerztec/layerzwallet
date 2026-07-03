@@ -14,6 +14,7 @@ import { registerWalletMcpCalls } from '../../features/mcp/modules/mcp-calls';
 import type { McpCallDeps } from '../../features/mcp/modules/mcp-deps';
 import { FlashnetTransferService } from '../../services/transfer-service-flashnet';
 import { TransferServiceManager } from '../../services/transfer-service-manager';
+import { EXECUTION_INSTANT, type ITransferService, type TransferExecution, type TransferQuote } from '../../types/transfer';
 
 // Constants must match the production code (`transfer-service-flashnet.ts`).
 const BTC_PUBKEY = '020202020202020202020202020202020202020202020202020202020202020202';
@@ -23,17 +24,19 @@ const POOL_ID = 'pool-btc-usdb';
 // vi.hoisted — vi.mock factories are lifted above imports, so their closures need
 // stable references that exist at hoist time. SDK call spies live here so we can
 // assert on them from inside tests after vi.clearAllMocks().
-const { lazyInitWallet, getSparkWallet, sdkSimulateSwap, sdkExecuteSwap, sdkListPools, sdkInitialize, getTransferServiceManager, setFlashnetAccountNumber, useTransferService } = vi.hoisted(() => ({
-  lazyInitWallet: vi.fn().mockResolvedValue(undefined),
-  getSparkWallet: vi.fn(),
-  sdkSimulateSwap: vi.fn(),
-  sdkExecuteSwap: vi.fn(),
-  sdkListPools: vi.fn(),
-  sdkInitialize: vi.fn().mockResolvedValue(undefined),
-  getTransferServiceManager: vi.fn(),
-  setFlashnetAccountNumber: vi.fn(),
-  useTransferService: vi.fn(),
-}));
+const { lazyInitWallet, getAddress, getSparkWallet, sdkSimulateSwap, sdkExecuteSwap, sdkListPools, sdkInitialize, getTransferServiceManager, setFlashnetAccountNumber, useTransferService } =
+  vi.hoisted(() => ({
+    lazyInitWallet: vi.fn().mockResolvedValue(undefined),
+    getAddress: vi.fn(),
+    getSparkWallet: vi.fn(),
+    sdkSimulateSwap: vi.fn(),
+    sdkExecuteSwap: vi.fn(),
+    sdkListPools: vi.fn(),
+    sdkInitialize: vi.fn().mockResolvedValue(undefined),
+    getTransferServiceManager: vi.fn(),
+    setFlashnetAccountNumber: vi.fn(),
+    useTransferService: vi.fn(),
+  }));
 
 vi.mock('@flashnet/sdk', () => ({
   FlashnetClient: vi.fn().mockImplementation(() => ({
@@ -85,7 +88,7 @@ function makeRealStack() {
 function makeFakeDeps(storage: { getItem: (k: string) => Promise<string>; setItem: (k: string, v: string) => Promise<void> }): McpCallDeps {
   return {
     storage: storage as any,
-    backgroundCaller: { lazyInitWallet } as any,
+    backgroundCaller: { lazyInitWallet, getAddress } as any,
     showSuccessToast: vi.fn(),
     trackToolCall: vi.fn(),
   };
@@ -506,6 +509,126 @@ describe('MCP swap tools', () => {
       expect(result.isError).toBe(true);
       expect(parseToolJson(result).error).toMatch(/not initialized/i);
       expect(sdkExecuteSwap).not.toHaveBeenCalled();
+    });
+  });
+
+  // The same generic get_swap_quote / execute_swap tools must route a cross-chain provider
+  // (BTC → Citrea cBTC, like Atomiq) without any provider-specific MCP tool. This exercises the
+  // two behaviours that differ from the in-wallet Spark path: (1) the settle address is the
+  // wallet's own address on the *receive* network, and (2) execute_swap returns a non-`completed`
+  // status with the on-chain txid + tracking URL because the receive asset settles after confirmation.
+  describe('cross-chain swap routes through the generic tools', () => {
+    /** Minimal instant-swap provider for BTC → Citrea cBTC. Records the settle address it was staged with. */
+    function makeFakeCrossChainStack() {
+      const pending = new Map<string, TransferExecution>();
+      let lastSettleAddress: string | undefined;
+      const service: ITransferService = {
+        name: 'FakeAtomiq',
+        getSupportedPairs: () => [{ sendAssetId: 'native:bitcoin', receiveAssetId: 'native:citrea' }],
+        getQuote: async (sendAsset, receiveAsset, sendAmount): Promise<TransferQuote> => ({
+          id: 'fakeatomiq-q1',
+          sendAsset,
+          receiveAsset,
+          sendAmount,
+          receiveAmount: '0.00099',
+          fee: '0.00001', // human BTC; no feeBaseUnits — forces the human→base-units fallback
+          feeTicker: 'BTC',
+          rate: '1 BTC = 0.99 cBTC',
+          estimatedTime: 1800,
+          expiresAt: Math.floor(Date.now() / 1000) + 60,
+          serviceName: 'FakeAtomiq',
+        }),
+        executeTransfer: async (quote, accountNumber, settleAddress): Promise<TransferExecution> => {
+          lastSettleAddress = settleAddress;
+          const exec: TransferExecution = {
+            type: EXECUTION_INSTANT,
+            id: 'fakeatomiq-exec-1',
+            status: 'pending',
+            sendAmount: quote.sendAmount,
+            receiveAmount: quote.receiveAmount,
+            sendAsset: quote.sendAsset,
+            receiveAsset: quote.receiveAsset,
+            settleAddress,
+            createdAt: 0,
+            updatedAt: 0,
+            accountNumber,
+            serviceName: 'FakeAtomiq',
+          };
+          pending.set(exec.id, exec);
+          return exec;
+        },
+        executeInstantSwap: async (id): Promise<TransferExecution> => {
+          const exec = pending.get(id);
+          if (!exec) throw new Error('No pending swap found');
+          pending.delete(id);
+          // Cross-chain: broadcast the BTC tx and come back `confirming`, not `completed`.
+          return { ...exec, status: 'confirming', depositTxid: 'btc-txid-abc' };
+        },
+        commitTransfer: async () => {},
+        getTimelineSteps: () => [],
+        getOngoingTransfers: async () => [],
+        getTrackingUrl: () => 'https://explorer.example/tx/btc-txid-abc',
+      };
+      const manager = new TransferServiceManager([service]);
+      return { manager, getLastSettleAddress: () => lastSettleAddress };
+    }
+
+    it('get_swap_quote stages with the destination-network address and omits effective_exchange_rate', async () => {
+      const { manager, getLastSettleAddress } = makeFakeCrossChainStack();
+      getTransferServiceManager.mockReturnValue(manager);
+      useTransferService.mockReturnValue(manager);
+      getAddress.mockResolvedValue('0xCitreaRecipient');
+
+      const result = await handlers.get('get_swap_quote')!({
+        send_asset: 'native:bitcoin',
+        receive_asset: 'native:citrea',
+        send_amount_base_units: '100000', // 0.001 BTC
+      });
+
+      expect(result.isError).toBeUndefined();
+      const body = parseToolJson(result);
+
+      // (1) Settle address comes from the RECEIVE network (citrea), pinned to the MCP account, and
+      // is both what the provider was staged with and what we echo back as recipient_address.
+      expect(getAddress).toHaveBeenCalledWith('citrea', MCP_BALANCE_ACCOUNT_NUMBER);
+      expect(getLastSettleAddress()).toBe('0xCitreaRecipient');
+      expect(body.recipient_address).toBe('0xCitreaRecipient');
+      // A BTC→cBTC quote must NOT warm up Spark — that's only for the Flashnet AMM legs.
+      expect(lazyInitWallet).not.toHaveBeenCalled();
+      // effective_exchange_rate is USDB-specific; it must be absent for a cross-chain pair.
+      expect(body.effective_exchange_rate).toBeUndefined();
+      // receiveAmount round-trips through base units back to the same human string.
+      expect(body.receive_amount_human_readable).toBe('0.00099');
+      // Fee has no feeBaseUnits from this provider, so it's derived from the human fee:
+      // 0.00001 BTC × 10^8 = 1000 sats.
+      expect(body.fee_base_units).toBe('1000');
+      expect(body.service).toBe('FakeAtomiq');
+    });
+
+    it('execute_swap surfaces confirming status, deposit txid, recipient and tracking url', async () => {
+      const { manager } = makeFakeCrossChainStack();
+      getTransferServiceManager.mockReturnValue(manager);
+      useTransferService.mockReturnValue(manager);
+      getAddress.mockResolvedValue('0xCitreaRecipient');
+
+      const quoted = await handlers.get('get_swap_quote')!({
+        send_asset: 'native:bitcoin',
+        receive_asset: 'native:citrea',
+        send_amount_base_units: '100000',
+      });
+      const quoteId = parseToolJson(quoted).quote_id;
+
+      const result = await handlers.get('execute_swap')!({ quote_id: quoteId });
+
+      expect(result.isError).toBeUndefined();
+      const body = parseToolJson(result);
+      // Not `completed` — the cBTC only lands after the BTC tx confirms, so the agent must be told.
+      expect(body.status).toBe('confirming');
+      expect(body.deposit_txid).toBe('btc-txid-abc');
+      expect(body.recipient_address).toBe('0xCitreaRecipient');
+      expect(body.tracking_url).toBe('https://explorer.example/tx/btc-txid-abc');
+      expect(body.note).toMatch(/not complete/i);
+      expect(body.service).toBe('FakeAtomiq');
     });
   });
 });

@@ -27,9 +27,13 @@ export const Action = ({ network, text }: { network?: Networks; text: string }) 
 
 interface ActionButtonsProps {
   onFundPress: () => void;
+  /** When true, draws a breathing glow on the Receive button (new-user CTA). */
+  highlightReceive?: boolean;
+  /** Called when the user engages the Receive button — used to dismiss the new-user CTA. */
+  onReceivePress?: () => void;
 }
 
-export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
+export default function ActionButtons({ onFundPress, highlightReceive = false, onReceivePress }: ActionButtonsProps) {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
 
@@ -57,6 +61,7 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
   ];
 
   const handleReceive = () => {
+    onReceivePress?.();
     router.push('/Receive');
   };
 
@@ -65,6 +70,7 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
   };
 
   const handleReceiveOnLightningAddress = () => {
+    onReceivePress?.();
     router.push('/ReceiveOnLightningAddress');
   };
 
@@ -155,13 +161,13 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
   const renderReceiveButton = () => {
     if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET) {
       // Default to Lightning Address receive on tap (as per master behavior)
-      return <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={handleReceiveOnLightningAddress} testID="ReceiveButton" />;
+      return <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={handleReceiveOnLightningAddress} glow={highlightReceive} testID="ReceiveButton" />;
     }
 
     if (network === NETWORK_USDT) {
       return (
         <ActionPopupButton actions={usdtReceiveActions} title="Layer to receive">
-          <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={() => {}} testID="ReceiveButton" />
+          <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={() => onReceivePress?.()} glow={highlightReceive} testID="ReceiveButton" />
         </ActionPopupButton>
       );
     }
@@ -169,12 +175,12 @@ export default function ActionButtons({ onFundPress }: ActionButtonsProps) {
     if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
       return (
         <ActionPopupButton actions={rgbReceiveActions} title="What to receive">
-          <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={() => {}} testID="ReceiveButton" />
+          <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={() => {}} glow={highlightReceive} testID="ReceiveButton" />
         </ActionPopupButton>
       );
     }
 
-    return <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={handleReceive} testID="ReceiveButton" />;
+    return <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={handleReceive} glow={highlightReceive} testID="ReceiveButton" />;
   };
 
   // Render Fund button (only if canBuyWithFiat is true)

@@ -31,8 +31,7 @@ import { getAssetInfo } from '../../../models/asset-info';
 import { getDecimalsByNetwork, getIsEVM, getIsTestnet, getTickerByNetwork } from '../../../models/network-getters';
 import { getTokenInfo, getTokenList } from '../../../models/token-list';
 import { validateAddress, type TSupportedLazyInitWalletNetworks } from '../../../modules/wallet-utils';
-import { getApiUsersByUsername, getApiUsersBySparkAddressBySparkAddress, postApiUsers } from '../../../openapi/generated/layerzme';
-import { createClient } from '../../../openapi/generated/layerzme/client';
+import { claimLayerzLightningAddressUsername, LAYERZ_ME_DOMAIN, lookupLayerzLightningAddress } from '../../../modules/layerz-lightning-address';
 import { AssetId } from '../../../types/asset';
 import type { SendQuote } from '../../../types/send-quote';
 import {
@@ -68,14 +67,33 @@ function mcpBalanceFields(baseUnits: string, decimals: number): { balance_base_u
   return { balance_base_units: baseUnits, balance_human_readable: mcpBaseUnitsToHumanReadable(baseUnits, decimals) };
 }
 
+/**
+ * `amount_base_units` (smallest units, verbatim), `amount_human_readable` (decimal string for showing
+ * the user, computed via the amount's `decimals`), and `amount_ticker` — the native-coin ticker for
+ * native sends, the token's symbol for token transfers. Mirrors {@link mcpBalanceFields}/{@link mcpFeeFields}.
+ */
+function mcpAmountFields(baseUnits: string, decimals: number, ticker: string): { amount_base_units: string; amount_human_readable: string | null; amount_ticker: string } {
+  return { amount_base_units: baseUnits, amount_human_readable: mcpBaseUnitsToHumanReadable(baseUnits, decimals), amount_ticker: ticker };
+}
+
+/**
+ * `fee_base_units` (smallest units), `fee_human_readable` (decimal string), and `fee_ticker`. The fee
+ * is always paid in the chain's native coin, so `decimals`/`ticker` are the native ones — even for
+ * token transfers where the amount uses the token's decimals.
+ */
+function mcpFeeFields(baseUnits: string | number, decimals: number, ticker: string): { fee_base_units: string; fee_human_readable: string | null; fee_ticker: string } {
+  const feeBaseUnits = String(baseUnits ?? '');
+  return { fee_base_units: feeBaseUnits, fee_human_readable: mcpBaseUnitsToHumanReadable(feeBaseUnits, decimals), fee_ticker: ticker };
+}
+
 /** Networks whose lazy-init wallet can pay BOLT11 Lightning invoices. */
-const MCP_LIGHTNING_PAY_NETWORKS = [NETWORK_SPARK, NETWORK_LIQUID] as const;
+const MCP_LIGHTNING_PAY_NETWORKS = [NETWORK_SPARK, NETWORK_ARK, NETWORK_LIQUID] as const;
 
 const mcpLightningPayNetworkSchema = z.enum(MCP_LIGHTNING_PAY_NETWORKS);
 
-/** Mainnet-style networks exposed to MCP (no testnets, Lightning, USDT, or Ark). */
+/** Mainnet-style networks exposed to MCP (no testnets, Lightning, or USDT). Ark mainnet is listable; ark_mutinynet is filtered as a testnet. */
 function mcpListableNetworks(): Networks[] {
-  return getAvailableNetworks().filter((n) => !getIsTestnet(n) && n !== NETWORK_LIGHTNING && n !== NETWORK_LIGHTNING_TESTNET && n !== NETWORK_USDT && n !== NETWORK_ARK && n !== NETWORK_ARK_MUTINYNET);
+  return getAvailableNetworks().filter((n) => !getIsTestnet(n) && n !== NETWORK_LIGHTNING && n !== NETWORK_LIGHTNING_TESTNET && n !== NETWORK_USDT);
 }
 
 /** Positive integer string for token amounts in smallest units (no precision loss). */
@@ -87,7 +105,7 @@ const mcpPositiveBaseUnitsString = z.string().regex(/^[1-9]\d*$/, 'Must be a pos
  * EVM token transfer takes a separate code path (see {@link MCP_EVM_TOKEN_TRANSFER_NETWORKS}),
  * so this stays narrow. Pairs with the read-only superset {@link MCP_TOKEN_READ_NETWORKS}.
  */
-const MCP_TOKEN_WRITE_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
+const MCP_TOKEN_WRITE_NETWORKS = [NETWORK_SPARK, NETWORK_ARK, NETWORK_STACKS] as const;
 
 /**
  * Networks `list_tokens` can read. Superset of {@link MCP_TOKEN_WRITE_NETWORKS}: also includes every
@@ -139,11 +157,11 @@ const mcpTokenTransferNetworkSchema = z.enum(MCP_TOKEN_TRANSFER_NETWORKS as [Net
  *  - Liquid (L-BTC): Breez wallet — L-BTC is the default Liquid *asset*, sent via `prepareSendPayment`
  *    (`{ type: 'asset', toAsset: <L-BTC asset id>, receiverAmount }`) → `sendPayment`, exactly like
  *    the UI native send screen and the transfer_token Liquid branch.
- *  - Spark (BTC) and Stacks (sBTC, its main balance): single-address `InterfaceAccountBasedWallet`
+ *  - Spark (BTC), Ark (BTC) and Stacks (sBTC, its main balance): single-address `InterfaceAccountBasedWallet`
  *    wallets, sent via `pay(address, amountSats)` — the same call the UI SendAccountBased screen uses.
  * EVM set is derived so new EVM mainnets are picked up automatically.
  */
-const MCP_NATIVE_TRANSFER_NETWORKS: Networks[] = [...mcpListableNetworks().filter((n) => getIsEVM(n)), NETWORK_LIQUID, NETWORK_SPARK, NETWORK_STACKS];
+const MCP_NATIVE_TRANSFER_NETWORKS: Networks[] = [...mcpListableNetworks().filter((n) => getIsEVM(n)), NETWORK_LIQUID, NETWORK_SPARK, NETWORK_ARK, NETWORK_STACKS];
 const mcpNativeTransferNetworkSchema = z.enum(MCP_NATIVE_TRANSFER_NETWORKS as [Networks, ...Networks[]]);
 
 /** Max EVM fee "speed up" multiplier exposed to MCP. */
@@ -162,11 +180,12 @@ const MCP_NFT_NETWORKS = [NETWORK_SPARK, NETWORK_STACKS] as const;
 const mcpNftNetworkSchema = z.enum(MCP_NFT_NETWORKS);
 
 /**
- * AssetIds the MCP swap tools accept. Today: only BTC↔USDB on Spark (Flashnet AMM).
- * Adding more pairs is purely additive: extend this list and the routing falls through
- * to whatever provider TransferServiceManager picks.
+ * AssetIds the MCP swap tools accept: BTC↔USDB on Spark (Flashnet, in-wallet AMM) and on-chain
+ * BTC → Citrea cBTC (Atomiq, cross-chain). Adding more pairs is purely additive: extend this list
+ * and the routing falls through to whatever provider TransferServiceManager picks for the pair —
+ * cross-chain providers just need a settle address (see get_swap_quote) and `executeInstantSwap`.
  */
-const MCP_SWAP_ASSET_IDS = ['native:spark', 'token:spark:usdb'] as const satisfies readonly AssetId[];
+const MCP_SWAP_ASSET_IDS = ['native:spark', 'token:spark:usdb', 'native:bitcoin', 'native:citrea'] as const satisfies readonly AssetId[];
 const mcpSwapAssetSchema = z.enum(MCP_SWAP_ASSET_IDS);
 
 function normalizeBolt11Invoice(raw: string): string {
@@ -189,18 +208,6 @@ function showMcpSuccess(deps: McpCallDeps, actionSummary: string, detail?: strin
 
 function trackMcpCall(deps: McpCallDeps, toolName: string): void {
   deps.trackToolCall?.(toolName);
-}
-
-/**
- * Layerz Lightning Addresses are served by the layerz.me SparkHub (Spark-backed). Usernames are
- * registered/looked up over plain HTTP via the generated client — there is no wallet/SDK method for
- * this; the mobile claim/receive screens hit the same endpoints.
- */
-const LAYERZ_ME_DOMAIN = 'layerz.me';
-const LAYERZ_ME_BASE_URL = 'https://layerz.me';
-
-function layerzMeClient() {
-  return createClient({ baseUrl: LAYERZ_ME_BASE_URL });
 }
 
 export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void {
@@ -458,7 +465,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     'transfer_token',
     {
       title: 'Transfer fungible token on a network',
-      description: `Sends \`amount_base_units\` (smallest units, integer string — same as list_tokens \`balance_base_units\`) of \`token_id\` to \`receiver_address\`. \`network\` must be one of: ${MCP_TOKEN_TRANSFER_NETWORKS.join(', ')}. Call list_tokens first; **pass \`token_id\` exactly as returned** (verbatim string from the tool output). Malformed or chat-transcribed ids will fail; use the exact value from MCP JSON, not a human summary. On EVM chains (${MCP_EVM_TOKEN_TRANSFER_NETWORKS.join(', ')}) \`token_id\` is the ERC-20 contract address and the transfer pays gas in the chain's native coin. On Liquid \`token_id\` is the Liquid asset id and the fee is paid in L-BTC. Only tokens from list_tokens are supported.`,
+      description: `Sends \`amount_base_units\` (smallest units, integer string — same as list_tokens \`balance_base_units\`) of \`token_id\` to \`receiver_address\`. \`network\` must be one of: ${MCP_TOKEN_TRANSFER_NETWORKS.join(', ')}. Call list_tokens first; **pass \`token_id\` exactly as returned** (verbatim string from the tool output). Malformed or chat-transcribed ids will fail; use the exact value from MCP JSON, not a human summary. On EVM chains (${MCP_EVM_TOKEN_TRANSFER_NETWORKS.join(', ')}) \`token_id\` is the ERC-20 contract address and the transfer pays gas in the chain's native coin. On Liquid \`token_id\` is the Liquid asset id and the fee is paid in L-BTC. Only tokens from list_tokens are supported. On success returns \`amount_human_readable\` + \`amount_ticker\` (token decimals/symbol) and, where a fee is reported, \`fee_human_readable\` + \`fee_ticker\` (native-coin decimals) — quote these decimal-corrected values (with their ticker) to the user.`,
       inputSchema: {
         network: mcpTokenTransferNetworkSchema.describe(`Network id; one of: ${MCP_TOKEN_TRANSFER_NETWORKS.join(', ')}.`),
         token_id: z
@@ -515,7 +522,17 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
               content: [
                 {
                   type: 'text',
-                  text: JSON.stringify({ error: 'Insufficient token balance.', network: net, token_id: tid, amount_base_units, ...mcpBalanceFields(tokenBalance ?? '0', token.decimals) }, null, 2),
+                  text: JSON.stringify(
+                    {
+                      error: 'Insufficient token balance.',
+                      network: net,
+                      token_id: tid,
+                      ...mcpAmountFields(amount_base_units, token.decimals, token.symbol),
+                      ...mcpBalanceFields(tokenBalance ?? '0', token.decimals),
+                    },
+                    null,
+                    2
+                  ),
                 },
               ],
             };
@@ -553,10 +570,9 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                     network: net,
                     transfer_id,
                     token_id: tid,
-                    amount_base_units,
+                    ...mcpAmountFields(amount_base_units, token.decimals, token.symbol),
                     receiver_address: addr,
-                    fee_base_units: fee,
-                    fee_ticker: getTickerByNetwork(net),
+                    ...mcpFeeFields(fee, getDecimalsByNetwork(net), getTickerByNetwork(net)),
                     fee_multiplier: feeMultiplier,
                   },
                   null,
@@ -612,7 +628,17 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
               content: [
                 {
                   type: 'text',
-                  text: JSON.stringify({ error: 'Insufficient token balance.', network: net, token_id: tid, amount_base_units, ...mcpBalanceFields(tokenBalance ?? '0', token.decimals) }, null, 2),
+                  text: JSON.stringify(
+                    {
+                      error: 'Insufficient token balance.',
+                      network: net,
+                      token_id: tid,
+                      ...mcpAmountFields(amount_base_units, token.decimals, token.symbol),
+                      ...mcpBalanceFields(tokenBalance ?? '0', token.decimals),
+                    },
+                    null,
+                    2
+                  ),
                 },
               ],
             };
@@ -644,10 +670,9 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                     network: net,
                     transfer_id,
                     token_id: tid,
-                    amount_base_units,
+                    ...mcpAmountFields(amount_base_units, token.decimals, token.symbol),
                     receiver_address: addr,
-                    fee_base_units: String(prepareResponse.feesSat ?? ''),
-                    fee_ticker: 'L-BTC',
+                    ...mcpFeeFields(String(prepareResponse.feesSat ?? ''), getDecimalsByNetwork(NETWORK_LIQUID), 'L-BTC'),
                   },
                   null,
                   2
@@ -760,7 +785,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                     error: 'Insufficient token balance.',
                     network,
                     token_id: tid,
-                    amount_base_units,
+                    ...mcpAmountFields(amount_base_units, holding.decimals, holding.symbol),
                     ...mcpBalanceFields(holding.balance ?? '0', holding.decimals),
                   },
                   null,
@@ -791,7 +816,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   network,
                   transfer_id,
                   token_id: tid,
-                  amount_base_units,
+                  ...mcpAmountFields(amount_base_units, holding.decimals, holding.symbol),
                   receiver_address: addr,
                 },
                 null,
@@ -815,7 +840,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     'transfer_native',
     {
       title: "Transfer a network's native coin",
-      description: `Sends \`amount_base_units\` (smallest units, integer string — same scale as get_network_balance \`balance_base_units\`) of the network's native coin to \`receiver_address\`. \`network\` must be one of: ${MCP_NATIVE_TRANSFER_NETWORKS.join(', ')}. The fee is paid in that same native coin and deducted on top of \`amount_base_units\`. For fungible tokens use transfer_token instead.`,
+      description: `Sends \`amount_base_units\` (smallest units, integer string — same scale as get_network_balance \`balance_base_units\`) of the network's native coin to \`receiver_address\`. \`network\` must be one of: ${MCP_NATIVE_TRANSFER_NETWORKS.join(', ')}. The fee is paid in that same native coin and deducted on top of \`amount_base_units\`. On success returns \`amount_human_readable\`/\`fee_human_readable\` (decimal strings, already corrected via \`decimals\`) and \`amount_ticker\`/\`fee_ticker\` alongside the \`*_base_units\` values — quote the human-readable ones (with their ticker) to the user. For fungible tokens use transfer_token instead.`,
       inputSchema: {
         network: mcpNativeTransferNetworkSchema.describe(`Network id; one of: ${MCP_NATIVE_TRANSFER_NETWORKS.join(', ')}.`),
         amount_base_units: mcpPositiveBaseUnitsString.describe('Amount of native coin to send in smallest units (positive integer string; e.g. wei on EVM chains).'),
@@ -877,8 +902,8 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                     {
                       error: `Insufficient ${getTickerByNetwork(net)} balance for amount + gas.`,
                       network: net,
-                      amount_base_units,
-                      fee_base_units: fee,
+                      ...mcpAmountFields(amount_base_units, getDecimalsByNetwork(net), getTickerByNetwork(net)),
+                      ...mcpFeeFields(fee, getDecimalsByNetwork(net), getTickerByNetwork(net)),
                       ...mcpBalanceFields(nativeBalance ?? '0', getDecimalsByNetwork(net)),
                     },
                     null,
@@ -910,10 +935,9 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                     success: true,
                     network: net,
                     transfer_id,
-                    amount_base_units,
+                    ...mcpAmountFields(amount_base_units, getDecimalsByNetwork(net), getTickerByNetwork(net)),
                     receiver_address: addr,
-                    fee_base_units: fee,
-                    fee_ticker: getTickerByNetwork(net),
+                    ...mcpFeeFields(fee, getDecimalsByNetwork(net), getTickerByNetwork(net)),
                     fee_multiplier: feeMultiplier,
                   },
                   null,
@@ -979,7 +1003,14 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
               {
                 type: 'text',
                 text: JSON.stringify(
-                  { success: true, network: net, transfer_id, amount_base_units, receiver_address: addr, fee_base_units: String(prepareResponse.feesSat ?? ''), fee_ticker: 'L-BTC' },
+                  {
+                    success: true,
+                    network: net,
+                    transfer_id,
+                    ...mcpAmountFields(amount_base_units, decimals, 'L-BTC'),
+                    receiver_address: addr,
+                    ...mcpFeeFields(String(prepareResponse.feesSat ?? ''), decimals, 'L-BTC'),
+                  },
                   null,
                   2
                 ),
@@ -1034,7 +1065,18 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
             content: [
               {
                 type: 'text',
-                text: JSON.stringify({ success: true, network: net, transfer_id, amount_base_units, receiver_address: addr, fee_ticker: getTickerByNetwork(net) }, null, 2),
+                text: JSON.stringify(
+                  {
+                    success: true,
+                    network: net,
+                    transfer_id,
+                    ...mcpAmountFields(amount_base_units, getDecimalsByNetwork(net), getTickerByNetwork(net)),
+                    receiver_address: addr,
+                    fee_ticker: getTickerByNetwork(net),
+                  },
+                  null,
+                  2
+                ),
               },
             ],
           };
@@ -1098,7 +1140,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     {
       title: 'Quote a native Bitcoin (on-chain) send',
       description:
-        'Prepares an on-chain Bitcoin (BTC) send of `amount_base_units` sats to `receiver_address` at `fee_rate` (sat/vByte). Returns a `quote_id` plus the exact `fee_base_units` (sats) and `total_base_units` (amount + fee) so you can review the fee before committing. **No funds move on this call** — call `execute_bitcoin_send` with the `quote_id` to actually sign and broadcast.\n\n' +
+        'Prepares an on-chain Bitcoin (BTC) send of `amount_base_units` sats to `receiver_address` at `fee_rate` (sat/vByte). Returns a `quote_id` plus the exact `fee_base_units` (sats) and `total_base_units` (amount + fee), each with a decimal `*_human_readable` (BTC) counterpart, so you can review the fee before committing. **No funds move on this call** — call `execute_bitcoin_send` with the `quote_id` to actually sign and broadcast.\n\n' +
         MCP_BASE_UNITS_GUIDANCE +
         `\n\n\`amount_base_units\` is sats — the same scale as get_network_balance \`balance_base_units\` for bitcoin. Get \`fee_rate\` from get_bitcoin_fee_rates (low/medium/high) or pick any integer sat/vByte. The quote is rejected if the fee would exceed ${MCP_BTC_MAX_FEE_PERCENT_OF_AMOUNT}% of the amount (lower fee_rate or send more).`,
       inputSchema: {
@@ -1147,8 +1189,8 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   {
                     error: `Fee (${fee.toString()} sats) exceeds ${MCP_BTC_MAX_FEE_PERCENT_OF_AMOUNT}% of the send amount (${amount.toString()} sats). Lower fee_rate or send a larger amount.`,
                     network: NETWORK_BITCOIN,
-                    fee_base_units: quote.fee,
-                    amount_base_units,
+                    ...mcpAmountFields(amount_base_units, getDecimalsByNetwork(NETWORK_BITCOIN), 'BTC'),
+                    ...mcpFeeFields(quote.fee, getDecimalsByNetwork(NETWORK_BITCOIN), 'BTC'),
                     fee_rate,
                   },
                   null,
@@ -1173,11 +1215,11 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   quote_id: quoteId,
                   network: NETWORK_BITCOIN,
                   receiver_address: addr,
-                  amount_base_units,
-                  fee_base_units: quote.fee,
+                  ...mcpAmountFields(amount_base_units, getDecimalsByNetwork(NETWORK_BITCOIN), 'BTC'),
+                  ...mcpFeeFields(quote.fee, getDecimalsByNetwork(NETWORK_BITCOIN), 'BTC'),
                   fee_rate,
-                  fee_ticker: 'BTC',
                   total_base_units: (amount + fee).toString(),
+                  total_human_readable: mcpBaseUnitsToHumanReadable((amount + fee).toString(), getDecimalsByNetwork(NETWORK_BITCOIN)),
                 },
                 null,
                 2
@@ -1256,10 +1298,9 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   network: NETWORK_BITCOIN,
                   transfer_id,
                   receiver_address: quote.request.toAddress,
-                  amount_base_units: quote.request.amount,
-                  fee_base_units: quote.fee,
+                  ...mcpAmountFields(quote.request.amount, getDecimalsByNetwork(NETWORK_BITCOIN), 'BTC'),
+                  ...mcpFeeFields(quote.fee, getDecimalsByNetwork(NETWORK_BITCOIN), 'BTC'),
                   fee_rate: quote.request.feeRate,
-                  fee_ticker: 'BTC',
                 },
                 null,
                 2
@@ -1977,19 +2018,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
       trackMcpCall(deps, 'get_lightning_address');
       try {
         const sparkAddress = await backgroundCaller.getAddress(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
-
-        let username: string | null = null;
-        try {
-          const { data } = await getApiUsersBySparkAddressBySparkAddress({ client: layerzMeClient(), path: { sparkAddress }, responseStyle: 'fields', throwOnError: false });
-          if (data?.username) username = data.username;
-        } catch (e) {
-          // The default `<spark-address>@layerz.me` is always valid, so a username lookup failure is
-          // non-fatal — fall back to it rather than failing the whole call.
-          const message = e instanceof Error ? e.message : String(e);
-          mcpCallLog(`get_lightning_address: username lookup failed, using default address - ${message}`);
-        }
-
-        const lightningAddress = `${username ?? sparkAddress}@${LAYERZ_ME_DOMAIN}`;
+        const { lightningAddress, username, claimed } = await lookupLayerzLightningAddress(sparkAddress);
         mcpCallLog(`get_lightning_address: ok - ${lightningAddress}`);
         showMcpSuccess(deps, 'Lightning Address', lightningAddress);
         return {
@@ -2001,7 +2030,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   lightning_address: lightningAddress,
                   spark_address: sparkAddress,
                   username,
-                  claimed: username !== null,
+                  claimed,
                   domain: LAYERZ_ME_DOMAIN,
                 },
                 null,
@@ -2031,41 +2060,40 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
       },
     },
     async ({ username: usernameRaw }) => {
-      const username = usernameRaw.trim().toLowerCase();
-      mcpCallLog(`claim_lightning_address: start - "${username}"`);
+      mcpCallLog(`claim_lightning_address: start - "${usernameRaw.trim()}"`);
       trackMcpCall(deps, 'claim_lightning_address');
       try {
-        if (!username) {
-          return {
-            isError: true,
-            content: [{ type: 'text', text: JSON.stringify({ error: 'Username must not be empty.' }, null, 2) }],
-          };
-        }
-
-        const client = layerzMeClient();
         const sparkAddress = await backgroundCaller.getAddress(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
-
-        const { data: existing } = await getApiUsersByUsername({ client, path: { username }, responseStyle: 'fields', throwOnError: false });
-        if (existing?.username) {
-          mcpCallLog(`claim_lightning_address: error - "${username}" already taken`);
+        const claim = await claimLayerzLightningAddressUsername(sparkAddress, usernameRaw);
+        if (!claim.ok) {
+          let error: string;
+          switch (claim.reason) {
+            case 'empty':
+              error = 'Username must not be empty.';
+              break;
+            case 'taken': {
+              const username = usernameRaw.trim().toLowerCase();
+              mcpCallLog(`claim_lightning_address: error - "${username}" already taken`);
+              error = `Username "${username}" is unavailable.`;
+              break;
+            }
+            case 'unconfirmed':
+              mcpCallLog('claim_lightning_address: error - layerz.me did not confirm the claim');
+              error = 'Unable to claim username.';
+              break;
+            case 'api_error':
+              mcpCallLog(`claim_lightning_address: error - ${claim.message ?? 'layerz.me request failed'}`);
+              error = claim.message ?? 'Unable to claim username.';
+              break;
+          }
           return {
             isError: true,
-            content: [{ type: 'text', text: JSON.stringify({ error: `Username "${username}" is unavailable.` }, null, 2) }],
+            content: [{ type: 'text', text: JSON.stringify({ error }, null, 2) }],
           };
         }
 
-        const { data: claim } = await postApiUsers({ client, body: { username, sparkAddress }, responseStyle: 'fields', throwOnError: true });
-        if (!claim?.username) {
-          mcpCallLog('claim_lightning_address: error - layerz.me did not confirm the claim');
-          return {
-            isError: true,
-            content: [{ type: 'text', text: JSON.stringify({ error: 'Unable to claim username.' }, null, 2) }],
-          };
-        }
-
-        const lightningAddress = `${claim.username}@${LAYERZ_ME_DOMAIN}`;
-        mcpCallLog(`claim_lightning_address: ok - ${lightningAddress}`);
-        showMcpSuccess(deps, `Claimed Lightning Address ${lightningAddress}`);
+        mcpCallLog(`claim_lightning_address: ok - ${claim.lightningAddress}`);
+        showMcpSuccess(deps, `Claimed Lightning Address ${claim.lightningAddress}`);
         return {
           content: [
             {
@@ -2073,7 +2101,7 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
               text: JSON.stringify(
                 {
                   success: true,
-                  lightning_address: lightningAddress,
+                  lightning_address: claim.lightningAddress,
                   username: claim.username,
                   spark_address: sparkAddress,
                   domain: LAYERZ_ME_DOMAIN,
@@ -2098,22 +2126,23 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
   mcp.registerTool(
     'get_swap_quote',
     {
-      title: 'Quote an in-wallet swap (no funds move)',
+      title: 'Quote a swap (no funds move)',
       description:
-        'Returns a quote for swapping `send_amount_base_units` of `send_asset` into `receive_asset`. Currently only BTC↔USDB on Spark. The response includes a `quote_id` you must pass verbatim to `execute_swap` to actually trade. Quotes expire at `expires_at_unix` (typically 60s, TELL USER HOW MUCH TIME IS LEFT); call this tool again after expiry. **No funds move on this call** — it only stages the swap so the user/agent can review fees before committing.\n\n' +
+        'Returns a quote for swapping `send_amount_base_units` of `send_asset` into `receive_asset`. Supported routes: BTC↔USDB on Spark (instant in-wallet AMM) and on-chain BTC → Citrea cBTC (`native:bitcoin` → `native:citrea`, cross-chain). The response includes a `quote_id` you must pass verbatim to `execute_swap` to actually trade. Quotes expire at `expires_at_unix` (TELL USER HOW MUCH TIME IS LEFT); call this tool again after expiry. **No funds move on this call** — it only stages the swap so the user/agent can review fees before committing.\n\n' +
+        "The BTC → Citrea cBTC route is **cross-chain and NOT instant**: `execute_swap` broadcasts a real Bitcoin L1 transaction and the cBTC settles automatically on the wallet's own Citrea address after that tx confirms (typically ~30 min). The response for that route includes a `recipient_address` (the wallet's Citrea address that will receive the cBTC) and omits `effective_exchange_rate`.\n\n" +
         MCP_BASE_UNITS_GUIDANCE +
-        '\n\n**Where `send_amount_base_units` comes from:** call `get_network_balance` on `spark` for `native:spark` (BTC/sats), or `list_tokens` on `spark` for `token:spark:usdb` — copy `balance_base_units` verbatim (or a smaller amount ≤ balance). The wallet converts base units → human amount internally; you must not multiply by `10^decimals` before calling this tool.\n\n' +
-        '**Present the EXACT outcome to the user with zero mental math.** The response already contains both machine units (`*_base_units`) and ready-to-show decimal strings (`send_amount_human_readable`, `receive_amount_human_readable`); `receive_amount_*`, `effective_exchange_rate`, and `rate` are all already net of the AMM fee — quote them verbatim, do **NOT** subtract anything on top.\n\n' +
+        '\n\n**Where `send_amount_base_units` comes from:** call `get_network_balance` on `spark` for `native:spark` (BTC/sats), or `list_tokens` on `spark` for `token:spark:usdb`; for the Citrea route use an on-chain BTC balance (`native:bitcoin`, sats). Copy `balance_base_units` verbatim (or a smaller amount ≤ balance). The wallet converts base units → human amount internally; you must not multiply by `10^decimals` before calling this tool.\n\n' +
+        '**Present the EXACT outcome to the user with zero mental math.** The response already contains both machine units (`*_base_units`) and ready-to-show decimal strings (`send_amount_human_readable`, `receive_amount_human_readable`); `receive_amount_*`, `effective_exchange_rate`, and `rate` are all already net of fees — quote them verbatim, do **NOT** subtract anything on top.\n\n' +
         '- `send_amount_human_readable` / `receive_amount_human_readable`: precomputed decimal strings (e.g. "0.001", "99.5") for the send and receive amounts. **Quote these verbatim to the user** (with the asset ticker); never divide a `*_base_units` value by `10^decimals` yourself — the wallet has already done the decimal math.\n' +
-        '- `effective_exchange_rate`: precomputed BTC price in USDB the user is actually paying, factoring in fees (e.g. "99500.00"). Always normalized to USDB-per-BTC regardless of swap direction, so the user can compare it directly to a market BTC price. Prefer this over `rate` when presenting — `rate` reads poorly in the USDB→BTC direction ("1 USDB = 0.00001 BTC").\n' +
-        '- `effective_fee_rate`: precomputed `fee_base_units / send_amount_base_units × 100` as a percent string. Always surface it for transparency about what the AMM is keeping — but show it as transparency, **not** as a further deduction on top of the rate/amounts.\n\n' +
+        '- `effective_exchange_rate`: **(Spark BTC↔USDB only)** precomputed BTC price in USDB the user is actually paying, factoring in fees (e.g. "99500.00"). Always normalized to USDB-per-BTC regardless of swap direction, so the user can compare it directly to a market BTC price. Prefer this over `rate` when presenting — `rate` reads poorly in the USDB→BTC direction ("1 USDB = 0.00001 BTC"). Absent for cross-chain routes; use `rate` there.\n' +
+        '- `effective_fee_rate`: precomputed `fee_base_units / send_amount_base_units × 100` as a percent string. Always surface it for transparency about what the provider is keeping — but show it as transparency, **not** as a further deduction on top of the rate/amounts.\n\n' +
         'Good: "You\'ll send 0.001 BTC and receive 99.5 USDB (effective price: 99,500 USDB per BTC, includes a 0.4% AMM fee)."\n' +
         'Bad: "You\'ll send 0.001 BTC at 99,500 USDB per BTC, with a 0.4% fee on top." (the fee is **not** on top — it\'s already baked into `effective_exchange_rate` and `receive_amount_base_units`.)',
       inputSchema: {
         send_asset: mcpSwapAssetSchema.describe(`Asset to sell. One of: ${MCP_SWAP_ASSET_IDS.join(', ')}.`),
         receive_asset: mcpSwapAssetSchema.describe(`Asset to buy. Must differ from \`send_asset\`. One of: ${MCP_SWAP_ASSET_IDS.join(', ')}.`),
         send_amount_base_units: mcpPositiveBaseUnitsString.describe(
-          "Amount to sell in the send asset's smallest units (sats for native:spark, 6-decimal units for token:spark:usdb). Copy from balance_base_units — never multiply by 10^decimals."
+          "Amount to sell in the send asset's smallest units (sats for native:spark and native:bitcoin, 6-decimal units for token:spark:usdb). Copy from balance_base_units — never multiply by 10^decimals."
         ),
       },
     },
@@ -2130,9 +2159,19 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
       }
 
       try {
-        useTransferService(storage); // ensure the singleton + Flashnet service are constructed
-        await backgroundCaller.lazyInitWallet(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
-        setFlashnetAccountNumber(MCP_BALANCE_ACCOUNT_NUMBER);
+        useTransferService(storage); // ensure the singleton + provider services are constructed
+
+        const sendInfo = getAssetInfo(send_asset);
+        const receiveInfo = getAssetInfo(receive_asset);
+        const sameNetwork = sendInfo.network === receiveInfo.network;
+
+        // Flashnet's in-wallet AMM needs the Spark wallet warmed up and pinned to the MCP account.
+        // Cross-chain providers (e.g. Atomiq BTC→Citrea) don't, so only warm up Spark when a Spark
+        // leg is involved — a BTC→cBTC quote shouldn't pay to spin up the Spark SDK.
+        if (sendInfo.network === NETWORK_SPARK || receiveInfo.network === NETWORK_SPARK) {
+          await backgroundCaller.lazyInitWallet(NETWORK_SPARK, MCP_BALANCE_ACCOUNT_NUMBER);
+          setFlashnetAccountNumber(MCP_BALANCE_ACCOUNT_NUMBER);
+        }
 
         const manager = getTransferServiceManager();
         if (!manager) {
@@ -2143,14 +2182,16 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
           };
         }
 
-        const sendInfo = getAssetInfo(send_asset);
-        const receiveInfo = getAssetInfo(receive_asset);
-
         const sendAmountHuman = new BigNumber(send_amount_base_units).div(new BigNumber(10).pow(sendInfo.decimals)).toFixed();
 
         const quote = await manager.getQuote(send_asset, receive_asset, sendAmountHuman);
+
+        // In-wallet swaps (same network, e.g. Spark AMM) settle in place, so no settle address is
+        // needed. Cross-chain swaps settle to the wallet's own receive address on the destination
+        // network — stage with that recipient so execute_swap can broadcast against it.
+        const settleAddress = sameNetwork ? '' : await backgroundCaller.getAddress(receiveInfo.network, MCP_BALANCE_ACCOUNT_NUMBER);
         // Stage in-memory only (5min TTL); execute_swap persists the completed row.
-        const execution = await manager.executeTransfer(quote, MCP_BALANCE_ACCOUNT_NUMBER, '');
+        const execution = await manager.executeTransfer(quote, MCP_BALANCE_ACCOUNT_NUMBER, settleAddress);
 
         const receiveAmountBaseUnits = new BigNumber(quote.receiveAmount).times(new BigNumber(10).pow(receiveInfo.decimals)).integerValue(BigNumber.ROUND_FLOOR).toFixed(0);
 
@@ -2159,28 +2200,28 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
         const sendAmountHumanReadable = mcpBaseUnitsToHumanReadable(send_amount_base_units, sendInfo.decimals);
         const receiveAmountHumanReadable = mcpBaseUnitsToHumanReadable(receiveAmountBaseUnits, receiveInfo.decimals);
 
-        // Trading fee as a percentage of the user's input (e.g. "0.4000" for 0.4%).
-        // Kept as smallest-unit math (fee_base_units / send_amount_base_units) so it stays exact
-        // regardless of asset decimals. `quote.rate` is already the post-fee effective rate,
-        // since the AMM's amountOut is net of fees — surfacing this percentage lets the agent
-        // explain the cost of the trade alongside that rate.
-        const feeBaseUnitsStr = quote.feeBaseUnits ?? '0';
+        // Fee in the send asset's smallest units, as a percentage of the user's input (e.g. "0.4000"
+        // for 0.4%). Prefer the provider's exact base-unit fee (Flashnet sets it); fall back to
+        // deriving it from the human-readable fee, which is all some providers (e.g. Atomiq) report.
+        // `quote.rate` is already the post-fee effective rate, so this percentage is transparency only.
+        const feeBaseUnitsStr = quote.feeBaseUnits ?? (quote.fee ? new BigNumber(quote.fee).times(new BigNumber(10).pow(sendInfo.decimals)).integerValue(BigNumber.ROUND_FLOOR).toFixed(0) : '0');
         const effectiveFeeRate = new BigNumber(feeBaseUnitsStr).div(new BigNumber(send_amount_base_units)).times(100).toFixed(4);
 
-        // The actual BTC-priced-in-USDB rate the user is paying, factoring in fees.
-        // `quote.rate` is direction-specific ("1 USDB = 0.00001 BTC" reads poorly), so we
-        // always normalize to USDB-per-BTC for the BTC↔USDB pair. Uses human-unit amounts
-        // — both sides are decimal-corrected, so the ratio is exact regardless of decimals.
-        // If new swap pairs are added beyond MCP_SWAP_ASSET_IDS, revisit this normalization.
-        const sendIsBtc = send_asset === 'native:spark';
-        const usdbHuman = sendIsBtc ? quote.receiveAmount : sendAmountHuman;
-        const btcHuman = sendIsBtc ? sendAmountHuman : quote.receiveAmount;
-        const effectiveExchangeRate = new BigNumber(usdbHuman).div(new BigNumber(btcHuman)).toFixed(2);
+        // `effective_exchange_rate` is BTC↔USDB-specific (normalized to USDB-per-BTC because
+        // `quote.rate` reads poorly in the USDB→BTC direction). It's only meaningful for the Spark
+        // AMM pair; for cross-chain routes like BTC→cBTC the plain `quote.rate` already reads well,
+        // so we omit it rather than emit a misleading USDB-labelled number.
+        const isSparkUsdbPair = sendInfo.network === NETWORK_SPARK && receiveInfo.network === NETWORK_SPARK;
+        let effectiveExchangeRate: string | undefined;
+        if (isSparkUsdbPair) {
+          const sendIsBtc = send_asset === 'native:spark';
+          const usdbHuman = sendIsBtc ? quote.receiveAmount : sendAmountHuman;
+          const btcHuman = sendIsBtc ? sendAmountHuman : quote.receiveAmount;
+          effectiveExchangeRate = new BigNumber(usdbHuman).div(new BigNumber(btcHuman)).toFixed(2);
+        }
 
         const summary = `${sendAmountHuman} ${sendInfo.ticker} \u2192 ${quote.receiveAmount} ${receiveInfo.ticker}`;
-        mcpCallLog(
-          `get_swap_quote: ok - ${summary}, price ${effectiveExchangeRate} USDB/BTC, fee ${feeBaseUnitsStr} ${quote.feeTicker} base units (${effectiveFeeRate}%), impact ${quote.priceImpactPct ?? '?'}%, quote_id ${execution.id}`
-        );
+        mcpCallLog(`get_swap_quote: ok - ${summary}, fee ${feeBaseUnitsStr} ${quote.feeTicker} base units (${effectiveFeeRate}%), impact ${quote.priceImpactPct ?? '?'}%, quote_id ${execution.id}`);
         showMcpSuccess(deps, 'Quoted swap', summary);
 
         return {
@@ -2200,9 +2241,10 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                   fee_asset: send_asset,
                   fee_ticker: quote.feeTicker,
                   effective_fee_rate: effectiveFeeRate,
-                  effective_exchange_rate: effectiveExchangeRate,
+                  ...(effectiveExchangeRate !== undefined ? { effective_exchange_rate: effectiveExchangeRate } : {}),
                   price_impact_pct: quote.priceImpactPct ?? '0',
                   rate: quote.rate,
+                  ...(settleAddress ? { recipient_address: settleAddress } : {}),
                   estimated_time_seconds: quote.estimatedTime,
                   expires_at_unix: quote.expiresAt,
                   service: quote.serviceName,
@@ -2229,7 +2271,10 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
     {
       title: 'Execute a previously quoted swap',
       description:
-        'Executes the swap staged by an earlier `get_swap_quote` call. Pass `quote_id` exactly as returned. The trade is atomic (a few seconds, no on-chain confirmations on Spark) and **irreversible** once it returns success. Each `quote_id` can only be executed **once**; expired or already-executed quotes return an error and you must re-quote. Slippage is capped at 3% (300 bps); execution fails rather than filling beyond that.\n\nThe response returns both `*_base_units` and ready-to-show `send_amount_human_readable` / `receive_amount_human_readable` decimal strings — **quote the human-readable values verbatim** to the user; never divide base units by `10^decimals` yourself.',
+        'Executes the swap staged by an earlier `get_swap_quote` call. Pass `quote_id` exactly as returned. Each `quote_id` can only be executed **once**; expired or already-executed quotes return an error and you must re-quote.\n\n' +
+        'For the Spark BTC↔USDB AMM the trade is atomic (a few seconds, no on-chain confirmations) and **irreversible** once it returns `status: "completed"`; slippage is capped at 3% (300 bps).\n\n' +
+        'For the cross-chain BTC → Citrea cBTC route this signs and **broadcasts a real Bitcoin L1 transaction** and returns `status: "confirming"` with `deposit_txid` — the cBTC is **not** in the wallet yet. It settles automatically on the wallet\'s own Citrea address after the BTC tx confirms (~30 min). Tell the user the BTC tx was broadcast (share `tracking_url` if present) and that cBTC arrives after confirmation; **do not** claim the swap is complete unless `status` is `completed`.\n\n' +
+        'The response returns both `*_base_units` and ready-to-show `send_amount_human_readable` / `receive_amount_human_readable` decimal strings — **quote the human-readable values verbatim** to the user; never divide base units by `10^decimals` yourself.',
       inputSchema: {
         quote_id: z.string().min(1).describe('Exact `quote_id` from `get_swap_quote` — copy verbatim. Leading/trailing whitespace is trimmed.'),
       },
@@ -2268,8 +2313,14 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
         const receiveAmountHumanReadable = mcpBaseUnitsToHumanReadable(receiveBaseUnits, receiveInfo.decimals);
         const summary = `${completed.sendAmount} ${sendInfo.ticker} \u2192 ${completed.receiveAmount} ${receiveInfo.ticker}`;
 
-        mcpCallLog(`execute_swap: ok - ${summary}`);
-        showMcpSuccess(deps, 'Swapped', summary);
+        // In-wallet AMM swaps (Flashnet) return `completed` immediately. Cross-chain swaps (Atomiq
+        // BTC→cBTC) broadcast an on-chain tx and come back `confirming` with a `depositTxid`; the
+        // receive asset only lands after the on-chain tx confirms, so we flag that to the agent.
+        const trackingUrl = manager.getTrackingUrl(completed);
+        const isSettled = completed.status === 'completed';
+
+        mcpCallLog(`execute_swap: ok - ${summary}${isSettled ? '' : ` (${completed.status}${completed.depositTxid ? `, txid ${completed.depositTxid}` : ''})`}`);
+        showMcpSuccess(deps, isSettled ? 'Swapped' : 'Swap broadcast', summary);
 
         return {
           content: [
@@ -2279,12 +2330,17 @@ export function registerWalletMcpCalls(mcp: McpServer, deps: McpCallDeps): void 
                 {
                   success: true,
                   quote_id: qid,
+                  status: completed.status,
                   send_asset: completed.sendAsset,
                   receive_asset: completed.receiveAsset,
                   send_amount_base_units: sendBaseUnits,
                   send_amount_human_readable: sendAmountHumanReadable,
                   receive_amount_base_units: receiveBaseUnits,
                   receive_amount_human_readable: receiveAmountHumanReadable,
+                  ...(completed.depositTxid ? { deposit_txid: completed.depositTxid } : {}),
+                  ...(completed.settleAddress ? { recipient_address: completed.settleAddress } : {}),
+                  ...(trackingUrl ? { tracking_url: trackingUrl } : {}),
+                  ...(isSettled ? {} : { note: 'On-chain transaction broadcast. The received asset settles to your wallet automatically once it confirms — the swap is not complete yet.' }),
                   service: completed.serviceName,
                 },
                 null,

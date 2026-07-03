@@ -4,7 +4,7 @@ import React, { useContext, useEffect, useImperativeHandle, useMemo, useState, f
 
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { useAccountBalance } from '@shared/hooks/useAccountBalance';
-import { useAvailableNetworks } from '../../hooks/useAvailableNetworks';
+import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
 import { useBalance } from '@shared/hooks/useBalance';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { useTokenBalance } from '@shared/hooks/useTokenBalance';

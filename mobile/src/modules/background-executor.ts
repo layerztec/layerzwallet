@@ -18,7 +18,15 @@ import {
   clearWalletCache,
 } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, OpenPopupRequest } from '@shared/types/IBackgroundCaller';
-import { ENCRYPTED_PREFIX, STORAGE_KEY_ACCEPTED_TOS, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC, STORAGE_KEY_WHITELIST, STORAGE_KEY_SEED_VERIFIED } from '@shared/types/IStorage';
+import {
+  ENCRYPTED_PREFIX,
+  STORAGE_KEY_ACCEPTED_TOS,
+  STORAGE_KEY_EVM_XPUB,
+  STORAGE_KEY_MNEMONIC,
+  STORAGE_KEY_RECEIVE_CTA,
+  STORAGE_KEY_WHITELIST,
+  STORAGE_KEY_SEED_VERIFIED,
+} from '@shared/types/IStorage';
 import {
   Networks,
   NETWORK_ARK,
@@ -179,6 +187,8 @@ export const BackgroundExecutor: IBackgroundCaller = {
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await LayerzStorage.setItem(STORAGE_KEY_EVM_XPUB, xpub);
     await saveBitcoinXpubs(LayerzStorage, mnemonic);
+    // Freshly created (not imported) wallet: flag the home screen to show the one-time "receive bitcoin" CTA.
+    await LayerzStorage.setItem(STORAGE_KEY_RECEIVE_CTA, 'true');
 
     return { mnemonic };
   },

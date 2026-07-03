@@ -4,6 +4,31 @@ import { describe, it } from 'vitest';
 import assert from 'assert';
 import { SETTINGS_CONFIG } from '../../hooks/SettingsContext';
 
+const SUBPROJECTS = ['ext', 'mobile', 'desktop'] as const;
+
+function readPackageJson(subproject: (typeof SUBPROJECTS)[number]) {
+  return JSON.parse(fs.readFileSync(resolve(__dirname, `../../../${subproject}/package.json`), 'utf8'));
+}
+
+function getDependencyVersion(packageJson: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> }, dependency: string) {
+  return packageJson.dependencies?.[dependency] ?? packageJson.devDependencies?.[dependency];
+}
+
+/** Dependencies that must use the same version string in every subproject package.json */
+const SYNCED_DEPENDENCIES = [
+  '@buildonspark/spark-sdk',
+  '@arkade-os/sdk',
+  '@arkade-os/boltz-swap',
+  '@atomiqlabs/sdk',
+  '@atomiqlabs/chain-evm',
+  '@breeztech/breez-sdk-liquid', // @breeztech/breez-sdk-liquid-react-native is mobile-only
+  '@flashnet/sdk',
+  'bitcoinjs-lib',
+  'ecpair',
+  '@noble/secp256k1',
+  '@bitcoinerlab/secp256k1',
+] as const;
+
 describe('codebase', function () {
   /**
    * could not isolate shared vitest config, always some weird errors, so we keep identical copies
@@ -25,11 +50,30 @@ describe('codebase', function () {
     assert.strictEqual(extPrettierConfig, sharedPrettierConfig);
   });
 
+  it('shared dependency versions are the same across subprojects', function () {
+    const packages = Object.fromEntries(SUBPROJECTS.map((name) => [name, readPackageJson(name)]));
+
+    for (const dependency of SYNCED_DEPENDENCIES) {
+      const versions = SUBPROJECTS.map((name) => ({
+        subproject: name,
+        version: getDependencyVersion(packages[name], dependency),
+      }));
+
+      const [first, ...rest] = versions;
+      assert.ok(first.version, `${dependency} is missing in ${first.subproject}/package.json`);
+
+      for (const { subproject, version } of rest) {
+        assert.ok(version, `${dependency} is missing in ${subproject}/package.json`);
+        assert.strictEqual(version, first.version, `${dependency} version mismatch: ${first.subproject} has ${first.version}, ${subproject} has ${version}`);
+      }
+    }
+  });
+
   it('subproject versions are the same', async function () {
-    const extPckg = JSON.parse(fs.readFileSync(resolve(__dirname, '../../../ext/package.json'), 'utf8'));
-    const mobilePckg = JSON.parse(fs.readFileSync(resolve(__dirname, '../../../mobile/package.json'), 'utf8'));
+    const extPckg = readPackageJson('ext');
+    const mobilePckg = readPackageJson('mobile');
     const mobileAppjson = JSON.parse(fs.readFileSync(resolve(__dirname, '../../../mobile/app.json'), 'utf8'));
-    const desktopPckg = JSON.parse(fs.readFileSync(resolve(__dirname, '../../../desktop/package.json'), 'utf8'));
+    const desktopPckg = readPackageJson('desktop');
     const desktopElectrobunConfig = fs.readFileSync(resolve(__dirname, '../../../desktop/electrobun.config.ts'), 'utf8');
     const desktopElectrobunVersion = desktopElectrobunConfig.match(/version:\s*['"]([^'"]+)['"]/)?.[1];
 

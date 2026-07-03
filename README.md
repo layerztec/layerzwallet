@@ -73,6 +73,7 @@ TBD
 - `npx playwright install`
 - `npx playwright install-deps`
 - `./utils/add-sepolia.sh`
+- `npm run build`
 - `npm run e2e`
 
 ## e2e (mobile)
@@ -94,7 +95,7 @@ We are also relying on Expo EAS for builds, so a generic workflow to run e2e tes
 * ext build: `npm run build`
 * desktop build: `bun run build` (from `desktop/`) — runs Vite + `electrobun build --env=stable`, emitting distributables to `desktop/artifacts/`.
 
-Electrobun only builds for the host platform/arch, so desktop distributables are produced in CI on a runner per OS: the `desktop-build-macos` (arm64), `desktop-build-linux` (x64), and `desktop-build-windows` (x64) jobs in `.github/workflows/ci.yml` run `bun run build` and upload the `artifacts/` folder.
+Electrobun only builds for the host platform/arch, so desktop distributables are produced in CI on a runner per OS: the `desktop-build-macos` (arm64), `desktop-build-linux` (x64), and `desktop-build-windows` (x64) jobs in `.github/workflows/build.yml` run `bun run build` and upload the `artifacts/` folder.
 
 ### Store submits (EAS Workflows)
 

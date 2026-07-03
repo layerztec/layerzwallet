@@ -108,8 +108,11 @@ describe('MCP transfer_native (Liquid branch — native L-BTC)', () => {
     expect(body.network).toBe(NETWORK_LIQUID);
     expect(body.transfer_id).toBe('liquidnativetxid123');
     expect(body.amount_base_units).toBe('50000');
+    expect(body.amount_human_readable).toBe('0.0005'); // 50000 sats / 10^8
+    expect(body.amount_ticker).toBe('L-BTC');
     expect(body.receiver_address).toBe(LIQUID_RECIPIENT); // trimmed
     expect(body.fee_base_units).toBe('26');
+    expect(body.fee_human_readable).toBe('0.00000026'); // 26 sats / 10^8
     expect(body.fee_ticker).toBe('L-BTC');
 
     // Always resolved against the dedicated MCP pocket.
