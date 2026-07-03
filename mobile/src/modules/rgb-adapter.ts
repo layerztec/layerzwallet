@@ -182,8 +182,20 @@ async function awaitLightningReceiveSettlement(wallet: UTEXOWallet, params: { ln
   return lsp.awaitReceiveSettlement(params.lnInvoice, { timeoutMs: params.timeoutMs, signal: params.signal });
 }
 
-async function lightningSendAsset(wallet: UTEXOWallet, params: { rgbInvoice: string }): Promise<RgbLnSendResult> {
+// beta.20 exposes `waitForOutboundLiquidity(minMsat)` — the LSP does NOT push
+// outbound to freshly-received wallets on its own. Before ANY pay path
+// (asset send via LSP or a direct BOLT11) we have to poll until the LSP
+// channel has usable outbound msat, otherwise the send fails at the wire
+// with HTTP 400 "invalid request" (empirical, live-tested on signet).
+const OUTBOUND_WAIT_TIMEOUT_MS = 60_000;
+
+async function lightningSendAsset(wallet: UTEXOWallet, params: { rgbInvoice: string; amountSats?: number }): Promise<RgbLnSendResult> {
   const lsp = await ensureLsp(wallet);
+  // Sender pays sats to the LSP; the LSP fronts the RGB delivery. Amount
+  // isn't known here without decoding the invoice, so use a floor equal to
+  // whatever the caller told us (defaulting to 1_000 sats-worth of msat).
+  const minMsat = Math.max((params.amountSats ?? 1_000) * 1000, 1_000_000);
+  await lsp.waitForOutboundLiquidity(minMsat, { timeoutMs: OUTBOUND_WAIT_TIMEOUT_MS });
   const r = await lsp.sendAsset({ rgbInvoice: params.rgbInvoice });
   // The SDK returns SendAssetResult = LspOnchainSendResponse (rgb/ln
   // invoice echoes) + `sendResult: LightningSendRequest` which carries the
@@ -191,9 +203,13 @@ async function lightningSendAsset(wallet: UTEXOWallet, params: { rgbInvoice: str
   return { txid: r.sendResult.txid, status: r.sendResult.status };
 }
 
-async function payLightningInvoice(wallet: UTEXOWallet, params: { lnInvoice: string; assetId?: string; assetAmount?: number; maxFee?: number }): Promise<RgbLnSendResult> {
-  // Direct LN pay (no LSP roundtrip — uses our own node's channel inventory).
-  // For asset-tagged invoices the SDK validates `assetId` against the invoice.
+async function payLightningInvoice(wallet: UTEXOWallet, params: { lnInvoice: string; assetId?: string; assetAmount?: number; maxFee?: number; amountSats?: number }): Promise<RgbLnSendResult> {
+  // Same outbound-liquidity precondition as lightningSendAsset — even direct
+  // LN pay routes through the LSP channel when that's the only channel we
+  // have, and needs outbound msat to be available first.
+  const lsp = await ensureLsp(wallet);
+  const minMsat = Math.max((params.amountSats ?? 1_000) * 1000, 1_000_000);
+  await lsp.waitForOutboundLiquidity(minMsat, { timeoutMs: OUTBOUND_WAIT_TIMEOUT_MS });
   const r = await wallet.payLightningInvoice({
     lnInvoice: params.lnInvoice,
     assetId: params.assetId,
