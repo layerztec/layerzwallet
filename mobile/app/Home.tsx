@@ -46,6 +46,7 @@ import { YieldBearingCachedTokenInfo } from '@shared/hooks/useYieldDiscovery';
 import { OnrampProps } from './Onramp';
 import Pressable from '../components/Pressable';
 import { homeBlurTargetRef } from '@/src/hooks/homeBlurTargetRef';
+import { useShowBuyBitcoinButton } from '@/src/hooks/useShowBuyBitcoinButton';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const MODAL_MIN_HEIGHT = 120; // Height when dragged down (header + some content)
@@ -78,6 +79,7 @@ export default function Home() {
   const [refreshOptions, setRefreshOptions] = useState<Partial<RefreshControlProps>>({});
   const settingsContext = useSettings();
   const hasBackedUpSeed = settingsContext.settings.seedBackedUp === 'ON';
+  const showBuyBitcoinButton = useShowBuyBitcoinButton();
 
   // New-user "receive bitcoin" CTA — flag set only on wallet creation, cleared on dismiss/Receive.
   const [showReceiveCta, setShowReceiveCta] = useState(false);
@@ -379,7 +381,9 @@ export default function Home() {
               {accountNumber === MCP_BALANCE_ACCOUNT_NUMBER ? <McpAgentDashboard /> : null}
 
               {/* Action Buttons Section (hidden on MCP automation account) */}
-              {accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER ? <ActionButtons onFundPress={handleFund} highlightReceive={showReceiveCta} onReceivePress={dismissReceiveCta} /> : null}
+              {accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER ? (
+                <ActionButtons onFundPress={handleFund} showBuyBitcoinButton={showBuyBitcoinButton} highlightReceive={showReceiveCta} onReceivePress={dismissReceiveCta} />
+              ) : null}
 
               {/* New-user "receive bitcoin" CTA — caption below the action buttons */}
               {showReceiveCta && accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER ? <ReceiveCta onDismiss={dismissReceiveCta} /> : null}

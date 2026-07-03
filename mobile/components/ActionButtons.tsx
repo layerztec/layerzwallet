@@ -27,13 +27,15 @@ export const Action = ({ network, text }: { network?: Networks; text: string }) 
 
 interface ActionButtonsProps {
   onFundPress: () => void;
+  /** When true, shows the Fund (buy bitcoin) button after geo lookup passes. Hidden by default. */
+  showBuyBitcoinButton?: boolean;
   /** When true, draws a breathing glow on the Receive button (new-user CTA). */
   highlightReceive?: boolean;
   /** Called when the user engages the Receive button — used to dismiss the new-user CTA. */
   onReceivePress?: () => void;
 }
 
-export default function ActionButtons({ onFundPress, highlightReceive = false, onReceivePress }: ActionButtonsProps) {
+export default function ActionButtons({ onFundPress, showBuyBitcoinButton = false, highlightReceive = false, onReceivePress }: ActionButtonsProps) {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
 
@@ -142,9 +144,9 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
     return <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={handleReceive} glow={highlightReceive} testID="ReceiveButton" />;
   };
 
-  // Render Fund button (only if canBuyWithFiat is true)
+  // Render Fund button (only if canBuyWithFiat is true and geo lookup allows it)
   const renderFundButton = () => {
-    if (!canBuyWithFiat) {
+    if (!canBuyWithFiat || !showBuyBitcoinButton) {
       return null;
     }
 
