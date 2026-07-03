@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -27,19 +27,27 @@ export const Action = ({ network, text }: { network?: Networks; text: string }) 
 
 interface ActionButtonsProps {
   onFundPress: () => void;
-  /** When true, shows the Fund (buy bitcoin) button after geo lookup passes. Hidden by default. */
-  showBuyBitcoinButton?: boolean;
   /** When true, draws a breathing glow on the Receive button (new-user CTA). */
   highlightReceive?: boolean;
   /** Called when the user engages the Receive button — used to dismiss the new-user CTA. */
   onReceivePress?: () => void;
 }
 
-export default function ActionButtons({ onFundPress, showBuyBitcoinButton = false, highlightReceive = false, onReceivePress }: ActionButtonsProps) {
+export default function ActionButtons({ onFundPress, highlightReceive = false, onReceivePress }: ActionButtonsProps) {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
 
   const canBuyWithFiat = fiatOnRamp?.[network]?.canBuyWithFiat;
+  const [showBuyBitcoinButton, setShowBuyBitcoinButton] = useState(false);
+
+  useEffect(() => {
+    fetch('https://ifconfig.co/json')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.country_iso !== 'GB') setShowBuyBitcoinButton(true);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSend = () => {
     switch (network) {
@@ -144,7 +152,7 @@ export default function ActionButtons({ onFundPress, showBuyBitcoinButton = fals
     return <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={handleReceive} glow={highlightReceive} testID="ReceiveButton" />;
   };
 
-  // Render Fund button (only if canBuyWithFiat is true and geo lookup allows it)
+  // Render Fund button (only if canBuyWithFiat is true)
   const renderFundButton = () => {
     if (!canBuyWithFiat || !showBuyBitcoinButton) {
       return null;
