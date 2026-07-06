@@ -458,7 +458,6 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   private _wallet: Wallet | undefined = undefined;
   private _arkadeLightning: ArkadeSwaps | undefined = undefined;
   private _arkServerUrl: string = 'https://mutinynet.arkade.sh';
-  private _arkServerPublicKey: string = '03fa73c6e4876ffb2dfc961d763cca9abc73d4b88efcb8f5e7ff92dc55e9aa553d';
   private _boltzApiUrl: string = '';
   protected _accountNumber: number = 0;
   private _manager: VtxoManager | undefined = undefined;
@@ -478,11 +477,6 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   setBoltzApiUrl(url: string) {
     assert(!this._arkadeLightning, 'Already initialized');
     this._boltzApiUrl = url;
-  }
-
-  setArkServerPublicKey(key: string) {
-    assert(!this._wallet, 'Wallet already initialized');
-    this._arkServerPublicKey = key;
   }
 
   _getIdentity() {
@@ -542,12 +536,40 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     try {
       await this._wallet.restore();
       const report = await this._manager.migrateDeprecatedSignerVtxos();
-      if (report.vtxos?.txid || report.boarding?.txid) {
+      if (report.rotated || report.vtxos?.txid || report.boarding?.txid) {
         console.log('ARK deprecated-signer migration:', report);
       }
+      await this._resyncIfDeprecatedSignerContracts();
     } catch (error) {
       globalThis.handleError?.(error, 'ark-wallet.ts');
       console.log('ARK deprecated-signer migration error:', error);
+    }
+  }
+
+  /** Drop the incremental sync cursor when this wallet still has contracts under a deprecated server signer. */
+  private async _resyncIfDeprecatedSignerContracts(): Promise<void> {
+    assert(this._wallet, 'Ark wallet not initialized');
+
+    const info = await this._wallet.arkProvider.getInfo();
+    if (!info.deprecatedSigners?.length) return;
+
+    const deprecatedKeys = new Set(
+      info.deprecatedSigners.map((s) => {
+        const hex = s.pubkey.toLowerCase();
+        return hex.length === 66 ? hex.slice(2) : hex;
+      })
+    );
+
+    const contracts = await (await this._wallet.getContractManager()).getContracts({});
+    const hasDeprecatedContract = contracts.some((c) => {
+      const pk = c.params?.serverPubKey;
+      if (typeof pk !== 'string') return false;
+      const hex = pk.toLowerCase();
+      return deprecatedKeys.has(hex.length === 66 ? hex.slice(2) : hex);
+    });
+
+    if (hasDeprecatedContract) {
+      await this._wallet.clearSyncCursor();
     }
   }
 
