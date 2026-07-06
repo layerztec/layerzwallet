@@ -78,6 +78,8 @@ jobs:
       ELECTROBUN_TEAMID: ${{ secrets.ELECTROBUN_TEAMID }}
       ELECTROBUN_APPLEAPIKEY: ${{ secrets.ELECTROBUN_APPLEAPIKEY }}
       ELECTROBUN_APPLEAPIISSUER: ${{ secrets.ELECTROBUN_APPLEAPIISSUER }}
+      # `secrets` is not usable in step-level `if`, so surface cert presence as an env flag.
+      HAS_CODESIGN_CERT: ${{ secrets.MACOS_CERTIFICATE_BASE64 != '' }}
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
@@ -100,7 +102,7 @@ jobs:
       # `codesign --sign "$ELECTROBUN_DEVELOPER_ID"` can resolve the identity. Skipped when
       # the secret is absent so forks/unconfigured repos still produce unsigned builds.
       - name: Import code signing certificate
-        if: ${{ secrets.MACOS_CERTIFICATE_BASE64 != '' }}
+        if: ${{ env.HAS_CODESIGN_CERT == 'true' }}
         uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
