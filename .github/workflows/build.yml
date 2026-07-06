@@ -96,6 +96,16 @@ jobs:
         working-directory: desktop
         run: bun install --frozen-lockfile
 
+      # Imports the Developer ID Application cert (.p12) into a temporary keychain so
+      # `codesign --sign "$ELECTROBUN_DEVELOPER_ID"` can resolve the identity. Skipped when
+      # the secret is absent so forks/unconfigured repos still produce unsigned builds.
+      - name: Import code signing certificate
+        if: ${{ secrets.MACOS_CERTIFICATE_BASE64 != '' }}
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          p12-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+
       # notarytool needs the App Store Connect API key as a file on disk. Written to $HOME
       # (not the configured `~/AuthKey.p8` literal) because Electrobun checks the path with
       # existsSync, which does not expand `~`.
