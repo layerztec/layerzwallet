@@ -6,8 +6,8 @@
       "name": "layerzwallet-desktop",
       "dependencies": {
         "@aptabase/web": "^0.5.0",
-        "@arkade-os/boltz-swap": "0.3.44",
-        "@arkade-os/sdk": "0.4.39",
+        "@arkade-os/boltz-swap": "0.3.47",
+        "@arkade-os/sdk": "0.4.42",
         "@atomiqlabs/chain-evm": "2.4.5",
         "@atomiqlabs/sdk": "8.8.4",
         "@bitcoinerlab/secp256k1": "1.2.0",
@@ -85,9 +85,9 @@
 
     "@aptabase/web": ["@aptabase/web@0.5.0", "", {}, "sha512-+RFdaS0bLJtqTZyB1uG32S7tuTfJTGbG2bkdVMs3AT7yG7DP2yb6JY5rZoBf3UyW9sigFHGRkbXoAXdCMZibWA=="],
 
-    "@arkade-os/boltz-swap": ["@arkade-os/boltz-swap@0.3.44", "", { "dependencies": { "@arkade-os/sdk": "0.4.39", "@noble/curves": "2.0.1", "@noble/hashes": "2.0.1", "@scure/base": "2.0.0", "@scure/btc-signer": "2.0.1", "bip68": "1.0.4", "light-bolt11-decoder": "3.2.0" }, "peerDependencies": { "expo-background-task": ">=0.1.0", "expo-task-manager": ">=3.0.0" }, "optionalPeers": ["expo-background-task", "expo-task-manager"] }, "sha512-18Vsgv286hsbrp/ICdAlP0XkVQBxcVh6KV3BC+MgD90+9S4GpogFO9Tlb35jpkDYbYLjyPa7quscMOE79Ff1CA=="],
+    "@arkade-os/boltz-swap": ["@arkade-os/boltz-swap@0.3.47", "", { "dependencies": { "@arkade-os/sdk": "0.4.42", "@noble/curves": "2.0.1", "@noble/hashes": "2.0.1", "@scure/base": "2.0.0", "@scure/btc-signer": "2.0.1", "bip68": "1.0.4", "light-bolt11-decoder": "3.2.0" }, "peerDependencies": { "expo-background-task": ">=0.1.0", "expo-task-manager": ">=3.0.0" }, "optionalPeers": ["expo-background-task", "expo-task-manager"] }, "sha512-Q9BpIhZNLc2MLRua4LhzbhUIQavUtqt4WSVxfr1or7q0gjcqWlZGF5W0ONYJFMq/JWOSUiHsnoiLihvX6Vl7rQ=="],
 
-    "@arkade-os/sdk": ["@arkade-os/sdk@0.4.39", "", { "dependencies": { "@bitcoinerlab/descriptors-scure": "3.1.7", "@marcbachmann/cel-js": "7.3.1", "@noble/curves": "2.0.1", "@noble/secp256k1": "3.0.0", "@scure/base": "2.0.0", "@scure/bip39": "2.0.1", "@scure/btc-signer": "2.0.1", "bip68": "1.0.4", "ws-electrumx-client": "1.0.5" }, "peerDependencies": { "@react-native-async-storage/async-storage": ">=1.0.0", "expo": ">=54.0.0", "expo-background-task": "~1.0.10 || >=55.0.0", "expo-sqlite": "~16.0.10 || >=55.0.0", "expo-task-manager": "~14.0.9 || >=55.0.0" }, "optionalPeers": ["@react-native-async-storage/async-storage", "expo", "expo-background-task", "expo-sqlite", "expo-task-manager"] }, "sha512-Pmj1NMKK6eV9z+XGUs+S0zK14MFnasfLxmmSYhcG9A0dn/d8KLSMxhpxHc6d6mNTpAiVEzS4u/VvSngYbtUgbA=="],
+    "@arkade-os/sdk": ["@arkade-os/sdk@0.4.42", "", { "dependencies": { "@bitcoinerlab/descriptors-scure": "3.1.7", "@marcbachmann/cel-js": "7.3.1", "@noble/curves": "2.0.1", "@noble/secp256k1": "3.0.0", "@scure/base": "2.0.0", "@scure/bip39": "2.0.1", "@scure/btc-signer": "2.0.1", "bip68": "1.0.4", "ws-electrumx-client": "1.0.5" }, "peerDependencies": { "@react-native-async-storage/async-storage": ">=1.0.0", "expo": ">=54.0.0", "expo-background-task": "~1.0.10 || >=55.0.0", "expo-sqlite": "~16.0.10 || >=55.0.0", "expo-task-manager": "~14.0.9 || >=55.0.0" }, "optionalPeers": ["@react-native-async-storage/async-storage", "expo", "expo-background-task", "expo-sqlite", "expo-task-manager"] }, "sha512-yv9v4IRGV5n2wQSAocZwn8owwJ7rghcLZd/7F5X8EcaYa4DknWSMa0iRAvT62Nc2k440sk0XILw3Z5wICdYT6w=="],
 
     "@atomiqlabs/base": ["@atomiqlabs/base@13.5.2", "", { "dependencies": { "buffer": "6.0.3" } }, "sha512-+lhUWntOjbeqVDsWhz8j5FmPNVJr0WcOqACNci6XF8PrYzgdrt/tBGWWkYs03HlIldKwX3463rzN23ByQVAq0Q=="],
 
