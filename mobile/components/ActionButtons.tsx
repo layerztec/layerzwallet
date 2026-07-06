@@ -2,6 +2,7 @@ import React, { useContext } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import useSWR from 'swr';
 import { ActionPopupButton } from './ActionPopupButton';
 import HomeActionButton from './HomeActionButton';
 import { ThemedText } from './ThemedText';
@@ -38,6 +39,12 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
   const { network } = useContext(NetworkContext);
 
   const canBuyWithFiat = fiatOnRamp?.[network]?.canBuyWithFiat;
+  const { data: geoData } = useSWR('ifconfig-co-json', async () => {
+    const res = await fetch('https://ifconfig.co/json');
+    if (!res.ok) throw new Error('geo lookup failed');
+    return res.json() as Promise<{ country_iso?: string }>;
+  });
+  const showBuyBitcoinButton = !!geoData && geoData.country_iso !== 'GB';
 
   const handleSend = () => {
     switch (network) {
@@ -185,7 +192,7 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
 
   // Render Fund button (only if canBuyWithFiat is true)
   const renderFundButton = () => {
-    if (!canBuyWithFiat) {
+    if (!canBuyWithFiat || !showBuyBitcoinButton) {
       return null;
     }
 
