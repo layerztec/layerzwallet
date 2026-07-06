@@ -78,8 +78,9 @@ jobs:
       ELECTROBUN_TEAMID: ${{ secrets.ELECTROBUN_TEAMID }}
       ELECTROBUN_APPLEAPIKEY: ${{ secrets.ELECTROBUN_APPLEAPIKEY }}
       ELECTROBUN_APPLEAPIISSUER: ${{ secrets.ELECTROBUN_APPLEAPIISSUER }}
-      # `secrets` is not usable in step-level `if`, so surface cert presence as an env flag.
+      # `secrets` is not usable in step-level `if`, so surface secret presence as env flags.
       HAS_CODESIGN_CERT: ${{ secrets.MACOS_CERTIFICATE_BASE64 != '' }}
+      HAS_NOTARY_KEY: ${{ secrets.AUTHKEY_P8 != '' }}
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
@@ -112,6 +113,7 @@ jobs:
       # (not the configured `~/AuthKey.p8` literal) because Electrobun checks the path with
       # existsSync, which does not expand `~`.
       - name: Write App Store Connect API key
+        if: ${{ env.HAS_NOTARY_KEY == 'true' }}
         run: |
           echo "${{ secrets.AUTHKEY_P8 }}" > "$HOME/AuthKey.p8"
           chmod 600 "$HOME/AuthKey.p8"
