@@ -52,8 +52,8 @@ jobs:
 
   # Electrobun always builds for the host platform/arch, so we need one runner per target OS.
   # `bun run build` => `vite build && electrobun build --env=stable`; the distributable output
-  # lands in desktop/artifacts/ (flat, {channel}-{os}-{arch}- prefixed). The mac config sets
-  # neither codesign nor notarize, so unsigned stable builds succeed without Apple credentials.
+  # lands in desktop/artifacts/ (flat, {channel}-{os}-{arch}- prefixed). The mac config enables
+  # codesign/notarize only when the ELECTROBUN_* Apple credentials are present in the env.
   # Electrobun builds for the host arch only, so each macOS arch needs its own runner.
   # Both pin macOS 15 (avoids macos-latest drift): macos-15 = arm64, macos-15-intel = x64
   # (the last Intel image GitHub offers, supported until ~Aug 2027).
@@ -73,6 +73,11 @@ jobs:
       EXPO_PUBLIC_BREEZ_API_KEY: ${{ secrets.EXPO_PUBLIC_BREEZ_API_KEY }}
       EXPO_PUBLIC_GARDEN_APP_ID: ${{ secrets.EXPO_PUBLIC_GARDEN_APP_ID }}
       EXPO_PUBLIC_APTABASE_KEY: ${{ secrets.EXPO_PUBLIC_APTABASE_KEY }}
+      # Apple code signing + notarization (https://framework.blackboard.sh/electrobun/guides/code-signing/)
+      ELECTROBUN_DEVELOPER_ID: ${{ secrets.ELECTROBUN_DEVELOPER_ID }}
+      ELECTROBUN_TEAMID: ${{ secrets.ELECTROBUN_TEAMID }}
+      ELECTROBUN_APPLEAPIKEY: ${{ secrets.ELECTROBUN_APPLEAPIKEY }}
+      ELECTROBUN_APPLEAPIISSUER: ${{ secrets.ELECTROBUN_APPLEAPIISSUER }}
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
@@ -91,9 +96,22 @@ jobs:
         working-directory: desktop
         run: bun install --frozen-lockfile
 
+      # notarytool needs the App Store Connect API key as a file on disk. Written to $HOME
+      # (not the configured `~/AuthKey.p8` literal) because Electrobun checks the path with
+      # existsSync, which does not expand `~`.
+      - name: Write App Store Connect API key
+        run: |
+          echo "${{ secrets.AUTHKEY_P8 }}" > "$HOME/AuthKey.p8"
+          chmod 600 "$HOME/AuthKey.p8"
+          echo "ELECTROBUN_APPLEAPIKEYPATH=$HOME/AuthKey.p8" >> "$GITHUB_ENV"
+
       - name: Build
         working-directory: desktop
         run: bun run build
+
+      - name: Cleanup App Store Connect API key
+        if: always()
+        run: rm -f "$HOME/AuthKey.p8"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

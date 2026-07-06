@@ -27,6 +27,12 @@ export default {
       bundleCEF: false,
       // Same Icon Composer asset as mobile iOS (see mobile/app.json).
       icons: '../mobile/assets/appicon.icon',
+      // Signing needs ELECTROBUN_DEVELOPER_ID (+ cert in keychain), notarization needs
+      // ELECTROBUN_APPLEAPIKEYPATH/ELECTROBUN_APPLEAPIKEY/ELECTROBUN_APPLEAPIISSUER.
+      // Gated on env so local/unconfigured builds stay unsigned instead of failing.
+      // Wired up in .github/workflows/build.yml; see https://framework.blackboard.sh/electrobun/guides/code-signing/
+      codesign: !!process.env.ELECTROBUN_DEVELOPER_ID,
+      notarize: !!process.env.ELECTROBUN_APPLEAPIKEYPATH,
     },
     linux: {
       // WebKitGTK is weak for WASM-heavy wallet UI; CEF is recommended on Linux.
