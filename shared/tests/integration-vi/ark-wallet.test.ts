@@ -1,22 +1,26 @@
 import assert from 'assert';
-import { test } from 'vitest';
+import { beforeEach, test } from 'vitest';
 import { ArkWallet } from '../../class/wallets/ark-wallet';
 import { IStorage } from '../../types/IStorage';
-import fs from 'fs';
 
+// In-memory storage — do not persist under /tmp; stale VTXO caches survive CI/local
+// reruns and block incremental sync after Arkade server signer rotation.
+const storageCache: Record<string, string> = {};
 const storageMock: IStorage = {
   async setItem(key: string, value: string) {
-    fs.writeFileSync('/tmp/ark-swap-storage' + key, value);
+    storageCache[key] = value;
   },
 
   async getItem(key: string) {
-    try {
-      return fs.readFileSync('/tmp/ark-swap-storage' + key).toString('utf8');
-    } catch {
-      return '';
-    }
+    return storageCache[key] ?? '';
   },
 };
+
+beforeEach(() => {
+  for (const key of Object.keys(storageCache)) {
+    delete storageCache[key];
+  }
+});
 
 test.skip('ark mutinynet can check balance', async (context) => {
   if (!process.env.TEST_MNEMONIC) {
@@ -44,7 +48,6 @@ test('ark mainnet can check balance', async (context) => {
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl('https://arkade.computer');
-  w.setArkServerPublicKey('022b74c2011af089c849383ee527c72325de52df6a788428b68d49e9174053aaba');
   w.setBoltzApiUrl('https://api.ark.boltz.exchange');
   await w.init(storageMock);
 
@@ -64,7 +67,6 @@ test.skip('ark mainnet can check if our invoice is paid', async (context) => {
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl('https://arkade.computer');
-  w.setArkServerPublicKey('022b74c2011af089c849383ee527c72325de52df6a788428b68d49e9174053aaba');
   w.setBoltzApiUrl('https://api.ark.boltz.exchange');
   await w.init(storageMock);
 
@@ -89,7 +91,6 @@ test('ark mainnet switch accounts', async (context) => {
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl('https://arkade.computer');
-  w.setArkServerPublicKey('022b74c2011af089c849383ee527c72325de52df6a788428b68d49e9174053aaba');
   w.setBoltzApiUrl('https://api.ark.boltz.exchange');
   await w.init(storageMock);
 
@@ -119,7 +120,6 @@ test.skip('ark mainnet can create lightning invoice', async (context) => {
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl('https://arkade.computer');
-  w.setArkServerPublicKey('022b74c2011af089c849383ee527c72325de52df6a788428b68d49e9174053aaba');
   w.setBoltzApiUrl('https://api.ark.boltz.exchange');
 
   await w.init(storageMock);
@@ -141,7 +141,6 @@ test.skip('ark mainnet can pay lightning invoice', async (context) => {
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl('https://arkade.computer');
-  w.setArkServerPublicKey('022b74c2011af089c849383ee527c72325de52df6a788428b68d49e9174053aaba');
   w.setBoltzApiUrl('https://api.ark.boltz.exchange');
   await w.init(storageMock);
 
