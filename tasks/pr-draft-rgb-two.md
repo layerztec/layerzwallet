@@ -1,146 +1,182 @@
-# RGB: bump to rgb-sdk-rn beta.17 + USDT-over-Lightning on signet
+# RGB: bump to rgb-sdk-rn beta.20 + USDT-over-Lightning on signet
 
-Branch: `rgb-two`. Local only — do not push without product sign-off.
+Branch: `rgb-two`. 76 commits ahead of `origin/master`. Local only —
+do not push without product sign-off.
 
 ## What changed
 
-- **Mobile RGB SDK bump**: `@utexo/rgb-sdk-rn` beta.9 → **beta.17** (and
-  `@utexo/rgb-sdk-core` beta.3 → beta.4). All previously documented
-  blockers from the beta.10 assessment (`tasks/ship-rgb.md` history)
-  resolved by beta.11+; see the doc's "Current state (2026-06-19)" section
-  for the per-blocker breakdown.
+- **Mobile RGB SDK bump**: `@utexo/rgb-sdk-rn` beta.9 → **beta.20** (and
+  `@utexo/rgb-sdk-core` beta.3 → beta.4). Every beta.10 blocker
+  (`tasks/ship-rgb.md` "beta.10 assessment") resolved by beta.11+; the
+  cross-platform `IRgbAdapter` shape holds against a beta.9 extension
+  and a beta.20 mobile at the same time.
 - **Mobile adapter rewrite** (`mobile/src/modules/rgb-adapter.ts`): new
   RLN-backed `UTEXOWallet` constructor (`UTEXOWalletNodeParams` +
-  `PasswordRLNSigner`), filesystem-sentinel `init() / unlock()` flow,
-  `resolveUnlockParams` for indexer defaults, Proxy that shims the old
-  `vssBackup*` methods to no-ops so the shared `IRgbAdapter` shape still
-  spans mobile (SDK-managed VSS) and ext (real VSS on beta.9).
-- **Patches**: dropped the beta.9 and beta.14 `Rgb.mm` `_Nullable` patches
-  — upstream fixed both natively. `mobile/patches/` now carries zero
-  rgb-sdk-rn entries.
+  `PasswordRLNSigner`), `resolveUnlockParams` for indexer defaults,
+  Proxy that shims the old `vssBackup*` methods to no-ops so the shared
+  `IRgbAdapter` shape still spans mobile (SDK-managed VSS) and ext
+  (real VSS on beta.9). RLN lifecycle robustness — dedupe wallet
+  construction per (mnemonic, network) with a `Map<string, Promise>`,
+  destroy the node on init/unlock failure, swallow benign init errors
+  when keys already exist on disk. Per-mnemonic port offset
+  (`sha256[0..3] % 997`) so two simulators on the same host don't
+  collide on the LDK/daemon ports.
+- **Patches**: dropped the beta.9 and beta.14 `Rgb.mm` `_Nullable`
+  patches — upstream fixed both natively. `mobile/patches/` now
+  carries zero rgb-sdk-rn entries.
 
 ### Lightning integration (USDT, signet only)
 
-- `IRgbWallet` got `Partial<IRgbLnReceive>` — three asset-aware methods:
-  `lightningReceiveAsset`, `lightningSendAsset`,
+- `IRgbWallet` got `Partial<IRgbLnReceive>` — four asset-aware methods:
+  `lightningReceiveAsset`, `lightningSendAsset`, `payLightningInvoice`,
   `awaitLightningReceiveSettlement`. Mobile delegates each to a cached
-  `UtexoLsp` (one-per-wallet `WeakMap`, with rejected-promise eviction so
-  a transient network blip doesn't permanently poison the cache).
+  `UtexoLsp` (one-per-wallet `WeakMap`, with rejected-promise eviction
+  so a transient network blip doesn't permanently poison the cache).
+- Every send path (`lightningSendAsset`, `payLightningInvoice`) awaits
+  `UtexoLsp.waitForOutboundLiquidity(minMsat, {timeoutMs: 60_000})`
+  first — beta.20's answer to the "invalid request" wall we hit on
+  freshly-received wallets.
 - New screens:
-  - `mobile/app/receive-rgb-ln.tsx` — input pair (sats + USDT base units),
-    Generate → BOLT11 + RGB invoice tab view with QR + copy. Settlement
-    row polls the LSP for 90s and renders waiting / settled / timed-out
-    / error states.
-  - `mobile/app/send-rgb-ln.tsx` — paste/scan an `rgb:` invoice → Send →
-    success card with `paymentHash` + LSP status echo.
-- Action sheets: Send and Receive on `rgb_testnet` open a popup with the
-  LN option. Both screens hard-gate to `NETWORK_RGB_TESTNET` so a deep
-  link can't reach them on mainnet.
-- Constants (`mobile/src/constants/rgb-lsp.ts`) lifted from
-  `UTEXO-Protocol/rgb-sdk-rn-demo`:
+  - `mobile/app/receive-rgb-ln.tsx` — input pair (sats + USDT base
+    units), Generate → BOLT11 + RGB invoice tab view with QR + copy.
+    Settlement row polls the LSP for 90s and renders waiting / settled
+    / timed-out / error states; `AbortSignal` on the wait cancels the
+    poll on unmount. LspChannelTimeoutError humanised ("Top up the
+    wallet with on-chain tBTC first").
+  - `mobile/app/send-rgb-ln.tsx` — paste/scan any invoice → auto-route
+    by prefix (`lnbc`/`lntb` → `payLightningInvoice`, `rgb:`/`utxob:`
+    → `lightningSendAsset`). Success card shows `txid` + LSP status.
+- Action sheets: Send and Receive on `rgb_testnet` open a popup with
+  the LN option. Both screens hard-gate to `NETWORK_RGB_TESTNET` so a
+  deep link can't reach them on mainnet.
+- Constants (`mobile/src/constants/rgb-lsp.ts`):
   - LSP base URL: `https://lsp-signet.utexo.com`
-  - USDT asset id: `rgb:YKIEjkhU-iqVFK0y-bfDUio6-bukqH7o-dxjctKB-5TuQ7aM`
+  - USDT asset id: `rgb:2l_MeWlj-YS7qLKQ-RJVhrQk-G6i4jZ4-EJOMAYZ-mpHfoqI`
+    (the real one from the live faucet bot's `/getnodeinfo`; the value
+    in `UTEXO-Protocol/rgb-sdk-rn-demo` does **not** exist on the
+    running LSP).
   - Mainnet entries remain `null`; the screens render a config-error
     warning when either is null.
 
 ### Extension
 
-Untouched. `rgb-sdk-web` still has no LSP/RLN build (latest = beta.9), so
-LN is mobile-only by definition. The shared interface change is
+Untouched. `rgb-sdk-web` still has no LSP/RLN build (latest = beta.9),
+so LN is mobile-only by definition. The shared interface change is
 non-breaking for ext.
 
 ## Verification
 
 - `tsc --noEmit` clean on mobile and ext.
-- 491 mobile unit tests pass (+6 new under `RgbWallet > lightning`).
-- iOS sim build green; live tested the LN receive screen with maestro —
-  adapter call resolved to the LSP, `lsp.connect()` succeeded against
-  `lsp-signet.utexo.com`, `waitForChannel(USDT)` ran the full 120s
-  timeout (expected: signet wallet had no on-chain tBTC; JIT inbound
-  channel needs the wallet to be funded first). UI rendered the
-  resulting `LspChannelTimeoutError` cleanly.
-- Android `assembleDebug` green.
+- RGB unit tests: 63/63 (`vitest run shared/tests/unit-vi/rgb-wallet.test.ts`).
+- Mobile broader unit run has 16 failing files after the master merge
+  (`@noble/hashes/sha2.js` subpath issue introduced by master's dep
+  bumps, unrelated to RGB).
+- iOS sim + android emulator both build green.
 
-## Live verification (2026-06-22, iOS sim)
+## Live verification (iOS sim1 + android emulator)
 
-- Created `wallet1` from a persisted test mnemonic (see
-  `tasks/test-wallets-rgb.local.md`).
-- Funded the wallet via `node ~/z/rgb-faucet/bin/faucet.js getbtc <addr>`
-  (50000 sats). UTEXO esplora confirmed the on-chain receive, the SDK
-  picked it up automatically (`getBtcBalance` → 44673 spendable after
-  the auto `prepareWallet` colorable-UTXO carve-off).
-- Tapped Receive → "Receive USDT over Lightning" → entered
-  `5000 sats / 1_000_000 UTST` → Generate.
-- LSP roundtrip completed: BOLT11 + RGB invoice both rendered on
-  screen, settlement poll started, eventually hit `timed_out` (no
-  external payer in this loop). The "still pending" copy appeared as
-  designed.
-- **End-to-end LN integration confirmed working on signet.**
+Both platforms **receive USDT over LN**:
+- Persisted test wallets (`tasks/test-wallets-rgb.local.md`), funded
+  via `node ~/z/rgb-faucet/bin/faucet.js getbtc <addr>`.
+- Wallet1 (iOS) → Receive USDT over LN → LSP JIT channel + BOLT11 +
+  RGB invoice rendered. Settlement poll ran to `timed_out` (no
+  external payer in the self-loop, expected).
+- Wallet2 (android) — same, after on-chain `sendBtc` from wallet1
+  (25k sats) settled: RGB testnet balance updated, Receive USDT over
+  LN opened its own JIT channel, both invoices rendered.
 
-Four debugging fixes landed during this run:
+**P2P send (wallet1 → wallet2's invoice) — not yet re-verified against
+beta.20's `waitForOutboundLiquidity`.** Pre-beta.20 every pay path
+returned HTTP 400 "invalid request" from the LSP (both asset-tagged
+sendAsset and plain-sats payLightningInvoice). The beta.20 SDK now
+exposes `waitForOutboundLiquidity(minMsat, opts)` and the adapter
+awaits it before every send; a fresh live retest is the next step.
 
-1. The signet USDT asset id from `UTEXO-Protocol/rgb-sdk-rn-demo`
-   (`rgb:YKIE…`) does **not** exist on the running LSP. The live faucet
-   bot's `getnodeinfo` returns `rgb:2l_MeWlj-…` (ticker UTST).
-2. The SDK's network string `'signet'` and `'utexo'` point at *different
+### Fixes that landed during live tests
+
+1. Demo-repo signet USDT asset id (`rgb:YKIE…`) does not exist on the
+   running LSP — real one from `/getnodeinfo` is `rgb:2l_MeWlj-…`
+   (ticker UTST).
+2. SDK network strings `'signet'` and `'utexo'` point at *different
    chains* — `signet` defaults to iriswallet's electrum + RGB proxy,
    `utexo` defaults to `esplora-api.utexo.com` + utexo proxy. The
-   faucet / LSP / asset all live on the utexo chain. Adapter now uses
+   faucet / LSP / asset all live on the utexo chain. Adapter uses
    `'utexo'`.
-3. After the rename, `buildNodeParams` was still keying `lspBaseUrl`
-   off `rlnNet === 'signet'`, so it fell through to the `mainnet`
-   bucket (null) and `createLsp` threw "lspBaseUrl not set". Lookup
+3. `buildNodeParams` was keying `lspBaseUrl` off the pre-rename
+   `signet` string, so it fell through to the `mainnet` bucket
+   (null) and `createLsp` threw "lspBaseUrl not set". Lookup
    inverted.
 4. The adapter pre-called `lsp.waitForChannel(assetId)` BEFORE
-   `lsp.receiveAsset` — JIT channels are opened by the LSP *during*
+   `lsp.receiveAsset`. JIT channels are opened by the LSP *during*
    the receive request, so the pre-wait blocked forever on a fresh
-   wallet. Drop the pre-wait; `receiveAsset` triggers the channel open.
-
-## P2P USDT-over-LN attempt (2026-06-22, iOS sim1 ↔ android emulator)
-
-What worked:
-- iOS sim1 wallet1 funded (faucet 50k sats), Receive USDT over LN →
-  LSP JIT channel + BOLT11 + RGB invoice rendered.
-- Android emulator wallet2 imported, switched to rgb_testnet, on-chain
-  tBTC transfer from wallet1 (25k sats) arrived + synced.
-- Wallet2 → Receive USDT over LN → LSP opened its JIT channel,
-  returned BOLT11 + RGB invoice on android too.
-
-What blocked:
-- Wallet1 cannot pay ANY outgoing invoice:
-  - wallet2's RGB invoice via `lightningSendAsset` → "invalid request"
-  - wallet2's BOLT11 via `payLightningInvoice` → "invalid request"
-  - **Faucet bot's plain-sats BOLT11 via `payLightningInvoice` →
-    also "invalid request"** (rules out invoice-format suspicion)
-- Wallet1 only has inbound capacity from its earlier receive
-  (LSP-supplied JIT channel is inbound-only for the receiver).
-  Without outbound channel capacity wallet1 can't pay anything.
-- Open question for UTEXO: does each wallet need to explicitly
-  `openChannel` to the LSP (or to a peer like the faucet bot's LN
-  node) before sending, or is the LSP supposed to also push outbound
-  on demand?
+   wallet. Dropped.
+5. Concurrent `lazyInitWallet` calls both constructed a fresh
+   `UTEXOWallet` against the same storageDirPath → the native
+   binding rejected the second with "RLN node already exists". Dedupe
+   the pending promise per (mnemonic, network).
+6. Cold-start flow needed init() (not reinit()) because the binding's
+   per-process init state is empty in a fresh process — reinit()
+   skips signer.initNode which unlock() then complains about.
+7. On any init/unlock failure the binding may already have registered
+   the storageDirPath — call `wallet.destroy()` in the catch so the
+   next attempt starts clean.
+8. Swallow benign init errors ("conflict with current node state" /
+   "already exists" / "already initialized") when the signer's
+   initNode is called against existing on-disk keys; unlock still
+   works.
+9. beta.20 exposes `waitForOutboundLiquidity(minMsat)` — call it
+   before every send so the LSP has time to make outbound available.
 
 ## Known gaps / follow-ups
 
-- P2P send blocked on the "invalid request" finding above.
+- Live retest P2P now that `waitForOutboundLiquidity` is wired.
 - Mainnet entries in `rgb-lsp.ts` still `null`; mainnet LN flow hides
-  itself behind that, but UTEXO needs to publish prod endpoints before
-  mainnet ships.
+  itself behind that, but UTEXO needs to publish prod endpoints
+  before mainnet ships.
 - Cloud backup is TODO — beta.10+ removed VSS, UTEXO confirmed it's
   coming back. Adapter shims the old VSS methods as no-ops; reconnect
-  the shared backup ledger when SDK ships it (see TODO in
+  the shared backup ledger when the SDK ships it (see TODO in
   `mobile/src/modules/rgb-adapter.ts`).
 - After the network rename existing wallets (created against the
   `signet` network string before commit `7e07f099`) are on a different
-  keychain derivation and won't see their old UTXOs. Reinstall + reimport
-  from seed is the cleanest path; documented in the wallet commit.
+  keychain derivation and won't see their old UTXOs. Reinstall +
+  reimport from seed is the cleanest path; documented in the wallet
+  commit.
+- Master merge in `989e6084` / `18d93e43` brought a `@noble/hashes`
+  transitive that breaks 16 test files (`sha2.js` subpath). Not RGB,
+  but blocks the full unit suite locally. Master will presumably
+  fix; if not, we ship the RGB tests separately.
 
 ## Commit log (rgb-two ⇢ origin/master)
 
+76 commits total. Highlights (newest first):
+
 ```
+18d93e43 Merge remote-tracking branch 'origin/master' into rgb-two
+ef4310f4 feat(rgb): bump to rgb-sdk-rn beta.20 + wait for outbound liquidity
+989e6084 Merge remote-tracking branch 'origin/master' into rgb-two
+d16a113a chore: gitignore local rgb test wallet seeds
+6c3c0f8e docs(rgb): pay-ln test — wallet1 can't pay anything outbound
+3d0f53c2 docs(rgb): p2p attempt — receive works both sides, send blocked at lsp
+e223fd2e fix(rgb): swallow benign init errors when keys already on disk
+bd2972af fix(rgb): always init() — reinit() skipped initNode so unlock failed
+d233b767 fix(rgb): destroy() the rln node on init/unlock failure
+12d86cac fix(rgb): dedupe wallet construction per mnemonic+network
+92273eea feat(rgb): pay bolt11 directly + auto-route send screen
+f957c45b docs(rgb): todo for cloud-backup reconnect when utexo ships it
+0a700b34 fix(rgb): mnemonic-derived port offset for the rln node
+631989ef docs(rgb): record the e2e live test result + four fixes
+19267ef7 fix(rgb): skip pre-waitForChannel — let receiveAsset trigger jit open
+3cce9027 fix(rgb): lspBaseUrl lookup after signet→utexo network rename
+7e07f099 fix(rgb): point adapter at the utexo chain, not iriswallet signet
+b42b8de0 fix(rgb): use real signet asset id from live faucet, not demo repo value
+6f5d1cad fix(rgb): reinit on cold start so unlock can find the rln node
+747a0112 fix(rgb): abort the ln settlement poll on unmount
+bd0b32ca fix(rgb): surface real txid from ln send, not the missing paymentHash
+2ca5174e feat(rgb): humanize lsp channel timeout on ln receive screen
+99ee6a00 fix(rgb): keep ln receive hooks unconditional + push gate later
 fedaeab0 test(rgb): unit tests for the lightning forwarder methods
 27f23bfb fix(rgb): tighten ln-screen gating + evict failed lsp promises
-d9a06fed docs(rgb): refresh ship-rgb.md for beta.17 + ln integration
 92fc0714 feat(rgb): settlement polling on the ln receive screen
 b4b5a4d4 feat(rgb): usdt-over-ln send screen on signet
 dfd54767 fix(mobile): pin @react-native-community/netinfo for bugsnag plugin
