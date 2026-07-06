@@ -539,37 +539,45 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
       if (report.rotated || report.vtxos?.txid || report.boarding?.txid) {
         console.log('ARK deprecated-signer migration:', report);
       }
-      await this._resyncIfDeprecatedSignerContracts();
     } catch (error) {
       globalThis.handleError?.(error, 'ark-wallet.ts');
       console.log('ARK deprecated-signer migration error:', error);
     }
+
+    // Runs regardless of migration success: a failed/partial migration is exactly
+    // when the wallet is most likely to still hold funds under a rotated signer.
+    await this._resyncIfDeprecatedSignerContracts();
   }
 
-  /** Drop the incremental sync cursor when this wallet still has contracts under a deprecated server signer. */
+  /** Drop the incremental sync cursor when this wallet still has active contracts under a deprecated server signer. */
   private async _resyncIfDeprecatedSignerContracts(): Promise<void> {
     assert(this._wallet, 'Ark wallet not initialized');
 
-    const info = await this._wallet.arkProvider.getInfo();
-    if (!info.deprecatedSigners?.length) return;
+    try {
+      const info = await this._wallet.arkProvider.getInfo();
+      if (!info.deprecatedSigners?.length) return;
 
-    const deprecatedKeys = new Set(
-      info.deprecatedSigners.map((s) => {
-        const hex = s.pubkey.toLowerCase();
+      const normalizeKey = (pubkey: string) => {
+        const hex = pubkey.toLowerCase();
         return hex.length === 66 ? hex.slice(2) : hex;
-      })
-    );
+      };
 
-    const contracts = await (await this._wallet.getContractManager()).getContracts({});
-    const hasDeprecatedContract = contracts.some((c) => {
-      const pk = c.params?.serverPubKey;
-      if (typeof pk !== 'string') return false;
-      const hex = pk.toLowerCase();
-      return deprecatedKeys.has(hex.length === 66 ? hex.slice(2) : hex);
-    });
+      const deprecatedKeys = new Set(info.deprecatedSigners.map((s) => normalizeKey(s.pubkey)));
 
-    if (hasDeprecatedContract) {
-      await this._wallet.clearSyncCursor();
+      // Only active contracts can still hold spendable funds; inactive/completed
+      // ones lingering in storage must not force a re-bootstrap on every init.
+      const contracts = await (await this._wallet.getContractManager()).getContracts({ state: 'active' });
+      const hasDeprecatedContract = contracts.some((c) => {
+        const pk = c.params?.serverPubKey;
+        return typeof pk === 'string' && deprecatedKeys.has(normalizeKey(pk));
+      });
+
+      if (hasDeprecatedContract) {
+        await this._wallet.clearSyncCursor();
+      }
+    } catch (error) {
+      globalThis.handleError?.(error, 'ark-wallet.ts');
+      console.log('ARK deprecated-signer resync check error:', error);
     }
   }
 
