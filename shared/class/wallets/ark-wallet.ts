@@ -458,7 +458,6 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   private _wallet: Wallet | undefined = undefined;
   private _arkadeLightning: ArkadeSwaps | undefined = undefined;
   private _arkServerUrl: string = 'https://mutinynet.arkade.sh';
-  private _arkServerPublicKey: string = '03fa73c6e4876ffb2dfc961d763cca9abc73d4b88efcb8f5e7ff92dc55e9aa553d';
   private _boltzApiUrl: string = '';
   protected _accountNumber: number = 0;
   private _manager: VtxoManager | undefined = undefined;
@@ -478,11 +477,6 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   setBoltzApiUrl(url: string) {
     assert(!this._arkadeLightning, 'Already initialized');
     this._boltzApiUrl = url;
-  }
-
-  setArkServerPublicKey(key: string) {
-    assert(!this._wallet, 'Wallet already initialized');
-    this._arkServerPublicKey = key;
   }
 
   _getIdentity() {
@@ -539,7 +533,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     try {
       await this._wallet.restore();
       const managerWithMigration = this._manager as typeof this._manager & {
-        migrateDeprecatedSignerVtxos?: () => Promise<{ vtxos?: { txid?: string }; boarding?: { txid?: string } }>;
+        migrateDeprecatedSignerVtxos?: () => Promise<{ rotated?: boolean; vtxos?: { txid?: string }; boarding?: { txid?: string } }>;
       };
       const migrateDeprecatedSignerVtxos = managerWithMigration.migrateDeprecatedSignerVtxos;
       if (typeof migrateDeprecatedSignerVtxos !== 'function') {
@@ -547,12 +541,48 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
       }
 
       const report = await migrateDeprecatedSignerVtxos();
-      if (report.vtxos?.txid || report.boarding?.txid) {
+      if (report.rotated || report.vtxos?.txid || report.boarding?.txid) {
         console.log('ARK deprecated-signer migration:', report);
       }
     } catch (error) {
       globalThis.handleError?.(error, 'ark-wallet.ts');
       console.log('ARK deprecated-signer migration error:', error);
+    }
+
+    // Runs regardless of migration success: a failed/partial migration is exactly
+    // when the wallet is most likely to still hold funds under a rotated signer.
+    await this._resyncIfDeprecatedSignerContracts();
+  }
+
+  /** Drop the incremental sync cursor when this wallet still has active contracts under a deprecated server signer. */
+  private async _resyncIfDeprecatedSignerContracts(): Promise<void> {
+    assert(this._wallet, 'Ark wallet not initialized');
+
+    try {
+      const info = await this._wallet.arkProvider.getInfo();
+      if (!info.deprecatedSigners?.length) return;
+
+      const normalizeKey = (pubkey: string) => {
+        const hex = pubkey.toLowerCase();
+        return hex.length === 66 ? hex.slice(2) : hex;
+      };
+
+      const deprecatedKeys = new Set(info.deprecatedSigners.map((s) => normalizeKey(s.pubkey)));
+
+      // Only active contracts can still hold spendable funds; inactive/completed
+      // ones lingering in storage must not force a re-bootstrap on every init.
+      const contracts = await (await this._wallet.getContractManager()).getContracts({ state: 'active' });
+      const hasDeprecatedContract = contracts.some((c) => {
+        const pk = c.params?.serverPubKey;
+        return typeof pk === 'string' && deprecatedKeys.has(normalizeKey(pk));
+      });
+
+      if (hasDeprecatedContract) {
+        await this._wallet.clearSyncCursor();
+      }
+    } catch (error) {
+      globalThis.handleError?.(error, 'ark-wallet.ts');
+      console.log('ARK deprecated-signer resync check error:', error);
     }
   }
 

@@ -37,7 +37,6 @@ export default function TransferInput() {
   const { exchangeRate: receiveRate } = useAssetExchangeRate(receiveAsset);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [quoteError, setQuoteError] = useState('');
-  const [serviceWarnings, setServiceWarnings] = useState<{ service: string; message: string }[]>([]);
   const [pairInfo, setPairInfo] = useState<TransferPairInfo | undefined>();
   const [isContinuing, setIsContinuing] = useState(false);
   const isContinuingRef = useRef(false);
@@ -71,14 +70,12 @@ export default function TransferInput() {
 
       setIsQuoteLoading(true);
       setQuoteError('');
-      setServiceWarnings([]);
       setPreparedExecution(undefined);
       try {
         const newQuote = await transferService.getQuote(sendAsset, receiveAsset, amount);
         setQuote(newQuote);
-        setReceiveAmount(newQuote.receiveAmount);
+        setReceiveAmount(new BigNumber(newQuote.receiveAmount).toFixed());
         setQuoteError('');
-        setServiceWarnings(newQuote.serviceErrors || []);
       } catch (e: any) {
         setReceiveAmount('');
         setQuote(undefined);
@@ -106,7 +103,6 @@ export default function TransferInput() {
 
       setIsQuoteLoading(true);
       setQuoteError('');
-      setServiceWarnings([]);
       setPreparedExecution(undefined);
       try {
         const rate = new BigNumber(pairInfo.rate);
@@ -116,7 +112,6 @@ export default function TransferInput() {
         setSendAmount(new BigNumber(newQuote.sendAmount).toFixed());
         setReceiveAmount(new BigNumber(newQuote.receiveAmount).toFixed());
         setQuoteError('');
-        setServiceWarnings(newQuote.serviceErrors || []);
       } catch (e: any) {
         setSendAmount('');
         setQuote(undefined);
@@ -345,17 +340,6 @@ export default function TransferInput() {
               </Pressable>
             ) : null}
 
-            {/* Service Warnings (partial failures — quote still valid) */}
-            {!isQuoteLoading && serviceWarnings.length > 0 && !quoteError && (
-              <View style={styles.errorContainer}>
-                {serviceWarnings.map((w) => (
-                  <ThemedText key={w.service} style={styles.warningText}>
-                    {w.service}: {w.message}
-                  </ThemedText>
-                ))}
-              </View>
-            )}
-
             {/* Continue Button */}
             <View style={styles.buttonContainer}>
               <Button testID="TransferContinueButton" title="Continue" onPress={handleContinue} style={[styles.continueButton, !canContinue && styles.disabledButton]} disabled={!canContinue} />
@@ -425,11 +409,6 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 13,
     color: '#FF9500',
-    fontWeight: '400',
-  },
-  warningText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
     fontWeight: '400',
   },
   ongoingContainer: {
