@@ -128,7 +128,6 @@ test('ark mainnet can getCommonTransactions', async (context) => {
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
   w.setArkServerUrl('https://arkade.computer');
-  w.setArkServerPublicKey('022b74c2011af089c849383ee527c72325de52df6a788428b68d49e9174053aaba');
   w.setBoltzApiUrl('https://api.ark.boltz.exchange');
   await w.init(storageMock);
 
