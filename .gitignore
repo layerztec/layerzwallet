@@ -5,6 +5,7 @@
 .idea/
 
 .claude/
+/package-lock.json
 
 # Local-only RGB test wallet seeds — never commit
 tasks/test-wallets-rgb.local.md
