@@ -129,6 +129,16 @@ awaits it before every send; a fresh live retest is the next step.
 
 ## Known gaps / follow-ups
 
+- **SDK bug: dispose() doesn't clear per-process node state**
+  ([UTEXO-Protocol/rgb-sdk-rn#47](https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/47)).
+  After Clear All Data (which calls `wipeAllRgbData` → sdk.dispose + fs
+  wipe) OR after a partial init failure, the native binding still holds
+  a `storageDirPath` registration. The next `init()` throws "conflict
+  with current node state". Only a full process kill clears it. Add a
+  Metro / dev-only "Restart RN" affordance and, for prod, either wait
+  for the SDK fix or force-terminate on Clear. Retest RGB flows once
+  the issue closes — verify Clear + reimport works without app kill,
+  AND partial init failures self-heal on retry.
 - Live retest P2P now that `waitForOutboundLiquidity` is wired.
 - Mainnet entries in `rgb-lsp.ts` still `null`; mainnet LN flow hides
   itself behind that, but UTEXO needs to publish prod endpoints
