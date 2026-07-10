@@ -35,6 +35,7 @@ import { useRouter } from 'expo-router';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { applogFilePath, disableLoggingToFile, enableLoggingToFile, isLoggingToFileEnabled } from '@/src/modules/error-handler';
 import { globalDarkBackground } from '@shared/constants/Colors';
+import { wipeAllRgbData } from '@/src/modules/rgb-adapter';
 
 type TSettingsKey = keyof typeof SETTINGS_CONFIG;
 
@@ -223,6 +224,11 @@ export default function TabThreeScreen() {
             await BackgroundExecutor.clear();
             await AsyncStorage.clear();
             await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, '');
+            // JS AsyncStorage clear doesn't touch the RGB SDK's LDK/RLN
+            // state on the filesystem — nuke it explicitly, otherwise the
+            // next import into the same seed re-inits on top of stale
+            // native state and every op throws "conflict with current node state".
+            await wipeAllRgbData();
             Alert.alert('Storage Cleared', 'All app data has been cleared successfully. The app will now restart.', [
               {
                 text: 'OK',

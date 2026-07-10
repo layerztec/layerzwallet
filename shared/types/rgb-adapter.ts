@@ -33,6 +33,69 @@ export interface RgbLnSendResult {
  */
 export type RgbLnSettlementOutcome = 'settled' | 'timed_out';
 
+/** LN channel management surface. Optional on `IRgbWallet` for the same
+ *  reason as `IRgbLnReceive`: mobile (rgb-sdk-rn) exposes it, the extension
+ *  build (rgb-sdk-web) doesn't. Used by the debug/tools flow that opens a
+ *  channel to an arbitrary peer (e.g. the RGB faucet bot) when the canonical
+ *  LSP-JIT path isn't available. */
+export interface RgbLnOpenChannelRequest {
+  /** `pubkey@host:port` — the full LN URI of the peer. */
+  peerPubkeyAndOptAddr: string;
+  capacitySat: number;
+  pushMsat: number;
+  public: boolean;
+  withAnchors: boolean;
+  feeBaseMsat?: number | null;
+  feeProportionalMillionths?: number | null;
+  temporaryChannelId?: string | null;
+  assetId?: string | null;
+  assetAmount?: number | null;
+  pushAssetAmount?: number | null;
+  virtualOpenMode?: string | null;
+}
+
+export interface RgbLnOpenChannelResponse {
+  temporaryChannelId: string;
+}
+
+export interface RgbLnChannel {
+  channelId?: string;
+  peerPubkey?: string;
+  peer_pubkey?: string;
+  isUsable?: boolean;
+  is_usable?: boolean;
+  isReady?: boolean;
+  is_ready?: boolean;
+  isOutbound?: boolean;
+  is_outbound?: boolean;
+  isChannelReady?: boolean;
+  is_channel_ready?: boolean;
+  isAnnounced?: boolean;
+  is_announced?: boolean;
+  fundingTxid?: string | null;
+  funding_txid?: string | null;
+  channelValueSats?: number;
+  channel_value_sats?: number;
+  localBalanceMsat?: number;
+  local_balance_msat?: number;
+  outboundBalanceMsat?: number;
+  outbound_balance_msat?: number;
+  inboundBalanceMsat?: number;
+  inbound_balance_msat?: number;
+  assetId?: string | null;
+  asset_id?: string | null;
+  assetLocalAmount?: number | null;
+  asset_local_amount?: number | null;
+  assetRemoteAmount?: number | null;
+  asset_remote_amount?: number | null;
+}
+
+export interface IRgbLnChannelOps {
+  openChannel(request: RgbLnOpenChannelRequest): Promise<RgbLnOpenChannelResponse>;
+  listChannels(): Promise<RgbLnChannel[]>;
+  closeChannel(channelId: string, peerPubkey: string, force: boolean): Promise<void>;
+}
+
 export interface IRgbLnReceive {
   lightningReceiveAsset(params: { amountSats: number; amountRgb: number; assetId: string; expirySeconds?: number }): Promise<RgbLnReceiveResult>;
   /** Pay a recipient's RGB invoice via the LSP. The LSP fronts the BOLT11,
@@ -89,7 +152,8 @@ export type IRgbWallet = Pick<
   | 'disableVssAutoBackup'
   | 'getDefaultVssConfig'
 > &
-  Partial<IRgbLnReceive>;
+  Partial<IRgbLnReceive> &
+  Partial<IRgbLnChannelOps>;
 
 export interface IRgbAdapterCreateParams {
   mnemonic: string;

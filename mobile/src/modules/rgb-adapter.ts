@@ -139,23 +139,31 @@ function buildNodeParams(dir: Directory, mnemonic: string, network: RgbNetwork, 
  * scratch — otherwise a transient network blip during the first LN tap would
  * permanently poison the wallet's LSP slot until process restart.
  */
-const lspByWallet = new WeakMap<UTEXOWallet, Promise<UtexoLsp>>();
+// beta.20 bakes virtual-channel params into the node at init() time, so
+// `createLsp()` MUST run BEFORE init(). We call it eagerly in the wallet
+// factory and stash the LSP handle here. `connect()` (LDK P2P dial to the
+// LSP node) stays lazy — it's a network round-trip that only receive/send
+// paths actually need, and deferring lets init/unlock complete on flaky
+// networks even if the LSP peer is temporarily unreachable.
+const lspByWallet = new WeakMap<UTEXOWallet, UtexoLsp>();
+const connectedByWallet = new WeakMap<UTEXOWallet, Promise<UtexoLsp>>();
 
 function ensureLsp(wallet: UTEXOWallet): Promise<UtexoLsp> {
-  let pending = lspByWallet.get(wallet);
+  let pending = connectedByWallet.get(wallet);
   if (!pending) {
+    const lsp = lspByWallet.get(wallet);
+    if (!lsp) return Promise.reject(new Error('LSP not initialized on wallet — createLsp() should have run at wallet creation time'));
     pending = (async () => {
-      const lsp = await wallet.createLsp();
       await lsp.connect();
       return lsp;
     })();
-    lspByWallet.set(wallet, pending);
+    connectedByWallet.set(wallet, pending);
     pending.catch(() => {
-      // Drop the rejected promise so the next caller gets a fresh attempt.
-      // Only drop the entry if it's still ours — a successful retry could
-      // have replaced it while this catch ran.
-      if (lspByWallet.get(wallet) === pending) {
-        lspByWallet.delete(wallet);
+      // Drop the rejected promise so the next caller retries the P2P dial
+      // from scratch — a transient network blip during the first LN tap
+      // shouldn't permanently poison the wallet's LSP slot.
+      if (connectedByWallet.get(wallet) === pending) {
+        connectedByWallet.delete(wallet);
       }
     });
   }
@@ -262,6 +270,16 @@ class RgbAdapter implements IRgbAdapter {
     const signer = new PasswordRLNSigner(password, mnemonic);
     const wallet = new UTEXOWallet(params, signer);
 
+    // beta.20: `createLsp()` bakes virtual-channel params (enableVirtualChannelsV0,
+    // virtualPeerPubkeys) into the node BEFORE `init()` runs — the SDK refuses
+    // to attach an LSP after init because those params can't be mutated later.
+    // Skip when `lspBaseUrl` isn't configured (mainnet pre-launch) so plain-BTC
+    // flows keep working.
+    if (params.lspBaseUrl) {
+      const lsp = await wallet.createLsp();
+      lspByWallet.set(wallet, lsp);
+    }
+
     // Always call `init()` — it does both `rlnCreateNode` (per-process
     // binding registration) AND `signer.initNode` (which writes keys on
     // first run, idempotent on later runs when the same mnemonic + password
@@ -310,3 +328,40 @@ class RgbAdapter implements IRgbAdapter {
 }
 
 globalThis.rgbAdapter = new RgbAdapter();
+
+/**
+ * Nuke ALL on-disk RGB SDK state (all mnemonic × network dirs under
+ * `Documents/rgb`) and drop the in-memory wallet cache. Called from the
+ * "Clear All Data" tool because `AsyncStorage.clear()` only wipes the JS
+ * side — the RLN node's LDK state and RGB registrar DB live on the
+ * filesystem outside AsyncStorage's reach, so without this the next
+ * import against the same mnemonic re-inits on top of stale native state
+ * and every subsequent op throws "conflict with current node state".
+ */
+export async function wipeAllRgbData(): Promise<void> {
+  // Tear down every live SDK wallet BEFORE removing the on-disk data — the
+  // native RLN binding is per-process, and if we skip destroy() the binding
+  // keeps the old `rlnNodeId` cached against a storageDirPath we just
+  // deleted. The next `createWallet` for the same mnemonic then races
+  // between the stale in-memory node and a fresh on-disk shell, and every
+  // op throws "conflict with current node state" / "RLN node is not created".
+  const pending = Array.from(walletByKey.values());
+  walletByKey.clear();
+  for (const p of pending) {
+    try {
+      const w: any = await p;
+      if (typeof w?.dispose === 'function') await w.dispose();
+    } catch {
+      // best-effort — if the wallet failed to construct there's nothing to tear down
+    }
+  }
+  const root = new Directory(Paths.document, RGB_DATA_ROOT);
+  if (root.exists) {
+    try {
+      root.delete();
+    } catch (e: any) {
+      // eslint-disable-next-line no-console
+      console.warn('[rgb-adapter] wipeAllRgbData: failed to delete', root.uri, e?.message ?? e);
+    }
+  }
+}

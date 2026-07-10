@@ -509,6 +509,52 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     return sdk.awaitLightningReceiveSettlement(params);
   }
 
+  /** Direct LN channel management (debug/tools flow — not user-facing on normal
+   *  send/receive paths). Used to open a channel with a specific peer (e.g. the
+   *  RGB faucet bot's node) when the canonical LSP-JIT path doesn't fit. */
+  async openLnChannel(request: Parameters<NonNullable<IRgbWallet['openChannel']>>[0]) {
+    const sdk = this.sdk();
+    if (!sdk.openChannel) throw new Error('openChannel is not supported by this build');
+    // Verbose logging so a Metro tail can attribute an "no available utxos"
+    // failure to the actual allocation state rather than guessing.
+    try {
+      const unspents = await sdk.listUnspents();
+      // eslint-disable-next-line no-console
+      console.log('[rgb][openLnChannel] request:', JSON.stringify(request));
+      // eslint-disable-next-line no-console
+      console.log('[rgb][openLnChannel] unspents count:', unspents.length);
+      for (const u of unspents) {
+        // eslint-disable-next-line no-console
+        console.log('[rgb][openLnChannel] utxo:', JSON.stringify(u));
+      }
+    } catch (probeErr: any) {
+      // eslint-disable-next-line no-console
+      console.log('[rgb][openLnChannel] pre-probe failed:', probeErr?.message ?? String(probeErr));
+    }
+    try {
+      const r = await sdk.openChannel(request);
+      // eslint-disable-next-line no-console
+      console.log('[rgb][openLnChannel] response:', JSON.stringify(r));
+      return r;
+    } catch (e: any) {
+      // eslint-disable-next-line no-console
+      console.log('[rgb][openLnChannel] FAIL:', e?.name, e?.message, JSON.stringify(e));
+      throw e;
+    }
+  }
+
+  async listLnChannels() {
+    const sdk = this.sdk();
+    if (!sdk.listChannels) throw new Error('listChannels is not supported by this build');
+    return sdk.listChannels();
+  }
+
+  async closeLnChannel(channelId: string, peerPubkey: string, force: boolean) {
+    const sdk = this.sdk();
+    if (!sdk.closeChannel) throw new Error('closeChannel is not supported by this build');
+    return sdk.closeChannel(channelId, peerPubkey, force);
+  }
+
   async pay(receiverAddress: string, amountSats: number): Promise<string> {
     const txid = await this.sdk().sendBtc({
       address: receiverAddress,

@@ -48,6 +48,12 @@ export default function UtxoManagerScreen() {
       const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       if (!(wallet instanceof RgbWallet)) throw new Error('Wallet is not an RgbWallet');
       const list = await wallet.listUnspents();
+      // eslint-disable-next-line no-console
+      console.log('[rgb][utxo-manager] listUnspents count:', list.length);
+      for (const u of list) {
+        // eslint-disable-next-line no-console
+        console.log('[rgb][utxo-manager] utxo:', JSON.stringify(u));
+      }
       setUnspents(list);
     } catch (e: any) {
       console.warn('listUnspents failed:', e);

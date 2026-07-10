@@ -214,6 +214,14 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
     return <HomeActionButton title="UTXOs" icon={{ name: 'view-list', type: 'material', size: 24 }} onPress={() => router.push('/utxo-manager')} testID="UtxosButton" />;
   };
 
+  // Testnet-only: open an LN channel to an arbitrary peer (e.g. the RGB
+  // faucet bot). Bootstraps outbound liquidity for P2P LN testing where
+  // no external payer is available to seed the wallet via the LSP-JIT path.
+  const renderOpenChannelButton = () => {
+    if (network !== NETWORK_RGB_TESTNET) return null;
+    return <HomeActionButton title="Channel" icon={{ name: 'link', type: 'material', size: 24 }} onPress={() => router.push('/rgb-open-channel')} testID="OpenChannelButton" />;
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.buttonsRow}>
@@ -222,6 +230,7 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
         {renderFundButton()}
         {renderIssueButton()}
         {renderUtxosButton()}
+        {renderOpenChannelButton()}
       </View>
     </View>
   );
