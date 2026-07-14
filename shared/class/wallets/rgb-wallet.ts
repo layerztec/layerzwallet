@@ -509,6 +509,15 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     return sdk.awaitLightningReceiveSettlement(params);
   }
 
+  /** Decode a BOLT11 via the SDK — pulls the RGB asset tags (assetId,
+   *  assetAmount) that pure-JS bolt11 libs miss. Used by Send RGB LN to
+   *  preview what the invoice will actually route (plain sats vs asset). */
+  async decodeLnInvoice(invoice: string) {
+    const sdk = this.sdk();
+    if (!sdk.decodeLnInvoice) throw new Error('decodeLnInvoice is not supported by this build');
+    return sdk.decodeLnInvoice(invoice);
+  }
+
   /** Direct LN channel management (debug/tools flow — not user-facing on normal
    *  send/receive paths). Used to open a channel with a specific peer (e.g. the
    *  RGB faucet bot's node) when the canonical LSP-JIT path doesn't fit. */
@@ -638,17 +647,46 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     this._tokensFetchInFlight = (async () => {
       try {
         await this.sync();
-        const list = await this.sdk().listAssets();
+        const sdk = this.sdk();
+        const list = await sdk.listAssets();
         const assets: AnyAsset[] = [...(list.nia ?? []), ...(list.cfa ?? []), ...(list.ifa ?? []), ...(list.uda ?? [])];
-        this._tokens = assets.map((a) => ({
-          id: a.assetId,
-          chainId: AllNetworkInfos[this._network].chainId,
-          name: a.name,
-          symbol: a.ticker ?? a.name,
-          decimals: a.precision,
-          balance: String(a.balance.spendable),
-          logoURI: a.media?.filePath,
-        }));
+
+        // Opening a channel with `assetAmount` moves that many base units
+        // OUT of on-chain UTXO allocations and INTO the channel commitment.
+        // `listAssets` only sees on-chain balance, so a wallet with all its
+        // asset locked in LN would show 0 in the Home token list — very
+        // confusing ("where did my USDT go?"). Fold the local-side channel
+        // amounts back in per asset id.
+        const lnByAssetId = new Map<string, number>();
+        if (sdk.listChannels) {
+          try {
+            const channels = await sdk.listChannels();
+            for (const c of channels) {
+              const aid = c.assetId ?? c.asset_id;
+              if (!aid) continue;
+              const local = Number(c.assetLocalAmount ?? c.asset_local_amount ?? 0);
+              if (!Number.isFinite(local) || local <= 0) continue;
+              lnByAssetId.set(aid, (lnByAssetId.get(aid) ?? 0) + local);
+            }
+          } catch (e: any) {
+            // eslint-disable-next-line no-console
+            console.log('[rgb][fetchTokenBalances] listChannels failed:', e?.message ?? e);
+          }
+        }
+
+        this._tokens = assets.map((a) => {
+          const lnLocal = lnByAssetId.get(a.assetId) ?? 0;
+          const totalSpendable = a.balance.spendable + lnLocal;
+          return {
+            id: a.assetId,
+            chainId: AllNetworkInfos[this._network].chainId,
+            name: a.name,
+            symbol: a.ticker ?? a.name,
+            decimals: a.precision,
+            balance: String(totalSpendable),
+            logoURI: a.media?.filePath,
+          };
+        });
         this._lastTokensFetch = Date.now();
       } finally {
         this._tokensFetchInFlight = undefined;
@@ -757,6 +795,21 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
           // don't. Dividing by 1000 would shove every LN entry to 1970 and
           // hide them behind on-chain rows on any capped list (Home shows
           // top 3).
+          // If the payment moved an asset (colored channel routing), attach
+          // it as a CommonTokenTransfer so the details sheet renders the
+          // asset row alongside the sat amount — otherwise a "3000 sat"
+          // send row hides the fact that 1 UTST also left the channel.
+          const tokenTransfers: CommonTokenTransfer[] = [];
+          if (p.assetId && typeof p.assetAmount === 'number' && p.assetAmount > 0) {
+            const meta = this._tokens.find((t) => t.id === p.assetId);
+            tokenTransfers.push({
+              tokenId: p.assetId,
+              amount: p.assetAmount,
+              symbol: meta?.symbol,
+              decimals: meta?.decimals ?? 0,
+              name: meta?.name,
+            });
+          }
           common.push({
             network: this._network,
             txid: `ln:${p.paymentHash}`,
@@ -765,6 +818,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
             amount: amountSats,
             status: paymentStatusToCommon(p.status),
             counterparty: p.payeePubkey,
+            tokenTransfers: tokenTransfers.length > 0 ? tokenTransfers : undefined,
           });
         }
       } catch (e: any) {

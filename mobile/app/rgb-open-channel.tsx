@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import Button from '@/components/Button';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
@@ -40,6 +40,7 @@ export default function RgbOpenChannelScreen() {
   const [openResponse, setOpenResponse] = useState<string | null>(null);
   const [channels, setChannels] = useState<RgbLnChannel[] | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isClosingId, setIsClosingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (network !== NETWORK_RGB_TESTNET) router.replace('/(tabs)');
@@ -66,6 +67,41 @@ export default function RgbOpenChannelScreen() {
     // Only trigger once on mount; polling would race with an in-flight open.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const closeChannel = async (channelId: string, peerPubkey: string, force: boolean) => {
+    if (network !== NETWORK_RGB_TESTNET) return;
+    setError(null);
+    setIsClosingId(channelId);
+    try {
+      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      if (!(wallet instanceof RgbWallet)) throw new Error('Wallet is not an RgbWallet');
+      await wallet.closeLnChannel(channelId, peerPubkey, force);
+      await refreshChannels();
+    } catch (e: any) {
+      setError(e?.message ?? 'closeChannel failed');
+    } finally {
+      setIsClosingId(null);
+    }
+  };
+
+  const confirmClose = (channelId: string, peerPubkey: string, force: boolean) => {
+    Alert.alert(
+      force ? 'Force-close channel?' : 'Close channel?',
+      force
+        ? 'Force-close broadcasts the last commitment tx unilaterally. Funds are timelocked (~24h on signet) before you can spend them again. Use only if the peer is offline / uncooperative.'
+        : 'Cooperative close negotiates with the peer to broadcast a final settlement tx. Funds are spendable as soon as it confirms. Requires the peer to be online.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: force ? 'Force close' : 'Close',
+          style: 'destructive',
+          onPress: () => {
+            closeChannel(channelId, peerPubkey, force).catch(() => {});
+          },
+        },
+      ]
+    );
+  };
 
   const openChannel = async () => {
     setError(null);
@@ -165,22 +201,75 @@ export default function RgbOpenChannelScreen() {
 
         {isRefreshing && !channels ? <ActivityIndicator /> : null}
         {channels?.length === 0 ? <ThemedText style={styles.hint}>No channels yet.</ThemedText> : null}
-        {channels?.map((c, i) => (
-          <View key={c.channelId ?? i} style={styles.channelRow}>
-            <ThemedText style={styles.channelPeer}>{c.peerPubkey ?? c.peer_pubkey ?? '?'}</ThemedText>
-            <ThemedText style={styles.channelMeta}>
-              usable={String(c.isUsable ?? c.is_usable ?? false)} · ready={String(c.isChannelReady ?? c.is_channel_ready ?? c.isReady ?? c.is_ready ?? false)}
-            </ThemedText>
-            <ThemedText style={styles.channelMeta}>
-              cap={c.channelValueSats ?? c.channel_value_sats ?? '?'} sat · out={Math.round((c.outboundBalanceMsat ?? c.outbound_balance_msat ?? 0) / 1000)} sat
-            </ThemedText>
-            {c.assetId || c.asset_id ? (
-              <ThemedText style={styles.channelMeta}>
-                asset={c.assetId ?? c.asset_id} local={c.assetLocalAmount ?? c.asset_local_amount ?? 0} remote={c.assetRemoteAmount ?? c.asset_remote_amount ?? 0}
-              </ThemedText>
-            ) : null}
-          </View>
-        ))}
+        {channels?.map((c, i) => {
+          const channelId = c.channelId ?? '';
+          const peer = c.peerPubkey ?? c.peer_pubkey ?? '?';
+          const usable = c.isUsable ?? c.is_usable ?? false;
+          const ready = c.isChannelReady ?? c.is_channel_ready ?? c.isReady ?? c.is_ready ?? false;
+          const capSat = Number(c.channelValueSats ?? c.channel_value_sats ?? 0);
+          const outSat = Math.round(Number(c.outboundBalanceMsat ?? c.outbound_balance_msat ?? 0) / 1000);
+          const inSat = Math.round(Number(c.inboundBalanceMsat ?? c.inbound_balance_msat ?? 0) / 1000);
+          const assetId = c.assetId ?? c.asset_id;
+          const localAsset = Number(c.assetLocalAmount ?? c.asset_local_amount ?? 0);
+          const remoteAsset = Number(c.assetRemoteAmount ?? c.asset_remote_amount ?? 0);
+          const canClose = Boolean(channelId && peer && peer !== '?');
+          const statusBadge = usable ? { label: 'usable', color: '#4ade80' } : ready ? { label: 'ready', color: '#8bd' } : { label: 'pending', color: '#F5C518' };
+
+          return (
+            <View key={channelId || i} style={styles.channelRow}>
+              <View style={styles.channelHeader}>
+                <ThemedText style={[styles.channelBadge, { color: statusBadge.color, borderColor: statusBadge.color }]}>{statusBadge.label}</ThemedText>
+                <ThemedText style={styles.channelPeer} numberOfLines={1} ellipsizeMode="middle">
+                  {peer}
+                </ThemedText>
+              </View>
+
+              <View style={styles.balanceRow}>
+                <View style={styles.balanceCol}>
+                  <ThemedText style={styles.balanceLabel}>capacity</ThemedText>
+                  <ThemedText style={styles.balanceValue}>{capSat.toLocaleString()} sat</ThemedText>
+                </View>
+                <View style={styles.balanceCol}>
+                  <ThemedText style={styles.balanceLabel}>outbound</ThemedText>
+                  <ThemedText style={styles.balanceValue}>{outSat.toLocaleString()} sat</ThemedText>
+                </View>
+                <View style={styles.balanceCol}>
+                  <ThemedText style={styles.balanceLabel}>inbound</ThemedText>
+                  <ThemedText style={styles.balanceValue}>{inSat.toLocaleString()} sat</ThemedText>
+                </View>
+              </View>
+
+              {assetId ? (
+                <>
+                  <View style={styles.balanceRow}>
+                    <View style={styles.balanceCol}>
+                      <ThemedText style={styles.balanceLabel}>asset local</ThemedText>
+                      <ThemedText style={styles.balanceValue}>{localAsset.toLocaleString()}</ThemedText>
+                    </View>
+                    <View style={styles.balanceCol}>
+                      <ThemedText style={styles.balanceLabel}>asset remote</ThemedText>
+                      <ThemedText style={styles.balanceValue}>{remoteAsset.toLocaleString()}</ThemedText>
+                    </View>
+                  </View>
+                  <ThemedText style={styles.assetIdRow} numberOfLines={1} ellipsizeMode="middle">
+                    {assetId}
+                  </ThemedText>
+                </>
+              ) : null}
+
+              {channelId ? (
+                <ThemedText style={styles.channelIdRow} numberOfLines={1} ellipsizeMode="middle">
+                  id: {channelId}
+                </ThemedText>
+              ) : null}
+
+              <View style={styles.channelActionsRow}>
+                <Button title="Close" onPress={() => confirmClose(channelId, peer, false)} disabled={!canClose || isClosingId === channelId} />
+                <Button title="Force close" onPress={() => confirmClose(channelId, peer, true)} disabled={!canClose || isClosingId === channelId} />
+              </View>
+            </View>
+          );
+        })}
       </ScrollView>
     </RadialGradientScreen>
   );
@@ -202,7 +291,15 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 16 },
   sectionTitle: { fontSize: 16, fontWeight: '600' },
   channelsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  channelRow: { padding: 12, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, gap: 4 },
-  channelPeer: { fontSize: 12, fontFamily: 'Menlo', color: '#8bd' },
-  channelMeta: { fontSize: 11, opacity: 0.75 },
+  channelRow: { padding: 12, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, gap: 8, marginBottom: 8 },
+  channelHeader: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  channelBadge: { fontSize: 11, fontWeight: '600', borderWidth: 1, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 1, overflow: 'hidden' },
+  channelPeer: { fontSize: 11, fontFamily: 'Menlo', color: '#8bd', flex: 1 },
+  balanceRow: { flexDirection: 'row', gap: 12 },
+  balanceCol: { flex: 1 },
+  balanceLabel: { fontSize: 10, opacity: 0.55, textTransform: 'uppercase', letterSpacing: 0.5 },
+  balanceValue: { fontSize: 13, color: 'white', fontWeight: '500' },
+  assetIdRow: { fontSize: 10, fontFamily: 'Menlo', opacity: 0.5 },
+  channelIdRow: { fontSize: 10, fontFamily: 'Menlo', opacity: 0.4 },
+  channelActionsRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
 });

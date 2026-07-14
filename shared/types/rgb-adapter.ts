@@ -112,6 +112,24 @@ export interface IRgbLnHistory {
   listPaymentsRaw(): Promise<RgbLnPayment[]>;
 }
 
+/** Full BOLT11 decode via the SDK — pulls out the assetId / assetAmount TLV
+ *  fields that pure-JS bolt11 libs don't know about. Optional on IRgbWallet
+ *  for the same reason as the other LN surfaces. */
+export interface RgbLnDecodedInvoice {
+  amtMsat?: number;
+  expirySec: number;
+  timestamp: number;
+  assetId?: string;
+  assetAmount?: number;
+  paymentHash: string;
+  paymentSecret: string;
+  payeePubkey?: string;
+  network: string;
+}
+export interface IRgbLnDecode {
+  decodeLnInvoice(invoice: string): Promise<RgbLnDecodedInvoice>;
+}
+
 export interface IRgbLnChannelOps {
   openChannel(request: RgbLnOpenChannelRequest): Promise<RgbLnOpenChannelResponse>;
   listChannels(): Promise<RgbLnChannel[]>;
@@ -176,7 +194,8 @@ export type IRgbWallet = Pick<
 > &
   Partial<IRgbLnReceive> &
   Partial<IRgbLnChannelOps> &
-  Partial<IRgbLnHistory>;
+  Partial<IRgbLnHistory> &
+  Partial<IRgbLnDecode>;
 
 export interface IRgbAdapterCreateParams {
   mnemonic: string;

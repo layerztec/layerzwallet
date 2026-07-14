@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import bolt11lib from 'bolt11';
 import { Stack, useRouter } from 'expo-router';
-import React, { useContext, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import Button from '@/components/Button';
@@ -62,6 +62,36 @@ export default function SendRgbLnScreen() {
   const isBolt11 = /^ln(bc|tb|tbs)/i.test(trimmed);
   const isRgbInvoice = trimmed.startsWith('rgb:') || trimmed.startsWith('utxob:');
   const preview = useMemo(() => (isBolt11 ? decodeBolt11(trimmed) : null), [trimmed, isBolt11]);
+  const [assetPreview, setAssetPreview] = useState<{ assetId?: string; assetAmount?: number } | null>(null);
+
+  // The pure-JS bolt11 lib exposes sat amount + description, but the RGB
+  // asset tags (assetId / assetAmount) live in TLV fields it doesn't parse.
+  // Ask the SDK for a full decode so the user can see whether their pay
+  // will move USDT (colored channel routing sends 1 UTST with every 3000-sat
+  // pay on our current channel, which was previously invisible).
+  useEffect(() => {
+    let cancelled = false;
+    if (!isBolt11 || !trimmed || network !== NETWORK_RGB_TESTNET) {
+      setAssetPreview(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+    (async () => {
+      try {
+        const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        if (cancelled || !(wallet instanceof RgbWallet)) return;
+        const decoded = await wallet.decodeLnInvoice(trimmed);
+        if (cancelled) return;
+        setAssetPreview(decoded.assetId ? { assetId: decoded.assetId, assetAmount: decoded.assetAmount } : null);
+      } catch {
+        if (!cancelled) setAssetPreview(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [trimmed, isBolt11, network, accountNumber]);
 
   if (network !== NETWORK_RGB_TESTNET) {
     return (
@@ -160,6 +190,11 @@ export default function SendRgbLnScreen() {
           <View style={styles.previewCard}>
             <ThemedText style={styles.previewTitle}>Invoice preview</ThemedText>
             <ThemedText style={styles.previewRow}>Amount: {preview.satoshis != null ? `${preview.satoshis.toLocaleString()} sat` : 'not specified (variable)'}</ThemedText>
+            {assetPreview?.assetId ? (
+              <ThemedText style={styles.previewRow}>
+                Asset: {assetPreview.assetAmount ?? '?'} units — <ThemedText style={styles.previewMuted}>{assetPreview.assetId}</ThemedText>
+              </ThemedText>
+            ) : null}
             {preview.description ? <ThemedText style={styles.previewRow}>Note: {preview.description}</ThemedText> : null}
             <ThemedText style={[styles.previewRow, preview.expired ? styles.previewExpired : null]}>
               {preview.expired ? 'Expired' : `Expires in ${Math.round(preview.expirySec ?? 3600)}s from issue`}

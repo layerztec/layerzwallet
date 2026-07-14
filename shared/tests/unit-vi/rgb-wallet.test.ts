@@ -775,6 +775,41 @@ describe('RgbWallet', () => {
       expect(inbound.timestamp).toBe(1784034020);
     });
 
+    it('attaches assetId+assetAmount to the LN tx as a token transfer when the payment routed colored value', async () => {
+      const { sdkWallet } = installAdapter();
+      // Colored channel routing: the invoice was plain sats but the SDK
+      // notes 1 UTST also moved. Details sheet needs to render that.
+      (sdkWallet.listAssets as any) = vi.fn().mockResolvedValue({
+        nia: [{ assetId: 'nia-USDT', name: 'USDT', ticker: 'USDT', precision: 0, balance: { settled: 100, future: 100, spendable: 100 } }],
+        cfa: [],
+        ifa: [],
+        uda: [],
+      });
+      (sdkWallet.listPaymentsRaw as any) = vi.fn().mockResolvedValue([
+        {
+          paymentHash: 'a'.repeat(64),
+          paymentType: 'OUTBOUND',
+          status: 'SUCCEEDED',
+          createdAt: 1784032118,
+          updatedAt: 1784032118,
+          payeePubkey: '02' + 'b'.repeat(64),
+          amtMsat: 3_000_000,
+          assetId: 'nia-USDT',
+          assetAmount: 1,
+        },
+      ]);
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      await w.fetchTokenBalances(); // populate _tokens for the metadata join
+      const [lnTx] = (await w.getCommonTransactions()).filter((t) => t.txid.startsWith('ln:'));
+      expect(lnTx.tokenTransfers).toHaveLength(1);
+      expect(lnTx.tokenTransfers?.[0].tokenId).toBe('nia-USDT');
+      expect(lnTx.tokenTransfers?.[0].amount).toBe(1);
+      expect(lnTx.tokenTransfers?.[0].symbol).toBe('USDT');
+    });
+
     it('tolerates SDK builds without listPaymentsRaw (extension web build)', async () => {
       const { sdkWallet } = installAdapter();
       // Delete the optional method to simulate the ext build's rgb-sdk-web
@@ -814,6 +849,48 @@ describe('RgbWallet', () => {
   });
 
   describe('fetchTokenBalances', () => {
+    it('folds LN channel local asset amounts into the on-chain balance so tokens locked in a channel are still visible', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listAssets as any) = vi.fn().mockResolvedValue({
+        nia: [{ assetId: 'nia-USDT', name: 'USDT', ticker: 'USDT', precision: 0, balance: { settled: 0, future: 0, spendable: 0 } }],
+        cfa: [],
+        ifa: [],
+        uda: [],
+      });
+      (sdkWallet.listChannels as any) = vi.fn().mockResolvedValue([
+        // Uses camelCase field names on this row + snake_case on the next
+        // to prove the getter handles both shapes the RLN binding hands back.
+        { channelId: 'ch-a', peerPubkey: '02aa', assetId: 'nia-USDT', assetLocalAmount: 60, assetRemoteAmount: 0 },
+        { channel_id: 'ch-b', peer_pubkey: '02bb', asset_id: 'nia-USDT', asset_local_amount: 38, asset_remote_amount: 2 },
+      ]);
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      await w.fetchTokenBalances();
+      const tokens = w.getTokenBalances();
+      expect(tokens).toHaveLength(1);
+      // 0 on-chain + 60 + 38 local across the two channels = 98 visible.
+      expect(tokens[0].balance).toBe('98');
+    });
+
+    it('tolerates SDK builds without listChannels — falls back to on-chain balance only', async () => {
+      const { sdkWallet } = installAdapter();
+      delete (sdkWallet as any).listChannels;
+      (sdkWallet.listAssets as any) = vi.fn().mockResolvedValue({
+        nia: [{ assetId: 'nia-USDT', name: 'USDT', ticker: 'USDT', precision: 0, balance: { settled: 42, future: 42, spendable: 42 } }],
+        cfa: [],
+        ifa: [],
+        uda: [],
+      });
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      await w.fetchTokenBalances();
+      expect(w.getTokenBalances()[0].balance).toBe('42');
+    });
+
     it('dedupes concurrent callers into a single SDK round-trip', async () => {
       const { sdkWallet } = installAdapter();
       (sdkWallet.listAssets as any) = vi.fn().mockImplementation(async () => {
