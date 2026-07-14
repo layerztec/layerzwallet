@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import bolt11lib from 'bolt11';
 import { Stack, useRouter } from 'expo-router';
-import React, { useContext, useState } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import Button from '@/components/Button';
@@ -16,6 +17,36 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { NETWORK_RGB_TESTNET } from '@shared/types/networks';
 import type { RgbLnSendResult } from '@shared/types/rgb-adapter';
 
+/** Best-effort BOLT11 preview: amount + expiry + description. Returns null
+ *  for non-BOLT11 or malformed input. Runs on every keystroke because
+ *  bolt11.decode is pure JS + fast; we never touch the RLN node here. */
+type Bolt11Preview = { satoshis: number | null; expirySec: number | null; description: string | null; expired: boolean };
+// `bolt11` (1.4.1) hard-codes network prefixes bc/tb/bcrt/sb; signet
+// (`lntbs…` = bech32 `tbs`) isn't in the table so a bare `.decode()`
+// throws "Unknown coin bech32 prefix". Pass an explicit network only
+// when we spot the signet prefix, otherwise let the lib auto-detect.
+const SIGNET_LN_NETWORK = { bech32: 'tbs', pubKeyHash: 0x6f, scriptHash: 0xc4, validWitnessVersions: [0, 1] };
+
+function decodeBolt11(invoice: string): Bolt11Preview | null {
+  try {
+    const network = /^lntbs/i.test(invoice) ? SIGNET_LN_NETWORK : undefined;
+    const decoded = network ? (bolt11lib as any).decode(invoice, network) : bolt11lib.decode(invoice);
+    const description = decoded.tags?.find((t: { tagName: string }) => t.tagName === 'description')?.data ?? null;
+    const expiryTag = decoded.tags?.find((t: { tagName: string }) => t.tagName === 'expire_time')?.data;
+    const expirySec = typeof expiryTag === 'number' ? expiryTag : 3600;
+    const nowSec = Math.floor(Date.now() / 1000);
+    const expired = typeof decoded.timestamp === 'number' && nowSec > decoded.timestamp + expirySec;
+    return {
+      satoshis: typeof decoded.satoshis === 'number' ? decoded.satoshis : null,
+      expirySec,
+      description: typeof description === 'string' ? description : null,
+      expired,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function SendRgbLnScreen() {
   const router = useRouter();
   const { scanQr } = useContext(ScanQrContext);
@@ -26,6 +57,11 @@ export default function SendRgbLnScreen() {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RgbLnSendResult | null>(null);
+
+  const trimmed = invoice.trim();
+  const isBolt11 = /^ln(bc|tb|tbs)/i.test(trimmed);
+  const isRgbInvoice = trimmed.startsWith('rgb:') || trimmed.startsWith('utxob:');
+  const preview = useMemo(() => (isBolt11 ? decodeBolt11(trimmed) : null), [trimmed, isBolt11]);
 
   if (network !== NETWORK_RGB_TESTNET) {
     return (
@@ -46,7 +82,6 @@ export default function SendRgbLnScreen() {
 
   const handleSend = async () => {
     setError(null);
-    const trimmed = invoice.trim();
     if (!trimmed) {
       setError('Paste or scan an invoice.');
       return;
@@ -55,8 +90,6 @@ export default function SendRgbLnScreen() {
     // invoices start with `rgb:` or `utxob:`. Auto-route by prefix:
     //  - `ln…` → payLightningInvoice (direct LN pay through our channel)
     //  - `rgb:` / `utxob:` → lightningSendAsset (LSP-mediated send)
-    const isBolt11 = /^ln(bc|tb|tbs)/i.test(trimmed);
-    const isRgbInvoice = trimmed.startsWith('rgb:') || trimmed.startsWith('utxob:');
     if (!isBolt11 && !isRgbInvoice) {
       setError('Expected a BOLT11 (ln…) or RGB (rgb:/utxob:) invoice.');
       return;
@@ -76,16 +109,33 @@ export default function SendRgbLnScreen() {
   };
 
   if (result) {
+    // The RLN SDK's payLightningInvoice returns a status field: 'Succeeded' /
+    // 'Pending' / 'Failed'. Absent status = older/unknown format, treat as
+    // pending. Anything not-Succeeded is NOT a green check — surface the
+    // failure loudly so the user knows to retry, and don't hide the txid /
+    // status so we can attribute it in the log.
+    const rawStatus = result.status ?? 'unknown';
+    const normalized = rawStatus.toString().toLowerCase();
+    const outcome: 'success' | 'pending' | 'failed' = normalized.includes('succe') ? 'success' : normalized.includes('pend') ? 'pending' : normalized.includes('fail') ? 'failed' : 'pending';
+    const iconName = outcome === 'success' ? 'checkmark-circle' : outcome === 'failed' ? 'close-circle' : 'time';
+    const iconColor = outcome === 'success' ? '#4CAF50' : outcome === 'failed' ? '#FF6B6B' : '#F5C518';
+    const title = outcome === 'success' ? 'Payment sent' : outcome === 'failed' ? 'Payment failed' : 'Payment pending';
+
     return (
       <RadialGradientScreen network={network}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ScreenHeader title="Sent" />
+        <ScreenHeader title={outcome === 'success' ? 'Sent' : outcome === 'failed' ? 'Failed' : 'Pending'} />
         <View style={styles.body}>
           <View style={styles.successCard}>
-            <Ionicons name="checkmark-circle" size={64} color="#4CAF50" style={styles.successIcon} />
-            <ThemedText style={styles.successTitle}>Payment submitted</ThemedText>
-            {result.status ? <ThemedText style={styles.successSubtitle}>Status: {result.status}</ThemedText> : null}
+            <Ionicons name={iconName} size={64} color={iconColor} style={styles.successIcon} />
+            <ThemedText style={styles.successTitle}>{title}</ThemedText>
+            <ThemedText style={styles.successSubtitle}>Status: {rawStatus}</ThemedText>
             {result.txid ? <ThemedText style={styles.hash}>Txid: {result.txid}</ThemedText> : null}
+            {outcome === 'failed' ? (
+              <ThemedText style={styles.failedHint}>
+                The payment was submitted to the LN node but did not settle. Check channel liquidity and route availability; the funds stay in your wallet.
+              </ThemedText>
+            ) : null}
           </View>
           <Button title="Done" onPress={() => router.back()} />
         </View>
@@ -105,6 +155,19 @@ export default function SendRgbLnScreen() {
             <Ionicons name="scan-outline" size={22} color="white" />
           </Pressable>
         </View>
+
+        {trimmed && isBolt11 && preview ? (
+          <View style={styles.previewCard}>
+            <ThemedText style={styles.previewTitle}>Invoice preview</ThemedText>
+            <ThemedText style={styles.previewRow}>Amount: {preview.satoshis != null ? `${preview.satoshis.toLocaleString()} sat` : 'not specified (variable)'}</ThemedText>
+            {preview.description ? <ThemedText style={styles.previewRow}>Note: {preview.description}</ThemedText> : null}
+            <ThemedText style={[styles.previewRow, preview.expired ? styles.previewExpired : null]}>
+              {preview.expired ? 'Expired' : `Expires in ${Math.round(preview.expirySec ?? 3600)}s from issue`}
+            </ThemedText>
+          </View>
+        ) : null}
+        {trimmed && isBolt11 && !preview ? <ThemedText style={styles.previewMuted}>Could not decode BOLT11 — check the invoice text.</ThemedText> : null}
+        {trimmed && isRgbInvoice ? <ThemedText style={styles.previewMuted}>RGB invoice — the LSP will front the BOLT11 for this send. Amount is set by the recipient.</ThemedText> : null}
 
         {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
 
@@ -146,4 +209,10 @@ const styles = StyleSheet.create({
   successTitle: { color: 'white', fontSize: 22, fontWeight: '700' },
   successSubtitle: { color: '#aaa', fontSize: 14 },
   hash: { color: '#888', fontSize: 11, fontFamily: 'Courier', marginTop: 4, textAlign: 'center' },
+  previewCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 12, gap: 4 },
+  previewTitle: { color: '#ddd', fontSize: 13, fontWeight: '600' },
+  previewRow: { color: '#ccc', fontSize: 13 },
+  previewExpired: { color: '#FF6B6B' },
+  previewMuted: { color: '#888', fontSize: 12 },
+  failedHint: { color: '#FF6B6B', fontSize: 12, textAlign: 'center', marginTop: 8, paddingHorizontal: 16 },
 });

@@ -304,7 +304,19 @@ class RgbAdapter implements IRgbAdapter {
         if (!marker.exists) marker.create();
       } catch (initErr: any) {
         const msg = (initErr?.message ?? String(initErr)).toString();
+        // eslint-disable-next-line no-console
+        console.log(
+          '[rgb-adapter] init() threw:',
+          initErr?.name,
+          msg,
+          'params.enableVirtualChannelsV0=',
+          (params as any).enableVirtualChannelsV0,
+          'virtualPeerPubkeys=',
+          JSON.stringify((params as any).virtualPeerPubkeys)
+        );
         if (!/conflict with current node state|already exists|already initialized/i.test(msg)) throw initErr;
+        // eslint-disable-next-line no-console
+        console.log('[rgb-adapter] init() error SWALLOWED — will attempt unlock anyway');
       }
       await wallet.unlock(resolveUnlockParams(rlnNet, {}));
     } catch (e) {
@@ -338,7 +350,69 @@ globalThis.rgbAdapter = new RgbAdapter();
  * import against the same mnemonic re-inits on top of stale native state
  * and every subsequent op throws "conflict with current node state".
  */
+const RGB_SNAPSHOT_ROOT = 'rgb-snapshot';
+
+/**
+ * Dev-only: copy `Documents/rgb/` → `Documents/rgb-snapshot/`. Lets a QA flow
+ * roundtrip through Clear All Data (currently VSS-less on beta.20+; see
+ * `shimVssMethods`) without re-requesting assets from the faucet each time.
+ * Overwrites any previous snapshot. Also snapshots the on-disk state exactly
+ * as-is — if the RLN node has open channels or pending transfers, restoring
+ * back into that state after a Rust process kill may or may not work; use
+ * against a quiescent wallet only.
+ */
+export async function snapshotAllRgbData(): Promise<{ snapshottedPath: string; empty: boolean }> {
+  const src = new Directory(Paths.document, RGB_DATA_ROOT);
+  const dst = new Directory(Paths.document, RGB_SNAPSHOT_ROOT);
+  if (dst.exists) {
+    try {
+      dst.delete();
+    } catch (e: any) {
+      // eslint-disable-next-line no-console
+      console.warn('[rgb-adapter] snapshotAllRgbData: failed to clear prior snapshot', e?.message ?? e);
+    }
+  }
+  if (!src.exists) {
+    return { snapshottedPath: dst.uri, empty: true };
+  }
+  dst.create({ intermediates: true });
+  // expo-file-system's Directory.copy copies the source directory *into* the
+  // destination (creates `<dst>/rgb`). We want the contents at the root of
+  // the snapshot dir instead, so walk one level and copy each child.
+  for (const child of src.list()) {
+    child.copy(dst);
+  }
+  // eslint-disable-next-line no-console
+  console.log('[rgb-adapter] snapshotAllRgbData: snapshotted to', dst.uri);
+  return { snapshottedPath: dst.uri, empty: false };
+}
+
+/**
+ * Dev-only companion to `snapshotAllRgbData`. Tears down cached wallets +
+ * wipes live `Documents/rgb/`, then copies from the snapshot dir back.
+ * Caller must force-kill the app afterwards (see
+ * https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/47 — the native
+ * binding doesn't release its per-process registration for the storage
+ * dir on dispose, so a fresh init in the same process throws
+ * "conflict with current node state" regardless of on-disk state).
+ */
+export async function restoreAllRgbData(): Promise<{ restored: boolean; reason?: string }> {
+  const src = new Directory(Paths.document, RGB_SNAPSHOT_ROOT);
+  if (!src.exists) return { restored: false, reason: 'no snapshot on disk' };
+  await wipeAllRgbData();
+  const dst = new Directory(Paths.document, RGB_DATA_ROOT);
+  dst.create({ intermediates: true });
+  for (const child of src.list()) {
+    child.copy(dst);
+  }
+  // eslint-disable-next-line no-console
+  console.log('[rgb-adapter] restoreAllRgbData: restored from', src.uri);
+  return { restored: true };
+}
+
 export async function wipeAllRgbData(): Promise<void> {
+  // eslint-disable-next-line no-console
+  console.log('[rgb-adapter] wipeAllRgbData start');
   // Tear down every live SDK wallet BEFORE removing the on-disk data — the
   // native RLN binding is per-process, and if we skip destroy() the binding
   // keeps the old `rlnNodeId` cached against a storageDirPath we just
@@ -346,22 +420,34 @@ export async function wipeAllRgbData(): Promise<void> {
   // between the stale in-memory node and a fresh on-disk shell, and every
   // op throws "conflict with current node state" / "RLN node is not created".
   const pending = Array.from(walletByKey.values());
+  // eslint-disable-next-line no-console
+  console.log('[rgb-adapter] wipeAllRgbData: cached wallet count =', pending.length);
   walletByKey.clear();
   for (const p of pending) {
     try {
       const w: any = await p;
-      if (typeof w?.dispose === 'function') await w.dispose();
-    } catch {
-      // best-effort — if the wallet failed to construct there's nothing to tear down
+      if (typeof w?.dispose === 'function') {
+        // eslint-disable-next-line no-console
+        console.log('[rgb-adapter] wipeAllRgbData: calling sdk.dispose on wallet');
+        await w.dispose();
+      }
+    } catch (e: any) {
+      // eslint-disable-next-line no-console
+      console.log('[rgb-adapter] wipeAllRgbData: dispose failed', e?.message ?? e);
     }
   }
   const root = new Directory(Paths.document, RGB_DATA_ROOT);
   if (root.exists) {
     try {
       root.delete();
+      // eslint-disable-next-line no-console
+      console.log('[rgb-adapter] wipeAllRgbData: deleted', root.uri);
     } catch (e: any) {
       // eslint-disable-next-line no-console
       console.warn('[rgb-adapter] wipeAllRgbData: failed to delete', root.uri, e?.message ?? e);
     }
+  } else {
+    // eslint-disable-next-line no-console
+    console.log('[rgb-adapter] wipeAllRgbData: rgb dir did not exist');
   }
 }

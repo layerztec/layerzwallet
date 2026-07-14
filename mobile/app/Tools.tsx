@@ -35,7 +35,7 @@ import { useRouter } from 'expo-router';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { applogFilePath, disableLoggingToFile, enableLoggingToFile, isLoggingToFileEnabled } from '@/src/modules/error-handler';
 import { globalDarkBackground } from '@shared/constants/Colors';
-import { wipeAllRgbData } from '@/src/modules/rgb-adapter';
+import { restoreAllRgbData, snapshotAllRgbData, wipeAllRgbData } from '@/src/modules/rgb-adapter';
 
 type TSettingsKey = keyof typeof SETTINGS_CONFIG;
 
@@ -50,6 +50,7 @@ export default function TabThreeScreen() {
   const [testState, setTestState] = useState<'not_started' | 'running' | 'ok' | 'error'>('not_started');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isClearing, setIsClearing] = useState(false);
+  const [isSnapshotBusy, setIsSnapshotBusy] = useState(false);
   const [btcXpub, setBtcXpub] = useState('');
   const [deviceId, setDeviceId] = useState('');
   const [isLogFileEnabled, setIsLogFileEnabled] = useState(isLoggingToFileEnabled());
@@ -250,6 +251,39 @@ export default function TabThreeScreen() {
     ]);
   };
 
+  const handleSnapshotRgb = async () => {
+    setIsSnapshotBusy(true);
+    try {
+      const r = await snapshotAllRgbData();
+      Alert.alert('RGB Snapshot', r.empty ? 'No `Documents/rgb/` on disk yet — snapshot is empty.' : `Snapshotted to ${r.snapshottedPath}`);
+    } catch (e: any) {
+      Alert.alert('RGB Snapshot failed', e?.message ?? String(e));
+    } finally {
+      setIsSnapshotBusy(false);
+    }
+  };
+
+  const handleRestoreRgb = async () => {
+    Alert.alert('Restore RGB State', 'Wipes the live RGB dir and copies the snapshot back. Force-quit the app afterwards or the SDK will throw "conflict with current node state" on next init.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Restore',
+        style: 'destructive',
+        onPress: async () => {
+          setIsSnapshotBusy(true);
+          try {
+            const r = await restoreAllRgbData();
+            Alert.alert('RGB Restore', r.restored ? 'Restored. Now force-quit and relaunch the app.' : `No snapshot: ${r.reason}`);
+          } catch (e: any) {
+            Alert.alert('RGB Restore failed', e?.message ?? String(e));
+          } finally {
+            setIsSnapshotBusy(false);
+          }
+        },
+      },
+    ]);
+  };
+
   const handleLogSettingChange = async (option: 'enabled' | 'disabled') => {
     try {
       if (option === 'enabled') {
@@ -359,6 +393,11 @@ export default function TabThreeScreen() {
       title: 'Developer Options',
       key: 'developerOptions',
       data: ['developerOptions'],
+    },
+    {
+      title: 'RGB Snapshot (dev)',
+      key: 'rgbSnapshot',
+      data: ['rgbSnapshot'],
     },
     {
       title: 'Security Actions',
@@ -508,6 +547,20 @@ export default function TabThreeScreen() {
               </>
             )}
           </View>
+        );
+
+      case 'rgbSnapshot':
+        return (
+          <>
+            <View style={styles.settingsGroup}>
+              <SettingsRow title={isSnapshotBusy ? 'Snapshotting…' : 'Snapshot RGB State'} onPress={handleSnapshotRgb} disabled={isSnapshotBusy} testID="SnapshotRgbButton" hideChevron />
+              <View style={styles.divider} />
+              <SettingsRow title={isSnapshotBusy ? 'Restoring…' : 'Restore RGB State'} onPress={handleRestoreRgb} disabled={isSnapshotBusy} testID="RestoreRgbButton" hideChevron />
+            </View>
+            <ThemedText style={styles.warningText}>
+              Dev only. Snapshot copies `Documents/rgb/` to a sibling dir; Restore wipes the live dir and copies the snapshot back. After Restore you MUST force-kill the app (see rgb-sdk-rn#47).
+            </ThemedText>
+          </>
         );
 
       case 'securityActions':
