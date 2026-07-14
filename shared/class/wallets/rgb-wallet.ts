@@ -736,6 +736,46 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
       });
     }
 
+    // LN payments (both outgoing and incoming HTLCs) live in a different
+    // SDK ledger — `rlnListPayments` — and were previously invisible to the
+    // UI. Fold them in as CommonTransactions keyed by `ln:<paymentHash>` so
+    // they can't collide with real on-chain txids. Missing entirely on
+    // builds where the SDK doesn't expose the method (extension web build).
+    if (sdk.listPaymentsRaw) {
+      try {
+        const payments = await sdk.listPaymentsRaw();
+        // eslint-disable-next-line no-console
+        console.log('[rgb][getCommonTransactions] LN payments count:', payments.length);
+        for (const p of payments) {
+          // eslint-disable-next-line no-console
+          console.log('[rgb][getCommonTransactions] LN payment:', JSON.stringify(p));
+          const paymentType = (p.paymentType ?? '').toString().toLowerCase();
+          const direction: CommonTransaction['direction'] = paymentType.includes('in') ? 'receive' : 'send';
+          const amountSats = typeof p.amtMsat === 'number' ? Math.round(p.amtMsat / 1000) : undefined;
+          // RlnPayment.updatedAt / createdAt are unix SECONDS (not ms) — the
+          // rest of the SDK uses ms for on-chain transfers, but LN payments
+          // don't. Dividing by 1000 would shove every LN entry to 1970 and
+          // hide them behind on-chain rows on any capped list (Home shows
+          // top 3).
+          common.push({
+            network: this._network,
+            txid: `ln:${p.paymentHash}`,
+            timestamp: p.updatedAt || p.createdAt,
+            direction,
+            amount: amountSats,
+            status: paymentStatusToCommon(p.status),
+            counterparty: p.payeePubkey,
+          });
+        }
+      } catch (e: any) {
+        // eslint-disable-next-line no-console
+        console.log('[rgb][getCommonTransactions] listPaymentsRaw failed:', e?.message ?? e);
+      }
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('[rgb][getCommonTransactions] SDK has no listPaymentsRaw — LN history omitted');
+    }
+
     common.sort((a, b) => b.timestamp - a.timestamp);
     return common;
   }
@@ -1041,6 +1081,25 @@ function transferStatusToCommon(status: string): CommonTransaction['status'] {
       return 'failed';
     case 'WaitingCounterparty':
     case 'WaitingConfirmations':
+    default:
+      return 'pending';
+  }
+}
+
+function paymentStatusToCommon(status: string | undefined): CommonTransaction['status'] {
+  // The RLN SDK types call these 'Succeeded' / 'Failed' / … but the actual
+  // native binding hands back UPPERCASE strings ('SUCCEEDED', 'FAILED', …).
+  // Normalize before matching so both spellings work — spec vs reality
+  // divergence isn't something we want to re-debug every SDK bump.
+  switch ((status ?? '').toString().toUpperCase()) {
+    case 'SUCCEEDED':
+      return 'confirmed';
+    case 'FAILED':
+    case 'CANCELLED':
+      return 'failed';
+    case 'PENDING':
+    case 'CLAIMABLE':
+    case 'CLAIMING':
     default:
       return 'pending';
   }

@@ -53,6 +53,7 @@ function installAdapter(overrides: Partial<IRgbWallet> = {}) {
     refreshWallet: vi.fn(),
     syncWallet: vi.fn(),
     failTransfers: vi.fn(),
+    listPaymentsRaw: vi.fn().mockResolvedValue([]),
     vssBackup: vi.fn().mockResolvedValue(1),
     // Default to "VSS reachable, no backup yet, no backup required" so the
     // probe-then-fresh-create path used by RgbWallet.init() works without
@@ -710,6 +711,105 @@ describe('RgbWallet', () => {
       const txs = await w.getCommonTransactions();
       expect(txs[0].tokenTransfers?.[0].amount).toBe(42);
       expect(txs[0].counterparty).toBe('rcp-fallback');
+    });
+
+    it('folds RLN LN payments into the tx list keyed by ln:<paymentHash>', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listPaymentsRaw as any) = vi.fn().mockResolvedValue([
+        // OUTBOUND SUCCEEDED — should render as a confirmed send
+        {
+          paymentHash: 'a'.repeat(64),
+          paymentType: 'OUTBOUND',
+          status: 'SUCCEEDED',
+          createdAt: 1784032118,
+          updatedAt: 1784032118,
+          payeePubkey: '02' + 'b'.repeat(64),
+          amtMsat: 3_000_000,
+          assetId: 'nia-A',
+          assetAmount: 5,
+        },
+        // OUTBOUND FAILED — must not be dropped, must map to 'failed' status
+        {
+          paymentHash: 'c'.repeat(64),
+          paymentType: 'OUTBOUND',
+          status: 'FAILED',
+          createdAt: 1784033703,
+          updatedAt: 1784033703,
+          payeePubkey: '02' + 'd'.repeat(64),
+          amtMsat: 3_000_000,
+        },
+        // INBOUND SUCCEEDED — direction must flip to 'receive'
+        {
+          paymentHash: 'e'.repeat(64),
+          paymentType: 'INBOUND',
+          status: 'SUCCEEDED',
+          createdAt: 1784034015,
+          updatedAt: 1784034020,
+          payeePubkey: '02' + 'f'.repeat(64),
+          amtMsat: 5_000_000,
+        },
+      ]);
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const txs = await w.getCommonTransactions();
+
+      const lnTxs = txs.filter((t) => t.txid.startsWith('ln:'));
+      expect(lnTxs).toHaveLength(3);
+
+      const outSucc = lnTxs.find((t) => t.txid === `ln:${'a'.repeat(64)}`)!;
+      expect(outSucc.direction).toBe('send');
+      expect(outSucc.status).toBe('confirmed');
+      expect(outSucc.amount).toBe(3000);
+      // RLN emits timestamps in seconds already — must NOT be re-divided.
+      expect(outSucc.timestamp).toBe(1784032118);
+
+      const outFail = lnTxs.find((t) => t.txid === `ln:${'c'.repeat(64)}`)!;
+      expect(outFail.direction).toBe('send');
+      expect(outFail.status).toBe('failed');
+
+      const inbound = lnTxs.find((t) => t.txid === `ln:${'e'.repeat(64)}`)!;
+      expect(inbound.direction).toBe('receive');
+      // updatedAt wins over createdAt when both are set.
+      expect(inbound.timestamp).toBe(1784034020);
+    });
+
+    it('tolerates SDK builds without listPaymentsRaw (extension web build)', async () => {
+      const { sdkWallet } = installAdapter();
+      // Delete the optional method to simulate the ext build's rgb-sdk-web
+      // surface, which pre-dates the LN history endpoint.
+      delete (sdkWallet as any).listPaymentsRaw;
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      // Should complete without throwing; LN entries just aren't present.
+      const txs = await w.getCommonTransactions();
+      expect(txs.every((t) => !t.txid.startsWith('ln:'))).toBe(true);
+    });
+
+    it('surfaces LN payments even when listPaymentsRaw uses lowercase status/type strings', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listPaymentsRaw as any) = vi.fn().mockResolvedValue([
+        {
+          paymentHash: '1'.repeat(64),
+          paymentType: 'outbound',
+          status: 'Succeeded',
+          createdAt: 1784032118,
+          updatedAt: 1784032118,
+          payeePubkey: '02' + '2'.repeat(64),
+          amtMsat: 1000,
+        },
+      ]);
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const [lnTx] = (await w.getCommonTransactions()).filter((t) => t.txid.startsWith('ln:'));
+      expect(lnTx).toBeDefined();
+      expect(lnTx.direction).toBe('send');
+      expect(lnTx.status).toBe('confirmed');
     });
   });
 

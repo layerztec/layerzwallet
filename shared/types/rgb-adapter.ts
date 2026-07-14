@@ -90,6 +90,28 @@ export interface RgbLnChannel {
   asset_remote_amount?: number | null;
 }
 
+/** LN payment history. `listPaymentsRaw` returns every send/receive tracked
+ *  by the RLN node (outgoing invoices we paid + incoming HTLCs we accepted).
+ *  Optional on IRgbWallet for the same reason as the other LN surfaces —
+ *  ext build's rgb-sdk-web doesn't have it. */
+export type RgbLnPaymentStatus = 'Pending' | 'Claimable' | 'Claiming' | 'Succeeded' | 'Cancelled' | 'Failed' | string;
+export type RgbLnPaymentType = 'Outbound' | 'Inbound' | string;
+export interface RgbLnPayment {
+  paymentHash: string;
+  paymentType?: RgbLnPaymentType;
+  status?: RgbLnPaymentStatus;
+  createdAt: number;
+  updatedAt: number;
+  payeePubkey: string;
+  amtMsat?: number;
+  assetAmount?: number;
+  assetId?: string;
+  preimage?: string;
+}
+export interface IRgbLnHistory {
+  listPaymentsRaw(): Promise<RgbLnPayment[]>;
+}
+
 export interface IRgbLnChannelOps {
   openChannel(request: RgbLnOpenChannelRequest): Promise<RgbLnOpenChannelResponse>;
   listChannels(): Promise<RgbLnChannel[]>;
@@ -153,7 +175,8 @@ export type IRgbWallet = Pick<
   | 'getDefaultVssConfig'
 > &
   Partial<IRgbLnReceive> &
-  Partial<IRgbLnChannelOps>;
+  Partial<IRgbLnChannelOps> &
+  Partial<IRgbLnHistory>;
 
 export interface IRgbAdapterCreateParams {
   mnemonic: string;
