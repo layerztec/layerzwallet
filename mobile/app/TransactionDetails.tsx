@@ -692,6 +692,44 @@ export default function TransactionDetails() {
 
           {/* Details list */}
           <View style={styles.detailsList}>
+            {/* Distinguishes LN payments from on-chain rows so the user can
+               tell at a glance whether a "Sent"/"Received" entry was routed
+               through a Lightning channel (payment hash id) or a bitcoin tx.
+               `ln:` prefix is set by RgbWallet.getCommonTransactions when
+               folding rlnListPayments into the common tx list. */}
+            {transaction.txid.startsWith('ln:')
+              ? (() => {
+                  const paymentHash = transaction.txid.slice('ln:'.length);
+                  const statusLabel = transaction.status === 'confirmed' ? 'Succeeded' : transaction.status === 'failed' ? 'Failed' : 'Pending';
+                  const statusColor = transaction.status === 'confirmed' ? '#4CAF50' : transaction.status === 'failed' ? '#FF6B6B' : '#F5C518';
+                  return (
+                    <>
+                      <View style={styles.detailRow}>
+                        <ThemedText style={styles.detailLabel}>Rail</ThemedText>
+                        <ThemedText style={styles.detailValue}>Lightning</ThemedText>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <ThemedText style={styles.detailLabel}>Status</ThemedText>
+                        <ThemedText style={[styles.detailValue, { color: statusColor }]}>{statusLabel}</ThemedText>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <ThemedText style={styles.detailLabel}>Payment Hash</ThemedText>
+                        <View style={styles.detailValueWrap}>
+                          <Pressable onPress={() => handleCopy(paymentHash)}>
+                            <MaterialIcons name="content-copy" size={16} color="rgba(255, 255, 255, 0.8)" />
+                          </Pressable>
+                          <View style={styles.detailValueContainer}>
+                            <ThemedText style={[styles.detailValue]} numberOfLines={1} ellipsizeMode="middle">
+                              {paymentHash}
+                            </ThemedText>
+                          </View>
+                        </View>
+                      </View>
+                    </>
+                  );
+                })()
+              : null}
+
             <View style={styles.detailRow}>
               <ThemedText style={styles.detailLabel}>{transaction.direction === 'send' ? 'To' : 'From'}</ThemedText>
               <View style={styles.detailValueWrap}>
