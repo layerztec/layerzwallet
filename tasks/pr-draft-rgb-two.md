@@ -146,6 +146,20 @@ All Data cycle come back to the same channel without re-requesting
 
 ## Known gaps / follow-ups
 
+- **SDK bug: createUtxos rejects with "conflict with current node state"
+  on freshly-imported wallet, only "create new wallet" flow works.**
+  Reproduced on android (API 29) after a clean `adb uninstall + install`
+  cycle: import seed → TOS → RGB Testnet → open UTXO Manager → tap
+  Create → `org.utexo.rgblightningnode.RlnException.Conflict: conflict
+  with current node state`. The error is emitted by the RN binding
+  BEFORE the call reaches rgb-lib (rgb-lib log shows only INFO-level
+  sync/list ops, no createUtxos entry). LDK log is clean.
+  Force-quit + relaunch doesn't help; only creating a NEW wallet
+  (different storagePath) works. Logs shared with UTEXO for
+  investigation. If this is the same root cause as
+  [rgb-sdk-rn#47](https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/47)
+  (dispose leaves per-process state), it may collapse into the same
+  fix; open its own issue once we hear back.
 - **SDK ambiguity: timestamp units not documented**
   ([UTEXO-Protocol/rgb-sdk-rn#48](https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/48)).
   `RlnPayment.createdAt/updatedAt` and `Transfer.createdAt/updatedAt`
