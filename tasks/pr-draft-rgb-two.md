@@ -85,12 +85,29 @@ Both platforms **receive USDT over LN**:
   (25k sats) settled: RGB testnet balance updated, Receive USDT over
   LN opened its own JIT channel, both invoices rendered.
 
-**P2P send (wallet1 → wallet2's invoice) — not yet re-verified against
-beta.20's `waitForOutboundLiquidity`.** Pre-beta.20 every pay path
-returned HTTP 400 "invalid request" from the LSP (both asset-tagged
-sendAsset and plain-sats payLightningInvoice). The beta.20 SDK now
-exposes `waitForOutboundLiquidity(minMsat, opts)` and the adapter
-awaits it before every send; a fresh live retest is the next step.
+**Outbound LN pay via beta.20 — CONFIRMED (2026-07-14).** Pre-beta.20
+every pay path returned HTTP 400 "invalid request" from the LSP.
+beta.20 exposes `waitForOutboundLiquidity(minMsat, opts)` and the
+adapter awaits it before every send. Verified end-to-end:
+
+- wallet3 (`tunnel end magic forward marble rebel code rich case side love access`,
+  new seed for the working state) received 100 UTST on-chain via
+  `faucet getasset`, opened a 40k-sat colorable-channel to the RGB
+  faucet bot (`0204aa30…@49.12.99.77:9737`) via the new /rgb-open-channel
+  debug screen (colored channel, `assetAmount=100`, `pushAssetAmount=0`).
+- Once the channel showed `usable=true`, paid a plain 3000-sat BOLT11
+  from the bot via Send USDT over Lightning → `payLightningInvoice` →
+  `waitForOutboundLiquidity` gate passed → LN send settled cleanly.
+
+**Still pending:** asset-tagged invoice via `faucet raw "/getinvoice" <amt>`
+and the full android-side P2P (wallet3 iOS → wallet2 android via bot as
+routing intermediary, or two wallets to a shared node).
+
+**Practical note (see `tasks/test-wallets-rgb.local.md`):** the working
+state on `597E4F02-…` sim is snapshotted at `Documents/rgb-snapshot/`
+via Tools → RGB Snapshot. `Restore` + force-quit lets any later Clear
+All Data cycle come back to the same channel without re-requesting
+100 UTST from the faucet.
 
 ### Fixes that landed during live tests
 
@@ -139,7 +156,14 @@ awaits it before every send; a fresh live retest is the next step.
   for the SDK fix or force-terminate on Clear. Retest RGB flows once
   the issue closes — verify Clear + reimport works without app kill,
   AND partial init failures self-heal on retry.
-- Live retest P2P now that `waitForOutboundLiquidity` is wired.
+- Full P2P (wallet3 iOS → wallet2 android via bot as routing intermediary):
+  requires wallet2 to also have a usable channel to the bot / same LSP
+  hub. Bootstrap wallet2 via UTXO Manager + `/rgb-open-channel` the same
+  way wallet3 was, then relay a bot-issued asset invoice.
+- Asset-tagged LN send: send USDT (not plain sats) via the bot. Bot
+  supports asset invoices — `getinvoice` with argument prompts for
+  asset amount. Wire that + verify `payLightningInvoice({assetId,
+  assetAmount})` end-to-end.
 - Mainnet entries in `rgb-lsp.ts` still `null`; mainnet LN flow hides
   itself behind that, but UTEXO needs to publish prod endpoints
   before mainnet ships.
