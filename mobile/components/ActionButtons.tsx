@@ -63,7 +63,7 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
   const handleSendRgbLn = () => router.push('/send-rgb-ln');
   const rgbSendActions = [
     { children: <Action network={network} text="Send via RGB on-chain" />, onClick: handleSend },
-    ...(network === NETWORK_RGB_TESTNET ? [{ children: <Action network={network} text="Send USDT over Lightning" />, onClick: handleSendRgbLn }] : []),
+    ...(network === NETWORK_RGB_TESTNET ? [{ children: <Action network={network} text="Send over Lightning" />, onClick: handleSendRgbLn }] : []),
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
@@ -139,7 +139,7 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
   const rgbReceiveActions = [
     { children: <Action network={network} text="Receive sats" />, onClick: handleReceive },
     { children: <Action network={network} text="Receive RGB asset" />, onClick: handleReceiveRgbToken },
-    ...(network === NETWORK_RGB_TESTNET ? [{ children: <Action network={network} text="Receive USDT over Lightning" />, onClick: handleReceiveRgbLn }] : []),
+    ...(network === NETWORK_RGB_TESTNET ? [{ children: <Action network={network} text="Receive over Lightning" />, onClick: handleReceiveRgbLn }] : []),
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 

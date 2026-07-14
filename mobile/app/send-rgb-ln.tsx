@@ -62,13 +62,16 @@ export default function SendRgbLnScreen() {
   const isBolt11 = /^ln(bc|tb|tbs)/i.test(trimmed);
   const isRgbInvoice = trimmed.startsWith('rgb:') || trimmed.startsWith('utxob:');
   const preview = useMemo(() => (isBolt11 ? decodeBolt11(trimmed) : null), [trimmed, isBolt11]);
-  const [assetPreview, setAssetPreview] = useState<{ assetId?: string; assetAmount?: number } | null>(null);
+  const [assetPreview, setAssetPreview] = useState<{ assetId?: string; assetAmount?: number; symbol?: string } | null>(null);
 
   // The pure-JS bolt11 lib exposes sat amount + description, but the RGB
   // asset tags (assetId / assetAmount) live in TLV fields it doesn't parse.
   // Ask the SDK for a full decode so the user can see whether their pay
   // will move USDT (colored channel routing sends 1 UTST with every 3000-sat
-  // pay on our current channel, which was previously invisible).
+  // pay on our current channel, which was previously invisible). Also
+  // resolve the assetId → ticker via the wallet's token cache so "1 UTST"
+  // renders instead of "1 units — rgb:2l_MeWlj…" — the raw id is copyable
+  // in the details sheet if the user needs it.
   useEffect(() => {
     let cancelled = false;
     if (!isBolt11 || !trimmed || network !== NETWORK_RGB_TESTNET) {
@@ -83,7 +86,16 @@ export default function SendRgbLnScreen() {
         if (cancelled || !(wallet instanceof RgbWallet)) return;
         const decoded = await wallet.decodeLnInvoice(trimmed);
         if (cancelled) return;
-        setAssetPreview(decoded.assetId ? { assetId: decoded.assetId, assetAmount: decoded.assetAmount } : null);
+        if (!decoded.assetId) {
+          setAssetPreview(null);
+          return;
+        }
+        // fetchTokenBalances is a no-op after warm cache; call it so a
+        // just-installed wallet still resolves the ticker.
+        await wallet.fetchTokenBalances();
+        if (cancelled) return;
+        const token = wallet.getTokenBalances().find((t) => t.id === decoded.assetId);
+        setAssetPreview({ assetId: decoded.assetId, assetAmount: decoded.assetAmount, symbol: token?.symbol });
       } catch {
         if (!cancelled) setAssetPreview(null);
       }
@@ -192,7 +204,7 @@ export default function SendRgbLnScreen() {
             <ThemedText style={styles.previewRow}>Amount: {preview.satoshis != null ? `${preview.satoshis.toLocaleString()} sat` : 'not specified (variable)'}</ThemedText>
             {assetPreview?.assetId ? (
               <ThemedText style={styles.previewRow}>
-                Asset: {assetPreview.assetAmount ?? '?'} units — <ThemedText style={styles.previewMuted}>{assetPreview.assetId}</ThemedText>
+                Asset: {assetPreview.assetAmount ?? '?'} {assetPreview.symbol ?? 'units'}
               </ThemedText>
             ) : null}
             {preview.description ? <ThemedText style={styles.previewRow}>Note: {preview.description}</ThemedText> : null}
