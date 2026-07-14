@@ -768,6 +768,8 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
       // handle both: if the value looks like ms, scale down; otherwise
       // keep as-is. Getting this wrong on either branch used to render
       // the receive as "January 21, 1970" on the details sheet.
+      // Drop the heuristic once the SDK settles the unit:
+      // https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/48
       const rawTs = t.updatedAt || t.createdAt;
       const timestamp = rawTs > 1e12 ? Math.floor(rawTs / 1000) : rawTs;
       // eslint-disable-next-line no-console
@@ -803,11 +805,12 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
           const paymentType = (p.paymentType ?? '').toString().toLowerCase();
           const direction: CommonTransaction['direction'] = paymentType.includes('in') ? 'receive' : 'send';
           const amountSats = typeof p.amtMsat === 'number' ? Math.round(p.amtMsat / 1000) : undefined;
-          // RlnPayment.updatedAt / createdAt are unix SECONDS (not ms) — the
-          // rest of the SDK uses ms for on-chain transfers, but LN payments
-          // don't. Dividing by 1000 would shove every LN entry to 1970 and
-          // hide them behind on-chain rows on any capped list (Home shows
-          // top 3).
+          // RlnPayment.updatedAt / createdAt are unix SECONDS — the SDK
+          // types don't say so and don't distinguish LN from on-chain unit
+          // conventions. Dividing by 1000 would shove every LN entry to 1970
+          // and hide them behind on-chain rows on any capped list (Home
+          // shows top 3). Tracked upstream:
+          // https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/48
           // If the payment moved an asset (colored channel routing), attach
           // it as a CommonTokenTransfer so the details sheet renders the
           // asset row alongside the sat amount — otherwise a "3000 sat"
