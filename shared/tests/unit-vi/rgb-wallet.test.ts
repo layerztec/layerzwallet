@@ -713,6 +713,68 @@ describe('RgbWallet', () => {
       expect(txs[0].counterparty).toBe('rcp-fallback');
     });
 
+    it('handles transfer timestamps in seconds (RN binding) without dividing them into 1970', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listAssets as any) = vi.fn().mockResolvedValue({
+        nia: [{ assetId: 'nia-USDT', name: 'USDT', ticker: 'USDT', precision: 0, balance: { settled: 100, future: 100, spendable: 100 } }],
+        cfa: [],
+        ifa: [],
+        uda: [],
+      });
+      (sdkWallet.listTransactions as any) = vi.fn().mockResolvedValue([]);
+      (sdkWallet.listTransfers as any) = vi.fn().mockResolvedValue([
+        {
+          idx: 1,
+          batchTransferIdx: 1,
+          // 10-digit unix seconds, as the RN binding actually emits.
+          createdAt: 1784000000,
+          updatedAt: 1784000000,
+          status: 'WaitingCounterparty',
+          kind: 'ReceiveBlind',
+          assignments: [{ type: 'Fungible', amount: 100 }],
+          transportEndpoints: [],
+        },
+      ]);
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const txs = await w.getCommonTransactions();
+      expect(txs).toHaveLength(1);
+      expect(txs[0].timestamp).toBe(1784000000); // NOT 1784000 (i.e. NOT scaled down)
+    });
+
+    it('handles transfer timestamps in milliseconds (older SDK / test fixtures) by scaling to seconds', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listAssets as any) = vi.fn().mockResolvedValue({
+        nia: [{ assetId: 'nia-A', name: 'A', ticker: 'A', precision: 0, balance: { settled: 0, future: 0, spendable: 0 } }],
+        cfa: [],
+        ifa: [],
+        uda: [],
+      });
+      (sdkWallet.listTransactions as any) = vi.fn().mockResolvedValue([]);
+      (sdkWallet.listTransfers as any) = vi.fn().mockResolvedValue([
+        {
+          idx: 1,
+          batchTransferIdx: 1,
+          // 13-digit ms — anything over 1e12 falls into the "looks like ms" branch.
+          createdAt: 1784000000000,
+          updatedAt: 1784000000000,
+          status: 'Settled',
+          kind: 'ReceiveBlind',
+          assignments: [{ type: 'Fungible', amount: 1 }],
+          transportEndpoints: [],
+        },
+      ]);
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const txs = await w.getCommonTransactions();
+      expect(txs).toHaveLength(1);
+      expect(txs[0].timestamp).toBe(1784000000);
+    });
+
     it('folds RLN LN payments into the tx list keyed by ln:<paymentHash>', async () => {
       const { sdkWallet } = installAdapter();
       (sdkWallet.listPaymentsRaw as any) = vi.fn().mockResolvedValue([

@@ -762,10 +762,23 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
       seenTransferIds.add(key);
       const tokenTransfers = this.annotatedTransfersToCommon([t]);
       const direction: CommonTransaction['direction'] = t.kind === 'Send' ? 'send' : 'receive';
+      // Transfer timestamps: the RN native binding hands back unix SECONDS
+      // (10 digits) — matches `RlnPayment`. The core SDK types don't
+      // specify the unit and older test fixtures used ms (13 digits), so
+      // handle both: if the value looks like ms, scale down; otherwise
+      // keep as-is. Getting this wrong on either branch used to render
+      // the receive as "January 21, 1970" on the details sheet.
+      const rawTs = t.updatedAt || t.createdAt;
+      const timestamp = rawTs > 1e12 ? Math.floor(rawTs / 1000) : rawTs;
+      // eslint-disable-next-line no-console
+      console.log(
+        '[rgb][getCommonTransactions] transfer:',
+        JSON.stringify({ idx: t.idx, kind: t.kind, status: t.status, createdAt: t.createdAt, updatedAt: t.updatedAt, resolvedTimestamp: timestamp })
+      );
       common.push({
         network: this._network,
         txid: t.txid ?? key,
-        timestamp: Math.floor((t.updatedAt || t.createdAt) / 1000),
+        timestamp,
         direction,
         status: transferStatusToCommon(t.status),
         tokenTransfers: tokenTransfers.length > 0 ? tokenTransfers : undefined,
