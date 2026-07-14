@@ -146,6 +146,13 @@ All Data cycle come back to the same channel without re-requesting
 
 ## Known gaps / follow-ups
 
+- **SDK ambiguity: timestamp units not documented**
+  ([UTEXO-Protocol/rgb-sdk-rn#48](https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/48)).
+  `RlnPayment.createdAt/updatedAt` and `Transfer.createdAt/updatedAt`
+  come out of the native binding as unix seconds, but the TS types
+  don't say so; test fixtures in the docs use ms. We handle both with
+  a magnitude heuristic (`> 1e12 ⇒ ms`) — drop the heuristic and pick
+  the SDK's canonical unit once the ambiguity is resolved.
 - **SDK bug: dispose() doesn't clear per-process node state**
   ([UTEXO-Protocol/rgb-sdk-rn#47](https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/47)).
   After Clear All Data (which calls `wipeAllRgbData` → sdk.dispose + fs
