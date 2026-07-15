@@ -99,15 +99,61 @@ adapter awaits it before every send. Verified end-to-end:
   from the bot via Send USDT over Lightning → `payLightningInvoice` →
   `waitForOutboundLiquidity` gate passed → LN send settled cleanly.
 
-**Still pending:** asset-tagged invoice via `faucet raw "/getinvoice" <amt>`
-and the full android-side P2P (wallet3 iOS → wallet2 android via bot as
-routing intermediary, or two wallets to a shared node).
+### P2P via the faucet bot as intermediary — DOES NOT ROUTE (2026-07-15)
 
-**Practical note (see `tasks/test-wallets-rgb.local.md`):** the working
-state on `597E4F02-…` sim is snapshotted at `Documents/rgb-snapshot/`
-via Tools → RGB Snapshot. `Restore` + force-quit lets any later Clear
-All Data cycle come back to the same channel without re-requesting
-100 UTST from the faucet.
+Set up wallet3 (iOS) + wallet5 (android), each with its own colored
+channel to the faucet bot (`0204aa30…@49.12.99.77:9737`), both
+`usable=true`. Snapshots at
+`~/z/layerzwallet/tasks/rgb-snapshots/{wallet3-ios,wallet5-android}-snapshot/`
+(gitignored) so we can restore either wallet's LN state after any
+Clear All Data / uninstall without re-faucet'ing.
+
+Sanity — both work: `wallet3 → bot` invoice ✓, `wallet5 → bot`
+invoice ✓ (both directly to the bot's node).
+
+P2P via bot — both fail:
+
+| direction | amount | asset | status |
+| --- | --- | --- | --- |
+| wallet3 iOS → wallet5 android | 500 sat | none | FAILED |
+| wallet3 iOS → wallet5 android | 1001 sat | none | FAILED |
+| wallet5 android → wallet3 iOS | 1000 sat | none | FAILED |
+| wallet3 iOS → wallet5 android | 5000 sat | 3 UTST | FAILED |
+
+Invoices generated via the new "P2P (own node)" toggle on
+Receive over Lightning → `wallet.createLightningInvoice` (native RLN
+node, not LSP-mediated) so the invoice's route hints point at the
+bot as the wallet's only peer. `listPaymentsRaw` on the *receiver*
+side shows the HTLCs as `INBOUND_AUTO_CLAIM PENDING`, and the sender
+side flips them to `FAILED` — HTLCs reach the bot but never propagate
+to the intended receiver.
+
+**Conclusion:** the RGB faucet bot's LN node accepts payments to
+itself but does not forward third-party HTLCs. Asked UTEXO in
+their support chat whether the bot is meant to route, or whether
+there's a separate public routing node to peer with. **P2P remains
+untested end-to-end pending that answer.**
+
+### Ideal LSP flow (for reference — what we'd do without the bot)
+
+The LSP is what the RN SDK ships to abstract "I need a channel" for
+the everyday user:
+
+1. Fresh wallet, no channels, only on-chain BTC.
+2. User taps Receive over LN → `lsp.receiveAsset()` returns a BOLT11
+   with the LSP's pubkey in the route hints.
+3. External payer sends → the LSP JIT-opens a channel to the user
+   on-chain during the HTLC and forwards it.
+4. First send afterwards calls `waitForOutboundLiquidity(minMsat)` to
+   nudge the LSP into pushing outbound into the freshly-opened
+   channel, then `payLightningInvoice` routes through it.
+5. For P2P between two users of the same LSP, both wallets already
+   peer with the LSP; either user's invoice has an LSP-only route
+   hint, and the LSP forwards between the two channels.
+
+Our current test setup opens channels straight to the bot instead,
+bypassing the LSP entirely — which is why bot-as-intermediary P2P
+doesn't route.
 
 ### Fixes that landed during live tests
 
@@ -143,6 +189,75 @@ All Data cycle come back to the same channel without re-requesting
    works.
 9. beta.20 exposes `waitForOutboundLiquidity(minMsat)` — call it
    before every send so the LSP has time to make outbound available.
+10. `RlnPayment.updatedAt`/`createdAt` (and same on `Transfer`) come
+    back as unix seconds even though the SDK types don't specify a
+    unit and older test fixtures used ms. Dividing by 1000 pushed
+    every tx to Jan 1970 and off the Home top-3 list. Heuristic on
+    `> 1e12 ⇒ ms` handles both; drop once
+    [rgb-sdk-rn#48](https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/48)
+    lands.
+11. `RlnPayment.status` / `paymentType` come back UPPERCASE
+    (`SUCCEEDED`, `OUTBOUND`) even though types say mixed-case.
+    Normalize before matching.
+12. `bolt11@1.4.1` doesn't know the signet prefix `lntbs` and
+    throws "Unknown coin bech32 prefix"; pass a custom `{bech32:'tbs',…}`
+    network object explicitly in the invoice-preview decoder.
+13. Send screen was rendering a green checkmark on any non-throwing
+    SDK response — a payment that returned `status: FAILED` looked
+    like a success. Read the status field and branch red X / yellow
+    clock / green check.
+14. `payLightningInvoice` unconditionally called
+    `UtexoLsp.waitForOutboundLiquidity` before every pay. Fine when
+    the LSP channel is the only channel, but wastes 60s (or hangs)
+    when the wallet has usable non-LSP channels. Skip the LSP gate
+    when any usable channel already has ≥ minMsat outbound; fall
+    back to the LSP nudge only when nothing else has capacity.
+15. LN payments were folded into the tx list keyed by
+    `ln:<paymentHash>` so a colored-channel send that also moved 1
+    UTST surfaces the token transfer in the details sheet.
+    `getCommonTransactions` was previously reading only
+    `listTransactions` (on-chain) + `listTransfers` (RGB) — LN
+    activity was invisible.
+16. `fetchTokenBalances` now sums LN channel local asset amounts on
+    top of on-chain spendable — opening a channel with
+    `assetAmount=100` moves everything OFF the on-chain UTXOs and
+    the Home token list previously showed 0 UTST for a wallet with
+    98 UTST locked in a working channel.
+17. Send screen "Payment pending" state now polls `listPaymentsRaw`
+    every 3s and flips to Sent/Failed once the SDK observes the
+    final HTLC outcome — otherwise the initial Pending sat forever
+    even when the payment had long since failed.
+18. Receive screen grew a "P2P (own node)" toggle that bypasses the
+    LSP and generates a BOLT11 via `wallet.createLightningInvoice` —
+    needed when the intended payer shares a peer with this wallet
+    that isn't the LSP (e.g. the faucet bot in the current test
+    loop). Also front-loads the LSP's 5000-sat minimum with a
+    clearer error message.
+19. Native invoice generation exposed as `IRgbWallet.createNativeLnInvoice`
+    (new optional partial); wallet forwarder + adapter Proxy wire it
+    through to `UTEXOWallet.createLightningInvoice`.
+20. Debug/tools surface: `/rgb-open-channel` screen (opens a channel
+    to an arbitrary pubkey@host:port with capacity + asset amount +
+    push amount) plus per-channel Close / Force close buttons. Home
+    "Channel" HomeActionButton (signet-only) drops you there.
+21. Tools screen grew RGB Snapshot / Restore that copies
+    `Documents/rgb/` ↔ `Documents/rgb-snapshot/` so a Clear All Data
+    cycle doesn't wipe a hard-earned channel state. Restore warns
+    to force-quit + relaunch (SDK per-process state bug —
+    [rgb-sdk-rn#47](https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/47)).
+22. `wipeAllRgbData` in the adapter now destroys every cached SDK
+    wallet BEFORE removing the on-disk dir, so a subsequent init
+    on the same seed doesn't race a stale native binding
+    registration against a filesystem we just deleted.
+23. Transaction details sheet shows `Rail: Lightning`, coloured
+    status, and copyable Payment Hash for any `ln:` tx.
+24. Invoice preview on Send resolves `assetId` → cached wallet
+    ticker so a colored-channel invoice renders as "Asset: 1 UTST"
+    instead of "1 units — rgb:2l_MeWlj…".
+25. Menu labels: "Send USDT over Lightning" / "Receive USDT over
+    Lightning" → "Send over Lightning" / "Receive over Lightning".
+    A colored channel can carry any asset (or plain sats); hardcoding
+    USDT was misleading.
 
 ## Known gaps / follow-ups
 
