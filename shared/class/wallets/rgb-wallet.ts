@@ -472,6 +472,16 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     return sdk.lightningReceiveAsset(params);
   }
 
+  /** P2P-friendly alternative: generate a BOLT11 via the wallet's own node
+   *  instead of via `UtexoLsp.receiveAsset`. Route hints then point at the
+   *  wallet's existing channel peer (e.g. the faucet bot), which is required
+   *  when the payer has no channel to the LSP. */
+  async createNativeLnInvoice(params: { amountSats: number; expirySeconds?: number; assetId?: string; assetAmount?: number }) {
+    const sdk = this.sdk();
+    if (!sdk.createNativeLnInvoice) throw new Error('createNativeLnInvoice is not supported by this build');
+    return sdk.createNativeLnInvoice(params);
+  }
+
   /**
    * Asset-aware Lightning send via the LSP. Caller passes the recipient's
    * `rgb:` invoice; LSP fronts a BOLT11, the local node pays it, and the LSP

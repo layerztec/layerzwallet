@@ -136,6 +136,20 @@ export interface IRgbLnChannelOps {
   closeChannel(channelId: string, peerPubkey: string, force: boolean): Promise<void>;
 }
 
+/** Native BOLT11 generation via the wallet's own node — no LSP intermediation.
+ *  Use when the wallet already has a usable channel to a routing peer (e.g. the
+ *  faucet bot in our test loop) so the invoice's route hints point at that peer
+ *  instead of the LSP. Required for P2P where the payer has a different peer
+ *  than the LSP: the LSP-mediated `lightningReceiveAsset` embeds LSP-only
+ *  route hints, which fail with `NO_ROUTE` if the payer doesn't have a channel
+ *  to the LSP. */
+export interface RgbLnNativeInvoiceResult {
+  lnInvoice: string;
+}
+export interface IRgbLnNativeReceive {
+  createNativeLnInvoice(params: { amountSats: number; expirySeconds?: number; assetId?: string; assetAmount?: number }): Promise<RgbLnNativeInvoiceResult>;
+}
+
 export interface IRgbLnReceive {
   lightningReceiveAsset(params: { amountSats: number; amountRgb: number; assetId: string; expirySeconds?: number }): Promise<RgbLnReceiveResult>;
   /** Pay a recipient's RGB invoice via the LSP. The LSP fronts the BOLT11,
@@ -193,6 +207,7 @@ export type IRgbWallet = Pick<
   | 'getDefaultVssConfig'
 > &
   Partial<IRgbLnReceive> &
+  Partial<IRgbLnNativeReceive> &
   Partial<IRgbLnChannelOps> &
   Partial<IRgbLnHistory> &
   Partial<IRgbLnDecode>;

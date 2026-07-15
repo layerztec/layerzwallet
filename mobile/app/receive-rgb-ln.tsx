@@ -34,6 +34,12 @@ export default function ReceiveRgbLnScreen() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RgbLnReceiveResult | null>(null);
   const [activeTab, setActiveTab] = useState<'ln' | 'rgb'>('ln');
+  // "Native" (own-node) mode: skips the LSP and generates a BOLT11 from the
+  // wallet's own RLN node — invoice route hints then point at whatever peer
+  // the wallet has a channel with (e.g. the faucet bot in our test loop),
+  // which is what a payer that ALSO peers with that peer needs. Default off
+  // so the everyday LSP-JIT path stays the primary flow.
+  const [nativeMode, setNativeMode] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [settlement, setSettlement] = useState<'waiting' | RgbLnSettlementOutcome | 'error'>('waiting');
   const [settlementError, setSettlementError] = useState<string | null>(null);
@@ -59,14 +65,35 @@ export default function ReceiveRgbLnScreen() {
       setError('Sats amount must be a positive integer.');
       return;
     }
-    if (!Number.isFinite(amountRgb) || amountRgb <= 0 || !Number.isSafeInteger(amountRgb)) {
-      setError('USDT amount must be a positive integer (base units).');
+    // Native (own-node) mode allows any positive amount — the wallet's LN
+    // node signs whatever the user asks for. LSP mode has a server-side
+    // floor around 5000 sats; anything below and the LSP JIT flow rejects
+    // with a not-particularly-user-friendly error. Guard upfront.
+    if (!nativeMode && amountSats < 5000) {
+      setError('LSP receive requires at least 5000 sats. Toggle P2P (own node) for smaller invoices.');
+      return;
+    }
+    if (!Number.isFinite(amountRgb) || amountRgb < 0 || !Number.isSafeInteger(amountRgb)) {
+      setError('USDT amount must be a non-negative integer (base units).');
+      return;
+    }
+    if (!nativeMode && amountRgb <= 0) {
+      setError('LSP receive requires a positive USDT amount.');
       return;
     }
     setIsGenerating(true);
     try {
       const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       if (!(wallet instanceof RgbWallet)) throw new Error('Wallet is not an RgbWallet');
+      if (nativeMode) {
+        const native = await wallet.createNativeLnInvoice({
+          amountSats,
+          assetId: amountRgb > 0 ? usdtAssetId! : undefined,
+          assetAmount: amountRgb > 0 ? amountRgb : undefined,
+        });
+        setResult({ lnInvoice: native.lnInvoice, rgbInvoice: '', mappingId: '' });
+        return;
+      }
       const r = await wallet.lightningReceiveAsset({
         assetId: usdtAssetId!,
         amountSats,
@@ -214,11 +241,34 @@ export default function ReceiveRgbLnScreen() {
       <ScrollView contentContainerStyle={styles.body}>
         {configurationError ? <ThemedText style={styles.warn}>{configurationError}. Receive will fail until upstream values are populated.</ThemedText> : null}
 
-        <ThemedText style={styles.label}>Amount in sats</ThemedText>
-        <TextInput style={styles.input} keyboardType="number-pad" value={amountSatsStr} onChangeText={setAmountSatsStr} placeholder="e.g. 5000" placeholderTextColor="#888" />
+        <Pressable onPress={() => setNativeMode((v) => !v)} style={styles.toggleRow}>
+          <ThemedText style={styles.toggleLabel}>{nativeMode ? '☑' : '☐'} P2P (own node)</ThemedText>
+          <ThemedText style={styles.toggleHint}>
+            {nativeMode
+              ? "Route hints point at your channel peer (e.g. faucet bot). Use when the payer shares that peer but doesn't have a channel to the LSP."
+              : 'LSP-JIT flow: no channel needed, min 5000 sats + positive USDT.'}
+          </ThemedText>
+        </Pressable>
 
-        <ThemedText style={styles.label}>Amount in USDT (base units)</ThemedText>
-        <TextInput style={styles.input} keyboardType="number-pad" value={amountUsdtStr} onChangeText={setAmountUsdtStr} placeholder="e.g. 1000000" placeholderTextColor="#888" />
+        <ThemedText style={styles.label}>Amount in sats</ThemedText>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={amountSatsStr}
+          onChangeText={setAmountSatsStr}
+          placeholder={nativeMode ? 'e.g. 500' : 'e.g. 5000 (LSP minimum)'}
+          placeholderTextColor="#888"
+        />
+
+        <ThemedText style={styles.label}>Amount in USDT (base units) {nativeMode ? '— optional' : ''}</ThemedText>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={amountUsdtStr}
+          onChangeText={setAmountUsdtStr}
+          placeholder={nativeMode ? '0 for plain sats' : 'e.g. 1000000'}
+          placeholderTextColor="#888"
+        />
 
         {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
 
@@ -252,4 +302,7 @@ const styles = StyleSheet.create({
   helpText: { color: '#aaa', fontSize: 13, marginVertical: 8 },
   settlementRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 4 },
   settlementText: { color: 'white', fontSize: 14, flex: 1 },
+  toggleRow: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 12, gap: 4 },
+  toggleLabel: { color: 'white', fontSize: 14, fontWeight: '600' },
+  toggleHint: { color: '#aaa', fontSize: 11, lineHeight: 15 },
 });

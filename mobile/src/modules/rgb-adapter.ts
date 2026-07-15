@@ -102,6 +102,13 @@ function shimVssMethods(wallet: UTEXOWallet): IRgbWallet {
           return async () => undefined;
         case 'lightningReceiveAsset':
           return (params: Parameters<typeof lightningReceiveAsset>[1]) => lightningReceiveAsset(target as UTEXOWallet, params);
+        case 'createNativeLnInvoice':
+          return (params: { amountSats: number; expirySeconds?: number; assetId?: string; assetAmount?: number }) =>
+            (target as UTEXOWallet).createLightningInvoice({
+              amountSats: params.amountSats,
+              expirySeconds: params.expirySeconds ?? 3600,
+              asset: params.assetId ? { assetId: params.assetId, amount: params.assetAmount ?? 0 } : undefined,
+            });
         case 'lightningSendAsset':
           return (params: Parameters<typeof lightningSendAsset>[1]) => lightningSendAsset(target as UTEXOWallet, params);
         case 'payLightningInvoice':
