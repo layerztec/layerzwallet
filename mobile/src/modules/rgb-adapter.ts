@@ -219,12 +219,30 @@ async function lightningSendAsset(wallet: UTEXOWallet, params: { rgbInvoice: str
 }
 
 async function payLightningInvoice(wallet: UTEXOWallet, params: { lnInvoice: string; assetId?: string; assetAmount?: number; maxFee?: number; amountSats?: number }): Promise<RgbLnSendResult> {
-  // Same outbound-liquidity precondition as lightningSendAsset — even direct
-  // LN pay routes through the LSP channel when that's the only channel we
-  // have, and needs outbound msat to be available first.
-  const lsp = await ensureLsp(wallet);
   const minMsat = Math.max((params.amountSats ?? 1_000) * 1000, 1_000_000);
-  await lsp.waitForOutboundLiquidity(minMsat, { timeoutMs: OUTBOUND_WAIT_TIMEOUT_MS });
+
+  // The LSP-outbound pre-gate was written back when the LSP channel was
+  // the ONLY channel a wallet ever had — waitForOutboundLiquidity nudges
+  // the LSP into pushing outbound before we try to send. But once a
+  // wallet has channels to other peers (e.g. the faucet bot in P2P
+  // testing), the LSP pre-check either loops on a nonexistent channel or
+  // (worse) blocks the pay while a perfectly usable non-LSP channel is
+  // sitting idle with capacity. Short-circuit when we already see
+  // enough outbound on some usable channel — the SDK's own pay path
+  // will pick the right route.
+  const channels = (await wallet.listChannels().catch(() => [])) as any[];
+  const anyUsableHasOutbound = channels.some((c) => {
+    const usable = c?.isUsable ?? c?.is_usable ?? false;
+    const out = Number(c?.outboundBalanceMsat ?? c?.outbound_balance_msat ?? 0);
+    return usable && out >= minMsat;
+  });
+  if (!anyUsableHasOutbound) {
+    // No non-LSP outbound available yet — fall back to the LSP nudge so a
+    // freshly-LSP-JIT'd receive that hasn't yet had outbound pushed still
+    // works on the first outbound attempt.
+    const lsp = await ensureLsp(wallet);
+    await lsp.waitForOutboundLiquidity(minMsat, { timeoutMs: OUTBOUND_WAIT_TIMEOUT_MS });
+  }
   const r = await wallet.payLightningInvoice({
     lnInvoice: params.lnInvoice,
     assetId: params.assetId,
