@@ -150,6 +150,42 @@ export default function SendRgbLnScreen() {
     }
   };
 
+  // Poll listPaymentsRaw while the initial result is Pending so the
+  // "Payment pending" screen flips to Sent/Failed once the SDK observes
+  // the final HTLC outcome. Without this, a payment that started Pending
+  // and later Failed would sit forever on the pending screen and mislead
+  // the user. `result.txid` is the paymentHash from payLightningInvoice.
+  useEffect(() => {
+    if (!result?.txid) return;
+    const initial = (result.status ?? '').toString().toUpperCase();
+    if (initial === 'SUCCEEDED' || initial === 'FAILED' || initial === 'CANCELLED') return;
+    if (network !== NETWORK_RGB_TESTNET) return;
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      try {
+        const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        if (cancelled || !(wallet instanceof RgbWallet)) return;
+        const payments = await wallet.listLnPayments();
+        const p = payments.find((x) => x.paymentHash === result.txid);
+        if (!p || cancelled) return;
+        const nextStatus = (p.status ?? '').toString();
+        const nextNorm = nextStatus.toUpperCase();
+        if (nextNorm !== initial) {
+          setResult({ ...result, status: nextStatus });
+        }
+        if (nextNorm === 'SUCCEEDED' || nextNorm === 'FAILED' || nextNorm === 'CANCELLED') {
+          clearInterval(interval);
+        }
+      } catch {
+        // best-effort — next tick will retry
+      }
+    }, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [result, network, accountNumber]);
+
   if (result) {
     // The RLN SDK's payLightningInvoice returns a status field: 'Succeeded' /
     // 'Pending' / 'Failed'. Absent status = older/unknown format, treat as
@@ -218,9 +254,15 @@ export default function SendRgbLnScreen() {
 
         {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
 
-        <Button title={isSending ? 'Sending…' : 'Send via LSP'} onPress={handleSend} disabled={isSending} />
+        <Button title={isSending ? 'Sending…' : 'Send'} onPress={handleSend} disabled={isSending} />
 
-        <ThemedText style={styles.helpText}>The LSP fronts the BOLT11 payment; our wallet pays it, the LSP forwards the RGB asset to the recipient on settle.</ThemedText>
+        <ThemedText style={styles.helpText}>
+          {isBolt11
+            ? 'Pays the BOLT11 directly through your LN channel. Route hints in the invoice pick the intermediary node.'
+            : isRgbInvoice
+              ? 'The LSP fronts the BOLT11 payment; our wallet pays it, the LSP forwards the RGB asset to the recipient on settle.'
+              : 'Paste a BOLT11 (ln…) invoice for direct LN pay, or an RGB invoice (rgb:/utxob:) for LSP-mediated send.'}
+        </ThemedText>
       </ScrollView>
     </RadialGradientScreen>
   );

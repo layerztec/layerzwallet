@@ -482,6 +482,16 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     return sdk.createNativeLnInvoice(params);
   }
 
+  /** Raw ledger of every LN payment the RLN node has tracked (outgoing
+   *  attempts + incoming HTLCs). Used by the Send screen to poll for a
+   *  final status after an initially-Pending pay so the UI doesn't leave
+   *  the user staring at "Payment pending" forever. */
+  async listLnPayments() {
+    const sdk = this.sdk();
+    if (!sdk.listPaymentsRaw) throw new Error('listPaymentsRaw is not supported by this build');
+    return sdk.listPaymentsRaw();
+  }
+
   /**
    * Asset-aware Lightning send via the LSP. Caller passes the recipient's
    * `rgb:` invoice; LSP fronts a BOLT11, the local node pays it, and the LSP
