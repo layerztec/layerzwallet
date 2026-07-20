@@ -217,6 +217,19 @@ export interface IRgbAdapterCreateParams {
   network: RgbNetwork;
   /** Optional override; defaults to the SDK's DEFAULT_VSS_SERVER_URL. */
   vssServerUrl?: string;
+  /**
+   * Skip the eager `wallet.createLsp()` call at init time. Default `true`
+   * (preserves the LSP-JIT receive flow that everyday users rely on).
+   * Set `false` for wallets that will ONLY use manually-opened channels
+   * to arbitrary peers — `createLsp` bakes
+   * `enableVirtualChannelsV0: true` + the LSP peer pubkey into node
+   * params before `init()`, and there's evidence (UTEXO reference
+   * `rgb-sdk-rn-demo` never calls `createLsp` for its P2P flow, plus
+   * live signet HTLC failures against a bot-opened channel) that
+   * virtual-channel mode prevents LDK from routing through
+   * non-virtual channels.
+   */
+  useLsp?: boolean;
 }
 
 /**

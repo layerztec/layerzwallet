@@ -5,7 +5,7 @@ import { CommonTokenTransfer, CommonTransaction } from '../../types/common-trans
 import { Networks, NETWORK_RGB, NETWORK_RGB_TESTNET } from '../../types/networks';
 import { CachedTokenInfo } from '../../types/token-info';
 import { IRgbAdapter, IRgbWallet, RgbLnReceiveResult, RgbLnSendResult, RgbLnSettlementOutcome, RgbNetwork } from '../../types/rgb-adapter';
-import { getRgbBackupStateStorageKey, getRgbInitializedStorageKey, IStorage } from '../../types/IStorage';
+import { getRgbBackupStateStorageKey, getRgbInitializedStorageKey, getRgbUseLspStorageKey, IStorage } from '../../types/IStorage';
 import { AbstractWallet } from './abstract-wallet';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
@@ -172,7 +172,15 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     this._storage = storage;
     await this.loadBackupState();
 
-    const params = { mnemonic: this.secret, network: this._sdkNetwork };
+    // Read the per-network "use LSP" preference (see STORAGE_KEY_RGB_USE_LSP).
+    // Missing / anything other than 'false' preserves the historical LSP-attached
+    // behavior; 'false' disables LSP so `enableVirtualChannelsV0` stays off and
+    // manually-opened channels can actually route HTLCs. Toggle lives in Tools.
+    // Guard the call — some unit tests hand in `{} as any` for storage, and a
+    // bare `.getItem(...)` there throws before `.catch` can see it.
+    const useLspRaw = await (typeof storage?.getItem === 'function' ? storage.getItem(getRgbUseLspStorageKey(this._network)).catch(() => '') : Promise.resolve(''));
+    const useLsp = useLspRaw !== 'false';
+    const params = { mnemonic: this.secret, network: this._sdkNetwork, useLsp };
     try {
       this._sdkWallet = await this.adapter.restoreFromVss(params);
     } catch (e) {
@@ -226,7 +234,9 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    * tasks/ship-rgb.md.
    */
   private async acquireFreshWalletAfterProbe(originalError: unknown): Promise<IRgbWallet> {
-    const candidate = await this.adapter.createWallet({ mnemonic: this.secret!, network: this._sdkNetwork });
+    const useLspRaw = await (typeof this._storage?.getItem === 'function' ? this._storage.getItem(getRgbUseLspStorageKey(this._network)).catch(() => '') : Promise.resolve(''));
+    const useLsp = useLspRaw !== 'false';
+    const candidate = await this.adapter.createWallet({ mnemonic: this.secret!, network: this._sdkNetwork, useLsp });
 
     let info: Awaited<ReturnType<IRgbWallet['vssBackupInfo']>>;
     try {

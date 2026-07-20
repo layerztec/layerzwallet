@@ -26,6 +26,12 @@ export const STORAGE_KEY_RGB_INITIALIZED = 'STORAGE_KEY_RGB_INITIALIZED';
  *  tasks/ship-rgb.md. */
 export const STORAGE_KEY_RGB_BACKUP_STATE = 'STORAGE_KEY_RGB_BACKUP_STATE';
 export const STORAGE_KEY_RECEIVE_CTA = 'STORAGE_KEY_RECEIVE_CTA';
+/** Per-network toggle for whether the RGB adapter attaches an LSP at init
+ *  time. Value `'false'` disables LSP-JIT receive but lets manually-opened
+ *  channels route HTLCs; anything else (including missing key) preserves
+ *  the default LSP-attached behavior. See UTEXO issue tracker for the
+ *  virtual-channel-vs-P2P interaction that makes this a hard choice. */
+export const STORAGE_KEY_RGB_USE_LSP = 'STORAGE_KEY_RGB_USE_LSP';
 
 export interface IStorage {
   setItem(key: string, value: string): Promise<void>;
@@ -42,4 +48,8 @@ export const getRgbInitializedStorageKey = (network: string) => {
 
 export const getRgbBackupStateStorageKey = (network: string, accountNumber: number) => {
   return `${STORAGE_KEY_RGB_BACKUP_STATE}_${network}_${accountNumber}`;
+};
+
+export const getRgbUseLspStorageKey = (network: string) => {
+  return `${STORAGE_KEY_RGB_USE_LSP}_${network}`;
 };

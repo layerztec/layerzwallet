@@ -232,6 +232,34 @@ describe('RgbWallet', () => {
       await w.init({} as any);
       expect(adapter.createWallet).toHaveBeenCalledOnce();
     });
+
+    it('propagates useLsp=false from storage into the adapter createWallet params', async () => {
+      const { sdkWallet } = installAdapter();
+      const adapter = (globalThis as any).rgbAdapter as IRgbAdapter;
+      // Stash the seed under STORAGE_KEY_RGB_USE_LSP_rgb_testnet = 'false'
+      // (see getRgbUseLspStorageKey). RgbWallet.init should read that,
+      // interpret 'false' as opt-out, and forward useLsp:false through.
+      const storage = makeMemoryStorage({ STORAGE_KEY_RGB_USE_LSP_rgb_testnet: 'false' });
+      const restoreSpy = vi.fn().mockResolvedValue(sdkWallet);
+      (adapter as any).restoreFromVss = restoreSpy;
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init(storage);
+      expect(restoreSpy).toHaveBeenCalledOnce();
+      expect(restoreSpy.mock.calls[0][0]).toMatchObject({ network: 'testnet', useLsp: false });
+    });
+
+    it('defaults useLsp to true when the storage key is absent', async () => {
+      const { sdkWallet } = installAdapter();
+      const adapter = (globalThis as any).rgbAdapter as IRgbAdapter;
+      const storage = makeMemoryStorage();
+      const restoreSpy = vi.fn().mockResolvedValue(sdkWallet);
+      (adapter as any).restoreFromVss = restoreSpy;
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init(storage);
+      expect(restoreSpy.mock.calls[0][0]).toMatchObject({ useLsp: true });
+    });
   });
 
   describe('balance + send', () => {

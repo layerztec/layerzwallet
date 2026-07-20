@@ -21,7 +21,8 @@ import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import SettingsRow from '@/components/SettingsRow';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { LayerzStorage } from '@/src/class/layerz-storage';
-import { STORAGE_KEY_BTC_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { getRgbUseLspStorageKey, STORAGE_KEY_BTC_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { NETWORK_RGB_TESTNET } from '@shared/types/networks';
 import { getDeviceIdentifier } from '@/src/utils/device-id';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { SETTINGS_CONFIG } from '@shared/hooks/SettingsContext';
@@ -51,6 +52,7 @@ export default function TabThreeScreen() {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isClearing, setIsClearing] = useState(false);
   const [isSnapshotBusy, setIsSnapshotBusy] = useState(false);
+  const [useLspOn, setUseLspOn] = useState(true);
   const [btcXpub, setBtcXpub] = useState('');
   const [deviceId, setDeviceId] = useState('');
   const [isLogFileEnabled, setIsLogFileEnabled] = useState(isLoggingToFileEnabled());
@@ -70,8 +72,24 @@ export default function TabThreeScreen() {
         console.debug('Device identifier not available:', error);
         setDeviceId('');
       }
+
+      // Reflect the current RGB-use-LSP preference for the active RGB
+      // testnet network. Anything other than the literal 'false' string
+      // means "yes, attach the LSP".
+      const stored = await LayerzStorage.getItem(getRgbUseLspStorageKey(NETWORK_RGB_TESTNET));
+      setUseLspOn(stored !== 'false');
     })();
   }, [accountNumber]);
+
+  const handleToggleUseLsp = async () => {
+    const next = !useLspOn;
+    await LayerzStorage.setItem(getRgbUseLspStorageKey(NETWORK_RGB_TESTNET), next ? 'true' : 'false');
+    setUseLspOn(next);
+    Alert.alert(
+      'Use LSP for RGB',
+      `Set to ${next ? 'ON' : 'OFF'}. Clear All Data + reimport your seed for the change to take effect — the LSP-attach decision is baked into node params at init time.`
+    );
+  };
 
   const handleSelfTest = async () => {
     try {
@@ -556,9 +574,12 @@ export default function TabThreeScreen() {
               <SettingsRow title={isSnapshotBusy ? 'Snapshotting…' : 'Snapshot RGB State'} onPress={handleSnapshotRgb} disabled={isSnapshotBusy} testID="SnapshotRgbButton" hideChevron />
               <View style={styles.divider} />
               <SettingsRow title={isSnapshotBusy ? 'Restoring…' : 'Restore RGB State'} onPress={handleRestoreRgb} disabled={isSnapshotBusy} testID="RestoreRgbButton" hideChevron />
+              <View style={styles.divider} />
+              <SettingsRow title={`Use LSP for RGB: ${useLspOn ? 'ON' : 'OFF'}`} onPress={handleToggleUseLsp} testID="ToggleRgbUseLspButton" hideChevron />
             </View>
             <ThemedText style={styles.warningText}>
               Dev only. Snapshot copies `Documents/rgb/` to a sibling dir; Restore wipes the live dir and copies the snapshot back. After Restore you MUST force-kill the app (see rgb-sdk-rn#47).
+              Toggling "Use LSP" changes how the wallet inits (LSP-JIT receive vs raw P2P channels) — you MUST Clear All Data + reimport for the change to take effect.
             </ThemedText>
           </>
         );

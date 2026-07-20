@@ -103,11 +103,18 @@ function shimVssMethods(wallet: UTEXOWallet): IRgbWallet {
         case 'lightningReceiveAsset':
           return (params: Parameters<typeof lightningReceiveAsset>[1]) => lightningReceiveAsset(target as UTEXOWallet, params);
         case 'createNativeLnInvoice':
+          // Use the empty-string / zero-amount sentinel for the no-asset case
+          // rather than `asset: undefined`. Matches UTEXO's rgb-sdk-rn-demo:
+          // its `runRlnUtexoWalletChannelPaymentFlow` passes
+          // `asset: { assetId: '', amount: 0 }` for plain-sat invoices, and
+          // that's the tested SDK code path. Passing undefined routes through
+          // a different branch that may not populate the invoice's
+          // asset-hint TLV the way LDK expects.
           return (params: { amountSats: number; expirySeconds?: number; assetId?: string; assetAmount?: number }) =>
             (target as UTEXOWallet).createLightningInvoice({
               amountSats: params.amountSats,
               expirySeconds: params.expirySeconds ?? 3600,
-              asset: params.assetId ? { assetId: params.assetId, amount: params.assetAmount ?? 0 } : undefined,
+              asset: params.assetId ? { assetId: params.assetId, amount: params.assetAmount ?? 0 } : { assetId: '', amount: 0 },
             });
         case 'lightningSendAsset':
           return (params: Parameters<typeof lightningSendAsset>[1]) => lightningSendAsset(target as UTEXOWallet, params);
@@ -236,19 +243,30 @@ async function payLightningInvoice(wallet: UTEXOWallet, params: { lnInvoice: str
     const out = Number(c?.outboundBalanceMsat ?? c?.outbound_balance_msat ?? 0);
     return usable && out >= minMsat;
   });
-  if (!anyUsableHasOutbound) {
+  if (!anyUsableHasOutbound && lspByWallet.has(wallet)) {
     // No non-LSP outbound available yet — fall back to the LSP nudge so a
     // freshly-LSP-JIT'd receive that hasn't yet had outbound pushed still
-    // works on the first outbound attempt.
+    // works on the first outbound attempt. Only meaningful when the wallet
+    // was built with LSP attached (`useLsp: true`); a wallet init'd without
+    // LSP has no channel to poke and no `lspByWallet` entry to
+    // `ensureLsp` from.
     const lsp = await ensureLsp(wallet);
     await lsp.waitForOutboundLiquidity(minMsat, { timeoutMs: OUTBOUND_WAIT_TIMEOUT_MS });
   }
-  const r = await wallet.payLightningInvoice({
-    lnInvoice: params.lnInvoice,
-    assetId: params.assetId,
-    assetAmount: params.assetAmount,
-    maxFee: params.maxFee,
-  });
+  // Only pass asset args when the caller actually wants an asset move —
+  // UTEXO's demo (`runRlnUtexoWalletChannelPaymentFlow`) hands
+  // `payLightningInvoice` just `{ lnInvoice }` and lets the SDK decode the
+  // invoice's own asset TLV. Forwarding null/undefined `assetId` here can
+  // pin the SDK to an LSP-mediated path (or drop the LN native path
+  // entirely), which we don't want on a straight direct-channel pay.
+  // Same for `maxFee` — omit unless the caller specified a real value.
+  const req: Parameters<UTEXOWallet['payLightningInvoice']>[0] = { lnInvoice: params.lnInvoice };
+  if (params.assetId) {
+    req.assetId = params.assetId;
+    if (typeof params.assetAmount === 'number') req.assetAmount = params.assetAmount;
+  }
+  if (typeof params.maxFee === 'number') req.maxFee = params.maxFee;
+  const r = await wallet.payLightningInvoice(req);
   return { txid: r.txid, status: r.status };
 }
 
@@ -270,7 +288,7 @@ class RgbAdapter implements IRgbAdapter {
   // only usable when an LSP base URL is configured (see rgb-lsp.ts).
   readonly capabilities = { lightning: true } as const;
 
-  async createWallet({ mnemonic, network, vssServerUrl }: IRgbAdapterCreateParams): Promise<IRgbWallet> {
+  async createWallet({ mnemonic, network, vssServerUrl, useLsp }: IRgbAdapterCreateParams): Promise<IRgbWallet> {
     const key = walletKey(mnemonic, network);
     const cached = walletByKey.get(key);
     if (cached) return cached;
@@ -280,12 +298,12 @@ class RgbAdapter implements IRgbAdapter {
     // binding registry. Without that teardown a follow-up
     // `new UTEXOWallet(...)` against the same storageDirPath throws
     // "RLN node already exists for storageDirPath".
-    const pending = this._createWallet({ mnemonic, network, vssServerUrl });
+    const pending = this._createWallet({ mnemonic, network, vssServerUrl, useLsp });
     walletByKey.set(key, pending);
     return pending;
   }
 
-  private async _createWallet({ mnemonic, network, vssServerUrl }: IRgbAdapterCreateParams): Promise<IRgbWallet> {
+  private async _createWallet({ mnemonic, network, vssServerUrl, useLsp = true }: IRgbAdapterCreateParams): Promise<IRgbWallet> {
     const dir = dataDirFor(mnemonic, network);
     const marker = initMarker(dir);
     const rlnNet = toRlnNetwork(network);
@@ -299,8 +317,12 @@ class RgbAdapter implements IRgbAdapter {
     // virtualPeerPubkeys) into the node BEFORE `init()` runs — the SDK refuses
     // to attach an LSP after init because those params can't be mutated later.
     // Skip when `lspBaseUrl` isn't configured (mainnet pre-launch) so plain-BTC
-    // flows keep working.
-    if (params.lspBaseUrl) {
+    // flows keep working. Also skip when the caller explicitly opts out via
+    // `useLsp: false` — UTEXO's rgb-sdk-rn-demo never calls createLsp for its
+    // P2P flow, and live testing showed HTLCs won't route through
+    // manually-opened non-virtual channels when the node was init'd with
+    // `enableVirtualChannelsV0: true`.
+    if (params.lspBaseUrl && useLsp) {
       const lsp = await wallet.createLsp();
       lspByWallet.set(wallet, lsp);
     }
