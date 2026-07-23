@@ -6,6 +6,8 @@
 
 .claude/
 /package-lock.json
+/node_modules
 
 # Local-only RGB test wallet seeds — never commit
 tasks/test-wallets-rgb.local.md
+tasks/rgb-snapshots/
