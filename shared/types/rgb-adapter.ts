@@ -130,6 +130,13 @@ export interface IRgbLnDecode {
   decodeLnInvoice(invoice: string): Promise<RgbLnDecodedInvoice>;
 }
 
+/** Wait for the LSP to open/ready a JIT channel carrying `assetId`.
+ *  Mobile-only debug/recovery surface; resolves when a usable channel
+ *  exists, throws on timeout. */
+export interface IRgbLnJitWait {
+  waitForLspChannel(params: { assetId: string; timeoutMs?: number }): Promise<void>;
+}
+
 export interface IRgbLnChannelOps {
   openChannel(request: RgbLnOpenChannelRequest): Promise<RgbLnOpenChannelResponse>;
   listChannels(): Promise<RgbLnChannel[]>;
@@ -213,7 +220,8 @@ export type IRgbWallet = Pick<
   Partial<IRgbLnNativeReceive> &
   Partial<IRgbLnChannelOps> &
   Partial<IRgbLnHistory> &
-  Partial<IRgbLnDecode>;
+  Partial<IRgbLnDecode> &
+  Partial<IRgbLnJitWait>;
 
 export interface IRgbAdapterCreateParams {
   mnemonic: string;

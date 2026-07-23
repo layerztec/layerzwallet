@@ -68,6 +68,25 @@ export default function RgbOpenChannelScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const [isJitWaiting, setIsJitWaiting] = useState(false);
+  const waitForJit = async () => {
+    if (network !== NETWORK_RGB_TESTNET) return;
+    setError(null);
+    setIsJitWaiting(true);
+    try {
+      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      if (!(wallet instanceof RgbWallet)) throw new Error('Wallet is not an RgbWallet');
+      const assetId = RGB_LN_ASSETS.signet.usdt;
+      if (!assetId) throw new Error('USDT asset id not configured');
+      await wallet.waitForLspChannel({ assetId, timeoutMs: 180_000 });
+      await refreshChannels();
+    } catch (e: any) {
+      setError(e?.message ?? 'waitForLspChannel failed');
+    } finally {
+      setIsJitWaiting(false);
+    }
+  };
+
   const closeChannel = async (channelId: string, peerPubkey: string, force: boolean) => {
     if (network !== NETWORK_RGB_TESTNET) return;
     setError(null);
@@ -198,6 +217,9 @@ export default function RgbOpenChannelScreen() {
           <ThemedText style={styles.sectionTitle}>Channels</ThemedText>
           <Button title={isRefreshing ? 'Refreshing…' : 'Refresh'} onPress={() => refreshChannels().catch(() => {})} disabled={isRefreshing} />
         </View>
+
+        <Button title={isJitWaiting ? 'Waiting for LSP JIT…' : 'Wait for LSP JIT channel'} onPress={() => waitForJit().catch(() => {})} disabled={isJitWaiting} />
+        <ThemedText style={styles.hint}>Connects to the LSP and blocks until it opens/readies the USDT JIT channel (3 min timeout). Use after a settled receive when no channel appeared.</ThemedText>
 
         {isRefreshing && !channels ? <ActivityIndicator /> : null}
         {channels?.length === 0 ? <ThemedText style={styles.hint}>No channels yet.</ThemedText> : null}

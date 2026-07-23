@@ -122,6 +122,18 @@ function shimVssMethods(wallet: UTEXOWallet): IRgbWallet {
           return (params: Parameters<typeof payLightningInvoice>[1]) => payLightningInvoice(target as UTEXOWallet, params);
         case 'awaitLightningReceiveSettlement':
           return (params: Parameters<typeof awaitLightningReceiveSettlement>[1]) => awaitLightningReceiveSettlement(target as UTEXOWallet, params);
+        case 'waitForLspChannel':
+          // Explicit JIT-channel wait. The SDK docs sequence the LSP receive
+          // as connect → waitForChannel → receiveAsset; we dropped the
+          // pre-wait in June because it blocks forever on a wallet the LSP
+          // has never seen. But after a mapping settles (e.g. the faucet
+          // paid the rgbInvoice side), the LSP only pushes the JIT channel
+          // while the wallet is connected and something is actively
+          // waiting — this exposes that wait to the UI/debug flows.
+          return async (params: { assetId: string; timeoutMs?: number }) => {
+            const lsp = await ensureLsp(target as UTEXOWallet);
+            await lsp.waitForChannel(params.assetId, { timeoutMs: params.timeoutMs ?? 120_000 });
+          };
         default:
           return Reflect.get(target, prop, receiver);
       }

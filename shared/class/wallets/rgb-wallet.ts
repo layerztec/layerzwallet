@@ -546,6 +546,15 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     return sdk.awaitLightningReceiveSettlement(params);
   }
 
+  /** Wait for the LSP's JIT channel carrying `assetId` to become usable.
+   *  Debug/recovery: the LSP only pushes the channel while the wallet is
+   *  connected and actively waiting. */
+  async waitForLspChannel(params: { assetId: string; timeoutMs?: number }) {
+    const sdk = this.sdk();
+    if (!sdk.waitForLspChannel) throw new Error('waitForLspChannel is not supported by this build');
+    return sdk.waitForLspChannel(params);
+  }
+
   /** Decode a BOLT11 via the SDK — pulls the RGB asset tags (assetId,
    *  assetAmount) that pure-JS bolt11 libs miss. Used by Send RGB LN to
    *  preview what the invoice will actually route (plain sats vs asset). */

@@ -286,6 +286,37 @@ faucet bot can't pay invoices; it is not the shipping architecture.
     A colored channel can carry any asset (or plain sats); hardcoding
     USDT was misleading.
 
+### Pure-LSP smoke test (2026-07-23) — blocked on SDK bug #49
+
+Fresh wallet6 (`turn green capable…`, android, `Use LSP: ON`, no bot
+channels) walked the shipping LSP flow end-to-end:
+
+1. ✅ Clear All Data → wipe → fresh create — no conflicts (wipe fix works)
+2. ✅ Faucet 50k sats → confirmed → visible
+3. ✅ `lsp.receiveAsset(5000 sats / 100 UTST)` → BOLT11 + rgbInvoice
+   rendered, no errors (beta.23 + review-fix stack)
+4. ✅ Faucet `/getasset` paid the rgbInvoice → 100 UTST landed at the
+   LSP (asset goes to the LSP's blinded UTXO, NOT ours — confirmed by
+   rgb-lib refresh staying empty)
+5. ✅ LSP attempts LN delivery: `INBOUND_AUTO_CLAIM 5000 sats`
+   (FAILED while wallet offline, PENDING once reconnected)
+6. ✅ LSP sends `OpenChannel` JIT (funding 100k, push 5000 msat) from
+   the registered virtual peer
+7. ❌ **Our LDK force-closes it: `unsupported_scid_alias`** — the SDK's
+   receiving node config rejects the channel_type the SDK's own LSP
+   uses for JIT. No client-side knob exists. Filed
+   [rgb-sdk-rn#49](https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/49);
+   100 UTST currently stranded at the LSP under wallet6's mapping.
+
+New debug surface added along the way: `waitForLspChannel` partial on
+IRgbWallet + "Wait for LSP JIT channel" button on /rgb-open-channel.
+Also confirmed the auto-`prepareWallet` colorable top-up runs on a
+fresh wallet (its 5×1000 split was briefly mistaken for JIT funding).
+
+Note for the ledger: hot-reload during testing still reproduces
+rgb-sdk-rn#47 ("RLN node already exists" → "RLN node is not created")
+— force-quit + relaunch remains the workaround.
+
 ## Known gaps / follow-ups
 
 - **BLOCKER for prod: mobile VSS shim fakes backup success.**
