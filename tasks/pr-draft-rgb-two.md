@@ -307,6 +307,12 @@ channels) walked the shipping LSP flow end-to-end:
    uses for JIT. No client-side knob exists. Filed
    [rgb-sdk-rn#49](https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/49);
    100 UTST currently stranded at the LSP under wallet6's mapping.
+8. **Reproduced identically on iOS** (wallet7, `celery glove wrestle…`,
+   funded on-chain from wallet6 to dodge the faucet's 24h getbtc
+   limit): same double OpenChannel (`[0,16,64,0,0,64]` then `[0,16]`
+   fallback), same force-close. Cross-platform ⇒ the LDK config in
+   both RLN builds is the culprit, not a platform quirk. Second 100
+   UTST batch now also stranded at the LSP (wallet7 mapping).
 
 New debug surface added along the way: `waitForLspChannel` partial on
 IRgbWallet + "Wait for LSP JIT channel" button on /rgb-open-channel.
