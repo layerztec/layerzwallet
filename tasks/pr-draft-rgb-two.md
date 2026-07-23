@@ -288,6 +288,27 @@ faucet bot can't pay invoices; it is not the shipping architecture.
 
 ## Known gaps / follow-ups
 
+- **BLOCKER for prod: mobile VSS shim fakes backup success.**
+  `shimVssMethods` no-ops `vssBackup` (returns 0) so
+  `RgbWallet.tryBackup({critical:true})` "succeeds", resets
+  `pendingMutations`, stamps `lastBackupAt` — the ledger claims the
+  wallet is backed up while nothing is stored anywhere. Lost phone ⇒
+  RGB allocations unrecoverable, and the warning banner the ledger
+  exists to drive never fires. Deliberate stopgap (UTEXO removed VSS
+  in beta.10+, promised its return), but before any release either
+  (a) UTEXO ships cloud backup and we drop the shim, or (b) the shim
+  must *fail* (throw / return backupExists:false consistently) so the
+  banner shows "not backed up" instead of lying. Surfaced by branch
+  review 2026-07-23.
+- **Account switching is cosmetic on RGB.** The adapter dedupes
+  wallets by (mnemonic, network) fingerprint — every accountNumber
+  maps to the same RLN node and funds, while the backup ledger writes
+  per-account keys, splitting one wallet's state across two keys.
+  Same SDK limitation as Liquid ("hardcoded to account 0"). Decide:
+  pin RGB to account 0 in `lazyInitWallet` (mirror Liquid) or derive
+  a per-account child seed before handing it to the adapter.
+  Surfaced by branch review 2026-07-23.
+
 - **SDK bug: createUtxos rejects with "conflict with current node state"
   on freshly-imported wallet, only "create new wallet" flow works.**
   Reproduced on android (API 29) after a clean `adb uninstall + install`

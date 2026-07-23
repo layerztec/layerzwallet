@@ -507,22 +507,29 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    * `rgb:` invoice; LSP fronts a BOLT11, the local node pays it, and the LSP
    * forwards the RGB asset on settle.
    */
-  async lightningSendAsset(params: { rgbInvoice: string }): Promise<RgbLnSendResult> {
+  async lightningSendAsset(params: { rgbInvoice: string; amountSats?: number }): Promise<RgbLnSendResult> {
     const sdk = this.sdk();
     if (!sdk.lightningSendAsset) {
       throw new Error('Lightning send is not supported by this build');
     }
-    return sdk.lightningSendAsset(params);
+    const r = await sdk.lightningSendAsset(params);
+    // LN sends mutate channel/allocation state exactly like an on-chain
+    // transfer — keep the backup ledger's "critical backup after every
+    // user-initiated mutation" invariant (same as pay/transferToken).
+    await this.tryBackup({ critical: true });
+    return r;
   }
 
   /** Pay a BOLT11 directly from this wallet's LN node. Used for the
    *  asset-LN P2P path where we already hold a usable channel. */
-  async payLightningInvoice(params: { lnInvoice: string; assetId?: string; assetAmount?: number; maxFee?: number }): Promise<RgbLnSendResult> {
+  async payLightningInvoice(params: { lnInvoice: string; assetId?: string; assetAmount?: number; maxFee?: number; amountSats?: number }): Promise<RgbLnSendResult> {
     const sdk = this.sdk();
     if (!sdk.payLightningInvoice) {
       throw new Error('Lightning pay is not supported by this build');
     }
-    return sdk.payLightningInvoice(params);
+    const r = await sdk.payLightningInvoice(params);
+    await this.tryBackup({ critical: true });
+    return r;
   }
 
   /**

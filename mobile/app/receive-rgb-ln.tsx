@@ -123,6 +123,11 @@ export default function ReceiveRgbLnScreen() {
   useEffect(() => {
     if (!result) return;
     if (network !== NETWORK_RGB_TESTNET) return;
+    // Native-mode invoices come from the wallet's own node — the LSP never
+    // issued them, so `awaitLightningReceiveSettlement` (which polls the
+    // LSP's mapping by lnInvoice) can only 404/timeout. `mappingId === ''`
+    // is the native-mode marker set in `generate`.
+    if (!result.mappingId) return;
     settlementCancelledRef.current = false;
     setSettlement('waiting');
     setSettlementError(null);
@@ -172,24 +177,29 @@ export default function ReceiveRgbLnScreen() {
   }
 
   if (result) {
-    const active = activeTab === 'ln' ? result.lnInvoice : result.rgbInvoice;
+    // Native-mode results carry only a BOLT11 (`rgbInvoice: ''`) — hide the
+    // RGB tab entirely, otherwise switching to it renders <QRCode value="">
+    // which throws "No input text" and crashes the screen.
+    const hasRgbInvoice = Boolean(result.rgbInvoice);
+    const effectiveTab = hasRgbInvoice ? activeTab : 'ln';
+    const active = effectiveTab === 'ln' ? result.lnInvoice : result.rgbInvoice;
     return (
       <RadialGradientScreen network={network}>
         <Stack.Screen options={{ headerShown: false }} />
         <ScreenHeader title="USDT over Lightning" />
         <ScrollView contentContainerStyle={styles.body}>
-          <View style={styles.tabRow}>
-            <Pressable style={[styles.tab, activeTab === 'ln' && styles.tabActive]} onPress={() => setActiveTab('ln')}>
-              <ThemedText style={styles.tabText}>Lightning</ThemedText>
-            </Pressable>
-            <Pressable style={[styles.tab, activeTab === 'rgb' && styles.tabActive]} onPress={() => setActiveTab('rgb')}>
-              <ThemedText style={styles.tabText}>RGB on-chain</ThemedText>
-            </Pressable>
-          </View>
+          {hasRgbInvoice ? (
+            <View style={styles.tabRow}>
+              <Pressable style={[styles.tab, effectiveTab === 'ln' && styles.tabActive]} onPress={() => setActiveTab('ln')}>
+                <ThemedText style={styles.tabText}>Lightning</ThemedText>
+              </Pressable>
+              <Pressable style={[styles.tab, effectiveTab === 'rgb' && styles.tabActive]} onPress={() => setActiveTab('rgb')}>
+                <ThemedText style={styles.tabText}>RGB on-chain</ThemedText>
+              </Pressable>
+            </View>
+          ) : null}
 
-          <View style={styles.qrContainer}>
-            <QRCode value={active} size={280} backgroundColor="#ffffff" color="black" />
-          </View>
+          <View style={styles.qrContainer}>{active ? <QRCode value={active} size={280} backgroundColor="#ffffff" color="black" /> : null}</View>
 
           <Pressable onPress={copyActive} style={styles.invoicePressable}>
             <ThemedText style={styles.invoiceText} selectable>
@@ -199,34 +209,41 @@ export default function ReceiveRgbLnScreen() {
           </Pressable>
 
           <ThemedText style={styles.helpText}>
-            {activeTab === 'ln'
-              ? 'Sender pays in sats. The LSP fronts the USDT to your channel on settle.'
-              : 'Sender pays the RGB asset directly on-chain. Same logical receive — only one path settles.'}
+            {!hasRgbInvoice
+              ? 'Own-node invoice. Sender pays over Lightning through your channel peer; check Transactions for the incoming payment.'
+              : effectiveTab === 'ln'
+                ? 'Sender pays in sats. The LSP fronts the USDT to your channel on settle.'
+                : 'Sender pays the RGB asset directly on-chain. Same logical receive — only one path settles.'}
           </ThemedText>
 
-          <View style={styles.settlementRow}>
-            {settlement === 'waiting' ? (
-              <>
-                <ActivityIndicator color="#4FC3F7" />
-                <ThemedText style={styles.settlementText}>Waiting for payment…</ThemedText>
-              </>
-            ) : settlement === 'settled' ? (
-              <>
-                <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                <ThemedText style={styles.settlementText}>Settled</ThemedText>
-              </>
-            ) : settlement === 'timed_out' ? (
-              <>
-                <Ionicons name="time-outline" size={20} color="#FFAB00" />
-                <ThemedText style={styles.settlementText}>Still pending — close this screen and check transactions later.</ThemedText>
-              </>
-            ) : (
-              <>
-                <Ionicons name="alert-circle-outline" size={20} color="#FF6B6B" />
-                <ThemedText style={styles.settlementText}>{settlementError ?? 'Settlement failed'}</ThemedText>
-              </>
-            )}
-          </View>
+          {/* Settlement polling is LSP-only (`awaitLightningReceiveSettlement`
+              looks the invoice up in the LSP's mapping) — native invoices
+              would spin on "Waiting" forever, so hide the row for them. */}
+          {result.mappingId ? (
+            <View style={styles.settlementRow}>
+              {settlement === 'waiting' ? (
+                <>
+                  <ActivityIndicator color="#4FC3F7" />
+                  <ThemedText style={styles.settlementText}>Waiting for payment…</ThemedText>
+                </>
+              ) : settlement === 'settled' ? (
+                <>
+                  <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                  <ThemedText style={styles.settlementText}>Settled</ThemedText>
+                </>
+              ) : settlement === 'timed_out' ? (
+                <>
+                  <Ionicons name="time-outline" size={20} color="#FFAB00" />
+                  <ThemedText style={styles.settlementText}>Still pending — close this screen and check transactions later.</ThemedText>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="alert-circle-outline" size={20} color="#FF6B6B" />
+                  <ThemedText style={styles.settlementText}>{settlementError ?? 'Settlement failed'}</ThemedText>
+                </>
+              )}
+            </View>
+          ) : null}
 
           <Button title="Done" onPress={() => router.back()} />
         </ScrollView>

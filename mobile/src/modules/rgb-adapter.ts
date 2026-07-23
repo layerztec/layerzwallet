@@ -322,23 +322,24 @@ class RgbAdapter implements IRgbAdapter {
     // P2P flow, and live testing showed HTLCs won't route through
     // manually-opened non-virtual channels when the node was init'd with
     // `enableVirtualChannelsV0: true`.
-    if (params.lspBaseUrl && useLsp) {
-      const lsp = await wallet.createLsp();
-      lspByWallet.set(wallet, lsp);
-    }
-
     // Always call `init()` — it does both `rlnCreateNode` (per-process
     // binding registration) AND `signer.initNode` (which writes keys on
     // first run, idempotent on later runs when the same mnemonic + password
     // are supplied). The marker is kept as a hint for future flows that
     // need "first-ever" vs "subsequent" detection but no longer gates init.
     //
-    // On any failure during init/unlock the binding may already have
-    // registered the storageDirPath (createNode succeeded, later step
-    // failed). Tear down with `destroy()` so the cache eviction in
-    // `createWallet` can hand out a fresh wallet next time without the
-    // "RLN node already exists for storageDirPath" guard tripping.
+    // On any failure during createLsp/init/unlock the binding may already
+    // have registered the storageDirPath (createNode succeeded, later step
+    // failed). Tear down with `destroy()` and evict the cache entry so the
+    // next caller gets a fresh attempt — `createLsp` in particular does an
+    // HTTP round-trip to the LSP and MUST live inside this try, otherwise a
+    // transient LSP outage caches a rejected promise in `walletByKey`
+    // forever (RGB dead until force-quit).
     try {
+      if (params.lspBaseUrl && useLsp) {
+        const lsp = await wallet.createLsp();
+        lspByWallet.set(wallet, lsp);
+      }
       // `init()` = createNode + signer.initNode. Both are "register this
       // node in the binding" steps. On a fresh wallet they succeed in
       // sequence. On cold start with existing on-disk keys the
@@ -485,14 +486,14 @@ export async function wipeAllRgbData(): Promise<void> {
   }
   const root = new Directory(Paths.document, RGB_DATA_ROOT);
   if (root.exists) {
-    try {
-      root.delete();
-      // eslint-disable-next-line no-console
-      console.log('[rgb-adapter] wipeAllRgbData: deleted', root.uri);
-    } catch (e: any) {
-      // eslint-disable-next-line no-console
-      console.warn('[rgb-adapter] wipeAllRgbData: failed to delete', root.uri, e?.message ?? e);
-    }
+    // Deliberately NOT swallowed: Clear All Data's success alert promises
+    // "all app data has been cleared", and a leftover `Documents/rgb/`
+    // makes the next same-seed import init on top of stale native state
+    // ("conflict with current node state" on every op). Let the caller
+    // surface the failure instead of lying.
+    root.delete();
+    // eslint-disable-next-line no-console
+    console.log('[rgb-adapter] wipeAllRgbData: deleted', root.uri);
   } else {
     // eslint-disable-next-line no-console
     console.log('[rgb-adapter] wipeAllRgbData: rgb dir did not exist');

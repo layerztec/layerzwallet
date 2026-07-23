@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import bolt11lib from 'bolt11';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import Button from '@/components/Button';
 import Pressable from '@/components/Pressable';
@@ -105,21 +105,55 @@ export default function SendRgbLnScreen() {
     };
   }, [trimmed, isBolt11, network, accountNumber]);
 
-  if (network !== NETWORK_RGB_TESTNET) {
-    return (
-      <RadialGradientScreen network={network}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <ScreenHeader title="Send USDT (Lightning)" />
-        <View style={styles.body}>
-          <ThemedText style={styles.error}>USDT Lightning send is only enabled on RGB signet right now.</ThemedText>
-        </View>
-      </RadialGradientScreen>
-    );
-  }
+  // Decode rgb:/utxob: invoices so the user sees WHAT they're paying before
+  // the LSP fronts a BOLT11 for it. Without this, tapping Send on a pasted
+  // RGB invoice moved assets for an amount the user never saw.
+  const [rgbPreview, setRgbPreview] = useState<{ assetId?: string; amount?: number } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!isRgbInvoice || !trimmed || network !== NETWORK_RGB_TESTNET) {
+      setRgbPreview(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+    (async () => {
+      try {
+        const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        if (cancelled || !(wallet instanceof RgbWallet)) return;
+        const d = await wallet.decodeInvoice(trimmed);
+        if (cancelled) return;
+        setRgbPreview(d ? { assetId: d.assetId, amount: d.amount } : null);
+      } catch {
+        if (!cancelled) setRgbPreview(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [trimmed, isRgbInvoice, network, accountNumber]);
 
   const handleScan = async () => {
     const scanned = await scanQr();
     if (scanned) setInvoice(scanned.trim());
+  };
+
+  const doSend = async () => {
+    if (network !== NETWORK_RGB_TESTNET) return; // render gate lives below the hooks
+    setIsSending(true);
+    try {
+      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      if (!(wallet instanceof RgbWallet)) throw new Error('Wallet is not an RgbWallet');
+      // Pass the decoded sat amount so the outbound-liquidity pre-gate waits
+      // for the real msat requirement instead of its 1000-sat floor.
+      const r = isBolt11 ? await wallet.payLightningInvoice({ lnInvoice: trimmed, amountSats: preview?.satoshis ?? undefined }) : await wallet.lightningSendAsset({ rgbInvoice: trimmed });
+      setResult(r);
+    } catch (e: any) {
+      console.warn('LN send failed:', e);
+      setError(e?.message ?? 'Failed to send over Lightning');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleSend = async () => {
@@ -136,18 +170,18 @@ export default function SendRgbLnScreen() {
       setError('Expected a BOLT11 (ln…) or RGB (rgb:/utxob:) invoice.');
       return;
     }
-    setIsSending(true);
-    try {
-      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-      if (!(wallet instanceof RgbWallet)) throw new Error('Wallet is not an RgbWallet');
-      const r = isBolt11 ? await wallet.payLightningInvoice({ lnInvoice: trimmed }) : await wallet.lightningSendAsset({ rgbInvoice: trimmed });
-      setResult(r);
-    } catch (e: any) {
-      console.warn('LN send failed:', e);
-      setError(e?.message ?? 'Failed to send over Lightning');
-    } finally {
-      setIsSending(false);
+    if (isRgbInvoice) {
+      // LSP-mediated asset send: the BOLT11 amount the LSP fronts is only
+      // known server-side, so make the user confirm what we CAN show
+      // (decoded asset amount) instead of firing blind.
+      const amountLine = rgbPreview?.amount != null ? `${rgbPreview.amount} asset units` : 'an amount set by the recipient (could not decode)';
+      Alert.alert('Confirm send', `This pays ${amountLine} via the LSP. The LSP will front a Lightning payment that your wallet then pays. Continue?`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Send', style: 'default', onPress: () => void doSend() },
+      ]);
+      return;
     }
+    await doSend();
   };
 
   // Poll listPaymentsRaw while the initial result is Pending so the
@@ -185,6 +219,21 @@ export default function SendRgbLnScreen() {
       clearInterval(interval);
     };
   }, [result, network, accountNumber]);
+
+  // Network gate lives BELOW every hook call — an early return between
+  // hooks violates the Rules of Hooks (hook count changes when `network`
+  // changes, which crashes the reconciler).
+  if (network !== NETWORK_RGB_TESTNET) {
+    return (
+      <RadialGradientScreen network={network}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ScreenHeader title="Send USDT (Lightning)" />
+        <View style={styles.body}>
+          <ThemedText style={styles.error}>USDT Lightning send is only enabled on RGB signet right now.</ThemedText>
+        </View>
+      </RadialGradientScreen>
+    );
+  }
 
   if (result) {
     // The RLN SDK's payLightningInvoice returns a status field: 'Succeeded' /
@@ -250,7 +299,13 @@ export default function SendRgbLnScreen() {
           </View>
         ) : null}
         {trimmed && isBolt11 && !preview ? <ThemedText style={styles.previewMuted}>Could not decode BOLT11 — check the invoice text.</ThemedText> : null}
-        {trimmed && isRgbInvoice ? <ThemedText style={styles.previewMuted}>RGB invoice — the LSP will front the BOLT11 for this send. Amount is set by the recipient.</ThemedText> : null}
+        {trimmed && isRgbInvoice ? (
+          <View style={styles.previewCard}>
+            <ThemedText style={styles.previewTitle}>RGB invoice preview</ThemedText>
+            <ThemedText style={styles.previewRow}>Asset amount: {rgbPreview?.amount != null ? rgbPreview.amount.toLocaleString() : 'not specified in invoice'}</ThemedText>
+            <ThemedText style={styles.previewMuted}>The LSP fronts a BOLT11 for this send; you confirm before paying.</ThemedText>
+          </View>
+        ) : null}
 
         {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
 
