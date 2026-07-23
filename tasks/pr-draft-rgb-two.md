@@ -1,15 +1,17 @@
-# RGB: bump to rgb-sdk-rn beta.20 + USDT-over-Lightning on signet
+# RGB: bump to rgb-sdk-rn beta.23 + USDT-over-Lightning on signet
 
-Branch: `rgb-two`. 76 commits ahead of `origin/master`. Local only —
+Branch: `rgb-two`. ~100 commits ahead of `origin/master`. Local only —
 do not push without product sign-off.
 
 ## What changed
 
-- **Mobile RGB SDK bump**: `@utexo/rgb-sdk-rn` beta.9 → **beta.20** (and
+- **Mobile RGB SDK bump**: `@utexo/rgb-sdk-rn` beta.9 → **beta.23** (and
   `@utexo/rgb-sdk-core` beta.3 → beta.4). Every beta.10 blocker
   (`tasks/ship-rgb.md` "beta.10 assessment") resolved by beta.11+; the
-  cross-platform `IRgbAdapter` shape holds against a beta.9 extension
-  and a beta.20 mobile at the same time.
+  cross-platform `IRgbAdapter` shape holds against a beta.10 extension
+  and a beta.23 mobile at the same time. beta.21–23 pulled RLN native
+  bindings v0.7→v0.9 (unlock-failure recovery, LSP apaya fix, remote
+  external signer, VSS retry) — JS surface unchanged.
 - **Mobile adapter rewrite** (`mobile/src/modules/rgb-adapter.ts`): new
   RLN-backed `UTEXOWallet` constructor (`UTEXOWalletNodeParams` +
   `PasswordRLNSigner`), `resolveUnlockParams` for indexer defaults,
@@ -154,6 +156,31 @@ the everyday user:
 Our current test setup opens channels straight to the bot instead,
 bypassing the LSP entirely — which is why bot-as-intermediary P2P
 doesn't route.
+
+### Demo-mirror refactor + beta.23 (2026-07-20) — retest pending
+
+Compared our adapter against UTEXO's reference `rgb-sdk-rn-demo` and
+landed four alignment fixes (`4869a00d`):
+
+1. `createLsp()` gated by `IRgbAdapterCreateParams.useLsp` (default
+   true). `'Use LSP for RGB'` toggle in Tools persists
+   `STORAGE_KEY_RGB_USE_LSP_<network>`; change requires Clear All
+   Data + reimport because the LSP-attach decision is baked into
+   node params at init().
+2. `payLightningInvoice` shim only forwards `assetId`/`assetAmount`/
+   `maxFee` when actually set (demo passes bare `{ lnInvoice }`).
+3. `createNativeLnInvoice` no-asset branch uses the demo's sentinel
+   `asset: { assetId: '', amount: 0 }` instead of `undefined`.
+4. LSP outbound-liquidity fallback suppressed when the wallet was
+   init'd without LSP.
+
+Then bumped rgb-sdk-rn beta.20 → beta.23 (`1117345c`), rebuilt both
+platforms via EAS local, reinstalled on the sims. **P2P retest with
+this stack has not run yet** — that's the next live-test action.
+Strategic note: production priority is the LSP flow (receive via
+LSP-JIT, send via LSP channel, P2P between two LSP-attached wallets
+routed BY the LSP). The bot-channel path exists only because the
+faucet bot can't pay invoices; it is not the shipping architecture.
 
 ### Fixes that landed during live tests
 
