@@ -16,13 +16,13 @@ const partnersList: PartnerInfo[] = [
     imgUrl: '',
     description: 'Find places to spend sats wherever you are',
   },
-  {
+  /*   {
     name: 'Bitrefill',
     network: NETWORK_BITCOIN,
     url: 'https://bitrefill.com',
     imgUrl: 'https://pbs.twimg.com/media/GgHHK5GWkAAp_6z.png',
     description: 'Buy gift cards with Bitcoin',
-  },
+  }, */
   {
     name: 'Keystone',
     network: NETWORK_BITCOIN,
