@@ -1,5 +1,5 @@
 import { sha256 } from '@noble/hashes/sha256';
-import { PasswordRLNSigner, UTEXOWallet, resolveUnlockParams, type UTEXOWalletNodeParams, type UtexoLsp } from '@utexo/rgb-sdk-rn';
+import { PasswordRLNSigner, UTEXOWallet, resolveUnlockParams, type Network as RlnNetworkName, type UTEXOWalletNodeParams, type UtexoLsp } from '@utexo/rgb-sdk-rn';
 import { Directory, File, Paths } from 'expo-file-system';
 
 import { RGB_LSP_BASE_URL } from '../constants/rgb-lsp';
@@ -16,7 +16,7 @@ const RGB_DATA_ROOT = 'rgb';
 // even after on-chain confirmation, JIT channel for the UTST asset id never
 // opens). Mainnet is still flag-gated; the network string there will be
 // `'mainnet'` once UTEXO publishes prod endpoints.
-function toRlnNetwork(network: RgbNetwork): string {
+function toRlnNetwork(network: RgbNetwork): RlnNetworkName {
   return network === 'testnet' ? 'utexo' : 'mainnet';
 }
 
@@ -100,6 +100,69 @@ function shimVssMethods(wallet: UTEXOWallet): IRgbWallet {
           return async () => undefined;
         case 'getDefaultVssConfig':
           return async () => undefined;
+        // beta.25 API-compat shims: the shared IRgbWallet keeps the older
+        // method names so the extension's rgb-sdk-web build (still on the old
+        // surface) keeps compiling; mobile maps them to the renamed SDK calls.
+        case 'send':
+          // `send` → `onchainSend` (same request keys: invoice/assetId/amount/
+          // feeRate). Response is SendResult { txid, batchTransferIdx } — the
+          // shared caller only reads `txid`.
+          return (params: { invoice: string; assetId?: string; amount?: number; feeRate?: number }) => (target as UTEXOWallet).onchainSend(params);
+        case 'estimateFeeRate':
+          // beta.25 wraps the rate: GetFeeEstimationResponse { feeRate }.
+          // Shared code expects the bare number (or a per-block map on web).
+          return async (blocks: number) => (await (target as UTEXOWallet).estimateFeeRate(blocks)).feeRate;
+        case 'listPaymentsRaw':
+          // `listPaymentsRaw` → `listPayments` (canonical LightningPayment
+          // shape). Field names match RgbLnPayment except amounts may be
+          // bigint and timestamps optional — normalize both.
+          return async () => {
+            const payments = await (target as UTEXOWallet).listPayments();
+            return payments.map((p) => ({
+              paymentHash: p.paymentHash,
+              paymentType: p.paymentType ?? (p.inbound ? 'Inbound' : 'Outbound'),
+              status: p.status,
+              createdAt: Number(p.createdAt ?? 0),
+              updatedAt: Number(p.updatedAt ?? p.createdAt ?? 0),
+              payeePubkey: p.payeePubkey ?? '',
+              amtMsat: p.amtMsat != null ? Number(p.amtMsat) : undefined,
+              assetAmount: p.assetAmount != null ? Number(p.assetAmount) : undefined,
+              assetId: p.assetId,
+              preimage: p.preimage,
+            }));
+          };
+        case 'openChannel':
+          // Shared request keeps the beta.23 field names (screens depend on
+          // them); beta.25 renamed peerPubkeyAndOptAddr→peerPubkey,
+          // public→isPublic, assetAmount→assetLocalAmount.
+          return async (request: {
+            peerPubkeyAndOptAddr: string;
+            capacitySat: number;
+            pushMsat: number;
+            public: boolean;
+            withAnchors: boolean;
+            feeBaseMsat?: number | null;
+            feeProportionalMillionths?: number | null;
+            temporaryChannelId?: string | null;
+            assetId?: string | null;
+            assetAmount?: number | null;
+            pushAssetAmount?: number | null;
+            virtualOpenMode?: string | null;
+          }) =>
+            (target as UTEXOWallet).openChannel({
+              peerPubkey: request.peerPubkeyAndOptAddr,
+              capacitySat: request.capacitySat,
+              isPublic: request.public,
+              assetId: request.assetId ?? undefined,
+              assetLocalAmount: request.assetAmount ?? undefined,
+              pushMsat: request.pushMsat,
+              withAnchors: request.withAnchors,
+              feeBaseMsat: request.feeBaseMsat,
+              feeProportionalMillionths: request.feeProportionalMillionths,
+              temporaryChannelId: request.temporaryChannelId,
+              pushAssetAmount: request.pushAssetAmount,
+              virtualOpenMode: request.virtualOpenMode,
+            });
         case 'lightningReceiveAsset':
           return (params: Parameters<typeof lightningReceiveAsset>[1]) => lightningReceiveAsset(target as UTEXOWallet, params);
         case 'createNativeLnInvoice':
@@ -237,7 +300,7 @@ async function lightningSendAsset(wallet: UTEXOWallet, params: { rgbInvoice: str
   return { txid: r.sendResult.txid, status: r.sendResult.status };
 }
 
-async function payLightningInvoice(wallet: UTEXOWallet, params: { lnInvoice: string; assetId?: string; assetAmount?: number; maxFee?: number; amountSats?: number }): Promise<RgbLnSendResult> {
+async function payLightningInvoice(wallet: UTEXOWallet, params: { lnInvoice: string; assetId?: string; assetAmount?: number; amountSats?: number }): Promise<RgbLnSendResult> {
   const minMsat = Math.max((params.amountSats ?? 1_000) * 1000, 1_000_000);
 
   // The LSP-outbound pre-gate was written back when the LSP channel was
@@ -271,13 +334,11 @@ async function payLightningInvoice(wallet: UTEXOWallet, params: { lnInvoice: str
   // invoice's own asset TLV. Forwarding null/undefined `assetId` here can
   // pin the SDK to an LSP-mediated path (or drop the LN native path
   // entirely), which we don't want on a straight direct-channel pay.
-  // Same for `maxFee` — omit unless the caller specified a real value.
   const req: Parameters<UTEXOWallet['payLightningInvoice']>[0] = { lnInvoice: params.lnInvoice };
   if (params.assetId) {
     req.assetId = params.assetId;
     if (typeof params.assetAmount === 'number') req.assetAmount = params.assetAmount;
   }
-  if (typeof params.maxFee === 'number') req.maxFee = params.maxFee;
   const r = await wallet.payLightningInvoice(req);
   return { txid: r.txid, status: r.status };
 }

@@ -233,7 +233,7 @@ export default function UtxoManagerScreen() {
                       </View>
                     )}
                   </View>
-                  {u.rgbAllocations?.map((a, i) => (
+                  {u.rgbAllocations?.map((a: any, i: number) => (
                     <View key={`alloc-${i}`} style={styles.allocation}>
                       <TouchableOpacity onPress={() => a.assetId && copy(a.assetId, 'Asset ID')} disabled={!a.assetId}>
                         <ThemedText style={styles.allocAssetId}>{a.assetId ? truncMid(a.assetId, 10, 8) : '(no asset id)'}</ThemedText>

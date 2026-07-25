@@ -1,5 +1,3 @@
-import type { UTEXOWalletCore, VssBackupConfig } from '@utexo/rgb-sdk-core';
-
 export type RgbNetwork = 'mainnet' | 'testnet';
 
 /**
@@ -115,16 +113,22 @@ export interface IRgbLnHistory {
 /** Full BOLT11 decode via the SDK — pulls out the assetId / assetAmount TLV
  *  fields that pure-JS bolt11 libs don't know about. Optional on IRgbWallet
  *  for the same reason as the other LN surfaces. */
+/** Platform note: mobile (rgb-sdk-rn beta.25) returns `expirySeconds`/`payee`,
+ *  the extension's older web SDK returns `expirySec`/`payeePubkey` — both
+ *  spellings are optional here so either build satisfies the shape. Consumers
+ *  currently only read `assetId`/`assetAmount`. */
 export interface RgbLnDecodedInvoice {
   amtMsat?: number;
-  expirySec: number;
-  timestamp: number;
+  expirySec?: number;
+  expirySeconds?: number;
+  timestamp?: number;
   assetId?: string;
   assetAmount?: number;
   paymentHash: string;
-  paymentSecret: string;
+  paymentSecret?: string;
   payeePubkey?: string;
-  network: string;
+  payee?: string;
+  network?: string;
 }
 export interface IRgbLnDecode {
   decodeLnInvoice(invoice: string): Promise<RgbLnDecodedInvoice>;
@@ -168,7 +172,7 @@ export interface IRgbLnReceive {
   /** `amountSats` sizes the outbound-liquidity pre-gate — pass the decoded
    *  invoice amount so the gate waits for enough msat instead of its
    *  1000-sat floor. */
-  payLightningInvoice(params: { lnInvoice: string; assetId?: string; assetAmount?: number; maxFee?: number; amountSats?: number }): Promise<RgbLnSendResult>;
+  payLightningInvoice(params: { lnInvoice: string; assetId?: string; assetAmount?: number; amountSats?: number }): Promise<RgbLnSendResult>;
   /** Poll until the receive settles or times out. The UI uses this to flip
    *  from "Waiting for payment" to "Received". Throws on Failed / Expired.
    *  Pass an `AbortSignal` so unmount can stop the HTTP polling instead of
@@ -177,51 +181,49 @@ export interface IRgbLnReceive {
 }
 
 /**
- * Subset of UTEXOWalletCore that `shared/` consumes. Platform adapters return
- * either the real UTEXOWallet instance (mobile) or a forwarding shim (extension
- * popup → offscreen document), both of which satisfy this shape.
+ * Wallet surface that `shared/` consumes. Platform adapters return either the
+ * real UTEXOWallet instance (mobile, behind a compat Proxy) or a forwarding
+ * shim (extension popup → offscreen document), both of which satisfy this
+ * shape.
+ *
+ * Deliberately NOT derived from SDK types: rgb-sdk-core 1.0.0-beta.5 removed
+ * `UTEXOWalletCore` and the two platforms now ship different core versions
+ * (mobile beta.5, extension beta.3), so Pick-ing from either package's types
+ * breaks the other build. Signatures below mirror the calls shared code
+ * actually makes; loosely-typed members are pass-throughs whose shapes shared
+ * code treats structurally.
  */
-export type IRgbWallet = Pick<
-  UTEXOWalletCore,
-  | 'dispose'
-  | 'getAddress'
-  | 'getXpub'
-  | 'getBtcBalance'
-  | 'listAssets'
-  | 'getAssetBalance'
-  | 'listUnspents'
-  | 'listTransactions'
-  | 'listTransfers'
-  | 'blindReceive'
-  | 'witnessReceive'
-  | 'decodeRGBInvoice'
-  | 'send'
-  | 'sendBegin'
-  | 'sendEnd'
-  | 'sendBtc'
-  | 'sendBtcBegin'
-  | 'sendBtcEnd'
-  | 'createUtxos'
-  | 'createUtxosBegin'
-  | 'createUtxosEnd'
-  | 'estimateFeeRate'
-  | 'issueAssetNia'
-  | 'signPsbt'
-  | 'refreshWallet'
-  | 'syncWallet'
-  | 'failTransfers'
-  | 'vssBackup'
-  | 'vssBackupInfo'
-  | 'configureVssBackup'
-  | 'disableVssAutoBackup'
-  | 'getDefaultVssConfig'
-> &
-  Partial<IRgbLnReceive> &
-  Partial<IRgbLnNativeReceive> &
-  Partial<IRgbLnChannelOps> &
-  Partial<IRgbLnHistory> &
-  Partial<IRgbLnDecode> &
-  Partial<IRgbLnJitWait>;
+export interface IRgbWalletBase {
+  dispose(): Promise<void>;
+  getAddress(): Promise<string>;
+  getBtcBalance(): Promise<any>;
+  listAssets(): Promise<any>;
+  getAssetBalance(assetId: string): Promise<any>;
+  listUnspents(): Promise<any[]>;
+  listTransactions(): Promise<any[]>;
+  listTransfers(assetId?: string): Promise<any[]>;
+  blindReceive(params: any): Promise<any>;
+  witnessReceive(params: any): Promise<any>;
+  decodeRGBInvoice(params: { invoice: string }): Promise<any>;
+  /** On-chain RGB send against a full `rgb:`/`utxob:` invoice. Mobile maps
+   *  this to the SDK's `onchainSend` (beta.25 rename); web still calls `send`. */
+  send(params: { invoice: string; assetId?: string; amount?: number; feeRate?: number }): Promise<{ txid: string }>;
+  sendBtc(params: any): Promise<string>;
+  createUtxos(params: { upTo?: boolean; num?: number; size?: number; feeRate?: number }): Promise<number>;
+  /** Bare sat/vB number or `{ <blocks>: rate }` map depending on platform/indexer. */
+  estimateFeeRate(blocks: number): Promise<number | Record<number, number>>;
+  issueAssetNia(params: any): Promise<any>;
+  refreshWallet(): Promise<void>;
+  syncWallet(): Promise<void>;
+  failTransfers(params: any): Promise<boolean>;
+  vssBackup(): Promise<number>;
+  vssBackupInfo(): Promise<{ backupExists: boolean; [key: string]: any }>;
+  configureVssBackup(config?: any): Promise<void>;
+  disableVssAutoBackup(): Promise<void>;
+  getDefaultVssConfig(): Promise<any>;
+}
+
+export type IRgbWallet = IRgbWalletBase & Partial<IRgbLnReceive> & Partial<IRgbLnNativeReceive> & Partial<IRgbLnChannelOps> & Partial<IRgbLnHistory> & Partial<IRgbLnDecode> & Partial<IRgbLnJitWait>;
 
 export interface IRgbAdapterCreateParams {
   mnemonic: string;
@@ -267,5 +269,3 @@ export interface IRgbAdapter {
     lightning: boolean;
   };
 }
-
-export type { VssBackupConfig };
