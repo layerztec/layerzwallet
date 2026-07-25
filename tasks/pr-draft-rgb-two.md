@@ -313,6 +313,22 @@ channels) walked the shipping LSP flow end-to-end:
    fallback), same force-close. Cross-platform ⇒ the LDK config in
    both RLN builds is the culprit, not a platform quirk. Second 100
    UTST batch now also stranded at the LSP (wallet7 mapping).
+9. **Root cause found (2026-07-25), not our code**: `unsupported_scid_alias`
+   is secondary. Full LDK trace shows the LSP's first OpenChannel had
+   the CORRECT virtual channel_type (scid_privacy+anchors) with
+   `dust_limit_satoshis: 1` — valid per UTEXO's rust-lightning fork
+   commit d1f9bf1 ("1-sat HTLCs for virtual channels", 2026-06-19)
+   which exempts virtual channels from the 354-sat dust floor. The
+   native binaries bundled in rgb-sdk-rn beta.23 PREDATE that commit
+   (iOS `librgb_lightning_node.a` lacks the d1f9bf1-added error
+   string; Android build.gradle pins
+   `rgb-lightning-node-android:0.6.0-beta.2` = RLN 2026-06-17), so our
+   LDK rejects dust=1 ("less than the implementation limit (354)") →
+   LSP misreads the error as channel_type rejection and downgrades to
+   `[0,16]` → our virtual-mode guard force-closes `unsupported_scid_alias`.
+   UTEXO's own build is newer, hence "works for me" on their side.
+   Fix = UTEXO republishes the SDK with RLN ≥ v0.9.0-beta.3 native
+   binaries. Analysis posted in #49; nothing to change on our side.
 
 New debug surface added along the way: `waitForLspChannel` partial on
 IRgbWallet + "Wait for LSP JIT channel" button on /rgb-open-channel.
