@@ -329,6 +329,17 @@ channels) walked the shipping LSP flow end-to-end:
    UTEXO's own build is newer, hence "works for me" on their side.
    Fix = UTEXO republishes the SDK with RLN ≥ v0.9.0-beta.3 native
    binaries. Analysis posted in #49; nothing to change on our side.
+10. **Fixed upstream — bumped to beta.25 (2026-07-25, commit 90aae707).**
+    rgb-sdk-rn 1.0.0-beta.25 + core 1.0.0-beta.5: Android maven artifact
+    bumped to RLN 0.9.0-beta.3, iOS xcframework now downloaded by a
+    postinstall script from the RLN GitHub release — both verified to
+    contain the d1f9bf1 virtual-dust fix (strings check). Breaking API
+    churn absorbed in the adapter (see commit message): IRgbWallet
+    decoupled from SDK types, send/listPaymentsRaw/estimateFeeRate/
+    openChannel shimmed. 540 unit tests green. Dev clients rebuilt
+    (native binaries changed). Retest pending: wallet6 (Android) +
+    wallet7 (iOS) both hold settled LSP mappings — reconnect + "Wait
+    for LSP JIT channel" should now deliver the stranded 2×100 UTST.
 
 New debug surface added along the way: `waitForLspChannel` partial on
 IRgbWallet + "Wait for LSP JIT channel" button on /rgb-open-channel.
