@@ -340,6 +340,21 @@ channels) walked the shipping LSP flow end-to-end:
     (native binaries changed). Retest pending: wallet6 (Android) +
     wallet7 (iOS) both hold settled LSP mappings — reconnect + "Wait
     for LSP JIT channel" should now deliver the stranded 2×100 UTST.
+11. **Retest run (2026-07-25): #49 CONFIRMED FIXED, new blocker filed.**
+    Both platforms: LSP JIT OpenChannel (dust=1) accepted →
+    AcceptChannel → funding → channel_ready; virtual channels usable
+    (iOS `27ea9cf0…` outbound 5000/inbound 93,340 sat, asset remote
+    50; Android `885439c9…` same shape, opened within 1s of
+    reconnect). BUT the LSP never pays the LN leg: two fresh mappings
+    (iOS 30k sats/10 UTST, Android 5k sats/100 UTST), faucet paid both
+    rgbInvoices, nodes online + peer-connected the whole hour — zero
+    `update_add_htlc`, invoices expired, payments `Failed`. Filed
+    [rgb-sdk-rn#51](https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/51).
+    Now 2×100 (old) + 10 + 100 UTST stranded at the LSP across the two
+    wallets. Side findings: Android emulator clock drift (44s) breaks
+    `lightning_receive` with HTTP 400 duration mismatch (synced via
+    `su 0 date`); `RlnException.Conflict` toast on tx fetch after
+    relaunch (issue #47 family) — cosmetic, node works.
 
 New debug surface added along the way: `waitForLspChannel` partial on
 IRgbWallet + "Wait for LSP JIT channel" button on /rgb-open-channel.
