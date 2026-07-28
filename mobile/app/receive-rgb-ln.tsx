@@ -11,7 +11,7 @@ import Pressable from '@/components/Pressable';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
-import { RGB_LN_ASSETS, RGB_LSP_BASE_URL } from '@/src/constants/rgb-lsp';
+import { RGB_LN_ASSETS, RGB_LSP_BASE_URL, RGB_LSP_MAX_RECEIVE_ASSET_UNITS, RGB_LSP_MAX_RECEIVE_SATS } from '@/src/constants/rgb-lsp';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -73,12 +73,25 @@ export default function ReceiveRgbLnScreen() {
       setError('LSP receive requires at least 5000 sats. Toggle P2P (own node) for smaller invoices.');
       return;
     }
+    // Ceilings mirror the signet LSP's real delivery capacity (see
+    // rgb-lsp.ts / rgb-sdk-rn#51). Above them the LSP still accepts the
+    // mapping but can never deliver, and the sender's on-chain RGB payment
+    // strands at the LSP — so hard-stop here rather than let the user
+    // publish an undeliverable invoice.
+    if (!nativeMode && amountSats > RGB_LSP_MAX_RECEIVE_SATS) {
+      setError(`LSP can deliver at most ${RGB_LSP_MAX_RECEIVE_SATS} sats per payment. Use a smaller amount or toggle P2P (own node).`);
+      return;
+    }
     if (!Number.isFinite(amountRgb) || amountRgb < 0 || !Number.isSafeInteger(amountRgb)) {
       setError('USDT amount must be a non-negative integer (base units).');
       return;
     }
     if (!nativeMode && amountRgb <= 0) {
       setError('LSP receive requires a positive USDT amount.');
+      return;
+    }
+    if (!nativeMode && amountRgb > RGB_LSP_MAX_RECEIVE_ASSET_UNITS) {
+      setError(`LSP can deliver at most ${RGB_LSP_MAX_RECEIVE_ASSET_UNITS} USDT base units per payment (fixed JIT channel capacity). Use a smaller amount.`);
       return;
     }
     setIsGenerating(true);
@@ -263,7 +276,7 @@ export default function ReceiveRgbLnScreen() {
           <ThemedText style={styles.toggleHint}>
             {nativeMode
               ? "Route hints point at your channel peer (e.g. faucet bot). Use when the payer shares that peer but doesn't have a channel to the LSP."
-              : 'LSP-JIT flow: no channel needed, min 5000 sats + positive USDT.'}
+              : `LSP-JIT flow: no channel needed. 5000–${RGB_LSP_MAX_RECEIVE_SATS} sats, 1–${RGB_LSP_MAX_RECEIVE_ASSET_UNITS} USDT per payment.`}
           </ThemedText>
         </Pressable>
 
