@@ -1,61 +1,13 @@
 import assert from 'assert';
 import { test, vi } from 'vitest';
 import { ArkTransaction, TxType } from '@arkade-os/sdk';
-import type { ExtendedVirtualCoin } from '@arkade-os/sdk';
 
 import { ArkWallet } from '../../class/wallets/ark-wallet';
-import { deserializeVtxo, parseStoredTransactionList, parseStoredVtxoList, serializeVtxo, stringifyVtxoList } from '../../class/wallets/ark-wallet-storage';
+import { parseStoredVtxoList, stringifyVtxoList } from '../../class/wallets/ark-wallet-storage';
+import { makeMockArkadeSdkWallet, minimalTapLeaf, minimalVtxo } from './ark-fixtures';
 import { IStorage } from '../../types/IStorage';
 import { NETWORK_ARK } from '../../types/networks';
-import { makeMockArkadeSdkWallet } from './ark-fixtures';
 import { DeepPartial } from '../../class/wallets/types';
-
-const minimalTapLeaf = (): ExtendedVirtualCoin['forfeitTapLeafScript'] => {
-  const internalKey = new Uint8Array(32).fill(9);
-  const cb = { version: 192, internalKey, merklePath: [] as Uint8Array[] };
-  const script = new Uint8Array([0x51, 0x20, ...internalKey]);
-  return [cb, script];
-};
-
-const minimalVtxo = (overrides: Partial<ExtendedVirtualCoin> = {}): ExtendedVirtualCoin =>
-  ({
-    txid: 'a'.repeat(64),
-    vout: 0,
-    value: 2100,
-    createdAt: new Date(1756199879000),
-    tapTree: new Uint8Array([1, 2, 3, 255]),
-    forfeitTapLeafScript: minimalTapLeaf(),
-    intentTapLeafScript: minimalTapLeaf(),
-    script: '5120' + '00'.repeat(32),
-    status: { confirmed: true, block_time: 1756199879 },
-    virtualStatus: { state: 'preconfirmed', commitmentTxIds: [] },
-    isSpent: false,
-    isUnrolled: false,
-    isRecoverable: false,
-    isSwept: false,
-    isPreconfirmed: true,
-    isPending: false,
-    isLeaf: false,
-    settledBy: undefined,
-    arkTxId: undefined,
-    assets: [{ assetId: 'token-1', amount: 12345678901234567890n }],
-    ...overrides,
-  }) as ExtendedVirtualCoin;
-
-test('ark vtxo storage round-trips SDK-shaped fields', () => {
-  const vtxo = minimalVtxo();
-  const stored = serializeVtxo(vtxo);
-  const restored = deserializeVtxo(stored);
-
-  assert.ok(restored.createdAt instanceof Date);
-  assert.strictEqual(restored.createdAt.getTime(), 1756199879000);
-  assert.ok(restored.tapTree instanceof Uint8Array);
-  assert.deepEqual(Array.from(restored.tapTree), [1, 2, 3, 255]);
-  assert.ok(Array.isArray(restored.forfeitTapLeafScript));
-  assert.ok(restored.forfeitTapLeafScript[1] instanceof Uint8Array);
-  assert.strictEqual(typeof restored.assets?.[0].amount, 'bigint');
-  assert.strictEqual(restored.assets?.[0].amount, 12345678901234567890n);
-});
 
 test('ark vtxo storage parses legacy plain-JSON cache rows', () => {
   const tapLeaf = minimalTapLeaf();
@@ -89,11 +41,6 @@ test('ark vtxo storage parses legacy plain-JSON cache rows', () => {
   assert.ok(parsed[0].tapTree instanceof Uint8Array);
 });
 
-test('ark vtxo storage drops rows that cannot be coerced', () => {
-  const parsed = parseStoredVtxoList(JSON.stringify([{ txid: 'bad', vout: 0, value: 1 }]));
-  assert.deepEqual(parsed, []);
-});
-
 test('persisted vtxo list uses SDK hex encoding', () => {
   const vtxo = minimalVtxo();
   const raw = JSON.parse(stringifyVtxoList([vtxo]))[0];
@@ -106,26 +53,6 @@ test('persisted vtxo list uses SDK hex encoding', () => {
   const loaded = parseStoredVtxoList(stringifyVtxoList([vtxo]));
   assert.strictEqual(loaded.length, 1);
   assert.strictEqual(loaded[0].createdAt.getTime(), vtxo.createdAt.getTime());
-});
-
-test('ark transaction storage keeps valid rows when the list has corrupt entries', () => {
-  const good = {
-    key: { boardingTxid: '', commitmentTxid: 'c'.repeat(64), arkTxid: 'a'.repeat(64) },
-    amount: 2100,
-    type: TxType.TxReceived,
-    settled: true,
-    createdAt: 1756199879000,
-  };
-  const missingKey = { amount: 100, type: TxType.TxSent, settled: true, createdAt: 1756199879000 };
-  const arrayKey = { ...good, key: [] };
-  const badAsset = { ...good, key: { ...good.key, arkTxid: 'b'.repeat(64) }, assets: [{ assetId: 'token-1', amount: 'not-a-number' }] };
-  const emptyAmount = { ...good, key: { ...good.key, arkTxid: 'e'.repeat(64) }, assets: [{ assetId: 'token-1', amount: '' }] };
-
-  const parsed = parseStoredTransactionList(JSON.stringify([null, missingKey, arrayKey, badAsset, emptyAmount, good]));
-
-  assert.strictEqual(parsed.length, 1);
-  assert.strictEqual(parsed[0].amount, 2100);
-  assert.strictEqual(parsed[0].key.arkTxid, 'a'.repeat(64));
 });
 
 /** ArkWallet with mocked SDK objects and a fake NamespacedStorage, for testing the init-time bootstrap sequence. */
