@@ -4,7 +4,7 @@ import { ArkTransaction, TxType } from '@arkade-os/sdk';
 import type { ExtendedVirtualCoin } from '@arkade-os/sdk';
 
 import { ArkWallet } from '../../class/wallets/ark-wallet';
-import { deserializeVtxo, parseStoredVtxoList, serializeVtxo, stringifyVtxoList } from '../../class/wallets/ark-wallet-storage';
+import { deserializeVtxo, parseStoredTransactionList, parseStoredVtxoList, serializeVtxo, stringifyVtxoList } from '../../class/wallets/ark-wallet-storage';
 import { IStorage } from '../../types/IStorage';
 import { NETWORK_ARK } from '../../types/networks';
 import { makeMockArkadeSdkWallet } from './ark-fixtures';
@@ -106,6 +106,26 @@ test('persisted vtxo list uses SDK hex encoding', () => {
   const loaded = parseStoredVtxoList(stringifyVtxoList([vtxo]));
   assert.strictEqual(loaded.length, 1);
   assert.strictEqual(loaded[0].createdAt.getTime(), vtxo.createdAt.getTime());
+});
+
+test('ark transaction storage keeps valid rows when the list has corrupt entries', () => {
+  const good = {
+    key: { boardingTxid: '', commitmentTxid: 'c'.repeat(64), arkTxid: 'a'.repeat(64) },
+    amount: 2100,
+    type: TxType.TxReceived,
+    settled: true,
+    createdAt: 1756199879000,
+  };
+  const missingKey = { amount: 100, type: TxType.TxSent, settled: true, createdAt: 1756199879000 };
+  const arrayKey = { ...good, key: [] };
+  const badAsset = { ...good, key: { ...good.key, arkTxid: 'b'.repeat(64) }, assets: [{ assetId: 'token-1', amount: 'not-a-number' }] };
+  const emptyAmount = { ...good, key: { ...good.key, arkTxid: 'e'.repeat(64) }, assets: [{ assetId: 'token-1', amount: '' }] };
+
+  const parsed = parseStoredTransactionList(JSON.stringify([null, missingKey, arrayKey, badAsset, emptyAmount, good]));
+
+  assert.strictEqual(parsed.length, 1);
+  assert.strictEqual(parsed[0].amount, 2100);
+  assert.strictEqual(parsed[0].key.arkTxid, 'a'.repeat(64));
 });
 
 /** ArkWallet with mocked SDK objects and a fake NamespacedStorage, for testing the init-time bootstrap sequence. */
