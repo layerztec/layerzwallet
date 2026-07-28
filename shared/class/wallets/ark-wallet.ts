@@ -28,6 +28,14 @@ const ARK_STORAGE_PREFIX = 'ark-sdk-v2';
 /** Marks the one-time coin-cache wipe as completed. Only written after a successful restore(). */
 const RECOVERY_FLAG = 'recovery:vtxoStorageV1';
 
+type ArkadeNetwork = typeof NETWORK_ARK | typeof NETWORK_ARK_MUTINYNET;
+
+/** Per-network Ark endpoints. Changing a serverUrl re-keys the storage namespace (sha256(serverUrl)) and orphans persisted state — ship a migration first. */
+const ARKADE_NETWORK_CONFIG: Record<ArkadeNetwork, { serverUrl: string; boltzApiUrl?: string }> = {
+  [NETWORK_ARK]: { serverUrl: 'https://arkade.computer', boltzApiUrl: 'https://api.ark.boltz.exchange' },
+  [NETWORK_ARK_MUTINYNET]: { serverUrl: 'https://mutinynet.arkade.sh' },
+};
+
 type StoredContract = {
   label?: string;
   type: string;
@@ -460,26 +468,29 @@ class LayerzContractRepository {
 export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet, InterfaceCanHaveTokens {
   private _wallet: Wallet | undefined = undefined;
   private _arkadeLightning: ArkadeSwaps | undefined = undefined;
-  private _arkServerUrl: string = 'https://mutinynet.arkade.sh';
-  private _boltzApiUrl: string = '';
+  private _arkadeNetwork: ArkadeNetwork = NETWORK_ARK_MUTINYNET;
   protected _accountNumber: number = 0;
   private _manager: VtxoManager | undefined = undefined;
   private _arkStorage: IStorage | undefined = undefined;
   private _arkTokenBalances: CachedTokenInfo[] = [];
   _lastTokensFetch: number = 0;
 
+  private get _arkServerUrl(): string {
+    return ARKADE_NETWORK_CONFIG[this._arkadeNetwork].serverUrl;
+  }
+
+  private get _boltzApiUrl(): string {
+    return ARKADE_NETWORK_CONFIG[this._arkadeNetwork].boltzApiUrl ?? '';
+  }
+
   setAccountNumber(value: number) {
     this._accountNumber = value;
   }
 
-  setArkServerUrl(url: string) {
+  /** Selects the Ark network. The server and Boltz endpoints derive from ARKADE_NETWORK_CONFIG — there is no second setter to keep in sync. */
+  setArkadeNetwork(network: ArkadeNetwork) {
     assert(!this._wallet, 'Wallet already initialized');
-    this._arkServerUrl = url;
-  }
-
-  setBoltzApiUrl(url: string) {
-    assert(!this._arkadeLightning, 'Already initialized');
-    this._boltzApiUrl = url;
+    this._arkadeNetwork = network;
   }
 
   _getIdentity() {
@@ -636,11 +647,11 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   async initLightningSwaps() {
     assert(this._wallet, 'Ark wallet must be initialized first');
     assert(this._arkStorage, 'Ark wallet storage is not initialized');
-    assert(this._boltzApiUrl, 'Boltz Api Url is not set');
+    assert(this._boltzApiUrl, 'Boltz API is not configured for this Ark network');
 
     const swapProvider = new BoltzSwapProvider({
       apiUrl: this._boltzApiUrl,
-      network: this._arkServerUrl.includes('mutiny') ? 'mutinynet' : 'bitcoin',
+      network: this._arkadeNetwork === NETWORK_ARK_MUTINYNET ? 'mutinynet' : 'bitcoin',
     });
 
     this._arkadeLightning = await ArkadeSwaps.create({
@@ -817,7 +828,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
       }
 
       commonTransactions.push({
-        network: this._arkServerUrl.includes('mutiny') ? NETWORK_ARK_MUTINYNET : NETWORK_ARK, // hacky
+        network: this._arkadeNetwork,
         txid: transaction.key.arkTxid,
         timestamp,
         direction: transaction.type === TxType.TxSent ? 'send' : 'receive',
@@ -925,7 +936,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     if (!BlueElectrum.mainConnected) await BlueElectrum.connectMain();
 
     const swaps: CommonSwap[] = [];
-    const network = this._arkServerUrl.includes('mutinynet') ? NETWORK_ARK_MUTINYNET : NETWORK_ARK;
+    const network = this._arkadeNetwork;
     const transactions = await this._wallet.getTransactionHistory();
 
     // unclaimed swaps
