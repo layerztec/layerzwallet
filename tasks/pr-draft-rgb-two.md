@@ -355,6 +355,20 @@ channels) walked the shipping LSP flow end-to-end:
     `lightning_receive` with HTTP 400 duration mismatch (synced via
     `su 0 date`); `RlnException.Conflict` toast on tx fetch after
     relaunch (issue #47 family) — cosmetic, node works.
+12. **#51 root-caused by UTEXO + FIRST GREEN E2E (2026-07-28).** Not
+    connectivity — undeclared LSP limits: per-HTLC ceiling 10,000 sats
+    (our node's `max_inbound_htlc_value_in_flight_percent=10` on a
+    100k channel) and fixed 50 asset units per JIT channel; delivery
+    worker makes ONE attempt, no retry, mapping goes terminal. Our
+    30k-sat (iOS) and 100-UTST (Android) requests were undeliverable
+    from the start. Retest within limits (5,000 sats / 20 UTST,
+    wallet6, channel `885439c9…`): INBOUND_AUTO_CLAIM **Succeeded**
+    ~2 min after RGB settle — full LSP-JIT receive flow green
+    end-to-end for the first time. Signet LSP effective limits:
+    **≤10,000 sats and ≤50 UTST per payment** — receive UI should
+    enforce these until the LSP adds validation/retries (they plan
+    both). Remaining: outbound send smoke test via the LSP channel;
+    stranded mappings recovery pending LSP retryable-delivery work.
 
 New debug surface added along the way: `waitForLspChannel` partial on
 IRgbWallet + "Wait for LSP JIT channel" button on /rgb-open-channel.
