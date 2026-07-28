@@ -7,6 +7,7 @@ import { ArkWallet } from '../../class/wallets/ark-wallet';
 import { deserializeVtxo, parseStoredVtxoList, serializeVtxo, stringifyVtxoList } from '../../class/wallets/ark-wallet-storage';
 import { IStorage } from '../../types/IStorage';
 import { NETWORK_ARK } from '../../types/networks';
+import { makeMockArkadeSdkWallet } from './ark-fixtures';
 import { DeepPartial } from '../../class/wallets/types';
 
 const minimalTapLeaf = (): ExtendedVirtualCoin['forfeitTapLeafScript'] => {
@@ -105,6 +106,36 @@ test('persisted vtxo list uses SDK hex encoding', () => {
   const loaded = parseStoredVtxoList(stringifyVtxoList([vtxo]));
   assert.strictEqual(loaded.length, 1);
   assert.strictEqual(loaded[0].createdAt.getTime(), vtxo.createdAt.getTime());
+});
+
+/** ArkWallet with mocked SDK objects and a fake NamespacedStorage, for testing the init-time bootstrap sequence. */
+const makeBootstrapHarness = (persisted: Record<string, unknown>) => {
+  const w = new ArkWallet();
+  const { wallet, manager } = makeMockArkadeSdkWallet();
+  (w as any)._wallet = wallet;
+  (w as any)._manager = manager;
+  const namespacedStorage = {
+    readJson: async (key: string, fallback: unknown) => (key in persisted ? persisted[key] : fallback),
+    writeJson: async (key: string, value: unknown) => {
+      persisted[key] = value;
+    },
+    clearCoinCacheForAddresses: async () => {},
+  };
+  const bootstrap = () => (w as any)._bootstrapWalletState(namespacedStorage);
+  return { restore: wallet.restore, persisted, bootstrap };
+};
+
+test('one-time VTXO recovery flag is only persisted after a successful restore', async () => {
+  const { restore, persisted, bootstrap } = makeBootstrapHarness({});
+  restore.mockRejectedValueOnce(new Error('indexer down'));
+
+  // restore() fails: the wipe must stay unflagged so the next boot retries it
+  await bootstrap();
+  assert.strictEqual(persisted['recovery:vtxoStorageV1'], undefined);
+
+  // restore() succeeds: recovery is complete and must not run again
+  await bootstrap();
+  assert.strictEqual(persisted['recovery:vtxoStorageV1'], true);
 });
 
 const _cache: Record<string, string> = {};

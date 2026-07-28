@@ -25,6 +25,9 @@ const bip32 = BIP32Factory(ecc);
 
 const ARK_STORAGE_PREFIX = 'ark-sdk-v2';
 
+/** Marks the one-time coin-cache wipe as completed. Only written after a successful restore(). */
+const RECOVERY_FLAG = 'recovery:vtxoStorageV1';
+
 type StoredContract = {
   label?: string;
   type: string;
@@ -521,8 +524,39 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
 
     this._manager = await wallet.getVtxoManager();
 
-    await this._runOneTimeVtxoRecovery(storage);
+    await this._bootstrapWalletState(storage);
+  }
+
+  /** One-time cache recovery, initial full restore, deprecated-signer migration. */
+  private async _bootstrapWalletState(storage: NamespacedStorage): Promise<void> {
+    const recoveryRan = await this._runOneTimeVtxoRecovery(storage);
+
+    // Persist the flag only once restore() has rebuilt the wiped caches;
+    // a failed restore with the flag already set would show zero balance
+    // forever, since no later boot would ever retry.
+    if ((await this._restoreWallet()) && recoveryRan) {
+      // a failed flag write means the wipe+restore silently reruns every boot, so leave a trace
+      await storage.writeJson(RECOVERY_FLAG, true).catch((error) => {
+        globalThis.handleError?.(error, 'ark-wallet.ts');
+        console.log('ARK recovery flag write error:', error);
+      });
+    }
+
     await this._runDeprecatedSignerMigration();
+  }
+
+  /** Fetch full wallet state from the indexer. Non-fatal: on failure the wallet keeps serving cached state and later syncs retry. */
+  private async _restoreWallet(): Promise<boolean> {
+    assert(this._wallet, 'Ark wallet not initialized');
+
+    try {
+      await this._wallet.restore();
+      return true;
+    } catch (error) {
+      globalThis.handleError?.(error, 'ark-wallet.ts');
+      console.log('ARK restore error:', error);
+      return false;
+    }
   }
 
   /**
@@ -530,11 +564,9 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
    * current signer before the operator cutoff closes cooperative spending.
    */
   private async _runDeprecatedSignerMigration(): Promise<void> {
-    assert(this._wallet, 'Ark wallet not initialized');
     assert(this._manager, 'VtxoManager not initialized');
 
     try {
-      await this._wallet.restore();
       const report = await this._manager.migrateDeprecatedSignerVtxos();
       if (report.rotated || report.vtxos?.txid || report.boarding?.txid) {
         console.log('ARK deprecated-signer migration:', report);
@@ -583,23 +615,23 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
 
   /**
    * One-time recovery for wallets whose local VTXO cache was corrupted by older
-   * code. Clears the SDK sync cursor so the next balance/history fetch
-   * re-bootstraps from the indexer and re-persists with the corrected codec.
+   * code. Clears the coin caches and SDK sync cursor so restore() re-bootstraps
+   * from the indexer. Returns true when the wipe ran; the caller persists
+   * RECOVERY_FLAG only once that restore succeeds, so failures are retried.
    */
-  private async _runOneTimeVtxoRecovery(storage: NamespacedStorage): Promise<void> {
-    const RECOVERY_FLAG = 'recovery:vtxoStorageV1';
-
+  private async _runOneTimeVtxoRecovery(storage: NamespacedStorage): Promise<boolean> {
     try {
-      if (await storage.readJson<boolean>(RECOVERY_FLAG, false)) return;
+      if (await storage.readJson<boolean>(RECOVERY_FLAG, false)) return false;
 
       const addresses = await storage.readJson<string[]>('wallet:addresses', []);
       if (addresses.length > 0) {
         await storage.clearCoinCacheForAddresses(addresses);
       }
       await this._wallet?.clearSyncCursor();
-      await storage.writeJson(RECOVERY_FLAG, true);
+      return true;
     } catch (error) {
       globalThis.handleError?.(error, 'ark-wallet.ts');
+      return false;
     }
   }
 
