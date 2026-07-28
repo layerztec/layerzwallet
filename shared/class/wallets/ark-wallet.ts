@@ -653,25 +653,16 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
 
   async getOffchainBalance() {
     assert(this._wallet, 'Ark wallet not initialized');
-    assert(this._manager, 'this._manager is undefined');
 
     if (this._arkadeLightning) {
       await this._attemptToClaimPendingVHTLCs();
     }
 
-    // renew VTXO:
-    try {
-      const expiringVtxos = await this._manager.getExpiringVtxos();
-      if (expiringVtxos.length > 0) {
-        console.log(`Renewing ${expiringVtxos.length} expiring VTXOs...`);
-        const renewTxid = await this._manager.renewVtxos();
-        console.log('Renewal transaction:', renewTxid);
-      }
-    } catch (error) {
-      globalThis.handleError?.(error, 'ark-wallet.ts');
-      console.log('ARK Error renewing VTXOs:', error);
-    }
-
+    // Expiring-VTXO renewal is deliberately NOT triggered here: the SDK VtxoManager
+    // runs its own 60s settle poll (plus vtxo_received handler) whenever
+    // settlementConfig !== false, and an app-side renewVtxos() can race that poll
+    // into duplicate-intent rejections. Renewal errors/latency also must never
+    // degrade a balance read — that is where 0.4.42's INVALID_VTXO_SCRIPT jam surfaced.
     const balance = await this._wallet.getBalance();
     await this._populateArkTokenCacheFromWalletBalance(balance);
     this._lastBalanceFetch = Date.now();
