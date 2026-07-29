@@ -369,6 +369,23 @@ channels) walked the shipping LSP flow end-to-end:
     enforce these until the LSP adds validation/retries (they plan
     both). Remaining: outbound send smoke test via the LSP channel;
     stranded mappings recovery pending LSP retryable-delivery work.
+13. **P2P VIA LSP GREEN (2026-07-29): wallet→wallet works.** wallet6
+    (Android) paid wallet7's (iOS) LSP invoice — 5,000 sats + 5 UTST —
+    routed wallet6 → LSP → wallet7 over the two existing virtual
+    channels (`885439c9…` out, `27ea9cf0…` in). Sender: "Payment sent,
+    Succeeded"; receiver: PaymentClaimed, ledger `Succeeded,
+    assetAmount 5`. Delivery took seconds. This is the strategic
+    shipping flow (LSP-routed P2P between LSP-attached wallets)
+    demonstrated end-to-end for the first time. Earlier same-day
+    attempt failed only because the iOS RLN node was dead at pay time
+    (dev-client had not loaded JS after relaunch): LSP correctly
+    returned a temporary ChannelFailure on the receiver hop — expected
+    LN behavior, sender route+asset construction verified from that
+    trace. Also: limit guards from commit bf5fab4b confirmed live in
+    the receive form (range shown in helper text).
+    Receive-side limits enforced client-side; outbound had no guard —
+    sender pays whatever the invoice says (5,000 sats here, within
+    the 10k HTLC ceiling).
 
 New debug surface added along the way: `waitForLspChannel` partial on
 IRgbWallet + "Wait for LSP JIT channel" button on /rgb-open-channel.
