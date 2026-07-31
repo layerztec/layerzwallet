@@ -440,7 +440,12 @@ class RgbAdapter implements IRgbAdapter {
           'virtualPeerPubkeys=',
           JSON.stringify((params as any).virtualPeerPubkeys)
         );
-        if (!/conflict with current node state|already exists|already initialized|already created|not allowed while node is in state|conflict/i.test(msg)) throw initErr;
+        // Any "conflict"/"already …" wording means "the node is already
+        // registered/initialized — proceed to unlock". beta.26 alone has
+        // three spellings ("Node has already been initialized", "RLN node
+        // is already created", "not allowed while node is in state"), so
+        // match broadly instead of chasing exact phrases per release.
+        if (!/conflict|already|not allowed while node is in state/i.test(msg)) throw initErr;
         // eslint-disable-next-line no-console
         console.log('[rgb-adapter] init() error SWALLOWED — will attempt unlock anyway');
       }
