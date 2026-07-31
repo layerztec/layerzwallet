@@ -415,11 +415,16 @@ class RgbAdapter implements IRgbAdapter {
       }
       // `init()` = createNode + signer.initNode. Both are "register this
       // node in the binding" steps. On a fresh wallet they succeed in
-      // sequence. On cold start with existing on-disk keys the
-      // signer.initNode call throws "conflict with current node state"
-      // because the on-disk keys already match the supplied mnemonic —
-      // the binding has nothing to do. Swallow that specific error;
-      // unlock can proceed normally.
+      // sequence. Since beta.26 the native binding self-heals the common
+      // cold-start case (it matches `RlnException.Conflict` by variant
+      // class and resolves after probing the node), so most re-init
+      // conflicts never reach us anymore. What still can: the binding's
+      // per-process registry guards — "RLN node is already created" /
+      // "RLN node already exists for storageDirPath" (hot-reload,
+      // create-retry after a failed later step) and "RLN init is not
+      // allowed while node is in state: …" (re-init on a live node).
+      // All of these mean "the node is already registered — proceed to
+      // unlock", so swallow them; anything else is a real failure.
       try {
         await wallet.init();
         if (!marker.exists) marker.create();
@@ -435,7 +440,7 @@ class RgbAdapter implements IRgbAdapter {
           'virtualPeerPubkeys=',
           JSON.stringify((params as any).virtualPeerPubkeys)
         );
-        if (!/conflict with current node state|already exists|already initialized/i.test(msg)) throw initErr;
+        if (!/conflict with current node state|already exists|already initialized|already created|not allowed while node is in state|conflict/i.test(msg)) throw initErr;
         // eslint-disable-next-line no-console
         console.log('[rgb-adapter] init() error SWALLOWED — will attempt unlock anyway');
       }

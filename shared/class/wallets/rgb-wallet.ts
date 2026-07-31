@@ -851,11 +851,9 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
           const paymentType = (p.paymentType ?? '').toString().toLowerCase();
           const direction: CommonTransaction['direction'] = paymentType.includes('in') ? 'receive' : 'send';
           const amountSats = typeof p.amtMsat === 'number' ? Math.round(p.amtMsat / 1000) : undefined;
-          // RlnPayment.updatedAt / createdAt are unix SECONDS — the SDK
-          // types don't say so and don't distinguish LN from on-chain unit
-          // conventions. Dividing by 1000 would shove every LN entry to 1970
-          // and hide them behind on-chain rows on any capped list (Home
-          // shows top 3). Tracked upstream:
+          // RlnPayment.updatedAt / createdAt are unix SECONDS. Was
+          // undocumented; fixed in beta.26 by documenting the unit in the
+          // SDK types (values unchanged), so this passthrough stays correct:
           // https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/48
           // If the payment moved an asset (colored channel routing), attach
           // it as a CommonTokenTransfer so the details sheet renders the
