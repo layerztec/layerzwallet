@@ -259,7 +259,7 @@ class LayerzWalletRepository {
     // no-op
   }
 
-  private async getTrackedAddresses(): Promise<string[]> {
+  async getTrackedAddresses(): Promise<string[]> {
     return this.storage.readJson<string[]>('wallet:addresses', []);
   }
 
@@ -508,6 +508,9 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     const walletRepository = new LayerzWalletRepository(storage);
     const contractRepository = new LayerzContractRepository(storage);
 
+    // read the bootstrap signal before Wallet.create() populates the namespace
+    const needsBootstrap = await this._needsBootstrap(walletRepository);
+
     const wallet = await Wallet.create({
       identity,
       storage: {
@@ -524,25 +527,45 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
 
     this._manager = await wallet.getVtxoManager();
 
-    await this._bootstrapWalletState(storage);
+    await this._bootstrapWalletState(storage, walletRepository, needsBootstrap);
   }
 
-  /** One-time cache recovery, initial full restore, deprecated-signer migration. */
-  private async _bootstrapWalletState(storage: NamespacedStorage): Promise<void> {
-    const recoveryRan = await this._runOneTimeVtxoRecovery(storage);
-
-    // Persist the flag only once restore() has rebuilt the wiped caches;
-    // a failed restore with the flag already set would show zero balance
-    // forever, since no later boot would ever retry.
-    if ((await this._restoreWallet()) && recoveryRan) {
-      // a failed flag write means the wipe+restore silently reruns every boot, so leave a trace
-      await storage.writeJson(RECOVERY_FLAG, true).catch((error) => {
-        globalThis.handleError?.(error, 'ark-wallet.ts');
-        console.log('ARK recovery flag write error:', error);
-      });
+  /**
+   * One-time cache recovery, initial full restore, deprecated-signer funds refresh.
+   *
+   * restore() is a full indexer re-bootstrap, so it only runs when local state
+   * actually needs it: fresh namespace, or right after the one-time wipe.
+   * Steady-state boots rely on ContractManager sync (live on every balance
+   * read); a full restore on every app start is expensive and rate-limit-prone.
+   * resyncFromIndexer() is the explicit escape hatch (not yet wired to any UI).
+   */
+  private async _bootstrapWalletState(storage: NamespacedStorage, walletRepository: LayerzWalletRepository, needsBootstrap: boolean): Promise<void> {
+    if (await this._runOneTimeVtxoRecovery(storage, walletRepository)) {
+      if (await this._restoreWallet()) {
+        // Persist the flag only once restore() has rebuilt the wiped caches; a failed
+        // restore with the flag already set would show zero balance forever, with no retry.
+        // A failed flag WRITE means the wipe+restore silently reruns every boot — leave a trace.
+        await storage.writeJson(RECOVERY_FLAG, true).catch((error) => {
+          globalThis.handleError?.(error, 'ark-wallet.ts');
+          console.log('ARK recovery flag write error:', error);
+        });
+      }
+    } else if (needsBootstrap) {
+      await this._restoreWallet();
     }
 
-    await this._runDeprecatedSignerMigration();
+    await this._refreshIfDeprecatedSignerFunds();
+  }
+
+  /**
+   * True when this namespace has never completed a sync: nothing tracked yet,
+   * or no persisted wallet state. Must be read BEFORE Wallet.create() — the SDK
+   * writes wallet:state and tracks a baseline address during create, so reading
+   * afterwards always answers false.
+   */
+  private async _needsBootstrap(walletRepository: LayerzWalletRepository): Promise<boolean> {
+    const [addresses, state] = await Promise.all([walletRepository.getTrackedAddresses(), walletRepository.getWalletState()]);
+    return addresses.length === 0 || state === null;
   }
 
   /** Fetch full wallet state from the indexer. Non-fatal: on failure the wallet keeps serving cached state and later syncs retry. */
@@ -560,56 +583,31 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
   }
 
   /**
-   * Discover VTXOs under rotated server signers and migrate them to the
-   * current signer before the operator cutoff closes cooperative spending.
+   * Surface funds held under rotated server signers so the SDK can migrate
+   * them before the operator cutoff closes cooperative spending.
+   *
+   * The migration itself is owned by the SDK's poll pass
+   * (settlementConfig.deprecatedSignerMigration, with cooldown, exponential
+   * backoff and in-flight locking — a manual migrate call here would bypass
+   * all three). The app only checks whether funds remain under a rotated
+   * signer and, if so, forces one full-history VTXO refresh so pre-cursor
+   * coins become visible to that pass. refreshVtxos with an explicit window
+   * deliberately leaves the incremental sync cursor untouched. The one case
+   * this cannot find (a contract absent from local storage whose signer is
+   * no longer advertised) is reachable via resyncFromIndexer().
    */
-  private async _runDeprecatedSignerMigration(): Promise<void> {
+  private async _refreshIfDeprecatedSignerFunds(): Promise<void> {
+    assert(this._wallet, 'Ark wallet not initialized');
     assert(this._manager, 'VtxoManager not initialized');
 
     try {
-      const report = await this._manager.migrateDeprecatedSignerVtxos();
-      if (report.rotated || report.vtxos?.txid || report.boarding?.txid) {
-        console.log('ARK deprecated-signer migration:', report);
+      const signers = await this._manager.getDeprecatedSignerStatus();
+      if (signers.some((s) => s.vtxoCount + s.boardingCount + s.recoverableCount + s.awaitingSweepCount > 0)) {
+        await (await this._wallet.getContractManager()).refreshVtxos({ includeInactive: true, after: 0 });
       }
     } catch (error) {
       globalThis.handleError?.(error, 'ark-wallet.ts');
-      console.log('ARK deprecated-signer migration error:', error);
-    }
-
-    // Runs regardless of migration success: a failed/partial migration is exactly
-    // when the wallet is most likely to still hold funds under a rotated signer.
-    await this._resyncIfDeprecatedSignerContracts();
-  }
-
-  /** Drop the incremental sync cursor when this wallet still has active contracts under a deprecated server signer. */
-  private async _resyncIfDeprecatedSignerContracts(): Promise<void> {
-    assert(this._wallet, 'Ark wallet not initialized');
-
-    try {
-      const info = await this._wallet.arkProvider.getInfo();
-      if (!info.deprecatedSigners?.length) return;
-
-      const normalizeKey = (pubkey: string) => {
-        const hex = pubkey.toLowerCase();
-        return hex.length === 66 ? hex.slice(2) : hex;
-      };
-
-      const deprecatedKeys = new Set(info.deprecatedSigners.map((s) => normalizeKey(s.pubkey)));
-
-      // Only active contracts can still hold spendable funds; inactive/completed
-      // ones lingering in storage must not force a re-bootstrap on every init.
-      const contracts = await (await this._wallet.getContractManager()).getContracts({ state: 'active' });
-      const hasDeprecatedContract = contracts.some((c) => {
-        const pk = c.params?.serverPubKey;
-        return typeof pk === 'string' && deprecatedKeys.has(normalizeKey(pk));
-      });
-
-      if (hasDeprecatedContract) {
-        await this._wallet.clearSyncCursor();
-      }
-    } catch (error) {
-      globalThis.handleError?.(error, 'ark-wallet.ts');
-      console.log('ARK deprecated-signer resync check error:', error);
+      console.log('ARK deprecated-signer refresh error:', error);
     }
   }
 
@@ -619,11 +617,11 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
    * from the indexer. Returns true when the wipe ran; the caller persists
    * RECOVERY_FLAG only once that restore succeeds, so failures are retried.
    */
-  private async _runOneTimeVtxoRecovery(storage: NamespacedStorage): Promise<boolean> {
+  private async _runOneTimeVtxoRecovery(storage: NamespacedStorage, walletRepository: LayerzWalletRepository): Promise<boolean> {
     try {
       if (await storage.readJson<boolean>(RECOVERY_FLAG, false)) return false;
 
-      const addresses = await storage.readJson<string[]>('wallet:addresses', []);
+      const addresses = await walletRepository.getTrackedAddresses();
       if (addresses.length > 0) {
         await storage.clearCoinCacheForAddresses(addresses);
       }
@@ -680,11 +678,16 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     return balance.available;
   }
 
-  /** Force a full VTXO re-sync from the Ark indexer on the next balance fetch. */
+  /**
+   * Force a full VTXO re-sync from the Ark indexer right now. This is the
+   * explicit path around the gated boot-time restore. restore() re-fetches
+   * full history itself (explicit after:0 window), so the incremental sync
+   * cursor is deliberately left alone — clearing it would make every later
+   * balance read in this session re-download full history too.
+   */
   async resyncFromIndexer() {
     assert(this._wallet, 'Ark wallet not initialized');
-    await this._wallet.clearSyncCursor();
-    // the next balance fetch performs the full re-bootstrap and re-caches everything
+    await this._wallet.restore();
     return this.getOffchainBalance();
   }
 

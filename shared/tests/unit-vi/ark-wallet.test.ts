@@ -141,7 +141,12 @@ const makeBootstrapHarness = (persisted: Record<string, unknown>) => {
     },
     clearCoinCacheForAddresses: async () => {},
   };
-  const bootstrap = () => (w as any)._bootstrapWalletState(namespacedStorage);
+  const walletRepository = {
+    getTrackedAddresses: async () => (persisted['wallet:addresses'] as string[]) ?? [],
+    getWalletState: async () => persisted['wallet:state'] ?? null,
+  };
+  // the boolean is read through the real gate, exactly like init() does before Wallet.create
+  const bootstrap = async () => (w as any)._bootstrapWalletState(namespacedStorage, walletRepository, await (w as any)._needsBootstrap(walletRepository));
   return { restore: wallet.restore, persisted, bootstrap };
 };
 
@@ -156,6 +161,22 @@ test('one-time VTXO recovery flag is only persisted after a successful restore',
   // restore() succeeds: recovery is complete and must not run again
   await bootstrap();
   assert.strictEqual(persisted['recovery:vtxoStorageV1'], true);
+});
+
+test('steady-state boots skip the full indexer restore, empty namespaces still bootstrap', async () => {
+  // recovery already done + tracked addresses + wallet state: no restore on boot
+  const steady = makeBootstrapHarness({
+    'recovery:vtxoStorageV1': true,
+    'wallet:addresses': ['ark1qsomeaddress'],
+    'wallet:state': { lastSyncTime: 1756199879000 },
+  });
+  await steady.bootstrap();
+  assert.strictEqual(steady.restore.mock.calls.length, 0);
+
+  // recovery already done but the namespace never finished a sync: restore must run
+  const wiped = makeBootstrapHarness({ 'recovery:vtxoStorageV1': true });
+  await wiped.bootstrap();
+  assert.strictEqual(wiped.restore.mock.calls.length, 1);
 });
 
 const _cache: Record<string, string> = {};
