@@ -25,6 +25,17 @@ const bip32 = BIP32Factory(ecc);
 
 const ARK_STORAGE_PREFIX = 'ark-sdk-v2';
 
+/** Marks the one-time coin-cache wipe as completed. Only written after a successful restore(). */
+const RECOVERY_FLAG = 'recovery:vtxoStorageV1';
+
+type ArkadeNetwork = typeof NETWORK_ARK | typeof NETWORK_ARK_MUTINYNET;
+
+/** Per-network Ark endpoints. Changing a serverUrl re-keys the storage namespace (sha256(serverUrl)) and orphans persisted state — ship a migration first. */
+const ARKADE_NETWORK_CONFIG: Record<ArkadeNetwork, { serverUrl: string; boltzApiUrl?: string }> = {
+  [NETWORK_ARK]: { serverUrl: 'https://arkade.computer', boltzApiUrl: 'https://api.ark.boltz.exchange' },
+  [NETWORK_ARK_MUTINYNET]: { serverUrl: 'https://mutinynet.arkade.sh' },
+};
+
 type StoredContract = {
   label?: string;
   type: string;
@@ -256,7 +267,7 @@ class LayerzWalletRepository {
     // no-op
   }
 
-  private async getTrackedAddresses(): Promise<string[]> {
+  async getTrackedAddresses(): Promise<string[]> {
     return this.storage.readJson<string[]>('wallet:addresses', []);
   }
 
@@ -457,26 +468,29 @@ class LayerzContractRepository {
 export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLightningWallet, InterfaceAccountBasedWallet, InterfaceCanHaveTokens {
   private _wallet: Wallet | undefined = undefined;
   private _arkadeLightning: ArkadeSwaps | undefined = undefined;
-  private _arkServerUrl: string = 'https://mutinynet.arkade.sh';
-  private _boltzApiUrl: string = '';
+  private _arkadeNetwork: ArkadeNetwork = NETWORK_ARK_MUTINYNET;
   protected _accountNumber: number = 0;
   private _manager: VtxoManager | undefined = undefined;
   private _arkStorage: IStorage | undefined = undefined;
   private _arkTokenBalances: CachedTokenInfo[] = [];
   _lastTokensFetch: number = 0;
 
+  private get _arkServerUrl(): string {
+    return ARKADE_NETWORK_CONFIG[this._arkadeNetwork].serverUrl;
+  }
+
+  private get _boltzApiUrl(): string {
+    return ARKADE_NETWORK_CONFIG[this._arkadeNetwork].boltzApiUrl ?? '';
+  }
+
   setAccountNumber(value: number) {
     this._accountNumber = value;
   }
 
-  setArkServerUrl(url: string) {
+  /** Selects the Ark network. The server and Boltz endpoints derive from ARKADE_NETWORK_CONFIG — there is no second setter to keep in sync. */
+  setArkadeNetwork(network: ArkadeNetwork) {
     assert(!this._wallet, 'Wallet already initialized');
-    this._arkServerUrl = url;
-  }
-
-  setBoltzApiUrl(url: string) {
-    assert(!this._arkadeLightning, 'Already initialized');
-    this._boltzApiUrl = url;
+    this._arkadeNetwork = network;
   }
 
   _getIdentity() {
@@ -505,6 +519,9 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     const walletRepository = new LayerzWalletRepository(storage);
     const contractRepository = new LayerzContractRepository(storage);
 
+    // read the bootstrap signal before Wallet.create() populates the namespace
+    const needsBootstrap = await this._needsBootstrap(walletRepository);
+
     const wallet = await Wallet.create({
       identity,
       storage: {
@@ -521,96 +538,120 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
 
     this._manager = await wallet.getVtxoManager();
 
-    await this._runOneTimeVtxoRecovery(storage);
-    await this._runDeprecatedSignerMigration();
+    await this._bootstrapWalletState(storage, walletRepository, needsBootstrap);
   }
 
   /**
-   * Discover VTXOs under rotated server signers and migrate them to the
-   * current signer before the operator cutoff closes cooperative spending.
+   * One-time cache recovery, initial full restore, deprecated-signer funds refresh.
+   *
+   * restore() is a full indexer re-bootstrap, so it only runs when local state
+   * actually needs it: fresh namespace, or right after the one-time wipe.
+   * Steady-state boots rely on ContractManager sync (live on every balance
+   * read); a full restore on every app start is expensive and rate-limit-prone.
+   * resyncFromIndexer() is the explicit escape hatch (not yet wired to any UI).
    */
-  private async _runDeprecatedSignerMigration(): Promise<void> {
+  private async _bootstrapWalletState(storage: NamespacedStorage, walletRepository: LayerzWalletRepository, needsBootstrap: boolean): Promise<void> {
+    if (await this._runOneTimeVtxoRecovery(storage, walletRepository)) {
+      if (await this._restoreWallet()) {
+        // Persist the flag only once restore() has rebuilt the wiped caches; a failed
+        // restore with the flag already set would show zero balance forever, with no retry.
+        // A failed flag WRITE means the wipe+restore silently reruns every boot — leave a trace.
+        await storage.writeJson(RECOVERY_FLAG, true).catch((error) => {
+          globalThis.handleError?.(error, 'ark-wallet.ts');
+          console.log('ARK recovery flag write error:', error);
+        });
+      }
+    } else if (needsBootstrap) {
+      await this._restoreWallet();
+    }
+
+    await this._refreshIfDeprecatedSignerFunds();
+  }
+
+  /**
+   * True when this namespace has never completed a sync: nothing tracked yet,
+   * or no persisted wallet state. Must be read BEFORE Wallet.create() — the SDK
+   * writes wallet:state and tracks a baseline address during create, so reading
+   * afterwards always answers false.
+   */
+  private async _needsBootstrap(walletRepository: LayerzWalletRepository): Promise<boolean> {
+    const [addresses, state] = await Promise.all([walletRepository.getTrackedAddresses(), walletRepository.getWalletState()]);
+    return addresses.length === 0 || state === null;
+  }
+
+  /** Fetch full wallet state from the indexer. Non-fatal: on failure the wallet keeps serving cached state and later syncs retry. */
+  private async _restoreWallet(): Promise<boolean> {
+    assert(this._wallet, 'Ark wallet not initialized');
+
+    try {
+      await this._wallet.restore();
+      return true;
+    } catch (error) {
+      globalThis.handleError?.(error, 'ark-wallet.ts');
+      console.log('ARK restore error:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Surface funds held under rotated server signers so the SDK can migrate
+   * them before the operator cutoff closes cooperative spending.
+   *
+   * The migration itself is owned by the SDK's poll pass
+   * (settlementConfig.deprecatedSignerMigration, with cooldown, exponential
+   * backoff and in-flight locking — a manual migrate call here would bypass
+   * all three). The app only checks whether funds remain under a rotated
+   * signer and, if so, forces one full-history VTXO refresh so pre-cursor
+   * coins become visible to that pass. refreshVtxos with an explicit window
+   * deliberately leaves the incremental sync cursor untouched. The one case
+   * this cannot find (a contract absent from local storage whose signer is
+   * no longer advertised) is reachable via resyncFromIndexer().
+   */
+  private async _refreshIfDeprecatedSignerFunds(): Promise<void> {
     assert(this._wallet, 'Ark wallet not initialized');
     assert(this._manager, 'VtxoManager not initialized');
 
     try {
-      await this._wallet.restore();
-      const report = await this._manager.migrateDeprecatedSignerVtxos();
-      if (report.rotated || report.vtxos?.txid || report.boarding?.txid) {
-        console.log('ARK deprecated-signer migration:', report);
+      const signers = await this._manager.getDeprecatedSignerStatus();
+      if (signers.some((s) => s.vtxoCount + s.boardingCount + s.recoverableCount + s.awaitingSweepCount > 0)) {
+        await (await this._wallet.getContractManager()).refreshVtxos({ includeInactive: true, after: 0 });
       }
     } catch (error) {
       globalThis.handleError?.(error, 'ark-wallet.ts');
-      console.log('ARK deprecated-signer migration error:', error);
-    }
-
-    // Runs regardless of migration success: a failed/partial migration is exactly
-    // when the wallet is most likely to still hold funds under a rotated signer.
-    await this._resyncIfDeprecatedSignerContracts();
-  }
-
-  /** Drop the incremental sync cursor when this wallet still has active contracts under a deprecated server signer. */
-  private async _resyncIfDeprecatedSignerContracts(): Promise<void> {
-    assert(this._wallet, 'Ark wallet not initialized');
-
-    try {
-      const info = await this._wallet.arkProvider.getInfo();
-      if (!info.deprecatedSigners?.length) return;
-
-      const normalizeKey = (pubkey: string) => {
-        const hex = pubkey.toLowerCase();
-        return hex.length === 66 ? hex.slice(2) : hex;
-      };
-
-      const deprecatedKeys = new Set(info.deprecatedSigners.map((s) => normalizeKey(s.pubkey)));
-
-      // Only active contracts can still hold spendable funds; inactive/completed
-      // ones lingering in storage must not force a re-bootstrap on every init.
-      const contracts = await (await this._wallet.getContractManager()).getContracts({ state: 'active' });
-      const hasDeprecatedContract = contracts.some((c) => {
-        const pk = c.params?.serverPubKey;
-        return typeof pk === 'string' && deprecatedKeys.has(normalizeKey(pk));
-      });
-
-      if (hasDeprecatedContract) {
-        await this._wallet.clearSyncCursor();
-      }
-    } catch (error) {
-      globalThis.handleError?.(error, 'ark-wallet.ts');
-      console.log('ARK deprecated-signer resync check error:', error);
+      console.log('ARK deprecated-signer refresh error:', error);
     }
   }
 
   /**
    * One-time recovery for wallets whose local VTXO cache was corrupted by older
-   * code. Clears the SDK sync cursor so the next balance/history fetch
-   * re-bootstraps from the indexer and re-persists with the corrected codec.
+   * code. Clears the coin caches and SDK sync cursor so restore() re-bootstraps
+   * from the indexer. Returns true when the wipe ran; the caller persists
+   * RECOVERY_FLAG only once that restore succeeds, so failures are retried.
    */
-  private async _runOneTimeVtxoRecovery(storage: NamespacedStorage): Promise<void> {
-    const RECOVERY_FLAG = 'recovery:vtxoStorageV1';
-
+  private async _runOneTimeVtxoRecovery(storage: NamespacedStorage, walletRepository: LayerzWalletRepository): Promise<boolean> {
     try {
-      if (await storage.readJson<boolean>(RECOVERY_FLAG, false)) return;
+      if (await storage.readJson<boolean>(RECOVERY_FLAG, false)) return false;
 
-      const addresses = await storage.readJson<string[]>('wallet:addresses', []);
+      const addresses = await walletRepository.getTrackedAddresses();
       if (addresses.length > 0) {
         await storage.clearCoinCacheForAddresses(addresses);
       }
       await this._wallet?.clearSyncCursor();
-      await storage.writeJson(RECOVERY_FLAG, true);
+      return true;
     } catch (error) {
       globalThis.handleError?.(error, 'ark-wallet.ts');
+      return false;
     }
   }
 
   async initLightningSwaps() {
     assert(this._wallet, 'Ark wallet must be initialized first');
     assert(this._arkStorage, 'Ark wallet storage is not initialized');
-    assert(this._boltzApiUrl, 'Boltz Api Url is not set');
+    assert(this._boltzApiUrl, 'Boltz API is not configured for this Ark network');
 
     const swapProvider = new BoltzSwapProvider({
       apiUrl: this._boltzApiUrl,
-      network: this._arkServerUrl.includes('mutiny') ? 'mutinynet' : 'bitcoin',
+      network: this._arkadeNetwork === NETWORK_ARK_MUTINYNET ? 'mutinynet' : 'bitcoin',
     });
 
     this._arkadeLightning = await ArkadeSwaps.create({
@@ -623,36 +664,32 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
 
   async getOffchainBalance() {
     assert(this._wallet, 'Ark wallet not initialized');
-    assert(this._manager, 'this._manager is undefined');
 
     if (this._arkadeLightning) {
       await this._attemptToClaimPendingVHTLCs();
     }
 
-    // renew VTXO:
-    try {
-      const expiringVtxos = await this._manager.getExpiringVtxos();
-      if (expiringVtxos.length > 0) {
-        console.log(`Renewing ${expiringVtxos.length} expiring VTXOs...`);
-        const renewTxid = await this._manager.renewVtxos();
-        console.log('Renewal transaction:', renewTxid);
-      }
-    } catch (error) {
-      globalThis.handleError?.(error, 'ark-wallet.ts');
-      console.log('ARK Error renewing VTXOs:', error);
-    }
-
+    // Expiring-VTXO renewal is deliberately NOT triggered here: the SDK VtxoManager
+    // runs its own 60s settle poll (plus vtxo_received handler) whenever
+    // settlementConfig !== false, and an app-side renewVtxos() can race that poll
+    // into duplicate-intent rejections. Renewal errors/latency also must never
+    // degrade a balance read — that is where 0.4.42's INVALID_VTXO_SCRIPT jam surfaced.
     const balance = await this._wallet.getBalance();
     await this._populateArkTokenCacheFromWalletBalance(balance);
     this._lastBalanceFetch = Date.now();
     return balance.available;
   }
 
-  /** Force a full VTXO re-sync from the Ark indexer on the next balance fetch. */
+  /**
+   * Force a full VTXO re-sync from the Ark indexer right now. This is the
+   * explicit path around the gated boot-time restore. restore() re-fetches
+   * full history itself (explicit after:0 window), so the incremental sync
+   * cursor is deliberately left alone — clearing it would make every later
+   * balance read in this session re-download full history too.
+   */
   async resyncFromIndexer() {
     assert(this._wallet, 'Ark wallet not initialized');
-    await this._wallet.clearSyncCursor();
-    // the next balance fetch performs the full re-bootstrap and re-caches everything
+    await this._wallet.restore();
     return this.getOffchainBalance();
   }
 
@@ -791,7 +828,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
       }
 
       commonTransactions.push({
-        network: this._arkServerUrl.includes('mutiny') ? NETWORK_ARK_MUTINYNET : NETWORK_ARK, // hacky
+        network: this._arkadeNetwork,
         txid: transaction.key.arkTxid,
         timestamp,
         direction: transaction.type === TxType.TxSent ? 'send' : 'receive',
@@ -899,7 +936,7 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
     if (!BlueElectrum.mainConnected) await BlueElectrum.connectMain();
 
     const swaps: CommonSwap[] = [];
-    const network = this._arkServerUrl.includes('mutinynet') ? NETWORK_ARK_MUTINYNET : NETWORK_ARK;
+    const network = this._arkadeNetwork;
     const transactions = await this._wallet.getTransactionHistory();
 
     // unclaimed swaps
