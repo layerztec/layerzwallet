@@ -386,6 +386,23 @@ channels) walked the shipping LSP flow end-to-end:
     Receive-side limits enforced client-side; outbound had no guard —
     sender pays whatever the invoice says (5,000 sats here, within
     the 10k HTLC ceiling).
+14. **REVERSE P2P GREEN + beta.26 (2026-08-01): bidirectional.** After
+    bumping both clients to beta.26 (RLN 0.10.0-beta.3), ran the
+    opposite direction: wallet7 (iOS) paid wallet6's (Android) LSP
+    invoice — 5,000 sats + 3 UTST. Sender "Payment sent, Succeeded"
+    (txid `030739897b4d…`); receiver PaymentClaimed on channel
+    `885439c9` at 20:25:45. So LSP-routed P2P works both ways over the
+    same two virtual channels — asset HTLCs route in either direction.
+    Notes from this run: (a) the beta.26 init-conflict message changed
+    to "Node has already been initialized" (from unlock, not just
+    init); widened our swallow regex to `/conflict|already|not allowed
+    while node is in state/i` (commit 3c097568) — verified live on both
+    platforms, wallets init clean. (b) The signet LSP LN node was
+    wedged ~2.5 days (Jul 29 eve → Aug 1 07:02 UTC): TCP + noise
+    handshake OK on :9735 but it dropped every peer right after Init
+    (3070 disconnects), HTTP API stayed up throughout. Recovered on its
+    own; both P2P directions retested green afterward. Worth suggesting
+    UTEXO add an LN-process watchdog.
 
 New debug surface added along the way: `waitForLspChannel` partial on
 IRgbWallet + "Wait for LSP JIT channel" button on /rgb-open-channel.
