@@ -555,6 +555,61 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     return sdk.waitForLspChannel(params);
   }
 
+  // ── beta.29 two-asset LSP surfaces ────────────────────────────────────────
+
+  /** LSP `get_info`: served-asset set + per-payment/channel size limits. Used
+   *  by the receive screen to size caps from the live LSP instead of hardcoding. */
+  async getLspInfo() {
+    const sdk = this.sdk();
+    if (!sdk.getLspInfo) throw new Error('getLspInfo is not supported by this build');
+    return sdk.getLspInfo();
+  }
+
+  /** Register (and return) this wallet's Lightning Address for offline receive. */
+  async enableLightningAddress() {
+    const sdk = this.sdk();
+    if (!sdk.enableLightningAddress) throw new Error('enableLightningAddress is not supported by this build');
+    return sdk.enableLightningAddress();
+  }
+
+  /** LNURL discovery for a Lightning Address — payout + accepted assets. */
+  async discoverAddress(address: string) {
+    const sdk = this.sdk();
+    if (!sdk.discoverAddress) throw new Error('discoverAddress is not supported by this build');
+    return sdk.discoverAddress(address);
+  }
+
+  /** Pay a Lightning Address. Omit `asset.assetId` to let the SDK pick. */
+  async payAddress(params: { address: string; amtMsat: number; asset?: { assetId?: string; assetAmount?: number } }) {
+    const sdk = this.sdk();
+    if (!sdk.payAddress) throw new Error('payAddress is not supported by this build');
+    const r = await sdk.payAddress(params);
+    await this.tryBackup({ critical: true });
+    return r;
+  }
+
+  /** Quote a hosted BOLT11 an APay-unaware external node can pay. */
+  async requestExternalInvoice(params: { amtMsat: number; assetAmount: number; asset?: string; prefer?: 'convertible' | 'payout'; address?: string }) {
+    const sdk = this.sdk();
+    if (!sdk.requestExternalInvoice) throw new Error('requestExternalInvoice is not supported by this build');
+    return sdk.requestExternalInvoice(params);
+  }
+
+  /** Pay a third party's plain BOLT11 out of a different asset (LSP converts). */
+  async payExternalInvoice(params: { invoice: string; payWith?: string; maxFeeMsat?: number }) {
+    const sdk = this.sdk();
+    if (!sdk.payExternalInvoice) throw new Error('payExternalInvoice is not supported by this build');
+    const r = await sdk.payExternalInvoice(params);
+    await this.tryBackup({ critical: true });
+    return r;
+  }
+
+  async externalPaymentStatus(paymentHash: string) {
+    const sdk = this.sdk();
+    if (!sdk.externalPaymentStatus) throw new Error('externalPaymentStatus is not supported by this build');
+    return sdk.externalPaymentStatus(paymentHash);
+  }
+
   /** Decode a BOLT11 via the SDK — pulls the RGB asset tags (assetId,
    *  assetAmount) that pure-JS bolt11 libs miss. Used by Send RGB LN to
    *  preview what the invoice will actually route (plain sats vs asset). */
@@ -697,12 +752,9 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
         const list = await sdk.listAssets();
         const assets: AnyAsset[] = [...(list.nia ?? []), ...(list.cfa ?? []), ...(list.ifa ?? []), ...(list.uda ?? [])];
 
-        // Opening a channel with `assetAmount` moves that many base units
-        // OUT of on-chain UTXO allocations and INTO the channel commitment.
-        // `listAssets` only sees on-chain balance, so a wallet with all its
-        // asset locked in LN would show 0 in the Home token list — very
-        // confusing ("where did my USDT go?"). Fold the local-side channel
-        // amounts back in per asset id.
+        // Channel-held (local-side) asset amounts per asset id. Opening/using a
+        // channel moves base units OUT of on-chain UTXO allocations and INTO the
+        // channel commitment, which `listAssets` cannot see.
         const lnByAssetId = new Map<string, number>();
         if (sdk.listChannels) {
           try {
@@ -720,12 +772,36 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
           }
         }
 
-        this._tokens = assets.map((a) => {
+        // Two-asset flow (rgb-sdk-rn beta.29): the LSP serves a PAYOUT asset
+        // (LNUSDT) that lives only in channels and is a DIFFERENT contract from
+        // the on-chain BRIDGE asset (USDT) in `listAssets`. So a channel's asset
+        // id no longer matches any on-chain asset — we must NOT fold it into the
+        // on-chain token by id-equality (it would vanish). Instead pull the
+        // LSP's served-asset metadata (ticker/precision) so a channel-only asset
+        // can be shown as its own token row. `getLspInfo` is mobile-only; on
+        // builds without it we simply skip the metadata and fall back to the id.
+        const lspAssetMeta = new Map<string, { ticker?: string; name?: string; precision: number }>();
+        if (sdk.getLspInfo && lnByAssetId.size > 0) {
+          try {
+            const info = await sdk.getLspInfo();
+            for (const a of info.supportedAssets) lspAssetMeta.set(a.assetId, { ticker: a.ticker, name: a.name, precision: a.precision });
+          } catch (e: any) {
+            // eslint-disable-next-line no-console
+            console.log('[rgb][fetchTokenBalances] getLspInfo failed:', e?.message ?? e);
+          }
+        }
+
+        const chainId = AllNetworkInfos[this._network].chainId;
+        const onChainIds = new Set(assets.map((a) => a.assetId));
+        const tokens: CachedTokenInfo[] = assets.map((a) => {
+          // A same-asset channel (channel id == on-chain id) still folds its
+          // local amount into the on-chain spendable; a two-asset channel never
+          // matches here (handled below).
           const lnLocal = lnByAssetId.get(a.assetId) ?? 0;
           const totalSpendable = a.balance.spendable + lnLocal;
           return {
             id: a.assetId,
-            chainId: AllNetworkInfos[this._network].chainId,
+            chainId,
             name: a.name,
             symbol: a.ticker ?? a.name,
             decimals: a.precision,
@@ -733,6 +809,24 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
             logoURI: a.media?.filePath,
           };
         });
+
+        // Channel-only assets (LNUSDT): surface each as its own token row so the
+        // user sees their off-chain balance distinctly from on-chain USDT.
+        for (const [aid, local] of lnByAssetId) {
+          if (onChainIds.has(aid)) continue;
+          const meta = lspAssetMeta.get(aid);
+          tokens.push({
+            id: aid,
+            chainId,
+            name: meta?.name ?? meta?.ticker ?? 'RGB asset',
+            symbol: meta?.ticker ?? meta?.name ?? `${aid.slice(0, 12)}…`,
+            decimals: meta?.precision ?? 0,
+            balance: String(local),
+            logoURI: undefined,
+          });
+        }
+
+        this._tokens = tokens;
         this._lastTokensFetch = Date.now();
       } finally {
         this._tokensFetchInFlight = undefined;

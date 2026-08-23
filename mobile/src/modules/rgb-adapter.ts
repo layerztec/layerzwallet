@@ -1,9 +1,22 @@
 import { sha256 } from '@noble/hashes/sha256';
-import { PasswordRLNSigner, UTEXOWallet, resolveUnlockParams, type Network as RlnNetworkName, type UTEXOWalletNodeParams, type UtexoLsp } from '@utexo/rgb-sdk-rn';
+import { PasswordRLNSigner, UTEXOWallet, UtexoLSPClient, resolveUnlockParams, type LspPeer, type Network as RlnNetworkName, type UTEXOWalletNodeParams, type UtexoLsp } from '@utexo/rgb-sdk-rn';
 import { Directory, File, Paths } from 'expo-file-system';
 
 import { RGB_LSP_BASE_URL } from '../constants/rgb-lsp';
-import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet, RgbLnReceiveResult, RgbLnSendResult, RgbLnSettlementOutcome, RgbNetwork } from '@shared/types/rgb-adapter';
+import type {
+  IRgbAdapter,
+  IRgbAdapterCreateParams,
+  IRgbWallet,
+  RgbLnAddressInfo,
+  RgbLnDiscovery,
+  RgbLnExternalInvoice,
+  RgbLnExternalPayResult,
+  RgbLnReceiveResult,
+  RgbLnSendResult,
+  RgbLnSettlementOutcome,
+  RgbLspInfo,
+  RgbNetwork,
+} from '@shared/types/rgb-adapter';
 
 const RGB_DATA_ROOT = 'rgb';
 
@@ -197,6 +210,21 @@ function shimVssMethods(wallet: UTEXOWallet): IRgbWallet {
             const lsp = await ensureLsp(target as UTEXOWallet);
             await lsp.waitForChannel(params.assetId, { timeoutMs: params.timeoutMs ?? 120_000 });
           };
+        // ── beta.29 two-asset LSP surfaces ──────────────────────────────────
+        case 'getLspInfo':
+          return () => getLspInfo(target as UTEXOWallet);
+        case 'enableLightningAddress':
+          return () => enableLightningAddress(target as UTEXOWallet);
+        case 'discoverAddress':
+          return (address: string) => discoverAddress(target as UTEXOWallet, address);
+        case 'payAddress':
+          return (params: Parameters<typeof payAddress>[1]) => payAddress(target as UTEXOWallet, params);
+        case 'requestExternalInvoice':
+          return (params: Parameters<typeof requestExternalInvoice>[1]) => requestExternalInvoice(target as UTEXOWallet, params);
+        case 'payExternalInvoice':
+          return (params: Parameters<typeof payExternalInvoice>[1]) => payExternalInvoice(target as UTEXOWallet, params);
+        case 'externalPaymentStatus':
+          return (paymentHash: string) => externalPaymentStatus(target as UTEXOWallet, paymentHash);
         default:
           return Reflect.get(target, prop, receiver);
       }
@@ -214,6 +242,23 @@ function buildNodeParams(dir: Directory, mnemonic: string, network: RgbNetwork, 
     network: rlnNet,
     vssUrl: vssServerUrl ?? null,
     lspBaseUrl: RGB_LSP_BASE_URL[rlnNet === 'mainnet' ? 'mainnet' : 'signet'],
+  };
+}
+
+// Build an explicit LspPeer from the LSP's `get_info`. We use the explicit
+// `createLsp(peer)` form (not the no-arg auto-discovery form) precisely to
+// AVOID the virtual-channel baking the no-arg form does: the beta.29 two-asset
+// LSP serves REAL channels (its cron opens an LNUSDT channel on connect), and
+// `get_info` carries no `virtual_channel_mode`. The no-arg `createLsp()` would
+// call `enableVirtualChannelsForPeer` and bake `enableVirtualChannelsV0` into
+// the node at init time, which is wrong for this deployment.
+async function buildLspPeer(baseUrl: string): Promise<LspPeer> {
+  const info = await new UtexoLSPClient({ baseUrl }).getInfo();
+  return {
+    baseUrl,
+    peerPubkey: info.pubkey,
+    peerHost: info.host ?? new URL(baseUrl).hostname,
+    peerPort: info.port ?? 9735,
   };
 }
 
@@ -261,22 +306,108 @@ function ensureLsp(wallet: UTEXOWallet): Promise<UtexoLsp> {
 
 async function lightningReceiveAsset(wallet: UTEXOWallet, params: { amountSats: number; amountRgb: number; assetId: string; expirySeconds?: number }): Promise<RgbLnReceiveResult> {
   const lsp = await ensureLsp(wallet);
-  // Do NOT pre-call `waitForChannel(assetId)` here — JIT channels are opened
-  // by the LSP *during* `receiveAsset` (server creates the invoice + opens
-  // the inbound channel on-demand). Pre-waiting blocks indefinitely on a
-  // fresh wallet because no channel exists yet and the LSP has no trigger
-  // to open one without a payment request.
-  return lsp.receiveAsset({
+  // `assetId` here is the PAYOUT asset (LNUSDT) — what we receive over the
+  // channel. `onchainAsset: 'convertible'` (the SDK default, made explicit)
+  // asks the LSP to resolve the on-chain leg to the bridge asset (USDT) the
+  // sender already holds and convert 1:1; the resolved id comes back as
+  // `onchainAssetId`. Two-asset flow, rgb-sdk-rn beta.29.
+  const r = await lsp.receiveAsset({
     assetId: params.assetId,
     amountSats: params.amountSats,
     amountRgb: params.amountRgb,
     expirySeconds: params.expirySeconds,
+    onchainAsset: 'convertible',
   });
+  return { lnInvoice: r.lnInvoice, rgbInvoice: r.rgbInvoice, mappingId: r.mappingId, onchainAssetId: r.onchainAssetId, converted: r.converted };
 }
 
 async function awaitLightningReceiveSettlement(wallet: UTEXOWallet, params: { lnInvoice: string; timeoutMs?: number; signal?: AbortSignal }): Promise<RgbLnSettlementOutcome> {
   const lsp = await ensureLsp(wallet);
   return lsp.awaitReceiveSettlement(params.lnInvoice, { timeoutMs: params.timeoutMs, signal: params.signal });
+}
+
+// Return the (non-connected) LSP handle for pure-HTTP calls like get_info /
+// LNURL discovery that don't need the LDK P2P link up.
+function lspHandle(wallet: UTEXOWallet): UtexoLsp {
+  const lsp = lspByWallet.get(wallet);
+  if (!lsp) throw new Error('LSP not initialized on wallet — createLsp() should have run at wallet creation time');
+  return lsp;
+}
+
+const asset = (a: { assetId: string; ticker?: string; name?: string; precision: number } | undefined) =>
+  a ? { assetId: a.assetId, ticker: a.ticker, name: a.name, precision: a.precision } : undefined;
+
+// ── beta.29 two-asset helpers ───────────────────────────────────────────────
+
+async function getLspInfo(wallet: UTEXOWallet): Promise<RgbLspInfo> {
+  // `get_info` is plain HTTP — no connect() needed. Amounts arrive as bigint
+  // (u64 strings on the wire); narrow to number for shared code (signet values
+  // are well under 2^53).
+  const i = await lspHandle(wallet).http.getInfo();
+  return {
+    pubkey: i.pubkey,
+    network: i.network,
+    supportedAssets: i.supportedAssets.map((a) => ({ assetId: a.assetId, ticker: a.ticker, name: a.name, precision: a.precision })),
+    minPaymentSizeMsat: Number(i.minPaymentSizeMsat),
+    maxPaymentSizeMsat: Number(i.maxPaymentSizeMsat),
+    minChannelAssetAmount: Number(i.minChannelAssetAmount),
+    maxChannelAssetAmount: Number(i.maxChannelAssetAmount),
+    virtualChannelMode: i.virtualChannelMode,
+  };
+}
+
+async function enableLightningAddress(wallet: UTEXOWallet): Promise<RgbLnAddressInfo> {
+  const lsp = await ensureLsp(wallet);
+  const a = await lsp.enableLightningAddress();
+  return { username: a.username, domain: a.domain, address: a.address, unusedHashes: a.unusedHashes };
+}
+
+async function discoverAddress(wallet: UTEXOWallet, address: string): Promise<RgbLnDiscovery> {
+  const lsp = await ensureLsp(wallet);
+  const d = await lsp.discoverAddress(address);
+  return { minSendable: d.minSendable, maxSendable: d.maxSendable, payoutAsset: asset(d.payoutAsset), acceptedAssets: d.acceptedAssets?.map((x) => asset(x)!) };
+}
+
+async function payAddress(
+  wallet: UTEXOWallet,
+  params: { address: string; amtMsat: number; asset?: { assetId?: string; assetAmount?: number } }
+): Promise<{ txid: string; status?: string; assetSelection?: import('@shared/types/rgb-adapter').RgbLnAssetSelection }> {
+  const lsp = await ensureLsp(wallet);
+  const r = await lsp.payAddress({ address: params.address, amtMsat: params.amtMsat, asset: params.asset });
+  const sel = r.assetSelection;
+  return {
+    txid: r.sendResult.txid,
+    status: r.sendResult.status,
+    assetSelection: sel ? { assetId: sel.assetId, asset: asset(sel.asset), converted: sel.converted, localAssetAmount: sel.localAssetAmount, payoutAsset: asset(sel.payoutAsset) } : undefined,
+  };
+}
+
+async function requestExternalInvoice(
+  wallet: UTEXOWallet,
+  params: { amtMsat: number; assetAmount: number; asset?: string; prefer?: 'convertible' | 'payout'; address?: string }
+): Promise<RgbLnExternalInvoice> {
+  const lsp = await ensureLsp(wallet);
+  const inv = await lsp.requestExternalInvoice(params);
+  return { invoice: inv.invoice, amtMsat: inv.amtMsat, assetId: inv.assetId, assetAmount: inv.assetAmount, asset: asset(inv.asset), converted: inv.converted, paymentHash: inv.paymentHash };
+}
+
+async function payExternalInvoice(wallet: UTEXOWallet, params: { invoice: string; payWith?: string; maxFeeMsat?: number }): Promise<RgbLnExternalPayResult> {
+  const lsp = await ensureLsp(wallet);
+  const r = await lsp.payExternalInvoice(params);
+  return {
+    txid: r.sendResult.txid,
+    status: r.sendResult.status,
+    paymentHash: r.quote.paymentHash,
+    inbound: { assetId: r.quote.inbound.assetId, assetAmount: r.quote.inbound.assetAmount, amtMsat: r.quote.inbound.amtMsat },
+    outbound: { assetId: r.quote.outbound.assetId, assetAmount: r.quote.outbound.assetAmount, amtMsat: r.quote.outbound.amtMsat },
+    converted: r.quote.converted,
+  };
+}
+
+async function externalPaymentStatus(wallet: UTEXOWallet, paymentHash: string): Promise<{ status: string; reason?: string }> {
+  const lsp = await ensureLsp(wallet);
+  const s = await lsp.externalPaymentStatus(paymentHash);
+  return { status: s.status, reason: s.reason };
 }
 
 // beta.20 exposes `waitForOutboundLiquidity(minMsat)` — the LSP does NOT push
@@ -410,7 +541,9 @@ class RgbAdapter implements IRgbAdapter {
     // forever (RGB dead until force-quit).
     try {
       if (params.lspBaseUrl && useLsp) {
-        const lsp = await wallet.createLsp();
+        // Explicit-peer form (virtual channels OFF) — see buildLspPeer.
+        const peer = await buildLspPeer(params.lspBaseUrl);
+        const lsp = await wallet.createLsp(peer);
         lspByWallet.set(wallet, lsp);
       }
       // `init()` = createNode + signer.initNode. Both are "register this

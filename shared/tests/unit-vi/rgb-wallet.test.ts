@@ -964,6 +964,42 @@ describe('RgbWallet', () => {
       expect(tokens[0].balance).toBe('98');
     });
 
+    it('two-asset flow: surfaces a channel-only payout asset (LNUSDT) as its own token row using getLspInfo metadata', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.listAssets as any) = vi.fn().mockResolvedValue({
+        nia: [{ assetId: 'rgb:USDT', name: 'USDT', ticker: 'USDT', precision: 6, balance: { settled: 10, future: 10, spendable: 10 } }],
+        cfa: [],
+        ifa: [],
+        uda: [],
+      });
+      // Channel holds a DIFFERENT contract (LNUSDT) than the on-chain USDT.
+      (sdkWallet.listChannels as any) = vi.fn().mockResolvedValue([{ channelId: 'ch-a', peerPubkey: '02aa', assetId: 'rgb:LNUSDT', assetLocalAmount: 75, assetRemoteAmount: 25 }]);
+      (sdkWallet.getLspInfo as any) = vi.fn().mockResolvedValue({
+        pubkey: '03lsp',
+        network: 'signet',
+        supportedAssets: [{ assetId: 'rgb:LNUSDT', ticker: 'LNUSDT', name: 'LNUSDT', precision: 6 }],
+        minPaymentSizeMsat: 3_000_000,
+        maxPaymentSizeMsat: 7_500_000,
+        minChannelAssetAmount: 100_000_000,
+        maxChannelAssetAmount: 100_000_000,
+      });
+
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      await w.fetchTokenBalances();
+      const tokens = w.getTokenBalances();
+      // On-chain USDT (10, NOT folded with the LNUSDT channel) + a separate
+      // LNUSDT channel row (75).
+      expect(tokens).toHaveLength(2);
+      const usdt = tokens.find((t) => t.id === 'rgb:USDT');
+      const lnusdt = tokens.find((t) => t.id === 'rgb:LNUSDT');
+      expect(usdt?.balance).toBe('10');
+      expect(lnusdt?.balance).toBe('75');
+      expect(lnusdt?.symbol).toBe('LNUSDT');
+      expect(lnusdt?.decimals).toBe(6);
+    });
+
     it('tolerates SDK builds without listChannels — falls back to on-chain balance only', async () => {
       const { sdkWallet } = installAdapter();
       delete (sdkWallet as any).listChannels;

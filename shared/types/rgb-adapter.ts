@@ -10,6 +10,12 @@ export interface RgbLnReceiveResult {
   lnInvoice: string;
   rgbInvoice: string;
   mappingId: string;
+  /** beta.29 two-asset flow: the asset the on-chain sender must pay in (the
+   *  bridge asset the LSP converts 1:1 to the channel payout asset). Absent on
+   *  older LSPs; the `rgbInvoice` is authoritative either way. */
+  onchainAssetId?: string;
+  /** `true` when the on-chain leg differs from the channel leg (LSP converts). */
+  converted?: boolean;
 }
 
 /** Outcome shape for `lightningSendAsset` — narrowed from the SDK's full
@@ -180,6 +186,98 @@ export interface IRgbLnReceive {
   awaitLightningReceiveSettlement(params: { lnInvoice: string; timeoutMs?: number; signal?: AbortSignal }): Promise<RgbLnSettlementOutcome>;
 }
 
+// ── beta.29 two-asset LSP surfaces ──────────────────────────────────────────
+
+/** One asset the LSP deals in, from `get_info`/discovery. Numbers as `number`
+ *  for shared code; the adapter narrows the SDK's bigint limits to numbers. */
+export interface RgbLspSupportedAsset {
+  assetId: string;
+  ticker?: string;
+  name?: string;
+  precision: number;
+}
+
+/** Narrowed `get_info`. The adapter reads the SDK's bigint limits and returns
+ *  them as `number` (values are well under 2^53 for signet). */
+export interface RgbLspInfo {
+  pubkey: string;
+  network: string;
+  supportedAssets: RgbLspSupportedAsset[];
+  minPaymentSizeMsat: number;
+  maxPaymentSizeMsat: number;
+  minChannelAssetAmount: number;
+  maxChannelAssetAmount: number;
+  virtualChannelMode?: string;
+}
+export interface IRgbLnInfo {
+  /** LSP discovery doc — served-asset set + per-payment/channel size limits. */
+  getLspInfo(): Promise<RgbLspInfo>;
+}
+
+/** Lightning-address registration for offline receive (`enableLightningAddress`). */
+export interface RgbLnAddressInfo {
+  username: string;
+  domain: string;
+  address: string;
+  unusedHashes?: number;
+}
+/** LNURL discovery for an address: payout + accepted (convertible) assets. */
+export interface RgbLnDiscovery {
+  minSendable: number;
+  maxSendable: number;
+  payoutAsset?: RgbLspSupportedAsset;
+  acceptedAssets?: RgbLspSupportedAsset[];
+}
+/** Which asset the SDK picked to pay a lightning address, and whether the LSP
+ *  converts it 1:1 to the payee's payout asset. */
+export interface RgbLnAssetSelection {
+  assetId: string;
+  asset?: RgbLspSupportedAsset;
+  converted: boolean;
+  localAssetAmount: number;
+  payoutAsset?: RgbLspSupportedAsset;
+}
+export interface IRgbLnAddress {
+  enableLightningAddress(): Promise<RgbLnAddressInfo>;
+  discoverAddress(address: string): Promise<RgbLnDiscovery>;
+  /** Pay a lightning address. Omit `asset.assetId` to let the SDK pick the
+   *  payout asset when liquidity covers, converting a bridge asset otherwise. */
+  payAddress(params: { address: string; amtMsat: number; asset?: { assetId?: string; assetAmount?: number } }): Promise<{ txid: string; status?: string; assetSelection?: RgbLnAssetSelection }>;
+}
+
+/** One leg of an external (`/lightning_send`) relay. */
+export interface RgbLnExternalLeg {
+  assetId?: string;
+  assetAmount?: number;
+  amtMsat: number;
+}
+/** A hosted BOLT11 for an APay-unaware external payer (`requestExternalInvoice`). */
+export interface RgbLnExternalInvoice {
+  invoice: string;
+  amtMsat: number;
+  assetId?: string;
+  assetAmount?: number;
+  asset?: RgbLspSupportedAsset;
+  converted: boolean;
+  paymentHash?: string;
+}
+export interface RgbLnExternalPayResult {
+  txid: string;
+  status?: string;
+  paymentHash: string;
+  inbound: RgbLnExternalLeg;
+  outbound: RgbLnExternalLeg;
+  converted: boolean;
+}
+export type RgbLnExternalStatus = 'quoted' | 'claimable' | 'outbound_pending' | 'outbound_paid' | 'outbound_claimed' | 'settled' | 'cancelled' | 'failed' | string;
+export interface IRgbLnExternal {
+  /** Quote a plain BOLT11 any node can pay; carries the RGB id+amount inside. */
+  requestExternalInvoice(params: { amtMsat: number; assetAmount: number; asset?: string; prefer?: 'convertible' | 'payout'; address?: string }): Promise<RgbLnExternalInvoice>;
+  /** Pay a third party's plain BOLT11 out of a different asset (LSP converts). */
+  payExternalInvoice(params: { invoice: string; payWith?: string; maxFeeMsat?: number }): Promise<RgbLnExternalPayResult>;
+  externalPaymentStatus(paymentHash: string): Promise<{ status: RgbLnExternalStatus; reason?: string }>;
+}
+
 /**
  * Wallet surface that `shared/` consumes. Platform adapters return either the
  * real UTEXOWallet instance (mobile, behind a compat Proxy) or a forwarding
@@ -223,7 +321,16 @@ export interface IRgbWalletBase {
   getDefaultVssConfig(): Promise<any>;
 }
 
-export type IRgbWallet = IRgbWalletBase & Partial<IRgbLnReceive> & Partial<IRgbLnNativeReceive> & Partial<IRgbLnChannelOps> & Partial<IRgbLnHistory> & Partial<IRgbLnDecode> & Partial<IRgbLnJitWait>;
+export type IRgbWallet = IRgbWalletBase &
+  Partial<IRgbLnReceive> &
+  Partial<IRgbLnNativeReceive> &
+  Partial<IRgbLnChannelOps> &
+  Partial<IRgbLnHistory> &
+  Partial<IRgbLnDecode> &
+  Partial<IRgbLnJitWait> &
+  Partial<IRgbLnInfo> &
+  Partial<IRgbLnAddress> &
+  Partial<IRgbLnExternal>;
 
 export interface IRgbAdapterCreateParams {
   mnemonic: string;

@@ -34,7 +34,10 @@ export default function RgbOpenChannelScreen() {
   const [capacitySatStr, setCapacitySatStr] = useState('40000');
   const [assetAmountStr, setAssetAmountStr] = useState('0');
   const [pushAssetAmountStr, setPushAssetAmountStr] = useState('0');
-  const [assetIdStr, setAssetIdStr] = useState(RGB_LN_ASSETS.signet.usdt ?? '');
+  // Manual channel-open colours the funding with the BRIDGE asset (USDT): per
+  // the two-asset "who pays for a channel" rule, a peer that wants to SEND the
+  // bridge asset receives it on-chain and opens its own channel with it.
+  const [assetIdStr, setAssetIdStr] = useState(RGB_LN_ASSETS.signet.bridge?.assetId ?? '');
   const [isOpening, setIsOpening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openResponse, setOpenResponse] = useState<string | null>(null);
@@ -76,8 +79,9 @@ export default function RgbOpenChannelScreen() {
     try {
       const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       if (!(wallet instanceof RgbWallet)) throw new Error('Wallet is not an RgbWallet');
-      const assetId = RGB_LN_ASSETS.signet.usdt;
-      if (!assetId) throw new Error('USDT asset id not configured');
+      // The LSP auto-opens the PAYOUT (LNUSDT) channel on connect — wait on it.
+      const assetId = RGB_LN_ASSETS.signet.payout?.assetId;
+      if (!assetId) throw new Error('Payout asset id not configured');
       await wallet.waitForLspChannel({ assetId, timeoutMs: 180_000 });
       await refreshChannels();
     } catch (e: any) {
