@@ -428,6 +428,39 @@ channels) walked the shipping LSP flow end-to-end:
       bridge USDT `rgb:f~9F4X0C…`? If not, the send-side channel can't be
       seeded and Phase-3 send legs can't be driven yet; receive + P2P in
       LNUSDT still testable.
+    - **Phase 4 device run (2026-08-23, RLN 0.11 builds both platforms):**
+      wallet8 (iOS, fresh, `cook page soul…`) + wallet7 reimported on
+      Android. Results:
+      ✓ Fresh init on beta.29 clean; explicit-peer createLsp confirmed
+        (`enableVirtualChannelsV0= undefined` in log), LSP peer link
+        stable in real-channel mode, 0 disconnects.
+      ✓ LSP provisions a Lightning Address on first connect
+        (`calm-river-3390@lsp-signet.utexo.com` for wallet8).
+      ✓ **Two-asset conversion live**: `receiveAsset(LNUSDT)` → LSP
+        returned an RGB invoice in the **bridge USDT** (`rgb:f~9F4X0C…`),
+        mapping registered (`INBOUNDAUTOCLAIM Pending`). get_info limits
+        flow into the receive form (3000–7500 sats).
+      ✓ **Faucet bot serves the new bridge USDT** (`/getnodeinfo` →
+        `rgb:f~9F4X0C…`, ticker USDT) — open question answered; our
+        constants match. (rgb-faucet CLI `getbtc` fixed along the way:
+        it waited for a txid the bot never posts.)
+      ✗ **BLOCKED by UTEXO signet infra**: faucet bot acks `/getbtc` and
+        `/getasset` ("I'm now sending …") but broadcasts NOTHING — mempool
+        empty, 20+ consecutive coinbase-only blocks over 2h. LSP cron
+        never opened the LNUSDT channel for either wallet (both
+        connected, funded above `min_initial_client_balance` 12k sats,
+        colorable UTXOs present, 50+ min) — same host 49.12.99.77; smells
+        like LSP can't fund channels either (docs: failures → spendable=0
+        → InsufficientAssets). Reported to UTEXO. Wallet8's mapping will
+        expire unfunded.
+      ✗ Lightning-address enable on both wallets: `/apay/new requires a
+        live channel with the invoice-host peer` — correct given no
+        channel; message surfaced raw in UI (cosmetic, could humanize).
+      Side notes: Android beta.29 cold start on the emulator trips the
+      ANR killer (~2-3 min native load; "Wait" recovers) — RLN 0.11 is
+      heavier; wallet7 reimport could not restore its old virtual channel
+      (no VSS — the known prod-blocker shim), so the virtual→real channel
+      regression check is still untested.
 
 New debug surface added along the way: `waitForLspChannel` partial on
 IRgbWallet + "Wait for LSP JIT channel" button on /rgb-open-channel.
