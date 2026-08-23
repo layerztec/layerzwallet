@@ -2,12 +2,13 @@ import assert from 'assert';
 import useSWR from 'swr';
 
 import { ArkWallet } from '../class/wallets/ark-wallet';
+import { RgbWallet } from '../class/wallets/rgb-wallet';
 import { StacksWallet } from '../class/wallets/stacks-wallet';
 import { walletCanHaveTokens } from '../class/wallets/interface-can-have-tokens';
 import { getTokenList } from '../models/token-list';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { IStorage } from '../types/IStorage';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_RGB, NETWORK_RGB_TESTNET, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
 import { CachedTokenInfo } from '../types/token-info';
 
 const STORAGE_KEY_CACHED_TOKEN_LIST = 'STORAGE_KEY_CACHED_TOKEN_LIST_V2';
@@ -61,6 +62,28 @@ export const tokenDiscoveryFetcher = async (arg: tokenDiscoveryFetcherArg): Prom
       await storage.setItem(cacheKey, JSON.stringify(tokenInfos)); // saving to cache
     }
     return tokenInfos;
+  } else if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+    if (!backgroundCaller.lazyInitWalletReady(network, accountNumber)) {
+      const cachedTokens = await restoreCachedTokens(cacheKey, storage);
+      if (cachedTokens) return cachedTokens;
+    }
+
+    const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
+    assert(wallet instanceof RgbWallet, 'Not an RGB wallet');
+
+    // Rely on the in-memory cache populated by `getOffchainBalance` (useBalance
+    // fires on a 30s interval and refreshes both BTC + asset balances in one
+    // round-trip). If balance has never been fetched yet, fall back to storage.
+    if (!wallet._lastBalanceFetch) {
+      const cachedTokens = await restoreCachedTokens(cacheKey, storage);
+      if (cachedTokens) return cachedTokens;
+    }
+
+    const tokenInfos = wallet.getTokenBalances();
+    if (tokenInfos.length > 0) {
+      await storage.setItem(cacheKey, JSON.stringify(tokenInfos));
+    }
+    return tokenInfos;
   } else if (network === NETWORK_STACKS) {
     if (!backgroundCaller.lazyInitWalletReady(network, accountNumber)) {
       // wallet not ready, definitely can use cached tokens (if any)
@@ -102,7 +125,8 @@ export const tokenDiscoveryFetcher = async (arg: tokenDiscoveryFetcherArg): Prom
 };
 
 export function useTokenDiscovery(network: Networks, accountNumber: number, backgroundCaller: IBackgroundCaller, storage: IStorage, refreshInterval = 5_000) {
-  const shouldRefresh = network === NETWORK_SPARK || network === NETWORK_STACKS || network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET;
+  const shouldRefresh =
+    network === NETWORK_SPARK || network === NETWORK_STACKS || network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_RGB || network === NETWORK_RGB_TESTNET;
 
   const arg: tokenDiscoveryFetcherArg = {
     cacheKey: 'tokenDiscoveryFetcher',

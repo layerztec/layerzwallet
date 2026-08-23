@@ -10,7 +10,7 @@ import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { USDT_TOKENS } from '@shared/models/token-list';
-import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
+import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_RGB, NETWORK_RGB_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
 import { ReceiveTokenProps } from '@/app/Receive';
 import { SendTokenEvmProps } from '@/app/SendTokenEvm';
 import { SendParams } from '@/app/send';
@@ -56,6 +56,16 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
         router.push('/send');
     }
   };
+
+  // RGB send action sheet: on-chain RGB invoice (existing /send flow) vs
+  // USDT-over-Lightning (new /send-rgb-ln flow). LN entry only appears on
+  // signet — mainnet stays hidden until UTEXO publishes prod constants.
+  const handleSendRgbLn = () => router.push('/send-rgb-ln');
+  const rgbSendActions = [
+    { children: <Action network={network} text="Send via RGB on-chain" />, onClick: handleSend },
+    ...(network === NETWORK_RGB_TESTNET ? [{ children: <Action network={network} text="Send over Lightning" />, onClick: handleSendRgbLn }] : []),
+    { children: <Action text="Cancel" />, onClick: () => {} },
+  ];
 
   const handleReceive = () => {
     onReceivePress?.();
@@ -118,11 +128,34 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
+  // RGB has two distinct receive flavors: a plain bech32m address for BTC sats
+  // (handled by the existing /Receive screen) and an RGB invoice for assets
+  // (new /receive-rgb-token screen). Surface both via the popup pattern that
+  // USDT already uses.
+  const handleReceiveRgbToken = () => router.push('/receive-rgb-token');
+  // Only show the LN-receive option on signet (rgb_testnet) — mainnet stays
+  // hidden until the LSP URL + USDT asset id come back from UTEXO.
+  const handleReceiveRgbLn = () => router.push('/receive-rgb-ln');
+  const rgbReceiveActions = [
+    { children: <Action network={network} text="Receive sats" />, onClick: handleReceive },
+    { children: <Action network={network} text="Receive RGB asset" />, onClick: handleReceiveRgbToken },
+    ...(network === NETWORK_RGB_TESTNET ? [{ children: <Action network={network} text="Receive over Lightning" />, onClick: handleReceiveRgbLn }] : []),
+    { children: <Action text="Cancel" />, onClick: () => {} },
+  ];
+
   // Render Send button
   const renderSendButton = () => {
     if (network === NETWORK_USDT) {
       return (
         <ActionPopupButton actions={usdtSendActions} title="Choose network to send">
+          <HomeActionButton title="Send" icon={{ name: 'call-made', type: 'material', size: 24 }} onPress={() => {}} testID="SendButton" />
+        </ActionPopupButton>
+      );
+    }
+
+    if (network === NETWORK_RGB_TESTNET) {
+      return (
+        <ActionPopupButton actions={rgbSendActions} title="How to send">
           <HomeActionButton title="Send" icon={{ name: 'call-made', type: 'material', size: 24 }} onPress={() => {}} testID="SendButton" />
         </ActionPopupButton>
       );
@@ -146,6 +179,14 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
       );
     }
 
+    if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+      return (
+        <ActionPopupButton actions={rgbReceiveActions} title="What to receive">
+          <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={() => {}} glow={highlightReceive} testID="ReceiveButton" />
+        </ActionPopupButton>
+      );
+    }
+
     return <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={handleReceive} glow={highlightReceive} testID="ReceiveButton" />;
   };
 
@@ -158,12 +199,38 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
     return <HomeActionButton title="Fund" icon={{ name: 'add', type: 'ionicons', size: 24 }} onPress={handleFund} testID="FundButton" />;
   };
 
+  // RGB-only: lets the user mint a NIA asset directly from the wallet so they
+  // can self-fund test assets without depending on a counterparty.
+  const renderIssueButton = () => {
+    if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) return null;
+    return <HomeActionButton title="Issue" icon={{ name: 'add-circle-outline', type: 'material', size: 24 }} onPress={() => router.push('/issue-asset')} testID="IssueButton" />;
+  };
+
+  // RGB-only debug surface: list colorable UTXOs, allocations attached to
+  // each output, and create more on demand. Helpful when InsufficientAllocationSlots
+  // shows up unexpectedly or a pending blind-receive is holding a slot.
+  const renderUtxosButton = () => {
+    if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) return null;
+    return <HomeActionButton title="UTXOs" icon={{ name: 'view-list', type: 'material', size: 24 }} onPress={() => router.push('/utxo-manager')} testID="UtxosButton" />;
+  };
+
+  // Testnet-only: open an LN channel to an arbitrary peer (e.g. the RGB
+  // faucet bot). Bootstraps outbound liquidity for P2P LN testing where
+  // no external payer is available to seed the wallet via the LSP-JIT path.
+  const renderOpenChannelButton = () => {
+    if (network !== NETWORK_RGB_TESTNET) return null;
+    return <HomeActionButton title="Channel" icon={{ name: 'link', type: 'material', size: 24 }} onPress={() => router.push('/rgb-open-channel')} testID="OpenChannelButton" />;
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.buttonsRow}>
         {renderReceiveButton()}
         {renderSendButton()}
         {renderFundButton()}
+        {renderIssueButton()}
+        {renderUtxosButton()}
+        {renderOpenChannelButton()}
       </View>
     </View>
   );

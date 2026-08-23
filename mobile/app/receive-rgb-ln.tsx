@@ -1,0 +1,338 @@
+import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
+import { Stack, useRouter } from 'expo-router';
+import React, { useContext, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
+
+import Button from '@/components/Button';
+import Pressable from '@/components/Pressable';
+import RadialGradientScreen from '@/components/RadialGradientScreen';
+import ScreenHeader from '@/components/navigation/ScreenHeader';
+import { ThemedText } from '@/components/ThemedText';
+import { RGB_LN_ASSETS, RGB_LSP_BASE_URL, RGB_LSP_MAX_RECEIVE_ASSET_UNITS, RGB_LSP_MAX_RECEIVE_SATS } from '@/src/constants/rgb-lsp';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
+import { NETWORK_RGB_TESTNET } from '@shared/types/networks';
+import type { RgbLnReceiveResult, RgbLnSettlementOutcome } from '@shared/types/rgb-adapter';
+
+// The LN-receive flow is signet-only for now; mainnet stays gated behind
+// flag `showTestnets` *and* hidden in ActionButtons. This screen also guards
+// itself (below) so a deep link can't bypass the action sheet.
+
+export default function ReceiveRgbLnScreen() {
+  const router = useRouter();
+  const { network } = useContext(NetworkContext);
+  const { accountNumber } = useContext(AccountNumberContext);
+
+  const [amountSatsStr, setAmountSatsStr] = useState('');
+  const [amountUsdtStr, setAmountUsdtStr] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<RgbLnReceiveResult | null>(null);
+  const [activeTab, setActiveTab] = useState<'ln' | 'rgb'>('ln');
+  // "Native" (own-node) mode: skips the LSP and generates a BOLT11 from the
+  // wallet's own RLN node — invoice route hints then point at whatever peer
+  // the wallet has a channel with (e.g. the faucet bot in our test loop),
+  // which is what a payer that ALSO peers with that peer needs. Default off
+  // so the everyday LSP-JIT path stays the primary flow.
+  const [nativeMode, setNativeMode] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  const [settlement, setSettlement] = useState<'waiting' | RgbLnSettlementOutcome | 'error'>('waiting');
+  const [settlementError, setSettlementError] = useState<string | null>(null);
+  // `cancelled` guards against a state update after the user navigated away.
+  // It's a ref so the cleanup closure sees the latest value without rebinding.
+  const settlementCancelledRef = useRef(false);
+
+  const usdtAssetId = RGB_LN_ASSETS.signet.usdt;
+  const lspBaseUrl = RGB_LSP_BASE_URL.signet;
+
+  const configurationError = !lspBaseUrl ? 'LSP base URL not configured for signet' : !usdtAssetId ? 'USDT asset id not configured for signet' : null;
+
+  const generate = async () => {
+    setError(null);
+    if (network !== NETWORK_RGB_TESTNET) return; // gated at the top of the render too
+    if (configurationError) {
+      setError(configurationError);
+      return;
+    }
+    const amountSats = Number(amountSatsStr);
+    const amountRgb = Number(amountUsdtStr);
+    if (!Number.isFinite(amountSats) || amountSats <= 0 || !Number.isSafeInteger(amountSats)) {
+      setError('Sats amount must be a positive integer.');
+      return;
+    }
+    // Native (own-node) mode allows any positive amount — the wallet's LN
+    // node signs whatever the user asks for. LSP mode has a server-side
+    // floor around 5000 sats; anything below and the LSP JIT flow rejects
+    // with a not-particularly-user-friendly error. Guard upfront.
+    if (!nativeMode && amountSats < 5000) {
+      setError('LSP receive requires at least 5000 sats. Toggle P2P (own node) for smaller invoices.');
+      return;
+    }
+    // Ceilings mirror the signet LSP's real delivery capacity (see
+    // rgb-lsp.ts / rgb-sdk-rn#51). Above them the LSP still accepts the
+    // mapping but can never deliver, and the sender's on-chain RGB payment
+    // strands at the LSP — so hard-stop here rather than let the user
+    // publish an undeliverable invoice.
+    if (!nativeMode && amountSats > RGB_LSP_MAX_RECEIVE_SATS) {
+      setError(`LSP can deliver at most ${RGB_LSP_MAX_RECEIVE_SATS} sats per payment. Use a smaller amount or toggle P2P (own node).`);
+      return;
+    }
+    if (!Number.isFinite(amountRgb) || amountRgb < 0 || !Number.isSafeInteger(amountRgb)) {
+      setError('USDT amount must be a non-negative integer (base units).');
+      return;
+    }
+    if (!nativeMode && amountRgb <= 0) {
+      setError('LSP receive requires a positive USDT amount.');
+      return;
+    }
+    if (!nativeMode && amountRgb > RGB_LSP_MAX_RECEIVE_ASSET_UNITS) {
+      setError(`LSP can deliver at most ${RGB_LSP_MAX_RECEIVE_ASSET_UNITS} USDT base units per payment (fixed JIT channel capacity). Use a smaller amount.`);
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      if (!(wallet instanceof RgbWallet)) throw new Error('Wallet is not an RgbWallet');
+      if (nativeMode) {
+        const native = await wallet.createNativeLnInvoice({
+          amountSats,
+          assetId: amountRgb > 0 ? usdtAssetId! : undefined,
+          assetAmount: amountRgb > 0 ? amountRgb : undefined,
+        });
+        setResult({ lnInvoice: native.lnInvoice, rgbInvoice: '', mappingId: '' });
+        return;
+      }
+      const r = await wallet.lightningReceiveAsset({
+        assetId: usdtAssetId!,
+        amountSats,
+        amountRgb,
+      });
+      setResult(r);
+    } catch (e: any) {
+      console.warn('lightningReceiveAsset failed:', e);
+      // The most common first-time failure is the LSP's JIT channel never
+      // opens because the wallet has no on-chain tBTC yet — the SDK surfaces
+      // that as `LspChannelTimeoutError` after `waitForChannel` exhausts its
+      // 120s deadline. Humanize so the user knows what to do next instead
+      // of staring at "No usable RGB channel after 120s".
+      if (e?.name === 'LspChannelTimeoutError') {
+        setError('No Lightning channel yet. Top up the wallet with on-chain tBTC first, then try again.');
+      } else {
+        setError(e?.message ?? 'Failed to generate Lightning invoice');
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Kick the settlement watcher once the invoice exists. 90s window strikes
+  // a balance between "user gets prompt feedback" and "real-world LSP routing
+  // latency"; the underlying SDK happily polls forever if we let it.
+  useEffect(() => {
+    if (!result) return;
+    if (network !== NETWORK_RGB_TESTNET) return;
+    // Native-mode invoices come from the wallet's own node — the LSP never
+    // issued them, so `awaitLightningReceiveSettlement` (which polls the
+    // LSP's mapping by lnInvoice) can only 404/timeout. `mappingId === ''`
+    // is the native-mode marker set in `generate`.
+    if (!result.mappingId) return;
+    settlementCancelledRef.current = false;
+    setSettlement('waiting');
+    setSettlementError(null);
+    // AbortController so unmount actually stops the HTTP polling chain
+    // instead of letting it run until the 90s deadline. The cancelled ref
+    // still gates setState in case an in-flight microtask resolves after
+    // the abort but before the catch runs.
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        if (settlementCancelledRef.current) return;
+        if (!(wallet instanceof RgbWallet)) return;
+        const outcome = await wallet.awaitLightningReceiveSettlement({ lnInvoice: result.lnInvoice, timeoutMs: 90_000, signal: controller.signal });
+        if (settlementCancelledRef.current) return;
+        setSettlement(outcome);
+      } catch (e: any) {
+        if (settlementCancelledRef.current) return;
+        setSettlement('error');
+        setSettlementError(e?.message ?? 'Settlement check failed');
+      }
+    })();
+    return () => {
+      settlementCancelledRef.current = true;
+      controller.abort();
+    };
+  }, [result, network, accountNumber]);
+
+  const copyActive = async () => {
+    if (!result) return;
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await Clipboard.setStringAsync(activeTab === 'ln' ? result.lnInvoice : result.rgbInvoice);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  if (network !== NETWORK_RGB_TESTNET) {
+    return (
+      <RadialGradientScreen network={network}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ScreenHeader title="Receive USDT (Lightning)" />
+        <View style={styles.body}>
+          <ThemedText style={styles.error}>USDT Lightning receive is only enabled on RGB signet right now.</ThemedText>
+        </View>
+      </RadialGradientScreen>
+    );
+  }
+
+  if (result) {
+    // Native-mode results carry only a BOLT11 (`rgbInvoice: ''`) — hide the
+    // RGB tab entirely, otherwise switching to it renders <QRCode value="">
+    // which throws "No input text" and crashes the screen.
+    const hasRgbInvoice = Boolean(result.rgbInvoice);
+    const effectiveTab = hasRgbInvoice ? activeTab : 'ln';
+    const active = effectiveTab === 'ln' ? result.lnInvoice : result.rgbInvoice;
+    return (
+      <RadialGradientScreen network={network}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ScreenHeader title="USDT over Lightning" />
+        <ScrollView contentContainerStyle={styles.body}>
+          {hasRgbInvoice ? (
+            <View style={styles.tabRow}>
+              <Pressable style={[styles.tab, effectiveTab === 'ln' && styles.tabActive]} onPress={() => setActiveTab('ln')}>
+                <ThemedText style={styles.tabText}>Lightning</ThemedText>
+              </Pressable>
+              <Pressable style={[styles.tab, effectiveTab === 'rgb' && styles.tabActive]} onPress={() => setActiveTab('rgb')}>
+                <ThemedText style={styles.tabText}>RGB on-chain</ThemedText>
+              </Pressable>
+            </View>
+          ) : null}
+
+          <View style={styles.qrContainer}>{active ? <QRCode value={active} size={280} backgroundColor="#ffffff" color="black" /> : null}</View>
+
+          <Pressable onPress={copyActive} style={styles.invoicePressable}>
+            <ThemedText style={styles.invoiceText} selectable>
+              {active}
+            </ThemedText>
+            <ThemedText style={styles.copyHint}>{isCopied ? 'Copied ✓' : 'Tap to copy'}</ThemedText>
+          </Pressable>
+
+          <ThemedText style={styles.helpText}>
+            {!hasRgbInvoice
+              ? 'Own-node invoice. Sender pays over Lightning through your channel peer; check Transactions for the incoming payment.'
+              : effectiveTab === 'ln'
+                ? 'Sender pays in sats. The LSP fronts the USDT to your channel on settle.'
+                : 'Sender pays the RGB asset directly on-chain. Same logical receive — only one path settles.'}
+          </ThemedText>
+
+          {/* Settlement polling is LSP-only (`awaitLightningReceiveSettlement`
+              looks the invoice up in the LSP's mapping) — native invoices
+              would spin on "Waiting" forever, so hide the row for them. */}
+          {result.mappingId ? (
+            <View style={styles.settlementRow}>
+              {settlement === 'waiting' ? (
+                <>
+                  <ActivityIndicator color="#4FC3F7" />
+                  <ThemedText style={styles.settlementText}>Waiting for payment…</ThemedText>
+                </>
+              ) : settlement === 'settled' ? (
+                <>
+                  <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                  <ThemedText style={styles.settlementText}>Settled</ThemedText>
+                </>
+              ) : settlement === 'timed_out' ? (
+                <>
+                  <Ionicons name="time-outline" size={20} color="#FFAB00" />
+                  <ThemedText style={styles.settlementText}>Still pending — close this screen and check transactions later.</ThemedText>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="alert-circle-outline" size={20} color="#FF6B6B" />
+                  <ThemedText style={styles.settlementText}>{settlementError ?? 'Settlement failed'}</ThemedText>
+                </>
+              )}
+            </View>
+          ) : null}
+
+          <Button title="Done" onPress={() => router.back()} />
+        </ScrollView>
+      </RadialGradientScreen>
+    );
+  }
+
+  return (
+    <RadialGradientScreen network={network}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title="Receive USDT (Lightning)" />
+      <ScrollView contentContainerStyle={styles.body}>
+        {configurationError ? <ThemedText style={styles.warn}>{configurationError}. Receive will fail until upstream values are populated.</ThemedText> : null}
+
+        <Pressable onPress={() => setNativeMode((v) => !v)} style={styles.toggleRow}>
+          <ThemedText style={styles.toggleLabel}>{nativeMode ? '☑' : '☐'} P2P (own node)</ThemedText>
+          <ThemedText style={styles.toggleHint}>
+            {nativeMode
+              ? "Route hints point at your channel peer (e.g. faucet bot). Use when the payer shares that peer but doesn't have a channel to the LSP."
+              : `LSP-JIT flow: no channel needed. 5000–${RGB_LSP_MAX_RECEIVE_SATS} sats, 1–${RGB_LSP_MAX_RECEIVE_ASSET_UNITS} USDT per payment.`}
+          </ThemedText>
+        </Pressable>
+
+        <ThemedText style={styles.label}>Amount in sats</ThemedText>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={amountSatsStr}
+          onChangeText={setAmountSatsStr}
+          placeholder={nativeMode ? 'e.g. 500' : 'e.g. 5000 (LSP minimum)'}
+          placeholderTextColor="#888"
+        />
+
+        <ThemedText style={styles.label}>Amount in USDT (base units) {nativeMode ? '— optional' : ''}</ThemedText>
+        <TextInput
+          style={styles.input}
+          keyboardType="number-pad"
+          value={amountUsdtStr}
+          onChangeText={setAmountUsdtStr}
+          placeholder={nativeMode ? '0 for plain sats' : 'e.g. 1000000'}
+          placeholderTextColor="#888"
+        />
+
+        {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
+
+        <Button title={isGenerating ? 'Generating…' : 'Generate invoice'} onPress={generate} disabled={isGenerating} />
+      </ScrollView>
+    </RadialGradientScreen>
+  );
+}
+
+const styles = StyleSheet.create({
+  body: { padding: 16, gap: 12 },
+  label: { fontSize: 14, opacity: 0.7 },
+  input: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    color: 'white',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  warn: { color: '#FFAB00', fontSize: 13 },
+  error: { color: '#FF6B6B', fontSize: 14 },
+  tabRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)' },
+  tabActive: { backgroundColor: 'rgba(255,255,255,0.2)' },
+  tabText: { color: 'white', fontSize: 14, fontWeight: '600' },
+  qrContainer: { alignItems: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 16 },
+  invoicePressable: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 12 },
+  invoiceText: { color: 'white', fontSize: 12, fontFamily: 'Courier' },
+  copyHint: { color: '#888', fontSize: 12, marginTop: 6, textAlign: 'center' },
+  helpText: { color: '#aaa', fontSize: 13, marginVertical: 8 },
+  settlementRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 4 },
+  settlementText: { color: 'white', fontSize: 14, flex: 1 },
+  toggleRow: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 12, gap: 4 },
+  toggleLabel: { color: 'white', fontSize: 14, fontWeight: '600' },
+  toggleHint: { color: '#aaa', fontSize: 11, lineHeight: 15 },
+});

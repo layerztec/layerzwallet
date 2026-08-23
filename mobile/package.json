@@ -43,6 +43,9 @@
   "jest": {
     "preset": "jest-expo"
   },
+  "overrides": {
+    "uniffi-bindgen-react-native": "0.29.3-1"
+  },
   "dependencies": {
     "@aptabase/react-native": "^0.4.0",
     "@arkade-os/boltz-swap": "0.3.47",
@@ -60,9 +63,10 @@
     "@metamask/eth-sig-util": "8.2.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@noble/curves": "2.0.1",
-    "@noble/hashes": "1.7.1",
+    "@noble/hashes": "^1.8.0",
     "@noble/secp256k1": "1.6.3",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/netinfo": "11.5.2",
     "@react-native-community/slider": "5.1.2",
     "@react-navigation/bottom-tabs": "^7.15.5",
     "@react-navigation/native": "^7.1.33",
@@ -71,6 +75,8 @@
     "@stacks/blockchain-api-client": "8.15.3",
     "@stacks/transactions": "7.4.0",
     "@stacks/wallet-sdk": "7.2.0",
+    "@utexo/rgb-sdk-core": "1.0.0-beta.7",
+    "@utexo/rgb-sdk-rn": "1.0.0-beta.27",
     "assert": "2.1.0",
     "bignumber.js": "9.3.1",
     "bip21": "3.0.0",

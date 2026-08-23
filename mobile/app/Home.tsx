@@ -10,6 +10,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import ActionButtons, { Action } from '@/components/ActionButtons';
 import BackupWarning from '@/components/BackupWarning';
+import RgbBackupBanner from '@/components/RgbBackupBanner';
 import Balance from '@/components/Balance';
 import ReceiveCta from '@/components/ReceiveCta';
 import DashboardTiles, { LayerCard } from '@/components/DashboardTiles';
@@ -386,6 +387,10 @@ export default function Home() {
 
               {/* Seed Backup Warning */}
               {hasBackedUpSeed === false && <BackupWarning onPress={handleBackupSeed} />}
+
+              {/* RGB VSS Backup status banner — only renders on RGB networks
+                  when state is `pending`/`failed`. */}
+              <RgbBackupBanner />
 
               {/* Yield Section (hidden on MCP automation account) */}
               {accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER ? <YieldView ref={yieldViewRef} onYieldPress={handleYieldPress} /> : null}
