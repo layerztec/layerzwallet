@@ -61,9 +61,17 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
   // USDT-over-Lightning (new /send-rgb-ln flow). LN entry only appears on
   // signet — mainnet stays hidden until UTEXO publishes prod constants.
   const handleSendRgbLn = () => router.push('/send-rgb-ln');
+  const handlePayRgbAddress = () => router.push('/pay-rgb-address');
+  const handlePayRgbExternal = () => router.push('/pay-rgb-external');
   const rgbSendActions = [
     { children: <Action network={network} text="Send via RGB on-chain" />, onClick: handleSend },
-    ...(network === NETWORK_RGB_TESTNET ? [{ children: <Action network={network} text="Send over Lightning" />, onClick: handleSendRgbLn }] : []),
+    ...(network === NETWORK_RGB_TESTNET
+      ? [
+          { children: <Action network={network} text="Send over Lightning" />, onClick: handleSendRgbLn },
+          { children: <Action network={network} text="Pay Lightning address" />, onClick: handlePayRgbAddress },
+          { children: <Action network={network} text="Pay external invoice" />, onClick: handlePayRgbExternal },
+        ]
+      : []),
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
@@ -136,10 +144,18 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
   // Only show the LN-receive option on signet (rgb_testnet) — mainnet stays
   // hidden until the LSP URL + USDT asset id come back from UTEXO.
   const handleReceiveRgbLn = () => router.push('/receive-rgb-ln');
+  const handleRgbLightningAddress = () => router.push('/rgb-lightning-address');
+  const handleRequestRgbExternal = () => router.push('/request-rgb-external');
   const rgbReceiveActions = [
     { children: <Action network={network} text="Receive sats" />, onClick: handleReceive },
     { children: <Action network={network} text="Receive RGB asset" />, onClick: handleReceiveRgbToken },
-    ...(network === NETWORK_RGB_TESTNET ? [{ children: <Action network={network} text="Receive over Lightning" />, onClick: handleReceiveRgbLn }] : []),
+    ...(network === NETWORK_RGB_TESTNET
+      ? [
+          { children: <Action network={network} text="Receive over Lightning" />, onClick: handleReceiveRgbLn },
+          { children: <Action network={network} text="My Lightning address" />, onClick: handleRgbLightningAddress },
+          { children: <Action network={network} text="Request external invoice" />, onClick: handleRequestRgbExternal },
+        ]
+      : []),
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
