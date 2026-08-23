@@ -403,6 +403,31 @@ channels) walked the shipping LSP flow end-to-end:
     (3070 disconnects), HTTP API stayed up throughout. Recovered on its
     own; both P2P directions retested green afterward. Worth suggesting
     UTEXO add an LN-process watchdog.
+15. **TWO-ASSET LSP MIGRATION — beta.29 (2026-08-11), code-complete.**
+    UTEXO shipped rgb-sdk-rn beta.29 / core beta.8 with a two-asset LSP
+    model: LNUSDT (payout, in channels; `rgb:vDU5IB7L…`) + USDT
+    (bridge, on-chain; `rgb:f~9F4X0C…`), LSP converts 1:1. Native RLN
+    bumped 0.10.0→**0.11.0-beta.3** (client rebuild REQUIRED). Full
+    parity adopted per product decision (LNUSDT shown as its OWN token
+    row).
+    - Phase 1 core (commit 643634a2): constants reshaped to
+      {payout,bridge}; caps sourced from live `get_info`; createLsp
+      switched to the explicit-peer form (virtual channels OFF — the new
+      LSP serves REAL channels; no-arg form would bake virtual);
+      `fetchTokenBalances` no longer folds channel asset into on-chain by
+      id-equality (would vanish) — surfaces the channel-only payout asset
+      as its own row via `get_info` metadata; receiveAsset returns
+      onchainAssetId/converted; all new LSP methods threaded through the
+      adapter Proxy + wallet forwarders. tsc clean, +1 unit test.
+    - Phases 2-3 (commit ca8dca2e): four new screens wired into the RGB
+      action sheets — My Lightning address, Pay Lightning address,
+      Request external invoice, Pay external invoice.
+    - Phase 4 (device test) PENDING: needs the RLN-0.11 rebuild on both
+      platforms + FRESH wallets (old wallets hold the obsolete asset /
+      virtual channels). Open question: does the faucet bot serve the new
+      bridge USDT `rgb:f~9F4X0C…`? If not, the send-side channel can't be
+      seeded and Phase-3 send legs can't be driven yet; receive + P2P in
+      LNUSDT still testable.
 
 New debug surface added along the way: `waitForLspChannel` partial on
 IRgbWallet + "Wait for LSP JIT channel" button on /rgb-open-channel.
