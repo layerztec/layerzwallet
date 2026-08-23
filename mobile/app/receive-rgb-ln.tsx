@@ -66,7 +66,9 @@ export default function ReceiveRgbLnScreen() {
         if (cancelled || !(wallet instanceof RgbWallet) || !wallet.getLspInfo) return;
         const info = await wallet.getLspInfo();
         if (cancelled) return;
-        setLimits({ minSats: Math.round(info.minPaymentSizeMsat / 1000), maxSats: Math.round(info.maxPaymentSizeMsat / 1000), maxAssetBaseUnits: info.maxChannelAssetAmount });
+        // ceil the floor / floor the ceiling so a non-round msat limit never
+        // lets the user request an amount the LSP would reject.
+        setLimits({ minSats: Math.ceil(info.minPaymentSizeMsat / 1000), maxSats: Math.floor(info.maxPaymentSizeMsat / 1000), maxAssetBaseUnits: info.maxChannelAssetAmount });
       } catch {
         // keep fallback constants
       }

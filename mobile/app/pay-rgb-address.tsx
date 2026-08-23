@@ -77,7 +77,8 @@ export default function PayRgbAddressScreen() {
       setError('Enter a valid Lightning address (user@host).');
       return;
     }
-    if (!Number.isFinite(sats) || sats <= 0 || !Number.isSafeInteger(sats)) {
+    // `sats * 1000` below must itself stay a safe integer.
+    if (!Number.isFinite(sats) || sats <= 0 || !Number.isSafeInteger(sats) || !Number.isSafeInteger(sats * 1000)) {
       setError('Sats amount must be a positive integer.');
       return;
     }

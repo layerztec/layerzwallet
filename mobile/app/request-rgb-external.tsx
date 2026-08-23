@@ -40,7 +40,7 @@ export default function RequestRgbExternalScreen() {
     if (network !== NETWORK_RGB_TESTNET) return;
     const sats = Number(satsStr);
     const assetAmount = Number(assetStr);
-    if (!Number.isFinite(sats) || sats <= 0 || !Number.isSafeInteger(sats)) {
+    if (!Number.isFinite(sats) || sats <= 0 || !Number.isSafeInteger(sats) || !Number.isSafeInteger(sats * 1000)) {
       setError('Sats amount must be a positive integer.');
       return;
     }
