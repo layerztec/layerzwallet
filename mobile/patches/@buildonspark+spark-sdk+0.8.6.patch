@@ -7,7 +7,7 @@ index b2157ca..012d41b 100644
            "import com.sparkfrost.SparkFrostPackage;\nimport com.sparktokenprimitives.SparkTokenPrimitivesPackage;",
          packageInstance:
 -          "new SparkFrostPackage(), new SparkTokenPrimitivesPackage()",
-+          "new com.sparkfrost.SparkFrostPackage(), new com.sparktokenprimitives.SparkTokenPrimitivesPackage()",
++          "new SparkFrostPackage(), new com.sparktokenprimitives.SparkTokenPrimitivesPackage()",
        },
      },
    },
