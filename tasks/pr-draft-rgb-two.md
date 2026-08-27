@@ -456,6 +456,17 @@ channels) walked the shipping LSP flow end-to-end:
       ✗ Lightning-address enable on both wallets: `/apay/new requires a
         live channel with the invoice-host peer` — correct given no
         channel; message surfaced raw in UI (cosmetic, could humanize).
+      **ROOT CAUSE (later same day, faucet revived):** with wallet8 at
+      75k sats, a fresh `receiveAsset` got `HTTP 502: failed /rgbinvoice:
+      RGB Lightning API error 403 "No uncolored UTXOs are available
+      (hint: call createutxos)"` — the **LSP's own RLN node is out of
+      free UTXOs**, so it can neither issue RGB invoices nor fund JIT
+      channels. That single condition explains the whole afternoon: no
+      cron-opened channel for either wallet, and the earlier mapping that
+      sat Pending. HTTP API + rgb-proxy answered fine throughout, so from
+      the client it just looked like silence. Ops fix on UTEXO's side
+      (`createutxos` / refill the LSP node). Client code verified up to
+      that wall.
       Side notes: Android beta.29 cold start on the emulator trips the
       ANR killer (~2-3 min native load; "Wait" recovers) — RLN 0.11 is
       heavier; wallet7 reimport could not restore its old virtual channel
