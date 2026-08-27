@@ -1,7 +1,6 @@
 import * as bip21 from 'bip21';
 import * as bitcoin from 'bitcoinjs-lib';
 import * as bolt11 from 'bolt11';
-import type { Router } from 'expo-router';
 
 import { PosMerchantParams } from '@/app/PosMerchant';
 import { SendParams } from '@/app/send';
@@ -162,7 +161,13 @@ export function parseQrIntent(rawInput: string): QrIntent {
   return { type: 'unknown', raw };
 }
 
-export async function handleQrIntent(rawInput: string, router: Pick<Router, 'push'>): Promise<boolean> {
+type RouterLike = {
+  push: (
+    href: { pathname: './send/withdraw-lightning'; params: WithdrawLightningParams } | { pathname: './send'; params: SendParams } | { pathname: './PosMerchant'; params: PosMerchantParams }
+  ) => void;
+};
+
+export async function handleQrIntent(rawInput: string, router: RouterLike): Promise<boolean> {
   const intent = parseQrIntent(rawInput);
 
   switch (intent.type) {
@@ -174,14 +179,14 @@ export async function handleQrIntent(rawInput: string, router: Pick<Router, 'pus
             network: NETWORK_LIGHTNING,
           };
           router.push({
-            pathname: '/send/withdraw-lightning',
+            pathname: './send/withdraw-lightning',
             params,
           });
           return true;
         }
       } catch (_) {}
       const params: SendParams = { address: intent.invoice, network: NETWORK_LIGHTNING };
-      router.push({ pathname: '/send', params });
+      router.push({ pathname: './send', params });
       return true;
     }
 
@@ -191,13 +196,13 @@ export async function handleQrIntent(rawInput: string, router: Pick<Router, 'pus
         params.amount = intent.amount;
       }
 
-      router.push({ pathname: '/send', params });
+      router.push({ pathname: './send', params });
       return true;
     }
 
     case 'posMerchant': {
       const params: PosMerchantParams = { raw: intent.raw };
-      router.push({ pathname: '/PosMerchant', params });
+      router.push({ pathname: './PosMerchant', params });
       return true;
     }
 

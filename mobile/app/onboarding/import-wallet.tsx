@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -19,7 +19,7 @@ import Pressable from '../../components/Pressable';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -47,8 +47,8 @@ export default function ImportWalletScreen() {
   const buttonTransition = useSequentialSpringAnimation(400);
   const scanButtonTransition = useSequentialSpringAnimation(500);
 
-  const glowAnimation = useRef(new Animated.Value(0)).current;
-  const fadeAnimation = useRef(new Animated.Value(1)).current;
+  const glowAnimation = useMemo(() => new Animated.Value(0), []);
+  const fadeAnimation = useMemo(() => new Animated.Value(1), []);
 
   useEffect(() => {
     if (isLoading) {

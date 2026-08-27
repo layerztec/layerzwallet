@@ -156,8 +156,10 @@ export default function TransferInput() {
   // Fetch pair info (min/max) and refetch quote when assets change
   useEffect(() => {
     if (sendAsset && receiveAsset) {
-      setQuote(undefined);
-      setPairInfo(undefined);
+      const timeout = setTimeout(() => {
+        setQuote(undefined);
+        setPairInfo(undefined);
+      }, 0);
 
       // Fetch pair info for min/max validation
       transferService
@@ -166,37 +168,57 @@ export default function TransferInput() {
         .catch(() => setPairInfo(undefined));
 
       if (sendAmount && parseFloat(sendAmount) > 0) {
-        fetchQuoteFromSend(sendAmount);
+        const timeout = setTimeout(() => {
+          fetchQuoteFromSend(sendAmount);
+        }, 0);
+        return () => clearTimeout(timeout);
       } else if (receiveAmount && parseFloat(receiveAmount) > 0) {
-        fetchQuoteFromReceive(receiveAmount);
+        const timeout = setTimeout(() => {
+          fetchQuoteFromReceive(receiveAmount);
+        }, 0);
+        return () => clearTimeout(timeout);
       }
+
+      return () => clearTimeout(timeout);
     }
   }, [sendAsset, receiveAsset]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Retry receive quote when pairInfo arrives (fetchQuoteFromReceive requires pairInfo)
   useEffect(() => {
     if (pairInfo && !quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && receiveAmount && parseFloat(receiveAmount) > 0 && !sendAmount) {
-      fetchQuoteFromReceive(receiveAmount);
+      const timeout = setTimeout(() => {
+        fetchQuoteFromReceive(receiveAmount);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [pairInfo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Clear input state after a successful transfer so the user can't accidentally re-submit
   useEffect(() => {
     if (committed) {
-      setSendAmount('');
-      setReceiveAmount('');
-      setCommitted(false);
+      const timeout = setTimeout(() => {
+        setSendAmount('');
+        setReceiveAmount('');
+        setCommitted(false);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [committed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-refetch quote when returning from confirm (quote cleared on confirm unmount)
   useEffect(() => {
     if (!quote) {
-      setIsContinuing(false);
+      const timeout = setTimeout(() => {
+        setIsContinuing(false);
+      }, 0);
       isContinuingRef.current = false;
+      return () => clearTimeout(timeout);
     }
     if (!committed && !quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && sendAmount && parseFloat(sendAmount) > 0) {
-      fetchQuoteFromSend(sendAmount);
+      const timeout = setTimeout(() => {
+        fetchQuoteFromSend(sendAmount);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
 

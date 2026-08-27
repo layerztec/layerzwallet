@@ -1,6 +1,6 @@
 import type { PrepareSendResponse } from '@breeztech/breez-sdk-liquid';
 import { Stack } from 'expo-router';
-import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import * as bolt11 from 'bolt11';
 
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -128,7 +128,7 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
   const [createdTransaction, setCreatedTransaction] = useState<CreatedTransaction | undefined>(undefined);
 
   // Create Bitcoin wallet instance once
-  const btcWallet = useRef(new HDSegwitBech32Wallet()).current;
+  const btcWallet = useMemo(() => new HDSegwitBech32Wallet(), []);
 
   // Load Bitcoin-specific data when network is Bitcoin
   useEffect(() => {

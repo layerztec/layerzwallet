@@ -3,7 +3,7 @@ import BigNumber from 'bignumber.js';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, ScrollView, Share, StyleSheet, View } from 'react-native';
 import Pressable from '../components/Pressable';
 import QRCode from 'react-native-qrcode-svg';
@@ -37,9 +37,9 @@ export default function ReceiveScreen() {
   const [oldBalance, setOldBalance] = useState<StringNumber>('');
   const [isCopied, setIsCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const opacityAnim = useRef(new Animated.Value(1)).current;
-  const pressScaleAnim = useRef(new Animated.Value(1)).current;
+  const scaleAnim = useMemo(() => new Animated.Value(1), []);
+  const opacityAnim = useMemo(() => new Animated.Value(1), []);
+  const pressScaleAnim = useMemo(() => new Animated.Value(1), []);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
   const [stacksTokenReceiveInfo, setStacksTokenReceiveInfo] = useState<{
     symbol: string;
@@ -64,8 +64,10 @@ export default function ReceiveScreen() {
 
   useEffect(() => {
     if (!oldBalance && balance) {
-      setOldBalance(balance);
-      return;
+      const timeout = setTimeout(() => {
+        setOldBalance(balance);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [balance, oldBalance]);
 
@@ -140,7 +142,10 @@ export default function ReceiveScreen() {
   }, [network, accountNumber]);
 
   useEffect(() => {
-    fetchAddress();
+    const timeout = setTimeout(() => {
+      void fetchAddress();
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [accountNumber, network, fetchAddress]);
 
   const handleShare = async () => {

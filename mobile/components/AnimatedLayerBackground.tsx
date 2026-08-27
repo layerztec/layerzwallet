@@ -32,8 +32,11 @@ export function AnimatedLayerBackground({ network }: { network: string }) {
 
   useEffect(() => {
     if (network === currentNetwork) return;
-    setPrevNetwork(currentNetwork);
-    setCurrentNetwork(network);
+    const timeout = setTimeout(() => {
+      setPrevNetwork(currentNetwork);
+      setCurrentNetwork(network);
+    }, 0);
+    return () => clearTimeout(timeout);
     // Intentionally sync only when `network` prop changes; `currentNetwork` is read as previous value.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
   }, [network]);

@@ -10,9 +10,13 @@
 const VARIANT = process.env.APP_VARIANT;
 
 module.exports = ({ config }) => {
+  const plugins = Array.isArray(config.plugins) ? config.plugins : [];
+  const mergedPlugins = plugins.includes('expo-status-bar') ? plugins : [...plugins, 'expo-status-bar'];
+
   if (VARIANT === 'devclient') {
     return {
       ...config,
+      plugins: mergedPlugins,
       name: 'Layerz Dev',
       ios: {
         ...config.ios,
@@ -21,5 +25,8 @@ module.exports = ({ config }) => {
     };
   }
 
-  return config;
+  return {
+    ...config,
+    plugins: mergedPlugins,
+  };
 };
