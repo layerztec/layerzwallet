@@ -10,6 +10,7 @@ import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { humanizeLspError } from '@/src/modules/rgb-lsp-errors';
 import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -96,7 +97,7 @@ export default function PayRgbAddressScreen() {
       const r = await wallet.payAddress({ address: trimmedAddr, amtMsat: sats * 1000, asset: { assetAmount } });
       setResult(r);
     } catch (e: any) {
-      setError(e?.message ?? 'Failed to pay Lightning address');
+      setError(humanizeLspError(e, 'Failed to pay Lightning address'));
     } finally {
       setSending(false);
     }

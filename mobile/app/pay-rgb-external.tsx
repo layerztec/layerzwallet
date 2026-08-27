@@ -10,6 +10,7 @@ import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { humanizeLspError } from '@/src/modules/rgb-lsp-errors';
 import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -57,7 +58,7 @@ export default function PayRgbExternalScreen() {
       setResult(r);
       setStatus(r.status ?? null);
     } catch (e: any) {
-      setError(e?.message ?? 'Failed to pay external invoice');
+      setError(humanizeLspError(e, 'Failed to pay external invoice'));
     } finally {
       setSending(false);
     }

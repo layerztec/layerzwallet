@@ -11,6 +11,7 @@ import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { humanizeLspError } from '@/src/modules/rgb-lsp-errors';
 import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -47,7 +48,7 @@ export default function RgbLightningAddressScreen() {
         const a = await wallet.enableLightningAddress();
         if (!cancelled) setInfo(a);
       } catch (e: any) {
-        if (!cancelled) setError(e?.message ?? 'Failed to enable Lightning address');
+        if (!cancelled) setError(humanizeLspError(e, 'Failed to enable Lightning address'));
       } finally {
         if (!cancelled) setLoading(false);
       }

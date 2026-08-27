@@ -11,6 +11,7 @@ import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { humanizeLspError } from '@/src/modules/rgb-lsp-errors';
 import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -56,7 +57,7 @@ export default function RequestRgbExternalScreen() {
       const inv = await wallet.requestExternalInvoice({ amtMsat: sats * 1000, assetAmount });
       setInvoice(inv);
     } catch (e: any) {
-      setError(e?.message ?? 'Failed to request external invoice');
+      setError(humanizeLspError(e, 'Failed to request external invoice'));
     } finally {
       setLoading(false);
     }
