@@ -895,7 +895,9 @@ export const estimateFee = async function (numberOfBlocks: number): Promise<numb
   numberOfBlocks = numberOfBlocks || 1;
   const coinUnitsPerKilobyte = await mainClient.blockchainEstimatefee(numberOfBlocks);
   if (coinUnitsPerKilobyte === -1) return 1;
-  return Math.round(new BigNumber(coinUnitsPerKilobyte).dividedBy(1024).multipliedBy(100000000).toNumber());
+  // ceil (not round) so a sub-1 sat/vB estimate never floors to 0, which would build an
+  // unbroadcastable (below min-relay-fee) transaction when the mempool is near-empty
+  return Math.ceil(new BigNumber(coinUnitsPerKilobyte).dividedBy(1024).multipliedBy(100000000).toNumber());
 };
 
 export const serverFeatures = async function () {
