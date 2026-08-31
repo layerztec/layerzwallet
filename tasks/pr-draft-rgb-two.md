@@ -482,6 +482,32 @@ Note for the ledger: hot-reload during testing still reproduces
 rgb-sdk-rn#47 ("RLN node already exists" → "RLN node is not created")
 — force-quit + relaunch remains the workaround.
 
+### wallet9 stand-up (Android, 2026-08-31) — second fresh peer for P2P legs
+
+wallet7's pubkey is burned (LSP opens once per peer), so the Android
+side got a fresh wallet9. Progress:
+
+- Funded on-chain from wallet8 (iOS): 20,000 sats to
+  `tb1pa0mm2…hwh8`, mined within a minute (esplora confirmed).
+- `receiveAsset` (5000 sats / 1,000,000 base units) on the
+  receive-rgb-ln screen returned the two-asset pair as designed:
+  Lightning tab (BOLT11) + RGB on-chain tab with a **bridge-USDT**
+  rgbInvoice (`rgb:f~9F4X0C-…/…/sb:utxob:…`).
+- Faucet `getasset` paid the rgbInvoice ("I'm now sending 100000000
+  USDT"), witness tx `c22442b6…` broadcast and mined immediately.
+- Now waiting on the LSP delivery leg (channel open on first mapping
+  delivery, as established with wallet8); bounded 45-min monitor
+  polls the Android home for a non-zero LNUSDT row.
+
+Automation gotcha (iOS): the simulator had a Russian hardware keyboard
+layout active, so `idb ui text` typed Cyrillic — the send screen
+rejected the address ("Invalid address" with `005в9ь4йтссф…` in the
+field). Fix: drop the RU layout via
+`simctl spawn $SIM defaults write .GlobalPreferences AppleKeyboards
+-array "en_GB@sw=QWERTY;hw=Automatic"` + app restart. Long-press
+paste menus never show up under idb, so typing is the only reliable
+path — keep the sim on a Latin layout.
+
 ## Known gaps / follow-ups
 
 - **BLOCKER for prod: mobile VSS shim fakes backup success.**
