@@ -508,6 +508,41 @@ field). Fix: drop the RU layout via
 paste menus never show up under idb, so typing is the only reliable
 path — keep the sim on a Latin layout.
 
+### wallet10 run (2026-08-31 evening) — clean cycle, LSP-side stall
+
+wallet9 got burned too: its first mapping expired during the hour the
+node was offline (an automation bug killed the app), and a second paid
+mapping on the same pubkey never triggered a channel — 40+ min online,
+peer link up, faucet tx confirmed. Second data point for **"the LSP
+attempts a channel once per peer"** (first was wallet7).
+
+So wallet10 (third fresh Android wallet) ran the tight cycle with no
+offline gaps: funded 20k from wallet8 → `receiveAsset` (5000 sats /
+1,000,000 base units) → faucet paid the bridge invoice → witness tx
+`c1862328…` mined at 16:59 → node stayed online, LSP peer connection
+stable with zero disconnects. Result after 75+ minutes: mapping stuck
+at `INBOUND_AUTO_CLAIM Pending`, **no channel-open events at all** in
+the LDK log (no open_channel/funding_created).
+
+Cross-checks that isolate this to the LSP side:
+- `get_info` healthy, `/lightning_receive` healthy (a second probe
+  invoice was issued cleanly — so the LSP's RLN node has UTXOs; this
+  is NOT a repeat of the 403 NoAvailableUtxos outage).
+- Our first invoice's mapping expired at +1h (matches wallet9's
+  Failed-at-exactly-1h pattern), so the delivery window was simply
+  never acted on. Conversion/channel-open worker on the LSP looks
+  stalled.
+
+Report drafted for UTEXO (pending user approval), including the
+burned-peer question: a pubkey whose first mapping expires never gets
+another channel attempt — that bricks any user who goes offline for
+an hour after their first receive.
+
+iOS automation notes added this session: sim RU hardware keyboard made
+`idb ui text` type Cyrillic (drop layout via .GlobalPreferences); the
+Expo dev-client floating "Tools" bubble parks exactly over our
+SettingsButton and eats taps — drag it away first.
+
 ## Known gaps / follow-ups
 
 - **BLOCKER for prod: mobile VSS shim fakes backup success.**
