@@ -543,6 +543,25 @@ iOS automation notes added this session: sim RU hardware keyboard made
 Expo dev-client floating "Tools" bubble parks exactly over our
 SettingsButton and eats taps — drag it away first.
 
+### wallet11 retest (2026-09-07) — LSP fixed, full delivery in ~6 min ✅
+
+UTEXO reported LSP-side errors (InsufficientAssets, openchannel failed)
+in our test window and said they were cleared. Retest on a fresh
+wallet11 (old AVD lost wallet10 state over the week gap):
+
+- faucet `getbtc` 50k sats (tx `e04ba0a5…`, confirmed <1 min)
+- `receiveAsset` 5000 sats / 1,000,000 units → bridge USDT invoice →
+  faucet `getasset` paid
+- LSP delivery this time was immediate: `funding_created` 07:29 UTC →
+  `channel_ready` 07:32 (channel `3b25f645…`) → `PaymentClaimed` 07:33
+  — about 6 minutes end-to-end from the faucet payment.
+- Home shows the LNUSDT token row ("1 LNUSDT") with on-chain USDT at 0,
+  matching the two-asset design.
+
+Confirms the wallet9/wallet10 stalls were the LSP-side outage, not our
+client. Still open with UTEXO: the burned-peer question (a pubkey whose
+first mapping expired never got another channel attempt).
+
 ## Known gaps / follow-ups
 
 - **BLOCKER for prod: mobile VSS shim fakes backup success.**
