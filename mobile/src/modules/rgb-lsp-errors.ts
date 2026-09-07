@@ -15,8 +15,17 @@ const NO_CHANNEL_YET = /requires a live channel|did not provision a Lightning Ad
 export const LSP_NO_CHANNEL_HINT =
   'Not available yet — the LSP first has to open your Lightning channel. That happens automatically a minute or two after the wallet connects (it needs some tBTC on-chain). Try again shortly.';
 
+// "invoice is payable to this LSP itself" (HTTP 400 on /lightning_send): the
+// user pasted a hosted invoice from a wallet on the SAME LSP. Those settle via
+// a Lightning-address / P2P payment instead — the external-invoice path is only
+// for invoices issued outside this LSP.
+const LOOP_TO_OWN_LSP = /payable to this LSP itself/i;
+
+export const LSP_LOOP_HINT = 'This invoice was issued by your own LSP. Pay that wallet via its Lightning address instead — external invoices are only for payees outside this LSP.';
+
 export function humanizeLspError(e: unknown, fallback: string): string {
   const msg = (e as any)?.message ?? (typeof e === 'string' ? e : '');
   if (NO_CHANNEL_YET.test(msg)) return LSP_NO_CHANNEL_HINT;
+  if (LOOP_TO_OWN_LSP.test(msg)) return LSP_LOOP_HINT;
   return msg || fallback;
 }

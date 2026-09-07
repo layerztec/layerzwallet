@@ -562,6 +562,38 @@ Confirms the wallet9/wallet10 stalls were the LSP-side outage, not our
 client. Still open with UTEXO: the burned-peer question (a pubkey whose
 first mapping expired never got another channel attempt).
 
+### Full-parity legs green (2026-09-07) — LA P2P ✅, external-invoice legs verified to design limits
+
+wallet8 (iOS, holds 1 LNUSDT from the 08-31 run — channel survived the
+week) × wallet11 (Android, 1 LNUSDT):
+
+1. **enableLightningAddress** (wallet11): `opal-jungle-2875@lsp-signet.utexo.com`,
+   200 receive slots. ✅
+2. **discoverAddress** preview on wallet8's pay screen: "Pays out in:
+   LNUSDT / Accepts: LNUSDT, USDT". ✅
+3. **payAddress** wallet8 → wallet11, 3000 sats / 500,000 base units:
+   result "Paid in LNUSDT (no conversion)" (`assetSelection.converted
+   === false` — direct payout path), second `PaymentClaimed` on
+   wallet11 within ~2 min. Balances reconcile: wallet8 1 → 0.5 LNUSDT
+   (tx row "Sent 0.5 LNUSDT, −0.00003 tBTC"), wallet11 1 → 1.5 LNUSDT. ✅
+4. **requestExternalInvoice** (wallet11), 3000 sats / 300,000 units:
+   hosted BOLT11 issued (427 chars), quote "Quoted in USDT (you receive
+   your payout asset, LSP converts 1:1)". ✅
+5. **payExternalInvoice** (wallet8 paying wallet11's hosted invoice):
+   LSP rejects with HTTP 400 `invoice is payable to this LSP itself` —
+   by design, the external path is only for invoices issued OUTSIDE
+   this LSP; same-LSP wallets settle via Lightning address (leg 3).
+   The client path (decode → /lightning_send → error surfaced) works;
+   a full positive test needs an external Lightning node, which this
+   rig doesn't have. Added the rejection to `humanizeLspError`
+   (LSP_LOOP_HINT) + unit test (7 passing).
+
+Session automation notes: scratchpad helpers (ios-els.py/and-els.py)
+were wiped by the week gap — silent empty output with `2>/dev/null`;
+recreated. Android AVD from the earlier sessions was lost; wallet11
+lives on Pixel_API_29_AOSP. Expo dev-client "Tools" bubble again had to
+be dragged off the Settings button.
+
 ## Known gaps / follow-ups
 
 - **BLOCKER for prod: mobile VSS shim fakes backup success.**

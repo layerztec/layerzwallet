@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { LSP_NO_CHANNEL_HINT, humanizeLspError } from '../../modules/rgb-lsp-errors';
+import { LSP_LOOP_HINT, LSP_NO_CHANNEL_HINT, humanizeLspError } from '../../modules/rgb-lsp-errors';
 
 describe('humanizeLspError', () => {
   it.each([
@@ -10,6 +10,10 @@ describe('humanizeLspError', () => {
     'No usable RGB channel after 120s',
   ])('maps the "no channel yet" family to one actionable hint: %s', (msg) => {
     expect(humanizeLspError(new Error(msg), 'fallback')).toBe(LSP_NO_CHANNEL_HINT);
+  });
+
+  it('explains the own-LSP loop rejection on the external-invoice path', () => {
+    expect(humanizeLspError(new Error('LSP /lightning_send → HTTP 400: {"error":"invoice is payable to this LSP itself"}'), 'fallback')).toBe(LSP_LOOP_HINT);
   });
 
   it('passes unrelated errors through verbatim so they stay diagnosable', () => {
