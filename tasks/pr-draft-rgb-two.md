@@ -594,6 +594,30 @@ recreated. Android AVD from the earlier sessions was lost; wallet11
 lives on Pixel_API_29_AOSP. Expo dev-client "Tools" bubble again had to
 be dragged off the Settings button.
 
+### Burned-peer retest (2026-09-09) — FIXED by UTEXO's update ✅
+
+Reproduced the exact wallet9 failure shape on fresh wallet12 against
+the post-fix LSP:
+
+1. `receiveAsset` (5000 sats / 1M units) → faucet paid the bridge
+   invoice at 12:32 → **app force-killed immediately**, node held
+   offline 68 min. Mapping `847e907e…` expired and flipped to
+   `Failed` on relaunch — same burned-peer precondition as wallet9.
+2. Second `receiveAsset` on the SAME pubkey (`0282b1e1…`) at 13:56 →
+   faucet paid → LSP opened channel `379bfe9b…` within a minute
+   (`funding_created` 13:56, `channel_ready` 13:59), mapping
+   `9ac4d475…` → `Succeeded`, 1,000,000 LNUSDT delivered.
+
+Conclusion: the "one channel attempt per peer" brick is gone — a peer
+whose first paid mapping expires now gets a channel on the next paid
+mapping. Closes the last open LSP question from the 08-31 runs.
+
+Automation notes: the switcher has BOTH an "Rgb" (mainnet) card and an
+"Rgb_testnet" card — selecting mainnet RGB hangs the app ("Timeout
+while waiting for rgb[0] lock" LogBox spam + ANR deadlock; only
+force-stop recovers). The LN receive screen's P2P checkbox sits right
+above the sats field — a mis-tap flips it and changes the form.
+
 ## Known gaps / follow-ups
 
 - **BLOCKER for prod: mobile VSS shim fakes backup success.**
