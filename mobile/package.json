@@ -146,6 +146,7 @@
   },
   "devDependencies": {
     "@babel/core": "7.26.0",
+    "@react-native/metro-config": "0.83.4",
     "@types/bs58check": "2.1.2",
     "@types/chrome": "0.1.36",
     "@types/create-hash": "1.2.6",
