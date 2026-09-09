@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { AllNetworkInfos } from '../models/all-network-infos';
@@ -16,6 +17,8 @@ import {
   NETWORK_LIGHTNING_TESTNET,
   NETWORK_LIQUID,
   NETWORK_LIQUID_TESTNET,
+  NETWORK_RGB,
+  NETWORK_RGB_TESTNET,
   NETWORK_ROOTSTOCK,
   NETWORK_SPARK,
   NETWORK_STACKS,
@@ -101,6 +104,12 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
       return await wallet.getCommonTransactions();
     }
 
+    if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+      const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
+      assert(wallet instanceof RgbWallet, 'Not an RGB wallet');
+      return await wallet.getCommonTransactions();
+    }
+
     if (network === NETWORK_USDT) {
       // join Liquid and Rootstock, filter by token transactions
       const liquidTxs = await backgroundCaller.getCommonTransactions(NETWORK_LIQUID, accountNumber);
@@ -137,6 +146,11 @@ export function useTransactions(network: Networks, accountNumber: number, backgr
     case NETWORK_SPARK:
     case NETWORK_ARK_MUTINYNET:
       refreshInterval = 20_000;
+      break;
+
+    case NETWORK_RGB:
+    case NETWORK_RGB_TESTNET:
+      refreshInterval = 60_000;
       break;
 
     case NETWORK_LIGHTNING:

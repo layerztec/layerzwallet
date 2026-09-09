@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
 import { Stack, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useRef, useState } from 'react';
@@ -9,22 +10,31 @@ import RadialGradientScreen from '@/components/RadialGradientScreen';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
 import TokensView from '@/components/TokensView';
+import { LayerzStorage } from '@/src/class/layerz-storage';
 import { overlayBackgroundDeeper } from '@shared/constants/Colors';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
+import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
+import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
+import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
 import { getIsAccountBased, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { validateAddress } from '@shared/modules/wallet-utils';
-import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_RGB, NETWORK_RGB_TESTNET } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { useSendFlow } from './_layout';
 
 const SendAddress: React.FC = () => {
   const { scanQr } = useContext(ScanQrContext);
   const router = useRouter();
+  const { accountNumber } = useContext(AccountNumberContext);
   const { network, address: contextAddress, setAddress: setContextAddress, token, setToken, setAmount, setDenomination, setMemo } = useSendFlow();
+  const { tokenList } = useTokenDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
 
   const [localAddress, setLocalAddress] = useState(contextAddress);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const inputRef = useRef<TextInput>(null);
+
+  const isRgb = network === NETWORK_RGB || network === NETWORK_RGB_TESTNET;
 
   const handleScanQR = useCallback(async () => {
     const scanned = await scanQr();
@@ -56,6 +66,30 @@ const SendAddress: React.FC = () => {
         throw new Error('Invalid address');
       }
       setContextAddress(localAddress);
+
+      // RGB invoices typically embed an asset id and amount. Decode here so the
+      // user doesn't have to retype what the invoice already specifies — and so
+      // we don't conflict with rgb-lib's `sendBegin`, which returns an empty
+      // PSBT when both the invoice's amount and a separate `amount` arg are
+      // passed.
+      if (isRgb && (localAddress.startsWith('rgb:') || localAddress.startsWith('utxob:'))) {
+        const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        if (wallet instanceof RgbWallet) {
+          const decoded = await wallet.decodeInvoice(localAddress);
+          if (decoded) {
+            const matchedToken = decoded.assetId ? tokenList?.find((t) => t.id === decoded.assetId) : undefined;
+            if (matchedToken) setToken(matchedToken.id);
+            if (typeof decoded.amount === 'number' && matchedToken) {
+              const human = new BigNumber(decoded.amount).dividedBy(new BigNumber(10).pow(matchedToken.decimals)).toFixed();
+              setAmount(human);
+              // Invoice fully specifies the transfer → skip amount entry.
+              router.push('/send/send-confirm');
+              return;
+            }
+          }
+        }
+      }
+
       if (getIsEVM(network)) {
         router.push('/send/send-amount-evm');
       } else if (getIsAccountBased(network)) {

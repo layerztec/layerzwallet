@@ -8,7 +8,7 @@ import { getDeviceID } from '@shared/modules/device-id';
 import { clearWalletCache, lazyInitWallet, sanitizeAndValidateMnemonic, saveBitcoinXpubs, saveWalletState, setMasterSeed, getMasterSeed } from '@shared/modules/wallet-utils';
 import { IBackgroundCaller, MessageType, MessageTypeMap, OpenPopupRequest, ProcessRPCRequest } from '@shared/types/IBackgroundCaller';
 import { ENCRYPTED_PREFIX, STORAGE_KEY_EVM_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_RGB, NETWORK_RGB_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
 import { Csprng } from '../../src/class/rng';
 import { LayerzStorage } from '../class/layerz-storage';
 import { SecureStorage } from '../class/secure-storage';
@@ -87,6 +87,8 @@ export const BackgroundExtensionExecutor: Pick<IBackgroundCaller, TMethods> = {
       return await aw.getOffchainReceiveAddress();
     } else if (network === NETWORK_SPARK) {
       throw new Error('this should never happen: temporarily executed on the spot in the BackgroundCaller'); // fixme
+    } else if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+      throw new Error('this should never happen: RGB runs in the Popup context (WASM + IndexedDB) via BackgroundCaller');
     } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
       const wallet = await lazyInitWallet(network, accountNumber, LayerzStorage, SecureStorage);
       assert(wallet instanceof BreezWallet);

@@ -35,6 +35,9 @@ export default function OnboardingImport() {
       return;
     } else {
       await BackgroundCaller.setMasterSeed(sanitizedSeed);
+      // Marks this onboarding flow as restore-from-seed so the
+      // post-password step routes through the VSS reachability gate.
+      sessionStorage.setItem('rgb.justImported', '1');
       setStep(EStep.PASSWORD);
     }
   };
