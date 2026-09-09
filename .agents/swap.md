@@ -51,6 +51,7 @@ getTrackingUrl?(execution): string | undefined
 - **Model**: Fixed quotes only. Deposit address flow. 15-min quote expiry.
 - **API**: `shared/services/sideshift-api.ts` — `sideshift.ai/api/v2`
 - **Mappings**: `shared/services/sideshift-mappings.ts`
+- **Offline pre-flight**: `getQuote` fetches `/coins` (`depositOffline`/`settleOffline`, cached 5 min in `SideshiftApi.getCoins`) in parallel with `/quotes` and throws `"<ticker> on <network> is temporarily unavailable"` when the pair's network is paused. Fails open if `/coins` is unreachable or malformed; `SHIFT_UNAVAILABLE` from `/quotes` is mapped to the same friendly wording. `getPairInfo` deliberately does not pre-flight: the manager swallows its errors and the UI needs `pairInfo` for receive-side entry.
 - **Fee**: Real spread `(depositAmount * rate) - settleAmount`
 - **Tracking**: `sideshift.ai/orders/{providerId}`
 - Affiliate ID: `uYB9AagC9`
@@ -195,7 +196,6 @@ Tests: `shared/tests/unit-vi/mcp-calls-spark-deposit.test.ts`.
 - `shared/tests/unit-vi/transfer-service-spark-exit.test.ts`
 - `shared/tests/unit-vi/transfer-service-manager.test.ts`
 - `shared/tests/unit-vi/transfer-service-native-deposit.test.ts`
-- `shared/tests/unit-vi/sideshift-mappings.test.ts`
 - `shared/tests/unit-vi/use-transaction-history.test.ts`
 - `shared/tests/unit-vi/use-asset-balance.test.ts`
 - `shared/tests/integration-vi/sideshift-transfer.test.ts`

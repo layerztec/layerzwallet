@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { SideshiftShiftStatus } from '../../services/sideshift-api';
+import { SideshiftShiftStatus, isNetworkOffline } from '../../services/sideshift-api';
 import { toSideshiftAsset, isSideshiftSupported, toSideshiftMethodId } from '../../services/sideshift-mappings';
 import { SideshiftTransferService, mapSideshiftStatus } from '../../services/transfer-service-sideshift';
 import { STORAGE_KEY_SIDESHIFT_TRANSFERS } from '../../types/IStorage';
@@ -9,6 +9,35 @@ import { DepositAddressExecution, EXECUTION_DEPOSIT, TransferQuote } from '../..
 
 const BTC_ASSET = 'native:bitcoin' as const;
 const LBTC_ASSET = 'native:liquid' as const;
+const RBTC_ASSET = 'native:rootstock' as const;
+
+const COINS_ONLINE = [
+  { coin: 'BTC', networks: ['bitcoin', 'liquid'], name: 'Bitcoin', depositOffline: false, settleOffline: false },
+  { coin: 'RBTC', networks: ['rootstock'], name: 'Rootstock', depositOffline: false, settleOffline: false },
+];
+const COINS_LIQUID_PAUSED = [{ ...COINS_ONLINE[0], depositOffline: ['liquid'], settleOffline: ['liquid'] }, COINS_ONLINE[1]];
+
+const PAIR_OK = {
+  min: '0.00007409',
+  max: '0.44452242',
+  rate: '0.980999391257',
+  depositCoin: 'BTC',
+  settleCoin: 'BTC',
+  depositNetwork: 'bitcoin',
+  settleNetwork: 'liquid',
+};
+
+const QUOTE_OK = {
+  id: 'quote-abc123',
+  depositAmount: '0.01',
+  settleAmount: '0.00981',
+  rate: '0.981',
+  expiresAt: new Date(Date.now() + 900_000).toISOString(),
+  depositCoin: 'BTC',
+  settleCoin: 'BTC',
+  depositNetwork: 'bitcoin',
+  settleNetwork: 'liquid',
+};
 
 function createMockStorage() {
   const store: Record<string, string> = {};
@@ -46,6 +75,23 @@ function mockFetchResponse(data: any, ok = true, status = 200) {
   });
 }
 
+type Route = { body: any; ok?: boolean; status?: number };
+
+/** Route fetch mock by API path prefix (e.g. '/coins', '/pair', '/quotes'). Unmocked paths get 404. */
+function mockFetchByUrl(fetchSpy: ReturnType<typeof vi.spyOn>, routes: Record<string, Route>) {
+  fetchSpy.mockImplementation((url: any) => {
+    const path = new URL(String(url)).pathname.replace('/api/v2', '');
+    const hit = Object.entries(routes).find(([prefix]) => path.startsWith(prefix));
+    if (!hit) return mockFetchResponse({ error: { message: `unmocked ${path}` } }, false, 404);
+    const { body, ok = true, status = 200 } = hit[1];
+    return mockFetchResponse(body, ok, status);
+  });
+}
+
+function fetchedPaths(fetchSpy: ReturnType<typeof vi.spyOn>): string[] {
+  return fetchSpy.mock.calls.map((c) => new URL(String(c[0])).pathname.replace('/api/v2', ''));
+}
+
 describe('SideshiftTransferService', () => {
   let service: SideshiftTransferService;
   let storage: ReturnType<typeof createMockStorage>;
@@ -63,17 +109,7 @@ describe('SideshiftTransferService', () => {
 
   describe('getPairInfo', () => {
     it('returns min/max/rate for a valid pair', async () => {
-      fetchSpy.mockImplementation(() =>
-        mockFetchResponse({
-          min: '0.00007409',
-          max: '0.44452242',
-          rate: '0.980999391257',
-          depositCoin: 'BTC',
-          settleCoin: 'BTC',
-          depositNetwork: 'bitcoin',
-          settleNetwork: 'liquid',
-        })
-      );
+      mockFetchByUrl(fetchSpy, { '/pair': { body: PAIR_OK } });
 
       const info = await service.getPairInfo!(BTC_ASSET, LBTC_ASSET);
       expect(info.min).toBe('0.00007409');
@@ -84,19 +120,7 @@ describe('SideshiftTransferService', () => {
 
   describe('getQuote', () => {
     it('returns a valid quote', async () => {
-      fetchSpy.mockImplementation(() =>
-        mockFetchResponse({
-          id: 'quote-abc123',
-          depositAmount: '0.01',
-          settleAmount: '0.00981',
-          rate: '0.981',
-          expiresAt: new Date(Date.now() + 900_000).toISOString(),
-          depositCoin: 'BTC',
-          settleCoin: 'BTC',
-          depositNetwork: 'bitcoin',
-          settleNetwork: 'liquid',
-        })
-      );
+      mockFetchByUrl(fetchSpy, { '/coins': { body: COINS_ONLINE }, '/quotes': { body: QUOTE_OK } });
 
       const quote = await service.getQuote(BTC_ASSET, LBTC_ASSET, '0.01');
       expect(quote.id).toBe('quote-abc123');
@@ -107,9 +131,131 @@ describe('SideshiftTransferService', () => {
     });
 
     it('surfaces API errors', async () => {
-      fetchSpy.mockImplementation(() => mockFetchResponse({ error: { message: 'Amount below minimum' } }, false, 400));
+      mockFetchByUrl(fetchSpy, { '/coins': { body: COINS_ONLINE }, '/quotes': { body: { error: { message: 'Amount below minimum' } }, ok: false, status: 400 } });
 
       await expect(service.getQuote(BTC_ASSET, LBTC_ASSET, '0.0000001')).rejects.toThrow('Amount below minimum');
+    });
+
+    it('maps SHIFT_UNAVAILABLE from /quotes to a friendly message', async () => {
+      mockFetchByUrl(fetchSpy, {
+        '/coins': { body: COINS_ONLINE },
+        '/quotes': { body: { error: { message: 'Settle method unavailable', code: 'SHIFT_UNAVAILABLE' } }, ok: false, status: 400 },
+      });
+
+      await expect(service.getQuote(BTC_ASSET, LBTC_ASSET, '0.01')).rejects.toThrow('BTC → L-BTC is temporarily unavailable');
+    });
+  });
+
+  describe('offline networks', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('getQuote throws when settle network is paused (array form), even if /quotes succeeds', async () => {
+      mockFetchByUrl(fetchSpy, { '/coins': { body: COINS_LIQUID_PAUSED }, '/quotes': { body: QUOTE_OK } });
+
+      await expect(service.getQuote(BTC_ASSET, LBTC_ASSET, '0.01')).rejects.toThrow('L-BTC on Liquid is temporarily unavailable');
+    });
+
+    it('getQuote throws when deposit network is paused', async () => {
+      mockFetchByUrl(fetchSpy, { '/coins': { body: COINS_LIQUID_PAUSED }, '/quotes': { body: QUOTE_OK } });
+
+      await expect(service.getQuote(LBTC_ASSET, BTC_ASSET, '0.01')).rejects.toThrow('L-BTC on Liquid is temporarily unavailable');
+    });
+
+    it('prefers the pause message over a generic /quotes failure', async () => {
+      mockFetchByUrl(fetchSpy, {
+        '/coins': { body: COINS_LIQUID_PAUSED },
+        '/quotes': { body: { error: { message: 'Settle method unavailable', code: 'SHIFT_UNAVAILABLE' } }, ok: false, status: 400 },
+      });
+
+      await expect(service.getQuote(BTC_ASSET, LBTC_ASSET, '0.01')).rejects.toThrow('L-BTC on Liquid is temporarily unavailable');
+    });
+
+    it('fetches /coins and /quotes in parallel', async () => {
+      const started: string[] = [];
+      fetchSpy.mockImplementation((url: any) => {
+        const path = new URL(String(url)).pathname.replace('/api/v2', '');
+        started.push(path);
+        return new Promise((resolve) => setTimeout(() => resolve({ ok: true, status: 200, json: () => Promise.resolve(path === '/coins' ? COINS_ONLINE : QUOTE_OK) }), 20));
+      });
+
+      const p = service.getQuote(BTC_ASSET, LBTC_ASSET, '0.01');
+      await Promise.resolve();
+      expect(started).toEqual(['/coins', '/quotes']);
+      await p;
+    });
+
+    it('getPairInfo does not pre-flight /coins (manager swallows its errors, UI needs pairInfo)', async () => {
+      mockFetchByUrl(fetchSpy, { '/coins': { body: COINS_LIQUID_PAUSED }, '/pair': { body: PAIR_OK } });
+
+      const info = await service.getPairInfo!(BTC_ASSET, LBTC_ASSET);
+      expect(info.rate).toBe('0.980999391257');
+      expect(fetchedPaths(fetchSpy)).not.toContain('/coins');
+    });
+
+    it('treats boolean true as paused for a single-network coin', async () => {
+      const coins = [COINS_ONLINE[0], { ...COINS_ONLINE[1], settleOffline: true }];
+      mockFetchByUrl(fetchSpy, { '/coins': { body: coins }, '/quotes': { body: QUOTE_OK } });
+
+      await expect(service.getQuote(BTC_ASSET, RBTC_ASSET, '0.01')).rejects.toThrow('RBTC on Rootstock is temporarily unavailable');
+    });
+
+    it('does not block when a different network of the same coin is paused', async () => {
+      mockFetchByUrl(fetchSpy, { '/coins': { body: COINS_LIQUID_PAUSED }, '/quotes': { body: QUOTE_OK } });
+
+      const quote = await service.getQuote(BTC_ASSET, RBTC_ASSET, '0.01');
+      expect(quote.id).toBe('quote-abc123');
+    });
+
+    it('falls through to /quotes when /coins fails', async () => {
+      mockFetchByUrl(fetchSpy, { '/coins': { body: {}, ok: false, status: 500 }, '/quotes': { body: QUOTE_OK } });
+
+      const quote = await service.getQuote(BTC_ASSET, LBTC_ASSET, '0.01');
+      expect(quote.id).toBe('quote-abc123');
+    });
+
+    it('falls through to /quotes when /coins is a malformed 200 and does not cache it', async () => {
+      const routes: Record<string, Route> = { '/coins': { body: {} }, '/quotes': { body: QUOTE_OK } };
+      mockFetchByUrl(fetchSpy, routes);
+
+      const quote = await service.getQuote(BTC_ASSET, LBTC_ASSET, '0.01');
+      expect(quote.id).toBe('quote-abc123');
+
+      routes['/coins'] = { body: COINS_LIQUID_PAUSED };
+      await expect(service.getQuote(BTC_ASSET, LBTC_ASSET, '0.01')).rejects.toThrow('L-BTC on Liquid is temporarily unavailable');
+      expect(fetchedPaths(fetchSpy).filter((p) => p === '/coins')).toHaveLength(2);
+    });
+
+    it('treats coins missing from /coins as online', async () => {
+      mockFetchByUrl(fetchSpy, { '/coins': { body: [] }, '/quotes': { body: QUOTE_OK } });
+
+      const quote = await service.getQuote(BTC_ASSET, LBTC_ASSET, '0.01');
+      expect(quote.id).toBe('quote-abc123');
+    });
+
+    it('caches /coins within TTL and refetches after it expires', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      mockFetchByUrl(fetchSpy, { '/coins': { body: COINS_ONLINE }, '/quotes': { body: QUOTE_OK } });
+
+      await service.getQuote(BTC_ASSET, LBTC_ASSET, '0.01');
+      await service.getQuote(BTC_ASSET, LBTC_ASSET, '0.01');
+      expect(fetchedPaths(fetchSpy).filter((p) => p === '/coins')).toHaveLength(1);
+
+      vi.setSystemTime(Date.now() + 5 * 60_000);
+      await service.getQuote(BTC_ASSET, LBTC_ASSET, '0.01');
+      expect(fetchedPaths(fetchSpy).filter((p) => p === '/coins')).toHaveLength(2);
+    });
+
+    it('does not cache a failed /coins fetch', async () => {
+      const routes: Record<string, Route> = { '/coins': { body: {}, ok: false, status: 500 }, '/quotes': { body: QUOTE_OK } };
+      mockFetchByUrl(fetchSpy, routes);
+
+      await service.getQuote(BTC_ASSET, LBTC_ASSET, '0.01');
+      routes['/coins'] = { body: COINS_LIQUID_PAUSED };
+
+      await expect(service.getQuote(BTC_ASSET, LBTC_ASSET, '0.01')).rejects.toThrow('L-BTC on Liquid is temporarily unavailable');
+      expect(fetchedPaths(fetchSpy).filter((p) => p === '/coins')).toHaveLength(2);
     });
   });
 
@@ -372,6 +518,18 @@ describe('mapSideshiftStatus', () => {
     ['refunded', 'refunded'],
   ])('maps %s → %s', (input, expected) => {
     expect(mapSideshiftStatus(input)).toBe(expected);
+  });
+});
+
+describe('isNetworkOffline', () => {
+  it.each<[string[] | boolean | undefined, string, boolean]>([
+    [['liquid'], 'liquid', true],
+    [['liquid'], 'bitcoin', false],
+    [true, 'rootstock', true],
+    [false, 'rootstock', false],
+    [undefined, 'rootstock', false],
+  ])('isNetworkOffline(%j, %s) → %s', (offline, network, expected) => {
+    expect(isNetworkOffline(offline, network)).toBe(expected);
   });
 });
 
