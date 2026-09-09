@@ -5,6 +5,7 @@
 
 const BASE_URL = 'https://sideshift.ai/api/v2';
 const REQUEST_TIMEOUT = 5_000;
+const COINS_CACHE_TTL_MS = 5 * 60_000;
 
 export class SideshiftApiError extends Error {
   constructor(
@@ -22,6 +23,15 @@ export interface SideshiftCoin {
   networks: string[];
   name: string;
   hasMemo?: boolean;
+  /** Networks currently paused for deposits. Array of network ids, or `true` when a single-network coin is paused. */
+  depositOffline?: string[] | boolean;
+  /** Networks currently paused for settlement. Array of network ids, or `true` when a single-network coin is paused. */
+  settleOffline?: string[] | boolean;
+}
+
+/** Interprets SideShift's `depositOffline` / `settleOffline` field for a given network. */
+export function isNetworkOffline(offline: string[] | boolean | undefined, network: string): boolean {
+  return Array.isArray(offline) ? offline.includes(network) : offline === true;
 }
 
 export interface SideshiftPairInfo {
@@ -84,6 +94,7 @@ export interface CreateFixedShiftParams {
 
 export class SideshiftApi {
   private affiliateId?: string;
+  private coinsCache?: { promise: Promise<SideshiftCoin[]>; fetchedAt: number };
 
   constructor(affiliateId?: string) {
     this.affiliateId = affiliateId;
@@ -123,8 +134,20 @@ export class SideshiftApi {
     }
   }
 
+  /** Cached for COINS_CACHE_TTL_MS. Concurrent callers share one in-flight request; failures are not cached. */
   async getCoins(): Promise<SideshiftCoin[]> {
-    return this.request<SideshiftCoin[]>('GET', '/coins');
+    const now = Date.now();
+    if (!this.coinsCache || now - this.coinsCache.fetchedAt >= COINS_CACHE_TTL_MS) {
+      const promise = this.request<SideshiftCoin[]>('GET', '/coins').then((coins) => {
+        if (!Array.isArray(coins)) throw new SideshiftApiError('Malformed /coins response', 200, coins);
+        return coins;
+      });
+      this.coinsCache = { promise, fetchedAt: now };
+      promise.catch(() => {
+        if (this.coinsCache?.promise === promise) this.coinsCache = undefined;
+      });
+    }
+    return this.coinsCache.promise;
   }
 
   async getPair(depositMethodId: string, settleMethodId: string): Promise<SideshiftPairInfo> {

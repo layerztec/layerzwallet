@@ -2,7 +2,7 @@ import { getAssetInfo, toAssetId } from '../models/asset-info';
 import { IStorage, STORAGE_KEY_SIDESHIFT_TRANSFERS } from '../types/IStorage';
 import { AssetId } from '../types/asset';
 import { EXECUTION_DEPOSIT, ITransferService, isTerminalStatus, TimelineStep, TransferExecution, TransferPair, TransferPairInfo, TransferQuote, TransferStatus } from '../types/transfer';
-import { SideshiftApi, SideshiftApiError, SideshiftShiftStatus } from './sideshift-api';
+import { isNetworkOffline, SideshiftApi, SideshiftApiError, SideshiftCoin, SideshiftShiftStatus } from './sideshift-api';
 import { isSideshiftSupported, toSideshiftAsset, toSideshiftMethodId } from './sideshift-mappings';
 
 const PRUNE_AGE_SECONDS = 7 * 24 * 60 * 60; // 7 days
@@ -50,12 +50,30 @@ export class SideshiftTransferService implements ITransferService {
     return pairs;
   }
 
+  /**
+   * Checks SideShift's /coins pause lists. Not used in getPairInfo: the manager swallows
+   * getPairInfo errors and the UI needs pairInfo for receive-side entry, so blocking there
+   * would hide the error instead of showing it.
+   */
+  private assertOnline(coins: SideshiftCoin[], sendAsset: AssetId, receiveAsset: AssetId): void {
+    const check = (assetId: AssetId, field: 'depositOffline' | 'settleOffline') => {
+      const { coin, network } = toSideshiftAsset(assetId);
+      const entry = coins.find((c) => c.coin === coin);
+      if (entry && isNetworkOffline(entry[field], network)) {
+        const info = getAssetInfo(assetId);
+        throw new Error(`${info.ticker} on ${info.networkDisplayName} is temporarily unavailable`);
+      }
+    };
+    check(sendAsset, 'depositOffline');
+    check(receiveAsset, 'settleOffline');
+  }
+
   async getPairInfo(sendAsset: AssetId, receiveAsset: AssetId): Promise<TransferPairInfo> {
     const from = toSideshiftAsset(sendAsset);
     const to = toSideshiftAsset(receiveAsset);
     const pair = await this.api.getPair(toSideshiftMethodId(from), toSideshiftMethodId(to));
     if (!pair.min || !pair.max || !pair.rate) {
-      throw new Error('Pair is currently unavailable on SideShift');
+      throw new Error('Pair is temporarily unavailable');
     }
     return {
       min: pair.min,
@@ -78,13 +96,31 @@ export class SideshiftTransferService implements ITransferService {
     const from = toSideshiftAsset(sendAsset);
     const to = toSideshiftAsset(receiveAsset);
 
-    const quoteResponse = await this.api.createQuote({
-      depositCoin: from.coin,
-      depositNetwork: from.network,
-      settleCoin: to.coin,
-      settleNetwork: to.network,
-      depositAmount: sendAmount,
-    });
+    // /coins and /quotes run in parallel so the pause check adds no latency
+    const [coinsResult, quoteResult] = await Promise.allSettled([
+      this.api.getCoins(),
+      this.api.createQuote({
+        depositCoin: from.coin,
+        depositNetwork: from.network,
+        settleCoin: to.coin,
+        settleNetwork: to.network,
+        depositAmount: sendAmount,
+      }),
+    ]);
+
+    // Fail-open: if /coins is unreachable or malformed, let the /quotes result decide
+    if (coinsResult.status === 'fulfilled') {
+      this.assertOnline(coinsResult.value, sendAsset, receiveAsset);
+    }
+
+    if (quoteResult.status === 'rejected') {
+      const e = quoteResult.reason;
+      if (e instanceof SideshiftApiError && e.responseBody?.error?.code === 'SHIFT_UNAVAILABLE') {
+        throw new Error(`${sendAssetInfo.ticker} → ${receiveAssetInfo.ticker} is temporarily unavailable`);
+      }
+      throw e;
+    }
+    const quoteResponse = quoteResult.value;
 
     const deposit = parseFloat(quoteResponse.depositAmount);
     const settle = parseFloat(quoteResponse.settleAmount);
