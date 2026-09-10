@@ -36,7 +36,10 @@ export default function Transaction({ transaction, onPress }: TransactionProps) 
   }, [isZeroAmountWithSingleToken, transaction.tokenTransfers]);
 
   useEffect(() => {
-    setImageLoadError(false);
+    const timeout = setTimeout(() => {
+      setImageLoadError(false);
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [transaction.txid, singleTokenInfo?.logoURI]);
 
   const formattedTransactionAmount = useMemo(() => {

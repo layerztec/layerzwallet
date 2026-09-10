@@ -28,15 +28,15 @@ export default function TabsLayout() {
       >
         <NativeTabs.Trigger name="home" disableAutomaticContentInsets={Platform.OS === 'android'} contentStyle={{ backgroundColor: '#000' }}>
           <NativeTabs.Trigger.Label>Layerz</NativeTabs.Trigger.Label>
-          <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/layerz.png')} />
+          <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/layerz.png')} md="home" />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="swaps" disableAutomaticContentInsets={Platform.OS === 'android'} contentStyle={{ backgroundColor: '#000' }}>
           <NativeTabs.Trigger.Label>Transfer</NativeTabs.Trigger.Label>
-          <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/swap.png')} />
+          <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/swap.png')} md="swap_horiz" />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="explorer" disableAutomaticContentInsets={Platform.OS === 'android'} contentStyle={{ backgroundColor: '#000' }}>
           <NativeTabs.Trigger.Label>Explorer</NativeTabs.Trigger.Label>
-          <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/explorer.png')} />
+          <NativeTabs.Trigger.Icon src={require('@/assets/images/ui/explorer.png')} md="public" />
         </NativeTabs.Trigger>
       </NativeTabs>
     );

@@ -22,6 +22,7 @@ const ReceiveCta: React.FC<ReceiveCtaProps> = ({ onDismiss }) => {
 
   // Fade out first, then notify the parent to remove it and persist the dismissed flag.
   const handleDismiss = () => {
+    // eslint-disable-next-line react-hooks/immutability
     opacity.value = withTiming(0, { duration: FADE_OUT_DURATION }, (finished) => {
       if (finished) {
         scheduleOnRN(onDismiss);

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Image, Animated, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter, useNavigation } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@shared/constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';

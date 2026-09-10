@@ -42,15 +42,21 @@ export const DAppBrowserTabItem: React.FC<DAppBrowserTabItemProps> = ({ tab, isV
   useEffect(() => {
     // Reset error state when screenshot changes
     if (tab.screenshot) {
-      setImageError(false);
-      setHasLoaded(false);
-      setReloadToken((v) => v + 1);
+      const timeout = setTimeout(() => {
+        setImageError(false);
+        setHasLoaded(false);
+        setReloadToken((v) => v + 1);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [tab.screenshot]);
 
   useEffect(() => {
     if (isVisible) {
-      setImageError(false);
+      const timeout = setTimeout(() => {
+        setImageError(false);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [isVisible]);
 

@@ -6,74 +6,76 @@ appId: com.layerzwallet.mobile
 
 - runFlow: skip-dev-client.yml
 
-- extendedWaitUntil:
-    visible: 'Create Wallet'
-    timeout: 15000
-- tapOn: 'Create Wallet'
-- waitForAnimationToEnd
-- tapOn: 'Continue'
+# Some retries can reopen directly into home; only run onboarding when needed.
+- runFlow:
+    when:
+      visible: 'Create Wallet'
+    commands:
+      - tapOn: 'Create Wallet'
+      - waitForAnimationToEnd
+      - tapOn: 'Continue'
 
-# Wait for navigation to complete and the mnemonic screen to appear
-- extendedWaitUntil:
-    visible: 'Your recovery phrase'
-    timeout: 60000
+      # Wait for navigation to complete and the mnemonic screen to appear
+      - extendedWaitUntil:
+          visible: 'Your recovery phrase'
+          timeout: 60000
 
-# Verify we see the instruction text
-- assertVisible: 'Make sure to write it down as shown here. You have to verify this later.'
+      # Verify we see the instruction text
+      - assertVisible: 'Make sure to write it down as shown here. You have to verify this later.'
 
-# Verify the "Skip" button is available and enabled
-- assertVisible:
-    id: 'SkipButton'
-    enabled: true
+      # Verify the "Skip" button is available and enabled
+      - assertVisible:
+          id: 'SkipButton'
+          enabled: true
 
-- tapOn:
-    id: 'SkipButton'
+      - tapOn:
+          id: 'SkipButton'
 
-# Skip goes directly to ToS screen (no "Continue" screen). Wait for ToS to be ready.
-- extendedWaitUntil:
-    visible: 'Wallet created\nsuccessfully'
-    timeout: 15000
+      # Skip goes directly to ToS screen (no "Continue" screen). Wait for ToS to be ready.
+      - extendedWaitUntil:
+          visible: 'Wallet created\nsuccessfully'
+          timeout: 15000
 
-# Verify success message
-- assertVisible: 'Wallet created\nsuccessfully'
-- assertVisible:
-    id: 'TosSubtitle'
+      # Verify success message
+      - assertVisible: 'Wallet created\nsuccessfully'
+      - assertVisible:
+          id: 'TosSubtitle'
 
-# Check the backup recovery phrase checkbox
-- assertVisible:
-    id: 'BackupRecoveryPhraseCheckbox'
-- tapOn:
-    id: 'BackupRecoveryPhraseCheckbox'
-- waitForAnimationToEnd
+      # Check the backup recovery phrase checkbox
+      - assertVisible:
+          id: 'BackupRecoveryPhraseCheckbox'
+      - tapOn:
+          id: 'BackupRecoveryPhraseCheckbox'
+      - waitForAnimationToEnd
 
-# Check the terms of service checkbox
-- assertVisible:
-    id: 'TermsOfServiceCheckbox'
-- tapOn:
-    id: 'TermsOfServiceCheckbox'
-- waitForAnimationToEnd
+      # Check the terms of service checkbox
+      - assertVisible:
+          id: 'TermsOfServiceCheckbox'
+      - tapOn:
+          id: 'TermsOfServiceCheckbox'
+      - waitForAnimationToEnd
 
-# Wait for button to become enabled
-- waitForAnimationToEnd
-- waitForAnimationToEnd
+      # Wait for button to become enabled and visible
+      - extendedWaitUntil:
+          visible:
+            id: 'LetsGoButton'
+            enabled: true
+          timeout: 10000
 
-# Wait for button to become enabled and visible
-- extendedWaitUntil:
-    visible:
-      id: 'LetsGoButton'
-      enabled: true
-    timeout: 10000
+      # Tap the button
+      - tapOn:
+          id: 'LetsGoButton'
+      - waitForAnimationToEnd
 
-# Tap the button
-- tapOn:
-    id: 'LetsGoButton'
-- waitForAnimationToEnd
-
-# After wallet creation, the modal starts minimized, so we need to tap on a network card to expand it
-# Tap on the Bitcoin network card to expand the modal
-- tapOn:
-    id: 'network-bitcoin'
-- waitForAnimationToEnd
+      # After wallet creation, the modal starts minimized, so we need to tap on a network card to expand it.
+      - runFlow:
+          when:
+            visible:
+              id: 'network-bitcoin'
+          commands:
+            - tapOn:
+                id: 'network-bitcoin'
+            - waitForAnimationToEnd
 
 # Wait for home screen with Send & Receive buttons
 - assertVisible:

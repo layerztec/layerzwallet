@@ -74,9 +74,22 @@ appId: com.layerzwallet.mobile
       - tapOn:
           id: 'ReceiveOnLightningAddressWithAmountButton'
       - waitForAnimationToEnd
-      - runFlow: subflows/sleep.yml # button is not tappable immediately
-      - tapOn:
-          id: 'ReceiveOnSparkButton'
+      - runFlow: subflows/sleep.yml # modal button can appear with slight delay
+      - extendedWaitUntil:
+          visible: 'Layer to receive on'
+          timeout: 15000
+      - runFlow:
+          when:
+            visible:
+              id: 'ReceiveOnSparkButton'
+          commands:
+            - tapOn:
+                id: 'ReceiveOnSparkButton'
+      - runFlow:
+          when:
+            visible: 'Receive on Spark'
+          commands:
+            - tapOn: 'Receive on Spark'
       - extendedWaitUntil:
           visible:
             id: 'ReceiveLightningAmountInput'

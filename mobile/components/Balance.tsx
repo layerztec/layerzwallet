@@ -99,44 +99,44 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);
 
-  const [displayBalance, displaySubBalance] = useMemo<[string, string]>(() => {
-    let pairs: [string | undefined, number | undefined][] = []; // pair of balance and exchange rate
-    let totalBalance = BN(0);
-    let totalUsdValue = BN(0);
-    let noFiat = false;
+  const pairs: [string | undefined, number | undefined][] =
+    network === NETWORK_LIGHTNING
+      ? [
+          [sparkBalance, sparkExchangeRate],
+          [liquidBalance, liquidExchangeRate],
+          [arkBalance, arkExchangeRate],
+        ]
+      : [[liquidBalance, liquidExchangeRate]];
 
-    if (network === NETWORK_LIGHTNING) {
-      pairs = [
-        [sparkBalance, sparkExchangeRate],
-        [liquidBalance, liquidExchangeRate],
-        [arkBalance, arkExchangeRate],
-      ];
-    } else if (network === NETWORK_LIGHTNING_TESTNET) {
-      pairs = [[liquidBalance, liquidExchangeRate]];
+  let displayBalance = '—';
+  let displaySubBalance = '—';
+  let totalBalance = BN(0);
+  let totalUsdValue = BN(0);
+  let noFiat = false;
+  let hasUndefinedBalance = false;
+
+  for (const [balanceValue, exchangeRate] of pairs) {
+    if (balanceValue === undefined) {
+      hasUndefinedBalance = true;
+      break;
     }
 
-    for (const [balance, exchangeRate] of pairs) {
-      if (balance === undefined) {
-        // if balance is undefined, we can't calculate anything
-        return ['—', '—'];
-      } else if (balance === '0') {
-        // if balance is 0, we don't need to calculate exchange rate
-        continue;
-      } else if (!exchangeRate) {
-        // if there is no exchange rate, we can't calculate fiat value
-        totalBalance = totalBalance.plus(BN(balance));
-        noFiat = true;
-      } else if (exchangeRate) {
-        // all good
-        totalBalance = totalBalance.plus(BN(balance));
-        totalUsdValue = totalUsdValue.plus(BN(balance).times(exchangeRate));
-      } else {
-        return ['Error', 'Error']; // should never happen
-      }
+    if (balanceValue === '0') {
+      continue;
     }
 
-    return [formatBalance(totalBalance.toString(), decimals), noFiat ? '—' : totalUsdValue.dividedBy(BN(10).pow(decimals)).toFixed(2)];
-  }, [network, sparkBalance, liquidBalance, decimals, sparkExchangeRate, liquidExchangeRate, arkBalance, arkExchangeRate]);
+    totalBalance = totalBalance.plus(BN(balanceValue));
+    if (!exchangeRate) {
+      noFiat = true;
+    } else {
+      totalUsdValue = totalUsdValue.plus(BN(balanceValue).times(exchangeRate));
+    }
+  }
+
+  if (!hasUndefinedBalance) {
+    displayBalance = formatBalance(totalBalance.toString(), decimals);
+    displaySubBalance = noFiat ? '—' : totalUsdValue.dividedBy(BN(10).pow(decimals)).toFixed(2);
+  }
 
   const icons = useMemo(() => {
     const networks = network === NETWORK_LIGHTNING ? [NETWORK_SPARK, NETWORK_ARK, NETWORK_LIQUID] : [NETWORK_LIQUID_TESTNET];

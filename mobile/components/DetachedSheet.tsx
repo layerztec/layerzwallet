@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
   },
   gradientContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 32,
     overflow: 'hidden',
   },
@@ -131,13 +131,13 @@ const styles = StyleSheet.create({
     height: 800,
   },
   blurOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   blurOverlayExtended: {
     bottom: -BLUR_EXTEND_BOTTOM,
   },
   borderOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 32,
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.1)',

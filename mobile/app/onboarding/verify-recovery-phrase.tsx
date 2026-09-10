@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, Animated, FlatList, LayoutAnimation, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -91,7 +91,7 @@ export default function VerifyRecoveryPhrase() {
   const [shouldAnimateButtons, setShouldAnimateButtons] = useState<boolean>(false);
   const [verificationComplete, setVerificationComplete] = useState<boolean>(false);
   const verifyButtonAnimation = useSequentialSpringAnimation(shouldAnimateButtons ? BUTTON_ANIMATION_DELAY_MS : 0);
-  const buttonOpacity = useRef(new Animated.Value(ENABLED_OPACITY)).current;
+  const buttonOpacity = useMemo(() => new Animated.Value(ENABLED_OPACITY), []);
 
   usePreventScreenCapture();
 
@@ -115,7 +115,10 @@ export default function VerifyRecoveryPhrase() {
 
       // Shuffle the words
       const shuffled = shuffleArray(wordsWithData);
-      setScrambledWords(shuffled);
+      const timeout = setTimeout(() => {
+        setScrambledWords(shuffled);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [recoveryPhrase, shuffleArray]);
 

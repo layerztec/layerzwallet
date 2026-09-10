@@ -24,9 +24,14 @@ export default function TransferList({ transferService, onTransferPress, activeO
   }, [transferService, accountNumber, activeOnly]);
 
   useEffect(() => {
-    fetchExecutions();
+    const timeout = setTimeout(() => {
+      void fetchExecutions();
+    }, 0);
     const interval = setInterval(fetchExecutions, 10000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
   }, [fetchExecutions]);
 
   if (executions.length === 0) {

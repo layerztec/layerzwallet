@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useContext } from 'react';
+import React, { useState, useRef, useEffect, useContext, useMemo } from 'react';
 import Pressable from '../components/Pressable';
 import { StyleSheet, TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,9 +28,9 @@ export default function UnlockPassword() {
 
   const passwordInputRef = useRef<TextInput>(null);
 
-  const shakeAnimation = useRef(new Animated.Value(0)).current;
-  const scaleAnimation = useRef(new Animated.Value(1)).current;
-  const passwordBorderAnimation = useRef(new Animated.Value(1)).current; // Start with focused state
+  const shakeAnimation = useMemo(() => new Animated.Value(0), []);
+  const scaleAnimation = useMemo(() => new Animated.Value(1), []);
+  const passwordBorderAnimation = useMemo(() => new Animated.Value(1), []); // Start with focused state
 
   const titleTransition = useSequentialSpringAnimation(200);
   const subtitleTransition = useSequentialSpringAnimation(400);

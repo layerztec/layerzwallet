@@ -82,18 +82,21 @@ export const AuthStateContextProvider: React.FC<{ children: ReactNode }> = (prop
   // Set initial authentication state based on biometric settings (only once)
   useEffect(() => {
     if (isInitialized && isSettingsLoaded && !hasInitializedAuth) {
-      setHasInitializedAuth(true);
+      const timeout = setTimeout(() => {
+        setHasInitializedAuth(true);
 
-      // Capture the biometric setting at initialization time
-      const biometricEnabledAtInit = settings.biometricAuth === 'ON';
+        // Capture the biometric setting at initialization time
+        const biometricEnabledAtInit = settings.biometricAuth === 'ON';
 
-      if (biometricEnabledAtInit) {
-        // If biometrics are enabled, start unauthenticated
-        setIsAuthenticated(false);
-      } else {
-        // If biometrics are disabled, start authenticated (no auth required)
-        setIsAuthenticated(true);
-      }
+        if (biometricEnabledAtInit) {
+          // If biometrics are enabled, start unauthenticated
+          setIsAuthenticated(false);
+        } else {
+          // If biometrics are disabled, start authenticated (no auth required)
+          setIsAuthenticated(true);
+        }
+      }, 0);
+      return () => clearTimeout(timeout);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInitialized, isSettingsLoaded, hasInitializedAuth]);

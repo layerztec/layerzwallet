@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { StyleSheet, TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -20,12 +20,12 @@ export default function CreatePasswordScreen() {
   const [isRepeatPasswordFocused, setIsRepeatPasswordFocused] = useState(false);
   const router = useRouter();
 
-  const shakeAnimation = useRef(new Animated.Value(0)).current;
-  const errorFadeAnimation = useRef(new Animated.Value(0)).current;
-  const inputBorderAnimation = useRef(new Animated.Value(0)).current;
-  const scaleAnimation = useRef(new Animated.Value(1)).current;
-  const passwordBorderAnimation = useRef(new Animated.Value(0)).current;
-  const repeatPasswordBorderAnimation = useRef(new Animated.Value(0)).current;
+  const shakeAnimation = useMemo(() => new Animated.Value(0), []);
+  const errorFadeAnimation = useMemo(() => new Animated.Value(0), []);
+  const inputBorderAnimation = useMemo(() => new Animated.Value(0), []);
+  const scaleAnimation = useMemo(() => new Animated.Value(1), []);
+  const passwordBorderAnimation = useMemo(() => new Animated.Value(0), []);
+  const repeatPasswordBorderAnimation = useMemo(() => new Animated.Value(0), []);
 
   const repeatPasswordInputRef = useRef<TextInput>(null);
 
