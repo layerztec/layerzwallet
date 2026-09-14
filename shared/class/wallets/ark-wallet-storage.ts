@@ -45,6 +45,10 @@ const deserializeAsset = (a: StoredAsset) => {
   if (typeof a.amount === 'number' && !Number.isSafeInteger(a.amount)) {
     throw new Error(`Unsafe legacy asset amount for ${a.assetId}`);
   }
+  // digits only: BigInt('') is 0n, so a truncated write would otherwise become a silent zero balance
+  if (typeof a.amount === 'string' && !/^\d+$/.test(a.amount)) {
+    throw new Error(`Malformed asset amount for ${a.assetId}`);
+  }
   return {
     assetId: a.assetId,
     amount: typeof a.amount === 'bigint' ? a.amount : BigInt(a.amount),
@@ -285,7 +289,22 @@ export const stringifyUtxoList = (utxos: ExtendedCoin[]): string => JSON.stringi
 export const parseStoredTransactionList = (raw: string): ArkTransaction[] => {
   const parsed: unknown = JSON.parse(raw);
   if (!Array.isArray(parsed)) return [];
-  return parsed.map((tx) => deserializeTransaction(tx as ArkTransaction & { assets?: StoredAsset[] }));
+
+  const txs: ArkTransaction[] = [];
+  for (const entry of parsed) {
+    const row = entry as ArkTransaction & { assets?: StoredAsset[] };
+    try {
+      // downstream code addresses transactions by tx.key, so a row without one is unusable
+      if (!row?.key || typeof row.key !== 'object' || Array.isArray(row.key)) {
+        console.warn('ARK storage: skipping malformed transaction row');
+        continue;
+      }
+      txs.push(deserializeTransaction(row));
+    } catch (error) {
+      console.warn('ARK storage: skipping corrupt transaction row', row?.key?.arkTxid, error);
+    }
+  }
+  return txs;
 };
 
 export const stringifyTransactionList = (txs: ArkTransaction[]): string => JSON.stringify(txs.map(serializeTransaction));

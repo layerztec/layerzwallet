@@ -45,8 +45,8 @@
   },
   "dependencies": {
     "@aptabase/react-native": "^0.4.0",
-    "@arkade-os/boltz-swap": "0.3.47",
-    "@arkade-os/sdk": "0.4.42",
+    "@arkade-os/boltz-swap": "0.3.57",
+    "@arkade-os/sdk": "0.4.52",
     "@atomiqlabs/chain-evm": "2.4.5",
     "@atomiqlabs/sdk": "8.8.4",
     "@bitcoinerlab/secp256k1": "1.2.0",

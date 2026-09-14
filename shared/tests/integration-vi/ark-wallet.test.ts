@@ -2,6 +2,7 @@ import assert from 'assert';
 import { beforeEach, test } from 'vitest';
 import { ArkWallet } from '../../class/wallets/ark-wallet';
 import { IStorage } from '../../types/IStorage';
+import { NETWORK_ARK } from '../../types/networks';
 
 // In-memory storage — do not persist under /tmp; stale VTXO caches survive CI/local
 // reruns and block incremental sync after Arkade server signer rotation.
@@ -47,8 +48,7 @@ test('ark mainnet can check balance', async (context) => {
 
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
-  w.setArkServerUrl('https://arkade.computer');
-  w.setBoltzApiUrl('https://api.ark.boltz.exchange');
+  w.setArkadeNetwork(NETWORK_ARK);
   await w.init(storageMock);
 
   const offchainBalance = await w.getOffchainBalance();
@@ -66,8 +66,7 @@ test.skip('ark mainnet can check if our invoice is paid', async (context) => {
 
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
-  w.setArkServerUrl('https://arkade.computer');
-  w.setBoltzApiUrl('https://api.ark.boltz.exchange');
+  w.setArkadeNetwork(NETWORK_ARK);
   await w.init(storageMock);
 
   // TODO: put data in storage
@@ -90,8 +89,7 @@ test('ark mainnet switch accounts', async (context) => {
 
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
-  w.setArkServerUrl('https://arkade.computer');
-  w.setBoltzApiUrl('https://api.ark.boltz.exchange');
+  w.setArkadeNetwork(NETWORK_ARK);
   await w.init(storageMock);
 
   //
@@ -119,8 +117,7 @@ test.skip('ark mainnet can create lightning invoice', async (context) => {
 
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
-  w.setArkServerUrl('https://arkade.computer');
-  w.setBoltzApiUrl('https://api.ark.boltz.exchange');
+  w.setArkadeNetwork(NETWORK_ARK);
 
   await w.init(storageMock);
   await w.initLightningSwaps();
@@ -140,8 +137,7 @@ test.skip('ark mainnet can pay lightning invoice', async (context) => {
 
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
-  w.setArkServerUrl('https://arkade.computer');
-  w.setBoltzApiUrl('https://api.ark.boltz.exchange');
+  w.setArkadeNetwork(NETWORK_ARK);
   await w.init(storageMock);
 
   const start = Date.now();
