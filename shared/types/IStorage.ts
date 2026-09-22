@@ -7,6 +7,11 @@ export const STORAGE_KEY_ACCEPTED_TOS = 'STORAGE_KEY_ACCEPTED_TOS';
 export const STORAGE_KEY_SERIALIZED = 'STORAGE_KEY_SERIALIZED';
 export const STORAGE_KEY_SETTINGS = 'STORAGE_KEY_SETTINGS';
 export const STORAGE_KEY_SEED_VERIFIED = 'STORAGE_KEY_SEED_VERIFIED';
+/** One-shot onboarding flag: seed was just imported (vs freshly created), so
+ * the post-password step routes through the RGB VSS reachability gate.
+ * Persistent storage on purpose — an MV3 popup loses sessionStorage whenever
+ * it closes, which happens on any focus loss. */
+export const STORAGE_KEY_RGB_JUST_IMPORTED = 'STORAGE_KEY_RGB_JUST_IMPORTED';
 export const STORAGE_KEY_SIDESHIFT_TRANSFERS = 'STORAGE_KEY_SIDESHIFT_TRANSFERS';
 export const STORAGE_KEY_NATIVE_DEPOSIT_TRANSFERS = 'STORAGE_KEY_NATIVE_DEPOSIT_TRANSFERS';
 export const STORAGE_KEY_GARDEN_TRANSFERS = 'STORAGE_KEY_GARDEN_TRANSFERS';
@@ -16,7 +21,22 @@ export const STORAGE_KEY_SPARK_EXIT_TRANSFERS = 'STORAGE_KEY_SPARK_EXIT_TRANSFER
 export const STORAGE_KEY_ATOMIQ_TRANSFERS = 'STORAGE_KEY_ATOMIQ_TRANSFERS';
 export const STORAGE_KEY_SPARK_REFUNDED_DEPOSITS = 'STORAGE_KEY_SPARK_REFUNDED_DEPOSITS';
 export const STORAGE_KEY_SPARK_LN_INVOICE_IDS = 'STORAGE_KEY_SPARK_LN_INVOICE_IDS';
+/** Set after the first successful RGB wallet init per network. Used to detect
+ *  the dangerous "had a backup, now VSS says missing" case during a later
+ *  unlock — see tasks/ship-rgb.md. */
+export const STORAGE_KEY_RGB_INITIALIZED = 'STORAGE_KEY_RGB_INITIALIZED';
+/** Persistent ledger of RGB backup state per network/account: pending mutation
+ *  count + last failure classification. Survives force-quit so the warning
+ *  banner can't be hidden by killing the app. See
+ *  tasks/ship-rgb.md. */
+export const STORAGE_KEY_RGB_BACKUP_STATE = 'STORAGE_KEY_RGB_BACKUP_STATE';
 export const STORAGE_KEY_RECEIVE_CTA = 'STORAGE_KEY_RECEIVE_CTA';
+/** Per-network toggle for whether the RGB adapter attaches an LSP at init
+ *  time. Value `'false'` disables LSP-JIT receive but lets manually-opened
+ *  channels route HTLCs; anything else (including missing key) preserves
+ *  the default LSP-attached behavior. See UTEXO issue tracker for the
+ *  virtual-channel-vs-P2P interaction that makes this a hard choice. */
+export const STORAGE_KEY_RGB_USE_LSP = 'STORAGE_KEY_RGB_USE_LSP';
 
 export interface IStorage {
   setItem(key: string, value: string): Promise<void>;
@@ -25,4 +45,16 @@ export interface IStorage {
 
 export const getSerializedStorageKey = (network: string, accountNumber: number) => {
   return `${STORAGE_KEY_SERIALIZED}_${network}_${accountNumber}`;
+};
+
+export const getRgbInitializedStorageKey = (network: string) => {
+  return `${STORAGE_KEY_RGB_INITIALIZED}_${network}`;
+};
+
+export const getRgbBackupStateStorageKey = (network: string, accountNumber: number) => {
+  return `${STORAGE_KEY_RGB_BACKUP_STATE}_${network}_${accountNumber}`;
+};
+
+export const getRgbUseLspStorageKey = (network: string) => {
+  return `${STORAGE_KEY_RGB_USE_LSP}_${network}`;
 };

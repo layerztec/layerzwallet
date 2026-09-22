@@ -10,6 +10,7 @@ import Pressable from '../../components/Pressable';
 import successRiv from '../../assets/animations/success.riv';
 
 import RadialGradientScreen from '@/components/RadialGradientScreen';
+import RgbBackupBanner from '@/components/RgbBackupBanner';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { SendAssetProps, withAsset } from '@/hooks/withAsset';
@@ -19,6 +20,7 @@ import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -26,7 +28,18 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { getDecimalsByNetwork, getIsAccountBased, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT } from '@shared/types/networks';
+import {
+  NETWORK_ARK,
+  NETWORK_ARK_MUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_RGB,
+  NETWORK_RGB_TESTNET,
+  NETWORK_SPARK,
+  NETWORK_STACKS,
+  NETWORK_USDT,
+} from '@shared/types/networks';
 import { useSendFlow } from './_layout';
 
 const SuccessRiveAnimation = () => {
@@ -145,9 +158,9 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
     setError('');
 
     try {
-      if (network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_STACKS) {
+      if (network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_STACKS || network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
         const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-        assert(wallet instanceof ArkWallet || wallet instanceof SparkWallet || wallet instanceof StacksWallet, 'Internal error: incorrect wallet instance');
+        assert(wallet instanceof ArkWallet || wallet instanceof SparkWallet || wallet instanceof StacksWallet || wallet instanceof RgbWallet, 'Internal error: incorrect wallet instance');
 
         // Check if we're sending a token and the wallet supports tokens
         if (token && walletCanHaveTokens(wallet)) {
@@ -272,6 +285,11 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                 </View>
               ) : (
                 <>
+                  {/* Soft warning if a previous RGB backup is still pending or
+                      failed — sending now will increase the unbacked window.
+                      No-op on non-RGB networks. */}
+                  <RgbBackupBanner />
+
                   {/* Total Section */}
                   <Animated.View style={[styles.totalSection, totalAnimatedStyle]}>
                     <View style={styles.sectionHeader}>

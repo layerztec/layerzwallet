@@ -146,7 +146,10 @@ export default function ImportWalletScreen() {
         await updateSetting('seedBackedUp', 'ON');
 
         setStep(EStep.TOS);
-        router.replace('/onboarding/tos');
+        // Restore-from-seed gate: probe VSS reachability before TOS so a
+        // flaky network can't lead to silent fresh-wallet creation. The
+        // verifying screen redirects to TOS on success or skip.
+        router.replace('/onboarding/verifying-rgb-backup');
       }
     } catch (err) {
       setError('An error occurred while importing the wallet');
