@@ -372,6 +372,7 @@ To add a new Layer2 network:
 
 Detailed feature architecture docs live in `.agents/`:
 - `.agents/swap.md` — Transfer/Swap cross-chain system (TransferServiceManager, providers, UI flow)
+- `.agents/debug-ext-with-mcp.md` — How to set up Chrome DevTools MCP for debugging the browser extension with AI agents
 
 ## Mobile MCP (Simulator Interaction)
 

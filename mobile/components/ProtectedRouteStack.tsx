@@ -69,6 +69,14 @@ export function ProtectedRouteStack() {
           }}
         />
         <Stack.Screen
+          name="onboarding/verifying-rgb-backup"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
           name="onboarding/import-wallet"
           options={{
             headerTitle: 'Enter seed phrase',
@@ -164,6 +172,9 @@ export function ProtectedRouteStack() {
         />
         <Stack.Screen name="send" options={{ headerShown: false }} />
         <Stack.Screen name="transfer" options={{ headerShown: false }} />
+        <Stack.Screen name="issue-asset" options={{ headerShown: false }} />
+        <Stack.Screen name="receive-rgb-token" options={{ headerShown: false }} />
+        <Stack.Screen name="utxo-manager" options={{ headerShown: false }} />
         <Stack.Screen
           name="modals/transfer-select-asset"
           options={{

@@ -4,6 +4,8 @@ import React, { useContext, useState } from 'react';
 
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
+import { LayerzStorage } from '../../class/layerz-storage';
+import { STORAGE_KEY_RGB_JUST_IMPORTED } from '@shared/types/IStorage';
 import { sanitizeAndValidateMnemonic } from '@shared/modules/wallet-utils';
 import { Button, TextArea } from './DesignSystem';
 
@@ -35,6 +37,12 @@ export default function OnboardingImport() {
       return;
     } else {
       await BackgroundCaller.setMasterSeed(sanitizedSeed);
+      // Marks this onboarding flow as restore-from-seed so the
+      // post-password step routes through the VSS reachability gate.
+      // chrome.storage-backed, NOT sessionStorage: an MV3 popup gets a fresh
+      // sessionStorage every time it opens, and Chrome closes the popup on any
+      // focus loss — the flag must survive that or the gate silently skips.
+      await LayerzStorage.setItem(STORAGE_KEY_RGB_JUST_IMPORTED, '1');
       setStep(EStep.PASSWORD);
     }
   };

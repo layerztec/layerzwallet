@@ -21,7 +21,8 @@ import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import SettingsRow from '@/components/SettingsRow';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { LayerzStorage } from '@/src/class/layerz-storage';
-import { STORAGE_KEY_BTC_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { getRgbUseLspStorageKey, STORAGE_KEY_BTC_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { NETWORK_RGB_TESTNET } from '@shared/types/networks';
 import { getDeviceIdentifier } from '@/src/utils/device-id';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { SETTINGS_CONFIG } from '@shared/hooks/SettingsContext';
@@ -35,6 +36,7 @@ import { useRouter } from 'expo-router';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { applogFilePath, disableLoggingToFile, enableLoggingToFile, isLoggingToFileEnabled } from '@/src/modules/error-handler';
 import { globalDarkBackground } from '@shared/constants/Colors';
+import { restoreAllRgbData, snapshotAllRgbData, wipeAllRgbData } from '@/src/modules/rgb-adapter';
 
 type TSettingsKey = keyof typeof SETTINGS_CONFIG;
 
@@ -49,6 +51,8 @@ export default function TabThreeScreen() {
   const [testState, setTestState] = useState<'not_started' | 'running' | 'ok' | 'error'>('not_started');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isClearing, setIsClearing] = useState(false);
+  const [isSnapshotBusy, setIsSnapshotBusy] = useState(false);
+  const [useLspOn, setUseLspOn] = useState(true);
   const [btcXpub, setBtcXpub] = useState('');
   const [deviceId, setDeviceId] = useState('');
   const [isLogFileEnabled, setIsLogFileEnabled] = useState(isLoggingToFileEnabled());
@@ -68,8 +72,24 @@ export default function TabThreeScreen() {
         console.debug('Device identifier not available:', error);
         setDeviceId('');
       }
+
+      // Reflect the current RGB-use-LSP preference for the active RGB
+      // testnet network. Anything other than the literal 'false' string
+      // means "yes, attach the LSP".
+      const stored = await LayerzStorage.getItem(getRgbUseLspStorageKey(NETWORK_RGB_TESTNET));
+      setUseLspOn(stored !== 'false');
     })();
   }, [accountNumber]);
+
+  const handleToggleUseLsp = async () => {
+    const next = !useLspOn;
+    await LayerzStorage.setItem(getRgbUseLspStorageKey(NETWORK_RGB_TESTNET), next ? 'true' : 'false');
+    setUseLspOn(next);
+    Alert.alert(
+      'Use LSP for RGB',
+      `Set to ${next ? 'ON' : 'OFF'}. Clear All Data + reimport your seed for the change to take effect — the LSP-attach decision is baked into node params at init time.`
+    );
+  };
 
   const handleSelfTest = async () => {
     try {
@@ -223,6 +243,11 @@ export default function TabThreeScreen() {
             await BackgroundExecutor.clear();
             await AsyncStorage.clear();
             await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, '');
+            // JS AsyncStorage clear doesn't touch the RGB SDK's LDK/RLN
+            // state on the filesystem — nuke it explicitly, otherwise the
+            // next import into the same seed re-inits on top of stale
+            // native state and every op throws "conflict with current node state".
+            await wipeAllRgbData();
             Alert.alert('Storage Cleared', 'All app data has been cleared successfully. The app will now restart.', [
               {
                 text: 'OK',
@@ -238,6 +263,39 @@ export default function TabThreeScreen() {
             Alert.alert('Error', 'Failed to clear storage. Please try again.');
           } finally {
             setIsClearing(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleSnapshotRgb = async () => {
+    setIsSnapshotBusy(true);
+    try {
+      const r = await snapshotAllRgbData();
+      Alert.alert('RGB Snapshot', r.empty ? 'No `Documents/rgb/` on disk yet — snapshot is empty.' : `Snapshotted to ${r.snapshottedPath}`);
+    } catch (e: any) {
+      Alert.alert('RGB Snapshot failed', e?.message ?? String(e));
+    } finally {
+      setIsSnapshotBusy(false);
+    }
+  };
+
+  const handleRestoreRgb = async () => {
+    Alert.alert('Restore RGB State', 'Wipes the live RGB dir and copies the snapshot back. Force-quit the app afterwards or the SDK will throw "conflict with current node state" on next init.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Restore',
+        style: 'destructive',
+        onPress: async () => {
+          setIsSnapshotBusy(true);
+          try {
+            const r = await restoreAllRgbData();
+            Alert.alert('RGB Restore', r.restored ? 'Restored. Now force-quit and relaunch the app.' : `No snapshot: ${r.reason}`);
+          } catch (e: any) {
+            Alert.alert('RGB Restore failed', e?.message ?? String(e));
+          } finally {
+            setIsSnapshotBusy(false);
           }
         },
       },
@@ -353,6 +411,11 @@ export default function TabThreeScreen() {
       title: 'Developer Options',
       key: 'developerOptions',
       data: ['developerOptions'],
+    },
+    {
+      title: 'RGB Snapshot (dev)',
+      key: 'rgbSnapshot',
+      data: ['rgbSnapshot'],
     },
     {
       title: 'Security Actions',
@@ -502,6 +565,23 @@ export default function TabThreeScreen() {
               </>
             )}
           </View>
+        );
+
+      case 'rgbSnapshot':
+        return (
+          <>
+            <View style={styles.settingsGroup}>
+              <SettingsRow title={isSnapshotBusy ? 'Snapshotting…' : 'Snapshot RGB State'} onPress={handleSnapshotRgb} disabled={isSnapshotBusy} testID="SnapshotRgbButton" hideChevron />
+              <View style={styles.divider} />
+              <SettingsRow title={isSnapshotBusy ? 'Restoring…' : 'Restore RGB State'} onPress={handleRestoreRgb} disabled={isSnapshotBusy} testID="RestoreRgbButton" hideChevron />
+              <View style={styles.divider} />
+              <SettingsRow title={`Use LSP for RGB: ${useLspOn ? 'ON' : 'OFF'}`} onPress={handleToggleUseLsp} testID="ToggleRgbUseLspButton" hideChevron />
+            </View>
+            <ThemedText style={styles.warningText}>
+              Dev only. Snapshot copies `Documents/rgb/` to a sibling dir; Restore wipes the live dir and copies the snapshot back. After Restore you MUST force-kill the app (see rgb-sdk-rn#47).
+              Toggling "Use LSP" changes how the wallet inits (LSP-JIT receive vs raw P2P channels) — you MUST Clear All Data + reimport for the change to take effect.
+            </ThemedText>
+          </>
         );
 
       case 'securityActions':
