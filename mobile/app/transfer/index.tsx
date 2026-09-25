@@ -153,73 +153,81 @@ export default function TransferInput() {
     debouncedFetch(text, 'receive');
   };
 
-  // Fetch pair info (min/max) and refetch quote when assets change
+  // Fetch pair info (min/max) and refetch quote when assets change.
+  // setState is deferred so it is not synchronous in the effect. The clear must run
+  // before getPairInfo is requested: a timeout that clears afterwards lands after a
+  // fast pair response and wipes min/max, so receive-side quotes never start.
   useEffect(() => {
-    if (sendAsset && receiveAsset) {
-      const timeout = setTimeout(() => {
-        setQuote(undefined);
-        setPairInfo(undefined);
-      }, 0);
+    if (!sendAsset || !receiveAsset) return;
+    let cancelled = false;
+    const timeout = setTimeout(() => {
+      setQuote(undefined);
+      setPairInfo(undefined);
 
-      // Fetch pair info for min/max validation
       transferService
         .getPairInfo?.(sendAsset, receiveAsset)
-        .then(setPairInfo)
-        .catch(() => setPairInfo(undefined));
+        .then((info) => {
+          if (!cancelled) setPairInfo(info);
+        })
+        .catch(() => {
+          if (!cancelled) setPairInfo(undefined);
+        });
 
       if (sendAmount && parseFloat(sendAmount) > 0) {
-        const timeout = setTimeout(() => {
-          fetchQuoteFromSend(sendAmount);
-        }, 0);
-        return () => clearTimeout(timeout);
+        fetchQuoteFromSend(sendAmount);
       } else if (receiveAmount && parseFloat(receiveAmount) > 0) {
-        const timeout = setTimeout(() => {
-          fetchQuoteFromReceive(receiveAmount);
-        }, 0);
-        return () => clearTimeout(timeout);
+        fetchQuoteFromReceive(receiveAmount);
       }
-
-      return () => clearTimeout(timeout);
-    }
+    }, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
   }, [sendAsset, receiveAsset]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Retry receive quote when pairInfo arrives (fetchQuoteFromReceive requires pairInfo)
   useEffect(() => {
-    if (pairInfo && !quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && receiveAmount && parseFloat(receiveAmount) > 0 && !sendAmount) {
-      const timeout = setTimeout(() => {
-        fetchQuoteFromReceive(receiveAmount);
-      }, 0);
-      return () => clearTimeout(timeout);
+    if (!(pairInfo && !quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && receiveAmount && parseFloat(receiveAmount) > 0 && !sendAmount)) {
+      return;
     }
+    const timeout = setTimeout(() => {
+      fetchQuoteFromReceive(receiveAmount);
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [pairInfo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Clear input state after a successful transfer so the user can't accidentally re-submit
   useEffect(() => {
-    if (committed) {
-      const timeout = setTimeout(() => {
-        setSendAmount('');
-        setReceiveAmount('');
-        setCommitted(false);
-      }, 0);
-      return () => clearTimeout(timeout);
-    }
+    if (!committed) return;
+    const timeout = setTimeout(() => {
+      setSendAmount('');
+      setReceiveAmount('');
+      setCommitted(false);
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [committed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-refetch quote when returning from confirm (quote cleared on confirm unmount)
   useEffect(() => {
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
     if (!quote) {
-      const timeout = setTimeout(() => {
-        setIsContinuing(false);
-      }, 0);
+      timeouts.push(
+        setTimeout(() => {
+          setIsContinuing(false);
+        }, 0)
+      );
       isContinuingRef.current = false;
-      return () => clearTimeout(timeout);
     }
     if (!committed && !quote && !isQuoteLoading && !quoteError && sendAsset && receiveAsset && sendAmount && parseFloat(sendAmount) > 0) {
-      const timeout = setTimeout(() => {
-        fetchQuoteFromSend(sendAmount);
-      }, 0);
-      return () => clearTimeout(timeout);
+      timeouts.push(
+        setTimeout(() => {
+          fetchQuoteFromSend(sendAmount);
+        }, 0)
+      );
     }
+    return () => {
+      timeouts.forEach(clearTimeout);
+    };
   }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup debounce timer

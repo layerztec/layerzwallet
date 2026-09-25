@@ -527,8 +527,10 @@ const styles = StyleSheet.create({
   },
   maestroSettingsButton: {
     position: 'absolute',
-    top: 60, // Position below the header
-    right: 16,
+    // Left side, clear of the header gear. On a dev client the top-right corner is the
+    // Expo menu button, and a Maestro tap there opens that menu instead of Settings.
+    top: 160,
+    left: 16,
     width: 40,
     height: 40,
     opacity: 0.01, // Nearly invisible but still detectable

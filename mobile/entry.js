@@ -2,6 +2,10 @@
 // This replaces expo-router/entry to include necessary polyfills
 
 import 'react-native-get-random-values';
+import { LogBox } from 'react-native';
+
+// A failed Lightning history fetch must not cover the receive sheet during dev/Maestro.
+LogBox.ignoreLogs(['tx fetch error']);
 
 /** Hermes exposes getRandomValues but not randomUUID; MCP SDK + others expect it */
 if (

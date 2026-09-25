@@ -1,11 +1,12 @@
 import React, { useContext, useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Pressable from '../components/Pressable';
 import { useRouter } from 'expo-router';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useActionPopup } from '@/contexts/ActionPopupContext';
 import { Ionicons } from '@expo/vector-icons';
-import DetachedSheet from '@/components/DetachedSheet';
+import { getNetworkPrimaryColor } from '@shared/constants/Colors';
 
 const ACTION_ITEM_MIN_HEIGHT = 56;
 const SECTION_ITEM_MIN_HEIGHT = 28;
@@ -15,6 +16,7 @@ const ACTIONS_PADDING = 16;
 
 export default function ActionPopupModal() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { network } = useContext(NetworkContext);
   const { getActions, clearActions } = useActionPopup();
   const { actions, title } = getActions();
@@ -50,50 +52,65 @@ export default function ActionPopupModal() {
   // accessibility is disabled on some wrappers for maestro to be able to see the buttons
 
   return (
-    <DetachedSheet variant={network} onClose={handleClose} enablePanDownToClose={true} detached={true} accessible={false}>
-      <View accessible={false} style={styles.popupContainer}>
-        <View style={styles.actionsContainer}>
-          <View style={styles.headerRow}>
-            {title ? (
-              <View style={styles.titleContainer}>
-                <Text style={styles.title}>{title}</Text>
-              </View>
-            ) : (
-              <View style={styles.titleContainer} />
-            )}
-            <Pressable style={styles.closeButton} onPress={handleClose} accessibilityLabel="Close menu" accessibilityRole="button">
-              <Ionicons name="close" size={20} color="white" />
-            </Pressable>
-          </View>
-          {actions.map((action, index) => {
-            const isSection = action.variant === 'section';
-            return (
-              <Pressable
-                accessible={true}
-                key={index}
-                onPress={() => {
-                  if (!action.disabled && !isSection) {
-                    handleActionPress(action.onClick, index);
-                  }
-                }}
-                style={[styles.actionItem, isSection ? styles.sectionItem : null, action.disabled ? styles.actionItemDisabled : null]}
-                activeOpacity={0.8}
-                disabled={action.disabled || isSection}
-              >
-                <View style={[styles.actionContent, isSection ? styles.sectionContent : null]}>{action.children}</View>
+    <View style={styles.root} accessible={false}>
+      <Pressable style={styles.backdrop} onPress={handleClose} />
+      <View accessible={false} style={[styles.sheet, { marginBottom: Math.max(insets.bottom, 12), backgroundColor: getNetworkPrimaryColor(network) }]}>
+        <View accessible={false} style={styles.popupContainer}>
+          <View style={styles.actionsContainer}>
+            <View style={styles.headerRow}>
+              {title ? (
+                <View style={styles.titleContainer}>
+                  <Text style={styles.title} accessibilityLabel={title}>
+                    {title}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.titleContainer} />
+              )}
+              <Pressable style={styles.closeButton} onPress={handleClose} accessibilityLabel="Close menu" accessibilityRole="button">
+                <Ionicons name="close" size={20} color="white" />
               </Pressable>
-            );
-          })}
+            </View>
+            {actions.map((action, index) => {
+              const isSection = action.variant === 'section';
+              return (
+                <Pressable
+                  accessible={true}
+                  key={index}
+                  onPress={() => {
+                    if (!action.disabled && !isSection) {
+                      handleActionPress(action.onClick, index);
+                    }
+                  }}
+                  style={[styles.actionItem, isSection ? styles.sectionItem : null, action.disabled ? styles.actionItemDisabled : null]}
+                  activeOpacity={0.8}
+                  disabled={action.disabled || isSection}
+                >
+                  <View style={[styles.actionContent, isSection ? styles.sectionContent : null]}>{action.children}</View>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
       </View>
-    </DetachedSheet>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  popupContainer: {
+  root: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  sheet: {
+    marginHorizontal: 12,
+    borderRadius: 32,
     overflow: 'hidden',
   },
+  popupContainer: {},
   titleContainer: {
     alignItems: 'center',
     height: TITLE_HEIGHT,
