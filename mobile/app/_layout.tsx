@@ -1,4 +1,4 @@
-import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, ThemeProvider } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -25,6 +25,7 @@ import { Messenger } from '@/src/modules/messenger';
 import { trackAnalyticsEvent } from '@/src/modules/analytics';
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
 import { AnalyticsEvents } from '@shared/types/analytics';
+import type { TransferExecution } from '@shared/types/transfer';
 import { InitializationContextProvider } from '@shared/hooks/InitializationContext';
 import { NetworkContextProvider } from '@shared/hooks/NetworkContext';
 import { SettingsContextProvider } from '@shared/hooks/SettingsContext';
@@ -48,6 +49,10 @@ LogBox.ignoreLogs(['Require cycle:', 'Open debugger to view warnings.']);
 // Wire platform-specific MCP deps synchronously at module load so `handleMcpRequest`
 // is safe to invoke as soon as the tunnel resolves (TunnelBootstrap mounts later).
 configureMcp(mobileMcpDeps, { name: 'layerz-wallet-mobile', version });
+
+function setTransferCompletedHandler(transferService: { onTransferCompleted?: (execution: TransferExecution) => void }, handler: ((execution: TransferExecution) => void) | undefined) {
+  transferService.onTransferCompleted = handler;
+}
 
 const onJSError = (error: unknown) => handleError(error, 'JAVASCRIPT_ERROR');
 
@@ -86,12 +91,12 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    transferService.onTransferCompleted = (execution) => {
+    setTransferCompletedHandler(transferService, (execution: TransferExecution) => {
       trackAnalyticsEvent(AnalyticsEvents.SwapCompleted, buildSwapCompletedProperties(execution));
-    };
+    });
 
     return () => {
-      transferService.onTransferCompleted = undefined;
+      setTransferCompletedHandler(transferService, undefined);
     };
   }, [transferService]);
 

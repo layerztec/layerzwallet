@@ -55,7 +55,7 @@ const LayerCardTile = ({ card, index, onCardPress, transitionId: _transitionId, 
   const [hasTimedOut, setHasTimedOut] = useState(false);
 
   // Animation for squeeze effect
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const scaleAnim = useMemo(() => new Animated.Value(1), []);
 
   useEffect(() => {
     const timer = setTimeout(() => setHasTimedOut(true), 10000);
@@ -243,7 +243,10 @@ const DashboardTiles = ({ cards: providedCards, onCardPress: onExternalCardPress
 
   useEffect(() => {
     if (cards.length > 0 && cards[0]?.networkId) {
-      setCurrentNetworkId(cards[0].networkId);
+      const timeout = setTimeout(() => {
+        setCurrentNetworkId(cards[0].networkId);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [cards]);
 
@@ -362,7 +365,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gradientBackground: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 20,
     overflow: 'hidden',
   },

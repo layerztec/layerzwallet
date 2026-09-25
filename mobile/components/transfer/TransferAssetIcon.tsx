@@ -61,6 +61,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   blurFill: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
 });

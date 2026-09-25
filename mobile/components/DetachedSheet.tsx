@@ -7,6 +7,7 @@ import { RadialGradient } from '@/components/RadialGradient';
 import { getNetworkPrimaryColor } from '@shared/constants/Colors';
 import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_USDT } from '@shared/types/networks';
 import PlatformBlurView from './PlatformBlurView';
+import { homeBlurTargetRef } from '@/src/hooks/homeBlurTargetRef';
 
 const BLUR_EXTEND_BOTTOM = Platform.OS === 'ios' ? 80 : 0;
 
@@ -95,7 +96,7 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
         backgroundComponent={({ style: backgroundStyle }) => (
           <View style={[backgroundStyle, styles.gradientContainer]}>
             <View style={[styles.blurOverlay, BLUR_EXTEND_BOTTOM > 0 && styles.blurOverlayExtended]}>
-              <PlatformBlurView intensity={50} tint="light" style={StyleSheet.absoluteFill} />
+              <PlatformBlurView intensity={50} tint="light" style={StyleSheet.absoluteFill} blurTarget={homeBlurTargetRef} />
             </View>
             <View style={styles.radialGradientWrapper}>
               <RadialGradient colorList={radialColorList} x="48.63%" y="-24.14%" rx="163.06%" ry="75.01%" />
@@ -118,7 +119,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
   },
   gradientContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 32,
     overflow: 'hidden',
   },
@@ -131,13 +132,13 @@ const styles = StyleSheet.create({
     height: 800,
   },
   blurOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   blurOverlayExtended: {
     bottom: -BLUR_EXTEND_BOTTOM,
   },
   borderOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 32,
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.1)',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View, Animated, Text, Easing, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
 import Pressable from './Pressable';
 
@@ -26,17 +26,9 @@ const LongPressButton: React.FC<LongPressButtonProps> = ({
   backgroundColor = '#2C2C2E',
 }) => {
   const [pressing, setPressing] = useState(false);
-  const progressAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useMemo(() => new Animated.Value(0), []);
   const progressAnimation = useRef<Animated.CompositeAnimation | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Reset animation when disabled changes
-  useEffect(() => {
-    if (disabled) {
-      resetProgress();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [disabled]);
 
   const startProgress = () => {
     setPressing(true);
@@ -70,6 +62,14 @@ const LongPressButton: React.FC<LongPressButtonProps> = ({
       longPressTimer.current = null;
     }
   };
+
+  // Reset animation when disabled changes
+  useEffect(() => {
+    if (disabled) {
+      resetProgress();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disabled]);
 
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],

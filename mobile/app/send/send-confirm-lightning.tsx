@@ -110,8 +110,11 @@ const SendConfirmLightning: React.FC = () => {
       detailsOpacity.value = 1;
       sendToOpacity.value = 1;
       totalTop.value = 32;
-      setShowRiveAnimation(false);
-      setHideHeader(false);
+      const timeout = setTimeout(() => {
+        setShowRiveAnimation(false);
+        setHideHeader(false);
+      }, 0);
+      timeout1 = timeout;
     }
 
     return () => {

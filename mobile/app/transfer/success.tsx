@@ -3,20 +3,25 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect } from 'react';
 import { Pressable as RNPressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { makeMutable, runOnJS, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/ThemedText';
 
 const DISMISS_THRESHOLD = 150;
 
+function setSharedValue<T>(sharedValue: { value: T }, nextValue: T) {
+  'worklet';
+  sharedValue.value = nextValue;
+}
+
 export default function TransferSuccess() {
   const router = useRouter();
   const { height: screenHeight } = useWindowDimensions();
 
-  const translateY = useSharedValue(screenHeight);
+  const translateY = makeMutable(screenHeight);
 
   useEffect(() => {
-    translateY.value = withSpring(0, { damping: 18, stiffness: 220, mass: 0.6 });
+    setSharedValue(translateY, withSpring(0, { damping: 18, stiffness: 220, mass: 0.6 }));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDismiss = useCallback(() => {
@@ -24,22 +29,25 @@ export default function TransferSuccess() {
   }, [router]);
 
   const animateDismiss = useCallback(() => {
-    translateY.value = withTiming(screenHeight, { duration: 250 }, () => {
-      runOnJS(handleDismiss)();
-    });
+    setSharedValue(
+      translateY,
+      withTiming(screenHeight, { duration: 250 }, () => {
+        runOnJS(handleDismiss)();
+      })
+    );
   }, [translateY, screenHeight, handleDismiss]);
 
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
       if (event.translationY > 0) {
-        translateY.value = event.translationY;
+        setSharedValue(translateY, event.translationY);
       }
     })
     .onEnd((event) => {
       if (event.translationY > DISMISS_THRESHOLD || event.velocityY > 1000) {
         runOnJS(animateDismiss)();
       } else {
-        translateY.value = withTiming(0, { duration: 200 });
+        setSharedValue(translateY, withTiming(0, { duration: 200 }));
       }
     });
 
@@ -81,14 +89,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   overlayTouchable: {
     flex: 1,
   },
   cardWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'flex-end',
     alignItems: 'center',
     paddingBottom: 24,

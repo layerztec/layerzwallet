@@ -35,6 +35,11 @@ const FeeOptions = [
   { index: FeeIndex.Slow, name: 'Slow', key: 'slow' as keyof TFeeEstimate },
 ] as const;
 
+function copyWalletWithExtraProperties<T extends object>(wallet: T, extraProperties: Record<string, unknown>): T {
+  const walletClone = Object.assign(Object.create(Object.getPrototypeOf(wallet)) as T, wallet);
+  return Object.assign(walletClone, extraProperties);
+}
+
 const SendAmountBtc: React.FC = () => {
   const router = useRouter();
   const { network, address, amount: contextAmount, setAmount: setContextAmount, setCreatedTransaction, bitcoin, denomination, setDenomination } = useSendFlow();
@@ -136,7 +141,7 @@ const SendAmountBtc: React.FC = () => {
     });
 
     return result;
-  }, [feeRate, estimateFees, sendData?.utxos, localAmount, address, network, wallet]);
+  }, [feeRate, estimateFees, sendData, localAmount, address, network, wallet]);
 
   const maxAmount: string | undefined = useMemo(() => {
     if (!sendData?.utxos || !address || !wallet) {
@@ -156,7 +161,7 @@ const SendAmountBtc: React.FC = () => {
         } catch {}
       }
     }
-  }, [feeRate, sendData?.utxos, address, network, wallet]);
+  }, [feeRate, sendData, address, network, wallet]);
 
   const handleAmountChange = (text: string) => {
     const normalized = text.replace(',', '.');
@@ -255,8 +260,11 @@ const SendAmountBtc: React.FC = () => {
         }
 
         const mnemonic = await BackgroundExecutor.getMasterSeed();
-        wallet.setSecret(mnemonic);
-        wallet.setDerivationPath(`m/84'/0'/${accountNumber}'`);
+        const extraProperties = sendData.extraProperties && typeof sendData.extraProperties === 'object' ? (sendData.extraProperties as Record<string, unknown>) : {};
+        const preparedWallet = copyWalletWithExtraProperties(wallet, extraProperties);
+
+        preparedWallet.setSecret(mnemonic);
+        preparedWallet.setDerivationPath(`m/84'/0'/${accountNumber}'`);
 
         const targets: CreateTransactionTarget[] = [
           {
@@ -265,12 +273,7 @@ const SendAmountBtc: React.FC = () => {
           },
         ];
 
-        // setting up internals of a wallet to properly function:
-        for (const [key, value] of Object.entries(sendData.extraProperties)) {
-          (wallet as any)[key] = value;
-        }
-
-        const { tx, fee } = wallet.createTransaction(sendData.utxos, targets, feeRate, sendData.changeAddress);
+        const { tx, fee } = preparedWallet.createTransaction(sendData.utxos, targets, feeRate, sendData.changeAddress);
 
         if (!tx) {
           throw new Error('Failed to create transaction');

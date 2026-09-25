@@ -26,7 +26,10 @@ export const useAppLock = () => {
 
   useEffect(() => {
     if (isBiometricEnabled && biometricInfo.isAvailable) {
-      setLockState((prev) => ({ ...prev, requiresAuth: true, isLocked: true, userCanceled: false }));
+      const timeout = setTimeout(() => {
+        setLockState((prev) => ({ ...prev, requiresAuth: true, isLocked: true, userCanceled: false }));
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [isBiometricEnabled, biometricInfo.isAvailable]);
 

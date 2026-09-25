@@ -19,6 +19,11 @@ import { CommonTransaction } from '@shared/types/common-transaction';
 import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 
+function setSharedValue(sharedValue: { value: unknown }, nextValue: unknown) {
+  'worklet';
+  sharedValue.value = nextValue;
+}
+
 export default function TransactionDetails() {
   const { transaction: jsonTransaction, layerNetwork } = useLocalSearchParams();
   const transaction: CommonTransaction = JSON.parse(jsonTransaction as string);
@@ -32,6 +37,7 @@ export default function TransactionDetails() {
   const [imageLoadErrors, setImageLoadErrors] = useState<{ [key: string]: boolean }>({});
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const [confirmationEta, setConfirmationEta] = useState<string>('');
+  const [renderTimeUnix] = useState(() => Math.floor(Date.now() / 1000));
   const router = useRouter();
 
   // Animation values
@@ -63,14 +69,10 @@ export default function TransactionDetails() {
   useEffect(() => {
     if (isCurrentlyPending) {
       // Start flashing animation
-      pendingFlashOpacity.value = withRepeat(
-        withSequence(withTiming(0.4, { duration: 800 }), withTiming(1, { duration: 800 })),
-        -1, // Infinite repeat
-        false
-      );
+      setSharedValue(pendingFlashOpacity, withRepeat(withSequence(withTiming(0.4, { duration: 800 }), withTiming(1, { duration: 800 })), -1, false));
     } else {
       // Stop flashing, set to full opacity
-      pendingFlashOpacity.value = withTiming(1, { duration: 300 });
+      setSharedValue(pendingFlashOpacity, withTiming(1, { duration: 300 }));
     }
   }, [isCurrentlyPending, pendingFlashOpacity]);
 
@@ -78,14 +80,14 @@ export default function TransactionDetails() {
   useEffect(() => {
     if (isTimelineExpanded) {
       // Expand
-      descriptionOpacity.value = withTiming(1, { duration: 300 });
-      timestampOpacity.value = withTiming(1, { duration: 300 });
-      descriptionMaxHeight.value = withTiming(100, { duration: 300 });
+      setSharedValue(descriptionOpacity, withTiming(1, { duration: 300 }));
+      setSharedValue(timestampOpacity, withTiming(1, { duration: 300 }));
+      setSharedValue(descriptionMaxHeight, withTiming(100, { duration: 300 }));
     } else {
       // Collapse
-      descriptionOpacity.value = withTiming(0, { duration: 300 });
-      timestampOpacity.value = withTiming(0, { duration: 300 });
-      descriptionMaxHeight.value = withTiming(0, { duration: 300 });
+      setSharedValue(descriptionOpacity, withTiming(0, { duration: 300 }));
+      setSharedValue(timestampOpacity, withTiming(0, { duration: 300 }));
+      setSharedValue(descriptionMaxHeight, withTiming(0, { duration: 300 }));
     }
   }, [isTimelineExpanded, descriptionOpacity, timestampOpacity, descriptionMaxHeight]);
 
@@ -355,12 +357,12 @@ export default function TransactionDetails() {
 
     // Estimate: current time - (blocks since confirmation * avg block time)
     // This is a rough estimate, but better than nothing
-    const currentTime = Math.floor(Date.now() / 1000);
+    const currentTime = renderTimeUnix;
     const confirmations = transaction.confirmations ?? 0;
     const estimatedBlockTime = currentTime - confirmations * avgBlockTimeSeconds;
 
     return estimatedBlockTime;
-  }, [transaction.blockHeight, transaction.confirmations, transaction.network]);
+  }, [transaction.blockHeight, transaction.confirmations, transaction.network, renderTimeUnix]);
 
   // Generate timeline data
   const timelineData = useMemo(() => {
@@ -419,7 +421,7 @@ export default function TransactionDetails() {
 
     // STATE 2: PENDING (for all networks, including Lightning)
     const isCurrentlyPending = isPending;
-    const pendingTimestamp = isCurrentlyPending ? Math.floor(Date.now() / 1000) : transaction.timestamp;
+    const pendingTimestamp = isCurrentlyPending ? renderTimeUnix : transaction.timestamp;
 
     // If confirmed, pending is also completed (already achieved)
     // If currently pending, it's active (completed)
@@ -473,7 +475,7 @@ export default function TransactionDetails() {
     }
 
     return timeline;
-  }, [transaction, network, calculateBlockTime]);
+  }, [transaction, network, calculateBlockTime, renderTimeUnix]);
 
   const handleCopy = async (text?: string) => {
     if (!text) return;

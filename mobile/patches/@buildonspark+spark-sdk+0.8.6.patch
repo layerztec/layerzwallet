@@ -1,0 +1,13 @@
+diff --git a/node_modules/@buildonspark/spark-sdk/react-native.config.js b/node_modules/@buildonspark/spark-sdk/react-native.config.js
+index b2157ca..012d41b 100644
+--- a/node_modules/@buildonspark/spark-sdk/react-native.config.js
++++ b/node_modules/@buildonspark/spark-sdk/react-native.config.js
+@@ -5,7 +5,7 @@ export default {
+         packageImportPath:
+           "import com.sparkfrost.SparkFrostPackage;\nimport com.sparktokenprimitives.SparkTokenPrimitivesPackage;",
+         packageInstance:
+-          "new SparkFrostPackage(), new SparkTokenPrimitivesPackage()",
++          "new SparkFrostPackage(), new com.sparktokenprimitives.SparkTokenPrimitivesPackage()",
+       },
+     },
+   },

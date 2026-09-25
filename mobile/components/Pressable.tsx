@@ -13,7 +13,7 @@ export type PressableProps = RNPressableProps & {
 const Pressable = React.forwardRef<View, PressableProps>(
   ({ style, children, disabled, activeOpacity = 0.6, androidRippleColor, android_ripple, noFeedback = false, scaleOnPress, pressedStyle, ...rest }, ref) => {
     const ripple = noFeedback ? undefined : (android_ripple ?? (Platform.OS === 'android' ? { color: androidRippleColor ?? 'rgba(255, 255, 255, 0.08)', foreground: true } : undefined));
-    const scaleAnim = React.useRef(new Animated.Value(1)).current;
+    const scaleAnim = React.useMemo(() => new Animated.Value(1), []);
     const [isPressed, setIsPressed] = React.useState(false);
 
     const handlePressIn = () => {

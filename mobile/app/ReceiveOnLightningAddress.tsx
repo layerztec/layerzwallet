@@ -3,10 +3,10 @@ import Pressable from '../components/Pressable';
 import BigNumber from 'bignumber.js';
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
-import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, ScrollView, Share, StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
@@ -48,7 +48,7 @@ export default function ReceiveOnLightningAddressScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [oldBalance, setOldBalance] = useState<StringNumber>('');
   const [isSharing, setIsSharing] = useState(false);
-  const pressScaleAnim = useRef(new Animated.Value(1)).current;
+  const pressScaleAnim = useMemo(() => new Animated.Value(1), []);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
 
   /**
@@ -65,8 +65,10 @@ export default function ReceiveOnLightningAddressScreen() {
 
   useEffect(() => {
     if (!oldBalance && balance) {
-      setOldBalance(balance);
-      return;
+      const timeout = setTimeout(() => {
+        setOldBalance(balance);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [balance, oldBalance]);
 
@@ -96,7 +98,10 @@ export default function ReceiveOnLightningAddressScreen() {
   }, [network, accountNumber]);
 
   useEffect(() => {
-    fetchAddress();
+    const timeout = setTimeout(() => {
+      void fetchAddress();
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [accountNumber, fetchAddress]);
 
   const refreshResolvedUsername = useCallback(async () => {
