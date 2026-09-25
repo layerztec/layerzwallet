@@ -62,6 +62,18 @@
       [
         "expo-build-properties",
         {
+          "ios": {
+            "extraPods": [
+              { "name": "CGRPCZlib", "modular_headers": true },
+              { "name": "CNIOAtomics", "modular_headers": true },
+              { "name": "CNIOBoringSSL", "modular_headers": true },
+              { "name": "CNIOBoringSSLShims", "modular_headers": true },
+              { "name": "CNIODarwin", "modular_headers": true },
+              { "name": "CNIOHTTPParser", "modular_headers": true },
+              { "name": "CNIOLinux", "modular_headers": true },
+              { "name": "CNIOWindows", "modular_headers": true }
+            ]
+          },
           "android": {
             "androidGradlePluginVersion": "8.6.0",
             "compileSdkVersion": 36,

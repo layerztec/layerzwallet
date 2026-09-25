@@ -1,6 +1,6 @@
 {
   "name": "layerzwallet",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Layerz Wallet desktop app",
   "scripts": {
     "postinstall": "rm -f node_modules/silent-payments/tsconfig.json",
