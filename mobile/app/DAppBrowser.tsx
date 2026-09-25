@@ -321,12 +321,13 @@ const DAppBrowser: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (swipeBackNonce > 0) {
-      const timeout = setTimeout(() => {
-        goBack();
-      }, 0);
-      return () => clearTimeout(timeout);
-    }
+    if (swipeBackNonce === 0) return;
+    const timeout = setTimeout(() => {
+      // goBack updates history and changes identity. Reset the nonce in this turn so that does not schedule another back.
+      setSwipeBackNonce(0);
+      goBack();
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [swipeBackNonce, goBack]);
 
   const panResponder = useMemo(
