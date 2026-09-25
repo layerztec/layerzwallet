@@ -527,10 +527,10 @@ const styles = StyleSheet.create({
   },
   maestroSettingsButton: {
     position: 'absolute',
-    // Left side, clear of the header gear. On a dev client the top-right corner is the
-    // Expo menu button, and a Maestro tap there opens that menu instead of Settings.
-    top: 160,
-    left: 16,
+    // Over the header gear. A tap that misses this target still hits Settings.
+    // A target over the network cards opens nothing on iOS.
+    top: 60,
+    right: 16,
     width: 40,
     height: 40,
     opacity: 0.01, // Nearly invisible but still detectable
