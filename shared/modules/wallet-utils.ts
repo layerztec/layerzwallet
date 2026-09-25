@@ -172,6 +172,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       const aw = new ArkWallet();
       aw.setSecret(masterSeed);
       aw.setAccountNumber(accountNumber);
+      aw.setArkadeNetwork(NETWORK_ARK_MUTINYNET);
 
       await aw.init(storage);
       cachedWallets[network][accountNumber] = aw;
@@ -183,8 +184,7 @@ export async function lazyInitWallet(network: TSupportedLazyInitWalletNetworks, 
       const aw = new ArkWallet();
       aw.setSecret(masterSeed);
       aw.setAccountNumber(accountNumber);
-      aw.setArkServerUrl('https://arkade.computer');
-      aw.setBoltzApiUrl('https://api.ark.boltz.exchange');
+      aw.setArkadeNetwork(NETWORK_ARK);
       await aw.init(storage);
       await aw.initLightningSwaps();
       cachedWallets[network][accountNumber] = aw;
@@ -283,6 +283,9 @@ export const sanitizeAndValidateMnemonic = (mnemonic: string): string => {
 
 export const clearWalletCache = () => {
   (Object.keys(cachedWallets) as TSupportedLazyInitWalletNetworks[]).forEach((network) => {
+    Object.values(cachedWallets[network]).forEach((wallet) => {
+      if (wallet instanceof ArkWallet) void wallet.dispose();
+    });
     cachedWallets[network] = {};
   });
 };
