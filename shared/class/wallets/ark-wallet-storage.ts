@@ -42,8 +42,11 @@ const serializeAsset = (a: { assetId: string; amount: bigint }) => ({
 });
 
 const deserializeAsset = (a: StoredAsset) => {
-  if (typeof a.amount === 'number' && !Number.isSafeInteger(a.amount)) {
-    throw new Error(`Unsafe legacy asset amount for ${a.assetId}`);
+  // only these three shapes are amounts; anything else (null, false, '', floats) must not coerce to 0n
+  const valid =
+    (typeof a.amount === 'bigint' && a.amount >= 0n) || (typeof a.amount === 'number' && Number.isSafeInteger(a.amount) && a.amount >= 0) || (typeof a.amount === 'string' && /^\d+$/.test(a.amount));
+  if (!valid) {
+    throw new Error(`Malformed asset amount for ${a.assetId}`);
   }
   return {
     assetId: a.assetId,
@@ -285,7 +288,22 @@ export const stringifyUtxoList = (utxos: ExtendedCoin[]): string => JSON.stringi
 export const parseStoredTransactionList = (raw: string): ArkTransaction[] => {
   const parsed: unknown = JSON.parse(raw);
   if (!Array.isArray(parsed)) return [];
-  return parsed.map((tx) => deserializeTransaction(tx as ArkTransaction & { assets?: StoredAsset[] }));
+
+  const txs: ArkTransaction[] = [];
+  for (const entry of parsed) {
+    const row = entry as ArkTransaction & { assets?: StoredAsset[] };
+    try {
+      // downstream code addresses transactions by tx.key, so a row without one is unusable
+      if (!row?.key || typeof row.key !== 'object' || Array.isArray(row.key)) {
+        console.warn('ARK storage: skipping malformed transaction row');
+        continue;
+      }
+      txs.push(deserializeTransaction(row));
+    } catch (error) {
+      console.warn('ARK storage: skipping corrupt transaction row', row?.key?.arkTxid, error);
+    }
+  }
+  return txs;
 };
 
 export const stringifyTransactionList = (txs: ArkTransaction[]): string => JSON.stringify(txs.map(serializeTransaction));
