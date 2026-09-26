@@ -3,6 +3,21 @@ import { AssetId } from '../types/asset';
 import { ITransferService, TimelineStep, TransferExecution, TransferNoRouteError, TransferPair, TransferPairInfo, TransferQuote, TransferStatus } from '../types/transfer';
 import { getExchangeTimelineSteps } from './transfer-service-sideshift';
 
+/**
+ * Upper bound for a single provider's getQuote. Provider SDKs don't always bound their own network calls
+ * (e.g. Atomiq hangs forever in swapper.init() when its LP nodes are unreachable), and without this the
+ * UI would spin on "Fetching quote..." indefinitely instead of surfacing an error.
+ */
+export const QUOTE_TIMEOUT_MS = 15_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('timed out')), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 function humanizeError(error: any): string {
   if (error?.statusCode === 403 || error?.message?.includes('Access denied')) return 'access denied';
   if (error?.name === 'AbortError' || error?.message?.includes('aborted')) return 'timed out';
@@ -73,7 +88,7 @@ export class TransferServiceManager {
 
     const results = await Promise.allSettled(
       candidates.map(async (service) => {
-        const quote = await service.getQuote(sendAsset, receiveAsset, sendAmount);
+        const quote = await withTimeout(service.getQuote(sendAsset, receiveAsset, sendAmount), QUOTE_TIMEOUT_MS);
         return { service, quote };
       })
     );

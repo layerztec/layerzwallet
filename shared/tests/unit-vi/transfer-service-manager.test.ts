@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { TransferServiceManager } from '../../services/transfer-service-manager';
+import { QUOTE_TIMEOUT_MS, TransferServiceManager } from '../../services/transfer-service-manager';
 import { DepositAddressExecution, EXECUTION_DEPOSIT, ITransferService, TransferNoRouteError, TransferPair, TransferQuote } from '../../types/transfer';
 
 const BTC = 'native:bitcoin' as const;
@@ -150,6 +150,44 @@ describe('TransferServiceManager', () => {
         expect(e.serviceErrors).toHaveLength(2);
         expect(e.serviceErrors[0]).toEqual({ service: 'A', message: 'access denied' });
         expect(e.serviceErrors[1]).toEqual({ service: 'B', message: 'rate limited' });
+      }
+    });
+
+    it('times out a provider that never resolves and still returns the other quote', async () => {
+      vi.useFakeTimers();
+      try {
+        const pair = { sendAssetId: BTC, receiveAssetId: LBTC };
+        const s1 = createMockService('A', [BTC, LBTC], [pair]);
+        const s2 = createMockService('B', [BTC, LBTC], [pair]);
+
+        vi.mocked(s1.getQuote).mockReturnValue(new Promise(() => {}));
+        vi.mocked(s2.getQuote).mockResolvedValue(makeQuote('0.0097'));
+
+        const manager = new TransferServiceManager([s1, s2]);
+        const promise = manager.getQuote(BTC, LBTC, '0.01');
+        await vi.advanceTimersByTimeAsync(QUOTE_TIMEOUT_MS);
+        const result = await promise;
+
+        expect(result.serviceName).toBe('B');
+        expect(result.serviceErrors).toEqual([{ service: 'A', message: 'timed out' }]);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('throws "timed out" when the only provider never resolves', async () => {
+      vi.useFakeTimers();
+      try {
+        const s1 = createMockService('A', [BTC, LBTC], [{ sendAssetId: BTC, receiveAssetId: LBTC }]);
+        vi.mocked(s1.getQuote).mockReturnValue(new Promise(() => {}));
+
+        const manager = new TransferServiceManager([s1]);
+        const promise = manager.getQuote(BTC, LBTC, '0.01');
+        const assertion = expect(promise).rejects.toMatchObject({ message: 'timed out', serviceErrors: [{ service: 'A', message: 'timed out' }] });
+        await vi.advanceTimersByTimeAsync(QUOTE_TIMEOUT_MS);
+        await assertion;
+      } finally {
+        vi.useRealTimers();
       }
     });
 
