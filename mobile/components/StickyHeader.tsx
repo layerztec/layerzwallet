@@ -76,7 +76,7 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
       {/* Header Content */}
       <View style={styles.header}>
         {/* Left Side: Pocket */}
-        <Pressable style={styles.pocket} onPress={handlePocketPress}>
+        <Pressable style={styles.pocket} onPress={handlePocketPress} testID="AccountSwitcherTrigger" accessibilityLabel={`Switch pocket, current pocket ${accountItem.name}`}>
           <View style={styles.pocketIconContainer}>
             <IconComponent name={accountItem.icon as any} size={22} color="white" style={accountItem.iconCollection === 'material-community' ? styles.materialIconNudge : undefined} />
           </View>
