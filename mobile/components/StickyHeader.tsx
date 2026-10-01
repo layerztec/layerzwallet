@@ -8,6 +8,7 @@ import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { handleQrIntent } from '@/src/modules/scan-routing';
 import { Ionicons, Foundation, MaterialCommunityIcons } from '@expo/vector-icons';
 import PlatformBlurView from './PlatformBlurView';
+import { homeBlurTargetRef } from '@/src/hooks/homeBlurTargetRef';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useAnimatedStyle, interpolate, SharedValue } from 'react-native-reanimated';
 import Pressable from './Pressable';
@@ -59,7 +60,7 @@ const StickyHeader: React.FC<StickyHeaderProps> = ({ scrollY, onSettingsPress })
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Blur first (under tint) so Android blur samples read; gradient on top tint only — pointerEvents none so touches reach header */}
       <Animated.View style={[styles.blurBackground, blurAnimatedStyle, { top: -insets.top, paddingTop: insets.top }]}>
-        <PlatformBlurView intensity={55} tint="dark" style={styles.blurView} />
+        <PlatformBlurView intensity={55} tint="dark" style={styles.blurView} blurTarget={homeBlurTargetRef} />
       </Animated.View>
       <LinearGradient
         pointerEvents="none"

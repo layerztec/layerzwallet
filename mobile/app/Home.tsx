@@ -527,7 +527,9 @@ const styles = StyleSheet.create({
   },
   maestroSettingsButton: {
     position: 'absolute',
-    top: 60, // Position below the header
+    // Over the header gear. A tap that misses this target still hits Settings.
+    // A target over the network cards opens nothing on iOS.
+    top: 60,
     right: 16,
     width: 40,
     height: 40,

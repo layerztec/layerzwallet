@@ -12,7 +12,7 @@
         "@atomiqlabs/sdk": "8.8.4",
         "@bitcoinerlab/secp256k1": "1.2.0",
         "@breeztech/breez-sdk-liquid": "0.12.4",
-        "@buildonspark/spark-sdk": "0.8.6",
+        "@buildonspark/spark-sdk": "0.12.1",
         "@flashnet/sdk": "0.5.10",
         "@metamask/eth-sig-util": "8.2.0",
         "@modelcontextprotocol/sdk": "^1.29.0",
@@ -349,7 +349,7 @@
 
     "@bufbuild/protobuf": ["@bufbuild/protobuf@2.12.0", "", {}, "sha512-B/XlCaFIP8LOwzo+bz5uFzATYokcwCKQcghqnlfwSmM5eX/qTkvDBnDPs+gXtX/RyjxJ4DRikECcPJbyALA8FA=="],
 
-    "@buildonspark/spark-sdk": ["@buildonspark/spark-sdk@0.8.6", "", { "dependencies": { "@bufbuild/protobuf": "^2.2.5", "@lightsparkdev/core": "^1.5.0", "@noble/curves": "^1.9.7", "@noble/hashes": "^1.7.0", "@scure/base": "^1.2.4", "@scure/bip32": "^1.6.2", "@scure/bip39": "^1.5.4", "@scure/btc-signer": "^1.5.0", "abort-controller-x": "^0.4.3", "abortcontroller-polyfill": "^1.7.8", "async-mutex": "^0.5.0", "bare-crypto": "^1.9.2", "bare-fetch": "^3.0.0", "buffer": "^6.0.3", "eventemitter3": "^5.0.1", "js-base64": "^3.7.7", "light-bolt11-decoder": "^3.2.0", "nice-grpc": "^2.1.10", "nice-grpc-client-middleware-retry": "^3.1.10", "nice-grpc-common": "^2.0.2", "nice-grpc-web": "^3.3.7", "ts-proto": "2.8.3", "ua-parser-js": "^2.0.6", "uuidv7": "^1.0.2" }, "peerDependencies": { "react": ">=18.2.0", "react-native": ">=0.71.0", "react-native-get-random-values": ">=1.11.0" }, "optionalPeers": ["react", "react-native", "react-native-get-random-values"] }, "sha512-rpdmeDvGtXzOmRTGuGUH7HK5fJjLUbPmD01agHry/rdpdzLH/F8eHznmqK1YD/m8EvQ5l0FP/UKxfo01ehNcqw=="],
+    "@buildonspark/spark-sdk": ["@buildonspark/spark-sdk@0.12.1", "", { "dependencies": { "@bufbuild/protobuf": "^2.2.5", "@lightsparkdev/core": "^1.5.0", "@noble/curves": "^1.9.7", "@noble/hashes": "^1.7.0", "@scure/base": "^1.2.4", "@scure/bip32": "^1.6.2", "@scure/bip39": "^1.5.4", "@scure/btc-signer": "^1.5.0", "abort-controller-x": "^0.4.3", "abortcontroller-polyfill": "^1.7.8", "async-mutex": "^0.5.0", "bare-crypto": "^1.9.2", "bare-fetch": "^3.0.0", "buffer": "^6.0.3", "eventemitter3": "^5.0.1", "js-base64": "^3.7.7", "light-bolt11-decoder": "^3.2.0", "nice-grpc": "^2.1.10", "nice-grpc-client-middleware-retry": "^3.1.10", "nice-grpc-common": "^2.0.2", "nice-grpc-web": "^3.3.7", "ua-parser-js": "^2.0.6", "uuidv7": "^1.0.2" }, "peerDependencies": { "react": ">=18.2.0", "react-native": ">=0.71.0", "react-native-get-random-values": ">=1.11.0" }, "optionalPeers": ["react", "react-native", "react-native-get-random-values"] }, "sha512-xCPLdNcaIl/uEoIg0YjTS/KTfFuDdsFO/NuybSXItBrzY/+ZAwcYSCHSEjo02H2N73xS0PteyongBtg1WhzH7A=="],
 
     "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.25.12", "", { "os": "aix", "cpu": "ppc64" }, "sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA=="],
 
@@ -897,8 +897,6 @@
 
     "caniuse-lite": ["caniuse-lite@1.0.30001793", "", {}, "sha512-iwSsYWaCOoh26cV8NwNRViHlrfUvYsHDfRVcbtmw0Kg6PJIZZXwMkj1442FYLBGkeUf1juAsU3DTfxW579mrPA=="],
 
-    "case-anything": ["case-anything@2.1.13", "", {}, "sha512-zlOQ80VrQ2Ue+ymH5OuM/DlDq64mEm+B9UTdHULv5osUMD6HalNTblf2b1u/m6QecjsnOkBpqVZ+XPwIVsy7Ng=="],
-
     "chalk": ["chalk@4.1.2", "", { "dependencies": { "ansi-styles": "^4.1.0", "supports-color": "^7.1.0" } }, "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA=="],
 
     "cipher-base": ["cipher-base@1.0.7", "", { "dependencies": { "inherits": "^2.0.4", "safe-buffer": "^5.2.1", "to-buffer": "^1.2.2" } }, "sha512-Mz9QMT5fJe7bKI7MH31UilT5cEK5EHHRCccw/YRFsRY47AuNgaV6HY3rscp0/I4Q+tTW/5zoqpSeRRI54TkDWA=="],
@@ -985,15 +983,11 @@
 
     "detect-europe-js": ["detect-europe-js@0.1.2", "", {}, "sha512-lgdERlL3u0aUdHocoouzT10d9I89VVhk0qNRmll7mXdGfJT1/wqZ2ZLA4oJAjeACPY5fT1wsbq2AT+GkuInsow=="],
 
-    "detect-libc": ["detect-libc@1.0.3", "", { "bin": { "detect-libc": "./bin/detect-libc.js" } }, "sha512-pGjwhsmsp4kL2RTz08wcOlGN83otlqHeD/Z5T8GXZB+/YcpQ/dgo+lbU8ZsGxV0HIvqqxo9l7mqYwyYMD9bKDg=="],
-
     "diffie-hellman": ["diffie-hellman@5.0.3", "", { "dependencies": { "bn.js": "^4.1.0", "miller-rabin": "^4.0.0", "randombytes": "^2.0.0" } }, "sha512-kqag/Nl+f3GwyK25fhUMYj81BUOrZ9IuJsjIcDE5icNM9FJHAVm3VcUDxdLPoQtTuUylWm6ZIknYJwwaPxsUzg=="],
 
     "dir-glob": ["dir-glob@3.0.1", "", { "dependencies": { "path-type": "^4.0.0" } }, "sha512-WkrWp9GR4KXfKGYzOLmTuGVi1UWFfws377n9cc55/tb6DuqyF6pcQ5AbiHEshaDpY9v6oaSr2XCDidGmMwdzIA=="],
 
     "doctrine": ["doctrine@3.0.0", "", { "dependencies": { "esutils": "^2.0.2" } }, "sha512-yS+Q5i3hBf7GBkd4KG8a7eBNNWNGLTaEwwYWUijIYM7zrlYDM0BFXHjjPWlWZ1Rg7UaddZeIDmi9jF3HmqiQ2w=="],
-
-    "dprint-node": ["dprint-node@1.0.8", "", { "dependencies": { "detect-libc": "^1.0.3" } }, "sha512-iVKnUtYfGrYcW1ZAlfR/F59cUVL8QIhWoBJoSjkkdua/dkWIgjZfiLMeTjiB06X0ZLkQ0M2C1VbUj/CxkIf1zg=="],
 
     "drbg.js": ["drbg.js@1.0.1", "", { "dependencies": { "browserify-aes": "^1.0.6", "create-hash": "^1.1.2", "create-hmac": "^1.1.4" } }, "sha512-F4wZ06PvqxYLFEZKkFxTDcns9oFNk34hvmJSEwdzsxVQ8YI5YaxtACgQatkYgv2VI2CFkUd2Y+xosPQnHv809g=="],
 
@@ -1762,12 +1756,6 @@
     "tree-kill": ["tree-kill@1.2.2", "", { "bin": { "tree-kill": "cli.js" } }, "sha512-L0Orpi8qGpRG//Nd+H90vFB+3iHnue1zSSGmNOOCh1GLJ7rUKVwV2HvijphGQS2UmhUZewS9VgvxYIdgr+fG1A=="],
 
     "ts-error": ["ts-error@1.0.6", "", {}, "sha512-tLJxacIQUM82IR7JO1UUkKlYuUTmoY9HBJAmNWFzheSlDS5SPMcNIepejHJa4BpPQLAcbRhRf3GDJzyj6rbKvA=="],
-
-    "ts-poet": ["ts-poet@6.12.0", "", { "dependencies": { "dprint-node": "^1.0.8" } }, "sha512-xo+iRNMWqyvXpFTaOAvLPA5QAWO6TZrSUs5s4Odaya3epqofBu/fMLHEWl8jPmjhA0s9sgj9sNvF1BmaQlmQkA=="],
-
-    "ts-proto": ["ts-proto@2.8.3", "", { "dependencies": { "@bufbuild/protobuf": "^2.0.0", "case-anything": "^2.1.13", "ts-poet": "^6.12.0", "ts-proto-descriptors": "2.0.0" }, "bin": { "protoc-gen-ts_proto": "protoc-gen-ts_proto" } }, "sha512-TdXInqG+61pj/TvORqITWjvjTTsL1EZxwX49iEj89+xFAcqPT8tjChpAGQXzfcF4MJwvNiuoCEbBOKqVf3ds3g=="],
-
-    "ts-proto-descriptors": ["ts-proto-descriptors@2.0.0", "", { "dependencies": { "@bufbuild/protobuf": "^2.0.0" } }, "sha512-wHcTH3xIv11jxgkX5OyCSFfw27agpInAd6yh89hKG6zqIXnjW9SYqSER2CVQxdPj4czeOhGagNvZBEbJPy7qkw=="],
 
     "tsconfig-paths": ["tsconfig-paths@3.15.0", "", { "dependencies": { "@types/json5": "^0.0.29", "json5": "^1.0.2", "minimist": "^1.2.6", "strip-bom": "^3.0.0" } }, "sha512-2Ac2RgzDe/cn48GvOe3M+o82pEFewD3UPbyoUHHdKasHwJKjds4fLXWf/Ux5kATBKN20oaFGu+jbElp1pos0mg=="],
 
