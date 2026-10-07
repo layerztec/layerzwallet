@@ -531,14 +531,18 @@ class RgbAdapter implements IRgbAdapter {
   readonly capabilities = { lightning: true } as const;
 
   async createWallet({ mnemonic, network, vssServerUrl, useLsp }: IRgbAdapterCreateParams): Promise<IRgbWallet> {
-    // Fail fast while UTEXO hasn't published mainnet endpoints (rgb-lsp.ts
-    // keeps them null). Without this the native node is created and blocks
-    // inside init/unlock with nowhere to connect — holding lazyInitWallet's
-    // lock and drowning every RGB hook in "Timeout while waiting for rgb[0]
-    // lock" until the app ANRs. Thrown before the walletByKey cache so no
-    // rejected promise gets cached. See tasks/pr-draft-rgb-two.md (2026-09-09).
-    if (toRlnNetwork(network) === 'mainnet' && RGB_LSP_BASE_URL.mainnet === null) {
-      throw new Error('RGB mainnet is not configured yet (no production endpoints published)');
+    // Fail fast while UTEXO hasn't published the mainnet VSS endpoint
+    // (rgb-lsp.ts keeps it null). The on-chain indexer/proxy mainnet defaults
+    // already ship inside the SDK, but launching without VSS would mean
+    // wallets whose backups can never be restored — UTEXO confirmed VSS is
+    // required for on-chain recovery (soft-launch plan, 2026-10-07). LSP is
+    // deliberately NOT part of this check: mainnet launches on-chain-only
+    // (RLN stays on testnet), lspBaseUrl stays null and createLsp is skipped.
+    // Thrown before the walletByKey cache so no rejected promise gets cached;
+    // without a fail-fast the native node blocks inside init/unlock holding
+    // lazyInitWallet's lock until the app ANRs (see pr-draft, 2026-09-09).
+    if (toRlnNetwork(network) === 'mainnet' && RGB_VSS_URL.mainnet === null) {
+      throw new Error('RGB mainnet is not configured yet (no VSS backup endpoint published — required for restore)');
     }
     const key = walletKey(mnemonic, network);
     const cached = walletByKey.get(key);

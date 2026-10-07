@@ -6,6 +6,20 @@
  * (USDT) that it converts 1:1. See docs at rgb-sdk-rn `examples/lsp-two-assets`.
  * Mainnet stays null pending UTEXO publishing production endpoints — the
  * receive screen hides itself when the payout id is null (see receive-rgb-ln.tsx).
+ *
+ * MAINNET LAUNCH-DAY CHECKLIST (on-chain soft launch, UTEXO plan 2026-10-07 —
+ * RGB on-chain USDT on mainnet, Lightning stays on testnet):
+ *   1. Set `RGB_VSS_URL.mainnet` to the URL UTEXO provides — this alone lifts
+ *      the fail-fast guard in rgb-adapter.ts createWallet. The on-chain
+ *      indexer/proxy mainnet defaults already ship inside the SDK
+ *      (esplora-mainnet.utexo.com + rgb-proxy-mainnet.utexo.com).
+ *   2. Flip `isTestnet: false` for NETWORK_RGB in
+ *      shared/models/all-network-infos.ts so the card shows without the
+ *      Show Testnets toggle.
+ *   That is the whole diff. Do NOT touch `RGB_LSP_BASE_URL.mainnet` /
+ *   `RGB_LN_ASSETS.mainnet` — they stay null until UTEXO ships RLN mainnet
+ *   (null keeps createLsp skipped; every LN screen is hard-gated to
+ *   NETWORK_RGB_TESTNET by identifier, so no LN surface leaks to mainnet).
  */
 export const RGB_LSP_BASE_URL: Record<'signet' | 'mainnet', string | null> = {
   signet: 'https://lsp-signet.utexo.com',
