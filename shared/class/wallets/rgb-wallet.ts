@@ -743,13 +743,21 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     // error surfaces here rather than producing a silently rounded send.
     assert(amount <= BigInt(Number.MAX_SAFE_INTEGER), `RGB send amount ${amount} exceeds Number.MAX_SAFE_INTEGER (2^53). ` + 'Reduce the amount or wait for SDK bigint support.');
     const decoded = await this.sdk().decodeRGBInvoice({ invoice });
-    const invoiceHasAmount = typeof decoded.assignment?.amount === 'number';
+    const invoiceAmount = typeof decoded.assignment?.amount === 'number' ? decoded.assignment.amount : undefined;
+    // The RLN-era `onchainSend` requires an explicit amount even when the
+    // invoice carries one (it never reads the invoice's amount — beta.32
+    // utexo-wallet.ts throws "amount required" otherwise). The old beta.9
+    // rgb-lib behavior was the opposite: passing both produced an empty PSBT
+    // (#26), hence the historical omit-when-invoice-has-amount branch. When
+    // both are present they must agree — silently sending a different amount
+    // than the invoice asked for would surprise both sides.
+    assert(invoiceAmount === undefined || BigInt(invoiceAmount) === amount, `RGB send amount ${amount} does not match the invoice's embedded amount ${invoiceAmount}`);
     const params: Parameters<IRgbWallet['send']>[0] = {
       invoice,
       assetId: tokenId,
       feeRate: await this.defaultFeeRate(),
+      amount: Number(amount),
     };
-    if (!invoiceHasAmount) params.amount = Number(amount);
     const result = await this.sdk().send(params);
     // Critical: an asset transfer changed colorable UTXO bindings; a recovery
     // without this backup would have the wrong allocation map and could even

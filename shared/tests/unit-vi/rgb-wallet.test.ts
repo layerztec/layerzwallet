@@ -291,16 +291,14 @@ describe('RgbWallet', () => {
       await expect(w.transferToken('nia-1', huge, 'rgb:abc')).rejects.toThrow(/MAX_SAFE_INTEGER/);
     });
 
-    it('transferToken: omits amount but always forwards assetId when invoice has them baked in', async () => {
-      // Two coupled SDK quirks the params here are guarding against:
-      //   • amount: when the invoice carries assignment.amount AND we also
-      //     pass `amount` to sendBegin, rgb-lib returns an empty PSBT and
-      //     signPsbt rejects with `psbtBase64 must be a non-empty string`.
+    it('transferToken: forwards amount AND assetId even when the invoice has them baked in', async () => {
+      // RLN-era semantics (beta.32): `onchainSend` never reads the invoice's
+      // embedded amount and throws "amount required" when the param is
+      // missing, so transferToken must always pass it (after asserting it
+      // matches the invoice). The old beta.9 rgb-lib had the opposite quirk
+      // (duplicated amount → empty PSBT); that guard is gone with sendBegin.
       //   • assetId: the RN binding throws "asset_id is required for send
       //     operation" if assetId isn't passed, even when the invoice has it.
-      //     Web SDK is permissive (extracts from invoice when omitted), but
-      //     forwarding unconditionally is required for mobile and a no-op on
-      //     web.
       const { sdkWallet } = installAdapter({
         decodeRGBInvoice: vi.fn().mockResolvedValue({
           invoice: 'rgb:full-invoice',
@@ -318,11 +316,26 @@ describe('RgbWallet', () => {
       await w.init({} as any);
       const txid = await w.transferToken('rgb:embedded-asset', 42n, 'rgb:full-invoice');
       expect(txid).toBe('tx-omit');
-      expect(sdkWallet.send).toHaveBeenCalledWith({ invoice: 'rgb:full-invoice', feeRate: 1, assetId: 'rgb:embedded-asset' });
-      // `amount` still skipped (the empty-PSBT guard); `assetId` present.
-      const call = (sdkWallet.send as any).mock.calls[0][0];
-      expect('amount' in call).toBe(false);
-      expect(call.assetId).toBe('rgb:embedded-asset');
+      expect(sdkWallet.send).toHaveBeenCalledWith({ invoice: 'rgb:full-invoice', feeRate: 1, assetId: 'rgb:embedded-asset', amount: 42 });
+    });
+
+    it('transferToken: rejects when the amount disagrees with the invoice-embedded amount', async () => {
+      installAdapter({
+        decodeRGBInvoice: vi.fn().mockResolvedValue({
+          invoice: 'rgb:full-invoice',
+          recipientId: 'utxob:abc',
+          assetId: 'rgb:embedded-asset',
+          network: 'testnet',
+          assignment: { type: 'Fungible', amount: 42 },
+          expirationTimestamp: null,
+          transportEndpoints: [],
+        }),
+        send: vi.fn().mockResolvedValue({ txid: 'tx-nope', batchTransferIdx: 1 }),
+      });
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      await expect(w.transferToken('rgb:embedded-asset', 41n, 'rgb:full-invoice')).rejects.toThrow(/does not match the invoice/);
     });
 
     it('transferToken: passes amount/assetId for an "any-amount" / "any-asset" invoice', async () => {
