@@ -703,18 +703,32 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
 
   /** tryBackup({critical:true}) for the post-broadcast paths: attaches the
    *  already-broadcast txid to the thrown error so UI catch-blocks can show
-   *  "sent, but backup failed" instead of a retryable failure. */
+   *  "sent, but backup failed" instead of a retryable failure.
+   *
+   *  Retries with backoff before surfacing: VSS server timeouts are usually
+   *  transient, and the cost of giving up is real — restoring from a backup
+   *  that predates this send permanently loses the send's change allocation
+   *  (proven live 2026-10-08: 75 USDT gone, see tasks/rgb-test-plan.md X10).
+   */
   private async criticalBackupAfterBroadcast(txid: string): Promise<void> {
-    try {
-      await this.tryBackup({ critical: true });
-    } catch (e: any) {
+    const delaysMs = [0, 2_000, 8_000, 20_000];
+    let lastErr: any;
+    for (const delay of delaysMs) {
+      if (delay) await new Promise((r) => setTimeout(r, delay));
       try {
-        e.txid = txid;
-      } catch {
-        // frozen error object — nothing to attach to
+        await this.tryBackup({ critical: true });
+        return;
+      } catch (e: any) {
+        lastErr = e;
+        rgbLog(`[rgb] critical post-broadcast backup attempt failed (retrying): ${errorMessage(e)}`);
       }
-      throw e;
     }
+    try {
+      lastErr.txid = txid;
+    } catch {
+      // frozen error object — nothing to attach to
+    }
+    throw lastErr;
   }
 
   /**

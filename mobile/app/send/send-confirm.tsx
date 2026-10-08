@@ -60,6 +60,13 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const [error, setError] = useState<string>('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
+  // RGB only: the tx IS broadcast but the critical VSS backup failed.
+  // Restoring from the stale backup would permanently lose this send's
+  // change allocation (see tasks/rgb-test-plan.md X10), so this state keeps
+  // the txid visible and funnels the user into retrying the backup —
+  // never back into the confirm button.
+  const [sentNotBackedUp, setSentNotBackedUp] = useState<{ txid: string } | null>(null);
+  const [isRetryingBackup, setIsRetryingBackup] = useState(false);
   const [showRiveAnimation, setShowRiveAnimation] = useState(false);
   const [hideHeader, setHideHeader] = useState(false);
 
@@ -210,9 +217,31 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
       setIsSuccess(true);
     } catch (error: any) {
       console.error('Failed to broadcast transaction:', error);
-      setError(error.message || 'Failed to broadcast transaction');
+      // RgbWallet attaches the already-broadcast txid to post-broadcast
+      // backup failures — funds ARE sent; only the backup is missing.
+      if (typeof error?.txid === 'string' && error.txid) {
+        setSentNotBackedUp({ txid: error.txid });
+      } else {
+        setError(error.message || 'Failed to broadcast transaction');
+      }
     } finally {
       setIsBroadcasting(false);
+    }
+  };
+
+  const retryRgbBackup = async () => {
+    if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) return;
+    setIsRetryingBackup(true);
+    try {
+      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      if (wallet instanceof RgbWallet && (await wallet.retryBackup())) {
+        setSentNotBackedUp(null);
+        setIsSuccess(true);
+      }
+    } catch (e) {
+      console.error('RGB backup retry failed:', e);
+    } finally {
+      setIsRetryingBackup(false);
     }
   };
 
@@ -274,7 +303,22 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                 </View>
               )}
 
-              {error ? (
+              {sentNotBackedUp ? (
+                <View style={styles.errorContainer} testID="sent-not-backed-up">
+                  <Ionicons name="checkmark-circle" size={40} color="#FFCC00" />
+                  <ThemedText style={styles.errorTitle}>Sent — backup pending</ThemedText>
+                  <ThemedText style={styles.errorText}>
+                    Your transfer WAS sent (txid {sentNotBackedUp.txid.substring(0, 8)}…{sentNotBackedUp.txid.substring(sentNotBackedUp.txid.length - 8)}), but saving the wallet backup failed. Retry until it
+                    succeeds — do not delete or reinstall the app before then, or the change from this transfer can be lost.
+                  </ThemedText>
+                  <Pressable style={styles.backButton} onPress={retryRgbBackup} disabled={isRetryingBackup}>
+                    <ThemedText style={styles.backButtonText}>{isRetryingBackup ? 'Retrying backup…' : 'Retry backup'}</ThemedText>
+                  </Pressable>
+                  <Pressable style={styles.backButton} onPress={handleHome}>
+                    <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
+                  </Pressable>
+                </View>
+              ) : error ? (
                 <View style={styles.errorContainer}>
                   <Ionicons name="alert-circle" size={40} color="#FF3B30" />
                   <ThemedText style={styles.errorTitle}>Error</ThemedText>
@@ -345,10 +389,16 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-        {!error && (
+        {!error && !sentNotBackedUp && (
           <Pressable style={[styles.sendButton, isBroadcasting && styles.disabledButton]} onPress={isSuccess ? handleHome : broadcast} disabled={isBroadcasting} testID="send-confirm-button">
             <ThemedText style={styles.sendButtonText} testID={isSuccess ? 'send-success-text' : undefined}>
-              {isSuccess ? 'Back to Wallet' : isBroadcasting ? 'Sending...' : 'Confirm Send'}
+              {isSuccess
+                ? 'Back to Wallet'
+                : isBroadcasting
+                  ? network === NETWORK_RGB || network === NETWORK_RGB_TESTNET
+                    ? 'Sending & backing up — don’t close the app'
+                    : 'Sending...'
+                  : 'Confirm Send'}
             </ThemedText>
           </Pressable>
         )}
