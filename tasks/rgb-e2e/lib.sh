@@ -87,9 +87,22 @@ m=re.search(r'class=\"android.widget.EditText\"[^>]*bounds=\"\[(\d+),(\d+)\]\[(\
 print((int(m.group(1))+int(m.group(3)))//2,(int(m.group(2))+int(m.group(4)))//2) if m else print('')")
   [ -n "$f" ] || { e2e_log "seed field not found"; return 1; }
   adb shell input tap $f; sleep 2
-  local w=($1) first="${1%% ${w[7]} *}"
+  local w=($1)
   adb shell input text "$(echo "${w[0]} ${w[1]} ${w[2]} ${w[3]} ${w[4]} ${w[5]} ${w[6]}" | sed 's/ /\\ /g')"; sleep 1
+  adb shell input keyevent 123  # MOVE_END — a tap parks the cursor mid-text
   adb shell input text "$(echo " ${w[7]} ${w[8]} ${w[9]} ${w[10]} ${w[11]}" | sed 's/ /\\ /g')"; sleep 1
+  # verify — the second `input text` chunk sometimes silently drops (focus
+  # loss); re-type the tail until the field holds all 12 words.
+  local tries
+  for tries in 1 2 3; do
+    local got
+    got=$(and_dump | grep -oE "text=\"${w[0]}[^\"]*\"" | head -1)
+    case "$got" in *"${w[11]}"*) break ;; esac
+    e2e_log "seed field incomplete, re-typing tail"
+    adb shell input tap $f; sleep 1
+    adb shell input keyevent 123
+    adb shell input text "$(echo " ${w[7]} ${w[8]} ${w[9]} ${w[10]} ${w[11]}" | sed 's/ /\\ /g')"; sleep 1
+  done
   and_tap_text "Import" || return 1
 }
 

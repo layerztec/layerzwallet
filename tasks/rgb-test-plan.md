@@ -24,7 +24,7 @@ Related: `tasks/ship-rgb.md` (launch checklist), `tasks/pr-draft-rgb-two.md`
 | C4 | Receive from faucet (any-asset blind invoice) | PASS(2026-10-08, w15 ×2) | PASS(2026-10-08, w16) |
 | C5 | Wallet→wallet send, full asset invoice | PASS(2026-10-08, w15→w16, 25 USDT) | receive side PASS |
 | C6 | Wipe → import → VSS restore: tokens back, node up, 0 "Delaying monitor unlock" | PASS(2026-10-08, w15, 200 USDT) | PASS(2026-10-08, w16, 75 USDT) |
-| C7 | Send AFTER restore | PASS(2026-10-08, w15) | — |
+| C7 | Send AFTER restore | PASS(2026-10-08, w15; re-PASS w16 on the probe/retry build) | — (same shared code) |
 | C8 | Tx history correct after each step | PASS (spot-checked) | PASS (spot-checked) |
 
 ## Corner cases (backlog, priority order)
@@ -33,7 +33,7 @@ Related: `tasks/ship-rgb.md` (launch checklist), `tasks/pr-draft-rgb-two.md`
 |----|------|--------|-------|
 | X1 | Cross-platform restore: Android backup → iOS restore, and reverse | PASS(2026-10-08, w15 A→i 175 USDT; w16 i→A 75 USDT; deadlock=0 both) | Mobile↔mobile VSS payloads fully portable. Driven end-to-end by `rgb-e2e/lib.sh`. |
 | X2 | Wipe mid-incoming-transfer (receiver wiped after faucet pays, before witness confirms) → restore picks up WaitingConfirmations | PASS(2026-10-08, w16: wiped with witness in mempool, restored, credited +100 after confirm; deadlock=0) | Pending blind allocation survives via VSS; credit lands once witness confirms. |
-| X3 | Wipe right after send (sender wiped post-broadcast, pre-settle) | PARTIAL(2026-10-08, w15) — see finding | Ran the HARD variant by accident: the post-broadcast VSS backup itself FAILED (server timeout), then wipe → restore from the STALE backup. Result: NO deadlock, NO double-spend (spent input reconciled away on refresh), but the send's CHANGE allocation (75 USDT) is permanently lost — it existed only in the un-backed-up local stash. Also a UX gap: the backup-failure error shows no txid and doesn't say funds WERE sent. The happy-path X3 (backup succeeds, then wipe) still worth a clean run. FOLLOW-UP: the in-flight 25 USDT never reached the receiver (20+ min; receiver invoice still pending) — if the orphaned witness/consignment never lands, the stale-backup scenario costs the FULL spent allocation (100), not just the change. Check wallet16 for the 25 next session. |
+| X3 | Wipe right after send (sender wiped post-broadcast, pre-settle) | HAPPY PASS(2026-10-08, w16: send 25 → backup ok (auto-retries) → wipe → restore → 150, change intact, deadlock=0). HARD variant = finding below | Ran the HARD variant by accident: the post-broadcast VSS backup itself FAILED (server timeout), then wipe → restore from the STALE backup. Result: NO deadlock, NO double-spend (spent input reconciled away on refresh), but the send's CHANGE allocation (75 USDT) is permanently lost — it existed only in the un-backed-up local stash. Also a UX gap: the backup-failure error shows no txid and doesn't say funds WERE sent. The happy-path X3 (backup succeeds, then wipe) still worth a clean run. FOLLOW-UP: the in-flight 25 USDT never reached the receiver (20+ min; receiver invoice still pending) — if the orphaned witness/consignment never lands, the stale-backup scenario costs the FULL spent allocation (100), not just the change. Check wallet16 for the 25 next session. |
 | X4 | Two devices, same seed, both alive → VSS single-writer fence behavior | — | Our vssClearFence "always take own fence" model breaks here. Minimum: document unsupported; better: detect. |
 | X5 | Send ENTIRE token balance (no colored change) → re-receive after | — | |
 | X6 | Second asset (issue own) → multi-row tokens, per-asset send, restore of 2 assets | — | Issue screen exists. |
@@ -104,3 +104,15 @@ must reach Home (balances render, no eternal "Verifying RGB backup…").
   the practical ceiling for now. A subagent run needs: this file, lib.sh,
   a built release artifact, and one seed per scenario (never reuse a
   wallet across concurrent runs — the LSP/faucet state is per-wallet).
+
+## Shipped mitigations (2026-10-08, commits dfbc7ba9 / 0b1cfb51)
+
+Verified live on device (release build):
+- Pre-send VSS probe gates Confirm ("Checking backup service…" spinner;
+  disabled button); on failure/15s-timeout the button becomes "Send anyway
+  (at your own risk)" behind a warning. Observed live: probe timed out
+  against a slow VSS, warning path rendered, send still succeeded and the
+  post-send backup passed on auto-retry.
+- Post-broadcast critical backup retries 2s/8s/20s before surfacing;
+  failure UI = "Sent — backup pending" with txid + don't-reinstall warning
+  + Retry button. Home/send-confirm banner persists until a retry succeeds.
