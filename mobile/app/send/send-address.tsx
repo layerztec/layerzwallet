@@ -82,9 +82,21 @@ const SendAddress: React.FC = () => {
           if (!decoded) {
             throw new Error('Could not decode this RGB invoice. Check it and try again.');
           }
-          const matchedToken = decoded.assetId ? tokenList?.find((t) => t.id === decoded.assetId) : undefined;
+          let matchedToken = decoded.assetId ? tokenList?.find((t) => t.id === decoded.assetId) : undefined;
           if (decoded.assetId && !matchedToken) {
             throw new Error(tokenList?.length ? 'This invoice requests an asset this wallet does not hold.' : 'Token list is still loading — try again in a moment.');
+          }
+          if (!decoded.assetId) {
+            // "Any asset" blind invoice (our own Receive screen, the faucet
+            // and bridges all issue these): the invoice names no asset, so
+            // resolve it from the token the user tapped in the list — or,
+            // when the wallet holds exactly one token, pick it automatically.
+            // Without this the flow fell through to the plain-BTC path and
+            // the invoice was unpayable from our UI (test plan X7).
+            matchedToken = token ? tokenList?.find((t) => t.id === token) : tokenList?.length === 1 ? tokenList[0] : undefined;
+            if (!matchedToken) {
+              throw new Error('This invoice does not name an asset. Tap the token you want to send in the list below, then press Next again.');
+            }
           }
           if (matchedToken) setToken(matchedToken.id);
           if (typeof decoded.amount === 'number' && matchedToken) {
@@ -93,6 +105,13 @@ const SendAddress: React.FC = () => {
             // Invoice fully specifies the transfer → skip amount entry.
             router.push('/send/send-confirm');
             return;
+          }
+          if (matchedToken) {
+            // Asset resolved but the invoice carries no amount. We have no
+            // on-chain token amount screen yet; both our Receive screen and
+            // the faucet always embed an amount, so require one instead of
+            // silently routing to the BTC path.
+            throw new Error('This invoice has no amount. Ask the receiver to generate an invoice with an amount.');
           }
         }
       }
