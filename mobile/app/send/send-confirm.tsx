@@ -411,6 +411,15 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                     </View>
                     <View style={styles.addressCard}>{formatAddressWithOpacity(address)}</View>
                   </Animated.View>
+
+                  {vssProbe === 'failed' && !isSuccess && !sentNotBackedUp && (
+                    <View style={styles.vssWarning} testID="vss-probe-warning">
+                      <ThemedText style={styles.vssWarningText}>
+                        Backup service is unreachable right now. You can still send at your own risk — but if this app is deleted before a backup succeeds, the change from this transfer may be lost
+                        forever. Consider waiting a few minutes instead.
+                      </ThemedText>
+                    </View>
+                  )}
                 </>
               )}
             </View>
@@ -418,14 +427,6 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
         </KeyboardAvoidingView>
         {!error && !sentNotBackedUp && (
           <View style={styles.bottomDock} pointerEvents="box-none">
-            {vssProbe === 'failed' && !isSuccess && (
-              <View style={styles.vssWarning} testID="vss-probe-warning">
-                <ThemedText style={styles.vssWarningText}>
-                  Backup service is unreachable right now. You can still send at your own risk — but if this app is deleted before a backup succeeds, the change from this transfer may be lost forever.
-                  Consider waiting a few minutes instead.
-                </ThemedText>
-              </View>
-            )}
             <Pressable
               style={[styles.sendButton, (isBroadcasting || vssProbe === 'checking') && styles.disabledButton]}
               onPress={isSuccess ? handleHome : broadcast}
@@ -644,11 +645,11 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   vssWarning: {
-    backgroundColor: 'rgba(20, 16, 0, 0.92)',
+    backgroundColor: 'rgba(255, 204, 0, 0.1)',
     borderColor: 'rgba(255, 204, 0, 0.5)',
     borderWidth: 1,
     borderRadius: 12,
-    marginBottom: 8,
+    marginTop: 16,
     padding: 12,
   },
   vssWarningText: {
