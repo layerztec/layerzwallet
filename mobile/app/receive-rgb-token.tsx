@@ -419,6 +419,10 @@ const styles = StyleSheet.create({
   successTitle: {
     color: 'white',
     fontSize: 28,
+    // ThemedText defaults to the paragraph style's lineHeight: 24, which
+    // clips 28px glyphs top and bottom — always pair an enlarged fontSize
+    // with its own lineHeight.
+    lineHeight: 36,
     fontWeight: '700',
     marginBottom: 4,
   },
