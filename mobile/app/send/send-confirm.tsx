@@ -3,7 +3,7 @@ import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { Redirect, Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Alignment, Fit, RiveView, useRiveFile } from '@rive-app/react-native';
 import Pressable from '../../components/Pressable';
@@ -67,6 +67,33 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   // never back into the confirm button.
   const [sentNotBackedUp, setSentNotBackedUp] = useState<{ txid: string } | null>(null);
   const [isRetryingBackup, setIsRetryingBackup] = useState(false);
+  // RGB only: before enabling Send, run a REAL backup as a liveness probe of
+  // the VSS server (a plain ping lies — the server can answer while
+  // putObjects 500s, seen live 2026-09-09). Side benefit: a fresh backup
+  // right before the send shrinks the worst-case loss window to just this
+  // send's change. 'checking' keeps the Send button disabled; a failure or
+  // timeout re-enables it behind an explicit warning.
+  const [vssProbe, setVssProbe] = useState<'checking' | 'ok' | 'failed' | null>(null);
+
+  useEffect(() => {
+    if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) return;
+    let cancelled = false;
+    setVssProbe('checking');
+    (async () => {
+      try {
+        const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        if (!(wallet instanceof RgbWallet)) return cancelled || setVssProbe('ok');
+        const ok = await Promise.race([wallet.retryBackup(), new Promise<false>((r) => setTimeout(() => r(false), 15_000))]);
+        if (!cancelled) setVssProbe(ok ? 'ok' : 'failed');
+      } catch {
+        if (!cancelled) setVssProbe('failed');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [network, accountNumber]);
   const [showRiveAnimation, setShowRiveAnimation] = useState(false);
   const [hideHeader, setHideHeader] = useState(false);
 
@@ -390,17 +417,41 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
           </ScrollView>
         </KeyboardAvoidingView>
         {!error && !sentNotBackedUp && (
-          <Pressable style={[styles.sendButton, isBroadcasting && styles.disabledButton]} onPress={isSuccess ? handleHome : broadcast} disabled={isBroadcasting} testID="send-confirm-button">
-            <ThemedText style={styles.sendButtonText} testID={isSuccess ? 'send-success-text' : undefined}>
-              {isSuccess
-                ? 'Back to Wallet'
-                : isBroadcasting
-                  ? network === NETWORK_RGB || network === NETWORK_RGB_TESTNET
-                    ? 'Sending & backing up — don’t close the app'
-                    : 'Sending...'
-                  : 'Confirm Send'}
-            </ThemedText>
-          </Pressable>
+          <>
+            {vssProbe === 'failed' && !isSuccess && (
+              <View style={styles.vssWarning} testID="vss-probe-warning">
+                <ThemedText style={styles.vssWarningText}>
+                  Backup service is unreachable right now. You can still send at your own risk — but if this app is deleted before a backup succeeds, the change from this transfer may be lost forever.
+                  Consider waiting a few minutes instead.
+                </ThemedText>
+              </View>
+            )}
+            <Pressable
+              style={[styles.sendButton, (isBroadcasting || vssProbe === 'checking') && styles.disabledButton]}
+              onPress={isSuccess ? handleHome : broadcast}
+              disabled={isBroadcasting || vssProbe === 'checking'}
+              testID="send-confirm-button"
+            >
+              {vssProbe === 'checking' && !isSuccess ? (
+                <View style={styles.checkingRow}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ThemedText style={styles.sendButtonText}> Checking backup service…</ThemedText>
+                </View>
+              ) : (
+                <ThemedText style={styles.sendButtonText} testID={isSuccess ? 'send-success-text' : undefined}>
+                  {isSuccess
+                    ? 'Back to Wallet'
+                    : isBroadcasting
+                      ? network === NETWORK_RGB || network === NETWORK_RGB_TESTNET
+                        ? 'Sending & backing up — don’t close the app'
+                        : 'Sending...'
+                      : vssProbe === 'failed'
+                        ? 'Send anyway (at your own risk)'
+                        : 'Confirm Send'}
+                </ThemedText>
+              )}
+            </Pressable>
+          </>
         )}
       </View>
     </RadialGradientScreen>
@@ -586,6 +637,25 @@ const styles = StyleSheet.create({
     gap: 8,
     height: 56,
     zIndex: 1000,
+  },
+  vssWarning: {
+    backgroundColor: 'rgba(255, 204, 0, 0.12)',
+    borderColor: 'rgba(255, 204, 0, 0.5)',
+    borderWidth: 1,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 12,
+  },
+  vssWarningText: {
+    color: '#FFCC00',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  checkingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sendButtonText: {
     color: 'rgba(255, 255, 255, 0.9)',
