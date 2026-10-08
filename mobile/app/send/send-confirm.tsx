@@ -10,7 +10,6 @@ import Pressable from '../../components/Pressable';
 import successRiv from '../../assets/animations/success.riv';
 
 import RadialGradientScreen from '@/components/RadialGradientScreen';
-import RgbBackupBanner from '@/components/RgbBackupBanner';
 import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { SendAssetProps, withAsset } from '@/hooks/withAsset';
@@ -356,13 +355,11 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                 </View>
               ) : (
                 <>
-                  {/* Soft warning if a previous RGB backup is still pending or
-                      failed — sending now will increase the unbacked window.
-                      No-op on non-RGB networks. Hidden on the success screen:
-                      the Total section animates down into the banner's spot,
-                      and the post-send backup state is already communicated
-                      by the button/sent-not-backed-up flow. */}
-                  {!isSuccess && <RgbBackupBanner />}
+                  {/* NOTE: no RgbBackupBanner here. This screen is laid out
+                      with absolute positions (Total at a fixed top, the send
+                      button docked to the bottom), so flow-inserted content
+                      overlaps it. Pre-send backup state is covered by the
+                      VSS probe below; stale-backup nagging lives on Home. */}
 
                   {/* Total Section */}
                   <Animated.View style={[styles.totalSection, totalAnimatedStyle]}>
@@ -420,7 +417,7 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
           </ScrollView>
         </KeyboardAvoidingView>
         {!error && !sentNotBackedUp && (
-          <>
+          <View style={styles.bottomDock} pointerEvents="box-none">
             {vssProbe === 'failed' && !isSuccess && (
               <View style={styles.vssWarning} testID="vss-probe-warning">
                 <ThemedText style={styles.vssWarningText}>
@@ -454,7 +451,7 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                 </ThemedText>
               )}
             </Pressable>
-          </>
+          </View>
         )}
       </View>
     </RadialGradientScreen>
@@ -626,11 +623,13 @@ const styles = StyleSheet.create({
     width: '180%',
     height: '180%',
   },
-  sendButton: {
+  bottomDock: {
     position: 'absolute',
     bottom: 0,
     left: 16,
     right: 16,
+  },
+  sendButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -642,11 +641,10 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   vssWarning: {
-    backgroundColor: 'rgba(255, 204, 0, 0.12)',
+    backgroundColor: 'rgba(20, 16, 0, 0.92)',
     borderColor: 'rgba(255, 204, 0, 0.5)',
     borderWidth: 1,
     borderRadius: 12,
-    marginHorizontal: 16,
     marginBottom: 8,
     padding: 12,
   },
