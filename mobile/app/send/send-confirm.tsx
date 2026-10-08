@@ -637,7 +637,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    // Opaque: the button floats over scrollable content; a translucent fill
+    // reads as overlapping text (user-reported).
+    backgroundColor: '#4A4A52',
     paddingVertical: 16,
     borderRadius: 16,
     gap: 8,
