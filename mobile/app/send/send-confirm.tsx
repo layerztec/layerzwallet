@@ -358,8 +358,11 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                 <>
                   {/* Soft warning if a previous RGB backup is still pending or
                       failed — sending now will increase the unbacked window.
-                      No-op on non-RGB networks. */}
-                  <RgbBackupBanner />
+                      No-op on non-RGB networks. Hidden on the success screen:
+                      the Total section animates down into the banner's spot,
+                      and the post-send backup state is already communicated
+                      by the button/sent-not-backed-up flow. */}
+                  {!isSuccess && <RgbBackupBanner />}
 
                   {/* Total Section */}
                   <Animated.View style={[styles.totalSection, totalAnimatedStyle]}>
