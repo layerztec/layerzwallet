@@ -471,7 +471,10 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 80,
+    // Clear the bottom dock (warning + button) so long invoices in "Send to"
+    // scroll fully above it instead of sliding underneath the translucent
+    // button.
+    paddingBottom: 170,
   },
   container: {
     flex: 1,
