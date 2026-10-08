@@ -33,15 +33,32 @@ Code status for this plan:
   tUSD placeholder asset) on top of web#6/#7.
 
 Test matrix before launch (signet now, mainnet when variables land):
-- [ ] On-chain-only recovery (critical): fresh wallet, faucet USDT, NO LN
-      ops → backup → wipe → import → VSS restore → tokens present, node up
-      (no #58 — that deadlock needs a restored LN claim), send works after
-      restore. Android + iOS.
-- [ ] Wallet→wallet on-chain send both directions; balances/history/UTXO
-      manager after each step.
+- [x] On-chain-only recovery (2026-10-08, release builds, wallet15/16):
+      PASSED on Android AND iOS — faucet USDT, no LN ops, wipe → import →
+      VSS restore: tokens restored (Android even recovered a transfer whose
+      consignment validation had died in a network error pre-wipe), node up,
+      zero "Delaying monitor unlock" lines. #58 confirmed LN-only; on-chain
+      launch is safe. Send after restore works (with the a125413b fix).
+- [x] Wallet→wallet on-chain send: Android(restored) → iOS, 25 USDT,
+      full asset invoice, settled both sides. Found+fixed live:
+      `transferToken` omitted `amount` when the invoice embedded one —
+      beta.9-era workaround; RLN `onchainSend` REQUIRES amount (a125413b).
+- [ ] GAP (decide before launch): an "Any asset" blind invoice routes the
+      sender UI to the plain-BTC path (send-address.tsx decode finds no
+      matched token → btc amount screen). Receiving to such invoices works
+      (faucet does it), but OUR send UI can't pay one. If bridge/Unisat
+      issue any-asset invoices, senders hit this. Fix: let the user pick
+      the token when decode returns no assetId.
 - [ ] Bridge flow (asked UTEXO for URL + signet availability).
 - [ ] Interop vs Unisat (open question: does it speak UTEXO's custom
       signet, or mainnet-only test?) and vs reference wallet when shared.
+
+Operational notes from the run: emulator DNS dies after host sleep —
+restart emulator with `-dns-server 8.8.8.8,1.1.1.1`; a receiver-side
+consignment validation that fails on a network blip is NOT retried by
+periodic refresh on the same node instance, but revalidates fine after a
+node restart or restore (upstream behavior worth reporting if it recurs);
+iOS release build occasionally SIGSEGVs in Rive on cold launch — relaunch.
 
 ## Blockers — UTEXO
 
