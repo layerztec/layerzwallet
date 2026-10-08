@@ -44,6 +44,7 @@ Related: `tasks/ship-rgb.md` (launch checklist), `tasks/pr-draft-rgb-two.md`
 | X11 | App killed between broadcast and backup → pendingMutations re-backup on next start | — | Unit-covered ledger logic; not exercised live. |
 | X12 | tBTC send-out while holding colored UTXOs (must not spend colored) | unit only | Live-run from the May arc predates RLN rewrite. |
 | X13 | Restore with in-flight createUtxos tx unconfirmed | — | |
+| X14 | CRITICAL: receive on a RESTORED Android node — blind invoices generated AFTER a VSS restore never pick their consignment up | FOUND(2026-10-08) | Closed-loop proof: fresh invoice on restored w16, sender posts fine (proxy `consignment.get` returns the blob for that exact RID), receiver's refresh polls NoConsignment forever ("Skipping transport endpoint" per rgb-lib online.rs:1177) — i.e. the restored node queries a DIFFERENT recipient id. Invoices from BEFORE the wipe restore and credit fine (X2); iOS-restored receivers worked. 3 transfers stuck this way (2 consignments still on the proxy). Re-restore probe pending. MUST be understood before mainnet — "restore then receive" is the normal life of a restored wallet. Report to UTEXO with the curl repro. |
 
 ## Known traps (cost us hours — read before running anything)
 
