@@ -46,7 +46,7 @@ wait_confirmed() {
     local st
     st=$(curl -sS "$RGB_E2E_ESPLORA/tx/$tx/status" 2>/dev/null | head -c 60)
     e2e_log "confirm $tx: $st"
-    case "$st" in *'"confirmed":true'*) return 0 ;; esac
+    case "$st" in *'"confirmed":true'*) return 0 ;; esac  # NB: must match :true — bare *confirmed* also matches "confirmed":false
     sleep 60
   done
   e2e_log "TIMEOUT waiting confirm $tx"; return 1

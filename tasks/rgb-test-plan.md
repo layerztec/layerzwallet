@@ -32,15 +32,15 @@ Related: `tasks/ship-rgb.md` (launch checklist), `tasks/pr-draft-rgb-two.md`
 | ID | Case | Status | Notes |
 |----|------|--------|-------|
 | X1 | Cross-platform restore: Android backup → iOS restore, and reverse | PASS(2026-10-08, w15 A→i 175 USDT; w16 i→A 75 USDT; deadlock=0 both) | Mobile↔mobile VSS payloads fully portable. Driven end-to-end by `rgb-e2e/lib.sh`. |
-| X2 | Wipe mid-incoming-transfer (receiver wiped after faucet pays, before witness confirms) → restore picks up WaitingConfirmations | — | Adjacent case passed by accident 2026-10-08: consignment whose validation died pre-wipe revalidated after restore. |
-| X3 | Wipe right after send (sender wiped post-broadcast, pre-settle) → restored allocation map correct, no double-spendable slot | — | This is what `criticalBackupAfterBroadcast` exists for; never exercised live. |
+| X2 | Wipe mid-incoming-transfer (receiver wiped after faucet pays, before witness confirms) → restore picks up WaitingConfirmations | PASS(2026-10-08, w16: wiped with witness in mempool, restored, credited +100 after confirm; deadlock=0) | Pending blind allocation survives via VSS; credit lands once witness confirms. |
+| X3 | Wipe right after send (sender wiped post-broadcast, pre-settle) | PARTIAL(2026-10-08, w15) — see finding | Ran the HARD variant by accident: the post-broadcast VSS backup itself FAILED (server timeout), then wipe → restore from the STALE backup. Result: NO deadlock, NO double-spend (spent input reconciled away on refresh), but the send's CHANGE allocation (75 USDT) is permanently lost — it existed only in the un-backed-up local stash. Also a UX gap: the backup-failure error shows no txid and doesn't say funds WERE sent. The happy-path X3 (backup succeeds, then wipe) still worth a clean run. |
 | X4 | Two devices, same seed, both alive → VSS single-writer fence behavior | — | Our vssClearFence "always take own fence" model breaks here. Minimum: document unsupported; better: detect. |
 | X5 | Send ENTIRE token balance (no colored change) → re-receive after | — | |
 | X6 | Second asset (issue own) → multi-row tokens, per-asset send, restore of 2 assets | — | Issue screen exists. |
 | X7 | Any-asset blind invoice on SEND side | GAP | Our send UI routes it to the BTC path (send-address.tsx decode → no matched token). Receiving works. Fix: let user pick token when decode has no assetId. Decide before launch — bridge/Unisat may issue such invoices. |
 | X8 | Stuck witness (fee too low) → failTransfers recovery | — | |
 | X9 | Expired invoice: pay attempt UX + receiver's expired pending allocation cleanup | — | |
-| X10 | Stale-backup restore: degraded no-VSS session mutated state, then restore from older backup | — | Conceptual loss risk; ledger banner partially covers. Hard to test; at least reason through before mainnet. |
+| X10 | Stale-backup restore: degraded no-VSS session mutated state, then restore from older backup | PROVEN LOSSY(2026-10-08, via X3-hard) | Restoring a backup that predates a send loses the send's change allocation (75 USDT gone live). No double-spend though. Mitigations before mainnet: (a) backup-failure UI must show txid + "funds sent, NOT backed up — do not reinstall"; (b) aggressive auto-retry of the critical backup; (c) consider blocking further RGB sends until re-backup succeeds. |
 | X11 | App killed between broadcast and backup → pendingMutations re-backup on next start | — | Unit-covered ledger logic; not exercised live. |
 | X12 | tBTC send-out while holding colored UTXOs (must not spend colored) | unit only | Live-run from the May arc predates RLN rewrite. |
 | X13 | Restore with in-flight createUtxos tx unconfirmed | — | |
