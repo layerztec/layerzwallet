@@ -37,7 +37,7 @@ Related: `tasks/ship-rgb.md` (launch checklist), `tasks/pr-draft-rgb-two.md`
 | X4 | Two devices, same seed, both alive → VSS single-writer fence behavior | — | Our vssClearFence "always take own fence" model breaks here. Minimum: document unsupported; better: detect. |
 | X5 | Send ENTIRE token balance (no colored change) → re-receive after | — | |
 | X6 | Second asset (issue own) → multi-row tokens, per-asset send, restore of 2 assets | — | Issue screen exists. |
-| X7 | Any-asset blind invoice on SEND side | GAP | Our send UI routes it to the BTC path (send-address.tsx decode → no matched token). Receiving works. Fix: let user pick token when decode has no assetId. Decide before launch — bridge/Unisat may issue such invoices. |
+| X7 | Any-asset blind invoice on SEND side | FIXED+PASS(2026-10-08, commit 36465781; w16→w15 10 USDT via any-asset invoice, delivered, 135 on receiver) | Asset resolves from the tapped token, or auto-picks the wallet's only token; any-asset invoice with NO amount gets an explicit error (no on-chain token amount screen yet — our Receive and the faucet always embed amounts). |
 | X8 | Stuck witness (fee too low) → failTransfers recovery | — | |
 | X9 | Expired invoice: pay attempt UX + receiver's expired pending allocation cleanup | — | |
 | X10 | Stale-backup restore: degraded no-VSS session mutated state, then restore from older backup | PROVEN LOSSY(2026-10-08, via X3-hard) | Restoring a backup that predates a send loses the send's change allocation (75 USDT gone live). No double-spend though. Mitigations before mainnet: (a) backup-failure UI must show txid + "funds sent, NOT backed up — do not reinstall"; (b) aggressive auto-retry of the critical backup; (c) consider blocking further RGB sends until re-backup succeeds. |
