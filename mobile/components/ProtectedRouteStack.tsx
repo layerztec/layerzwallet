@@ -150,6 +150,19 @@ export function ProtectedRouteStack() {
           }}
         />
         <Stack.Screen name="Tools" options={{ headerShown: false }} />
+        <Stack.Screen name="WalletConnectSessions" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="WalletConnectApproveModal"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            headerShown: false,
+            gestureEnabled: true,
+            contentStyle: {
+              backgroundColor: 'transparent',
+            },
+          }}
+        />
         <Stack.Screen name="SendAccountBased" options={{ headerShown: false }} />
         <Stack.Screen name="SendBtc" options={{ title: 'Send BTC' }} />
         <Stack.Screen name="SendEvm" options={{ title: 'Send' }} />

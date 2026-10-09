@@ -304,6 +304,16 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   }
 
   /**
+   * The raw SDK wallet handle, for integrations that must speak the SDK's own
+   * surface (the WebRGB provider wraps a UTEXOWallet directly). Callers that
+   * mutate state through this handle bypass the backup ledger — they must
+   * trigger a backup themselves (see mobile wc-provider run wrapper).
+   */
+  getSdk(): IRgbWallet {
+    return this.sdk();
+  }
+
+  /**
    * Pulls fresh chain state into the SDK's local store. The rgb-lib wallet
    * holds a sled DB that only reflects what has been explicitly synced — so
    * `getBtcBalance` / `listTransactions` / `listAssets` all return stale

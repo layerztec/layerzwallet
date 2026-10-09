@@ -1,4 +1,5 @@
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import { WcBootstrap } from '@/src/features/walletconnect/components/WcBootstrap';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -153,6 +154,7 @@ export default function RootLayout() {
           <AskPasswordContextProvider>
             <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} platform={'MOBILE'}>
               <TunnelBootstrap />
+              <WcBootstrap />
               <TunnelKeepAwake />
               <SettingsContextProvider storage={LayerzStorage}>
                 <AuthStateContextProvider>
