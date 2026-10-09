@@ -721,24 +721,30 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    *  (proven live 2026-10-08: 75 USDT gone, see tasks/rgb-test-plan.md X10).
    */
   private async criticalBackupAfterBroadcast(txid: string): Promise<void> {
-    const delaysMs = [0, 2_000, 8_000, 20_000];
-    let lastErr: any;
-    for (const delay of delaysMs) {
-      if (delay) await new Promise((r) => setTimeout(r, delay));
-      try {
-        await this.tryBackup({ critical: true });
-        return;
-      } catch (e: any) {
-        lastErr = e;
-        rgbLog(`[rgb] critical post-broadcast backup attempt failed (retrying): ${errorMessage(e)}`);
-      }
-    }
+    let lastErr: unknown;
     try {
-      lastErr.txid = txid;
-    } catch {
-      // frozen error object — nothing to attach to
+      // First attempt counts the mutation in the ledger…
+      await this.tryBackup({ critical: true });
+      return;
+    } catch (e) {
+      lastErr = e;
+      rgbLog(`[rgb] critical post-broadcast backup attempt failed (retrying): ${errorMessage(e)}`);
     }
-    throw lastErr;
+    // …retries must not re-count it (each tryBackup increments the ledger).
+    for (const delay of [2_000, 8_000, 20_000]) {
+      await new Promise((r) => setTimeout(r, delay));
+      if (await this.retryBackup()) return;
+      rgbLog('[rgb] critical post-broadcast backup retry failed');
+    }
+    // Never mutate the SDK's rejection (it can be frozen or a primitive —
+    // the txid marker would silently vanish and the UI would show a
+    // retry-send screen for an ALREADY broadcast transfer). Throw our own
+    // extensible error; callers detect it by `.txid`.
+    const err = new Error(`Backup failed after broadcast: ${errorMessage(lastErr)}`) as Error & { txid: string; cause?: unknown };
+    err.name = 'RgbSentNotBackedUpError';
+    err.txid = txid;
+    err.cause = lastErr;
+    throw err;
   }
 
   /**
@@ -1120,27 +1126,54 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    * Background ops like `prepareWallet`'s `createUtxos` keep the default
    * non-throwing behavior.
    */
+  /**
+   * All vssBackup work runs through one serial chain: a slow pre-send probe
+   * must never interleave with (or complete after and clobber the ledger of)
+   * a post-send critical backup. A completed backup clears only the
+   * mutations that existed when it STARTED — mutations recorded while it was
+   * uploading stay pending for the next one.
+   */
+  private _backupChain: Promise<unknown> = Promise.resolve();
+  private runBackupSerialized<T>(action: () => Promise<T>): Promise<T> {
+    const next = this._backupChain.then(action, action);
+    this._backupChain = next.catch(() => {});
+    return next;
+  }
+
+  /**
+   * Record a mutation in the persisted ledger BEFORE performing it through
+   * the raw SDK handle (getSdk()), so a crash mid-window still leaves the
+   * "backup pending" warning. Pair with retryBackup() after the mutation.
+   */
+  async notePendingMutation(): Promise<void> {
+    this._pendingMutationsSinceBackup += 1;
+    await this.persistBackupState();
+  }
+
   private async tryBackup(opts: { critical?: boolean } = {}): Promise<boolean> {
     this._pendingMutationsSinceBackup += 1;
     await this.persistBackupState();
-    try {
-      await this.sdk().vssBackup();
-      this._pendingMutationsSinceBackup = Math.max(0, this._pendingMutationsSinceBackup - 1);
-      this._lastBackupAt = Date.now();
-      this._lastBackupError = null;
-      await this.persistBackupState();
-      return true;
-    } catch (e) {
-      const kind = classifyBackupError(e);
-      this._lastBackupError = { kind, at: Date.now(), message: errorMessage(e) };
-      await this.persistBackupState();
-      globalThis.handleError?.(e, 'rgb-wallet.ts:vssBackup');
-      // 'unavailable' is a permanent platform condition, not a failed attempt —
-      // the ledger already flags it for the banner; escalating would turn every
-      // successful transfer into an error dialog the user can't act on.
-      if (opts.critical && kind !== 'unavailable') throw e;
-      return false;
-    }
+    return this.runBackupSerialized(async () => {
+      const coveredMutations = this._pendingMutationsSinceBackup;
+      try {
+        await this.sdk().vssBackup();
+        this._pendingMutationsSinceBackup = Math.max(0, this._pendingMutationsSinceBackup - coveredMutations);
+        this._lastBackupAt = Date.now();
+        this._lastBackupError = null;
+        await this.persistBackupState();
+        return true;
+      } catch (e) {
+        const kind = classifyBackupError(e);
+        this._lastBackupError = { kind, at: Date.now(), message: errorMessage(e) };
+        await this.persistBackupState();
+        globalThis.handleError?.(e, 'rgb-wallet.ts:vssBackup');
+        // 'unavailable' is a permanent platform condition, not a failed attempt —
+        // the ledger already flags it for the banner; escalating would turn every
+        // successful transfer into an error dialog the user can't act on.
+        if (opts.critical && kind !== 'unavailable') throw e;
+        return false;
+      }
+    });
   }
 
   /**
@@ -1160,19 +1193,22 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    *  backup" CTA in the warning banner. */
   async retryBackup(): Promise<boolean> {
     if (!this._sdkWallet) return false;
-    try {
-      await this.sdk().vssBackup();
-      this._pendingMutationsSinceBackup = 0;
-      this._lastBackupAt = Date.now();
-      this._lastBackupError = null;
-      await this.persistBackupState();
-      return true;
-    } catch (e) {
-      this._lastBackupError = { kind: classifyBackupError(e), at: Date.now(), message: errorMessage(e) };
-      await this.persistBackupState();
-      globalThis.handleError?.(e, 'rgb-wallet.ts:retryBackup');
-      return false;
-    }
+    return this.runBackupSerialized(async () => {
+      const coveredMutations = this._pendingMutationsSinceBackup;
+      try {
+        await this.sdk().vssBackup();
+        this._pendingMutationsSinceBackup = Math.max(0, this._pendingMutationsSinceBackup - coveredMutations);
+        this._lastBackupAt = Date.now();
+        this._lastBackupError = null;
+        await this.persistBackupState();
+        return true;
+      } catch (e) {
+        this._lastBackupError = { kind: classifyBackupError(e), at: Date.now(), message: errorMessage(e) };
+        await this.persistBackupState();
+        globalThis.handleError?.(e, 'rgb-wallet.ts:retryBackup');
+        return false;
+      }
+    });
   }
 
   // ── Persistence helpers for the backup ledger + the "initialized" flag. ──

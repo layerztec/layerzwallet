@@ -28,6 +28,8 @@ export type WcPrompt = {
   origin: string;
   details: string;
   expiresAt: number;
+  /** WalletConnect Verify verdict — 'UNKNOWN' renders an explicit unverified warning. */
+  verification?: 'VALID' | 'UNKNOWN';
   resolve: (approved: boolean) => void;
 };
 
@@ -141,9 +143,10 @@ class WcService {
           this.confirm(
             'Connect to website?',
             proposal.origin,
-            `${proposal.name}\nNetwork: ${proposal.network}\nPermissions: ${proposal.methods.join(', ')}\nWebsite verification: ${proposal.verification}\nCreating receive invoices will ask for confirmation.`,
+            `${proposal.name}\nNetwork: ${proposal.network}\nPermissions: ${proposal.methods.join(', ')}\nCreating receive invoices will ask for confirmation.`,
             Date.now() + 240_000,
-            proposal.signal
+            proposal.signal,
+            proposal.verification
           )
         ),
       getProvider: (context: WalletConnectWalletContext): Promise<WalletConnectBackend> =>
@@ -171,6 +174,7 @@ class WcService {
     try {
       await this.getClient();
       await this.transport!.pair(uri);
+      this.set({ message: '' });
     } catch (e) {
       this.set({ error: messageOf(e), message: '' });
       throw e;
@@ -180,18 +184,52 @@ class WcService {
   }
 
   async disconnect(topic: string): Promise<void> {
-    await this.transport?.disconnect(topic);
-    this.refreshSessions();
+    try {
+      await this.transport?.disconnect(topic);
+    } catch (e) {
+      this.set({ error: messageOf(e) });
+    } finally {
+      this.refreshSessions();
+    }
   }
 
   refreshSessions(): void {
     if (!this.client) return;
     const all = Object.values(this.client.getActiveSessions() ?? {}) as unknown as WcSessionLike[];
-    const sessions = all
-      .filter((s) => isRgbSession(s, this.account, WC_RPC_METHODS))
-      .map((s) => ({ topic: s.topic, name: s.peer.metadata.name, url: s.peer.metadata.url, network: WC_NETWORK }));
+    const webrgb = all.filter((s) => s.sessionProperties?.webrgb === 'webrgb:1');
+    const sessions = webrgb.filter((s) => isRgbSession(s, this.account, WC_RPC_METHODS)).map((s) => ({ topic: s.topic, name: s.peer.metadata.name, url: s.peer.metadata.url, network: WC_NETWORK }));
+    // WebRGB sessions that no longer match (seed changed, older app with a
+    // wider surface) are zombies: invisible here but alive for the dApp.
+    // Disconnect them instead of silently hiding them.
+    for (const z of webrgb.filter((s) => !isRgbSession(s, this.account, WC_RPC_METHODS))) {
+      void this.transport?.disconnect(z.topic).catch(() => {});
+    }
     this.set({ sessions });
-    if (!sessions.length) void LayerzStorage.setItem(HAD_SESSIONS_KEY, 'false');
+    void LayerzStorage.setItem(HAD_SESSIONS_KEY, sessions.length ? 'true' : 'false');
+  }
+
+  /**
+   * Tear down everything bound to the current wallet identity. MUST be
+   * called before clearing or replacing the seed: the transport and
+   * `account` are bound to the old wallet, and a surviving session would
+   * let a dApp approved under wallet A read wallet B after an in-process
+   * re-import.
+   */
+  async reset(): Promise<void> {
+    try {
+      for (const s of this.state.sessions) await this.transport?.disconnect(s.topic).catch(() => {});
+      this.transport?.dispose();
+    } catch (e) {
+      this.set({ error: messageOf(e) });
+    }
+    this.transport = undefined;
+    this.client = undefined;
+    this.clientPromise = undefined;
+    this.core = undefined;
+    this.account = '';
+    this.state.prompt?.resolve(false);
+    this.set({ status: 'idle', sessions: [], prompt: null, pairing: false, error: '', message: '' });
+    await LayerzStorage.setItem(HAD_SESSIONS_KEY, 'false');
   }
 
   /** Called by the pairing screen so "open screen" boots the client lazily. */
@@ -215,7 +253,10 @@ class WcService {
    * request. The resolution re-checks expiry — a stale Approve tap after the
    * dApp gave up must not grant anything.
    */
-  confirm(title: string, origin: string, details: string, expiresAt: number, signal?: AbortSignal): Promise<boolean> {
+  confirm(title: string, origin: string, details: string, expiresAt: number, signal?: AbortSignal, verification?: 'VALID' | 'UNKNOWN'): Promise<boolean> {
+    // An already-dead request must not park a ghost prompt in front of the
+    // serial queue (abort listeners added to an aborted signal never fire).
+    if (signal?.aborted || expiresAt <= Date.now()) return Promise.resolve(false);
     return new Promise<boolean>((resolve) => {
       let done = false;
       const finish = (approved: boolean) => {
@@ -229,7 +270,11 @@ class WcService {
       const onAbort = () => finish(false);
       const timer = setTimeout(() => finish(false), Math.max(0, expiresAt - Date.now()));
       signal?.addEventListener('abort', onAbort, { once: true });
-      this.set({ prompt: { title, origin, details, expiresAt, resolve: finish } });
+      if (signal?.aborted) {
+        finish(false);
+        return;
+      }
+      this.set({ prompt: { title, origin, details, expiresAt, verification, resolve: finish } });
     });
   }
 }

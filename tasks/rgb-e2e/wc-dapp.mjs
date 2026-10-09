@@ -43,8 +43,9 @@ console.log('GETINFO ' + JSON.stringify(info));
 const assets = await provider.listAssets();
 console.log('ASSETS ' + JSON.stringify(assets).slice(0, 400));
 
-const nia = (assets.nia ?? assets.assets ?? []).find?.((a) => a.ticker === 'USDT') ?? null;
-const assetId = nia?.assetId ?? nia?.asset_id ?? undefined;
+const list = Array.isArray(assets) ? assets : (assets.nia ?? assets.assets ?? []);
+const nia = list.find?.((a) => a.ticker === 'USDT') ?? null;
+const assetId = nia?.id ?? nia?.assetId ?? undefined;
 console.log('USDT_ASSET ' + assetId);
 
 console.log('requesting blindReceive (wallet will prompt)...');

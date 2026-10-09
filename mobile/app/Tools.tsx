@@ -30,6 +30,7 @@ import { useSettings } from '@shared/hooks/useSettings';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { wcService } from '@/src/features/walletconnect/modules/wc-service';
 import { SecureStorage } from '@/src/class/secure-storage';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 import { useRouter } from 'expo-router';
@@ -240,6 +241,9 @@ export default function TabThreeScreen() {
           try {
             await updateSetting('biometricAuth', 'OFF');
             await updateSetting('seedBackedUp', 'OFF');
+            // Sessions/transport are bound to the old wallet identity — a
+            // surviving dApp session would read the NEW wallet after re-import.
+            await wcService.reset().catch(() => {});
             await BackgroundExecutor.clear();
             await AsyncStorage.clear();
             await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, '');

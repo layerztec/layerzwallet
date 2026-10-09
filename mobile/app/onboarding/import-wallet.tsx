@@ -23,6 +23,7 @@ import { useNavigation } from '@react-navigation/native';
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { wcService } from '@/src/features/walletconnect/modules/wc-service';
 import { sanitizeAndValidateMnemonic } from '@shared/modules/wallet-utils';
 import { Colors } from '@shared/constants/Colors';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
@@ -191,6 +192,9 @@ export default function ImportWalletScreen() {
             style: 'destructive',
             onPress: async () => {
               try {
+                // Sessions/transport are bound to the old wallet identity — a
+                // surviving dApp session would read the NEW wallet after re-import.
+                await wcService.reset().catch(() => {});
                 await BackgroundExecutor.clear();
                 await AsyncStorage.clear();
                 await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, '');

@@ -61,16 +61,22 @@ export async function buildBackend(context: WalletConnectWalletContext, host: Ho
     sessionApproved: true,
     assertAuthorized: () => context.assertAuthorized(),
     confirm: (request: WebRgbApproval) => {
-      // v1 only ever prompts for receive invoices; anything else that
-      // somehow reaches here is rejected by not being in the backend map.
-      const details = [
-        `Asset: ${request.params.assetId ?? 'Any asset (including a new one)'}`,
-        `Amount: ${request.params.amount ?? 'Any amount'} base units`,
-        `Network: ${WC_NETWORK}`,
-        `Confirmations: ${request.params.minConfirmations}`,
-        `Expires in: ${request.params.durationSeconds} seconds`,
-      ].join('\n');
-      return host.confirm('Create RGB receive invoice?', request.origin, details, Date.now() + 240_000, context.requestSignal);
+      // Prompt text must match what is actually being approved; an
+      // unexpected method gets a hard reject, not a mislabeled dialog.
+      if (request.method === 'blindReceive') {
+        const details = [
+          `Asset: ${request.params.assetId ?? 'Any asset (including a new one)'}`,
+          `Amount: ${request.params.amount ?? 'Any amount'} base units`,
+          `Network: ${WC_NETWORK}`,
+          `Confirmations: ${request.params.minConfirmations}`,
+          `Expires in: ${request.params.durationSeconds} seconds`,
+        ].join('\n');
+        return host.confirm('Create RGB receive invoice?', request.origin, details, Date.now() + 240_000, context.requestSignal);
+      }
+      if (request.method === 'enable') {
+        return host.confirm('Reconnect website?', request.origin, 'The website asks to re-enable its wallet connection.', Date.now() + 240_000, context.requestSignal);
+      }
+      return Promise.resolve(false);
     },
   });
   context.signal.addEventListener('abort', () => provider.revoke(), { once: true });
@@ -79,13 +85,15 @@ export async function buildBackend(context: WalletConnectWalletContext, host: Ho
     (...args: A): Promise<R> =>
       host.enqueue(async () => {
         context.assertAuthorized();
+        const mutates = method === 'blindReceive';
+        // Ledger-first: persist the pending-mutation marker BEFORE the raw
+        // SDK call, so a crash between invoice creation and the backup
+        // still leaves the "backup pending" warning (same discipline as
+        // RgbWallet's own mutation paths; losing the blinding data of an
+        // un-backed-up invoice is permanent funds loss — see X4/X10).
+        if (mutates) await rgbWallet.notePendingMutation();
         const result = await action(...args);
-        if (method === 'blindReceive') {
-          // The invoice's blinding data lives only in the local stash until
-          // a backup lands — push one now, best-effort (the ledger banner
-          // keeps nagging if it fails).
-          await rgbWallet.retryBackup().catch(() => {});
-        }
+        if (mutates) await rgbWallet.retryBackup().catch(() => {});
         return result;
       });
 
