@@ -151,12 +151,18 @@ Verified on device (release build):
       restore green on the WC build (65 USDT, deadlock=0), RGB smoke ok.
 - [x] Connected dApps screen renders; unconfigured state shows the
       projectId instruction (screenshot wc-unconfigured.png).
-- [ ] BLOCKED on EXPO_PUBLIC_WALLETCONNECT_PROJECT_ID (user to create at
-      cloud.reown.com): pair with a WebRGB dApp → approve session →
-      getInfo/listAssets → blindReceive with consent → invoice lands at
-      the dApp → pay → transferReceived; app restart → session restored;
-      disconnect. Dry-run script: sandbox dApp side or KaleidoSwap
-      playground.
+- [x] FULL E2E PASS (2026-10-09, projectId live): CLI dApp driver
+      (tasks/rgb-e2e/wc-dapp.mjs, runs from mobile/ via its node_modules)
+      → wc: URI → paste+Connect in app → session approve sheet →
+      enable/getInfo/listAssets served promptlessly → blindReceive with
+      consent sheet → invoice delivered to the dApp → faucet paid →
+      +5 USDT credited (70 on wallet16). App restart: session restored in
+      the list AND a request on it was routed and answered (protocol-
+      correct NOT_ENABLED until the dApp re-calls enable()). Disconnect
+      from the session list works. Screenshots: wc-session-prompt /
+      wc-invoice-prompt / wc-restored-session.
+      Note: getInfo advertises exactly our v1 set; listAssets returns the
+      asset id under `id` (driver gotcha, not a bug).
 - [ ] Phase 2 backlog: sendAsset consent flow, burnAsset/getConsignment
       (needs ethRpcUrl + BurnOperations port), injected provider in our
       DAppBrowser, mainnet (post soft-launch), wc: deep-link scheme.
