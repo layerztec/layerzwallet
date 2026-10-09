@@ -2,10 +2,10 @@ import { Foundation, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons
 import Pressable from '../components/Pressable';
 import { useRouter } from 'expo-router';
 import React, { useContext, useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Platform, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+import DetachedSheet from '@/components/DetachedSheet';
 import { ThemedText } from '@/components/ThemedText';
 import { AccountItem, AccountNumberContext, accountItems } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
@@ -15,7 +15,7 @@ import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { NETWORK_BITCOIN } from '@shared/types/networks';
 import { useExchangeRate } from '@shared/hooks/useExchangeRate';
-import { getNetworkGradient, overlayBackgroundSections } from '@shared/constants/Colors';
+import { overlayBackgroundSections } from '@shared/constants/Colors';
 
 const TotalBalanceSection = () => {
   const availableNetworks = useAvailableNetworks();
@@ -74,10 +74,8 @@ const ListItem = ({ item, onPress, currentAccountNumber }: { item: AccountItem; 
 
 export default function PocketSwitch() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { network } = useContext(NetworkContext);
   const { accountNumber: currentAccountNumber, setAccountNumber } = useContext(AccountNumberContext);
-  const gradient = getNetworkGradient(network);
 
   const handleClose = () => {
     router.back();
@@ -89,11 +87,9 @@ export default function PocketSwitch() {
   };
 
   return (
-    <View style={styles.overlay}>
-      <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} noFeedback accessibilityLabel="Close pocket switcher" />
-      <LinearGradient colors={[gradient[0], '#050505']} locations={[0, 0.82]} style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <View style={styles.handle} />
-        <ScrollView contentContainerStyle={styles.container} testID="AccountSwitcherModal" showsVerticalScrollIndicator={false}>
+    <DetachedSheet variant={network} onClose={handleClose}>
+      <SafeAreaView style={styles.safeArea} edges={Platform.OS === 'ios' ? ['left', 'right', 'bottom'] : ['left', 'right']}>
+        <View style={styles.container} testID="AccountSwitcherModal">
           {/* Total Balance Section */}
           <TotalBalanceSection />
 
@@ -107,34 +103,15 @@ export default function PocketSwitch() {
               <ListItem key={item.accountNumber} item={item} currentAccountNumber={currentAccountNumber} onPress={() => handleSelect(item.accountNumber)} />
             ))}
           </View>
-        </ScrollView>
-      </LinearGradient>
-    </View>
+        </View>
+      </SafeAreaView>
+    </DetachedSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-  },
-  sheet: {
-    maxHeight: '88%',
-    minHeight: 560,
-    marginHorizontal: 12,
-    borderRadius: 32,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    overflow: 'hidden',
-  },
-  handle: {
-    alignSelf: 'center',
-    width: 36,
-    height: 4,
-    marginTop: 10,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  safeArea: {
+    backgroundColor: 'transparent',
   },
   container: {
     marginHorizontal: 16,

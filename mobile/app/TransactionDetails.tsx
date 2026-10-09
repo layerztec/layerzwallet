@@ -592,7 +592,7 @@ export default function TransactionDetails() {
                   titleStyle={styles.timelineTitle}
                   descriptionStyle={styles.timelineDescription}
                   listViewStyle={styles.timelineListView}
-                  isUsingFlatlist={true}
+                  isUsingFlatlist={false}
                   eventContainerStyle={styles.timelineEventContainer}
                   rowContainerStyle={styles.timelineRowContainer}
                   iconStyle={styles.timelineIconStyle}
@@ -731,7 +731,6 @@ export default function TransactionDetails() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
     backgroundColor: 'transparent',
   },
   container: {

@@ -235,7 +235,7 @@ export default function TransferDetails() {
                 titleStyle={styles.timelineTitle}
                 descriptionStyle={styles.timelineDescription}
                 listViewStyle={styles.timelineListView}
-                isUsingFlatlist={true}
+                isUsingFlatlist={false}
                 eventContainerStyle={styles.timelineEventContainer}
                 rowContainerStyle={styles.timelineRowContainer}
                 iconStyle={styles.timelineIconStyle}
@@ -320,7 +320,6 @@ export default function TransferDetails() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
     backgroundColor: 'transparent',
   },
   container: {

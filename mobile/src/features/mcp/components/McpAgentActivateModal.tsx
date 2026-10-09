@@ -20,13 +20,12 @@ import { connectTunnel } from '@shared/features/mcp/modules/tunnel';
 export default function McpAgentActivateModal() {
   const router = useRouter();
   const { network } = useContext(NetworkContext);
-  const tunnelUrlRoute = './McpTunnelUrlModal' as const;
 
   const handleActivate = () => {
     // Fire and forget — replace with the URL modal immediately so the user gets
     // feedback while the WS handshake is still in progress.
     void connectTunnel();
-    router.replace(tunnelUrlRoute);
+    router.replace('/McpTunnelUrlModal');
   };
 
   return (
@@ -51,7 +50,6 @@ export default function McpAgentActivateModal() {
 
 const styles = StyleSheet.create({
   safe: {
-    flex: 1,
     backgroundColor: 'transparent',
   },
   body: {
