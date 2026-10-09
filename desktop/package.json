@@ -17,7 +17,7 @@
   "dependencies": {
     "@aptabase/web": "^0.5.0",
     "@arkade-os/boltz-swap": "0.3.67",
-    "@arkade-os/sdk": "0.4.76",
+    "@arkade-os/sdk": "0.4.79",
     "@atomiqlabs/chain-evm": "2.4.5",
     "@atomiqlabs/sdk": "8.8.4",
     "@bitcoinerlab/secp256k1": "1.2.0",
@@ -89,6 +89,6 @@
     "vite-plugin-wasm": "^3.6.0"
   },
   "overrides": {
-    "@arkade-os/sdk": "0.4.76"
+    "@arkade-os/sdk": "0.4.79"
   }
 }
