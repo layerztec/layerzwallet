@@ -580,6 +580,7 @@ export default function TransactionDetails() {
               <View style={styles.timelineInnerContainer}>
                 <Timeline
                   key={`timeline-${confirmationEta}`}
+                  style={styles.timeline}
                   data={timelineData}
                   circleSize={20}
                   circleColor="#FFFFFF"
@@ -906,6 +907,10 @@ const styles = StyleSheet.create({
   timelineInnerContainer: {
     minHeight: 104,
   },
+  // The timeline library's root and rows are flex:1. In an unsized sheet that basis is 0, and the card's overflow:hidden clips the steps.
+  timeline: {
+    flex: 0,
+  },
   timelineTime: {
     textAlign: 'right',
     color: 'rgba(255, 255, 255, 0.6)',
@@ -944,6 +949,7 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   timelineRowContainer: {
+    flex: 0,
     alignItems: 'flex-start',
     margin: 0,
     padding: 0,
@@ -957,7 +963,6 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   timelineDetailContainer: {
-    flex: 1,
     marginHorizontal: 0,
     marginTop: -12,
     marginBottom: 6,
