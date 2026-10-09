@@ -142,3 +142,21 @@ Verified live on device (release build):
 - Post-broadcast critical backup retries 2s/8s/20s before surfacing;
   failure UI = "Sent — backup pending" with txid + don't-reinstall warning
   + Retry button. Home/send-confirm banner persists until a retry succeeds.
+
+## WebRGB / WalletConnect (feature, 2026-10-09, commit f20583d0)
+
+Wallet-side pairing shipped (v1: read set + blindReceive, rgb:utexo only).
+Verified on device (release build):
+- [x] Build with WC deps + compat shim: no regressions — wallet16 VSS
+      restore green on the WC build (65 USDT, deadlock=0), RGB smoke ok.
+- [x] Connected dApps screen renders; unconfigured state shows the
+      projectId instruction (screenshot wc-unconfigured.png).
+- [ ] BLOCKED on EXPO_PUBLIC_WALLETCONNECT_PROJECT_ID (user to create at
+      cloud.reown.com): pair with a WebRGB dApp → approve session →
+      getInfo/listAssets → blindReceive with consent → invoice lands at
+      the dApp → pay → transferReceived; app restart → session restored;
+      disconnect. Dry-run script: sandbox dApp side or KaleidoSwap
+      playground.
+- [ ] Phase 2 backlog: sendAsset consent flow, burnAsset/getConsignment
+      (needs ethRpcUrl + BurnOperations port), injected provider in our
+      DAppBrowser, mainnet (post soft-launch), wc: deep-link scheme.
