@@ -93,7 +93,8 @@ On rgb-sdk-rn 1.0.0-beta.37 / native rgb-lightning-node 0.16.0-beta.3:
   Proceed` — the emulator's netsim-WiFi gRPC link times out ("Netsim Wifi …
   gone due to ping timeout" precedes every death) and a dangling callback
   aborts the process. Emulator 37.1.11 bug, not resources. Fix: launch with
-  `-feature -Wifi` (guest keeps ethernet). Also raised config.ini to
+  `-feature -Wifi -feature -VirtioWifi` (`-Wifi` alone still initialised
+  netsim; guest keeps ethernet). Also raised config.ini to
   hw.ramSize=4096, vm.heapSize=512M, hw.cpu.ncore=6, hw.gpu.enabled=yes
   (`ro.hardware.egl=emulation`) and launch with `-memory 4096 -cores 6`
   against the earlier ANR storms. Rule of thumb regardless: don't drive the
@@ -195,15 +196,27 @@ driver. Flow videos: `~/Desktop/rgb-test-videos/wc *.mp4`.
   under AuthStateContextProvider and gate on `isAuthenticated`
   (`finalIsAuthenticated` = READY && past the lock, or immediately with
   biometrics off; false until settings load). Pure gate `shouldSurfacePrompt`
-  + unit tests. Live on wc8 (Android, fingerprint enrolled on the emulator
-  via `locksettings set-pin` + FINGERPRINT_ENROLL intent + `adb emu finger
-  touch 1`): biometrics OFF → proposal prompt shows (3/3 runs); biometrics
-  ON → a blindReceive sent while the BiometricPrompt lock is up never
-  surfaces a sheet (40s). Caveat: in that run the wallet stopped answering
-  the dApp right after the restart (`rgb_enable` and the blindReceive both
-  hung — the recurring post-restart request stall, see below), so the
-  request most likely never reached `confirm()`; the gate itself is covered
-  by `shouldSurfacePrompt` unit tests and the biometrics-OFF live path.
+  + unit tests. Live on wc8/wc9 (Android): biometrics OFF → proposal prompt
+  shows (5/5 runs). Biometrics ON, app relaunched into the BiometricLogin
+  lock: a dApp `blindReceive` reached our backend (traced: `session_request
+  rgb_blindReceive → blindReceive enter → confirm(Create RGB receive
+  invoice?)`), the prompt parked behind the gate, NO sheet surfaced over the
+  lock for 40s, the dApp's request stayed pending — invariant verified
+  end-to-end. The "unlock → sheet appears" half could not be exercised on
+  the emulator (device PIN/fingerprint removed on request → no in-process
+  biometric unlock); it is covered by `shouldSurfacePrompt` unit tests and
+  the biometrics-OFF path (same gate, `isAuthenticated` flips at init).
+- **RESOLVED — "post-restart request stall" was an emulator artifact.** The
+  stalls (run5/run6, lock runs 1-3) coincided with the emulator's netsim
+  WiFi flapping ("Netsim Wifi … ping_timeout" in the emulator log — the
+  same component that crashed the emulator). The guest's network dropped
+  under host load, the relay WebSocket died silently, and fresh
+  `session_request`s never reached WalletKit (traced: first queued request
+  delivered, nothing after). With netsim WiFi disabled (`-feature -Wifi
+  -feature -VirtioWifi`) every post-restart request flows — unlocked
+  (stall-repro: enable → POLL_OK ×3) and locked (above). Not an app or SDK
+  bug; no code change. Still upstream: the dApp-side stale `enabled` flag
+  (webrgb-walletconnect#4).
 - **PASS — session survives wallet restart.** Approve → force-stop →
   relaunch: WcBootstrap boots WalletKit (HAD_SESSIONS), session listed,
   wallet answers relay requests; Disconnect from the list → dApp receives

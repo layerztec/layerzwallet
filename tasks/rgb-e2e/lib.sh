@@ -138,7 +138,10 @@ and_emu_start() {
   # preceded by "Netsim Wifi … gone due to ping timeout") whenever the host
   # is saturated by a gradle/Xcode build — three deaths in one day, each with
   # that signature. Without netsim WiFi the guest still has ethernet.
-  nohup ~/Library/Android/sdk/emulator/emulator -avd "$RGB_E2E_AVD" -no-snapshot -memory 4096 -cores 6 -feature -Wifi -dns-server 8.8.8.8,1.1.1.1 >/tmp/emu-$RGB_E2E_AVD.log 2>&1 &
+  # `-feature -Wifi` alone still logs "Successfully initialized netsim WiFi"
+  # (virtiowifi=1 stays on the kernel cmdline); `-feature -VirtioWifi` is what
+  # actually keeps the netsim gRPC path out of the guest.
+  nohup ~/Library/Android/sdk/emulator/emulator -avd "$RGB_E2E_AVD" -no-snapshot -memory 4096 -cores 6 -feature -Wifi -feature -VirtioWifi -dns-server 8.8.8.8,1.1.1.1 >/tmp/emu-$RGB_E2E_AVD.log 2>&1 &
   local t=$((SECONDS + 240))
   until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
     [ $SECONDS -gt $t ] && { e2e_log "and_emu_start: boot timeout"; return 1; }
