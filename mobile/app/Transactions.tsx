@@ -73,6 +73,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 32,
+    lineHeight: 40,
     paddingTop: 8,
     color: 'white',
     textAlign: 'center',

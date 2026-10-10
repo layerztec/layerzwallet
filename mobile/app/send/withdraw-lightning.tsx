@@ -324,12 +324,14 @@ const styles = StyleSheet.create({
   amountValue: {
     color: 'rgba(255, 255, 255, 0.95)',
     fontSize: 42,
+    lineHeight: 52,
     width: '100%',
     textAlign: 'center',
   },
   amountInput: {
     color: 'rgba(255, 255, 255, 0.95)',
     fontSize: 42,
+    lineHeight: 52,
     width: '100%',
     textAlign: 'center',
     padding: 0,
