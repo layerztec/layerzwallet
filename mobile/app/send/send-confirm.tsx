@@ -82,7 +82,10 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
       try {
         const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
         if (!(wallet instanceof RgbWallet)) return cancelled || setVssProbe('ok');
-        const ok = await Promise.race([wallet.retryBackup(), new Promise<false>((r) => setTimeout(() => r(false), 15_000))]);
+        // The probe is a real backup (≈2MB upload); a slow VSS legitimately
+        // takes 20s+ (seen 21s on the iOS sim), so 15s produced false
+        // "unreachable" warnings while the upload was still succeeding.
+        const ok = await Promise.race([wallet.retryBackup(), new Promise<false>((r) => setTimeout(() => r(false), 30_000))]);
         if (!cancelled) setVssProbe(ok ? 'ok' : 'failed');
       } catch {
         if (!cancelled) setVssProbe('failed');
@@ -415,8 +418,8 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                   {vssProbe === 'failed' && !isSuccess && !sentNotBackedUp && (
                     <View style={styles.vssWarning} testID="vss-probe-warning">
                       <ThemedText style={styles.vssWarningText}>
-                        Backup service is unreachable right now. You can still send at your own risk — but if this app is deleted before a backup succeeds, the change from this transfer may be lost
-                        forever. Consider waiting a few minutes instead.
+                        Backup service is slow or unreachable right now. You can still send at your own risk — but if this app is deleted before a backup succeeds, the change from this transfer may be
+                        lost forever. Consider waiting a few minutes instead.
                       </ThemedText>
                     </View>
                   )}
