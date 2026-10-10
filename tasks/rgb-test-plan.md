@@ -97,7 +97,10 @@ On rgb-sdk-rn 1.0.0-beta.37 / native rgb-lightning-node 0.16.0-beta.3:
   hw.ramSize=4096, vm.heapSize=512M, hw.cpu.ncore=6, hw.gpu.enabled=yes
   (`ro.hardware.egl=emulation`) and launch with `-memory 4096 -cores 6`
   against the earlier ANR storms. Rule of thumb regardless: don't drive the
-  emulator during a build.
+  emulator during a build. Caveat seen once: after a HARD qemu crash the
+  guest /data came back without the app's data even on cold boot (dirty
+  qcow2 overlay); a graceful `adb emu kill` + cold boot kept it. Keep
+  `and_import_seed` handy.
 
 ## Runbook
 

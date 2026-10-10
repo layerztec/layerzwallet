@@ -145,7 +145,15 @@ and_emu_start() {
     sleep 4
   done
   sleep 15; adb root >/dev/null 2>&1; sleep 2
-  e2e_log "emulator up ($(adb shell cat /proc/meminfo | head -1 | tr -d '\r' | awk '{print int($2/1024)"MB"}'), $(adb shell nproc | tr -d '\r') cores, gpu=$(adb shell getprop ro.hardware.egl | tr -d '\r'))"
+  # No device lock screen, ever: a keyguard/notification shade stole focus
+  # from every script tap. Re-applied on each boot so it survives /data loss.
+  adb shell "locksettings set-disabled true" >/dev/null 2>&1
+  adb shell settings put secure lockscreen.disabled 1
+  adb shell settings put global stay_on_while_plugged_in 7
+  adb shell settings put system screen_off_timeout 2147483647
+  adb shell svc power stayon true
+  adb shell wm dismiss-keyguard >/dev/null 2>&1
+  e2e_log "emulator up ($(adb shell cat /proc/meminfo | head -1 | tr -d '\r' | awk '{print int($2/1024)"MB"}'), $(adb shell nproc | tr -d '\r') cores, gpu=$(adb shell getprop ro.hardware.egl | tr -d '\r'), lockscreen off)"
 }
 
 and_wipe_install() { # <apk>
