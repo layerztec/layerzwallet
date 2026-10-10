@@ -55,9 +55,9 @@ On rgb-sdk-rn 1.0.0-beta.37 / native rgb-lightning-node 0.16.0-beta.3:
 | X8 | Stuck witness (fee too low) → failTransfers recovery | — | |
 | X9 | Expired invoice: pay attempt UX + receiver's expired pending allocation cleanup | — | |
 | X10 | Stale-backup restore: degraded no-VSS session mutated state, then restore from older backup | PROVEN LOSSY(2026-10-08, via X3-hard) | Restoring a backup that predates a send loses the send's change allocation (75 USDT gone live). No double-spend though. Mitigations before mainnet: (a) backup-failure UI must show txid + "funds sent, NOT backed up — do not reinstall"; (b) aggressive auto-retry of the critical backup; (c) consider blocking further RGB sends until re-backup succeeds. |
-| X11 | App killed between broadcast and backup → pendingMutations re-backup on next start | PASS(2026-10-10, w16 Android) | Live kill 32ms after rgb-lib "Send BTC completed" (in-device grep loop on the rgb-lib log → `am force-stop`; tBTC self-send 2000 sats). Relaunch: persisted ledger shows pendingMutations:1, home banner "Backup pending" appears (next SWR cycle, ≤30s). Banner tap → retryBackup → VSS v87, ledger 0. Bonus: rgb-lib own auto-backup (v86) fired ~2min after relaunch even without the tap — VSS data self-heals, our banner is the conservative UX layer on top. Control wipe+restore: gate+consistency pass (the spend is covered by v87 — the exact failure X15 shows when a spend confirms uncovered), 70 USDT + change intact, deadlock=0. Kill-timing recipe in runbook. |
+| X11 | App killed between broadcast and backup → pendingMutations re-backup on next start | PASS(2026-10-10, w16 Android + w17 iOS) | Live kill 32ms after rgb-lib "Send BTC completed" (in-device grep loop on the rgb-lib log → `am force-stop`; tBTC self-send 2000 sats). Relaunch: persisted ledger shows pendingMutations:1, home banner "Backup pending" appears (next SWR cycle, ≤30s). Banner tap → retryBackup → VSS v87, ledger 0. Bonus: rgb-lib own auto-backup (v86) fired ~2min after relaunch even without the tap — VSS data self-heals, our banner is the conservative UX layer on top. Control wipe+restore: gate+consistency pass (the spend is covered by v87 — the exact failure X15 shows when a spend confirms uncovered), 70 USDT + change intact, deadlock=0. Kill-timing recipe in runbook. |
 | X12 | tBTC send-out while holding colored UTXOs (must not spend colored) | PASS(2026-10-08, w15 iOS: 3000 sats out, USDT row untouched) | |
-| X13 | Restore with in-flight createUtxos tx unconfirmed | PASS(2026-10-10, w16 Android) | createUtxos Num=20/Size=500 (upTo) → wipe 12s after "+20 UTXOs requested (broadcasting…)" → VSS restore: gate+consistency pass in ~2min WITH the tx still unconfirmed in mempool (tx `890e479e`, 14763 sats, 20 outputs). 70 USDT intact immediately; after the tx confirmed the restored wallet picked all 20 slots up by itself (UTXOs 17→34) and a fresh blind invoice generates fine; deadlock=0. Note: the consistency check tolerates an in-flight spend (unconfirmed ≠ "spent with another wallet") — contrast X15 where the same spend CONFIRMED without a covering backup bricks RGB. Run traps: createUtxos refuses when enough free slots exist ("Allocations already available"); home action buttons tap ~80px above the label (and_tap_home_action). |
+| X13 | Restore with in-flight createUtxos tx unconfirmed | PASS(2026-10-10, w16 Android + w17 iOS) | createUtxos Num=20/Size=500 (upTo) → wipe 12s after "+20 UTXOs requested (broadcasting…)" → VSS restore: gate+consistency pass in ~2min WITH the tx still unconfirmed in mempool (tx `890e479e`, 14763 sats, 20 outputs). 70 USDT intact immediately; after the tx confirmed the restored wallet picked all 20 slots up by itself (UTXOs 17→34) and a fresh blind invoice generates fine; deadlock=0. Note: the consistency check tolerates an in-flight spend (unconfirmed ≠ "spent with another wallet") — contrast X15 where the same spend CONFIRMED without a covering backup bricks RGB. Run traps: createUtxos refuses when enough free slots exist ("Allocations already available"); home action buttons tap ~80px above the label (and_tap_home_action). |
 | X15 | Vanilla tBTC spend missing from the VSS backup → restore REFUSES RGB entirely | FOUND(2026-10-10, w15) | rgb-lib consistency check: "Restored VSS backup is inconsistent: spent bitcoins with another wallet: [c7f4a5c3…:1]" — the X12 tBTC send whose post-send backup had failed on VSS timeouts. Stronger failure than X10: not change loss but a hard RGB refusal (our onboarding gate surfaces it with Retry/Skip — gate works as designed; Retry is futile, Skip leaves a BTC-only wallet). Confirms the post-broadcast backup retries (dfbc7ba9) and the pre-send probe are load-bearing for BTC sends too. wallet15 RGB written off (test funds). |
 | X14 | CRITICAL: receive on a RESTORED Android node — blind invoices generated AFTER a VSS restore never pick their consignment up | FOUND(2026-10-08) | Closed-loop proof: fresh invoice on restored w16, sender posts fine (proxy `consignment.get` returns the blob for that exact RID), receiver's refresh polls NoConsignment forever ("Skipping transport endpoint" per rgb-lib online.rs:1177) — i.e. the restored node queries a DIFFERENT recipient id. Invoices from BEFORE the wipe restore and credit fine (X2); iOS-restored receivers worked. 3 transfers stuck this way (2 consignments still on the proxy). Re-restore probe CONFIRMS the wedge is in the restored node's on-disk/in-memory state, not the data: another wipe→VSS-restore picked BOTH parked consignments up within 2 minutes (+40 USDT). force-stop/relaunch does NOT help; only a fresh restore does, and invoices generated by the SECOND restored instance work normally (several deliveries since). So: data safe, UX broken on the first restored instance only. MUST fix upstream before mainnet; reported [rgb-sdk-rn#61](https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/61); FIXED in native 0.16.0-beta.3 (retested 2026-10-09 on beta.37: post-restore invoice credited, no second restore; 0.13 backup restores on 0.16 cleanly). |
 
@@ -243,9 +243,30 @@ fast path (≈6 min).
   `… - backup retry - android.mp4`, `rgb receive usdt - ios.mov`. Note:
   rgb-lib's own auto-backups (v91-93) ran between relaunch and the tap; our
   ledger stays conservative until a ledger-tracked backup lands.
-- **(4) iOS kill/wipe windows — not run this round** (iOS WC + receiver duty
-  took the slot; Android X11/X13 cover the ledger path, which is
-  platform-neutral TS; persistence differs only in AsyncStorage backend).
+- **(4) iOS kill/wipe windows.** X11-iOS PASS (wallet17, wc7): tBTC
+  self-send 2000 sats, `simctl terminate` 162ms after rgb-lib "Send BTC
+  completed" with "Starting VSS backup…" already logged (post-broadcast
+  backup killed mid-flight). Relaunch: AsyncStorage-manifest ledger
+  `pendingMutations:1`, banner "Backup pending" within 15s. Bonus coverage:
+  the first banner retry FAILED (VSS PUT timed out — the iOS sim's network
+  stalls on large uploads while small GETs work; VSS answered the host in
+  67ms) → ledger `lastBackupError{kind:network}`, banner "Backup failed, 1
+  change not yet saved…", "Backup retry failed" alert; a later retry landed
+  (v12, 10.7s) → ledger 0, banner gone. Also observed: the 15s pre-send probe
+  flipped to "Send anyway (at your own risk)" while the probe backup was
+  still uploading (took 21s, succeeded) → probe budget raised to 30s +
+  "slow or unreachable" copy (098335fe). a11y note: the banner's label is
+  prefixed with the icon glyph — match by substring, not prefix.
+  X13-iOS PASS: createUtxos Num=9 → `simctl uninstall` the same second
+  "+9 UTXOs requested (broadcasting…)" appeared → reinstall → import →
+  gate+consistency in 26s with the tx unconfirmed → 5 USDT intact, UTXOs
+  7→12 (restored node already sees the in-flight outputs), deadlock=0.
+  Videos `x11 kill between broadcast and backup - ios.mov`, `x11 backup
+  retry from banner - ios.mov`, `x13 wipe with pending createutxos and
+  restore - ios.mov`. iOS-specific a11y traps for the e2e lib: the address
+  input is a Pressable ("To, Enter address") until focused; the amount input
+  is one grouped element ("0.00, — USD, Balance …, max") — tap the group.
+
 - **(5) X9 — expired invoices did NOT free their UTXOs — FOUND+FIXED.**
   wallet16 had 8 "blinded" UTXOs, ≥4 from invoices expired a day earlier
   (same outpoints blinded at 01:xx). rgb-lib never fails an expired unpaid
