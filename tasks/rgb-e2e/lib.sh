@@ -137,6 +137,19 @@ and_set_rgb_testnet() {
       INSERT OR REPLACE INTO catalystLocalStorage(key,value) VALUES('STORAGE_SELECTED_NETWORK','rgb_testnet');\""
 }
 
+# and_tap_home_action <label>  — home action buttons (Receive/Send/UTXOs/…)
+# have the touchable ABOVE the TextView label; tapping the label itself does
+# nothing. Taps 50px above the label center.
+and_tap_home_action() {
+  local b
+  b=$(and_dump | python3 -c "
+import re,sys
+m=re.search(r'text=\"$1\"[^>]*bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"', sys.stdin.read())
+print((int(m.group(1))+int(m.group(3)))//2,(int(m.group(2))+int(m.group(4)))//2-50) if m else print('')")
+  [ -n "$b" ] || { e2e_log "and_tap_home_action: '$1' not found"; return 1; }
+  adb shell input tap $b
+}
+
 # and_wait_text <regex> [timeout_s]  — polls the UI dump for a text match.
 and_wait_text() {
   local deadline=$((SECONDS + ${2:-420}))
