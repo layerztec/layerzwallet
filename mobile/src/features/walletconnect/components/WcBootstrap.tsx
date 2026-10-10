@@ -17,10 +17,18 @@ import { EStep, InitializationContext } from '@shared/hooks/InitializationContex
  */
 export function WcBootstrap() {
   const { step } = useContext(InitializationContext);
-  const { isAuthenticated } = useContext(AuthStateContext);
+  const { isAuthenticated, isBiometricEnabled } = useContext(AuthStateContext);
   const state = useSyncExternalStore(wcService.subscribe, wcService.snapshot, wcService.snapshot);
   const booted = useRef(false);
   const pushedFor = useRef<object | null>(null);
+
+  // The consent sheet must not sit over the biometric lock, but gating on
+  // raw `isAuthenticated` was wrong: with biometrics OFF the app shows the
+  // main UI while `isAuthenticated` can still be false, so the prompt never
+  // surfaced and the dApp's request auto-rejected after the 240s timeout.
+  // The real question is only "is the lock screen currently covering us",
+  // which is exactly `isBiometricEnabled && !isAuthenticated`.
+  const locked = isBiometricEnabled && !isAuthenticated;
 
   useEffect(() => {
     if (step !== EStep.READY || booted.current) return;
@@ -30,7 +38,7 @@ export function WcBootstrap() {
 
   useEffect(() => {
     const prompt = state.prompt;
-    if (!prompt || !isAuthenticated || step !== EStep.READY) return;
+    if (!prompt || locked || step !== EStep.READY) return;
     if (pushedFor.current === prompt) return;
     pushedFor.current = prompt;
     try {
@@ -39,7 +47,7 @@ export function WcBootstrap() {
       // Navigator not ready for this route — reject rather than ghost it.
       prompt.resolve(false);
     }
-  }, [state.prompt, isAuthenticated, step]);
+  }, [state.prompt, locked, step]);
 
   return null;
 }

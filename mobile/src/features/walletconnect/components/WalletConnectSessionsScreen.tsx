@@ -100,7 +100,13 @@ export default function WalletConnectSessionsScreen() {
                     </ThemedText>
                     <ThemedText style={styles.sessionNet}>Connected · {s.network}</ThemedText>
                   </View>
-                  <Pressable onPress={() => wcService.disconnect(s.topic)} style={styles.disconnectBtn} testID={`wc-disconnect-${s.topic.slice(0, 8)}`}>
+                  <Pressable
+                    onPress={() => wcService.disconnect(s.topic)}
+                    style={styles.disconnectBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Disconnect ${s.name}`}
+                    testID={`wc-disconnect-${s.topic.slice(0, 8)}`}
+                  >
                     <Ionicons name="close-circle-outline" size={22} color="#FF6B6B" />
                   </Pressable>
                 </View>

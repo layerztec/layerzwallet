@@ -20,6 +20,78 @@ RGB_E2E_FAUCET_CLI="${RGB_E2E_FAUCET_CLI:-/Users/limp/z/rgb-faucet/bin/faucet-ht
 
 e2e_log() { echo "[$(date +%H:%M:%S)] $*"; }
 
+# ── screen recording (flow videos land in ~/Desktop/rgb-test-videos) ──────
+RGB_E2E_VIDEOS="${RGB_E2E_VIDEOS:-$HOME/Desktop/rgb-test-videos}"
+
+# and_rec_start / and_rec_stop <final-name>  — screenrecord caps at 180s per
+# file, so a background loop chains segments; stop concatenates via ffmpeg.
+and_rec_start() {
+  adb shell "rm -f /sdcard/rec_seg_*.mp4" 2>/dev/null
+  touch /tmp/and_rec_flag
+  (
+    i=0
+    while [ -f /tmp/and_rec_flag ]; do
+      adb shell screenrecord --time-limit 180 /sdcard/rec_seg_$i.mp4 >/dev/null 2>&1
+      i=$((i + 1))
+    done
+  ) &
+  echo $! >/tmp/and_rec_pid
+}
+
+and_rec_stop() { # <final name, no extension>
+  rm -f /tmp/and_rec_flag
+  adb shell "kill -INT \$(pidof screenrecord) 2>/dev/null" 2>/dev/null
+  sleep 4
+  wait "$(cat /tmp/and_rec_pid 2>/dev/null)" 2>/dev/null
+  mkdir -p "$RGB_E2E_VIDEOS"
+  local tmp=/tmp/and_rec_pull
+  rm -rf "$tmp" && mkdir -p "$tmp"
+  local f
+  for f in $(adb shell "ls /sdcard/rec_seg_*.mp4 2>/dev/null" | tr -d '\r'); do
+    adb pull "$f" "$tmp/" >/dev/null 2>&1
+  done
+  local n
+  n=$(ls "$tmp"/rec_seg_*.mp4 2>/dev/null | wc -l | tr -d ' ')
+  if [ "$n" = "1" ]; then
+    mv "$tmp"/rec_seg_*.mp4 "$RGB_E2E_VIDEOS/$1.mp4"
+  elif [ "$n" -gt 1 ]; then
+    (
+      cd "$tmp" || exit 1
+      for f in $(ls rec_seg_*.mp4 | sort -t_ -k3 -n); do echo "file '$tmp/$f'"; done >list.txt
+      ffmpeg -y -f concat -safe 0 -i list.txt -c copy "$RGB_E2E_VIDEOS/$1.mp4" >/dev/null 2>&1
+    )
+  else
+    e2e_log "and_rec_stop: no segments captured"
+    return 1
+  fi
+  adb shell "rm -f /sdcard/rec_seg_*.mp4" 2>/dev/null
+  e2e_log "video: $RGB_E2E_VIDEOS/$1.mp4"
+}
+
+# ios_rec_start / ios_rec_stop <final-name> — simctl recordVideo until INT.
+ios_rec_start() {
+  mkdir -p "$RGB_E2E_VIDEOS"
+  rm -f /tmp/ios_rec.mov
+  xcrun simctl io "$RGB_E2E_SIM" recordVideo --codec h264 -f /tmp/ios_rec.mov >/dev/null 2>&1 &
+  echo $! >/tmp/ios_rec_pid
+  sleep 2
+}
+
+ios_rec_stop() { # <final name, no extension>
+  local pid
+  pid=$(cat /tmp/ios_rec_pid 2>/dev/null)
+  [ -n "$pid" ] && kill -INT "$pid" 2>/dev/null
+  local t=$((SECONDS + 20))
+  while [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && [ $SECONDS -lt $t ]; do sleep 1; done
+  if [ -s /tmp/ios_rec.mov ]; then
+    mv /tmp/ios_rec.mov "$RGB_E2E_VIDEOS/$1.mov"
+    e2e_log "video: $RGB_E2E_VIDEOS/$1.mov"
+  else
+    e2e_log "ios_rec_stop: no video captured"
+    return 1
+  fi
+}
+
 # faucet_sendbtc <address> [sats]  → prints txid
 faucet_sendbtc() {
   curl -sS -X POST "$RGB_E2E_FAUCET/sendbtc" -H 'Content-Type: application/json' \
