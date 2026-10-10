@@ -109,6 +109,8 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   private static readonly SYNC_COOLDOWN_MS = 10_000;
   private _lastSync: number = 0;
   private _syncInFlight: Promise<void> | undefined;
+  /** Set when the sync pass freed expired-invoice slots; read by failTransfers(). */
+  private _freedBySync = false;
   /** The most recent sync promise (in-flight or completed). Returned from the
    *  cooldown branch so a `sync()` short-circuit still chains correctly with
    *  callers that `await` it before reading state. */
@@ -336,6 +338,20 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
       } catch (e) {
         globalThis.handleError?.(e, 'rgb-wallet.ts:refreshWallet');
       }
+      // rgb-lib never fails an expired unpaid invoice on its own: the UTXO it
+      // blinded stays reserved until something calls failTransfers. Called
+      // without a recipient/txid it fails EXPIRED WaitingCounterparty
+      // transfers only — live invoices are untouched — so it is safe on every
+      // refresh (test plan X9: slots leaked for days otherwise). A freed slot
+      // is a stash mutation, hence the backup.
+      try {
+        if (await this.sdk().failTransfers({ skipSync: true })) {
+          this._freedBySync = true;
+          void this.tryBackup();
+        }
+      } catch (e) {
+        globalThis.handleError?.(e, 'rgb-wallet.ts:failExpiredTransfers');
+      }
       this._lastSync = Date.now();
     })().finally(() => {
       if (this._syncInFlight === p) this._syncInFlight = undefined;
@@ -440,16 +456,19 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
   }
 
   /**
-   * Fails all pending RGB transfers — frees up the colorable UTXOs they were
-   * holding. Used by the UTXO-manager debug screen to recover from a stuck
-   * `WaitingCounterparty` blind invoice that's locking an allocation slot.
-   * Returns `true` if at least one transfer was failed.
+   * Fails every *expired* pending transfer (unpaid receive invoices past
+   * their expiry) and frees the colorable UTXOs they were holding. rgb-lib
+   * only fails expired transfers when called without a recipient/txid, so
+   * live invoices are never aborted. `sync()` already does this on every
+   * refresh; this is the explicit UTXO-manager button. Returns `true` if
+   * anything was freed — by this call or by the sync it just ran.
    */
   async failTransfers(): Promise<boolean> {
+    this._freedBySync = false;
     await this.sync();
-    const result = await this.sdk().failTransfers({});
-    await this.tryBackup();
-    return result;
+    const freedNow = await this.sdk().failTransfers({});
+    if (freedNow) await this.tryBackup();
+    return freedNow || this._freedBySync;
   }
 
   /**

@@ -115,10 +115,10 @@ export default function UtxoManagerScreen() {
 
   const failPendingTransfers = async () => {
     if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) return;
-    Alert.alert('Fail pending transfers?', 'This aborts every pending RGB transfer (incoming blind invoices included) and frees the UTXOs they hold. Use to recover stuck allocations.', [
+    Alert.alert('Fail expired transfers?', 'Marks expired pending transfers (unpaid receive invoices past their expiry) as failed and frees the UTXOs they were holding. Live invoices are not affected — the wallet also does this on every refresh.', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Fail all',
+        text: 'Fail expired',
         style: 'destructive',
         onPress: async () => {
           setError(null);
@@ -128,7 +128,7 @@ export default function UtxoManagerScreen() {
             const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
             if (!(wallet instanceof RgbWallet)) throw new Error('Wallet is not an RgbWallet');
             const ok = await wallet.failTransfers();
-            setCreatedHint(ok ? 'Pending transfers failed.' : 'No pending transfers to fail.');
+            setCreatedHint(ok ? 'Expired transfers failed — slots freed.' : 'No expired transfers to fail.');
             await refresh();
           } catch (e: any) {
             console.warn('failTransfers failed:', e);
@@ -200,7 +200,7 @@ export default function UtxoManagerScreen() {
 
             <View style={styles.buttonStack}>
               <Button title="Create UTXOs" onPress={create} loading={isCreating} disabled={!!validation || isCreating} testID="UtxoManager.Create" />
-              <Button title="Fail Pending Transfers" variant="lighter" onPress={failPendingTransfers} loading={isFailing} disabled={isFailing} testID="UtxoManager.FailTransfers" />
+              <Button title="Fail Expired Transfers" variant="lighter" onPress={failPendingTransfers} loading={isFailing} disabled={isFailing} testID="UtxoManager.FailTransfers" />
               <Button title="Refresh" variant="lighter" onPress={refresh} loading={isLoading} disabled={isLoading} testID="UtxoManager.Refresh" />
             </View>
           </View>

@@ -200,6 +200,46 @@ driver. Flow videos: `~/Desktop/rgb-test-videos/wc *.mp4`.
   reachable after `revoke()` (sessionApproved:true keeps the SDK provider
   enabled for the process) — kept, harmless.
 
+## Round 1-5 results (2026-10-10, videos in ~/Desktop/rgb-test-videos)
+
+- **(1) WC regression on review-fixes build — FOUND+FIXED** (gate bug, see
+  "WC regression round"); restart persistence PASS; post-restart re-enable
+  traced to upstream dApp-side SDK (webrgb-walletconnect#4).
+- **(2) WC on iOS — PASS (first ever).** wc6 (gate fix) on wallet17: paste
+  (idb chunked typing; buttons shift when the TextArea grows — read coords
+  after typing) → prompt in 3s → approve → enable/getInfo/listAssets →
+  blindReceive consent → USDT-pinned invoice → ledger-first backup
+  (pendingMutations 0) → disconnect. Video `wc pairing and blind receive -
+  ios.mov`.
+- **(3) X11 asset variant — PASS both sides.** Android wallet16 pays
+  wallet17's 5 USDT blind invoice; force-stop 1.24s after rgb-lib "Send
+  completed" (post-broadcast backup was mid-upload: "Starting VSS backup…"
+  logged, no "completed"). Relaunch: ledger pendingMutations:1, banner
+  "Backup pending / 1 change is syncing" (shows ~4 min after a cold
+  relaunch — the SWR fetcher waits on `lazyInitWallet` of the RGB node),
+  tap → VSS v94, ledger 0, balance 65 USDT. Receiver (iOS wallet17) credited
+  **5 USDT ~7 min after the crashed send** — consignment delivery survived
+  the sender crash. Videos `rgb usdt send with crash recovery - android.mp4`,
+  `… - backup retry - android.mp4`, `rgb receive usdt - ios.mov`. Note:
+  rgb-lib's own auto-backups (v91-93) ran between relaunch and the tap; our
+  ledger stays conservative until a ledger-tracked backup lands.
+- **(4) iOS kill/wipe windows — not run this round** (iOS WC + receiver duty
+  took the slot; Android X11/X13 cover the ledger path, which is
+  platform-neutral TS; persistence differs only in AsyncStorage backend).
+- **(5) X9 — expired invoices did NOT free their UTXOs — FOUND+FIXED.**
+  wallet16 had 8 "blinded" UTXOs, ≥4 from invoices expired a day earlier
+  (same outpoints blinded at 01:xx). rgb-lib never fails an expired unpaid
+  invoice on its own; the wallet only called `failTransfers` from the manual
+  UTXO-manager button, whose copy also wrongly claimed it aborts live
+  invoices. docs.rs settles the semantics: without a recipient/txid,
+  `fail_transfers` fails **expired** WaitingCounterparty transfers only.
+  Live check: "Fail all" → 8 → 2 blinded (the 2 = today's live invoices,
+  untouched). Fix: `sync()` now runs the expired-only fail pass after every
+  `refreshWallet` (skipSync, backup only when a slot was freed); the button
+  is now "Fail Expired Transfers" with honest copy. Unit-tested (3 cases).
+  Videos `utxo manager expired invoice slots - android.mp4`, `utxo manager
+  fail pending transfers frees slots - android.mp4`.
+
 ## WebRGB / WalletConnect (feature, 2026-10-09, commit f20583d0)
 
 Wallet-side pairing shipped (v1: read set + blindReceive, rgb:utexo only).

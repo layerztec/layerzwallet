@@ -1159,6 +1159,48 @@ describe('RgbWallet', () => {
       expect(sdkWallet.refreshWallet).toHaveBeenCalled();
       expect(out).toBe(fake);
     });
+
+    // Test plan X9: rgb-lib never fails expired unpaid invoices by itself, so
+    // their blinded UTXOs leaked until someone found the debug button. Every
+    // sync now runs the expired-only fail pass (no recipient/txid → rgb-lib
+    // touches expired WaitingCounterparty transfers only).
+    it('sync auto-fails expired transfers (skipSync) and backs up when slots were freed', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.failTransfers as any).mockResolvedValue(true);
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const before = (sdkWallet.vssBackup as any).mock.calls.length;
+      await w.listUnspents();
+      expect(sdkWallet.failTransfers).toHaveBeenCalledWith({ skipSync: true });
+      await vi.waitFor(() => expect((sdkWallet.vssBackup as any).mock.calls.length).toBeGreaterThan(before));
+    });
+
+    it('sync does not back up when nothing expired', async () => {
+      const { sdkWallet } = installAdapter();
+      (sdkWallet.failTransfers as any).mockResolvedValue(false);
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      const before = (sdkWallet.vssBackup as any).mock.calls.length;
+      await w.listUnspents();
+      expect(sdkWallet.failTransfers).toHaveBeenCalledWith({ skipSync: true });
+      await new Promise((r) => setTimeout(r, 20));
+      expect((sdkWallet.vssBackup as any).mock.calls.length).toBe(before);
+    });
+
+    it('failTransfers() reports true when the sync pass already freed the slots', async () => {
+      const { sdkWallet } = installAdapter();
+      // first call = the sync pass ({ skipSync: true }) frees something; the
+      // explicit button call ({}) then finds nothing left.
+      (sdkWallet.failTransfers as any).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+      const w = new RgbWallet(NETWORK_RGB_TESTNET);
+      w.setSecret(MNEMONIC);
+      await w.init({} as any);
+      await expect(w.failTransfers()).resolves.toBe(true);
+      expect(sdkWallet.failTransfers).toHaveBeenNthCalledWith(1, { skipSync: true });
+      expect(sdkWallet.failTransfers).toHaveBeenNthCalledWith(2, {});
+    });
   });
 
   describe('prepareWallet', () => {
