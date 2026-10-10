@@ -11,7 +11,7 @@ import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wal
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { GetBtcSendDataResponse } from '@shared/types/IBackgroundCaller';
-import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
 
 import { Denomination } from '@shared/types/transfer';
 
@@ -33,7 +33,7 @@ export interface BitcoinNetworkData {
   feeLoadingError: string | undefined;
 }
 
-export type LightningLayer = typeof NETWORK_ARK | typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET;
+export type LightningLayer = typeof NETWORK_ARK | typeof NETWORK_SPARK;
 
 export type DecodedInvoice = ReturnType<typeof bolt11.decode>;
 
@@ -196,7 +196,7 @@ function SendFlowProvider({ children, initialNetwork }: SendFlowProviderProps) {
       : undefined;
 
   const lightningData: LightningNetworkData | undefined =
-    network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET
+    network === NETWORK_LIGHTNING
       ? {
           layer: lightningLayer,
           setLayer,

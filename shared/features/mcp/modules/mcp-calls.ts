@@ -40,7 +40,6 @@ import {
   NETWORK_ARK_MUTINYNET,
   NETWORK_BITCOIN,
   NETWORK_LIGHTNING,
-  NETWORK_LIGHTNING_TESTNET,
   NETWORK_LIQUID,
   NETWORK_SPARK,
   NETWORK_STACKS,
@@ -87,13 +86,13 @@ function mcpFeeFields(baseUnits: string | number, decimals: number, ticker: stri
 }
 
 /** Networks whose lazy-init wallet can pay BOLT11 Lightning invoices. */
-const MCP_LIGHTNING_PAY_NETWORKS = [NETWORK_SPARK, NETWORK_ARK, NETWORK_LIQUID] as const;
+const MCP_LIGHTNING_PAY_NETWORKS = [NETWORK_SPARK, NETWORK_ARK] as const;
 
 const mcpLightningPayNetworkSchema = z.enum(MCP_LIGHTNING_PAY_NETWORKS);
 
 /** Mainnet-style networks exposed to MCP (no testnets, Lightning, or USDT). Ark mainnet is listable; ark_mutinynet is filtered as a testnet. */
 function mcpListableNetworks(): Networks[] {
-  return getAvailableNetworks().filter((n) => !getIsTestnet(n) && n !== NETWORK_LIGHTNING && n !== NETWORK_LIGHTNING_TESTNET && n !== NETWORK_USDT);
+  return getAvailableNetworks().filter((n) => !getIsTestnet(n) && n !== NETWORK_LIGHTNING && n !== NETWORK_USDT);
 }
 
 /** Positive integer string for token amounts in smallest units (no precision loss). */

@@ -18,7 +18,7 @@ import { useTokenBalance } from '@shared/hooks/useTokenBalance';
 import { useTokenDiscovery } from '@shared/hooks/useTokenDiscovery';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, NETWORK_ARK, Networks } from '@shared/types/networks';
+import { NETWORK_LIGHTNING, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, NETWORK_ARK, Networks } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { USDT_TOKENS } from '@shared/models/token-list';
 
@@ -69,16 +69,13 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
 
-  // Lightning network aggregates balances from Spark, Ark, and Liquid networks
+  // Lightning network aggregates balances from Spark and Ark networks
   // Each underlying network has its own balance and exchange rate
   // Multiple useBalance hooks are needed since each network manages separate state
-  const liquidNetwork = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
   const { balance: sparkBalance, mutate: mutateSpark } = useBalance(NETWORK_SPARK, accountNumber, BackgroundExecutor);
   const { balance: arkBalance, mutate: mutateArk } = useBalance(NETWORK_ARK, accountNumber, BackgroundExecutor);
-  const { balance: liquidBalance, mutate: mutateLiquid } = useBalance(liquidNetwork, accountNumber, BackgroundExecutor);
   const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK, 'USD');
   const { exchangeRate: arkExchangeRate } = useExchangeRate(NETWORK_ARK, 'USD');
-  const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, 'USD');
 
   // delay rendering of adjustsFontSizeToFit to avoid layout issues on Android
   const [adjustsFontSizeToFit, setAdjustsFontSizeToFit] = useState(false);
@@ -92,21 +89,16 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
     refresh: () => {
       mutateSpark();
       mutateArk();
-      mutateLiquid();
     },
   }));
 
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);
 
-  const pairs: [string | undefined, number | undefined][] =
-    network === NETWORK_LIGHTNING
-      ? [
-          [sparkBalance, sparkExchangeRate],
-          [liquidBalance, liquidExchangeRate],
-          [arkBalance, arkExchangeRate],
-        ]
-      : [[liquidBalance, liquidExchangeRate]];
+  const pairs: [string | undefined, number | undefined][] = [
+    [sparkBalance, sparkExchangeRate],
+    [arkBalance, arkExchangeRate],
+  ];
 
   let displayBalance = '—';
   let displaySubBalance = '—';
@@ -139,7 +131,7 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
   }
 
   const icons = useMemo(() => {
-    const networks = network === NETWORK_LIGHTNING ? [NETWORK_SPARK, NETWORK_ARK, NETWORK_LIQUID] : [NETWORK_LIQUID_TESTNET];
+    const networks = [NETWORK_SPARK, NETWORK_ARK];
     return networks.map((network) => {
       const networkImage = getNetworkImageAsset(network);
       const networkIconContent = networkImage ? <Image source={networkImage} style={styles.balanceNetworkImage} contentFit="contain" /> : null;
@@ -149,10 +141,10 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
         </PlatformBlurView>
       );
     });
-  }, [network]);
+  }, []);
 
   const rows = useMemo(() => {
-    const networks = network === NETWORK_LIGHTNING ? [NETWORK_SPARK, NETWORK_ARK, NETWORK_LIQUID] : [NETWORK_LIQUID_TESTNET];
+    const networks = [NETWORK_SPARK, NETWORK_ARK];
 
     return networks.map((network) => {
       let balance: string | undefined;
@@ -163,9 +155,6 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
       } else if (network === NETWORK_SPARK) {
         balance = sparkBalance;
         exchangeRate = sparkExchangeRate;
-      } else if (network === NETWORK_LIQUID) {
-        balance = liquidBalance;
-        exchangeRate = liquidExchangeRate;
       }
 
       const networkImage = getNetworkImageAsset(network);
@@ -190,7 +179,7 @@ export const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceLight
         </Pressable>
       );
     });
-  }, [network, sparkBalance, liquidBalance, sparkExchangeRate, liquidExchangeRate, arkBalance, arkExchangeRate, selectedNetwork, onSelectNetwork]);
+  }, [sparkBalance, sparkExchangeRate, arkBalance, arkExchangeRate, selectedNetwork, onSelectNetwork]);
 
   return (
     <>
@@ -374,7 +363,7 @@ BalanceUsdt.displayName = 'BalanceUsdt';
 const BalanceRoot = forwardRef<{ refresh: () => void }>((props, ref) => {
   const { network } = useContext(NetworkContext);
 
-  if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET) {
+  if (network === NETWORK_LIGHTNING) {
     return <BalanceLightning ref={ref} />;
   }
   if (network === NETWORK_USDT) {

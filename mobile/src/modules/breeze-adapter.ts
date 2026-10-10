@@ -90,12 +90,6 @@ const convertAssetBalanceToJs = (asset: RNAPI.AssetBalance): JSAPI.AssetBalance 
   balance: asset.balance,
 });
 
-const convertLimitsToJs = (limits: RNAPI.Limits): JSAPI.Limits => ({
-  minSat: toNumber(limits.minSat),
-  maxSat: toNumber(limits.maxSat),
-  maxZeroConfSat: toNumber(limits.maxZeroConfSat),
-});
-
 const convertReceiveAmountToRn = (amount?: JSAPI.ReceiveAmount): RNAPI.ReceiveAmount | undefined => {
   if (!amount) {
     return undefined;
@@ -173,15 +167,6 @@ const convertDescriptionHashToRn = (descriptionHash?: JSAPI.DescriptionHash): RN
       return new RNAPI.DescriptionHash.UseDescription();
     case 'custom':
       return new RNAPI.DescriptionHash.Custom({ hash: descriptionHash.hash });
-  }
-};
-
-const convertGetPaymentRequestToRn = (request: JSAPI.GetPaymentRequest): RNAPI.GetPaymentRequest => {
-  switch (request.type) {
-    case 'paymentHash':
-      return new RNAPI.GetPaymentRequest.PaymentHash({ paymentHash: request.paymentHash });
-    case 'swapId':
-      return new RNAPI.GetPaymentRequest.SwapId({ swapId: request.swapId });
   }
 };
 
@@ -413,14 +398,6 @@ class BreezAdapter implements IBreezAdapter {
     };
   }
 
-  private async fetchLightningLimits(sdk: RNAPI.BindingLiquidSdkInterface): Promise<JSAPI.LightningPaymentLimitsResponse> {
-    const response = sdk.fetchLightningLimits();
-    return {
-      send: convertLimitsToJs(response.send),
-      receive: convertLimitsToJs(response.receive),
-    };
-  }
-
   private async prepareReceivePayment(sdk: RNAPI.BindingLiquidSdkInterface, args: JSAPI.PrepareReceiveRequest): Promise<JSAPI.PrepareReceiveResponse> {
     const response = sdk.prepareReceivePayment(convertPrepareReceiveRequestToRn(args));
     const converted = convertPrepareReceiveResponseToJs(response);
@@ -448,33 +425,24 @@ class BreezAdapter implements IBreezAdapter {
     return { payment: convertPaymentToJs(sdk.sendPayment(convertSendPaymentRequestToRn(args)).payment) };
   }
 
-  private async getPayment(sdk: RNAPI.BindingLiquidSdkInterface, args: JSAPI.GetPaymentRequest): Promise<JSAPI.Payment | undefined> {
-    const response = sdk.getPayment(convertGetPaymentRequestToRn(args));
-    return response ? convertPaymentToJs(response) : undefined;
-  }
-
   private async listPayments(sdk: RNAPI.BindingLiquidSdkInterface, args: JSAPI.ListPaymentsRequest): Promise<JSAPI.Payment[]> {
     return sdk.listPayments(convertListPaymentsRequestToRn(args)).map(convertPaymentToJs);
   }
 
   get api() {
     const getInfo = this.withLockAndSdk(this.getInfo.bind(this));
-    const fetchLightningLimits = this.withLockAndSdk(this.fetchLightningLimits.bind(this));
     const prepareReceivePayment = this.withLockAndSdk(this.prepareReceivePayment.bind(this));
     const receivePayment = this.withLockAndSdk(this.receivePayment.bind(this));
     const prepareSendPayment = this.withLockAndSdk(this.prepareSendPayment.bind(this));
     const sendPayment = this.withLockAndSdk(this.sendPayment.bind(this));
-    const getPayment = this.withLockAndSdk(this.getPayment.bind(this));
     const listPayments = this.withLockAndSdk(this.listPayments.bind(this));
 
     return {
       getInfo,
-      fetchLightningLimits,
       prepareReceivePayment,
       receivePayment,
       prepareSendPayment,
       sendPayment,
-      getPayment,
       listPayments,
     };
   }

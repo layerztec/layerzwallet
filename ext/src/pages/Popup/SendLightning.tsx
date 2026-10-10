@@ -6,7 +6,7 @@ import * as bolt11 from 'bolt11';
 import * as bip21 from 'bip21';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_BITCOIN, NETWORK_SPARK } from '@shared/types/networks';
 import { AskMnemonicContext } from '../../hooks/AskMnemonicContext';
 import { useScanQR } from '../../hooks/ScanQrContext';
 import { BackgroundCaller } from '../../modules/background-caller';
@@ -20,7 +20,7 @@ import { convertMerchantQRToLightningAddress } from '@shared/modules/merchants';
 import { walletSupportsLightning } from '@shared/class/wallets/interface-lightning-wallet';
 
 export interface SendLightningProps {
-  network: typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK;
+  network: typeof NETWORK_SPARK | typeof NETWORK_ARK;
 }
 
 const maxFeePercent = 5; // hardcoded at the moment. might give user option to adjust later
