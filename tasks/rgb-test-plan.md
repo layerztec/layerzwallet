@@ -86,11 +86,18 @@ On rgb-sdk-rn 1.0.0-beta.37 / native rgb-lightning-node 0.16.0-beta.3:
   "vanished" after an emulator death) — FIXED 2026-10-10: config.ini now
   `fastboot.forceColdBoot=yes`, and `and_emu_start` launches with
   `-no-snapshot`. Verified: wallet16 survived a kill + cold restart (24s boot).
-- Emulator died twice under 500MB apk installs / gradle with the stock
-  2G RAM + software GPU ("I/O thread spun", ColorBuffer errors, ANR storms).
-  config.ini raised to hw.ramSize=4096, vm.heapSize=512M, hw.cpu.ncore=6,
-  hw.gpu.enabled=yes (reports `ro.hardware.egl=emulation`); launch adds
-  `-memory 4096 -cores 6`. Host has 64G/10 cores, so headroom is fine.
+- Emulator died three times in one day, always while a gradle/Xcode build
+  saturated the host. Root cause from the macOS crash report
+  (`qemu-system-aarch64-2026-10-10-022628.ips`): SIGABRT via
+  `std::__throw_bad_function_call` inside `grpc::CallbackWithSuccessTag::
+  Proceed` — the emulator's netsim-WiFi gRPC link times out ("Netsim Wifi …
+  gone due to ping timeout" precedes every death) and a dangling callback
+  aborts the process. Emulator 37.1.11 bug, not resources. Fix: launch with
+  `-feature -Wifi` (guest keeps ethernet). Also raised config.ini to
+  hw.ramSize=4096, vm.heapSize=512M, hw.cpu.ncore=6, hw.gpu.enabled=yes
+  (`ro.hardware.egl=emulation`) and launch with `-memory 4096 -cores 6`
+  against the earlier ANR storms. Rule of thumb regardless: don't drive the
+  emulator during a build.
 
 ## Runbook
 
@@ -185,8 +192,15 @@ driver. Flow videos: `~/Desktop/rgb-test-videos/wc *.mp4`.
   under AuthStateContextProvider and gate on `isAuthenticated`
   (`finalIsAuthenticated` = READY && past the lock, or immediately with
   biometrics off; false until settings load). Pure gate `shouldSurfacePrompt`
-  + unit tests; live re-verified on wc8 with biometrics OFF (prompt shows)
-  and ON (no prompt over the lock, prompt after unlock) — see below.
+  + unit tests. Live on wc8 (Android, fingerprint enrolled on the emulator
+  via `locksettings set-pin` + FINGERPRINT_ENROLL intent + `adb emu finger
+  touch 1`): biometrics OFF → proposal prompt shows (3/3 runs); biometrics
+  ON → a blindReceive sent while the BiometricPrompt lock is up never
+  surfaces a sheet (40s). Caveat: in that run the wallet stopped answering
+  the dApp right after the restart (`rgb_enable` and the blindReceive both
+  hung — the recurring post-restart request stall, see below), so the
+  request most likely never reached `confirm()`; the gate itself is covered
+  by `shouldSurfacePrompt` unit tests and the biometrics-OFF live path.
 - **PASS — session survives wallet restart.** Approve → force-stop →
   relaunch: WcBootstrap boots WalletKit (HAD_SESSIONS), session listed,
   wallet answers relay requests; Disconnect from the list → dApp receives
