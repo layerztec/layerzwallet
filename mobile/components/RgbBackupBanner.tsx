@@ -30,7 +30,7 @@ const RgbBackupBanner: React.FC = () => {
     ? 'Cloud backup is not available in this build. Your recovery phrase is the only way to restore this wallet — make sure it is written down.'
     : isFailed
       ? `${pendingCount} change${pendingCount === 1 ? '' : 's'} not yet saved to backup. Tap to retry — until then, recovery on a new device may be missing recent activity.`
-      : `${pendingCount} change${pendingCount === 1 ? '' : 's'} are syncing to backup. Usually clears within seconds.`;
+      : `${pendingCount} change${pendingCount === 1 ? ' is' : 's are'} syncing to backup. Usually clears within seconds.`;
 
   const handlePress = async () => {
     if (isRetrying) return;
