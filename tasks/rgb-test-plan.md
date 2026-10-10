@@ -144,6 +144,21 @@ Verified live on device (release build):
   failure UI = "Sent — backup pending" with txid + don't-reinstall warning
   + Retry button. Home/send-confirm banner persists until a retry succeeds.
 
+## Review-fixes builds (2026-10-10, commits 1826e858 / b56b4682 / b1b7bc0b)
+
+Dual code review (codex + superpowers) applied: WC consent/lifecycle
+(orphaned-prompt on hardware back, bootstrap gating to READY+auth, prompt
+vs biometric lock, UNKNOWN-verification banner, Clear&Import wcService.reset)
++ backup-ledger races + banner pluralization. Builds carrying them:
+- Android `lzw-wc3-android.apk` — smoke PASS (wallet16 restore: gate ~1min,
+  70 USDT + 5265 sats, deadlock=0, WC sessions screen renders with projectId).
+- iOS `lzw-wc3-ios.tar.gz` — smoke PASS (fresh wallet17 created: node init,
+  rgb_testnet home, WC sessions screen renders; funded 30k sats).
+  wallet15 retired (X15-bricked RGB).
+Trap replay during the smoke: fresh-install cold start ANR-storm (app +
+system) on the loaded emulator — dismiss Wait loop until it settles, then
+onboarding proceeds fine.
+
 ## WebRGB / WalletConnect (feature, 2026-10-09, commit f20583d0)
 
 Wallet-side pairing shipped (v1: read set + blindReceive, rgb:utexo only).
