@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useContext, useEffect, useRef, useSyncExternalStore } from 'react';
 
+import { shouldSurfacePrompt } from '@/src/features/walletconnect/modules/wc-gate';
 import { wcService } from '@/src/features/walletconnect/modules/wc-service';
 import { AuthStateContext } from '@/src/hooks/AuthStateContext';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
@@ -17,18 +18,10 @@ import { EStep, InitializationContext } from '@shared/hooks/InitializationContex
  */
 export function WcBootstrap() {
   const { step } = useContext(InitializationContext);
-  const { isAuthenticated, isBiometricEnabled } = useContext(AuthStateContext);
+  const { isAuthenticated } = useContext(AuthStateContext);
   const state = useSyncExternalStore(wcService.subscribe, wcService.snapshot, wcService.snapshot);
   const booted = useRef(false);
   const pushedFor = useRef<object | null>(null);
-
-  // The consent sheet must not sit over the biometric lock, but gating on
-  // raw `isAuthenticated` was wrong: with biometrics OFF the app shows the
-  // main UI while `isAuthenticated` can still be false, so the prompt never
-  // surfaced and the dApp's request auto-rejected after the 240s timeout.
-  // The real question is only "is the lock screen currently covering us",
-  // which is exactly `isBiometricEnabled && !isAuthenticated`.
-  const locked = isBiometricEnabled && !isAuthenticated;
 
   useEffect(() => {
     if (step !== EStep.READY || booted.current) return;
@@ -38,7 +31,7 @@ export function WcBootstrap() {
 
   useEffect(() => {
     const prompt = state.prompt;
-    if (!prompt || locked || step !== EStep.READY) return;
+    if (!shouldSurfacePrompt(!!prompt, isAuthenticated, step) || !prompt) return;
     if (pushedFor.current === prompt) return;
     pushedFor.current = prompt;
     try {
@@ -47,7 +40,7 @@ export function WcBootstrap() {
       // Navigator not ready for this route — reject rather than ghost it.
       prompt.resolve(false);
     }
-  }, [state.prompt, locked, step]);
+  }, [state.prompt, isAuthenticated, step]);
 
   return null;
 }

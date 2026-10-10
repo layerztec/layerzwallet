@@ -115,7 +115,7 @@ export default function UtxoManagerScreen() {
 
   const failPendingTransfers = async () => {
     if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) return;
-    Alert.alert('Fail expired transfers?', 'Marks expired pending transfers (unpaid receive invoices past their expiry) as failed and frees the UTXOs they were holding. Live invoices are not affected — the wallet also does this on every refresh.', [
+    Alert.alert('Fail expired transfers?', 'Marks expired pending transfers (unpaid receive invoices, and sends the receiver never acknowledged) as failed and frees the UTXOs they were holding. Live transfers are not affected — the wallet also does this on every refresh.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Fail expired',

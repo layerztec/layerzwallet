@@ -171,18 +171,22 @@ onboarding proceeds fine.
 Live E2E regression pass of the review-fixes build (wc3) against the CLI dApp
 driver. Flow videos: `~/Desktop/rgb-test-videos/wc *.mp4`.
 
-- **FOUND+FIXED — consent sheet never surfaced (biometrics OFF).** wc3 pair
-  → proposal reached the wallet, `confirm()` parked the prompt, but
-  WcBootstrap's push gate required `isAuthenticated`, which stays `false`
-  when biometrics are disabled (the app shows the main UI via
-  `!isBiometricEnabled`, not via auth). Prompt invisible → 240s timeout →
-  dApp got USER_REJECTED, user saw nothing. A/B against wc2 (pre-fixes)
-  showed the prompt → regression from 1826e858. Root cause confirmed on
-  device via logcat (`isAuthenticated:false, isBiometricEnabled:false`).
-  Fix: gate on lock state `isBiometricEnabled && !isAuthenticated`.
-  Verified on wc4: pair → approve → enable/getInfo/listAssets → blindReceive
-  consent (Verify UNKNOWN banner shown) → invoice → ledger-first backup
-  (v89, pendingMutations 0) → disconnect. PASS.
+- **FOUND+FIXED — consent sheet never surfaced.** wc3 pair → proposal reached
+  the wallet, `confirm()` parked the prompt, but WcBootstrap never pushed the
+  modal. First diagnosis (c694bff6) blamed `isAuthenticated` staying false
+  with biometrics off and gated on `isBiometricEnabled && !isAuthenticated`
+  instead — that made the prompt appear, but review round 2 (Codex +
+  independent reviewer, both) found the REAL root cause: `<WcBootstrap/>` was
+  mounted in `_layout.tsx` OUTSIDE `AuthStateContextProvider`, so it read the
+  context defaults (`isAuthenticated:false, isBiometricEnabled:false` — the
+  exact logcat values). The old gate was therefore always closed, and the
+  c694bff6 gate was always OPEN — i.e. with biometrics ON the sheet would have
+  been pushed over the lock screen. Fix (review round 2): mount WcBootstrap
+  under AuthStateContextProvider and gate on `isAuthenticated`
+  (`finalIsAuthenticated` = READY && past the lock, or immediately with
+  biometrics off; false until settings load). Pure gate `shouldSurfacePrompt`
+  + unit tests; live re-verified on wc8 with biometrics OFF (prompt shows)
+  and ON (no prompt over the lock, prompt after unlock) — see below.
 - **PASS — session survives wallet restart.** Approve → force-stop →
   relaunch: WcBootstrap boots WalletKit (HAD_SESSIONS), session listed,
   wallet answers relay requests; Disconnect from the list → dApp receives
@@ -219,6 +223,26 @@ untouched, deadlock=0. Videos `utxo manager fail expired transfers - {android,io
 Infra note: the AOSP emulator died twice during 500MB apk installs / gradle
 runs today — `android-recover-smoke.sh`-style cold restart + re-import is the
 fast path (≈6 min).
+
+## Review round 2 (2026-10-10 evening, Codex + superpowers reviewer)
+
+Range 1826e858..baba9185. Both reviewers converged on one real defect and a
+few small ones; fixed minimal, no refactors:
+- WcBootstrap mount point / gate (above) — the only Critical.
+- Pre-send probe discarded a late success: after the 30s race flipped to
+  "failed", a backup that completed at 35s left the warning up forever. Now a
+  late success clears it.
+- Auto-fail scope copy: rgb-lib's expired-only pass also fails sends the
+  receiver never acknowledged (still unbroadcast → inputs return) — dialog +
+  code comment say so.
+- `sync()` skips the post-free backup once the wallet is disposed (no
+  spurious ledger error for the next instance).
+- a11y label fallback "Disconnect Unknown dApp".
+Accepted as-is (minor, cosmetic): `_freedBySync` can under-report in the
+button hint under a concurrent sync; 20ms sleep in one negative test.
+X9 live proof on Android: a 60s WC invoice blinded a 3rd UTXO; after expiry a
+plain Refresh (no button) returned the count to the 2 live ones (full list
+of 35 scanned). Video `x9 expired invoice auto-freed on refresh - android`.
 
 ## Round 1-5 results (2026-10-10, videos in ~/Desktop/rgb-test-videos)
 

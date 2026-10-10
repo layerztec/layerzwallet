@@ -104,7 +104,7 @@ export default function WalletConnectSessionsScreen() {
                     onPress={() => wcService.disconnect(s.topic)}
                     style={styles.disconnectBtn}
                     accessibilityRole="button"
-                    accessibilityLabel={`Disconnect ${s.name}`}
+                    accessibilityLabel={`Disconnect ${s.name || 'Unknown dApp'}`}
                     testID={`wc-disconnect-${s.topic.slice(0, 8)}`}
                   >
                     <Ionicons name="close-circle-outline" size={22} color="#FF6B6B" />

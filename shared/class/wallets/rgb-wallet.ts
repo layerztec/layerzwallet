@@ -338,14 +338,17 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
       } catch (e) {
         globalThis.handleError?.(e, 'rgb-wallet.ts:refreshWallet');
       }
-      // rgb-lib never fails an expired unpaid invoice on its own: the UTXO it
-      // blinded stays reserved until something calls failTransfers. Called
-      // without a recipient/txid it fails EXPIRED WaitingCounterparty
-      // transfers only — live invoices are untouched — so it is safe on every
-      // refresh (test plan X9: slots leaked for days otherwise). A freed slot
-      // is a stash mutation, hence the backup.
+      // rgb-lib never fails an expired transfer on its own: an unpaid receive
+      // invoice keeps its blinded UTXO reserved, and a send the receiver never
+      // acknowledged (still unbroadcast) keeps its inputs locked, until
+      // something calls failTransfers. Called without a recipient/txid it
+      // fails EXPIRED WaitingCounterparty transfers only — live ones are
+      // untouched — so it is safe on every refresh (test plan X9: slots
+      // leaked for days otherwise). A freed slot is a stash mutation, hence
+      // the backup; skip it once disposed so a torn-down instance can't
+      // persist a spurious ledger error for the next one.
       try {
-        if (await this.sdk().failTransfers({ skipSync: true })) {
+        if ((await this.sdk().failTransfers({ skipSync: true })) && !this._disposed) {
           this._freedBySync = true;
           void this.tryBackup();
         }

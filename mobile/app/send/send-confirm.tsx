@@ -85,8 +85,13 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
         // The probe is a real backup (≈2MB upload); a slow VSS legitimately
         // takes 20s+ (seen 21s on the iOS sim), so 15s produced false
         // "unreachable" warnings while the upload was still succeeding.
-        const ok = await Promise.race([wallet.retryBackup(), new Promise<false>((r) => setTimeout(() => r(false), 30_000))]);
+        const probe = wallet.retryBackup();
+        const ok = await Promise.race([probe, new Promise<false>((r) => setTimeout(() => r(false), 30_000))]);
         if (!cancelled) setVssProbe(ok ? 'ok' : 'failed');
+        // A probe that finishes after the deadline still counts: clear the
+        // warning instead of telling the user to wait for something that
+        // already happened.
+        if (!ok) probe.then((late) => !cancelled && late && setVssProbe('ok')).catch(() => {});
       } catch {
         if (!cancelled) setVssProbe('failed');
       }

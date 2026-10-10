@@ -49,7 +49,8 @@ const assetId = nia?.id ?? nia?.assetId ?? undefined;
 console.log('USDT_ASSET ' + assetId);
 
 console.log('requesting blindReceive (wallet will prompt)...');
-const inv = await provider.blindReceive({ assetId, amount, durationSeconds: 86400, minConfirmations: 3 });
+const durationSeconds = Number(process.env.DURATION ?? 86400);
+const inv = await provider.blindReceive({ assetId, amount, durationSeconds, minConfirmations: 3 });
 console.log('INVOICE_BEGIN');
 console.log(JSON.stringify(inv));
 console.log('INVOICE_END');

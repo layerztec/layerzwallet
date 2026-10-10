@@ -154,10 +154,13 @@ export default function RootLayout() {
           <AskPasswordContextProvider>
             <InitializationContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} platform={'MOBILE'}>
               <TunnelBootstrap />
-              <WcBootstrap />
               <TunnelKeepAwake />
               <SettingsContextProvider storage={LayerzStorage}>
                 <AuthStateContextProvider>
+                  {/* Must live under AuthStateContextProvider: the WalletConnect
+                      consent sheet is gated on the real unlock state. Outside it
+                      the context defaults made the gate inert (see rgb test plan). */}
+                  <WcBootstrap />
                   <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                     <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                       <ActionPopupProvider>
