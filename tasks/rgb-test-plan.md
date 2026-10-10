@@ -200,6 +200,19 @@ driver. Flow videos: `~/Desktop/rgb-test-videos/wc *.mp4`.
   reachable after `revoke()` (sessionApproved:true keeps the SDK provider
   enabled for the process) — kept, harmless.
 
+## Final builds for this round (2026-10-10 evening)
+
+`lzw-wc7-android.apk` / `lzw-wc7-ios.tar.gz` (scratchpad) carry everything up
+to 9904507a: WC gate fix, Disconnect a11y label, banner pluralization, X9
+auto-fail of expired invoices + honest UTXO-manager copy. Smoke PASS on both:
+wallet16 (Android, re-imported after another emulator death — gate+consistency
+clean on the post-X11 backup v94; 65 USDT) and wallet17 (iOS, 5 USDT) show
+"Fail Expired Transfers" → "No expired transfers to fail." with live invoices
+untouched, deadlock=0. Videos `utxo manager fail expired transfers - {android,ios}`.
+Infra note: the AOSP emulator died twice during 500MB apk installs / gradle
+runs today — `android-recover-smoke.sh`-style cold restart + re-import is the
+fast path (≈6 min).
+
 ## Round 1-5 results (2026-10-10, videos in ~/Desktop/rgb-test-videos)
 
 - **(1) WC regression on review-fixes build — FOUND+FIXED** (gate bug, see
