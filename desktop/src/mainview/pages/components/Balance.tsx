@@ -14,17 +14,7 @@ import { getDecimalsByNetwork, getIsTestnet, getTickerByNetwork } from '@shared/
 import { USDT_TOKENS } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { IBackgroundCaller } from '@shared/types/IBackgroundCaller';
-import {
-  NETWORK_BITCOIN,
-  NETWORK_LIGHTNING,
-  NETWORK_LIGHTNING_TESTNET,
-  NETWORK_LIQUID,
-  NETWORK_LIQUID_TESTNET,
-  NETWORK_ROOTSTOCK,
-  NETWORK_SPARK,
-  NETWORK_USDT,
-  Networks,
-} from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { LayerzStorage } from '../../class/layerz-storage';
 import { Button } from '../DesignSystem';
@@ -104,44 +94,29 @@ const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceProps>(({ ne
   const availableNetworks = useAvailableNetworks();
   const { accountBalance } = useAccountBalance(accountNumber, availableNetworks);
 
-  // Lightning network aggregates balances from Spark and Liquid
-  const liquidNetwork = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
+  // Lightning network aggregates balances from Spark
   const { balance: sparkBalance, mutate: mutateSpark } = useBalance(NETWORK_SPARK, accountNumber, BackgroundCaller);
-  const { balance: liquidBalance, mutate: mutateLiquid } = useBalance(liquidNetwork, accountNumber, BackgroundCaller);
 
   useImperativeHandle(ref, () => ({
     refresh: () => {
       mutateSpark();
-      mutateLiquid();
     },
   }));
   const { exchangeRate: sparkExchangeRate } = useExchangeRate(NETWORK_SPARK, 'USD');
-  const { exchangeRate: liquidExchangeRate } = useExchangeRate(liquidNetwork, 'USD');
 
   const ticker = getTickerByNetwork(network);
   const decimals = getDecimalsByNetwork(network);
 
   const [displayBalance, displaySubBalance] = useMemo<[string, string]>(() => {
-    if (network === NETWORK_LIGHTNING) {
-      if (sparkBalance === undefined || liquidBalance === undefined) return ['—', '—'];
-      const totalBalance = BN(sparkBalance).plus(liquidBalance).toString();
-      const formattedBalance = formatBalance(totalBalance, decimals);
-      if (sparkExchangeRate === undefined || liquidExchangeRate === undefined) return [formattedBalance, '—'];
-      const totalUsdValue = BN(sparkBalance).times(sparkExchangeRate).plus(BN(liquidBalance).times(liquidExchangeRate)).dividedBy(BN(10).pow(decimals)).toFixed(2);
-      return [formattedBalance, totalUsdValue];
-    } else if (network === NETWORK_LIGHTNING_TESTNET) {
-      if (liquidBalance === undefined) return ['—', '—'];
-      const formattedBalance = formatBalance(liquidBalance, decimals);
-      if (liquidExchangeRate === undefined) return [formattedBalance, '—'];
-      const totalUsdValue = BN(liquidBalance).times(liquidExchangeRate).dividedBy(BN(10).pow(decimals)).toFixed(2);
-      return [formattedBalance, totalUsdValue];
-    }
-
-    return ['Error', 'Error'];
-  }, [network, sparkBalance, liquidBalance, decimals, sparkExchangeRate, liquidExchangeRate]);
+    if (sparkBalance === undefined) return ['—', '—'];
+    const formattedBalance = formatBalance(sparkBalance, decimals);
+    if (sparkExchangeRate === undefined) return [formattedBalance, '—'];
+    const totalUsdValue = BN(sparkBalance).times(sparkExchangeRate).dividedBy(BN(10).pow(decimals)).toFixed(2);
+    return [formattedBalance, totalUsdValue];
+  }, [sparkBalance, decimals, sparkExchangeRate]);
 
   const rows = useMemo(() => {
-    const networks = network === NETWORK_LIGHTNING ? [NETWORK_SPARK, NETWORK_LIQUID] : [NETWORK_LIQUID_TESTNET];
+    const networks = [NETWORK_SPARK];
 
     return networks.map((net, index) => {
       let balance: string | undefined;
@@ -149,9 +124,6 @@ const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceProps>(({ ne
       if (net === NETWORK_SPARK) {
         balance = sparkBalance;
         exchangeRate = sparkExchangeRate;
-      } else if (net === NETWORK_LIQUID || net === NETWORK_LIQUID_TESTNET) {
-        balance = liquidBalance;
-        exchangeRate = liquidExchangeRate;
       }
 
       const formattedBalance = balance !== undefined ? formatBalance(balance, Number(getDecimalsByNetwork(net)), 8) : '—';
@@ -174,7 +146,7 @@ const BalanceLightning = forwardRef<{ refresh: () => void }, BalanceProps>(({ ne
         </tr>
       );
     });
-  }, [network, sparkBalance, liquidBalance, sparkExchangeRate, liquidExchangeRate]);
+  }, [sparkBalance, sparkExchangeRate]);
 
   const handleBuyClick = () => {
     BackgroundCaller.getAddress(network, accountNumber).then((addressResponse: string) => {
@@ -338,7 +310,7 @@ BalanceUsdt.displayName = 'BalanceUsdt';
 
 // Main component that routes to the appropriate balance view
 const Balance = forwardRef<{ refresh: () => void }, BalanceProps>(({ network, accountNumber, BackgroundCaller }, ref) => {
-  if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET) {
+  if (network === NETWORK_LIGHTNING) {
     return <BalanceLightning ref={ref} network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />;
   }
   if (network === NETWORK_USDT) {

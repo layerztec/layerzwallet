@@ -5,7 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RadialGradient } from '@/components/RadialGradient';
 import { getNetworkPrimaryColor } from '@shared/constants/Colors';
-import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_USDT } from '@shared/types/networks';
+import { NETWORK_LIGHTNING, NETWORK_USDT } from '@shared/types/networks';
 import PlatformBlurView from './PlatformBlurView';
 import { homeBlurTargetRef } from '@/src/hooks/homeBlurTargetRef';
 
@@ -41,13 +41,13 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
 
   // Get the effective network for the radial gradient
   const effectiveNetwork = useMemo(() => {
-    if (layerNetwork === NETWORK_LIGHTNING || layerNetwork === NETWORK_LIGHTNING_TESTNET) {
+    if (layerNetwork === NETWORK_LIGHTNING) {
       return NETWORK_LIGHTNING;
     }
     if (layerNetwork === NETWORK_USDT) {
       return NETWORK_USDT;
     }
-    if (variant === NETWORK_LIGHTNING || variant === NETWORK_LIGHTNING_TESTNET) {
+    if (variant === NETWORK_LIGHTNING) {
       return NETWORK_LIGHTNING;
     }
     if (variant === NETWORK_USDT) {

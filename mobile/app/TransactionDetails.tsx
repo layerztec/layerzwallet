@@ -16,7 +16,7 @@ import { getDecimalsByNetwork, getIsEVM, getTickerByNetwork } from '@shared/mode
 import { getTokenIconColor, resolveTokenInfo, shortenTokenId } from '@shared/models/token-list';
 import { capitalizeFirstLetter, formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_SPARK } from '@shared/types/networks';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 
 function setSharedValue(sharedValue: { value: unknown }, nextValue: unknown) {
@@ -366,7 +366,7 @@ export default function TransactionDetails() {
 
   // Generate timeline data
   const timelineData = useMemo(() => {
-    const isLightning = network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET || network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK;
+    const isLightning = network === NETWORK_LIGHTNING || network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK;
 
     const hasConfirmations = (transaction.confirmations ?? 0) > 0;
     const isPending = transaction.status === 'pending' && !hasConfirmations;
