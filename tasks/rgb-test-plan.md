@@ -82,8 +82,15 @@ On rgb-sdk-rn 1.0.0-beta.37 / native rgb-lightning-node 0.16.0-beta.3:
   the field and self-heals (PlistBuddy AppleKeyboards → en_GB QWERTY).
 - beta.33 on npm == beta.32 byte-identical; native pins decide, not the JS
   version.
-- AVD `default_boot` snapshot: killing the emulator process resets /data —
-  wallets die; `adb reboot` (guest reboot) keeps data. Reimport by seed.
+- AVD quick-boot snapshot REVERTED /data on every start (that is why wallets
+  "vanished" after an emulator death) — FIXED 2026-10-10: config.ini now
+  `fastboot.forceColdBoot=yes`, and `and_emu_start` launches with
+  `-no-snapshot`. Verified: wallet16 survived a kill + cold restart (24s boot).
+- Emulator died twice under 500MB apk installs / gradle with the stock
+  2G RAM + software GPU ("I/O thread spun", ColorBuffer errors, ANR storms).
+  config.ini raised to hw.ramSize=4096, vm.heapSize=512M, hw.cpu.ncore=6,
+  hw.gpu.enabled=yes (reports `ro.hardware.egl=emulation`); launch adds
+  `-memory 4096 -cores 6`. Host has 64G/10 cores, so headroom is fine.
 
 ## Runbook
 

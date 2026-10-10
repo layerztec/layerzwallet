@@ -126,6 +126,24 @@ wait_confirmed() {
 
 # ── android (requires AOSP emulator; adb root for log reads) ──────────────
 
+# and_emu_start — cold-boot the AVD with the settings that survived a day of
+# RGB runs: no snapshot (a quick-boot snapshot REVERTS /data on every start —
+# that is how wallets "vanished" after emulator deaths), 4G RAM / 6 cores
+# (the 500MB apk installs + node sync starved the 2G default), host DNS fix.
+# config.ini was aligned the same way (hw.ramSize=4096, vm.heapSize=512M,
+# hw.cpu.ncore=6, hw.gpu.enabled=yes, fastboot.forceColdBoot=yes).
+and_emu_start() {
+  pkill -f "emulator -avd $RGB_E2E_AVD" 2>/dev/null; sleep 2
+  nohup ~/Library/Android/sdk/emulator/emulator -avd "$RGB_E2E_AVD" -no-snapshot -memory 4096 -cores 6 -dns-server 8.8.8.8,1.1.1.1 >/tmp/emu-$RGB_E2E_AVD.log 2>&1 &
+  local t=$((SECONDS + 240))
+  until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
+    [ $SECONDS -gt $t ] && { e2e_log "and_emu_start: boot timeout"; return 1; }
+    sleep 4
+  done
+  sleep 15; adb root >/dev/null 2>&1; sleep 2
+  e2e_log "emulator up ($(adb shell cat /proc/meminfo | head -1 | tr -d '\r' | awk '{print int($2/1024)"MB"}'), $(adb shell nproc | tr -d '\r') cores, gpu=$(adb shell getprop ro.hardware.egl | tr -d '\r'))"
+}
+
 and_wipe_install() { # <apk>
   adb uninstall "$RGB_E2E_APPID" >/dev/null 2>&1
   adb install "$1" | tail -1
