@@ -159,6 +159,47 @@ Trap replay during the smoke: fresh-install cold start ANR-storm (app +
 system) on the loaded emulator — dismiss Wait loop until it settles, then
 onboarding proceeds fine.
 
+## WC regression round (2026-10-10, commit c694bff6)
+
+Live E2E regression pass of the review-fixes build (wc3) against the CLI dApp
+driver. Flow videos: `~/Desktop/rgb-test-videos/wc *.mp4`.
+
+- **FOUND+FIXED — consent sheet never surfaced (biometrics OFF).** wc3 pair
+  → proposal reached the wallet, `confirm()` parked the prompt, but
+  WcBootstrap's push gate required `isAuthenticated`, which stays `false`
+  when biometrics are disabled (the app shows the main UI via
+  `!isBiometricEnabled`, not via auth). Prompt invisible → 240s timeout →
+  dApp got USER_REJECTED, user saw nothing. A/B against wc2 (pre-fixes)
+  showed the prompt → regression from 1826e858. Root cause confirmed on
+  device via logcat (`isAuthenticated:false, isBiometricEnabled:false`).
+  Fix: gate on lock state `isBiometricEnabled && !isAuthenticated`.
+  Verified on wc4: pair → approve → enable/getInfo/listAssets → blindReceive
+  consent (Verify UNKNOWN banner shown) → invoice → ledger-first backup
+  (v89, pendingMutations 0) → disconnect. PASS.
+- **PASS — session survives wallet restart.** Approve → force-stop →
+  relaunch: WcBootstrap boots WalletKit (HAD_SESSIONS), session listed,
+  wallet answers relay requests; Disconnect from the list → dApp receives
+  `session_delete`. (Disconnect icon had no a11y label — fixed.)
+- **RESOLVED (upstream, dApp-side SDK) — post-restart request handling.**
+  Traced build (wc5) + raw-RPC probe settled it: the wallet side is correct.
+  After a wallet restart the transport's per-process gate
+  (`webrgb-walletconnect` wallet side, `record.enabled`) answers
+  `rgb_getInfo` with NOT_ENABLED before reaching our backend — by design,
+  consent is per process. The dApp-side provider in the SAME package keeps
+  its own local `enabled` flag, never resets it on a wallet NOT_ENABLED, so
+  `provider.enable()` short-circuits (no `rgb_enable` sent, "enabled"
+  reported) and the dApp loops NOT_ENABLED forever. Proof: a raw
+  `client.request(rgb_enable)` from the dApp made the wallet run
+  `enable` → `getInfo` → POLL_OK (video `wc post-restart re-enable protocol
+  - android.mp4`). The earlier "hang" was the transport's single serial
+  `queue` waiting on `getProvider` → `lazyInitWallet` during RGB node cold
+  boot on the overloaded emulator (slow boot = 76s), not a deadlock; fast
+  boots (12s) never hung. Reported upstream (dApp-side fix: reset `enabled`
+  on NOT_ENABLED / always send `rgb_enable` from `enable()`). No wallet
+  change needed. The "Reconnect website?" branch in our provider is only
+  reachable after `revoke()` (sessionApproved:true keeps the SDK provider
+  enabled for the process) — kept, harmless.
+
 ## WebRGB / WalletConnect (feature, 2026-10-09, commit f20583d0)
 
 Wallet-side pairing shipped (v1: read set + blindReceive, rgb:utexo only).

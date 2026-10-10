@@ -61,6 +61,18 @@ setInterval(async () => {
       } finally {
         reenabling = false;
       }
+      // Hypothesis check: the SDK's dApp-side `enable()` short-circuits on its
+      // stale local `enabled` flag after a wallet restart and never re-sends
+      // rgb_enable. Send it raw via SignClient to prove the wallet side is
+      // healthy (expect `[wc-trace] enable enter` on the wallet, then POLL_OK).
+      if (process.env.RAW_ENABLE === '1') {
+        try {
+          const r = await client.request({ topic: provider.topic, chainId: provider.chainId, request: { method: 'rgb_enable', params: [] } });
+          console.log('RAW_ENABLE_OK ' + JSON.stringify(r));
+        } catch (err) {
+          console.log('RAW_ENABLE_ERR ' + (err?.code ?? '') + ' ' + (err?.message ?? err));
+        }
+      }
     }
   }
 }, 20000);
