@@ -40,6 +40,21 @@ console.log('ENABLED');
 console.log('GETINFO ' + JSON.stringify(await provider.getInfo()));
 console.log('HOLDING (wallet may be killed/relaunched now)');
 
+// BLIND_AFTER=<seconds>: fire one consent-requiring request later, so the
+// wallet can be locked (biometrics) in between — verifies the consent sheet
+// is NOT surfaced over the lock and appears once unlocked.
+if (process.env.BLIND_AFTER) {
+  setTimeout(async () => {
+    console.log('BLIND_RECEIVE requesting at ' + new Date().toISOString());
+    try {
+      const inv = await provider.blindReceive({ amount: 1000000, durationSeconds: 3600, minConfirmations: 3 });
+      console.log('BLIND_RECEIVE_OK ' + new Date().toISOString() + ' ' + JSON.stringify(inv).slice(0, 80));
+    } catch (e) {
+      console.log('BLIND_RECEIVE_ERR ' + new Date().toISOString() + ' ' + (e?.code ?? '') + ' ' + (e?.message ?? e));
+    }
+  }, Number(process.env.BLIND_AFTER) * 1000);
+}
+
 // After a wallet restart the provider's enable-state is gone (per-process
 // consent); a well-behaved dApp re-enables, which makes the wallet show its
 // "Reconnect website?" prompt — exercised here on NOT_ENABLED.
