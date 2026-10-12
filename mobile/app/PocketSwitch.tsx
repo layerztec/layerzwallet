@@ -2,7 +2,7 @@ import { Foundation, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons
 import Pressable from '../components/Pressable';
 import { useRouter } from 'expo-router';
 import React, { useContext, useMemo } from 'react';
-import { StyleSheet, View, Platform } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import DetachedSheet from '@/components/DetachedSheet';
@@ -89,7 +89,7 @@ export default function PocketSwitch() {
   return (
     <DetachedSheet variant={network} onClose={handleClose}>
       <SafeAreaView style={styles.safeArea} edges={Platform.OS === 'ios' ? ['left', 'right', 'bottom'] : ['left', 'right']}>
-        <View style={styles.container}>
+        <View style={styles.container} testID="AccountSwitcherModal">
           {/* Total Balance Section */}
           <TotalBalanceSection />
 
@@ -111,11 +111,9 @@ export default function PocketSwitch() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
     backgroundColor: 'transparent',
   },
   container: {
-    flex: 1,
     marginHorizontal: 16,
     paddingBottom: 16,
   },

@@ -125,7 +125,6 @@ export default function Home() {
   // context re-emission, or a parent re-render that changes the `router`
   // identity) can't both push the modal and stack two sheets.
   const activateModalPresentedForRef = useRef<number | null>(null);
-  const mcpActivateRoute = './McpAgentActivateModal' as const;
   useEffect(() => {
     if (accountNumber !== MCP_BALANCE_ACCOUNT_NUMBER) {
       activateModalPresentedForRef.current = null;
@@ -137,7 +136,7 @@ export default function Home() {
     void (async () => {
       const wantsTunnelOn = await getTunnelAutostartOnLaunch();
       if (cancelled || wantsTunnelOn) return;
-      router.push(mcpActivateRoute);
+      router.push('/McpAgentActivateModal');
     })();
     return () => {
       cancelled = true;

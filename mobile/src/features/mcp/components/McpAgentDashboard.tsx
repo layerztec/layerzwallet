@@ -27,7 +27,6 @@ import { NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIQUID, NETWORK_ROOTSTOCK, 
  */
 export function McpAgentDashboard() {
   const router = useRouter();
-  const permissionsRoute = './McpPermissionsModal' as const;
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const availableNetworks = useAvailableNetworks();
@@ -168,7 +167,7 @@ export function McpAgentDashboard() {
             </View>
           </Pressable>
 
-          <Pressable style={styles.permissionsCard} onPress={() => router.push(permissionsRoute)} accessibilityRole="button" accessibilityLabel="Permissions">
+          <Pressable style={styles.permissionsCard} onPress={() => router.push('/McpPermissionsModal')} accessibilityRole="button" accessibilityLabel="Permissions">
             <View style={styles.lockIconWrap}>
               <Ionicons name="lock-closed" size={15} color="#ffffff" />
             </View>
