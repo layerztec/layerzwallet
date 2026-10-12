@@ -194,6 +194,71 @@ describe('Spark Wallet', () => {
     assert.deepEqual(previousTransactionsMock.mock.calls[0], [['11', '22']]);
   });
 
+  it('getCommonTransactions uses this wallet share and receiver leg status for multi-receiver transfer', async () => {
+    const wallet = new SparkWallet();
+    (wallet as any)._storage = storageMock;
+    (wallet as any)._sdkWallet = {
+      getTransfers: vi
+        .fn()
+        .mockResolvedValueOnce({
+          transfers: [
+            {
+              id: 'multi-in',
+              createdTime: new Date('2025-08-21T09:00:00.000Z'),
+              updatedTime: new Date('2025-08-21T09:01:00.000Z'),
+              transferDirection: 'INCOMING',
+              // aggregate status still pending because another receiver has not claimed
+              status: 'TRANSFER_STATUS_SENDER_KEY_TWEAKED',
+              // whole transfer across all receivers
+              totalValue: 1000,
+              valueReceivedByWallet: 300,
+              valueSentByWallet: 0,
+              senderIdentityPublicKey: inboundIdentityPublicKey,
+              // legacy singular field names some other receiver, not us
+              receiverIdentityPublicKey: outboundIdentityPublicKey,
+              senders: [{ id: 's1', identityPublicKey: inboundIdentityPublicKey }],
+              receivers: [
+                { id: 'r1', identityPublicKey: ownIdentityPublicKey, amountSats: 300, status: 'TRANSFER_RECEIVER_STATUS_COMPLETED' },
+                { id: 'r2', identityPublicKey: outboundIdentityPublicKey, amountSats: 700, status: 'TRANSFER_RECEIVER_STATUS_KEY_TWEAKED' },
+              ],
+            },
+            {
+              id: 'multi-out',
+              createdTime: new Date('2025-08-21T08:00:00.000Z'),
+              updatedTime: new Date('2025-08-21T08:01:00.000Z'),
+              transferDirection: 'OUTGOING',
+              status: 'TRANSFER_STATUS_COMPLETED',
+              totalValue: 1000,
+              valueReceivedByWallet: 0,
+              valueSentByWallet: 400,
+              senderIdentityPublicKey: inboundIdentityPublicKey,
+              receiverIdentityPublicKey: outboundIdentityPublicKey,
+              senders: [
+                { id: 's1', identityPublicKey: inboundIdentityPublicKey },
+                { id: 's2', identityPublicKey: ownIdentityPublicKey },
+              ],
+              receivers: [{ id: 'r1', identityPublicKey: outboundIdentityPublicKey, amountSats: 1000, status: 'TRANSFER_RECEIVER_STATUS_COMPLETED' }],
+            },
+          ],
+        })
+        .mockResolvedValue({ transfers: [] }),
+      getSparkAddress: vi.fn().mockResolvedValue(ownSparkAddress),
+      getIdentityPublicKey: vi.fn().mockResolvedValue(ownIdentityPublicKey),
+      queryTokenTransactionsWithFilters: vi.fn().mockResolvedValue({ tokenTransactionsWithStatus: [], pageResponse: undefined }),
+      queryTokenTransactionsByTxHashes: vi.fn().mockResolvedValue({ tokenTransactionsWithStatus: [] }),
+    };
+
+    const result = await wallet.getCommonTransactions();
+
+    assert.deepEqual(
+      result.map(({ txid, amount, status, direction, counterparty }) => ({ txid, amount, status, direction, counterparty })),
+      [
+        { txid: 'multi-in', amount: 300, status: 'confirmed', direction: 'receive', counterparty: inboundSparkAddress },
+        { txid: 'multi-out', amount: 400, status: 'confirmed', direction: 'send', counterparty: outboundSparkAddress },
+      ]
+    );
+  });
+
   it('can get offchain receive address (no account set)', async () => {
     const wallet = new SparkWallet();
     wallet.setSecret('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');

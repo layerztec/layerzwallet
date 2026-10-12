@@ -309,17 +309,30 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
       offset += 100;
     }
 
+    const ownIdentityPublicKey = await this._sdkWallet.getIdentityPublicKey();
+
     const commonTransactions: CommonTransaction[] = [];
     for (const transfer of transfers) {
       const timestamp = Math.floor((transfer.updatedTime ?? transfer.createdTime)!.getTime() / 1000);
-      const status = transfer.status === 'TRANSFER_STATUS_COMPLETED' ? 'confirmed' : 'pending';
       const direction = transfer.transferDirection === 'OUTGOING' ? 'send' : 'receive';
 
-      // Determine counterparty address, use identity public key to get the address
-      let counterparty: string | undefined;
-      if (transfer.senderIdentityPublicKey && transfer.receiverIdentityPublicKey) {
-        const counterpartyIdentityPublicKey = direction === 'send' ? transfer.receiverIdentityPublicKey : transfer.senderIdentityPublicKey;
+      // A transfer can have several senders and receivers. `status` is aggregate across every receiver, so for an
+      // incoming transfer our own receiver leg is authoritative; `totalValue` covers all receivers, so use our share.
+      const ownReceiverLeg = transfer.receivers?.find((receiver) => receiver.identityPublicKey === ownIdentityPublicKey);
+      const completed = direction === 'receive' && ownReceiverLeg ? ownReceiverLeg.status === 'TRANSFER_RECEIVER_STATUS_COMPLETED' : transfer.status === 'TRANSFER_STATUS_COMPLETED';
+      const status = completed ? 'confirmed' : 'pending';
+      const amount = direction === 'send' ? transfer.valueSentByWallet : transfer.valueReceivedByWallet;
 
+      // Determine counterparty address, use identity public key to get the address. Multi-party transfers get the first
+      // participant on the other side that is not us.
+      const otherSideIdentityPublicKeys =
+        direction === 'send'
+          ? (transfer.receivers?.map((receiver) => receiver.identityPublicKey) ?? [transfer.receiverIdentityPublicKey])
+          : (transfer.senders?.map((sender) => sender.identityPublicKey) ?? [transfer.senderIdentityPublicKey]);
+      const counterpartyIdentityPublicKey = otherSideIdentityPublicKeys.find((key) => key && key !== ownIdentityPublicKey);
+
+      let counterparty: string | undefined;
+      if (counterpartyIdentityPublicKey) {
         try {
           counterparty = encodeSparkAddress({
             identityPublicKey: counterpartyIdentityPublicKey,
@@ -336,7 +349,7 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
       commonTransactions.push({
         network: NETWORK_SPARK,
         txid: transfer.id,
-        amount: transfer.totalValue,
+        amount,
         timestamp,
         status,
         direction,
@@ -349,7 +362,6 @@ export class SparkWallet extends ArkWallet implements InterfaceLightningWallet, 
     const startTokensFetch = Date.now();
 
     const ownSparkAddress = await this._sdkWallet.getSparkAddress();
-    const ownIdentityPublicKey = await this._sdkWallet.getIdentityPublicKey();
     const tokenTransactions: WalletTokenTransaction[] = [];
     let cursor: string | undefined;
 
