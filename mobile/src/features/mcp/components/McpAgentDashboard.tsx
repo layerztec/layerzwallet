@@ -18,7 +18,7 @@ import { useExchangeRate } from '@shared/hooks/useExchangeRate';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { USDT_TOKENS } from '@shared/models/token-list';
 import { formatBalance, formatFiatBalance } from '@shared/modules/string-utils';
-import { NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT } from '@shared/types/networks';
+import { NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT } from '@shared/types/networks';
 
 /**
  * Dashboard shown on the MCP automation account beneath the tunnel/activity log row.
@@ -27,7 +27,6 @@ import { NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_
  */
 export function McpAgentDashboard() {
   const router = useRouter();
-  const permissionsRoute = './McpPermissionsModal' as const;
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const availableNetworks = useAvailableNetworks();
@@ -55,7 +54,6 @@ export function McpAgentDashboard() {
   const handlePay = () => {
     switch (network) {
       case NETWORK_LIGHTNING:
-      case NETWORK_LIGHTNING_TESTNET:
         router.push('/send/send-address-lightning');
         break;
       default:
@@ -114,12 +112,7 @@ export function McpAgentDashboard() {
   ];
 
   const addFundsButton = (
-    <Pressable
-      style={styles.toolButton}
-      onPress={network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? handleReceiveOnLightningAddress : handleAddFunds}
-      accessibilityRole="button"
-      accessibilityLabel="Add funds"
-    >
+    <Pressable style={styles.toolButton} onPress={network === NETWORK_LIGHTNING ? handleReceiveOnLightningAddress : handleAddFunds} accessibilityRole="button" accessibilityLabel="Add funds">
       <ThemedText style={styles.toolButtonText}>Add funds</ThemedText>
     </Pressable>
   );
@@ -174,7 +167,7 @@ export function McpAgentDashboard() {
             </View>
           </Pressable>
 
-          <Pressable style={styles.permissionsCard} onPress={() => router.push(permissionsRoute)} accessibilityRole="button" accessibilityLabel="Permissions">
+          <Pressable style={styles.permissionsCard} onPress={() => router.push('/McpPermissionsModal')} accessibilityRole="button" accessibilityLabel="Permissions">
             <View style={styles.lockIconWrap}>
               <Ionicons name="lock-closed" size={15} color="#ffffff" />
             </View>

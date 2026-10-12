@@ -1,0 +1,50 @@
+diff --git a/node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheet.tsx b/node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheet.tsx
+index 6748c93..2bc3f7f 100644
+--- a/node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheet.tsx
++++ b/node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheet.tsx
+@@ -1785,7 +1785,7 @@ const BottomSheetComponent = forwardRef<BottomSheet, BottomSheetProps>(
+               <BackdropComponent
+                 animatedIndex={animatedIndex}
+                 animatedPosition={animatedPosition}
+-                style={StyleSheet.absoluteFillObject}
++                style={StyleSheet.absoluteFill}
+               />
+             ) : null}
+             <BottomSheetHostingContainer
+diff --git a/node_modules/@gorhom/bottom-sheet/src/components/bottomSheetBackdrop/styles.ts b/node_modules/@gorhom/bottom-sheet/src/components/bottomSheetBackdrop/styles.ts
+index 6151fe8..973796c 100644
+--- a/node_modules/@gorhom/bottom-sheet/src/components/bottomSheetBackdrop/styles.ts
++++ b/node_modules/@gorhom/bottom-sheet/src/components/bottomSheetBackdrop/styles.ts
+@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
+ 
+ export const styles = StyleSheet.create({
+   backdrop: {
+-    ...StyleSheet.absoluteFillObject,
++    ...StyleSheet.absoluteFill,
+     backgroundColor: 'black',
+   },
+ });
+diff --git a/node_modules/@gorhom/bottom-sheet/src/components/bottomSheetBackground/styles.ts b/node_modules/@gorhom/bottom-sheet/src/components/bottomSheetBackground/styles.ts
+index 45d8dfa..5c4da0a 100644
+--- a/node_modules/@gorhom/bottom-sheet/src/components/bottomSheetBackground/styles.ts
++++ b/node_modules/@gorhom/bottom-sheet/src/components/bottomSheetBackground/styles.ts
+@@ -1,7 +1,7 @@
+ import { StyleSheet } from 'react-native';
+ 
+ export const styles = StyleSheet.create({
+-  container: StyleSheet.absoluteFillObject,
++  container: StyleSheet.absoluteFill,
+   background: {
+     backgroundColor: 'white',
+     borderRadius: 15,
+diff --git a/node_modules/@gorhom/bottom-sheet/src/components/bottomSheetHostingContainer/styles.ts b/node_modules/@gorhom/bottom-sheet/src/components/bottomSheetHostingContainer/styles.ts
+index 95826d9..830dda4 100644
+--- a/node_modules/@gorhom/bottom-sheet/src/components/bottomSheetHostingContainer/styles.ts
++++ b/node_modules/@gorhom/bottom-sheet/src/components/bottomSheetHostingContainer/styles.ts
+@@ -1,5 +1,5 @@
+ import { StyleSheet } from 'react-native';
+ 
+ export const styles = StyleSheet.create({
+-  container: { ...StyleSheet.absoluteFillObject, pointerEvents: 'box-none' },
++  container: { ...StyleSheet.absoluteFill, pointerEvents: 'box-none' },
+ });

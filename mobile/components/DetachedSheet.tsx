@@ -1,11 +1,11 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, ViewStyle, Platform } from 'react-native';
 import GorhomBottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RadialGradient } from '@/components/RadialGradient';
 import { getNetworkPrimaryColor } from '@shared/constants/Colors';
-import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_USDT } from '@shared/types/networks';
+import { NETWORK_LIGHTNING, NETWORK_USDT } from '@shared/types/networks';
 import PlatformBlurView from './PlatformBlurView';
 import { homeBlurTargetRef } from '@/src/hooks/homeBlurTargetRef';
 
@@ -36,18 +36,17 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
   bottomInset,
   accessible,
 }) => {
-  const bottomSheetRef = useRef<GorhomBottomSheet>(null);
   const insets = useSafeAreaInsets();
 
   // Get the effective network for the radial gradient
   const effectiveNetwork = useMemo(() => {
-    if (layerNetwork === NETWORK_LIGHTNING || layerNetwork === NETWORK_LIGHTNING_TESTNET) {
+    if (layerNetwork === NETWORK_LIGHTNING) {
       return NETWORK_LIGHTNING;
     }
     if (layerNetwork === NETWORK_USDT) {
       return NETWORK_USDT;
     }
-    if (variant === NETWORK_LIGHTNING || variant === NETWORK_LIGHTNING_TESTNET) {
+    if (variant === NETWORK_LIGHTNING) {
       return NETWORK_LIGHTNING;
     }
     if (variant === NETWORK_USDT) {
@@ -70,20 +69,11 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
     return insets.bottom;
   }, [bottomInset, insets.bottom]);
 
-  // Open bottom sheet on mount - with dynamic sizing, it will auto-size to content
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      bottomSheetRef.current?.expand();
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
-
   const renderBackdrop = (props: any) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.5} enableTouchThrough={false} />;
 
   return (
     <GestureHandlerRootView style={styles.gestureHandlerRoot}>
       <GorhomBottomSheet
-        ref={bottomSheetRef}
         enableDynamicSizing={enableDynamicSizing}
         enablePanDownToClose={enablePanDownToClose}
         onClose={onClose}
@@ -105,7 +95,8 @@ const DetachedSheet: React.FC<DetachedSheetProps> = ({
           </View>
         )}
       >
-        <BottomSheetView style={styles.bottomSheetContent}>{children}</BottomSheetView>
+        {/* No flex:1. A stretched child is measured as the full container, so the dynamic detent is y=0 and the sheet opens at the top. */}
+        <BottomSheetView>{children}</BottomSheetView>
       </GorhomBottomSheet>
     </GestureHandlerRootView>
   );
@@ -142,9 +133,6 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  bottomSheetContent: {
-    flex: 1,
   },
   handleIndicator: {
     backgroundColor: 'rgba(255, 255, 255, 0.5)',

@@ -89,7 +89,6 @@ const PosMerchant: React.FC = () => {
   const [errorLogs, setErrorLogs] = useState<string>('');
 
   // getting cached balances for all supported lightning networks
-  const { balance: liquidBalance } = useCachedBalance(NETWORK_LIQUID, accountNumber);
   const { balance: sparkBalance } = useCachedBalance(NETWORK_SPARK, accountNumber);
   const { balance: arkBalance } = useCachedBalance(NETWORK_ARK, accountNumber);
 
@@ -365,12 +364,8 @@ const PosMerchant: React.FC = () => {
 
       // iterating all available lightning networks:
       let triedAtLeastOnce = false;
-      for (const n of [NETWORK_SPARK, NETWORK_ARK, NETWORK_LIQUID]) {
-        if (
-          (n === NETWORK_LIQUID && liquidBalance && +liquidBalance >= needSats) ||
-          (n === NETWORK_SPARK && sparkBalance && +sparkBalance >= needSats) ||
-          (n === NETWORK_ARK && arkBalance && +arkBalance >= needSats)
-        ) {
+      for (const n of [NETWORK_SPARK, NETWORK_ARK]) {
+        if ((n === NETWORK_SPARK && sparkBalance && +sparkBalance >= needSats) || (n === NETWORK_ARK && arkBalance && +arkBalance >= needSats)) {
           // checked that we have enought balance, lets try to pay:
           console.log(`Trying to pay with ${n}...`);
           const wallet = await BackgroundExecutor.lazyInitWallet(n, accountNumber);

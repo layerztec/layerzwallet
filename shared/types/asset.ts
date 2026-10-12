@@ -6,7 +6,6 @@ import {
   NETWORK_CITREA,
   NETWORK_CITREA_TESTNET,
   NETWORK_LIGHTNING,
-  NETWORK_LIGHTNING_TESTNET,
   NETWORK_LIQUID,
   NETWORK_LIQUID_TESTNET,
   NETWORK_ROOTSTOCK,
@@ -33,7 +32,6 @@ export const ASSET_IDS = [
   // we are keeping these meta networks to make TS happy,
   // even though they are incorrect
   `native:${NETWORK_LIGHTNING}`,
-  `native:${NETWORK_LIGHTNING_TESTNET}`,
   `native:${NETWORK_USDT}`,
   `token:${NETWORK_LIQUID}:usdt`,
   `token:${NETWORK_SPARK}:usdb`,
