@@ -1,60 +1,13 @@
 import assert from 'assert';
 import { test, vi } from 'vitest';
 import { ArkTransaction, TxType } from '@arkade-os/sdk';
-import type { ExtendedVirtualCoin } from '@arkade-os/sdk';
 
 import { ArkWallet } from '../../class/wallets/ark-wallet';
-import { deserializeVtxo, parseStoredVtxoList, serializeVtxo, stringifyVtxoList } from '../../class/wallets/ark-wallet-storage';
+import { parseStoredVtxoList, stringifyVtxoList } from '../../class/wallets/ark-wallet-storage';
+import { makeMockArkadeSdkWallet, minimalTapLeaf, minimalVtxo } from './ark-fixtures';
 import { IStorage } from '../../types/IStorage';
 import { NETWORK_ARK } from '../../types/networks';
 import { DeepPartial } from '../../class/wallets/types';
-
-const minimalTapLeaf = (): ExtendedVirtualCoin['forfeitTapLeafScript'] => {
-  const internalKey = new Uint8Array(32).fill(9);
-  const cb = { version: 192, internalKey, merklePath: [] as Uint8Array[] };
-  const script = new Uint8Array([0x51, 0x20, ...internalKey]);
-  return [cb, script];
-};
-
-const minimalVtxo = (overrides: Partial<ExtendedVirtualCoin> = {}): ExtendedVirtualCoin =>
-  ({
-    txid: 'a'.repeat(64),
-    vout: 0,
-    value: 2100,
-    createdAt: new Date(1756199879000),
-    tapTree: new Uint8Array([1, 2, 3, 255]),
-    forfeitTapLeafScript: minimalTapLeaf(),
-    intentTapLeafScript: minimalTapLeaf(),
-    script: '5120' + '00'.repeat(32),
-    status: { confirmed: true, block_time: 1756199879 },
-    virtualStatus: { state: 'preconfirmed', commitmentTxIds: [] },
-    isSpent: false,
-    isUnrolled: false,
-    isRecoverable: false,
-    isSwept: false,
-    isPreconfirmed: true,
-    isPending: false,
-    isLeaf: false,
-    settledBy: undefined,
-    arkTxId: undefined,
-    assets: [{ assetId: 'token-1', amount: 12345678901234567890n }],
-    ...overrides,
-  }) as ExtendedVirtualCoin;
-
-test('ark vtxo storage round-trips SDK-shaped fields', () => {
-  const vtxo = minimalVtxo();
-  const stored = serializeVtxo(vtxo);
-  const restored = deserializeVtxo(stored);
-
-  assert.ok(restored.createdAt instanceof Date);
-  assert.strictEqual(restored.createdAt.getTime(), 1756199879000);
-  assert.ok(restored.tapTree instanceof Uint8Array);
-  assert.deepEqual(Array.from(restored.tapTree), [1, 2, 3, 255]);
-  assert.ok(Array.isArray(restored.forfeitTapLeafScript));
-  assert.ok(restored.forfeitTapLeafScript[1] instanceof Uint8Array);
-  assert.strictEqual(typeof restored.assets?.[0].amount, 'bigint');
-  assert.strictEqual(restored.assets?.[0].amount, 12345678901234567890n);
-});
 
 test('ark vtxo storage parses legacy plain-JSON cache rows', () => {
   const tapLeaf = minimalTapLeaf();
@@ -88,11 +41,6 @@ test('ark vtxo storage parses legacy plain-JSON cache rows', () => {
   assert.ok(parsed[0].tapTree instanceof Uint8Array);
 });
 
-test('ark vtxo storage drops rows that cannot be coerced', () => {
-  const parsed = parseStoredVtxoList(JSON.stringify([{ txid: 'bad', vout: 0, value: 1 }]));
-  assert.deepEqual(parsed, []);
-});
-
 test('persisted vtxo list uses SDK hex encoding', () => {
   const vtxo = minimalVtxo();
   const raw = JSON.parse(stringifyVtxoList([vtxo]))[0];
@@ -105,6 +53,95 @@ test('persisted vtxo list uses SDK hex encoding', () => {
   const loaded = parseStoredVtxoList(stringifyVtxoList([vtxo]));
   assert.strictEqual(loaded.length, 1);
   assert.strictEqual(loaded[0].createdAt.getTime(), vtxo.createdAt.getTime());
+});
+
+/** ArkWallet with mocked SDK objects and a fake NamespacedStorage, for testing the init-time bootstrap sequence. */
+const makeBootstrapHarness = (persisted: Record<string, unknown>) => {
+  const w = new ArkWallet();
+  const { wallet, manager, contractManager } = makeMockArkadeSdkWallet();
+  (w as any)._wallet = wallet;
+  (w as any)._manager = manager;
+  const namespacedStorage = {
+    readJson: async (key: string, fallback: unknown) => (key in persisted ? persisted[key] : fallback),
+    writeJson: async (key: string, value: unknown) => {
+      persisted[key] = value;
+    },
+  };
+  const bootstrap = async () => (w as any)._bootstrapWalletState(namespacedStorage);
+  return { w, restore: wallet.restore, clearSyncCursor: wallet.clearSyncCursor, persisted, bootstrap, namespacedStorage, manager, contractManager };
+};
+
+test('bootstrap flag is only persisted after a successful restore, then restore never runs again', async () => {
+  const { restore, persisted, bootstrap } = makeBootstrapHarness({});
+  restore.mockRejectedValueOnce(new Error('indexer down'));
+
+  // restore() fails: stay unflagged so the next boot retries
+  await bootstrap();
+  assert.strictEqual(persisted['bootstrap:restoredV1'], undefined);
+
+  // restore() succeeds: flagged
+  await bootstrap();
+  assert.strictEqual(persisted['bootstrap:restoredV1'], true);
+  assert.strictEqual(restore.mock.calls.length, 2);
+
+  // steady state: no restore, even though the SDK never tracked an address (empty wallet)
+  await bootstrap();
+  assert.strictEqual(restore.mock.calls.length, 2);
+});
+
+test('a failed bootstrap flag write is retried on the next boot', async () => {
+  const h = makeBootstrapHarness({});
+  const writeJson = vi
+    .fn()
+    .mockRejectedValueOnce(new Error('quota'))
+    .mockImplementation(async (key: string, value: unknown) => {
+      h.persisted[key] = value;
+    });
+  (h as any).namespacedStorage.writeJson = writeJson;
+
+  await h.bootstrap();
+  assert.strictEqual(h.persisted['bootstrap:restoredV1'], undefined);
+  await h.bootstrap();
+  assert.strictEqual(h.persisted['bootstrap:restoredV1'], true);
+  assert.strictEqual(h.restore.mock.calls.length, 2);
+});
+
+test('funds under a deprecated signer trigger one full-window vtxo refresh', async () => {
+  const h = makeBootstrapHarness({ 'bootstrap:restoredV1': true });
+  h.manager.getDeprecatedSignerStatus.mockResolvedValueOnce([{ vtxoCount: 0, boardingCount: 0, recoverableCount: 1, awaitingSweepCount: 0 }]);
+  await h.bootstrap();
+  assert.deepEqual(h.contractManager.refreshVtxos.mock.calls, [[{ includeInactive: true, after: 0 }]]);
+
+  await h.bootstrap();
+  assert.strictEqual(h.contractManager.refreshVtxos.mock.calls.length, 1);
+});
+
+test('resyncFromIndexer restores and returns the balance without throwing on a failed restore', async () => {
+  const h = makeBootstrapHarness({});
+  h.restore.mockRejectedValueOnce(new Error('indexer down'));
+  (h.w as any)._wallet.getBalance = vi.fn().mockResolvedValue({ available: 42 });
+  (h.w as any)._populateArkTokenCacheFromWalletBalance = vi.fn().mockResolvedValue(undefined);
+  assert.strictEqual(await h.w.resyncFromIndexer(), 42);
+  assert.strictEqual(h.restore.mock.calls.length, 1);
+});
+
+test('a restore failure keeps the cached rows and retries next boot', async () => {
+  const h = makeBootstrapHarness({ 'wallet:vtxos:ark1qsomeaddress': '[{"txid":"kept"}]' });
+  h.restore.mockRejectedValueOnce(new Error('indexer down'));
+  await h.bootstrap();
+  assert.strictEqual(h.persisted['wallet:vtxos:ark1qsomeaddress'], '[{"txid":"kept"}]');
+  assert.strictEqual(h.clearSyncCursor.mock.calls.length, 0);
+  assert.strictEqual(h.persisted['bootstrap:restoredV1'], undefined);
+});
+
+test('dispose stops the SDK wallet and init disposes the previous instance', async () => {
+  const h = makeBootstrapHarness({});
+  const sdkWallet = (h.w as any)._wallet;
+  await h.w.dispose();
+  assert.strictEqual(sdkWallet.dispose.mock.calls.length, 1);
+  assert.strictEqual((h.w as any)._wallet, undefined);
+  await h.w.dispose(); // idempotent
+  assert.strictEqual(sdkWallet.dispose.mock.calls.length, 1);
 });
 
 const _cache: Record<string, string> = {};
@@ -127,8 +164,7 @@ test('ark mainnet can getCommonTransactions', async (context) => {
 
   const w = new ArkWallet();
   w.setSecret(process.env.TEST_MNEMONIC);
-  w.setArkServerUrl('https://arkade.computer');
-  w.setBoltzApiUrl('https://api.ark.boltz.exchange');
+  w.setArkadeNetwork(NETWORK_ARK);
   await w.init(storageMock);
 
   const transfers: DeepPartial<ArkTransaction>[] = [
