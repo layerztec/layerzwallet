@@ -32,6 +32,8 @@ const EVM_HD_PATH = "m/44'/60'/0'/0";
 const QUOTE_PLACEHOLDER_RECIPIENT = '0x0000000000000000000000000000000000000001';
 const ESTIMATED_TIME_SECONDS = 1800;
 const PRUNE_AGE_SECONDS = 7 * 24 * 60 * 60;
+/** Per-request HTTP timeout handed to the SDK (registry, LP /info, quotes). */
+export const ATOMIQ_HTTP_TIMEOUT_MS = 10_000;
 
 const Factory = new SwapperFactory<[typeof CitreaInitializer]>([CitreaInitializer]);
 type AtomiqSwapper = ReturnType<typeof Factory.newSwapper>;
@@ -357,6 +359,9 @@ export class AtomiqTransferService implements ITransferService {
         const swapper = Factory.newSwapper({
           chains: { CITREA: { rpcUrl: AllNetworkInfos[NETWORK_CITREA].rpcUrl } },
           bitcoinNetwork: BitcoinNetwork.MAINNET,
+          // The SDK has no default HTTP timeout: with unreachable LP nodes, init() would hang forever.
+          getRequestTimeout: ATOMIQ_HTTP_TIMEOUT_MS,
+          postRequestTimeout: ATOMIQ_HTTP_TIMEOUT_MS,
           swapStorage: (name) => new AtomiqUnifiedStorage(this.storage, name),
           chainStorageCtor: (name) => new AtomiqChainStorage(this.storage, name),
           // Don't persist quote-only swaps; they're saved once the BTC tx is broadcast.

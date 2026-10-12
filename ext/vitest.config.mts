@@ -14,6 +14,7 @@ export default defineConfig({
       '../ext/src/modules/error-handler.ts',
     ],
     testTimeout: 120_000,
+    hookTimeout: 20_000, // electrum connect in beforeAll can exceed the 10s default on CI
     dangerouslyIgnoreUnhandledErrors: true, // breez test throws unhandled errors
     include: [
       '**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',

@@ -6,13 +6,14 @@ import ecc from '@bitcoinerlab/secp256k1';
 
 import { HDSegwitBech32Wallet } from '../../class/wallets/hd-segwit-bech32-wallet';
 import { setMasterSeed } from '../../modules/wallet-utils';
-import { AtomiqTransferService, mapSpvState } from '../../services/transfer-service-atomiq';
+import { ATOMIQ_HTTP_TIMEOUT_MS, AtomiqTransferService, mapSpvState } from '../../services/transfer-service-atomiq';
 import { EXECUTION_INSTANT, TransferQuote } from '../../types/transfer';
 
 const ECPair = ECPairFactory(ecc);
 
 // Shared, controllable fakes for the Atomiq SDK. Hoisted so the vi.mock factories below can close over them.
-const { fakeSwapper, fakeSwap } = vi.hoisted(() => {
+const { fakeSwapper, fakeSwap, newSwapperCalls } = vi.hoisted(() => {
+  const newSwapperCalls: any[] = [];
   const fakeSwap = {
     getId: () => 'swap-1',
     getOutput: () => ({ amount: '0.00099' }),
@@ -28,7 +29,7 @@ const { fakeSwapper, fakeSwap } = vi.hoisted(() => {
     swap: vi.fn().mockResolvedValue(fakeSwap),
     getSwapById: vi.fn().mockResolvedValue(undefined),
   };
-  return { fakeSwapper, fakeSwap };
+  return { fakeSwapper, fakeSwap, newSwapperCalls };
 });
 
 vi.mock('@atomiqlabs/chain-evm', () => ({
@@ -44,7 +45,10 @@ vi.mock('@atomiqlabs/chain-evm', () => ({
 vi.mock('@atomiqlabs/sdk', () => ({
   SwapperFactory: class {
     Tokens = { BITCOIN: { BTC: { ticker: 'BTC' } }, CITREA: { CBTC: { ticker: 'CBTC' } } };
-    newSwapper = () => fakeSwapper;
+    newSwapper = (options: any) => {
+      newSwapperCalls.push(options);
+      return fakeSwapper;
+    };
   },
   BitcoinNetwork: { MAINNET: 'MAINNET' },
   SwapAmountType: { EXACT_IN: 0 },
@@ -126,6 +130,16 @@ describe('AtomiqTransferService', () => {
   describe('getSupportedPairs', () => {
     it('supports only on-chain BTC → Citrea cBTC', () => {
       expect(service.getSupportedPairs()).toEqual([{ sendAssetId: SEND, receiveAssetId: RECEIVE }]);
+    });
+  });
+
+  describe('swapper construction', () => {
+    it('bounds SDK HTTP requests with timeouts so unreachable LP nodes cannot hang init forever', async () => {
+      newSwapperCalls.length = 0;
+      await service.getQuote(SEND, RECEIVE, '0.001');
+      expect(newSwapperCalls).toHaveLength(1);
+      expect(newSwapperCalls[0].getRequestTimeout).toBe(ATOMIQ_HTTP_TIMEOUT_MS);
+      expect(newSwapperCalls[0].postRequestTimeout).toBe(ATOMIQ_HTTP_TIMEOUT_MS);
     });
   });
 

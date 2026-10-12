@@ -10,7 +10,7 @@ Wraps N `ITransferService` implementations behind a single `ITransferService` in
 
 - `getAvailableAssets()` — union of all services' assets, deduplicated
 - `getSupportedPairs()` — union of all services' pairs, deduplicated
-- `getQuote()` — queries ALL candidate services in parallel (`Promise.allSettled`), picks best rate, tags with `serviceName`. Collects `serviceErrors` for partial/total failures. 5s timeout per provider.
+- `getQuote()` — queries ALL candidate services in parallel (`Promise.allSettled`), picks best rate, tags with `serviceName`. Collects `serviceErrors` for partial/total failures. Each provider's `getQuote` is bounded by `QUOTE_TIMEOUT_MS` (15s) and reported as `timed out` when exceeded — provider SDKs don't always bound their own network calls.
 - `executeTransfer()` — routes to correct service via `quote.serviceName`
 - `getOngoingTransfers()` — aggregates from all services, sorted by `createdAt` desc
 
@@ -81,6 +81,7 @@ getTrackingUrl?(execution): string | undefined
 - **EVM recipient**: the settle address is the wallet's own Citrea (EVM) address — bound at `executeTransfer()` time.
 - **Storage**: SDK persistence (`IUnifiedStorage` / `IStorageManager`) is backed by `IStorage` via `shared/services/atomiq-storage.ts` (no IndexedDB on RN); swap rows under `STORAGE_KEY_ATOMIQ_TRANSFERS`.
 - **React Native polyfills**: `ensureReactNativeSdkPolyfills()` (called at the top of `ensureSwapper()`) feature-detects and patches Hermes gaps the dependency tree relies on — `AbortSignal.prototype.throwIfAborted` (SDK swap path), the static `AbortSignal.timeout`/`AbortSignal.any` (the former is used by `@atomiqlabs/btc-mempool` for fee-rate fetches; dropping it makes quoting fail with "Cannot get total fee in native token!" → "Aborted"), and `Buffer.prototype.subarray` (Hermes returns a plain `Uint8Array`, breaking `readUInt32LE`). All feature-detected, so no-op on web/desktop.
+- **Timeouts**: `Factory.newSwapper` is given `getRequestTimeout` / `postRequestTimeout` (`ATOMIQ_HTTP_TIMEOUT_MS`, 10s). The SDK has no default, so when its LP nodes are down (happened 2026-09: both mainnet Citrea LPs in the registry refused connections) `swapper.init()` would otherwise never resolve and every quote would hang. LP discovery is `tryWithRetries(maxRetries: 3)`, so a full init failure still takes ~30s — the manager's `QUOTE_TIMEOUT_MS` (15s) is what the user actually sees.
 - **Tracking**: Atomiq explorer URL via `getTrackingUrl()`.
 
 ### Flashnet AMM (`shared/services/transfer-service-flashnet.ts`)
