@@ -10,7 +10,6 @@ export const NETWORK_LIQUID = 'liquid' as const;
 export const NETWORK_LIQUID_TESTNET = 'liquid_testnet' as const;
 export const NETWORK_SPARK = 'spark' as const;
 export const NETWORK_LIGHTNING = 'lightning' as const;
-export const NETWORK_LIGHTNING_TESTNET = 'lightning_testnet' as const;
 export const NETWORK_USDT = 'USDT' as const;
 export const NETWORK_STACKS = 'stacks' as const;
 
@@ -27,7 +26,6 @@ const NetworksIterator = {
   LIQUID_TESTNET: NETWORK_LIQUID_TESTNET,
   SPARK: NETWORK_SPARK,
   LIGHTNING: NETWORK_LIGHTNING,
-  LIGHTNING_TESTNET: NETWORK_LIGHTNING_TESTNET,
   USDT: NETWORK_USDT,
   STACKS: NETWORK_STACKS,
 } as const;

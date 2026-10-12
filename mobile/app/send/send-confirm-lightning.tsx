@@ -14,7 +14,6 @@ import ScreenSendHeader from '@/components/navigation/ScreenSendHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
-import { BreezWallet } from '@shared/class/wallets/breez-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { TLightningWallet } from '@shared/types/TWallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -71,7 +70,7 @@ const SendConfirmLightning: React.FC = () => {
     const initializeWallet = async () => {
       try {
         const w = await BackgroundExecutor.lazyInitWallet(lightning.layer!, accountNumber);
-        assert(w instanceof BreezWallet || w instanceof SparkWallet || w instanceof ArkWallet);
+        assert(w instanceof SparkWallet || w instanceof ArkWallet);
         walletRef.current = w;
       } catch (err) {
         console.error('Failed to initialize wallet:', err);

@@ -1,14 +1,4 @@
-import {
-  BindingLiquidSdk,
-  connect,
-  defaultConfig,
-  PrepareReceiveRequest,
-  ReceivePaymentRequest,
-  PrepareSendRequest,
-  SendPaymentRequest,
-  GetPaymentRequest,
-  ListPaymentsRequest,
-} from '@breeztech/breez-sdk-liquid';
+import { BindingLiquidSdk, connect, defaultConfig, PrepareReceiveRequest, ReceivePaymentRequest, PrepareSendRequest, SendPaymentRequest, ListPaymentsRequest } from '@breeztech/breez-sdk-liquid';
 import { BreezConnection, IBreezAdapter, getAssertMetadata } from '@shared/class/wallets/breez-wallet';
 
 const API_KEY = process.env.EXPO_PUBLIC_BREEZ_API_KEY;
@@ -57,10 +47,6 @@ class BreezAdapter implements IBreezAdapter {
     return await sdk.getInfo();
   }
 
-  private async fetchLightningLimits(sdk: BindingLiquidSdk) {
-    return await sdk.fetchLightningLimits();
-  }
-
   private async prepareReceivePayment(sdk: BindingLiquidSdk, args: PrepareReceiveRequest) {
     return await sdk.prepareReceivePayment(args);
   }
@@ -77,32 +63,24 @@ class BreezAdapter implements IBreezAdapter {
     return await sdk.sendPayment(args);
   }
 
-  private async getPayment(sdk: BindingLiquidSdk, args: GetPaymentRequest) {
-    return await sdk.getPayment(args);
-  }
-
   private async listPayments(sdk: BindingLiquidSdk, args: ListPaymentsRequest) {
     return await sdk.listPayments(args);
   }
 
   get api() {
     const getInfo = this.withLockAndSdk(this.getInfo.bind(this));
-    const fetchLightningLimits = this.withLockAndSdk(this.fetchLightningLimits.bind(this));
     const prepareReceivePayment = this.withLockAndSdk(this.prepareReceivePayment.bind(this));
     const receivePayment = this.withLockAndSdk(this.receivePayment.bind(this));
     const prepareSendPayment = this.withLockAndSdk(this.prepareSendPayment.bind(this));
     const sendPayment = this.withLockAndSdk(this.sendPayment.bind(this));
-    const getPayment = this.withLockAndSdk(this.getPayment.bind(this));
     const listPayments = this.withLockAndSdk(this.listPayments.bind(this));
 
     return {
       getInfo,
-      fetchLightningLimits,
       prepareReceivePayment,
       receivePayment,
       prepareSendPayment,
       sendPayment,
-      getPayment,
       listPayments,
     };
   }

@@ -13,7 +13,6 @@ import {
   NETWORK_ARK_MUTINYNET,
   NETWORK_BITCOIN,
   NETWORK_LIGHTNING,
-  NETWORK_LIGHTNING_TESTNET,
   NETWORK_LIQUID,
   NETWORK_LIQUID_TESTNET,
   NETWORK_ROOTSTOCK,
@@ -76,20 +75,15 @@ export const txFetcher = async (arg: txFetcherArg): Promise<CommonTransaction[]>
       return await wallet.getCommonTransactions();
     }
 
-    if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET) {
-      // join Liquid and Spark, but spark is not available on testnet
-      const liquidNetwork = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
-      const tsx = await backgroundCaller.getCommonTransactions(liquidNetwork, accountNumber);
-      if (network === NETWORK_LIGHTNING) {
-        const sparkWallet = await backgroundCaller.lazyInitWallet(NETWORK_SPARK, accountNumber);
-        assert(sparkWallet instanceof SparkWallet, 'Not a Spark wallet');
-        const sparkTx = await sparkWallet.getCommonTransactions();
-        tsx.push(...sparkTx);
-        const arkWallet = await backgroundCaller.lazyInitWallet(NETWORK_ARK, accountNumber);
-        assert(arkWallet instanceof ArkWallet, 'Not an Ark wallet');
-        const arkTx = await arkWallet.getCommonTransactions();
-        tsx.push(...arkTx);
-      }
+    if (network === NETWORK_LIGHTNING) {
+      // join Spark and Ark
+      const sparkWallet = await backgroundCaller.lazyInitWallet(NETWORK_SPARK, accountNumber);
+      assert(sparkWallet instanceof SparkWallet, 'Not a Spark wallet');
+      const tsx = await sparkWallet.getCommonTransactions();
+      const arkWallet = await backgroundCaller.lazyInitWallet(NETWORK_ARK, accountNumber);
+      assert(arkWallet instanceof ArkWallet, 'Not an Ark wallet');
+      const arkTx = await arkWallet.getCommonTransactions();
+      tsx.push(...arkTx);
       return tsx
         .filter((tx) => tx?.amount !== undefined && tx.amount > 0) // filter out token transfers
         .sort((a, b) => b.timestamp - a.timestamp);
@@ -140,7 +134,6 @@ export function useTransactions(network: Networks, accountNumber: number, backgr
       break;
 
     case NETWORK_LIGHTNING:
-    case NETWORK_LIGHTNING_TESTNET:
     case NETWORK_LIQUID:
     case NETWORK_LIQUID_TESTNET:
       refreshInterval = 20_000;

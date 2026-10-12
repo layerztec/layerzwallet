@@ -6,7 +6,6 @@ import {
   NETWORK_CITREA,
   NETWORK_CITREA_TESTNET,
   NETWORK_LIGHTNING,
-  NETWORK_LIGHTNING_TESTNET,
   NETWORK_LIQUID,
   NETWORK_LIQUID_TESTNET,
   NETWORK_ROOTSTOCK,
@@ -30,7 +29,6 @@ import tetherIcon from '../../../../mobile/assets/images/ui/network/tether.png';
 const networkImages: Partial<Record<Networks, string>> = {
   [NETWORK_BITCOIN]: bitcoinIcon,
   [NETWORK_LIGHTNING]: lightningIcon,
-  [NETWORK_LIGHTNING_TESTNET]: lightningIcon,
   [NETWORK_SPARK]: sparkIcon,
   [NETWORK_ARK]: arkIcon,
   [NETWORK_ARK_MUTINYNET]: arkIcon,

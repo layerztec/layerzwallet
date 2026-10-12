@@ -39,7 +39,6 @@ import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters
 import { sleep } from '@shared/modules/sleep';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { NETWORK_ARK, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { STORAGE_KEY_RECEIVE_CTA } from '@shared/types/IStorage';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { YieldBearingCachedTokenInfo } from '@shared/hooks/useYieldDiscovery';
@@ -221,35 +220,6 @@ export default function Home() {
   const handleYieldPress = (token: YieldBearingCachedTokenInfo) => {
     router.push('/YieldList');
   };
-
-  // Lightning Network specific handlers
-  const handleReceiveOnSpark = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      Alert.alert('Spark does not have a testnet');
-    } else {
-      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_SPARK } });
-    }
-  };
-
-  const handleReceiveOnLiquid = () => {
-    const n = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
-    router.push({ pathname: '/ReceiveLightning', params: { network: n } });
-  };
-
-  const handleReceiveOnArk = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      Alert.alert('Ark lightning does not have a testnet');
-    } else {
-      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_ARK } });
-    }
-  };
-
-  const lightningReceiveActions = [
-    { children: <Action network={NETWORK_SPARK} text="Receive on Spark" />, onClick: handleReceiveOnSpark },
-    { children: <Action network={NETWORK_LIQUID} text="Receive on Liquid" />, onClick: handleReceiveOnLiquid },
-    { children: <Action network={NETWORK_ARK} text="Receive on Ark" />, onClick: handleReceiveOnArk },
-    { children: <Action text="Cancel" />, onClick: () => {} },
-  ];
 
   const handleTransactionDetails = (transaction: CommonTransaction) => {
     const transferExecution = (transaction as TransferExecutionTransaction).transferExecution;
