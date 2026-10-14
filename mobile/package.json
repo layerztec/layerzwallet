@@ -43,6 +43,9 @@
   "jest": {
     "preset": "jest-expo"
   },
+  "overrides": {
+    "uniffi-bindgen-react-native": "0.29.3-1"
+  },
   "dependencies": {
     "@aptabase/react-native": "^0.4.0",
     "@arkade-os/boltz-swap": "0.3.47",
@@ -67,11 +70,17 @@
     "@react-native-community/slider": "5.2.0",
     "@react-navigation/bottom-tabs": "^7.15.5",
     "@react-navigation/native": "^7.1.33",
+    "@reown/walletkit": "1.6.0",
     "@rive-app/react-native": "^0.4.1",
     "@spsina/bip47": "github:BlueWallet/bip47#df823454092a9993edeea11d663f8eb9a522a174",
     "@stacks/blockchain-api-client": "8.15.3",
     "@stacks/transactions": "7.4.0",
     "@stacks/wallet-sdk": "7.2.0",
+    "@utexo/rgb-sdk-core": "1.0.0-beta.9",
+    "@utexo/rgb-sdk-rn": "1.0.0-beta.39",
+    "@utexo/webrgb": "^0.1.3",
+    "@walletconnect/core": "2.25.0",
+    "@walletconnect/react-native-compat": "2.25.0",
     "assert": "2.1.0",
     "bignumber.js": "9.3.1",
     "bip21": "3.0.0",

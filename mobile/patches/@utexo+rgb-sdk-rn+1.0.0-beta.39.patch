@@ -1,0 +1,49 @@
+diff --git a/node_modules/@utexo/rgb-sdk-rn/lib/module/wallet/utexo-wallet.js b/node_modules/@utexo/rgb-sdk-rn/lib/module/wallet/utexo-wallet.js
+index da3316b..4abec5b 100644
+--- a/node_modules/@utexo/rgb-sdk-rn/lib/module/wallet/utexo-wallet.js
++++ b/node_modules/@utexo/rgb-sdk-rn/lib/module/wallet/utexo-wallet.js
+@@ -788,7 +788,15 @@ export class UTEXOWallet {
+     const assetId = params.assetId ?? decoded.assetId;
+     if (!assetId) throw new Error('UTEXOWallet.onchainSend: assetId required');
+     if (params.amount === undefined) throw new Error('UTEXOWallet.onchainSend: amount required');
+-    return this.rln.rlnSendRgb(params.donation ?? false, params.feeRate ?? 1.5, params.minConfirmations ?? 1, params.skipSync ?? false, assetId, decoded.recipientId, params.amount, decoded.transportEndpoints, params.witnessData ?? null);
++    // PATCH(layerz): prefer invoice-parsed transport endpoints — the iOS decode
++    // binding can hand rust an empty list, and a send without endpoints never
++    // posts its consignment (receiver polls NoConsignment forever).
++    const _em = /[?&]endpoints=([^&\s]+)/.exec(params.invoice);
++    const _parsed = _em ? decodeURIComponent(_em[1]).split(',') : [];
++    const endpoints = _parsed.length ? _parsed : (decoded.transportEndpoints ?? []);
++    if (!endpoints.length)
++      throw new Error('onchainSend: no transport endpoints (invoice carries none and decode returned none) — refusing a send whose consignment could never be delivered');
++    return this.rln.rlnSendRgb(params.donation ?? false, params.feeRate ?? 1.5, params.minConfirmations ?? 1, params.skipSync ?? false, assetId, decoded.recipientId, params.amount, endpoints, params.witnessData ?? null);
+   }
+   async listOnchainTransfers(asset_id) {
+     return (await this.rln.rlnListTransfers(asset_id ?? '')).map(mapTransfer);
+diff --git a/node_modules/@utexo/rgb-sdk-rn/src/wallet/utexo-wallet.ts b/node_modules/@utexo/rgb-sdk-rn/src/wallet/utexo-wallet.ts
+index 6054060..67283b8 100644
+--- a/node_modules/@utexo/rgb-sdk-rn/src/wallet/utexo-wallet.ts
++++ b/node_modules/@utexo/rgb-sdk-rn/src/wallet/utexo-wallet.ts
+@@ -1086,6 +1086,14 @@ export class UTEXOWallet implements IUTEXOProtocol<IRLNUnlockParams> {
+     if (!assetId) throw new Error('UTEXOWallet.onchainSend: assetId required');
+     if (params.amount === undefined)
+       throw new Error('UTEXOWallet.onchainSend: amount required');
++    // PATCH(layerz): prefer invoice-parsed transport endpoints — the iOS decode
++    // binding can hand rust an empty list, and a send without endpoints never
++    // posts its consignment (receiver polls NoConsignment forever).
++    const _em = /[?&]endpoints=([^&\s]+)/.exec(params.invoice);
++    const _parsed = _em ? decodeURIComponent(_em[1]).split(',') : [];
++    const endpoints = _parsed.length ? _parsed : (decoded.transportEndpoints ?? []);
++    if (!endpoints.length)
++      throw new Error('onchainSend: no transport endpoints (invoice carries none and decode returned none) — refusing a send whose consignment could never be delivered');
+     return this.rln.rlnSendRgb(
+       params.donation ?? false,
+       params.feeRate ?? 1.5,
+@@ -1094,7 +1102,7 @@ export class UTEXOWallet implements IUTEXOProtocol<IRLNUnlockParams> {
+       assetId,
+       decoded.recipientId,
+       params.amount,
+-      decoded.transportEndpoints,
++      endpoints,
+       params.witnessData ?? null
+     );
+   }

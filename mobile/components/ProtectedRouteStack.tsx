@@ -68,6 +68,14 @@ export function ProtectedRouteStack() {
           }}
         />
         <Stack.Screen
+          name="onboarding/verifying-rgb-backup"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
           name="onboarding/import-wallet"
           options={{
             headerTitle: 'Enter seed phrase',
@@ -141,6 +149,19 @@ export function ProtectedRouteStack() {
           }}
         />
         <Stack.Screen name="Tools" options={{ headerShown: false }} />
+        <Stack.Screen name="WalletConnectSessions" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="WalletConnectApproveModal"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            headerShown: false,
+            gestureEnabled: true,
+            contentStyle: {
+              backgroundColor: 'transparent',
+            },
+          }}
+        />
         <Stack.Screen name="SendAccountBased" options={{ headerShown: false }} />
         <Stack.Screen name="SendBtc" options={{ title: 'Send BTC' }} />
         <Stack.Screen name="SendEvm" options={{ title: 'Send' }} />
@@ -163,6 +184,9 @@ export function ProtectedRouteStack() {
         />
         <Stack.Screen name="send" options={{ headerShown: false }} />
         <Stack.Screen name="transfer" options={{ headerShown: false }} />
+        <Stack.Screen name="issue-asset" options={{ headerShown: false }} />
+        <Stack.Screen name="receive-rgb-token" options={{ headerShown: false }} />
+        <Stack.Screen name="utxo-manager" options={{ headerShown: false }} />
         <Stack.Screen
           name="modals/transfer-select-asset"
           options={{

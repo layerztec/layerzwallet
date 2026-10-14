@@ -26,3 +26,21 @@ index e547167..e9c6d94 100644
          abiFilters (*reactNativeArchitectures())
        }
      }
+diff --git a/node_modules/@breeztech/breez-sdk-liquid-react-native/breeztech-breez-sdk-liquid-react-native.podspec b/node_modules/@breeztech/breez-sdk-liquid-react-native/breeztech-breez-sdk-liquid-react-native.podspec
+index 56c3756..2974c7c 100644
+--- a/node_modules/@breeztech/breez-sdk-liquid-react-native/breeztech-breez-sdk-liquid-react-native.podspec
++++ b/node_modules/@breeztech/breez-sdk-liquid-react-native/breeztech-breez-sdk-liquid-react-native.podspec
+@@ -17,7 +17,12 @@ Pod::Spec.new do |s|
+ 
+   s.source_files = "ios/*.{h,m,mm,swift}", "ios/generated/**/*.{h}", "cpp/**/*.{hpp,cpp,c,h}", "cpp/generated/**/*.{hpp,cpp,c,h}"
+   s.vendored_frameworks = "build/RnBreezSdkLiquid.xcframework"
+-  s.dependency    "uniffi-bindgen-react-native", "0.28.3-5"
++  # Patched: widened from "0.28.3-5" to accept uniffi 0.29.3-1 which
++  # @utexo/rgb-sdk-rn (via bdk-rn@2.2.0-Alpha.1) was generated against. Breez
++  # ships a vendored xcframework whose generated bindings link against uniffi
++  # at build time; only the thin JS/Swift bridge in the npm package picks up
++  # the newer runtime here.
++  s.dependency    "uniffi-bindgen-react-native", ">= 0.28.3-5"
+ 
+   # Use install_modules_dependencies helper to install the dependencies if React Native version >=0.71.0.
+   # See https://github.com/facebook/react-native/blob/febf6b7f33fdb4904669f99d795eba4c0f95d7bf/scripts/cocoapods/new_architecture.rb#L79.

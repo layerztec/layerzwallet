@@ -27,13 +27,25 @@ import {
   STORAGE_KEY_WHITELIST,
   STORAGE_KEY_SEED_VERIFIED,
 } from '@shared/types/IStorage';
-import { Networks, NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS } from '@shared/types/networks';
+import {
+  Networks,
+  NETWORK_ARK,
+  NETWORK_ARK_MUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_RGB,
+  NETWORK_RGB_TESTNET,
+  NETWORK_SPARK,
+  NETWORK_STACKS,
+} from '@shared/types/networks';
 import { BrowserBridge } from '../class/browser-bridge';
 import { LayerzStorage } from '../class/layerz-storage';
 import { Csprng } from '../class/rng';
 import { SecureStorage } from '../class/secure-storage';
 import { decrypt, encrypt } from '../modules/encryption';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
+import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
 
@@ -100,6 +112,10 @@ export const BackgroundExecutor: IBackgroundCaller = {
       const sp = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(sp instanceof StacksWallet);
       return String(await sp.getOffchainReceiveAddress());
+    } else if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+      const rw = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      assert(rw instanceof RgbWallet);
+      return await rw.getOffchainReceiveAddress();
     } else if (network === NETWORK_LIQUID || network === NETWORK_LIQUID_TESTNET) {
       const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       assert(wallet instanceof BreezWallet);

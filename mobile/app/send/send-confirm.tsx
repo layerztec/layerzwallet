@@ -3,7 +3,7 @@ import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { Redirect, Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Alignment, Fit, RiveView, useRiveFile } from '@rive-app/react-native';
 import Pressable from '../../components/Pressable';
@@ -19,6 +19,7 @@ import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { EvmWallet } from '@shared/class/evm-wallet';
 import { ArkWallet } from '@shared/class/wallets/ark-wallet';
 import { BreezWallet } from '@shared/class/wallets/breez-wallet';
+import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { StacksWallet } from '@shared/class/wallets/stacks-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
@@ -26,7 +27,18 @@ import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useCachedExchangeRate } from '@shared/hooks/useCachedExchangeRate';
 import { getDecimalsByNetwork, getIsAccountBased, getIsEVM, getTickerByNetwork } from '@shared/models/network-getters';
 import { formatBalance } from '@shared/modules/string-utils';
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT } from '@shared/types/networks';
+import {
+  NETWORK_ARK,
+  NETWORK_ARK_MUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_RGB,
+  NETWORK_RGB_TESTNET,
+  NETWORK_SPARK,
+  NETWORK_STACKS,
+  NETWORK_USDT,
+} from '@shared/types/networks';
 import { useSendFlow } from './_layout';
 
 function setSharedValue(sharedValue: { value: unknown }, nextValue: unknown) {
@@ -52,6 +64,48 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   const [error, setError] = useState<string>('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
+  // RGB only: the tx IS broadcast but the critical VSS backup failed.
+  // Restoring from the stale backup would permanently lose this send's
+  // change allocation (see tasks/rgb-test-plan.md X10), so this state keeps
+  // the txid visible and funnels the user into retrying the backup —
+  // never back into the confirm button.
+  const [sentNotBackedUp, setSentNotBackedUp] = useState<{ txid: string } | null>(null);
+  const [isRetryingBackup, setIsRetryingBackup] = useState(false);
+  // RGB only: before enabling Send, run a REAL backup as a liveness probe of
+  // the VSS server (a plain ping lies — the server can answer while
+  // putObjects 500s, seen live 2026-09-09). Side benefit: a fresh backup
+  // right before the send shrinks the worst-case loss window to just this
+  // send's change. 'checking' keeps the Send button disabled; a failure or
+  // timeout re-enables it behind an explicit warning.
+  const [vssProbe, setVssProbe] = useState<'checking' | 'ok' | 'failed' | null>(null);
+
+  useEffect(() => {
+    if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) return;
+    let cancelled = false;
+    setVssProbe('checking');
+    (async () => {
+      try {
+        const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+        if (!(wallet instanceof RgbWallet)) return cancelled || setVssProbe('ok');
+        // The probe is a real backup (≈2MB upload); a slow VSS legitimately
+        // takes 20s+ (seen 21s on the iOS sim), so 15s produced false
+        // "unreachable" warnings while the upload was still succeeding.
+        const probe = wallet.retryBackup();
+        const ok = await Promise.race([probe, new Promise<false>((r) => setTimeout(() => r(false), 30_000))]);
+        if (!cancelled) setVssProbe(ok ? 'ok' : 'failed');
+        // A probe that finishes after the deadline still counts: clear the
+        // warning instead of telling the user to wait for something that
+        // already happened.
+        if (!ok) probe.then((late) => !cancelled && late && setVssProbe('ok')).catch(() => {});
+      } catch {
+        if (!cancelled) setVssProbe('failed');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [network, accountNumber]);
   const [showRiveAnimation, setShowRiveAnimation] = useState(false);
   const [hideHeader, setHideHeader] = useState(false);
 
@@ -156,9 +210,9 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
     setError('');
 
     try {
-      if (network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_STACKS) {
+      if (network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_SPARK || network === NETWORK_STACKS || network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
         const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
-        assert(wallet instanceof ArkWallet || wallet instanceof SparkWallet || wallet instanceof StacksWallet, 'Internal error: incorrect wallet instance');
+        assert(wallet instanceof ArkWallet || wallet instanceof SparkWallet || wallet instanceof StacksWallet || wallet instanceof RgbWallet, 'Internal error: incorrect wallet instance');
 
         // Check if we're sending a token and the wallet supports tokens
         if (token && walletCanHaveTokens(wallet)) {
@@ -208,9 +262,31 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
       setIsSuccess(true);
     } catch (error: any) {
       console.error('Failed to broadcast transaction:', error);
-      setError(error.message || 'Failed to broadcast transaction');
+      // RgbWallet attaches the already-broadcast txid to post-broadcast
+      // backup failures — funds ARE sent; only the backup is missing.
+      if (typeof error?.txid === 'string' && error.txid) {
+        setSentNotBackedUp({ txid: error.txid });
+      } else {
+        setError(error.message || 'Failed to broadcast transaction');
+      }
     } finally {
       setIsBroadcasting(false);
+    }
+  };
+
+  const retryRgbBackup = async () => {
+    if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) return;
+    setIsRetryingBackup(true);
+    try {
+      const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
+      if (wallet instanceof RgbWallet && (await wallet.retryBackup())) {
+        setSentNotBackedUp(null);
+        setIsSuccess(true);
+      }
+    } catch (e) {
+      console.error('RGB backup retry failed:', e);
+    } finally {
+      setIsRetryingBackup(false);
     }
   };
 
@@ -272,7 +348,22 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                 </View>
               )}
 
-              {error ? (
+              {sentNotBackedUp ? (
+                <View style={styles.errorContainer} testID="sent-not-backed-up">
+                  <Ionicons name="checkmark-circle" size={40} color="#FFCC00" />
+                  <ThemedText style={styles.errorTitle}>Sent — backup pending</ThemedText>
+                  <ThemedText style={styles.errorText}>
+                    Your transfer WAS sent (txid {sentNotBackedUp.txid.substring(0, 8)}…{sentNotBackedUp.txid.substring(sentNotBackedUp.txid.length - 8)}), but saving the wallet backup failed. Retry until it
+                    succeeds — do not delete or reinstall the app before then, or the change from this transfer can be lost.
+                  </ThemedText>
+                  <Pressable style={styles.backButton} onPress={retryRgbBackup} disabled={isRetryingBackup}>
+                    <ThemedText style={styles.backButtonText}>{isRetryingBackup ? 'Retrying backup…' : 'Retry backup'}</ThemedText>
+                  </Pressable>
+                  <Pressable style={styles.backButton} onPress={handleHome}>
+                    <ThemedText style={styles.backButtonText}>Back to Wallet</ThemedText>
+                  </Pressable>
+                </View>
+              ) : error ? (
                 <View style={styles.errorContainer}>
                   <Ionicons name="alert-circle" size={40} color="#FF3B30" />
                   <ThemedText style={styles.errorTitle}>Error</ThemedText>
@@ -283,6 +374,12 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                 </View>
               ) : (
                 <>
+                  {/* NOTE: no RgbBackupBanner here. This screen is laid out
+                      with absolute positions (Total at a fixed top, the send
+                      button docked to the bottom), so flow-inserted content
+                      overlaps it. Pre-send backup state is covered by the
+                      VSS probe below; stale-backup nagging lives on Home. */}
+
                   {/* Total Section */}
                   <Animated.View style={[styles.totalSection, totalAnimatedStyle]}>
                     <View style={styles.sectionHeader}>
@@ -333,17 +430,48 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                     </View>
                     <View style={styles.addressCard}>{formatAddressWithOpacity(address)}</View>
                   </Animated.View>
+
+                  {vssProbe === 'failed' && !isSuccess && !sentNotBackedUp && (
+                    <View style={styles.vssWarning} testID="vss-probe-warning">
+                      <ThemedText style={styles.vssWarningText}>
+                        Backup service is slow or unreachable right now. You can still send at your own risk — but if this app is deleted before a backup succeeds, the change from this transfer may be
+                        lost forever. Consider waiting a few minutes instead.
+                      </ThemedText>
+                    </View>
+                  )}
                 </>
               )}
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-        {!error && (
-          <Pressable style={[styles.sendButton, isBroadcasting && styles.disabledButton]} onPress={isSuccess ? handleHome : broadcast} disabled={isBroadcasting} testID="send-confirm-button">
-            <ThemedText style={styles.sendButtonText} testID={isSuccess ? 'send-success-text' : undefined}>
-              {isSuccess ? 'Back to Wallet' : isBroadcasting ? 'Sending...' : 'Confirm Send'}
-            </ThemedText>
-          </Pressable>
+        {!error && !sentNotBackedUp && (
+          <View style={styles.bottomDock} pointerEvents="box-none">
+            <Pressable
+              style={[styles.sendButton, (isBroadcasting || vssProbe === 'checking') && styles.disabledButton]}
+              onPress={isSuccess ? handleHome : broadcast}
+              disabled={isBroadcasting || vssProbe === 'checking'}
+              testID="send-confirm-button"
+            >
+              {vssProbe === 'checking' && !isSuccess ? (
+                <View style={styles.checkingRow}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ThemedText style={styles.sendButtonText}> Checking backup service…</ThemedText>
+                </View>
+              ) : (
+                <ThemedText style={styles.sendButtonText} testID={isSuccess ? 'send-success-text' : undefined}>
+                  {isSuccess
+                    ? 'Back to Wallet'
+                    : isBroadcasting
+                      ? network === NETWORK_RGB || network === NETWORK_RGB_TESTNET
+                        ? 'Sending & backing up — don’t close the app'
+                        : 'Sending...'
+                      : vssProbe === 'failed'
+                        ? 'Send anyway (at your own risk)'
+                        : 'Confirm Send'}
+                </ThemedText>
+              )}
+            </Pressable>
+          </View>
         )}
       </View>
     </RadialGradientScreen>
@@ -363,7 +491,10 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 80,
+    // Clear the bottom dock (warning + button) so long invoices in "Send to"
+    // scroll fully above it instead of sliding underneath the translucent
+    // button.
+    paddingBottom: 170,
   },
   container: {
     flex: 1,
@@ -515,20 +646,42 @@ const styles = StyleSheet.create({
     width: '180%',
     height: '180%',
   },
-  sendButton: {
+  bottomDock: {
     position: 'absolute',
     bottom: 0,
     left: 16,
     right: 16,
+  },
+  sendButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    // Opaque: the button floats over scrollable content; a translucent fill
+    // reads as overlapping text (user-reported).
+    backgroundColor: '#4A4A52',
     paddingVertical: 16,
     borderRadius: 16,
     gap: 8,
     height: 56,
     zIndex: 1000,
+  },
+  vssWarning: {
+    backgroundColor: 'rgba(255, 204, 0, 0.1)',
+    borderColor: 'rgba(255, 204, 0, 0.5)',
+    borderWidth: 1,
+    borderRadius: 12,
+    marginTop: 16,
+    padding: 12,
+  },
+  vssWarningText: {
+    color: '#FFCC00',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  checkingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sendButtonText: {
     color: 'rgba(255, 255, 255, 0.9)',

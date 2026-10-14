@@ -23,6 +23,7 @@ import { useNavigation } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { wcService } from '@/src/features/walletconnect/modules/wc-service';
 import { sanitizeAndValidateMnemonic } from '@shared/modules/wallet-utils';
 import { Colors } from '@shared/constants/Colors';
 import { useSequentialSpringAnimation } from '@/hooks/useCustomTransitions';
@@ -146,7 +147,10 @@ export default function ImportWalletScreen() {
         await updateSetting('seedBackedUp', 'ON');
 
         setStep(EStep.TOS);
-        router.replace('/onboarding/tos');
+        // Restore-from-seed gate: probe VSS reachability before TOS so a
+        // flaky network can't lead to silent fresh-wallet creation. The
+        // verifying screen redirects to TOS on success or skip.
+        router.replace('/onboarding/verifying-rgb-backup');
       }
     } catch (err) {
       setError('An error occurred while importing the wallet');
@@ -188,6 +192,9 @@ export default function ImportWalletScreen() {
             style: 'destructive',
             onPress: async () => {
               try {
+                // Sessions/transport are bound to the old wallet identity — a
+                // surviving dApp session would read the NEW wallet after re-import.
+                await wcService.reset().catch(() => {});
                 await BackgroundExecutor.clear();
                 await AsyncStorage.clear();
                 await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, '');
