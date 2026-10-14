@@ -274,8 +274,15 @@ Android (wallet16, `lzw-b39-android.apk`):
   blindReceive consent → invoice. Upstream #4 fix confirmed; our restart
   path needs no workaround any more. Video `wc 0.1.3 reconnect after
   restart - android`.
-iOS (wallet17): see below.
-Unit suites green (mobile 605), tsc clean.
+iOS (wallet17, `lzw-b39-ios.tar.gz`): upgrade in place 0.16→0.17 — 5 USDT +
+18090 sats, UTXOs 12 (the list needs a Refresh after a cold start; the first
+read showed 0), node log 0 errors, the new expired-transfer pass visible
+("Failing batch transfer with idx None… completed"), deadlock=0. Video
+`rln 0.17 upgrade in place - ios`.
+Unit suites green (mobile 605), tsc clean. Not re-run on 0.17: the X-matrix
+(kill/wipe windows) — no SDK change touches that path; ext still on
+rgb-sdk-web beta.9 / core beta.3 (latest beta.12 / beta.9, wasm RLN 0.10 —
+far behind native; separate decision, ext is not in the soft-launch scope).
 
 ## Review round 2 (2026-10-10 evening, Codex + superpowers reviewer)
 
