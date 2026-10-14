@@ -1,16 +1,20 @@
 import React from 'react';
 import { Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { homeBlurTargetRef } from '@/src/hooks/homeBlurTargetRef';
 
 interface PlatformBlurViewProps {
   intensity?: number;
   tint?: 'light' | 'dark' | 'default' | 'systemChromeMaterial';
   style?: StyleProp<ViewStyle>;
   children?: React.ReactNode;
+  /**
+   * Android blur samples this target. Only set it when this view is outside the target.
+   * A blur inside its own target recursively snapshots itself and overflows the render thread.
+   */
+  blurTarget?: React.RefObject<View | null>;
 }
 
-const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({ intensity = 50, tint = 'dark', style, children }) => {
+const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({ intensity = 50, tint = 'dark', style, children, blurTarget }) => {
   const expoTint: React.ComponentProps<typeof BlurView>['tint'] = tint === 'light' ? 'light' : tint === 'dark' ? 'dark' : 'default';
 
   const blurIntensity = Math.max(0, Math.min(100, intensity));
@@ -20,9 +24,9 @@ const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({ intensity = 50, tin
 
   /** SDK 31+ uses GPU blur; falls back to no blur on <31 to avoid jank from the legacy implementation. */
   const androidBlurProps =
-    Platform.OS === 'android'
+    Platform.OS === 'android' && blurTarget
       ? {
-          blurTarget: homeBlurTargetRef,
+          blurTarget,
           blurMethod: 'dimezisBlurViewSdk31Plus' as const,
           blurReductionFactor: 2,
         }

@@ -513,9 +513,6 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
       },
       arkProvider: new ExpoArkProvider(this._arkServerUrl),
       indexerProvider: new ExpoIndexerProvider(this._arkServerUrl),
-      settlementConfig: {
-        deprecatedSignerMigration: true,
-      },
     });
     this._wallet = wallet;
 
@@ -535,7 +532,15 @@ export class ArkWallet extends AbstractHDElectrumWallet implements InterfaceLigh
 
     try {
       await this._wallet.restore();
-      const report = await this._manager.migrateDeprecatedSignerVtxos();
+      const managerWithMigration = this._manager as typeof this._manager & {
+        migrateDeprecatedSignerVtxos?: () => Promise<{ rotated?: boolean; vtxos?: { txid?: string }; boarding?: { txid?: string } }>;
+      };
+      const migrateDeprecatedSignerVtxos = managerWithMigration.migrateDeprecatedSignerVtxos;
+      if (typeof migrateDeprecatedSignerVtxos !== 'function') {
+        return;
+      }
+
+      const report = await migrateDeprecatedSignerVtxos();
       if (report.rotated || report.vtxos?.txid || report.boarding?.txid) {
         console.log('ARK deprecated-signer migration:', report);
       }

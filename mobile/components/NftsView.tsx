@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useImperativeHandle, useState, forwardRef } from 'react';
+import React, { useCallback, useContext, useImperativeHandle, forwardRef } from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import Pressable from './Pressable';
@@ -49,7 +49,7 @@ const NftsView = forwardRef<{ refresh: () => void }, { selectedNft?: string; onV
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const { nftList, error, mutate } = useNftDiscovery(network, accountNumber, BackgroundExecutor, LayerzStorage);
-  const [show, setShow] = useState(false);
+  const show = nftList.length > 0;
   const handleViewGalleryPress = useCallback(() => {
     if (onViewGalleryPress) return onViewGalleryPress();
     router.push('/NftGallery');
@@ -62,10 +62,6 @@ const NftsView = forwardRef<{ refresh: () => void }, { selectedNft?: string; onV
     },
     [router]
   );
-
-  useEffect(() => {
-    if (nftList.length > 0) setShow(true);
-  }, [nftList.length]);
 
   useImperativeHandle(ref, () => ({
     refresh: () => {

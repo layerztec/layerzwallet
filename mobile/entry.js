@@ -6,6 +6,10 @@ import 'react-native-get-random-values';
 // crypto or storage (like noble v1, it captures globals at module eval).
 // eslint-disable-next-line import/no-unresolved
 import '@walletconnect/react-native-compat';
+import { LogBox } from 'react-native';
+
+// A failed Lightning history fetch must not cover the receive sheet during dev/Maestro.
+LogBox.ignoreLogs(['tx fetch error']);
 
 /** Hermes exposes getRandomValues but not randomUUID; MCP SDK + others expect it */
 if (

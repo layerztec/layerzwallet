@@ -3,7 +3,7 @@ import Pressable from '../components/Pressable';
 import assert from 'assert';
 import BigNumber from 'bignumber.js';
 import * as bip21 from 'bip21';
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, AppState, AppStateStatus, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -53,7 +53,7 @@ const SendBtc: React.FC = () => {
   const network = NETWORK_BITCOIN; // screen is exclusive to bitcoin
   const { accountNumber } = useContext(AccountNumberContext);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
-  const wallet = useRef(new HDSegwitBech32Wallet());
+  const wallet = useMemo(() => new HDSegwitBech32Wallet(), []);
 
   const feeRate = useMemo(() => {
     if (customFeeRate !== undefined) return customFeeRate;
@@ -72,7 +72,7 @@ const SendBtc: React.FC = () => {
     const satValue = satValueBN.multipliedBy(new BigNumber(10).pow(getDecimalsByNetwork(network))).toNumber();
     const targets: CreateTransactionTarget[] = [
       {
-        address: wallet.current.isAddressValid(toAddress) ? toAddress : '36JxaUrpDzkEerkTf1FzwHNE1Hb7cCjgJV',
+        address: wallet.isAddressValid(toAddress) ? toAddress : '36JxaUrpDzkEerkTf1FzwHNE1Hb7cCjgJV',
         value: Number.isNaN(satValue) ? 546 : satValue,
       },
     ];
@@ -81,14 +81,14 @@ const SendBtc: React.FC = () => {
     const result: { [key: number]: number } = {};
     Array.from(options).forEach((v) => {
       try {
-        const { fee } = wallet.current.coinselect(sendData.utxos, targets, v);
+        const { fee } = wallet.coinselect(sendData.utxos, targets, v);
         result[v] = fee;
       } catch (e: any) {
         if (e.message.includes('Not enough')) {
           // if we don't have enough funds, construct maximum possible transaction
           const targets2 = targets.map((t, index) => (index > 0 ? { ...t, value: 546 } : { address: t.address }));
           try {
-            const { fee } = wallet.current.coinselect(sendData.utxos, targets2, v);
+            const { fee } = wallet.coinselect(sendData.utxos, targets2, v);
             result[v] = fee;
           } catch {}
         }
@@ -96,7 +96,7 @@ const SendBtc: React.FC = () => {
     });
 
     return result;
-  }, [feeRate, sendData?.utxos, amount, toAddress, network]);
+  }, [feeRate, sendData?.utxos, amount, toAddress, network, wallet]);
 
   useEffect(() => {
     (async () => {
@@ -116,7 +116,10 @@ const SendBtc: React.FC = () => {
     if (params.selectedFeeRate) {
       const feeRate = Number(params.selectedFeeRate);
       if (!isNaN(feeRate)) {
-        setCustomFeeRate(feeRate);
+        const timeout = setTimeout(() => {
+          setCustomFeeRate(feeRate);
+        }, 0);
+        return () => clearTimeout(timeout);
       }
     }
   }, [params.selectedFeeRate]);
@@ -138,7 +141,7 @@ const SendBtc: React.FC = () => {
   };
 
   const prepareTransaction = async () => {
-    const w = wallet.current;
+    const w = wallet;
     setIsPreparing(true);
     setError('');
     try {

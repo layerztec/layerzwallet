@@ -2,7 +2,7 @@ appId: com.layerzwallet.mobile
 ---
 - runFlow: subflows/wallet-creation.yml
 
-# run for networks which have unique receive screens: bitcoin, rootstock (evm), ark, liquid (both liquid & lightning)
+# run for networks which have unique receive screens: bitcoin, rootstock (evm), ark, liquid, spark (lightning)
 # all other networks reuse receive screens from those. generic receive address generation for specific wallet types
 # should be done in selftest
 - evalScript: ${output.networks = ['liquid', 'bitcoin', 'rootstock', 'spark']}
@@ -74,9 +74,22 @@ appId: com.layerzwallet.mobile
       - tapOn:
           id: 'ReceiveOnLightningAddressWithAmountButton'
       - waitForAnimationToEnd
-      - runFlow: subflows/sleep.yml # button is not tappable immediately
-      - tapOn:
-          id: 'ReceiveOnSparkButton'
+      - runFlow: subflows/sleep.yml # modal button can appear with slight delay
+      - extendedWaitUntil:
+          visible: 'Layer to receive on'
+          timeout: 15000
+      - runFlow:
+          when:
+            visible:
+              id: 'ReceiveOnSparkButton'
+          commands:
+            - tapOn:
+                id: 'ReceiveOnSparkButton'
+      - runFlow:
+          when:
+            visible: 'Receive on Spark'
+          commands:
+            - tapOn: 'Receive on Spark'
       - extendedWaitUntil:
           visible:
             id: 'ReceiveLightningAmountInput'

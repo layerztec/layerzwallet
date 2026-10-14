@@ -54,13 +54,16 @@ export default function CreateWalletScreen() {
 
   useEffect(() => {
     const mnemonic = params.mnemonic;
-    if (mnemonic) {
-      BackgroundExecutor.setMasterSeed(mnemonic);
-      setRecoveryPhrase(mnemonic);
-    } else {
-      setError('No recovery phrase provided');
-    }
-    setIsLoading(false);
+    const timeout = setTimeout(() => {
+      if (mnemonic) {
+        BackgroundExecutor.setMasterSeed(mnemonic);
+        setRecoveryPhrase(mnemonic);
+      } else {
+        setError('No recovery phrase provided');
+      }
+      setIsLoading(false);
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [params.mnemonic]);
 
   const handleContinue = () => {

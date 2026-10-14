@@ -1,83 +1,60 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
-// Breez deleted the breez-sdk-liquid-react-native GitHub repo (org moved to
-// the Spark SDK family), so the package's own postinstall.sh silently fails:
-// its `curl` 404s, `unzip` fails, and the script still exits 0 — leaving
-// android/src/main/jniLibs and build/RnBreezSdkLiquid.xcframework empty.
-// Gradle then dies much later with "libbreez_sdk_liquid_bindings.so ...
-// missing and no known rule to make it".
-//
-// This script restores the native artifacts from a local cache so fresh
-// installs (including EAS *local* build sandboxes, which share the
-// machine's filesystem and HOME) keep working:
-//   1. $BREEZ_ARTIFACTS_DIR/<version>/{android,ios}-artifacts.zip, or
-//   2. ~/.breez-artifacts/<version>/{android,ios}-artifacts.zip, or
-//   3. the original GitHub release URLs (in case breez ever restores them).
-// Fails LOUDLY when none of these work, so a broken install dies at
-// npm-install time instead of mid-gradle.
-//
-// To seed the cache on a new machine, copy the two zips from a machine that
-// has them (or from a node_modules that still carries the binaries — zip
-// `android/src/main/jniLibs` as android-artifacts.zip and `build` as
-// ios-artifacts.zip from the package root).
+/* global __dirname, __filename */
+// @breeztech/breez-sdk-liquid-react-native ships no native code: its own postinstall downloads
+// android-artifacts.zip / ios-artifacts.zip from a GitHub repo that Breez has deleted, and exits 0
+// on the 404. Builds then fail with "libbreez_sdk_liquid_bindings.so ... missing" (Gradle) or
+// "Undefined symbols ... _ffi_breez_sdk_liquid_bindings_*" (Xcode).
+// This script fetches the same zips from the layerztec mirror, verifies sha256 and unpacks them.
 
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+const MIRROR = 'https://github.com/layerztec/breez-sdk-liquid-rn-artifacts/releases/download';
+const SHA256 = {
+  '0.12.4': {
+    'android-artifacts.zip': 'f21ca07f7eafab84f34857b9a73b4e9c69b6fc7e849c9f1d33f9f9829c288c25',
+    'ios-artifacts.zip': '4329619afda394b957707188798cb92f7ef0730c262559b48cb29a0107dfa195',
+  },
+};
+
 const pkgRoot = path.join(__dirname, '..', 'node_modules', '@breeztech', 'breez-sdk-liquid-react-native');
-if (!fs.existsSync(pkgRoot)) {
-  console.log('[breez-artifacts] package not installed, nothing to do');
-  process.exit(0);
-}
 const version = require(path.join(pkgRoot, 'package.json')).version;
+const markers = [
+  ...['arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'].map((abi) => `android/src/main/jniLibs/${abi}/libbreez_sdk_liquid_bindings.so`),
+  'build/RnBreezSdkLiquid.xcframework/Info.plist',
+  'build/RnBreezSdkLiquid.xcframework/ios-arm64/libbreez_sdk_liquid_bindings.a',
+  'build/RnBreezSdkLiquid.xcframework/ios-arm64_x86_64-simulator/libbreez_sdk_liquid_bindings.a',
+].map((m) => path.join(pkgRoot, m));
 
-const androidMarker = path.join(pkgRoot, 'android', 'src', 'main', 'jniLibs', 'arm64-v8a', 'libbreez_sdk_liquid_bindings.so');
-const iosMarker = path.join(pkgRoot, 'build', 'RnBreezSdkLiquid.xcframework');
-if (fs.existsSync(androidMarker) && fs.existsSync(iosMarker)) {
-  console.log('[breez-artifacts] native artifacts already present');
+if (markers.every((m) => fs.existsSync(m))) {
+  console.log(`[breez-artifacts] ${version} native artifacts already present`);
   process.exit(0);
 }
-
-const cacheDirs = [process.env.BREEZ_ARTIFACTS_DIR && path.join(process.env.BREEZ_ARTIFACTS_DIR, version), path.join(os.homedir(), '.breez-artifacts', version)].filter(Boolean);
-
-function unzipInto(zipPath) {
-  execSync(`unzip -oq ${JSON.stringify(zipPath)} -d ${JSON.stringify(pkgRoot)}`, { stdio: 'inherit' });
+if (!SHA256[version]) {
+  console.error(`[breez-artifacts] no sha256 pinned for ${version}; upload the zips to ${MIRROR}/${version} and add their hashes to ${path.basename(__filename)}`);
+  process.exit(1);
 }
 
-for (const dir of cacheDirs) {
-  const androidZip = path.join(dir, 'android-artifacts.zip');
-  const iosZip = path.join(dir, 'ios-artifacts.zip');
-  if (fs.existsSync(androidZip) && fs.existsSync(iosZip)) {
-    console.log(`[breez-artifacts] restoring from cache ${dir}`);
-    unzipInto(androidZip);
-    unzipInto(iosZip);
-    break;
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'breez-artifacts-'));
+try {
+  const zips = Object.keys(SHA256[version]);
+  console.log(`[breez-artifacts] downloading ${zips.join(', ')} from ${MIRROR}/${version}`);
+  execFileSync('curl', ['-fsSL', '--retry', '3', '--parallel', ...zips.flatMap((name) => [`${MIRROR}/${version}/${name}`, '--output', path.join(tmp, name)])], { stdio: 'inherit' });
+  for (const [name, expected] of Object.entries(SHA256[version])) {
+    const zip = path.join(tmp, name);
+    const actual = crypto.createHash('sha256').update(fs.readFileSync(zip)).digest('hex');
+    if (actual !== expected) throw new Error(`sha256 mismatch for ${name}: expected ${expected}, got ${actual}`);
+    execFileSync('unzip', ['-oq', zip, '-d', pkgRoot], { stdio: 'inherit' });
   }
+} finally {
+  fs.rmSync(tmp, { recursive: true, force: true });
 }
-
-if (!fs.existsSync(androidMarker) || !fs.existsSync(iosMarker)) {
-  // Last resort: the package's original release URLs (dead as of 2026-10,
-  // but harmless to try — breez may republish).
-  const base = `https://github.com/breez/breez-sdk-liquid-react-native/releases/download/${version}`;
-  for (const name of ['android-artifacts.zip', 'ios-artifacts.zip']) {
-    try {
-      const tmp = path.join(os.tmpdir(), name);
-      execSync(`curl -fsSL ${base}/${name} --output ${JSON.stringify(tmp)}`, { stdio: 'inherit' });
-      unzipInto(tmp);
-      fs.rmSync(tmp, { force: true });
-    } catch {
-      /* fall through to the final check */
-    }
-  }
-}
-
-if (!fs.existsSync(androidMarker) || !fs.existsSync(iosMarker)) {
-  console.error(
-    `[breez-artifacts] FATAL: breez-sdk-liquid-react-native@${version} native artifacts are missing and could not be restored.\n` +
-      `Seed a cache at ~/.breez-artifacts/${version}/{android-artifacts.zip,ios-artifacts.zip} (see mobile/scripts/ensure-breez-artifacts.js).`
-  );
+const missing = markers.filter((m) => !fs.existsSync(m));
+if (missing.length) {
+  console.error(`[breez-artifacts] still missing after unpack: ${missing.join(', ')}`);
   process.exit(1);
 }
 console.log('[breez-artifacts] restored');

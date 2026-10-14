@@ -10,7 +10,6 @@ import {
   NETWORK_ALPEN_TESTNET,
   NETWORK_USDT,
   NETWORK_LIGHTNING,
-  NETWORK_LIGHTNING_TESTNET,
   NETWORK_SPARK,
   NETWORK_STACKS,
 } from '../types/networks';
@@ -37,7 +36,6 @@ export const networkColors: Record<string, { primary: string; secondary: string 
   [NETWORK_ARK]: { primary: '#270A7B', secondary: '#391998' },
   [NETWORK_ARK_MUTINYNET]: { primary: '#270A7B', secondary: '#391998' },
   [NETWORK_LIGHTNING]: { primary: '#581C87', secondary: '#7C3AED' },
-  [NETWORK_LIGHTNING_TESTNET]: { primary: '#581C87', secondary: '#7C3AED' },
   [NETWORK_USDT]: { primary: '#058787', secondary: '#22AAAA' },
   [NETWORK_SPARK]: { primary: '#607E8A', secondary: '#7297A6' },
   [NETWORK_STACKS]: { primary: '#7C2D12', secondary: '#fc6432' },

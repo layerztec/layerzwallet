@@ -13,7 +13,6 @@ import {
   NETWORK_ARK_MUTINYNET,
   NETWORK_BITCOIN,
   NETWORK_LIGHTNING,
-  NETWORK_LIGHTNING_TESTNET,
   NETWORK_LIQUID,
   NETWORK_LIQUID_TESTNET,
   NETWORK_RGB,
@@ -54,7 +53,7 @@ export const balanceFetcher = async (arg: balanceFetcherArg): Promise<StringNumb
   const { accountNumber, network, backgroundCaller } = arg;
   if (typeof accountNumber === 'undefined' || !network) return undefined;
 
-  if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET) {
+  if (network === NETWORK_LIGHTNING) {
     // LN is a metalayer which is composed of several actual wallets that support ln
     throw new Error('This should never happen: balance requested for NETWORK_LIGHTNING');
   }
@@ -140,7 +139,6 @@ export function useBalance(network: Networks, accountNumber: number, backgroundC
       break;
 
     case NETWORK_LIGHTNING:
-    case NETWORK_LIGHTNING_TESTNET:
     case NETWORK_LIQUID:
     case NETWORK_LIQUID_TESTNET:
       refreshInterval = 5_000; // we are just fetching data from the SDK, should be fast

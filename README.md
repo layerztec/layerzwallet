@@ -19,7 +19,7 @@ Experience the future of Bitcoin with Layer2-focused wallet. Bitcoin-only, non-c
 - [x] Ark (by ArkLabs) (testnet)
 - [x] Spark
 - [ ] RGB
-- [x] Lightning (breez-nodeless)
+- [x] Lightning (Spark, Ark)
 - [ ] Taproot assets
 
 ## Other features (current and upcoming)

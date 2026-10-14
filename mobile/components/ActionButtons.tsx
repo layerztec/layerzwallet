@@ -10,7 +10,7 @@ import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { USDT_TOKENS } from '@shared/models/token-list';
-import { NETWORK_LIGHTNING, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_RGB, NETWORK_RGB_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
+import { NETWORK_LIGHTNING, NETWORK_LIQUID, NETWORK_RGB, NETWORK_RGB_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
 import { ReceiveTokenProps } from '@/app/Receive';
 import { SendTokenEvmProps } from '@/app/SendTokenEvm';
 import { SendParams } from '@/app/send';
@@ -49,7 +49,6 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
   const handleSend = () => {
     switch (network) {
       case NETWORK_LIGHTNING:
-      case NETWORK_LIGHTNING_TESTNET:
         router.push('/send/send-address-lightning');
         break;
       default:
@@ -182,7 +181,7 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
 
   // Render Receive button
   const renderReceiveButton = () => {
-    if (network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET) {
+    if (network === NETWORK_LIGHTNING) {
       // Default to Lightning Address receive on tap (as per master behavior)
       return <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={handleReceiveOnLightningAddress} glow={highlightReceive} testID="ReceiveButton" />;
     }

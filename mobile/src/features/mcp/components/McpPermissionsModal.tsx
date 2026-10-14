@@ -60,7 +60,6 @@ export default function McpPermissionsModal() {
 
 const styles = StyleSheet.create({
   safe: {
-    flex: 1,
     backgroundColor: 'transparent',
   },
   body: {

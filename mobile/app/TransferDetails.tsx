@@ -18,6 +18,11 @@ import { EXECUTION_CLAIM, EXECUTION_SPARK_EXIT, getStatusLabel, isActiveStatus, 
 
 const POLL_INTERVAL = 10_000;
 
+function setSharedValue(sharedValue: { value: unknown }, nextValue: unknown) {
+  'worklet';
+  sharedValue.value = nextValue;
+}
+
 export default function TransferDetails() {
   const { execution: jsonExecution } = useLocalSearchParams();
   const [execution, setExecution] = useState<TransferExecution>(() => JSON.parse(jsonExecution as string));
@@ -60,22 +65,22 @@ export default function TransferDetails() {
   // Flashing animation for active step
   useEffect(() => {
     if (isActive) {
-      pendingFlashOpacity.value = withRepeat(withSequence(withTiming(0.4, { duration: 800 }), withTiming(1, { duration: 800 })), -1, false);
+      setSharedValue(pendingFlashOpacity, withRepeat(withSequence(withTiming(0.4, { duration: 800 }), withTiming(1, { duration: 800 })), -1, false));
     } else {
-      pendingFlashOpacity.value = withTiming(1, { duration: 300 });
+      setSharedValue(pendingFlashOpacity, withTiming(1, { duration: 300 }));
     }
   }, [isActive, pendingFlashOpacity]);
 
   // Sync expand/collapse animations
   useEffect(() => {
     if (isTimelineExpanded) {
-      descriptionOpacity.value = withTiming(1, { duration: 300 });
-      timestampOpacity.value = withTiming(1, { duration: 300 });
-      descriptionMaxHeight.value = withTiming(100, { duration: 300 });
+      setSharedValue(descriptionOpacity, withTiming(1, { duration: 300 }));
+      setSharedValue(timestampOpacity, withTiming(1, { duration: 300 }));
+      setSharedValue(descriptionMaxHeight, withTiming(100, { duration: 300 }));
     } else {
-      descriptionOpacity.value = withTiming(0, { duration: 300 });
-      timestampOpacity.value = withTiming(0, { duration: 300 });
-      descriptionMaxHeight.value = withTiming(0, { duration: 300 });
+      setSharedValue(descriptionOpacity, withTiming(0, { duration: 300 }));
+      setSharedValue(timestampOpacity, withTiming(0, { duration: 300 }));
+      setSharedValue(descriptionMaxHeight, withTiming(0, { duration: 300 }));
     }
   }, [isTimelineExpanded, descriptionOpacity, timestampOpacity, descriptionMaxHeight]);
 
@@ -218,6 +223,7 @@ export default function TransferDetails() {
           <Pressable style={styles.timelineContainer} onPress={toggleTimeline} activeOpacity={0.9}>
             <View style={styles.timelineInnerContainer}>
               <Timeline
+                style={styles.timeline}
                 data={timelineData}
                 circleSize={20}
                 circleColor="#FFFFFF"
@@ -230,7 +236,7 @@ export default function TransferDetails() {
                 titleStyle={styles.timelineTitle}
                 descriptionStyle={styles.timelineDescription}
                 listViewStyle={styles.timelineListView}
-                isUsingFlatlist={true}
+                isUsingFlatlist={false}
                 eventContainerStyle={styles.timelineEventContainer}
                 rowContainerStyle={styles.timelineRowContainer}
                 iconStyle={styles.timelineIconStyle}
@@ -315,7 +321,6 @@ export default function TransferDetails() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
     backgroundColor: 'transparent',
   },
   container: {
@@ -393,6 +398,10 @@ const styles = StyleSheet.create({
   timelineInnerContainer: {
     minHeight: 104,
   },
+  // The timeline library's root and rows are flex:1. In an unsized sheet that basis is 0, and the card's overflow:hidden clips the steps.
+  timeline: {
+    flex: 0,
+  },
   timelineTime: {
     textAlign: 'right',
     color: 'rgba(255, 255, 255, 0.6)',
@@ -422,6 +431,7 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   timelineRowContainer: {
+    flex: 0,
     alignItems: 'flex-start',
     margin: 0,
     padding: 0,
@@ -435,7 +445,6 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   timelineDetailContainer: {
-    flex: 1,
     marginHorizontal: 0,
     marginTop: -12,
     marginBottom: 6,

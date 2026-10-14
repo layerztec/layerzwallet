@@ -40,7 +40,6 @@ import { getIsTestnet, getTickerByNetwork } from '@shared/models/network-getters
 import { sleep } from '@shared/modules/sleep';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { CommonTransaction } from '@shared/types/common-transaction';
-import { NETWORK_ARK, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
 import { STORAGE_KEY_RECEIVE_CTA } from '@shared/types/IStorage';
 import { CachedTokenInfo } from '@shared/types/token-info';
 import { YieldBearingCachedTokenInfo } from '@shared/hooks/useYieldDiscovery';
@@ -52,8 +51,17 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const MODAL_MIN_HEIGHT = 120; // Height when dragged down (header + some content)
 const MODAL_MAX_HEIGHT = SCREEN_HEIGHT; // Full height modal
 
+function setSharedValue(sharedValue: { value: unknown }, nextValue: unknown) {
+  'worklet';
+  sharedValue.value = nextValue;
+}
+
 export type HomeProps = {
   fromOnboarding?: string;
+};
+
+type TransferExecutionTransaction = CommonTransaction & {
+  transferExecution?: unknown;
 };
 
 export default function Home() {
@@ -103,8 +111,8 @@ export default function Home() {
   useEffect(() => {
     if (params.fromOnboarding === 'true') {
       const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
-      modalTranslateY.value = maxTranslate;
-      currentModalPosition.value = maxTranslate;
+      setSharedValue(modalTranslateY, maxTranslate);
+      setSharedValue(currentModalPosition, maxTranslate);
     }
   }, [params.fromOnboarding, modalTranslateY, currentModalPosition]);
 
@@ -171,22 +179,28 @@ export default function Home() {
       const selectedNetwork = networks[index];
       // Create white flash transition effect
       const flashDuration = 150;
-      whiteFlashAnim.value = withTiming(1, { duration: flashDuration }, () => {
-        whiteFlashAnim.value = withTiming(0, { duration: flashDuration }, () => {
-          // After flash animation completes, expand modal to full height
-          currentModalPosition.value = 0;
-          modalTranslateY.value = withTiming(0, { duration: 400 });
-        });
-        scheduleOnRN(setNetwork, selectedNetwork);
-      });
+      setSharedValue(
+        whiteFlashAnim,
+        withTiming(1, { duration: flashDuration }, () => {
+          setSharedValue(
+            whiteFlashAnim,
+            withTiming(0, { duration: flashDuration }, () => {
+              // After flash animation completes, expand modal to full height
+              setSharedValue(currentModalPosition, 0);
+              setSharedValue(modalTranslateY, withTiming(0, { duration: 400 }));
+            })
+          );
+          scheduleOnRN(setNetwork, selectedNetwork);
+        })
+      );
     }
   };
 
   const handleNetworkSelect = () => {
     // Minimize modal to show network tiles in black background area
     const maxTranslate = MODAL_MAX_HEIGHT - MODAL_MIN_HEIGHT;
-    currentModalPosition.value = maxTranslate;
-    modalTranslateY.value = withTiming(maxTranslate, { duration: 300 });
+    setSharedValue(currentModalPosition, maxTranslate);
+    setSharedValue(modalTranslateY, withTiming(maxTranslate, { duration: 300 }));
   };
 
   const goToSettings = () => {
@@ -208,37 +222,8 @@ export default function Home() {
     router.push('/YieldList');
   };
 
-  // Lightning Network specific handlers
-  const handleReceiveOnSpark = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      Alert.alert('Spark does not have a testnet');
-    } else {
-      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_SPARK } });
-    }
-  };
-
-  const handleReceiveOnLiquid = () => {
-    const n = network === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
-    router.push({ pathname: '/ReceiveLightning', params: { network: n } });
-  };
-
-  const handleReceiveOnArk = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      Alert.alert('Ark lightning does not have a testnet');
-    } else {
-      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_ARK } });
-    }
-  };
-
-  const lightningReceiveActions = [
-    { children: <Action network={NETWORK_SPARK} text="Receive on Spark" />, onClick: handleReceiveOnSpark },
-    { children: <Action network={NETWORK_LIQUID} text="Receive on Liquid" />, onClick: handleReceiveOnLiquid },
-    { children: <Action network={NETWORK_ARK} text="Receive on Ark" />, onClick: handleReceiveOnArk },
-    { children: <Action text="Cancel" />, onClick: () => {} },
-  ];
-
   const handleTransactionDetails = (transaction: CommonTransaction) => {
-    const transferExecution = (transaction as any).transferExecution;
+    const transferExecution = (transaction as TransferExecutionTransaction).transferExecution;
     if (transferExecution) {
       router.push({
         pathname: '/TransferDetails',
@@ -278,7 +263,7 @@ export default function Home() {
   // Handle scroll events for sticky header animation
   const handleScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
-      scrollY.value = event.contentOffset.y;
+      setSharedValue(scrollY, event.contentOffset.y);
     },
   });
 
@@ -295,7 +280,7 @@ export default function Home() {
   const panGesture = Gesture.Pan()
     .onStart(() => {
       // Store the current modal position when gesture starts
-      gestureStartPosition.value = modalTranslateY.value;
+      setSharedValue(gestureStartPosition, modalTranslateY.value);
     })
     .onUpdate((event) => {
       const { translationY } = event;
@@ -312,7 +297,7 @@ export default function Home() {
         constrainedPosition = maxTranslate;
       }
 
-      modalTranslateY.value = constrainedPosition;
+      setSharedValue(modalTranslateY, constrainedPosition);
     })
     .onEnd((event) => {
       const { translationY, velocityY } = event;
@@ -323,12 +308,12 @@ export default function Home() {
 
       if (shouldSnapToMin) {
         // Snap to minimized state (translate down so only header is visible)
-        currentModalPosition.value = maxTranslate;
-        modalTranslateY.value = withTiming(maxTranslate, { duration: 300 });
+        setSharedValue(currentModalPosition, maxTranslate);
+        setSharedValue(modalTranslateY, withTiming(maxTranslate, { duration: 300 }));
       } else {
         // Snap to expanded state (translate back to original position)
-        currentModalPosition.value = 0;
-        modalTranslateY.value = withTiming(0, { duration: 300 });
+        setSharedValue(currentModalPosition, 0);
+        setSharedValue(modalTranslateY, withTiming(0, { duration: 300 }));
       }
     })
     .activeOffsetY([-10, 10])
@@ -425,7 +410,7 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   blackBackground: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'black',
     flex: 1,
     paddingHorizontal: 16,
@@ -448,7 +433,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   modalHeaderOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     bottom: undefined,
     zIndex: 20,
   },
@@ -516,7 +501,9 @@ const styles = StyleSheet.create({
   },
   maestroSettingsButton: {
     position: 'absolute',
-    top: 60, // Position below the header
+    // Over the header gear. A tap that misses this target still hits Settings.
+    // A target over the network cards opens nothing on iOS.
+    top: 60,
     right: 16,
     width: 40,
     height: 40,
@@ -531,7 +518,7 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   whiteFlashOverlayAnimated: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'white',
     zIndex: 9998,
     pointerEvents: 'none',

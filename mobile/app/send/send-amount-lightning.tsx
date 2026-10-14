@@ -50,12 +50,18 @@ const SendAmountLightning: React.FC = () => {
   useEffect(() => {
     // If we have a lightning address with fixed amount, set it
     if (lnurlPayload && lnurlPayload.min && lnurlPayload.max && lnurlPayload.min === lnurlPayload.max) {
-      setLocalAmount(String(lnurlPayload.min));
+      const timeout = setTimeout(() => {
+        setLocalAmount(String(lnurlPayload.min));
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [lnurlPayload]);
 
   useEffect(() => {
-    setError('');
+    const timeout = setTimeout(() => {
+      setError('');
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [localAmount]);
 
   const handleDenominationSwitch = () => {

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Layerz Wallet",
     "slug": "layerzwallet",
-    "version": "1.6.0",
+    "version": "1.6.1",
     "orientation": "portrait",
     "scheme": ["bitcoin", "liquidnetwork", "layerzwallet"],
     "userInterfaceStyle": "dark",
@@ -58,15 +58,22 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#000000"
-    },
     "plugins": [
       [
         "expo-build-properties",
         {
+          "ios": {
+            "extraPods": [
+              { "name": "CGRPCZlib", "modular_headers": true },
+              { "name": "CNIOAtomics", "modular_headers": true },
+              { "name": "CNIOBoringSSL", "modular_headers": true },
+              { "name": "CNIOBoringSSLShims", "modular_headers": true },
+              { "name": "CNIODarwin", "modular_headers": true },
+              { "name": "CNIOHTTPParser", "modular_headers": true },
+              { "name": "CNIOLinux", "modular_headers": true },
+              { "name": "CNIOWindows", "modular_headers": true }
+            ]
+          },
           "android": {
             "androidGradlePluginVersion": "8.6.0",
             "compileSdkVersion": 36,

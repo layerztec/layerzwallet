@@ -41,6 +41,11 @@ import {
 } from '@shared/types/networks';
 import { useSendFlow } from './_layout';
 
+function setSharedValue(sharedValue: { value: unknown }, nextValue: unknown) {
+  'worklet';
+  sharedValue.value = nextValue;
+}
+
 const SuccessRiveAnimation = () => {
   const { riveFile } = useRiveFile(successRiv);
   if (!riveFile) return <View style={styles.riveAnimation} />;
@@ -121,16 +126,19 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
 
     if (isSuccess) {
       // Step 1: Animate details and send to sections out using only opacity (600ms)
-      detailsOpacity.value = withTiming(0, { duration: 600 });
-      sendToOpacity.value = withTiming(0, { duration: 600 });
+      setSharedValue(detailsOpacity, withTiming(0, { duration: 600 }));
+      setSharedValue(sendToOpacity, withTiming(0, { duration: 600 }));
 
       // Step 2: After sections fade out, move total section down smoothly
       timeout1 = setTimeout(() => {
         setHideHeader(true);
-        totalTop.value = withTiming(480, {
-          duration: 800,
-          easing: Easing.out(Easing.ease),
-        });
+        setSharedValue(
+          totalTop,
+          withTiming(480, {
+            duration: 800,
+            easing: Easing.out(Easing.ease),
+          })
+        );
       }, 600);
 
       // Step 3: After total section finishes moving, show Rive animation
@@ -139,11 +147,14 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
       }, 1400);
     } else {
       // Reset animations if not success
-      detailsOpacity.value = 1;
-      sendToOpacity.value = 1;
-      totalTop.value = 32;
-      setShowRiveAnimation(false);
-      setHideHeader(false);
+      setSharedValue(detailsOpacity, 1);
+      setSharedValue(sendToOpacity, 1);
+      setSharedValue(totalTop, 32);
+      const timeout = setTimeout(() => {
+        setShowRiveAnimation(false);
+        setHideHeader(false);
+      }, 0);
+      timeout1 = timeout;
     }
 
     // Cleanup timeouts on unmount or when isSuccess changes

@@ -15,7 +15,6 @@ import {
   NETWORK_ARK_MUTINYNET,
   NETWORK_BITCOIN,
   NETWORK_LIGHTNING,
-  NETWORK_LIGHTNING_TESTNET,
   NETWORK_LIQUID,
   NETWORK_LIQUID_TESTNET,
   NETWORK_RGB,
@@ -85,7 +84,6 @@ const Home: React.FC = () => {
         navigate('/send-liquid');
         break;
       case NETWORK_LIGHTNING:
-      case NETWORK_LIGHTNING_TESTNET:
         navigate('/send-lightning');
         break;
       case NETWORK_RGB:
@@ -98,60 +96,22 @@ const Home: React.FC = () => {
   };
 
   const handleReceiveLightningOnSpark = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      alert('Spark has no testnet');
-      return;
-    }
     const state: ReceiveLightningProps = { network: NETWORK_SPARK };
     navigate('/receive-lightning', { state });
   };
 
   const handleReceiveLightningOnArk = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      alert('Ark lightning has no testnet');
-      return;
-    }
     const state: ReceiveLightningProps = { network: NETWORK_ARK };
     navigate('/receive-lightning', { state });
   };
 
   const handleSendLightningOnSpark = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      alert('Spark has no testnet');
-      return;
-    }
     const state: SendLightningProps = { network: NETWORK_SPARK };
     navigate('/send-lightning', { state });
   };
 
   const handleSendLightningOnArk = () => {
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      alert('Ark lightning has no testnet');
-      return;
-    }
     const state: SendLightningProps = { network: NETWORK_ARK };
-    navigate('/send-lightning', { state });
-  };
-
-  const handleReceiveLightningOnLiquid = () => {
-    let chosenNetwork: typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_LIQUID = NETWORK_LIQUID; // default - mainnet
-
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      chosenNetwork = NETWORK_LIQUID_TESTNET;
-    }
-
-    const state: ReceiveLightningProps = { network: chosenNetwork };
-    navigate('/receive-lightning', { state });
-  };
-
-  const handleSendLightningOnLiquid = () => {
-    let chosenNetwork: typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_LIQUID = NETWORK_LIQUID; // default - mainnet
-
-    if (network === NETWORK_LIGHTNING_TESTNET) {
-      chosenNetwork = NETWORK_LIQUID_TESTNET;
-    }
-
-    const state: SendLightningProps = { network: chosenNetwork };
     navigate('/send-lightning', { state });
   };
 
@@ -268,16 +228,12 @@ const Home: React.FC = () => {
       <SwapListView ref={swapListRef} />
       <br />
 
-      {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
+      {network === NETWORK_LIGHTNING ? (
         <ActionPopupButton
           actions={[
             {
               label: 'Send via Spark',
               onClick: handleSendLightningOnSpark,
-            },
-            {
-              label: 'Send via Liquid',
-              onClick: handleSendLightningOnLiquid,
             },
             {
               label: 'Send via Ark',
@@ -321,16 +277,12 @@ const Home: React.FC = () => {
         </Button>
       )}
 
-      {network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? (
+      {network === NETWORK_LIGHTNING ? (
         <ActionPopupButton
           actions={[
             {
               label: 'Receive on Spark',
               onClick: handleReceiveLightningOnSpark,
-            },
-            {
-              label: 'Receive on Liquid',
-              onClick: handleReceiveLightningOnLiquid,
             },
             {
               label: 'Receive on Ark',

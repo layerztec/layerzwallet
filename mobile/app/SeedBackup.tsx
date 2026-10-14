@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Alert, StyleSheet, View, Animated, ActivityIndicator, Image, FlatList, LayoutAnimation, Platform, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -96,8 +96,8 @@ export default function SeedBackupScreen() {
   const [showError, setShowError] = useState<boolean>(false);
   const [verificationComplete, setVerificationComplete] = useState<boolean>(false);
   const [badgeTapCount, setBadgeTapCount] = useState(0);
-  const buttonOpacity = useRef(new Animated.Value(ENABLED_OPACITY)).current;
-  const blurOpacity = useRef(new Animated.Value(1)).current;
+  const buttonOpacity = useMemo(() => new Animated.Value(ENABLED_OPACITY), []);
+  const blurOpacity = useMemo(() => new Animated.Value(1), []);
   usePreventScreenCapture();
 
   const shuffleArray = useCallback(<T,>(array: T[]): T[] => {
@@ -118,7 +118,10 @@ export default function SeedBackupScreen() {
         isSelected: false,
       }));
       const shuffled = shuffleArray(wordsWithData);
-      setScrambledWords(shuffled);
+      const timeout = setTimeout(() => {
+        setScrambledWords(shuffled);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [isVerifying, mnemonic, shuffleArray]);
 

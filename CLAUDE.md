@@ -168,9 +168,9 @@ Each Layer2 follows a specific pattern:
 - Token transfers via ERC20 interface
 - Implements EIP-1193 provider for dApp integration
 
-**Liquid (Account-based, Lightning-capable, Token-capable)**
+**Liquid (Account-based, Token-capable)**
 - Uses Breez SDK with native module (mobile) or web worker adapter (ext)
-- Supports both Lightning and on-chain Liquid transactions
+- On-chain Liquid transactions only (Breez stopped its Lightning swap service)
 - Asset balance tracking (L-BTC + tokens)
 - Hardcoded to account 0 (SDK limitation)
 

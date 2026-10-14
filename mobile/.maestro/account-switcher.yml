@@ -1,0 +1,16 @@
+appId: com.layerzwallet.mobile
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: 'NetworkSwitcherTrigger'
+    timeout: 60000
+- tapOn:
+    point: '14%,8%'
+- extendedWaitUntil:
+    visible:
+      id: 'AccountSwitcherModal'
+    timeout: 10000
+- assertVisible: 'Pockets'
+- assertVisible: 'Daily'
+- assertVisible: 'Investment'

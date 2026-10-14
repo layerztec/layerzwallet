@@ -119,7 +119,7 @@ describe('scan-routing handler', () => {
     const handled = await handleQrIntent(invoice, router);
 
     expect(handled).toBe(true);
-    expect(push).toHaveBeenCalledWith({ pathname: '/send', params: { network: NETWORK_LIGHTNING, address: 'lnurl1dp68gurn8ghj7mrww4exctnrda3k7mrww4excu0' } });
+    expect(push).toHaveBeenCalledWith({ pathname: './send', params: { network: NETWORK_LIGHTNING, address: 'lnurl1dp68gurn8ghj7mrww4exctnrda3k7mrww4excu0' } });
   });
 
   test('routes merchant QR code payloads to SendLightning', async () => {
@@ -131,7 +131,7 @@ describe('scan-routing handler', () => {
 
     expect(handled).toBe(true);
     expect(push).toHaveBeenCalledWith({
-      pathname: '/PosMerchant',
+      pathname: './PosMerchant',
       params: { raw: invoice },
     });
   });
@@ -142,7 +142,7 @@ describe('scan-routing handler', () => {
     const handled = await handleQrIntent('bitcoin:bc1qt4t9xl2gmjvxgmp5gev6m8e6s9c85979ta7jeh?amount=0.25', router);
 
     expect(handled).toBe(true);
-    expect(push).toHaveBeenCalledWith({ pathname: '/send', params: { address: 'bc1qt4t9xl2gmjvxgmp5gev6m8e6s9c85979ta7jeh', amount: '0.25' } });
+    expect(push).toHaveBeenCalledWith({ pathname: './send', params: { address: 'bc1qt4t9xl2gmjvxgmp5gev6m8e6s9c85979ta7jeh', amount: '0.25' } });
   });
 
   test('routes bitcoin payloads to send 2', async () => {
@@ -151,7 +151,7 @@ describe('scan-routing handler', () => {
     const handled = await handleQrIntent('bitcoin:1DzJepHCRD2C9vpFjk11eXJi97juEZ3ftv?amount=0.004&message=wheres the money lebowski', router);
 
     expect(handled).toBe(true);
-    expect(push).toHaveBeenCalledWith({ pathname: '/send', params: { address: '1DzJepHCRD2C9vpFjk11eXJi97juEZ3ftv', amount: '0.004' } });
+    expect(push).toHaveBeenCalledWith({ pathname: './send', params: { address: '1DzJepHCRD2C9vpFjk11eXJi97juEZ3ftv', amount: '0.004' } });
   });
 
   test('returns false for malformed/unknown payloads', async () => {

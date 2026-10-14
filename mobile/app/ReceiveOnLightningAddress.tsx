@@ -3,10 +3,10 @@ import Pressable from '../components/Pressable';
 import BigNumber from 'bignumber.js';
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
-import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, ScrollView, Share, StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 
 import { ActionPopupButton } from '@/components/ActionPopupButton';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
@@ -20,7 +20,7 @@ import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 import { formatLayerzLightningAddress, LAYERZ_ME_DOMAIN, lookupLayerzLightningAddress } from '@shared/modules/layerz-lightning-address';
-import { NETWORK_ARK, NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, Networks } from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_SPARK, Networks } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
 
 import { ClaimUsernameModalParams } from './ClaimUsernameModal';
@@ -48,7 +48,7 @@ export default function ReceiveOnLightningAddressScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [oldBalance, setOldBalance] = useState<StringNumber>('');
   const [isSharing, setIsSharing] = useState(false);
-  const pressScaleAnim = useRef(new Animated.Value(1)).current;
+  const pressScaleAnim = useMemo(() => new Animated.Value(1), []);
   const { balance } = useBalance(network, accountNumber, BackgroundExecutor);
 
   /**
@@ -65,8 +65,10 @@ export default function ReceiveOnLightningAddressScreen() {
 
   useEffect(() => {
     if (!oldBalance && balance) {
-      setOldBalance(balance);
-      return;
+      const timeout = setTimeout(() => {
+        setOldBalance(balance);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
   }, [balance, oldBalance]);
 
@@ -96,7 +98,10 @@ export default function ReceiveOnLightningAddressScreen() {
   }, [network, accountNumber]);
 
   useEffect(() => {
-    fetchAddress();
+    const timeout = setTimeout(() => {
+      void fetchAddress();
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [accountNumber, fetchAddress]);
 
   const refreshResolvedUsername = useCallback(async () => {
@@ -135,29 +140,15 @@ export default function ReceiveOnLightningAddressScreen() {
 
   // Lightning Network specific handlers
   const handleReceiveOnSpark = () => {
-    if (networkFromContext === NETWORK_LIGHTNING_TESTNET) {
-      Alert.alert('Spark does not have a testnet');
-    } else {
-      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_SPARK } });
-    }
-  };
-
-  const handleReceiveOnLiquid = () => {
-    const n = networkFromContext === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
-    router.push({ pathname: '/ReceiveLightning', params: { network: n } });
+    router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_SPARK } });
   };
 
   const handleReceiveOnArk = () => {
-    if (networkFromContext === NETWORK_LIGHTNING_TESTNET) {
-      Alert.alert('Ark lightning does not have a testnet');
-    } else {
-      router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_ARK } });
-    }
+    router.push({ pathname: '/ReceiveLightning', params: { network: NETWORK_ARK } });
   };
 
   const lightningReceiveActions = [
     { children: <Action testID="ReceiveOnSparkButton" network={NETWORK_SPARK} text="Receive on Spark" />, onClick: handleReceiveOnSpark },
-    { children: <Action network={NETWORK_LIQUID} text="Receive on Liquid" />, onClick: handleReceiveOnLiquid },
     { children: <Action network={NETWORK_ARK} text="Receive on Ark" />, onClick: handleReceiveOnArk },
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
