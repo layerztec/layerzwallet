@@ -254,6 +254,29 @@ Infra note: the AOSP emulator died twice during 500MB apk installs / gradle
 runs today — `android-recover-smoke.sh`-style cold restart + re-import is the
 fast path (≈6 min).
 
+## SDK bump 2026-10-14: rgb-sdk-rn 1.0.0-beta.39 (RLN 0.17.0-beta.3), webrgb(-walletconnect) 0.1.3
+
+What changed upstream: native rgb-lightning-node 0.16→0.17 (no release
+notes), Tron burn recipients + safe-integer amount validation before the
+native bridge (#64/#65), and webrgb-walletconnect 0.1.3 = our #4 (dApp-side
+`enabled` reset on NOT_ENABLED). core stays 1.0.0-beta.9. Our issues #58
+(LN restore deadlock) and #62 (two-device fence) still open.
+
+Android (wallet16, `lzw-b39-android.apk`):
+- Upgrade in place 0.16→0.17: node opened the existing state, 65 USDT +
+  5265 sats, 35 UTXOs, 0 errors in the node log, backups continue (v101/102),
+  RN errors 0. Video `rln 0.17 upgrade in place - android`.
+- Wipe → restore the 0.16 VSS backup on the 0.17 node: gate+consistency 27s,
+  balances/UTXOs identical, deadlock=0. Video `rln 0.17 restore from 0.16
+  backup - android`.
+- WC on 0.1.3: pair → approve → poll → force-stop → relaunch → the dApp's
+  own `enable()` re-sent rgb_enable (RAW_ENABLE knob unused) → POLL_OK →
+  blindReceive consent → invoice. Upstream #4 fix confirmed; our restart
+  path needs no workaround any more. Video `wc 0.1.3 reconnect after
+  restart - android`.
+iOS (wallet17): see below.
+Unit suites green (mobile 605), tsc clean.
+
 ## Review round 2 (2026-10-10 evening, Codex + superpowers reviewer)
 
 Range 1826e858..baba9185. Both reviewers converged on one real defect and a
