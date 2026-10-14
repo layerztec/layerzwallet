@@ -254,6 +254,29 @@ Infra note: the AOSP emulator died twice during 500MB apk installs / gradle
 runs today — `android-recover-smoke.sh`-style cold restart + re-import is the
 fast path (≈6 min).
 
+## Merge origin/master → rgb-two (2026-10-14, def18c9a)
+
+8 master commits: Expo 57 upgrade, spark-sdk 0.12.1, breez-sdk-liquid
+natives from the layerztec mirror (replaces our local-cache script),
+Lightning testnet + liquid-as-lightning-backer removed, account-modal and
+browser-swipe fixes, netinfo 12 / slider 5.2. 7 conflicts, all mechanical:
+master wins its removals (`NETWORK_LIGHTNING_TESTNET`, `expo-router` theme
+imports, breez script, dep bumps, safer `eas-build-pre-install`); ours stay
+(WcBootstrap under AuthStateContextProvider, RGB networks in ActionButtons /
+useBalance, `@walletconnect/react-native-compat` first in entry.js before
+master's LogBox filter). Lockfile regenerated from master's base. The
+onchainSend invoice-endpoints patch (iOS decode returns empty transport
+endpoints) was still named for beta.37 — patch-package applied it with a
+warning; renamed to beta.39 (8168a45d), still needed upstream.
+Verification: mobile tsc clean, mobile 605 / ext 551 unit tests green, ext
+tsc clean. Device smoke on the merged Android build (`lzw-merge-android.apk`,
+wallet16): cold start on Expo 57 → home in 50s, 65 USDT + 5265 sats, RN
+errors 0, network switcher shows Bitcoin/Lightning/Rgb_testnet (Lightning
+testnet gone, as master intended), UTXO Manager 35 UTXOs with "Fail Expired
+Transfers", WC sessions screen renders, deadlock=0. Video `merge master into
+rgb-two smoke - android`. iOS not rebuilt for the merge (no iOS-specific
+change in master beyond the shared Expo bump; covered by CI/next iOS build).
+
 ## SDK bump 2026-10-14: rgb-sdk-rn 1.0.0-beta.39 (RLN 0.17.0-beta.3), webrgb(-walletconnect) 0.1.3
 
 What changed upstream: native rgb-lightning-node 0.16→0.17 (no release
