@@ -11,7 +11,7 @@ interface PlatformBlurViewProps {
    * Android blur samples this target. Only set it when this view is outside the target.
    * A blur inside its own target recursively snapshots itself and overflows the render thread.
    */
-  blurTarget?: React.RefObject<View | null>;
+  blurTarget?: React.RefObject<React.ComponentRef<typeof View> | null>;
 }
 
 const PlatformBlurView: React.FC<PlatformBlurViewProps> = ({ intensity = 50, tint = 'dark', style, children, blurTarget }) => {

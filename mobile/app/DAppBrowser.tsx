@@ -168,11 +168,11 @@ const DAppBrowser: React.FC = () => {
   const { network } = useContext(NetworkContext);
   const { accountNumber } = useContext(AccountNumberContext);
   const navigation = useNavigation();
-  const webviewRef = useRef<WebView>(null);
-  const tabWebViewRefs = useRef<{ [key: string]: React.RefObject<WebView | null> }>({});
-  const tabContainerRefs = useRef<{ [key: string]: React.RefObject<View | null> }>({});
+  const webviewRef = useRef<WebView<any>>(null);
+  const tabWebViewRefs = useRef<{ [key: string]: React.RefObject<WebView<any> | null> }>({});
+  const tabContainerRefs = useRef<{ [key: string]: React.RefObject<React.ComponentRef<typeof View> | null> }>({});
   const browserBridgeRef = useRef<BrowserBridge>(null);
-  const addressInputRef = useRef<TextInput>(null);
+  const addressInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
   const [js, setJs] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const params = useLocalSearchParams<DappBrowserProps>();

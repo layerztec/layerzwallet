@@ -28,7 +28,7 @@ const SendAddressUsdt: React.FC = () => {
   const [localAddress, setLocalAddress] = useState(contextAddress);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
 
   const handleScanQR = async () => {
     const scanned = await scanQr();

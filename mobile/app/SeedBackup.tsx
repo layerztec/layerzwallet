@@ -323,7 +323,7 @@ export default function SeedBackupScreen() {
                 <View style={styles.errorContainer}>
                   <ThemedText style={styles.errorText}>Incorrect word. Please try again.</ThemedText>
                 </View>
-              ) : null
+              ) : undefined
             }
           />
         </SafeAreaView>

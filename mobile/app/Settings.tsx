@@ -29,12 +29,12 @@ interface SettingsItem {
   renderAccessory?: () => React.ReactElement | null;
 }
 
-interface SettingsSection extends SectionListData<SettingsItem> {
+type SettingsSection = SectionListData<SettingsItem> & {
   title: string;
   key: string;
   hasBackground: boolean;
   data: SettingsItem[];
-}
+};
 
 export default function SettingsScreen() {
   const router = useRouter();

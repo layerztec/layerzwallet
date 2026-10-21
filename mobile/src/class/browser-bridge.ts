@@ -12,12 +12,12 @@ import { Eip1193CustomEventRequest } from '@shared/types/eip1193-custom-event';
  * It handles sending messages to the WebView and processing messages from it.
  */
 export class BrowserBridge {
-  private webview: WebView;
+  private webview: WebView<any>;
 
   // Static instance for global access
   static instance: BrowserBridge | null = null;
 
-  constructor(webview: WebView) {
+  constructor(webview: WebView<any>) {
     this.webview = webview;
     BrowserBridge.instance = this;
   }

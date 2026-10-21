@@ -51,7 +51,7 @@ export default function SendNft() {
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [txid, setTxid] = useState<string | null>(null);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
 
   const handleScanQR = useCallback(async () => {
     try {

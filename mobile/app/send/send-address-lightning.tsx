@@ -37,7 +37,7 @@ const SendAddressLightning: React.FC = () => {
   const [lnurlInstance, setLnurlInstance] = useState<{ [invoice: string]: Lnurl | undefined }>({});
   const [decodedInvoice, setDecodedInvoice] = useState<{ [invoice: string]: DecodedInvoice | undefined }>({});
   const [memo, setMemo] = useState<{ [invoice: string]: string | undefined }>({});
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
 
   const handleLayerSelect = (selectedNetwork: Networks) => {
     const n = selectedNetwork as LightningLayer;

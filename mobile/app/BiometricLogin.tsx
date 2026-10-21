@@ -235,7 +235,7 @@ export default function BiometricLoginScreen({ autoTrigger = false }: BiometricL
       }
 
       // Trigger auth when app becomes active from inactive state
-      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
+      if (appStateRef.current?.match(/inactive|background/) && nextAppState === 'active') {
         const hasValidAuth = biometricInfo.isAvailable || hasDevicePasscode;
 
         console.debug('BiometricLogin: App returned to active from inactive', {

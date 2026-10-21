@@ -37,7 +37,7 @@ export function useBiometricModal() {
         isUpdatingBiometric,
       });
 
-      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
+      if (appStateRef.current?.match(/inactive|background/) && nextAppState === 'active') {
         if (userInMainApp && !isAuthenticated && !isUpdatingBiometric) {
           console.debug('useBiometricModal: Showing modal after background return');
           dismissScanner();

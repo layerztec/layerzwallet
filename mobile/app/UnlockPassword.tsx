@@ -26,7 +26,7 @@ export default function UnlockPassword() {
   const router = useRouter();
   const { setStep } = useContext(InitializationContext);
 
-  const passwordInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
 
   const shakeAnimation = useMemo(() => new Animated.Value(0), []);
   const scaleAnimation = useMemo(() => new Animated.Value(1), []);

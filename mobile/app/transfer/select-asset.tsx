@@ -33,7 +33,7 @@ export default function SelectAsset() {
   const params = useLocalSearchParams<SelectAssetParams>();
   const { setSendAsset, setReceiveAsset, transferService } = useTransferFlow();
   const [searchText, setSearchText] = useState('');
-  const searchInputRef = useRef<TextInput>(null);
+  const searchInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
   const flatListRef = useRef<FlatList>(null);
 
   const translateY = useSharedValue(screenHeight);

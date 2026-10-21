@@ -38,7 +38,7 @@ export default function TransferAmountSection({
   exchangeRate,
   onDenominationSwitch,
 }: TransferAmountSectionProps) {
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
   const [localDisplayValue, setLocalDisplayValue] = useState('');
   const isFocused = useRef(false);
   const hasRate = !!exchangeRate && exchangeRate > 0;

@@ -37,7 +37,7 @@ export default function AmountInput({
   disabled = false,
   testID,
 }: AmountInputProps) {
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
   const [localDisplayValue, setLocalDisplayValue] = useState('');
   const isFocused = useRef(false);
   const conversionCache = useRef(new Map<string, string>());

@@ -27,7 +27,7 @@ export default function CreatePasswordScreen() {
   const passwordBorderAnimation = useMemo(() => new Animated.Value(0), []);
   const repeatPasswordBorderAnimation = useMemo(() => new Animated.Value(0), []);
 
-  const repeatPasswordInputRef = useRef<TextInput>(null);
+  const repeatPasswordInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
 
   const titleTransition = useSequentialSpringAnimation(200);
   const subtitleTransition = useSequentialSpringAnimation(400);

@@ -302,7 +302,7 @@ export default function TabThreeScreen() {
           const readSize = Math.min(chunkSize, offset);
           offset -= readSize;
           handle.offset = offset;
-          const chunk = decoder.decode(handle.readBytes(readSize));
+          const chunk = decoder.decode(await handle.readBytes(readSize));
           buffer = chunk + buffer;
 
           const lineCount = buffer.split('\n').length - 1;
@@ -525,7 +525,7 @@ export default function TabThreeScreen() {
     <View style={[styles.container, { backgroundColor }]}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
         <ScreenHeader title="Tools" />
-        <SectionList
+        <SectionList<string, (typeof sections)[number]>
           sections={sections}
           keyExtractor={(item, index) => item + index}
           renderItem={renderItem}
