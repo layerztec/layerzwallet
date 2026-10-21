@@ -9,7 +9,7 @@ import { useBalance } from '@shared/hooks/useBalance';
 import { getDecimalsByNetwork, getTickerByNetwork } from '@shared/models/network-getters';
 import { capitalizeFirstLetter, formatBalance } from '@shared/modules/string-utils';
 import { formatLayerzLightningAddress, LAYERZ_ME_DOMAIN, lookupLayerzLightningAddress } from '@shared/modules/layerz-lightning-address';
-import { NETWORK_LIGHTNING_TESTNET, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK } from '@shared/types/networks';
+import { NETWORK_SPARK } from '@shared/types/networks';
 import { StringNumber } from '@shared/types/string-number';
 
 import { ActionPopupAction } from '../components/ActionPopupAction';
@@ -123,26 +123,13 @@ const ReceiveOnLightningAddress: React.FC = () => {
   };
 
   const handleReceiveOnSpark = () => {
-    if (networkFromContext === NETWORK_LIGHTNING_TESTNET) {
-      window.alert('Spark does not have a testnet');
-      return;
-    }
     navigate(`/receive?network=${NETWORK_SPARK}`);
-  };
-
-  const handleReceiveOnLiquid = () => {
-    const n = networkFromContext === NETWORK_LIGHTNING_TESTNET ? NETWORK_LIQUID_TESTNET : NETWORK_LIQUID;
-    navigate(`/receive?network=${n}`);
   };
 
   const lightningReceiveActions = [
     {
       children: <ActionPopupAction testID="ReceiveOnSparkButton" network={NETWORK_SPARK} text="Receive on Spark" />,
       onClick: handleReceiveOnSpark,
-    },
-    {
-      children: <ActionPopupAction network={NETWORK_LIQUID} text="Receive on Liquid" />,
-      onClick: handleReceiveOnLiquid,
     },
     { children: <ActionPopupAction text="Cancel" />, onClick: () => {} },
   ];

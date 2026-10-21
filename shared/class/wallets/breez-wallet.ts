@@ -1,8 +1,6 @@
 import type {
   AssetMetadata,
   GetInfoResponse,
-  GetPaymentRequest,
-  LightningPaymentLimitsResponse,
   LiquidNetwork,
   ListPaymentsRequest,
   Payment,
@@ -15,9 +13,6 @@ import type {
   SendPaymentRequest,
   SendPaymentResponse,
 } from '@breeztech/breez-sdk-liquid';
-import bolt11 from 'bolt11';
-
-import { createLightningInvoiceResponse, InterfaceLightningWallet } from './interface-lightning-wallet';
 import { InterfaceSendQuotable } from './interface-send-quotable';
 import { CommonTransaction } from '@shared/types/common-transaction';
 import { SendQuote, SendQuoteRequest } from '@shared/types/send-quote';
@@ -38,17 +33,15 @@ export const LBTC_ASSET_IDS = {
 export interface IBreezAdapter {
   api: {
     getInfo: (connection: BreezConnection) => Promise<GetInfoResponse>;
-    fetchLightningLimits: (connection: BreezConnection) => Promise<LightningPaymentLimitsResponse>;
     prepareReceivePayment: (connection: BreezConnection, args: PrepareReceiveRequest) => Promise<PrepareReceiveResponse>;
     receivePayment: (connection: BreezConnection, args: ReceivePaymentRequest) => Promise<ReceivePaymentResponse>;
     prepareSendPayment: (connection: BreezConnection, args: PrepareSendRequest) => Promise<PrepareSendResponse>;
     sendPayment: (connection: BreezConnection, args: SendPaymentRequest) => Promise<SendPaymentResponse>;
-    getPayment(connection: BreezConnection, args: GetPaymentRequest): Promise<Payment | undefined>;
     listPayments(connection: BreezConnection, args: ListPaymentsRequest): Promise<Payment[]>;
   };
 }
 
-export class BreezWallet implements InterfaceLightningWallet, InterfaceSendQuotable {
+export class BreezWallet implements InterfaceSendQuotable {
   public m: string;
   public n: LiquidNetwork;
   public adapter: IBreezAdapter;
@@ -75,10 +68,6 @@ export class BreezWallet implements InterfaceLightningWallet, InterfaceSendQuota
   public async getAssetBalances() {
     const info = await this.getInfo();
     return info.walletInfo.assetBalances;
-  }
-
-  public async fetchLightningLimits() {
-    return await this.adapter.api.fetchLightningLimits(this.connection);
   }
 
   public async prepareReceivePayment(args: PrepareReceiveRequest) {
@@ -112,104 +101,6 @@ export class BreezWallet implements InterfaceLightningWallet, InterfaceSendQuota
       throw new Error('Failed to generate Liquid address');
     }
     return receiveResponse.destination;
-  }
-
-  async payLightningInvoice(invoice: string, maxFeePercentage: number = 1): Promise<boolean> {
-    const decoded = bolt11.decode(invoice);
-    if (!decoded.satoshis) throw new Error('Cant pay zero-amount invoices');
-
-    // step1: prepare the payment
-    const prepareSendRequest: PrepareSendRequest = {
-      destination: invoice.trim(),
-    };
-
-    const prepareResponse = await this.prepareSendPayment(prepareSendRequest);
-
-    if (prepareResponse?.feesSat && prepareResponse.feesSat > (decoded.satoshis / 100) * maxFeePercentage) {
-      throw new Error(`Potential fees to pay this invoice are more than ${maxFeePercentage}% (${prepareResponse?.feesSat} sat)`);
-    }
-
-    const sendRequest: SendPaymentRequest = {
-      prepareResponse: prepareResponse,
-    };
-
-    // Send payment
-    const paymentResponse = await this.sendPayment(sendRequest);
-
-    switch (paymentResponse.payment.status) {
-      case 'failed':
-        return false;
-
-      // case  switch "created" | "pending" | "complete" | "failed" | "timedOut" | "refundable" | "refundPending" | "waitingFeeAcceptance"
-
-      default:
-        return true;
-    }
-
-    // todo: probably need to handle other statuses, and make this method return non-binary status success/failure, but smth more detailed
-  }
-
-  async createLightningInvoice(amountSats: number, memo: string): Promise<createLightningInvoiceResponse> {
-    // Step 1: Prepare receive payment to get fee information
-    const prepareRequest: PrepareReceiveRequest = {
-      paymentMethod: 'bolt11Invoice',
-      amount: { type: 'bitcoin', payerAmountSat: amountSats },
-    };
-
-    const prepareResponse = await this.prepareReceivePayment(prepareRequest);
-
-    // Step 2: Generate the actual lightning invoice
-    const receiveRequest: ReceivePaymentRequest = {
-      prepareResponse: prepareResponse,
-      description: memo,
-    };
-
-    const receiveResponse = await this.receivePayment(receiveRequest);
-
-    return {
-      invoice: receiveResponse.destination,
-      serviceFeeSat: prepareResponse.feesSat,
-    };
-  }
-
-  async isInvoicePaid(invoice: string): Promise<boolean> {
-    const decoded = bolt11.decode(invoice);
-
-    let paymentHash = '';
-
-    for (const tag of decoded.tags) {
-      if (tag.tagName === 'payment_hash') {
-        paymentHash = String(tag.data);
-      }
-    }
-
-    if (!paymentHash) {
-      throw new Error('Payment hash not found in invoice');
-    }
-
-    return this.isInvoicePaidByHash(paymentHash);
-  }
-
-  async isInvoicePaidByHash(preimageHash: string): Promise<boolean> {
-    if (!preimageHash) throw new Error('No preimage hash provided');
-
-    const paymentByHash = await this.adapter.api.getPayment(this.connection, {
-      type: 'paymentHash', // unreliable, could not find type for it, had to find it in breez sources and hardcode it
-      paymentHash: preimageHash,
-    });
-
-    switch (
-      paymentByHash?.status // "created" | "pending" | "complete" | "failed" | "timedOut" | "refundable" | "refundPending" | "waitingFeeAcceptance"
-    ) {
-      case 'pending':
-        // theoretically not safe to display this invoice as paid, but we do it for speed (breez sdk __already includes__ amount from this invoice
-        // in main balance after it changes status to `pending`)
-        return true;
-      case 'complete':
-        return true;
-    }
-
-    return false;
   }
 
   async getCommonTransactions(): Promise<CommonTransaction[]> {
@@ -298,10 +189,6 @@ export class BreezWallet implements InterfaceLightningWallet, InterfaceSendQuota
       throw new Error('Breez sendPayment did not return a txId');
     }
     return response.payment.txId;
-  }
-
-  allowLightning() {
-    return true;
   }
 
   /**

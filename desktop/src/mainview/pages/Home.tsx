@@ -7,18 +7,7 @@ import { ensureMcpBootstrapped, isMcpActivated } from '../features/mcp/tunnel-de
 import { accountItems, AccountNumberContext, getAccountItem, MCP_BALANCE_ACCOUNT_NUMBER } from '@shared/hooks/AccountNumberContext';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useAvailableNetworks } from '@shared/hooks/useAvailableNetworks';
-import {
-  NETWORK_ARK,
-  NETWORK_ARK_MUTINYNET,
-  NETWORK_BITCOIN,
-  NETWORK_LIGHTNING,
-  NETWORK_LIGHTNING_TESTNET,
-  NETWORK_LIQUID,
-  NETWORK_LIQUID_TESTNET,
-  NETWORK_SPARK,
-  NETWORK_STACKS,
-  NETWORK_USDT,
-} from '@shared/types/networks';
+import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIGHTNING, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_SPARK, NETWORK_STACKS, NETWORK_USDT } from '@shared/types/networks';
 import { getIsEVM } from '@shared/models/network-getters';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { getNetworkPrimaryColor } from '@shared/constants/Colors';
@@ -42,7 +31,7 @@ const Home: React.FC = () => {
   const { network, setNetwork } = useContext(NetworkContext);
   const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
   // Lightning and USDT are not supported on desktop, so hide them from the network selector.
-  const availableNetworks = useAvailableNetworks().filter((n) => n !== NETWORK_LIGHTNING && n !== NETWORK_LIGHTNING_TESTNET && n !== NETWORK_USDT);
+  const availableNetworks = useAvailableNetworks().filter((n) => n !== NETWORK_LIGHTNING && n !== NETWORK_USDT);
   const networkIconUrl = getNetworkImageUrl(network);
   const accountItem = getAccountItem(accountNumber);
   const accountLabel = accountItem.name.length > 10 ? `${accountItem.name.substring(0, 10)}…` : accountItem.name;

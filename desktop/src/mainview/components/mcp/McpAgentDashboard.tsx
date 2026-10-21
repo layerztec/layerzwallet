@@ -18,7 +18,6 @@ import {
   NETWORK_ARK_MUTINYNET,
   NETWORK_BITCOIN,
   NETWORK_LIGHTNING,
-  NETWORK_LIGHTNING_TESTNET,
   NETWORK_LIQUID,
   NETWORK_LIQUID_TESTNET,
   NETWORK_ROOTSTOCK,
@@ -108,7 +107,7 @@ export const McpAgentDashboard: React.FC = () => {
   ];
 
   const addFundsButton = (
-    <WalletToolButton onClick={network === NETWORK_LIGHTNING || network === NETWORK_LIGHTNING_TESTNET ? handleReceiveOnLightningAddress : handleAddFunds} aria-label="Add funds">
+    <WalletToolButton onClick={network === NETWORK_LIGHTNING ? handleReceiveOnLightningAddress : handleAddFunds} aria-label="Add funds">
       Add funds
     </WalletToolButton>
   );
