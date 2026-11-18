@@ -7,14 +7,32 @@ import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet } from '@shared/t
 type Wallet = UTEXOWallet<RgbLibWeb>;
 
 /**
+ * Cloud backup (VSS) server. `null` = off.
+ *
+ * The web engine supports VSS, but its built-in default
+ * (`vss-server.utexo.com`) was retired together with the RLN stack (NXDOMAIN
+ * since 2026-11) and UTEXO has not published a replacement yet. With VSS left
+ * on, the first restore attempt fails on the network and the wallet never
+ * opens — so it stays off until there is a server to point at. Set the URL
+ * here and the real backup/restore paths below take over.
+ */
+const RGB_VSS_URL: string | null = null;
+
+function vssUnavailableError(): Error {
+  const e = new Error('Cloud backup is not available: no VSS server is configured for this build');
+  e.name = 'VssUnavailable';
+  return e;
+}
+
+/**
  * The shared wallet speaks the older `IRgbWallet` names; map the few that
  * differ on the `UTEXOWallet` facade, pass everything else through.
  *
- * VSS: the web engine configures cloud backup itself on `init()` (identity
- * derived from the mnemonic) and queues an upload after every mutation, so
- * the configure/disable calls have nothing left to do.
+ * With VSS on, the engine configures cloud backup itself on `init()`
+ * (identity derived from the mnemonic) and queues an upload after every
+ * mutation, so the configure/disable calls have nothing left to do.
  */
-function adapt(wallet: Wallet): IRgbWallet {
+function adapt(wallet: Wallet, vssOn: boolean): IRgbWallet {
   return new Proxy(wallet as unknown as IRgbWallet, {
     get(target, prop, receiver) {
       switch (prop) {
@@ -23,9 +41,12 @@ function adapt(wallet: Wallet): IRgbWallet {
         case 'estimateFeeRate':
           return async (blocks: number) => (await wallet.estimateFeeRate(blocks)).feeRate;
         case 'vssBackup':
-          return () => wallet.backupToVss();
+          return async () => {
+            if (!vssOn) throw vssUnavailableError();
+            return wallet.backupToVss();
+          };
         case 'vssBackupInfo':
-          return () => wallet.getVssBackupInfo();
+          return async () => (vssOn ? wallet.getVssBackupInfo() : { backupExists: false, backupRequired: false, serverVersion: null });
         case 'configureVssBackup':
         case 'disableVssAutoBackup':
           return async () => {};
@@ -40,10 +61,12 @@ function adapt(wallet: Wallet): IRgbWallet {
   });
 }
 
+const vssUrlFor = (params: IRgbAdapterCreateParams) => params.vssServerUrl ?? RGB_VSS_URL;
+
 // The engine keeps its state in IndexedDB under <masterFingerprint>/<network>,
 // so wallets of different seeds don't collide and no per-seed path is needed.
-async function open({ mnemonic, network, vssServerUrl }: IRgbAdapterCreateParams): Promise<Wallet> {
-  const engine = new RgbLibWeb({ network: network === 'testnet' ? 'utexo' : 'mainnet', mnemonic, ...(vssServerUrl ? { vssUrl: vssServerUrl } : {}) });
+async function open(params: IRgbAdapterCreateParams): Promise<Wallet> {
+  const engine = new RgbLibWeb({ network: params.network === 'testnet' ? 'utexo' : 'mainnet', mnemonic: params.mnemonic, vssUrl: vssUrlFor(params) });
   const wallet = new UTEXOWallet({ engine });
   await wallet.init();
   return wallet;
@@ -53,7 +76,7 @@ class RgbAdapter implements IRgbAdapter {
   readonly capabilities = { lightning: false } as const;
 
   async createWallet(params: IRgbAdapterCreateParams): Promise<IRgbWallet> {
-    return adapt(await open(params));
+    return adapt(await open(params), vssUrlFor(params) !== null);
   }
 
   /**
@@ -64,14 +87,17 @@ class RgbAdapter implements IRgbAdapter {
    * When there is nothing to restore this throws a "backup not found" error
    * rather than returning the empty wallet: the shared RgbWallet then decides
    * between "first creation" and "the backup vanished" (see its init()).
+   *
+   * Without a VSS server there is nothing to restore from: same as create.
    */
   async restoreFromVss(params: IRgbAdapterCreateParams): Promise<IRgbWallet> {
+    if (vssUrlFor(params) === null) return this.createWallet(params);
     const wallet = await open(params);
     try {
       await wallet.restoreFromVss();
-      return adapt(wallet);
+      return adapt(wallet, true);
     } catch (e) {
-      if (isEngineError(e) && e.code === 'WALLET_INVALID_STATE') return adapt(wallet);
+      if (isEngineError(e) && e.code === 'WALLET_INVALID_STATE') return adapt(wallet, true);
       let missing = false;
       try {
         missing = !(await wallet.getVssBackupInfo()).backupExists;

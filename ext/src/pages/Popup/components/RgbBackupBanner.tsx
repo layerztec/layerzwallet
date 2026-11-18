@@ -19,13 +19,18 @@ const RgbBackupBanner: React.FC = () => {
   if (status === 'synced') return null;
 
   const isFailed = status === 'failed';
-  const title = isFailed ? 'Backup failed' : 'Backup pending';
-  const detail = isFailed
-    ? `${pendingCount} change${pendingCount === 1 ? '' : 's'} not yet saved to backup. Tap to retry — until then, recovery on a new device may be missing recent activity.`
-    : `${pendingCount} change${pendingCount === 1 ? '' : 's'} are syncing to backup. Usually clears within seconds.`;
+  // No VSS server is configured for this build (see modules/rgb-adapter.ts):
+  // retrying cannot help, so say what that means instead of offering a retry.
+  const isUnavailable = isFailed && lastError?.kind === 'unavailable';
+  const title = isUnavailable ? 'No cloud backup yet' : isFailed ? 'Backup failed' : 'Backup pending';
+  const detail = isUnavailable
+    ? 'RGB assets cannot be restored from the recovery phrase alone, and this build has no cloud backup. Removing the extension or clearing browser data loses the RGB assets held here.'
+    : isFailed
+      ? `${pendingCount} change${pendingCount === 1 ? '' : 's'} not yet saved to backup. Tap to retry — until then, recovery on a new device may be missing recent activity.`
+      : `${pendingCount} change${pendingCount === 1 ? '' : 's'} are syncing to backup. Usually clears within seconds.`;
 
   const handlePress = async () => {
-    if (isRetrying) return;
+    if (isRetrying || isUnavailable) return;
     setIsRetrying(true);
     setRetryError(null);
     try {
