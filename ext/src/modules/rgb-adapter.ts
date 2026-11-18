@@ -2,6 +2,7 @@ import { UTEXOWallet } from '@utexo/rgb-sdk';
 import { isEngineError } from '@utexo/rgb-sdk-core';
 import { RgbLibWeb } from '@utexo/rgb-sdk-web';
 
+import { proxyRgbFacade } from '@shared/modules/rgb-facade-proxy';
 import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet } from '@shared/types/rgb-adapter';
 
 type Wallet = UTEXOWallet<RgbLibWeb>;
@@ -33,34 +34,17 @@ function vssUnavailableError(): Error {
  * mutation, so the configure/disable calls have nothing left to do.
  */
 function adapt(wallet: Wallet, vssOn: boolean): IRgbWallet {
-  return new Proxy(wallet as unknown as IRgbWallet, {
-    get(target, prop) {
-      switch (prop) {
-        case 'send':
-          return (params: Parameters<Wallet['onchainSend']>[0]) => wallet.onchainSend(params);
-        case 'estimateFeeRate':
-          return async (blocks: number) => (await wallet.estimateFeeRate(blocks)).feeRate;
-        case 'vssBackup':
-          return async () => {
-            if (!vssOn) throw vssUnavailableError();
-            return wallet.backupToVss();
-          };
-        case 'vssBackupInfo':
-          return async () => (vssOn ? wallet.getVssBackupInfo() : { backupExists: false, backupRequired: false, serverVersion: null });
-        case 'configureVssBackup':
-        case 'disableVssAutoBackup':
-          return async () => {};
-        case 'getDefaultVssConfig':
-          return async () => null;
-        default: {
-          // Read on the real wallet, not the proxy: the facade keeps its engine
-          // in a #private field, so a getter (`protocol`, `capabilities`) run
-          // with `this` = proxy throws a TypeError.
-          const value = Reflect.get(target, prop, target);
-          return typeof value === 'function' ? value.bind(target) : value;
-        }
-      }
+  return proxyRgbFacade(wallet, {
+    send: (params: Parameters<Wallet['onchainSend']>[0]) => wallet.onchainSend(params),
+    estimateFeeRate: async (blocks: number) => (await wallet.estimateFeeRate(blocks)).feeRate,
+    vssBackup: async () => {
+      if (!vssOn) throw vssUnavailableError();
+      return wallet.backupToVss();
     },
+    vssBackupInfo: async () => (vssOn ? wallet.getVssBackupInfo() : { backupExists: false, backupRequired: false, serverVersion: null }),
+    configureVssBackup: async () => {},
+    disableVssAutoBackup: async () => {},
+    getDefaultVssConfig: async () => null,
   });
 }
 

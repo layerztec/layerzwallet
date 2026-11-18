@@ -4,6 +4,7 @@ import { accountXpubsFromMnemonic } from '@utexo/rgb-sdk-core';
 import { RgbLibRn, restoreBackupFromFile } from '@utexo/rgb-sdk-rn';
 import { Directory, File, Paths } from 'expo-file-system';
 
+import { proxyRgbFacade } from '@shared/modules/rgb-facade-proxy';
 import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet, RgbNetwork } from '@shared/types/rgb-adapter';
 
 const RGB_DATA_ROOT = 'rgb';
@@ -83,37 +84,19 @@ function vssUnavailableError(): Error {
  * rather than pretending — see tasks/rgb-l1-migration.md, phase 3.
  */
 function adapt(wallet: UTEXOWallet<RgbLibRn>, accountId: string): IRgbWallet {
-  return new Proxy(wallet as unknown as IRgbWallet, {
-    get(target, prop) {
-      switch (prop) {
-        case 'send':
-          return (params: { invoice: string; assetId?: string; amount?: number; feeRate?: number }) => wallet.onchainSend(params as Parameters<typeof wallet.onchainSend>[0]);
-        case 'estimateFeeRate':
-          return async (blocks: number) => (await wallet.estimateFeeRate(blocks)).feeRate;
-        // Stable public id for dApp sessions (WalletConnect account). The
-        // engine's own identity id is per-installation, so it can't be used.
-        case 'getAccountId':
-          return () => accountId;
-        case 'vssBackup':
-          return async () => {
-            throw vssUnavailableError();
-          };
-        case 'vssBackupInfo':
-          return async () => NOOP_VSS_BACKUP_INFO;
-        case 'configureVssBackup':
-        case 'disableVssAutoBackup':
-          return async () => {};
-        case 'getDefaultVssConfig':
-          return async () => null;
-        default: {
-          // Read on the real wallet, not the proxy: the facade keeps its engine
-          // in a #private field, so a getter (`protocol`, `capabilities`) run
-          // with `this` = proxy throws a TypeError.
-          const value = Reflect.get(target, prop, target);
-          return typeof value === 'function' ? value.bind(target) : value;
-        }
-      }
+  return proxyRgbFacade(wallet, {
+    send: (params: Parameters<typeof wallet.onchainSend>[0]) => wallet.onchainSend(params),
+    estimateFeeRate: async (blocks: number) => (await wallet.estimateFeeRate(blocks)).feeRate,
+    // Stable public id for dApp sessions (WalletConnect account). The
+    // engine's own identity id is per-installation, so it can't be used.
+    getAccountId: () => accountId,
+    vssBackup: async () => {
+      throw vssUnavailableError();
     },
+    vssBackupInfo: async () => NOOP_VSS_BACKUP_INFO,
+    configureVssBackup: async () => {},
+    disableVssAutoBackup: async () => {},
+    getDefaultVssConfig: async () => null,
   });
 }
 
