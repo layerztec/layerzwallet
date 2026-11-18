@@ -232,10 +232,23 @@ the `vssBackup()` call site changes.
 - e2e trap: `idb ui text` drops characters on a 239-char invoice unless typed
   in ≤8-char chunks with ~1.2s gaps (and chunks need `--`, some start with
   `-`). Android `input text '<invoice>'` is exact.
+- Two proxy bugs found on device and fixed (`shared/modules/rgb-facade-proxy.ts`
+  + unit test on the real `UTEXOWallet`): facade getters need `this` = the
+  wallet (#private engine), and its read-only extension properties must be
+  returned untouched. Symptoms were WebRGB `getInfo` → INTERNAL_ERROR and
+  "RGB backup export failed".
+- Review (independent subagent) → fixed: backup key now bound to the network,
+  awaited `move()`/`copy()` (async in expo-file-system 57), old state dropped
+  only after the restored wallet opens; dead Node-SDK integration test removed.
+- WalletConnect on Android (pre-fix build): pairing + session approve PASS
+  with the new account id; `getInfo` failed on the proxy bug → re-test.
 
 ## Open items
-- [ ] iOS/Android: verify backup file export + import on device (build
-      `lzw-l1b-*` in progress).
+- [x] iOS: backup file export + import on device — PASS (build
+      `lzw-l1d-ios`): export 39KB file → wipe app → seed-only import shows NO
+      tokens → Import RGB Backup File (Files picker) → relaunch → 99700 LZ and
+      the 3 transfers are back. Video `l1 ios — wipe, seed only…`.
+- [ ] Android: same export/import run; send FROM the restored iOS wallet.
 - [ ] X-matrix on the new engine: X9 (expired slots), kill/relaunch
       mid-send, wipe → import file → balances.
 - [ ] WalletConnect E2E on the new engine (new account id → re-pair).
