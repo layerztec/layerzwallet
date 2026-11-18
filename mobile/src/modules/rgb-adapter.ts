@@ -84,7 +84,7 @@ function vssUnavailableError(): Error {
  */
 function adapt(wallet: UTEXOWallet<RgbLibRn>, accountId: string): IRgbWallet {
   return new Proxy(wallet as unknown as IRgbWallet, {
-    get(target, prop, receiver) {
+    get(target, prop) {
       switch (prop) {
         case 'send':
           return (params: { invoice: string; assetId?: string; amount?: number; feeRate?: number }) => wallet.onchainSend(params as Parameters<typeof wallet.onchainSend>[0]);
@@ -106,7 +106,10 @@ function adapt(wallet: UTEXOWallet<RgbLibRn>, accountId: string): IRgbWallet {
         case 'getDefaultVssConfig':
           return async () => null;
         default: {
-          const value = Reflect.get(target, prop, receiver);
+          // Read on the real wallet, not the proxy: the facade keeps its engine
+          // in a #private field, so a getter (`protocol`, `capabilities`) run
+          // with `this` = proxy throws a TypeError.
+          const value = Reflect.get(target, prop, target);
           return typeof value === 'function' ? value.bind(target) : value;
         }
       }

@@ -34,7 +34,7 @@ function vssUnavailableError(): Error {
  */
 function adapt(wallet: Wallet, vssOn: boolean): IRgbWallet {
   return new Proxy(wallet as unknown as IRgbWallet, {
-    get(target, prop, receiver) {
+    get(target, prop) {
       switch (prop) {
         case 'send':
           return (params: Parameters<Wallet['onchainSend']>[0]) => wallet.onchainSend(params);
@@ -53,7 +53,10 @@ function adapt(wallet: Wallet, vssOn: boolean): IRgbWallet {
         case 'getDefaultVssConfig':
           return async () => null;
         default: {
-          const value = Reflect.get(target, prop, receiver);
+          // Read on the real wallet, not the proxy: the facade keeps its engine
+          // in a #private field, so a getter (`protocol`, `capabilities`) run
+          // with `this` = proxy throws a TypeError.
+          const value = Reflect.get(target, prop, target);
           return typeof value === 'function' ? value.bind(target) : value;
         }
       }
