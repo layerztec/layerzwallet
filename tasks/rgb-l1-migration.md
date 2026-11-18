@@ -1,0 +1,157 @@
+# RGB migration: rgb-sdk-rn beta.39 (RLN) → beta.41 (`RgbLibRn`, L1 only)
+
+Status: PLAN (2026-11-18). Waiting on UTEXO answers in rgb-sdk-rn#74.
+Decisions already made: nothing shipped with RGB → no backup compatibility
+needed; Lightning is dropped.
+
+## Target stack
+
+| package | now | target |
+|---|---|---|
+| `@utexo/rgb-sdk-rn` | beta.39 (UTEXOWallet + RLN 0.17) | beta.41 (`RgbLibRn` engine, native rgb-lib bfa.6) |
+| `@utexo/rgb-sdk` | — | beta.10 (`UTEXOWallet({engine})` facade, `/webrgb` provider) |
+| `@utexo/rgb-sdk-core` | beta.9 | beta.10 (`SharedWalletApi` v1) |
+| `@utexo/webrgb` / `-walletconnect` | 0.1.3 / 0.1.3 | 0.1.6 / 0.1.5 |
+| WalletConnect / WalletKit | 2.25 / 1.6.0 | unchanged (walletkit pins 2.25) |
+
+## What the new engine gives / takes away
+
+Same names, mostly same shapes (keep): `getAddress`, `getBtcBalance`,
+`listUnspents`, `createUtxos`, `sendBtc`, `blindReceive`, `witnessReceive`,
+`failTransfers`, `syncWallet`, `refreshWallet`, `refreshTransfers`,
+`listAssets`, `listTransfers`, `listTransactions`, `issueAssetNia`,
+`decodeRGBInvoice`, `estimateFeeRate`, `isDisposed`, `dispose`.
+
+Changed:
+- construct: `new RgbLibRn({network:'utexo', storageDirPath, …}, mnemonic)` →
+  `init()` (no params) → auto-connect / `goOnline()`. No `createWallet`, no
+  RLN password, no signer, no unlock params, no LSP.
+- send: `onchainSend(...)` single call (no `sendBegin/sendEnd`); `skipSync`
+  refused. Native parses the invoice itself and uses its transport endpoints
+  → our `PATCH(layerz)` endpoints patch should become unnecessary (verify on
+  iOS, then delete `patches/@utexo+rgb-sdk-rn+*.patch`).
+- errors: `WalletBackendError` with codes (`KEYS_UNAVAILABLE`,
+  `WALLET_STORAGE_IN_USE`, `INSUFFICIENT_FUNDS`, …) — remap our classifiers.
+- identity: `getNodeInfo()` gone; `getWalletIdentity()` = `{id, network,
+  protocol}` (no pubkey). WalletConnect `account` needs a new stable public
+  id (derive from the colored account xpub / master fingerprint ourselves).
+- WebRGB provider moved to `@utexo/rgb-sdk/webrgb`; `WebRgbProvider` now
+  REQUIRES `burn.operations` in options even if burn isn't offered — check
+  whether a no-op store is acceptable or we must gate the method list.
+
+Gone:
+- Lightning entirely (channels, LN invoices, LSP, lightning address).
+- VSS: `vssBackup`, `vssBackupInfo`, `restoreFromVss`, fence, auto-backup.
+  Only `exportBackup({password}) → bytes`, `exportBackupToFile`, and module
+  fn `restoreBackupFromFile({filePath,password,dataDir})` (dataDir must be
+  new/empty). Facade README: VSS on RgbLibRn = **no**, on RgbLibWeb = yes.
+  Core still ships `deriveVssSigningKeyFromMnemonic`,
+  `buildVssConfigFromMnemonic`, `DEFAULT_VSS_SERVER_URL`.
+
+Build requirements:
+- TurboModule-only (New Architecture) — RN 0.86 / Expo 57: already on.
+- iOS deployment target 16.0 (set via expo-build-properties).
+- Android ABIs: only `arm64-v8a`, `x86_64` (we currently also build
+  `armeabi-v7a`, `x86`) → `reactNativeArchitectures` in gradle.properties via
+  config plugin. Check breez/spark natives are fine with that (they are
+  per-ABI .so; dropping ABIs is safe).
+- iOS xcframeworks are NOT in the tarball: SDK `postinstall` downloads them
+  (macOS, https + sha256). EAS local sandbox runs npm install → needs
+  network; add a loud check like `ensure-breez-artifacts.js`.
+- Android: Maven `com.utexo:rgb-lib-bfa-android` — check repo is reachable
+  from the EAS gradle config (may need a `maven {}` entry).
+
+## Phases
+
+### 0. Branch + spike (½ day)
+- [ ] branch `rgb-l1` off `rgb-two`.
+- [ ] bump deps, add `@utexo/rgb-sdk`, drop the beta.39 patch (keep file
+      until iOS send is verified).
+- [ ] app.json: iOS 16, ABI filter; build both platforms with an EMPTY
+      adapter stub → proves native linking before touching logic.
+- [ ] 20-line smoke on device: construct → init → getAddress → blindReceive
+      → faucet → refresh → balance. Confirms network `utexo` endpoints
+      (indexer / proxy defaults) match our signet faucet setup.
+
+### 1. Delete Lightning (mechanical, ~−2.5k lines)
+- [ ] screens: `rgb-open-channel`, `send-rgb-ln`, `rgb-lightning-address`,
+      `pay-rgb-external`, `request-rgb-external`, `pay-rgb-address`;
+      `receive-rgb-ln` (mixed → keep only what on-chain needs, likely delete).
+- [ ] routes in `ProtectedRouteStack`, "Channel" home action, Receive/Send
+      sheet rows ("over Lightning", "My Lightning address", "external
+      invoice") for RGB networks.
+- [ ] `rgb-wallet.ts:536-715` LN methods; `shared/types/rgb-adapter.ts` LN
+      types; `mobile/src/modules/rgb-adapter.ts` LSP/signer/unlock code
+      (129-260, 345-506); `rgb-lsp-errors.ts`; `getRgbUseLspStorageKey`.
+- [ ] LN unit tests; LN rows in the test plan → archived section.
+
+### 2. New adapter + wallet core
+- [ ] `rgb-adapter.ts`: build `RgbLibRn` + `UTEXOWallet({engine})`; storage
+      dir per network/account; mnemonic via reader fn (SecureStore), not a
+      long-lived string.
+- [ ] `IRgbWallet`/`IRgbAdapter`: shrink to the L1 surface; `send` →
+      `onchainSend`; drop `shimVssMethods` proxy.
+- [ ] `rgb-wallet.ts`: init path without VSS probe/gate; error mapping to
+      `WalletBackendError` codes; keep `sync()` + expired-transfer auto-fail
+      (same `failTransfers` shape); keep slot logic (`createUtxos`,
+      blind→witness fallback).
+- [ ] unit tests: rewrite the adapter mock; keep on-chain cases.
+
+### 3. Backup / recovery  ← depends on UTEXO answer + decision below
+Common to every option: the ledger (`pendingMutations`, banner, critical
+post-broadcast backup, pre-send probe) is transport-agnostic and stays; only
+the `vssBackup()` call site changes.
+- A. UTEXO ships VSS on RgbLibRn → re-point ledger at `backupToVss()` /
+     `restoreFromVss()`, keep onboarding gate. Smallest diff.
+- B. Our own cloud backup on `exportBackup()` bytes: encrypt-by-seed is
+     already done by the SDK password (derive password from mnemonic), upload
+     blob + monotonically increasing version to (b1) UTEXO VSS server via
+     core's `buildVssConfigFromMnemonic` if the protocol is usable from JS,
+     or (b2) our backend / user's iCloud-Drive. Restore = download →
+     `restoreBackupFromFile` into an empty dir → consistency check on first
+     sync. Needs single-writer rule (X4/#62) designed by us.
+- C. No cloud backup for the soft launch: banner "No cloud backup — export a
+     backup file" + manual export/import in Tools. Testnet-only acceptable;
+     not for mainnet funds.
+
+### 4. WalletConnect / WebRGB
+- [ ] imports → `@utexo/rgb-sdk/webrgb`; webrgb 0.1.6 types
+      (`burnDestination`, optional `getReceivedMint` — not offered in v1).
+- [ ] WC account id from our own derivation; `resolveAccount()` no longer
+      needs the node online → bootstrap gets simpler.
+- [ ] `burn.operations` requirement — resolve (no-op store or method gate).
+- [ ] webrgb-walletconnect 0.1.5 "resume" semantics: re-check our
+      restart path (dApp re-enable now handled upstream).
+- [ ] ledger-first `notePendingMutation` around `blindReceive` stays.
+
+### 5. UI cleanup
+- [ ] onboarding "Verifying RGB backup…" gate → per option A/B/C.
+- [ ] `send-confirm` probe + "Sent — backup pending" → per option.
+- [ ] `RgbBackupBanner`, `useRgbBackupStatus` → per option.
+- [ ] UTXO manager unchanged; Tools: add export/import backup file (C, or
+      as a power-user fallback in A/B).
+
+### 6. Verification
+- [ ] tsc, unit suites (mobile + ext).
+- [ ] device matrix re-run on the new engine: C1–C8 core flows, X2 (wipe →
+      restore), X9 (expired slots), X11/X13 (kill/wipe windows) for the
+      chosen backup option, WC E2E both platforms, cross-platform restore.
+      Videos to ~/Desktop/rgb-test-videos.
+- [ ] dual review (codex + superpowers) before merge.
+
+### 7. Ext (separate, later)
+`rgb-sdk-web` beta.9 → beta.13 (`RgbLibWeb` on rgb-lib-wasm; has VSS per the
+facade README). Shares `shared/class/wallets/rgb-wallet.ts`, so phase 2 must
+keep the ext adapter compiling (ext tsc + units are the guard).
+
+## Open questions
+- Upstream (#74): RLN future; VSS on L1; facade vs engine; release plan.
+- Ours: see the questions asked in chat on 2026-11-18 (backup option, ext
+  timing, mainnet in scope?).
+
+## Risks
+- No VSS on RN = no restore-by-seed. Biggest product risk; drives phase 3.
+- `WALLET_STORAGE_IN_USE` directory lock + our lazy-init cache: make sure
+  dispose/re-import paths release the engine (Clear & Import, account switch).
+- iOS bindings download at install time (network in EAS sandbox).
+- beta churn: two breaking releases in two weeks; pin exact versions.
