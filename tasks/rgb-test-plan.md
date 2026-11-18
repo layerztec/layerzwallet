@@ -254,6 +254,41 @@ Infra note: the AOSP emulator died twice during 500MB apk installs / gradle
 runs today — `android-recover-smoke.sh`-style cold restart + re-import is the
 fast path (≈6 min).
 
+## UPSTREAM PIVOT (2026-11-18) — beta.39 is the last RLN-capable SDK
+
+Checked libs on 2026-11-18. rgb-sdk-rn beta.40 (Oct 30, #71 "add native
+RGB_L1 wallets and temporarily disable RLN") and beta.41 (Nov 13, #73
+"Remove RLN") turned the package into the L1-only `RgbLibRn` engine on
+native rgb-lib (bfa.6); the `UTEXOWallet` facade + WebRGB integration
+moved to the new `@utexo/rgb-sdk` (beta.10); core beta.10 = new
+`SharedWalletApi v1` contract (core #22). webrgb 0.1.6 /
+webrgb-walletconnect 0.1.5 target that model (burn destination v1,
+received-mint reads, session resume). rgb-lightning-node: no releases or
+commits since Oct 14; #58/#62 unanswered since Oct 9.
+
+Consequences for us:
+- Everything in this plan (VSS restore-by-seed, ledger, consistency gate,
+  X1–X15, LN screens) is built on the RLN variant of `UTEXOWallet`. The new
+  RN engine has NO VSS: `RgbLibRn` implements only
+  `exportBackupToFile`/`restoreBackupFromFile`; its `restore.ts` says VSS
+  restore is RGB_LN-only. Cloud recovery from seed does not exist on L1
+  today.
+- Decision (user, 2026-11-18): nothing shipped with RGB yet → backup
+  compatibility is NOT required; drop Lightning (rgb-open-channel,
+  send/receive-rgb-ln, lightning-address, LSP client, RLN signer) and
+  migrate to the new engine once UTEXO answers.
+- Blocker to resolve before migrating: whether VSS / restore-by-seed comes
+  to RGB_L1 (otherwise device loss = asset loss). Asked upstream in
+  rgb-sdk-rn#74 (RLN future, VSS on L1, entry point `@utexo/rgb-sdk` vs
+  `RgbLibRn`, end-of-November release plan).
+- Do NOT bump webrgb*/WC transport in isolation on beta.39 (mixed
+  generations). WalletConnect 2.26 skipped: walletkit 1.6.0 pins 2.25.
+- New engine requirements to budget for: RN New Architecture
+  (TurboModules), iOS 16 deployment target, ABIs arm64-v8a/x86_64 only,
+  native rebuild (RgbLib.podspec), `@utexo/rgb-sdk-core` ^1.0.0-beta.10.
+  Our SDK surface: 15 methods in rgb-wallet.ts (~10 exist on L1 as-is) +
+  the VSS shim in rgb-adapter.ts (gone) + 8 LN screens (drop).
+
 ## Merge origin/master → rgb-two (2026-10-14, def18c9a)
 
 8 master commits: Expo 57 upgrade, spark-sdk 0.12.1, breez-sdk-liquid
