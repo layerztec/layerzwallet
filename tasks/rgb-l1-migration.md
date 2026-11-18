@@ -248,10 +248,17 @@ the `vssBackup()` call site changes.
       `lzw-l1d-ios`): export 39KB file → wipe app → seed-only import shows NO
       tokens → Import RGB Backup File (Files picker) → relaunch → 99700 LZ and
       the 3 transfers are back. Video `l1 ios — wipe, seed only…`.
-- [ ] Android: same export/import run; send FROM the restored iOS wallet.
+- [x] Send FROM the file-restored iOS wallet — PASS (300 units to Android,
+      credited; Android now 600, iOS 99400).
+- [ ] Android: export/import run (needs the system file picker scripted).
 - [ ] X-matrix on the new engine: X9 (expired slots), kill/relaunch
       mid-send, wipe → import file → balances.
-- [ ] WalletConnect E2E on the new engine (new account id → re-pair).
+- [x] WalletConnect E2E on Android — PASS (build `lzw-l1d-android`): pair →
+      approve → enable/getInfo/listAssets promptless (`protocol: RGB_L1`,
+      methods = our v1 list only) → blindReceive consent sheet → invoice to
+      the dApp → paid from iOS → credited. Old pre-migration sessions do not
+      match the new account id (expected; re-pair).
+- [ ] WalletConnect on iOS + restart/resume path (webrgb-walletconnect 0.1.5).
 - [ ] ext: file export/import UI (only recovery path while VSS is off).
 - [ ] ask UTEXO: new VSS server URL (web engine default is dead), a faucet
       or Mint UI link for test USDT, whether `dev.*` hosts are the intended
