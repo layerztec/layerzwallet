@@ -1,6 +1,6 @@
 # RGB migration: rgb-sdk-rn beta.39 (RLN) → beta.41 (`RgbLibRn`, L1 only)
 
-Status: PLAN (2026-11-18). Waiting on UTEXO answers in rgb-sdk-rn#74.
+Status: IN PROGRESS on branch `rgb-l1` (2026-11-18). UTEXO answered (below).
 Decisions (user, 2026-11-18):
 - nothing shipped with RGB → no backup compatibility needed; Lightning dropped;
 - migrate NOW without cloud backup (phase 3 option C as the interim state:
@@ -184,3 +184,21 @@ the `vssBackup()` call site changes.
   dispose/re-import paths release the engine (Clear & Import, account switch).
 - iOS bindings download at install time (network in EAS sandbox).
 - beta churn: two breaking releases in two weeks; pin exact versions.
+
+## Progress log
+- 2026-11-18 phase 0 (code): deps bumped (rgb-sdk-rn beta.41, rgb-sdk beta.10,
+  core beta.10, webrgb 0.1.6, webrgb-walletconnect 0.1.5 now a direct dep),
+  beta.39 patch removed, `rgb-adapter.ts` rewritten on `RgbLibRn` +
+  `UTEXOWallet` (801 → ~250 lines), Android `buildArchs` arm64-v8a/x86_64.
+  iOS bindings downloaded by the SDK postinstall. tsc + units green.
+  Native build + device smoke: PENDING.
+- 2026-11-18 phase 1: Lightning removed (−2756 lines): 7 screens, LSP
+  constants/errors, action-sheet rows, Channel button, use-LSP toggle, LN
+  methods/types, LN tests. mobile 584 units, ext 537 units, tsc both green.
+- Phase 4 (partly): WC provider on `@utexo/rgb-sdk/webrgb`; account id =
+  sha256(colored account xpub) exposed by the adapter as `getAccountId()`
+  (engine identity id is per-install); provider gets a no-op burn journal and
+  `getInfo().methods` is filtered to the v1 list. Device E2E: PENDING.
+- Interim backup state needs no new UI: the adapter throws `VssUnavailable`,
+  which the ledger already classifies as `unavailable` → banner "No cloud
+  backup yet", critical paths don't throw.
