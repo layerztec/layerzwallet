@@ -1,8 +1,8 @@
 import { sha256 } from '@noble/hashes/sha256';
 import { UTEXOWallet } from '@utexo/rgb-sdk';
 import { accountXpubsFromMnemonic } from '@utexo/rgb-sdk-core';
-import { RgbLibRn } from '@utexo/rgb-sdk-rn';
-import { Directory, Paths } from 'expo-file-system';
+import { RgbLibRn, restoreBackupFromFile } from '@utexo/rgb-sdk-rn';
+import { Directory, File, Paths } from 'expo-file-system';
 
 import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet, RgbNetwork } from '@shared/types/rgb-adapter';
 
@@ -28,20 +28,26 @@ function toEngineNetwork(network: RgbNetwork): 'utexo' | 'mainnet' {
   return network === 'testnet' ? 'utexo' : 'mainnet';
 }
 
+function hex(bytes: Uint8Array, length = bytes.length): string {
+  let out = '';
+  for (let i = 0; i < length; i++) out += bytes[i].toString(16).padStart(2, '0');
+  return out;
+}
+
 function mnemonicFingerprint(mnemonic: string): string {
-  const digest = sha256(new TextEncoder().encode(mnemonic));
-  let hex = '';
-  for (let i = 0; i < 8; i++) hex += digest[i].toString(16).padStart(2, '0');
-  return hex;
+  return hex(sha256(new TextEncoder().encode(mnemonic)), 8);
+}
+
+// Backup files are encrypted with a key derived from the seed, so "seed +
+// file" is all a user needs to recover — no extra password to lose.
+function backupPassword(mnemonic: string): string {
+  return hex(sha256(new TextEncoder().encode(`rgb-backup-v1\0${mnemonic}`)));
 }
 
 /** sha256 of the RGB (colored) account xpub — public, deterministic per seed. */
 async function accountIdFor(mnemonic: string, network: RgbNetwork): Promise<string> {
   const xpubs = await accountXpubsFromMnemonic(toEngineNetwork(network), mnemonic);
-  const digest = sha256(new TextEncoder().encode(xpubs.account_xpub_colored));
-  let hex = '';
-  for (let i = 0; i < digest.length; i++) hex += digest[i].toString(16).padStart(2, '0');
-  return hex;
+  return hex(sha256(new TextEncoder().encode(xpubs.account_xpub_colored)));
 }
 
 function dataDirFor(mnemonic: string, network: RgbNetwork): Directory {
@@ -114,11 +120,54 @@ function adapt(wallet: UTEXOWallet<RgbLibRn>, accountId: string): IRgbWallet {
 // share the same init.
 const walletByKey = new Map<string, Promise<IRgbWallet>>();
 
+const walletKey = (mnemonic: string, network: RgbNetwork) => `${network}:${mnemonicFingerprint(mnemonic)}`;
+
+/**
+ * Write an encrypted backup of the wallet's RGB state to the cache dir and
+ * return its uri (for the share sheet). Interim recovery path until the
+ * engine supports cloud backup: without this file, a lost device loses the
+ * RGB assets even though the seed is known.
+ */
+export async function exportRgbBackupFile(mnemonic: string, network: RgbNetwork): Promise<string> {
+  const wallet = (await globalThis.rgbAdapter.createWallet({ mnemonic, network })) as unknown as { exportBackupToFile(p: { filePath: string; password: string }): Promise<unknown> };
+  const file = new File(Paths.cache, `layerz-rgb-${network}-${mnemonicFingerprint(mnemonic)}.rgbbackup`);
+  if (file.exists) file.delete();
+  await wallet.exportBackupToFile({ filePath: file.uri.replace(/^file:\/\//, ''), password: backupPassword(mnemonic) });
+  return file.uri;
+}
+
+/**
+ * Replace the wallet's local RGB state with a backup file made by
+ * `exportRgbBackupFile` for the SAME seed. The current state is moved aside
+ * and put back if the restore fails. Caller must relaunch the app afterwards:
+ * live RgbWallet instances still hold the disposed engine.
+ */
+export async function importRgbBackupFile(mnemonic: string, network: RgbNetwork, fileUri: string): Promise<void> {
+  const key = walletKey(mnemonic, network);
+  const open = walletByKey.get(key);
+  walletByKey.delete(key);
+  if (open) await (await open).dispose();
+
+  const dir = dataDirFor(mnemonic, network);
+  const aside = new Directory(dir.parentDirectory, `${dir.name}.pre-import`);
+  if (aside.exists) aside.delete();
+  dir.move(aside);
+  const fresh = dataDirFor(mnemonic, network);
+  try {
+    await restoreBackupFromFile({ filePath: fileUri.replace(/^file:\/\//, ''), password: backupPassword(mnemonic), dataDir: dataDirSdkPath(fresh) });
+  } catch (e) {
+    if (fresh.exists) fresh.delete();
+    aside.move(new Directory(aside.parentDirectory, fresh.name));
+    throw e;
+  }
+  aside.delete();
+}
+
 class RgbAdapter implements IRgbAdapter {
   readonly capabilities = { lightning: false };
 
   createWallet(params: IRgbAdapterCreateParams): Promise<IRgbWallet> {
-    const key = `${params.network}:${mnemonicFingerprint(params.mnemonic)}`;
+    const key = walletKey(params.mnemonic, params.network);
     const cached = walletByKey.get(key);
     if (cached) return cached;
     const created = (async () => {
