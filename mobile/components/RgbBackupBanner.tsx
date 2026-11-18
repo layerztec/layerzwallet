@@ -22,12 +22,13 @@ const RgbBackupBanner: React.FC = () => {
   if (status === 'synced') return null;
 
   const isFailed = status === 'failed';
-  // Cloud backup doesn't exist on this build yet (no VSS server) — retrying is
-  // pointless, so the banner explains the one real safety net instead.
+  // Cloud backup doesn't exist on this build yet (the L1 engine has no VSS) —
+  // retrying is pointless, so the banner points at the one real safety net:
+  // the manually exported backup file.
   const isUnavailable = isFailed && lastError?.kind === 'unavailable';
   const title = isUnavailable ? 'No cloud backup yet' : isFailed ? 'Backup failed' : 'Backup pending';
   const detail = isUnavailable
-    ? 'Cloud backup is not available in this build. Your recovery phrase is the only way to restore this wallet — make sure it is written down.'
+    ? 'RGB assets cannot be restored from the recovery phrase alone. Export an RGB backup file in Settings → Tools after every receive or send, and keep it with your recovery phrase.'
     : isFailed
       ? `${pendingCount} change${pendingCount === 1 ? '' : 's'} not yet saved to backup. Tap to retry — until then, recovery on a new device may be missing recent activity.`
       : `${pendingCount} change${pendingCount === 1 ? ' is' : 's are'} syncing to backup. Usually clears within seconds.`;
@@ -35,7 +36,10 @@ const RgbBackupBanner: React.FC = () => {
   const handlePress = async () => {
     if (isRetrying) return;
     if (isUnavailable) {
-      Alert.alert('No cloud backup yet', 'This build has no cloud backup service. Back up your recovery phrase — it is the only way to restore this wallet on another device.');
+      Alert.alert(
+        'No cloud backup yet',
+        'This build has no cloud backup service. To restore RGB assets on another device you need both your recovery phrase and an RGB backup file (Settings → Tools → Export RGB Backup File). Export a new file after every receive or send.'
+      );
       return;
     }
     setIsRetrying(true);

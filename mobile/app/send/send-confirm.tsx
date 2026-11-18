@@ -77,7 +77,7 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
   // right before the send shrinks the worst-case loss window to just this
   // send's change. 'checking' keeps the Send button disabled; a failure or
   // timeout re-enables it behind an explicit warning.
-  const [vssProbe, setVssProbe] = useState<'checking' | 'ok' | 'failed' | null>(null);
+  const [vssProbe, setVssProbe] = useState<'checking' | 'ok' | 'failed' | 'unavailable' | null>(null);
 
   useEffect(() => {
     if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) return;
@@ -92,7 +92,10 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
         // "unreachable" warnings while the upload was still succeeding.
         const probe = wallet.retryBackup();
         const ok = await Promise.race([probe, new Promise<false>((r) => setTimeout(() => r(false), 30_000))]);
-        if (!cancelled) setVssProbe(ok ? 'ok' : 'failed');
+        // No cloud backup on this build at all: nothing to wait for, so don't
+        // dress it up as an outage — show a plain reminder instead.
+        const unavailable = !ok && wallet.getBackupStatus().lastBackupError?.kind === 'unavailable';
+        if (!cancelled) setVssProbe(ok ? 'ok' : unavailable ? 'unavailable' : 'failed');
         // A probe that finishes after the deadline still counts: clear the
         // warning instead of telling the user to wait for something that
         // already happened.
@@ -431,6 +434,13 @@ const SendConfirm: React.FC<SendAssetProps> = ({ ticker, token }) => {
                     <View style={styles.addressCard}>{formatAddressWithOpacity(address)}</View>
                   </Animated.View>
 
+                  {vssProbe === 'unavailable' && !isSuccess && !sentNotBackedUp && (
+                    <View style={styles.vssWarning} testID="vss-unavailable-note">
+                      <ThemedText style={styles.vssWarningText}>
+                        No cloud backup yet. After this transfer, export a new RGB backup file in Settings → Tools — the previous file will be out of date.
+                      </ThemedText>
+                    </View>
+                  )}
                   {vssProbe === 'failed' && !isSuccess && !sentNotBackedUp && (
                     <View style={styles.vssWarning} testID="vss-probe-warning">
                       <ThemedText style={styles.vssWarningText}>

@@ -13,7 +13,7 @@ RGB_E2E_SIM="${RGB_E2E_SIM:-597E4F02-2EE7-45D7-A185-266F99631F4B}"
 RGB_E2E_AVD="${RGB_E2E_AVD:-Pixel_API_29_AOSP}"
 RGB_E2E_APPID="com.layerzwallet.mobile"
 RGB_E2E_FAUCET="https://rln-signet.utexo.com/faucet"
-RGB_E2E_ESPLORA="https://esplora-api.utexo.com"
+RGB_E2E_ESPLORA="https://dev.esplora-01.mint.utexo.com"
 RGB_E2E_FAUCET_CLI="${RGB_E2E_FAUCET_CLI:-/Users/limp/z/rgb-faucet/bin/faucet-http.js}"
 
 # ── shared ────────────────────────────────────────────────────────────────
@@ -244,13 +244,13 @@ and_set_rgb_testnet() {
 
 # and_tap_home_action <label>  — home action buttons (Receive/Send/UTXOs/…)
 # have the touchable ABOVE the TextView label; tapping the label itself does
-# nothing. Taps 50px above the label center.
+# nothing. Taps 120px above the label center (the round button; was 50px before the 2026-10 home redesign).
 and_tap_home_action() {
   local b
   b=$(and_dump | python3 -c "
 import re,sys
 m=re.search(r'text=\"$1\"[^>]*bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"', sys.stdin.read())
-print((int(m.group(1))+int(m.group(3)))//2,(int(m.group(2))+int(m.group(4)))//2-50) if m else print('')")
+print((int(m.group(1))+int(m.group(3)))//2,(int(m.group(2))+int(m.group(4)))//2-120) if m else print('')")
   [ -n "$b" ] || { e2e_log "and_tap_home_action: '$1' not found"; return 1; }
   adb shell input tap $b
 }

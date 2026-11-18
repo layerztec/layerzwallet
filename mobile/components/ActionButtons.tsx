@@ -56,11 +56,6 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
     }
   };
 
-  const rgbSendActions = [
-    { children: <Action network={network} text="Send via RGB on-chain" />, onClick: handleSend },
-    { children: <Action text="Cancel" />, onClick: () => {} },
-  ];
-
   const handleReceive = () => {
     onReceivePress?.();
     router.push('/Receive');
@@ -138,14 +133,6 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
     if (network === NETWORK_USDT) {
       return (
         <ActionPopupButton actions={usdtSendActions} title="Choose network to send">
-          <HomeActionButton title="Send" icon={{ name: 'call-made', type: 'material', size: 24 }} onPress={() => {}} testID="SendButton" />
-        </ActionPopupButton>
-      );
-    }
-
-    if (network === NETWORK_RGB_TESTNET) {
-      return (
-        <ActionPopupButton actions={rgbSendActions} title="How to send">
           <HomeActionButton title="Send" icon={{ name: 'call-made', type: 'material', size: 24 }} onPress={() => {}} testID="SendButton" />
         </ActionPopupButton>
       );
