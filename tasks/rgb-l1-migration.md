@@ -202,3 +202,45 @@ the `vssBackup()` call site changes.
 - Interim backup state needs no new UI: the adapter throws `VssUnavailable`,
   which the ledger already classifies as `unavailable` → banner "No cloud
   backup yet", critical paths don't throw.
+- 2026-11-18 evening — DEVICE RESULTS (new engine, builds `lzw-l1-ios.tar.gz`
+  137MB / `lzw-l1-android.apk` 305MB; were ~190MB / ~500MB with RLN):
+  - iOS (wallet17) + Android (wallet16): import → RGB testnet opens, BTC
+    balance + October tx history show (same on-chain keys as the RLN wallet;
+    RGB assets from the RLN era are gone, as expected — no restore path).
+  - iOS: blind invoice, issue asset (NIA, 100000 units) PASS.
+  - iOS → Android 500 units PASS; Android → iOS 200 units PASS; balances
+    reconcile (iOS 99700, Android 300). Videos in ~/Desktop/rgb-test-videos
+    (`l1 ios — …`, `l1 android — …`).
+  - beta.39 endpoints patch NOT needed: native parses the invoice endpoints.
+  - ext: Playwright smoke `rgb-smoke.spec.ts` — RgbLibWeb opens + syncs.
+- FOUND: UTEXO retired the RLN-era hosts — `esplora-api.utexo.com`,
+  `rln-signet.utexo.com` (faucet), `vss-server.utexo.com` are NXDOMAIN on
+  8.8.8.8 / 1.1.1.1 / 9.9.9.9. Consequences:
+  - the beta.39 build on `rgb-two` is dead (no indexer, no VSS) → this
+    migration is mandatory, not optional;
+  - new `utexo` endpoints (engine defaults): esplora
+    `dev.esplora-01.mint.utexo.com`, proxy `dev.rgb-proxy.utexo.com`; mainnet
+    `electrs-01.utexo.com:50002`, `rgb-proxy.utexo.com`;
+  - NO faucet → tests use a self-issued asset; USDT needs the Mint UI;
+  - web engine's default VSS url is the dead host → ext runs with VSS OFF
+    (`RGB_VSS_URL = null` in ext adapter) until UTEXO gives a new server.
+    Ext therefore has NO recovery path at all right now (no file export UI).
+- UX fixes from the run: banner no longer claims the seed alone restores the
+  wallet; send-confirm shows a plain "export a new backup file" note instead
+  of "backup service unreachable / send at your own risk"; single-option
+  Send sheet removed.
+- e2e trap: `idb ui text` drops characters on a 239-char invoice unless typed
+  in ≤8-char chunks with ~1.2s gaps (and chunks need `--`, some start with
+  `-`). Android `input text '<invoice>'` is exact.
+
+## Open items
+- [ ] iOS/Android: verify backup file export + import on device (build
+      `lzw-l1b-*` in progress).
+- [ ] X-matrix on the new engine: X9 (expired slots), kill/relaunch
+      mid-send, wipe → import file → balances.
+- [ ] WalletConnect E2E on the new engine (new account id → re-pair).
+- [ ] ext: file export/import UI (only recovery path while VSS is off).
+- [ ] ask UTEXO: new VSS server URL (web engine default is dead), a faucet
+      or Mint UI link for test USDT, whether `dev.*` hosts are the intended
+      public signet.
+- [ ] mainnet stays gated (phase 8).
