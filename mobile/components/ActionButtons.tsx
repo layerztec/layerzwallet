@@ -56,21 +56,8 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
     }
   };
 
-  // RGB send action sheet: on-chain RGB invoice (existing /send flow) vs
-  // USDT-over-Lightning (new /send-rgb-ln flow). LN entry only appears on
-  // signet — mainnet stays hidden until UTEXO publishes prod constants.
-  const handleSendRgbLn = () => router.push('/send-rgb-ln');
-  const handlePayRgbAddress = () => router.push('/pay-rgb-address');
-  const handlePayRgbExternal = () => router.push('/pay-rgb-external');
   const rgbSendActions = [
     { children: <Action network={network} text="Send via RGB on-chain" />, onClick: handleSend },
-    ...(network === NETWORK_RGB_TESTNET
-      ? [
-          { children: <Action network={network} text="Send over Lightning" />, onClick: handleSendRgbLn },
-          { children: <Action network={network} text="Pay Lightning address" />, onClick: handlePayRgbAddress },
-          { children: <Action network={network} text="Pay external invoice" />, onClick: handlePayRgbExternal },
-        ]
-      : []),
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
@@ -140,21 +127,9 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
   // (new /receive-rgb-token screen). Surface both via the popup pattern that
   // USDT already uses.
   const handleReceiveRgbToken = () => router.push('/receive-rgb-token');
-  // Only show the LN-receive option on signet (rgb_testnet) — mainnet stays
-  // hidden until the LSP URL + USDT asset id come back from UTEXO.
-  const handleReceiveRgbLn = () => router.push('/receive-rgb-ln');
-  const handleRgbLightningAddress = () => router.push('/rgb-lightning-address');
-  const handleRequestRgbExternal = () => router.push('/request-rgb-external');
   const rgbReceiveActions = [
     { children: <Action network={network} text="Receive sats" />, onClick: handleReceive },
     { children: <Action network={network} text="Receive RGB asset" />, onClick: handleReceiveRgbToken },
-    ...(network === NETWORK_RGB_TESTNET
-      ? [
-          { children: <Action network={network} text="Receive over Lightning" />, onClick: handleReceiveRgbLn },
-          { children: <Action network={network} text="My Lightning address" />, onClick: handleRgbLightningAddress },
-          { children: <Action network={network} text="Request external invoice" />, onClick: handleRequestRgbExternal },
-        ]
-      : []),
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
@@ -229,14 +204,6 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
     return <HomeActionButton title="UTXOs" icon={{ name: 'view-list', type: 'material', size: 24 }} onPress={() => router.push('/utxo-manager')} testID="UtxosButton" />;
   };
 
-  // Testnet-only: open an LN channel to an arbitrary peer (e.g. the RGB
-  // faucet bot). Bootstraps outbound liquidity for P2P LN testing where
-  // no external payer is available to seed the wallet via the LSP-JIT path.
-  const renderOpenChannelButton = () => {
-    if (network !== NETWORK_RGB_TESTNET) return null;
-    return <HomeActionButton title="Channel" icon={{ name: 'link', type: 'material', size: 24 }} onPress={() => router.push('/rgb-open-channel')} testID="OpenChannelButton" />;
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.buttonsRow}>
@@ -245,7 +212,6 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
         {renderFundButton()}
         {renderIssueButton()}
         {renderUtxosButton()}
-        {renderOpenChannelButton()}
       </View>
     </View>
   );

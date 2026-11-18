@@ -4,8 +4,8 @@ import { AllNetworkInfos } from '../../models/all-network-infos';
 import { CommonTokenTransfer, CommonTransaction } from '../../types/common-transaction';
 import { Networks, NETWORK_RGB, NETWORK_RGB_TESTNET } from '../../types/networks';
 import { CachedTokenInfo } from '../../types/token-info';
-import { IRgbAdapter, IRgbWallet, RgbLnReceiveResult, RgbLnSendResult, RgbLnSettlementOutcome, RgbNetwork } from '../../types/rgb-adapter';
-import { getRgbBackupStateStorageKey, getRgbInitializedStorageKey, getRgbUseLspStorageKey, IStorage } from '../../types/IStorage';
+import { IRgbAdapter, IRgbWallet, RgbNetwork } from '../../types/rgb-adapter';
+import { getRgbBackupStateStorageKey, getRgbInitializedStorageKey, IStorage } from '../../types/IStorage';
 import { AbstractWallet } from './abstract-wallet';
 import { InterfaceAccountBasedWallet } from './interface-account-based-wallet';
 import { InterfaceCanHaveTokens } from './interface-can-have-tokens';
@@ -194,15 +194,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     this._storage = storage;
     await this.loadBackupState();
 
-    // Read the per-network "use LSP" preference (see STORAGE_KEY_RGB_USE_LSP).
-    // Missing / anything other than 'false' preserves the historical LSP-attached
-    // behavior; 'false' disables LSP so `enableVirtualChannelsV0` stays off and
-    // manually-opened channels can actually route HTLCs. Toggle lives in Tools.
-    // Guard the call — some unit tests hand in `{} as any` for storage, and a
-    // bare `.getItem(...)` there throws before `.catch` can see it.
-    const useLspRaw = await (typeof storage?.getItem === 'function' ? storage.getItem(getRgbUseLspStorageKey(this._network)).catch(() => '') : Promise.resolve(''));
-    const useLsp = useLspRaw !== 'false';
-    const params = { mnemonic: this.secret, network: this._sdkNetwork, useLsp };
+    const params = { mnemonic: this.secret, network: this._sdkNetwork };
     try {
       this._sdkWallet = await this.adapter.restoreFromVss(params);
     } catch (e) {
@@ -256,9 +248,7 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
    * tasks/ship-rgb.md.
    */
   private async acquireFreshWalletAfterProbe(originalError: unknown): Promise<IRgbWallet> {
-    const useLspRaw = await (typeof this._storage?.getItem === 'function' ? this._storage.getItem(getRgbUseLspStorageKey(this._network)).catch(() => '') : Promise.resolve(''));
-    const useLsp = useLspRaw !== 'false';
-    const candidate = await this.adapter.createWallet({ mnemonic: this.secret!, network: this._sdkNetwork, useLsp });
+    const candidate = await this.adapter.createWallet({ mnemonic: this.secret!, network: this._sdkNetwork });
 
     let info: Awaited<ReturnType<IRgbWallet['vssBackupInfo']>>;
     try {
@@ -523,201 +513,6 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
     return { assetId: asset.assetId, ticker: asset.ticker, name: asset.name, precision: asset.precision };
   }
 
-  /**
-   * Asset-aware Lightning receive via the LSP composed flow. Returns both the
-   * BOLT11 (sats payer route) and the RGB invoice (on-chain asset route) that
-   * settle the same logical receive.
-   *
-   * Throws if the underlying SDK has no LN surface (extension uses
-   * rgb-sdk-web, which is still on a pre-LSP build) or if the LSP base URL /
-   * asset id constants haven't been populated for the active network yet
-   * (see `mobile/src/constants/rgb-lsp.ts`).
-   */
-  async lightningReceiveAsset(params: { assetId: string; amountSats: number; amountRgb: number; expirySeconds?: number }): Promise<RgbLnReceiveResult> {
-    const sdk = this.sdk();
-    if (!sdk.lightningReceiveAsset) {
-      throw new Error('Lightning receive is not supported by this build');
-    }
-    return sdk.lightningReceiveAsset(params);
-  }
-
-  /** P2P-friendly alternative: generate a BOLT11 via the wallet's own node
-   *  instead of via `UtexoLsp.receiveAsset`. Route hints then point at the
-   *  wallet's existing channel peer (e.g. the faucet bot), which is required
-   *  when the payer has no channel to the LSP. */
-  async createNativeLnInvoice(params: { amountSats: number; expirySeconds?: number; assetId?: string; assetAmount?: number }) {
-    const sdk = this.sdk();
-    if (!sdk.createNativeLnInvoice) throw new Error('createNativeLnInvoice is not supported by this build');
-    return sdk.createNativeLnInvoice(params);
-  }
-
-  /** Raw ledger of every LN payment the RLN node has tracked (outgoing
-   *  attempts + incoming HTLCs). Used by the Send screen to poll for a
-   *  final status after an initially-Pending pay so the UI doesn't leave
-   *  the user staring at "Payment pending" forever. */
-  async listLnPayments() {
-    const sdk = this.sdk();
-    if (!sdk.listPaymentsRaw) throw new Error('listPaymentsRaw is not supported by this build');
-    return sdk.listPaymentsRaw();
-  }
-
-  /**
-   * Asset-aware Lightning send via the LSP. Caller passes the recipient's
-   * `rgb:` invoice; LSP fronts a BOLT11, the local node pays it, and the LSP
-   * forwards the RGB asset on settle.
-   */
-  async lightningSendAsset(params: { rgbInvoice: string; amountSats?: number }): Promise<RgbLnSendResult> {
-    const sdk = this.sdk();
-    if (!sdk.lightningSendAsset) {
-      throw new Error('Lightning send is not supported by this build');
-    }
-    const r = await sdk.lightningSendAsset(params);
-    // LN sends mutate channel/allocation state exactly like an on-chain
-    // transfer — keep the backup ledger's "critical backup after every
-    // user-initiated mutation" invariant (same as pay/transferToken).
-    await this.tryBackup({ critical: true });
-    return r;
-  }
-
-  /** Pay a BOLT11 directly from this wallet's LN node. Used for the
-   *  asset-LN P2P path where we already hold a usable channel. */
-  async payLightningInvoice(params: { lnInvoice: string; assetId?: string; assetAmount?: number; maxFee?: number; amountSats?: number }): Promise<RgbLnSendResult> {
-    const sdk = this.sdk();
-    if (!sdk.payLightningInvoice) {
-      throw new Error('Lightning pay is not supported by this build');
-    }
-    const r = await sdk.payLightningInvoice(params);
-    await this.tryBackup({ critical: true });
-    return r;
-  }
-
-  /**
-   * Polls the LSP until the receive settles or the wait deadline elapses.
-   * Resolves with `'settled'` once payment + RGB transfer both confirm,
-   * `'timed_out'` if the deadline passed without a terminal status. Throws
-   * (via the SDK's LspSettlementError) on Failed / Expired.
-   */
-  async awaitLightningReceiveSettlement(params: { lnInvoice: string; timeoutMs?: number; signal?: AbortSignal }): Promise<RgbLnSettlementOutcome> {
-    const sdk = this.sdk();
-    if (!sdk.awaitLightningReceiveSettlement) {
-      throw new Error('Lightning settlement polling is not supported by this build');
-    }
-    return sdk.awaitLightningReceiveSettlement(params);
-  }
-
-  /** Wait for the LSP's JIT channel carrying `assetId` to become usable.
-   *  Debug/recovery: the LSP only pushes the channel while the wallet is
-   *  connected and actively waiting. */
-  async waitForLspChannel(params: { assetId: string; timeoutMs?: number }) {
-    const sdk = this.sdk();
-    if (!sdk.waitForLspChannel) throw new Error('waitForLspChannel is not supported by this build');
-    return sdk.waitForLspChannel(params);
-  }
-
-  // ── beta.29 two-asset LSP surfaces ────────────────────────────────────────
-
-  /** LSP `get_info`: served-asset set + per-payment/channel size limits. Used
-   *  by the receive screen to size caps from the live LSP instead of hardcoding. */
-  async getLspInfo() {
-    const sdk = this.sdk();
-    if (!sdk.getLspInfo) throw new Error('getLspInfo is not supported by this build');
-    return sdk.getLspInfo();
-  }
-
-  /** Register (and return) this wallet's Lightning Address for offline receive. */
-  async enableLightningAddress() {
-    const sdk = this.sdk();
-    if (!sdk.enableLightningAddress) throw new Error('enableLightningAddress is not supported by this build');
-    return sdk.enableLightningAddress();
-  }
-
-  /** LNURL discovery for a Lightning Address — payout + accepted assets. */
-  async discoverAddress(address: string) {
-    const sdk = this.sdk();
-    if (!sdk.discoverAddress) throw new Error('discoverAddress is not supported by this build');
-    return sdk.discoverAddress(address);
-  }
-
-  /** Pay a Lightning Address. Omit `asset.assetId` to let the SDK pick. */
-  async payAddress(params: { address: string; amtMsat: number; asset?: { assetId?: string; assetAmount?: number } }) {
-    const sdk = this.sdk();
-    if (!sdk.payAddress) throw new Error('payAddress is not supported by this build');
-    const r = await sdk.payAddress(params);
-    await this.tryBackup({ critical: true });
-    return r;
-  }
-
-  /** Quote a hosted BOLT11 an APay-unaware external node can pay. */
-  async requestExternalInvoice(params: { amtMsat: number; assetAmount: number; asset?: string; prefer?: 'convertible' | 'payout'; address?: string }) {
-    const sdk = this.sdk();
-    if (!sdk.requestExternalInvoice) throw new Error('requestExternalInvoice is not supported by this build');
-    return sdk.requestExternalInvoice(params);
-  }
-
-  /** Pay a third party's plain BOLT11 out of a different asset (LSP converts). */
-  async payExternalInvoice(params: { invoice: string; payWith?: string; maxFeeMsat?: number }) {
-    const sdk = this.sdk();
-    if (!sdk.payExternalInvoice) throw new Error('payExternalInvoice is not supported by this build');
-    const r = await sdk.payExternalInvoice(params);
-    await this.tryBackup({ critical: true });
-    return r;
-  }
-
-  async externalPaymentStatus(paymentHash: string) {
-    const sdk = this.sdk();
-    if (!sdk.externalPaymentStatus) throw new Error('externalPaymentStatus is not supported by this build');
-    return sdk.externalPaymentStatus(paymentHash);
-  }
-
-  /** Decode a BOLT11 via the SDK — pulls the RGB asset tags (assetId,
-   *  assetAmount) that pure-JS bolt11 libs miss. Used by Send RGB LN to
-   *  preview what the invoice will actually route (plain sats vs asset). */
-  async decodeLnInvoice(invoice: string) {
-    const sdk = this.sdk();
-    if (!sdk.decodeLnInvoice) throw new Error('decodeLnInvoice is not supported by this build');
-    return sdk.decodeLnInvoice(invoice);
-  }
-
-  /** Direct LN channel management (debug/tools flow — not user-facing on normal
-   *  send/receive paths). Used to open a channel with a specific peer (e.g. the
-   *  RGB faucet bot's node) when the canonical LSP-JIT path doesn't fit. */
-  async openLnChannel(request: Parameters<NonNullable<IRgbWallet['openChannel']>>[0]) {
-    const sdk = this.sdk();
-    if (!sdk.openChannel) throw new Error('openChannel is not supported by this build');
-    // Verbose logging so a Metro tail can attribute an "no available utxos"
-    // failure to the actual allocation state rather than guessing.
-    try {
-      const unspents = await sdk.listUnspents();
-      rgbLog('[rgb][openLnChannel] request:', JSON.stringify(request));
-      rgbLog('[rgb][openLnChannel] unspents count:', unspents.length);
-      for (const u of unspents) {
-        rgbLog('[rgb][openLnChannel] utxo:', JSON.stringify(u));
-      }
-    } catch (probeErr: any) {
-      rgbLog('[rgb][openLnChannel] pre-probe failed:', probeErr?.message ?? String(probeErr));
-    }
-    try {
-      const r = await sdk.openChannel(request);
-      rgbLog('[rgb][openLnChannel] response:', JSON.stringify(r));
-      return r;
-    } catch (e: any) {
-      rgbLog('[rgb][openLnChannel] FAIL:', e?.name, e?.message, JSON.stringify(e));
-      throw e;
-    }
-  }
-
-  async listLnChannels() {
-    const sdk = this.sdk();
-    if (!sdk.listChannels) throw new Error('listChannels is not supported by this build');
-    return sdk.listChannels();
-  }
-
-  async closeLnChannel(channelId: string, peerPubkey: string, force: boolean) {
-    const sdk = this.sdk();
-    if (!sdk.closeChannel) throw new Error('closeChannel is not supported by this build');
-    return sdk.closeChannel(channelId, peerPubkey, force);
-  }
-
   async pay(receiverAddress: string, amountSats: number): Promise<string> {
     const txid = await this.sdk().sendBtc({
       address: receiverAddress,
@@ -852,77 +647,16 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
         const list = await sdk.listAssets();
         const assets: AnyAsset[] = [...(list.nia ?? []), ...(list.cfa ?? []), ...(list.ifa ?? []), ...(list.uda ?? [])];
 
-        // Channel-held (local-side) asset amounts per asset id. Opening/using a
-        // channel moves base units OUT of on-chain UTXO allocations and INTO the
-        // channel commitment, which `listAssets` cannot see.
-        const lnByAssetId = new Map<string, number>();
-        if (sdk.listChannels) {
-          try {
-            const channels = await sdk.listChannels();
-            for (const c of channels) {
-              const aid = c.assetId ?? c.asset_id;
-              if (!aid) continue;
-              const local = Number(c.assetLocalAmount ?? c.asset_local_amount ?? 0);
-              if (!Number.isFinite(local) || local <= 0) continue;
-              lnByAssetId.set(aid, (lnByAssetId.get(aid) ?? 0) + local);
-            }
-          } catch (e: any) {
-            rgbLog('[rgb][fetchTokenBalances] listChannels failed:', e?.message ?? e);
-          }
-        }
-
-        // Two-asset flow (rgb-sdk-rn beta.29): the LSP serves a PAYOUT asset
-        // (LNUSDT) that lives only in channels and is a DIFFERENT contract from
-        // the on-chain BRIDGE asset (USDT) in `listAssets`. So a channel's asset
-        // id no longer matches any on-chain asset — we must NOT fold it into the
-        // on-chain token by id-equality (it would vanish). Instead pull the
-        // LSP's served-asset metadata (ticker/precision) so a channel-only asset
-        // can be shown as its own token row. `getLspInfo` is mobile-only; on
-        // builds without it we simply skip the metadata and fall back to the id.
-        const lspAssetMeta = new Map<string, { ticker?: string; name?: string; precision: number }>();
-        if (sdk.getLspInfo && lnByAssetId.size > 0) {
-          try {
-            const info = await sdk.getLspInfo();
-            for (const a of info.supportedAssets) lspAssetMeta.set(a.assetId, { ticker: a.ticker, name: a.name, precision: a.precision });
-          } catch (e: any) {
-            rgbLog('[rgb][fetchTokenBalances] getLspInfo failed:', e?.message ?? e);
-          }
-        }
-
         const chainId = AllNetworkInfos[this._network].chainId;
-        const onChainIds = new Set(assets.map((a) => a.assetId));
-        const tokens: CachedTokenInfo[] = assets.map((a) => {
-          // A same-asset channel (channel id == on-chain id) still folds its
-          // local amount into the on-chain spendable; a two-asset channel never
-          // matches here (handled below).
-          const lnLocal = lnByAssetId.get(a.assetId) ?? 0;
-          const totalSpendable = a.balance.spendable + lnLocal;
-          return {
-            id: a.assetId,
-            chainId,
-            name: a.name,
-            symbol: a.ticker ?? a.name,
-            decimals: a.precision,
-            balance: String(totalSpendable),
-            logoURI: a.media?.filePath,
-          };
-        });
-
-        // Channel-only assets (LNUSDT): surface each as its own token row so the
-        // user sees their off-chain balance distinctly from on-chain USDT.
-        for (const [aid, local] of lnByAssetId) {
-          if (onChainIds.has(aid)) continue;
-          const meta = lspAssetMeta.get(aid);
-          tokens.push({
-            id: aid,
-            chainId,
-            name: meta?.name ?? meta?.ticker ?? 'RGB asset',
-            symbol: meta?.ticker ?? meta?.name ?? `${aid.slice(0, 12)}…`,
-            decimals: meta?.precision ?? 0,
-            balance: String(local),
-            logoURI: undefined,
-          });
-        }
+        const tokens: CachedTokenInfo[] = assets.map((a) => ({
+          id: a.assetId,
+          chainId,
+          name: a.name,
+          symbol: a.ticker ?? a.name,
+          decimals: a.precision,
+          balance: String(a.balance.spendable),
+          logoURI: a.media?.filePath,
+        }));
 
         this._tokens = tokens;
         this._lastTokensFetch = Date.now();
@@ -1021,57 +755,6 @@ export class RgbWallet extends AbstractWallet implements InterfaceAccountBasedWa
         counterparty: direction === 'send' ? t.recipientId : undefined,
         explorerUrl: explorerBase && t.txid ? `${explorerBase}/tx/${t.txid}` : undefined,
       });
-    }
-
-    // LN payments (both outgoing and incoming HTLCs) live in a different
-    // SDK ledger — `rlnListPayments` — and were previously invisible to the
-    // UI. Fold them in as CommonTransactions keyed by `ln:<paymentHash>` so
-    // they can't collide with real on-chain txids. Missing entirely on
-    // builds where the SDK doesn't expose the method (extension web build).
-    if (sdk.listPaymentsRaw) {
-      try {
-        const payments = await sdk.listPaymentsRaw();
-        rgbLog('[rgb][getCommonTransactions] LN payments count:', payments.length);
-        for (const p of payments) {
-          rgbLog('[rgb][getCommonTransactions] LN payment:', JSON.stringify(p));
-          const paymentType = (p.paymentType ?? '').toString().toLowerCase();
-          const direction: CommonTransaction['direction'] = paymentType.includes('in') ? 'receive' : 'send';
-          const amountSats = typeof p.amtMsat === 'number' ? Math.round(p.amtMsat / 1000) : undefined;
-          // RlnPayment.updatedAt / createdAt are unix SECONDS. Was
-          // undocumented; fixed in beta.26 by documenting the unit in the
-          // SDK types (values unchanged), so this passthrough stays correct:
-          // https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/48
-          // If the payment moved an asset (colored channel routing), attach
-          // it as a CommonTokenTransfer so the details sheet renders the
-          // asset row alongside the sat amount — otherwise a "3000 sat"
-          // send row hides the fact that 1 UTST also left the channel.
-          const tokenTransfers: CommonTokenTransfer[] = [];
-          if (p.assetId && typeof p.assetAmount === 'number' && p.assetAmount > 0) {
-            const meta = this._tokens.find((t) => t.id === p.assetId);
-            tokenTransfers.push({
-              tokenId: p.assetId,
-              amount: p.assetAmount,
-              symbol: meta?.symbol,
-              decimals: meta?.decimals ?? 0,
-              name: meta?.name,
-            });
-          }
-          common.push({
-            network: this._network,
-            txid: `ln:${p.paymentHash}`,
-            timestamp: p.updatedAt || p.createdAt,
-            direction,
-            amount: amountSats,
-            status: paymentStatusToCommon(p.status),
-            counterparty: p.payeePubkey,
-            tokenTransfers: tokenTransfers.length > 0 ? tokenTransfers : undefined,
-          });
-        }
-      } catch (e: any) {
-        rgbLog('[rgb][getCommonTransactions] listPaymentsRaw failed:', e?.message ?? e);
-      }
-    } else {
-      rgbLog('[rgb][getCommonTransactions] SDK has no listPaymentsRaw — LN history omitted');
     }
 
     common.sort((a, b) => b.timestamp - a.timestamp);
@@ -1413,25 +1096,6 @@ function transferStatusToCommon(status: string): CommonTransaction['status'] {
       return 'failed';
     case 'WaitingCounterparty':
     case 'WaitingConfirmations':
-    default:
-      return 'pending';
-  }
-}
-
-function paymentStatusToCommon(status: string | undefined): CommonTransaction['status'] {
-  // The RLN SDK types call these 'Succeeded' / 'Failed' / … but the actual
-  // native binding hands back UPPERCASE strings ('SUCCEEDED', 'FAILED', …).
-  // Normalize before matching so both spellings work — spec vs reality
-  // divergence isn't something we want to re-debug every SDK bump.
-  switch ((status ?? '').toString().toUpperCase()) {
-    case 'SUCCEEDED':
-      return 'confirmed';
-    case 'FAILED':
-    case 'CANCELLED':
-      return 'failed';
-    case 'PENDING':
-    case 'CLAIMABLE':
-    case 'CLAIMING':
     default:
       return 'pending';
   }

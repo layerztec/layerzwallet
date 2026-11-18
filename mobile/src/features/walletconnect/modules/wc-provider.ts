@@ -85,7 +85,8 @@ export async function buildBackend(context: WalletConnectWalletContext, host: Ho
   });
   context.signal.addEventListener('abort', () => provider.revoke(), { once: true });
 
-  const run = <A extends unknown[], R>(method: string, action: (...args: A) => Promise<R>) =>
+  const run =
+    <A extends unknown[], R>(method: string, action: (...args: A) => Promise<R>) =>
     (...args: A): Promise<R> =>
       host.enqueue(async () => {
         context.assertAuthorized();

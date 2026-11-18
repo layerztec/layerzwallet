@@ -36,7 +36,6 @@ export const STORAGE_KEY_RECEIVE_CTA = 'STORAGE_KEY_RECEIVE_CTA';
  *  channels route HTLCs; anything else (including missing key) preserves
  *  the default LSP-attached behavior. See UTEXO issue tracker for the
  *  virtual-channel-vs-P2P interaction that makes this a hard choice. */
-export const STORAGE_KEY_RGB_USE_LSP = 'STORAGE_KEY_RGB_USE_LSP';
 
 export interface IStorage {
   setItem(key: string, value: string): Promise<void>;
@@ -53,8 +52,4 @@ export const getRgbInitializedStorageKey = (network: string) => {
 
 export const getRgbBackupStateStorageKey = (network: string, accountNumber: number) => {
   return `${STORAGE_KEY_RGB_BACKUP_STATE}_${network}_${accountNumber}`;
-};
-
-export const getRgbUseLspStorageKey = (network: string) => {
-  return `${STORAGE_KEY_RGB_USE_LSP}_${network}`;
 };
