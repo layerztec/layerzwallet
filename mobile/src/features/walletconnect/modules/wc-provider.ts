@@ -10,8 +10,7 @@
  * tasks/rgb-test-plan.md: a receive that exists only locally is lost on the
  * next restore).
  */
-import type { UTEXOWallet } from '@utexo/rgb-sdk-rn';
-import { WebRgbProvider, type WebRgbApproval } from '@utexo/rgb-sdk-rn/webrgb';
+import { BurnOperations, WebRgbProvider, type WebRgbApproval, type WebRgbWallet } from '@utexo/rgb-sdk/webrgb';
 import type { WalletConnectBackend, WalletConnectWalletContext } from '@utexo/webrgb-walletconnect';
 
 import { BackgroundExecutor } from '@/src/modules/background-executor';
@@ -36,16 +35,19 @@ async function getRgbWallet(): Promise<RgbWallet> {
   return wallet;
 }
 
-/** `rgb:utexo:<pubkey>` — the account identity the transport binds sessions to. */
+/** `rgb:utexo:<account id>` — the account identity the transport binds sessions to. */
 export async function resolveAccount(): Promise<string> {
   const wallet = await getRgbWallet();
-  // getNodeInfo lives on the raw UTEXOWallet surface (the IRgbWallet proxy
-  // forwards it at runtime; the shared type doesn't declare it).
-  const sdk = wallet.getSdk() as unknown as UTEXOWallet;
-  if (typeof sdk.getNodeInfo !== 'function') throw new Error('RGB node does not expose node info');
-  const info = await sdk.getNodeInfo();
-  return `rgb:${WC_NETWORK}:${info.pubkey}`;
+  // Provided by the mobile adapter's proxy (hash of the RGB account xpub);
+  // the shared IRgbWallet type doesn't declare it.
+  const sdk = wallet.getSdk() as unknown as { getAccountId?: () => string };
+  if (typeof sdk.getAccountId !== 'function') throw new Error('RGB wallet does not expose an account id');
+  return `rgb:${WC_NETWORK}:${sdk.getAccountId()}`;
 }
+
+// The provider insists on a burn journal even though v1 serves no burn
+// method (see WC_METHODS). Nothing is ever written to this store.
+const NO_BURN_STORE = { readAll: async () => [], write: async () => {} };
 
 type Host = {
   enqueue<T>(action: () => Promise<T>): Promise<T>;
@@ -54,7 +56,9 @@ type Host = {
 
 export async function buildBackend(context: WalletConnectWalletContext, host: Host): Promise<WalletConnectBackend> {
   const rgbWallet = await getRgbWallet();
-  const provider = new WebRgbProvider(rgbWallet.getSdk() as unknown as UTEXOWallet, {
+  const sdk = rgbWallet.getSdk() as unknown as WebRgbWallet;
+  const provider = new WebRgbProvider(sdk, {
+    burn: { operations: new BurnOperations(sdk, NO_BURN_STORE) },
     origin: context.origin,
     // The transport session was already approved (or restored) before
     // getProvider is called, so enable() must not prompt a second time.
@@ -99,7 +103,12 @@ export async function buildBackend(context: WalletConnectWalletContext, host: Ho
 
   return {
     enable: run('enable', () => provider.enable()),
-    getInfo: run('getInfo', () => provider.getInfo()),
+    // Advertise only what this backend serves: the provider would also list
+    // witnessReceive / burn methods the engine is capable of.
+    getInfo: run('getInfo', async () => {
+      const { ready, network, protocol, methods } = await provider.getInfo();
+      return { ready, network, protocol, methods: methods.filter((m) => (WC_METHODS as readonly string[]).includes(m)) };
+    }),
     getAddress: run('getAddress', () => provider.getAddress()),
     blindReceive: run('blindReceive', provider.blindReceive.bind(provider)),
     listAssets: run('listAssets', () => provider.listAssets()),
