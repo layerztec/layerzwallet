@@ -12,6 +12,16 @@ Decisions (user, 2026-11-18):
   step and does not flip until restore-by-seed is proven (X2/X11/X13/X15);
 - ext migrates in the same effort (rgb-sdk-web beta.13, `RgbLibWeb`).
 
+## UTEXO answers (chat, 2026-11-18)
+- LN may come back, not anytime soon (RLN production readiness: Q1).
+- File backup only for now; VSS on L1 "soon" → option A stays the target
+  for mainnet recovery, option C is the interim.
+- Use the SDK through `UTEXOWallet` (more shared functionality will land
+  there; eases Web↔RN).
+- Release: RGB USDT on-chain on bitcoin mainnet + a Mint UI (mint by locking
+  USDT on any chain). Public-signet Mint UI link promised, not available yet
+  → proceed without it; WebRGB burn/mint surface stays out of v1.
+
 ## Target stack
 
 | package | now | target |
