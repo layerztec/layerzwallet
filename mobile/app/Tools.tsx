@@ -317,9 +317,10 @@ export default function TabThreeScreen() {
     const picked = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true, multiple: false });
     if (picked.canceled) return;
     const fileUri = picked.assets[0].uri;
+    const target = network === NETWORK_RGB ? 'RGB mainnet' : 'RGB testnet';
     Alert.alert(
-      'Import RGB backup',
-      'Replaces the RGB state on this device with the backup file. Anything received or sent after the backup was made will be lost. The file must come from this same seed.',
+      `Import ${target} backup`,
+      `Replaces the ${target} state on this device with the backup file. Anything received or sent after the backup was made will be lost. The file must be a ${target} backup of this same seed.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {

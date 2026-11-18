@@ -41,8 +41,11 @@ function mnemonicFingerprint(mnemonic: string): string {
 
 // Backup files are encrypted with a key derived from the seed, so "seed +
 // file" is all a user needs to recover — no extra password to lose.
-function backupPassword(mnemonic: string): string {
-  return hex(sha256(new TextEncoder().encode(`rgb-backup-v1\0${mnemonic}`)));
+// The network is part of the key: the native restore does not check which
+// network a file belongs to, and a testnet file restored into the mainnet
+// directory would leave a wallet that refuses to open.
+function backupPassword(mnemonic: string, network: RgbNetwork): string {
+  return hex(sha256(new TextEncoder().encode(`rgb-backup-v1\0${network}\0${mnemonic}`)));
 }
 
 /** sha256 of the RGB (colored) account xpub — public, deterministic per seed. */
@@ -118,15 +121,16 @@ export async function exportRgbBackupFile(mnemonic: string, network: RgbNetwork)
   const wallet = (await globalThis.rgbAdapter.createWallet({ mnemonic, network })) as unknown as { exportBackupToFile(p: { filePath: string; password: string }): Promise<unknown> };
   const file = new File(Paths.cache, `layerz-rgb-${network}-${mnemonicFingerprint(mnemonic)}.rgbbackup`);
   if (file.exists) file.delete();
-  await wallet.exportBackupToFile({ filePath: file.uri.replace(/^file:\/\//, ''), password: backupPassword(mnemonic) });
+  await wallet.exportBackupToFile({ filePath: file.uri.replace(/^file:\/\//, ''), password: backupPassword(mnemonic, network) });
   return file.uri;
 }
 
 /**
  * Replace the wallet's local RGB state with a backup file made by
- * `exportRgbBackupFile` for the SAME seed. The current state is moved aside
- * and put back if the restore fails. Caller must relaunch the app afterwards:
- * live RgbWallet instances still hold the disposed engine.
+ * `exportRgbBackupFile` for the SAME seed and network. The current state is
+ * moved aside and only dropped once the restored wallet has actually opened;
+ * any failure puts it back. Caller must relaunch the app afterwards: live
+ * RgbWallet instances still hold the disposed engine.
  */
 export async function importRgbBackupFile(mnemonic: string, network: RgbNetwork, fileUri: string): Promise<void> {
   const key = walletKey(mnemonic, network);
@@ -134,19 +138,29 @@ export async function importRgbBackupFile(mnemonic: string, network: RgbNetwork,
   walletByKey.delete(key);
   if (open) await (await open).dispose();
 
-  const dir = dataDirFor(mnemonic, network);
-  const aside = new Directory(dir.parentDirectory, `${dir.name}.pre-import`);
+  const live = dataDirFor(mnemonic, network);
+  const parent = live.parentDirectory;
+  const name = live.name;
+  const aside = new Directory(parent, `${name}.pre-import`);
   if (aside.exists) aside.delete();
-  dir.move(aside);
-  const fresh = dataDirFor(mnemonic, network);
+  // expo-file-system's move() is async (only moveSync is not): un-awaited, the
+  // restore below could race it and the rollback would delete live state.
+  await live.move(aside);
   try {
-    await restoreBackupFromFile({ filePath: fileUri.replace(/^file:\/\//, ''), password: backupPassword(mnemonic), dataDir: dataDirSdkPath(fresh) });
+    const fresh = dataDirFor(mnemonic, network);
+    await restoreBackupFromFile({ filePath: fileUri.replace(/^file:\/\//, ''), password: backupPassword(mnemonic, network), dataDir: dataDirSdkPath(fresh) });
+    // Prove the restored state opens before giving up the old one.
+    await globalThis.rgbAdapter.createWallet({ mnemonic, network });
   } catch (e) {
-    if (fresh.exists) fresh.delete();
-    aside.move(new Directory(aside.parentDirectory, fresh.name));
+    const failed = walletByKey.get(key);
+    walletByKey.delete(key);
+    if (failed) await failed.then((w) => w.dispose()).catch(() => {});
+    const broken = new Directory(parent, name);
+    if (broken.exists) broken.delete();
+    await new Directory(parent, `${name}.pre-import`).move(new Directory(parent, name));
     throw e;
   }
-  aside.delete();
+  new Directory(parent, `${name}.pre-import`).delete();
 }
 
 class RgbAdapter implements IRgbAdapter {
@@ -182,24 +196,19 @@ class RgbAdapter implements IRgbAdapter {
 globalThis.rgbAdapter = new RgbAdapter();
 
 /**
- * Nuke ALL on-disk RGB SDK state (all mnemonic × network dirs under
- * `Documents/rgb`) and drop the in-memory wallet cache. Called from the
- * "Clear All Data" tool because `AsyncStorage.clear()` only wipes the JS
- * side — the RLN node's LDK state and RGB registrar DB live on the
- * filesystem outside AsyncStorage's reach, so without this the next
- * import against the same mnemonic re-inits on top of stale native state
- * and every subsequent op throws "conflict with current node state".
+ * Nuke ALL on-disk RGB SDK state (everything under `Documents/rgb`) and drop
+ * the in-memory wallet cache. Called from the "Clear All Data" tool because
+ * `AsyncStorage.clear()` only wipes the JS side — the rgb-lib database lives
+ * on the filesystem, so without this the next import of the same seed would
+ * reopen the old wallet.
  */
 const RGB_SNAPSHOT_ROOT = 'rgb-snapshot';
 
 /**
  * Dev-only: copy `Documents/rgb/` → `Documents/rgb-snapshot/`. Lets a QA flow
- * roundtrip through Clear All Data (currently VSS-less on beta.20+; see
- * `shimVssMethods`) without re-requesting assets from the faucet each time.
+ * roundtrip through Clear All Data without rebuilding the wallet's assets.
  * Overwrites any previous snapshot. Also snapshots the on-disk state exactly
- * as-is — if the RLN node has open channels or pending transfers, restoring
- * back into that state after a Rust process kill may or may not work; use
- * against a quiescent wallet only.
+ * as-is; use against a quiescent wallet (no transfers in flight) only.
  */
 export async function snapshotAllRgbData(): Promise<{ snapshottedPath: string; empty: boolean }> {
   const src = new Directory(Paths.document, RGB_DATA_ROOT);
@@ -220,7 +229,7 @@ export async function snapshotAllRgbData(): Promise<{ snapshottedPath: string; e
   // destination (creates `<dst>/rgb`). We want the contents at the root of
   // the snapshot dir instead, so walk one level and copy each child.
   for (const child of src.list()) {
-    child.copy(dst);
+    await child.copy(dst);
   }
   rgbLog('[rgb-adapter] snapshotAllRgbData: snapshotted to', dst.uri);
   return { snapshottedPath: dst.uri, empty: false };
@@ -229,11 +238,8 @@ export async function snapshotAllRgbData(): Promise<{ snapshottedPath: string; e
 /**
  * Dev-only companion to `snapshotAllRgbData`. Tears down cached wallets +
  * wipes live `Documents/rgb/`, then copies from the snapshot dir back.
- * Caller must force-kill the app afterwards (see
- * https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/47 — the native
- * binding doesn't release its per-process registration for the storage
- * dir on dispose, so a fresh init in the same process throws
- * "conflict with current node state" regardless of on-disk state).
+ * Caller must force-kill the app afterwards: live RgbWallet instances still
+ * hold the engine that was just disposed.
  */
 export async function restoreAllRgbData(): Promise<{ restored: boolean; reason?: string }> {
   const src = new Directory(Paths.document, RGB_SNAPSHOT_ROOT);
@@ -242,7 +248,7 @@ export async function restoreAllRgbData(): Promise<{ restored: boolean; reason?:
   const dst = new Directory(Paths.document, RGB_DATA_ROOT);
   dst.create({ intermediates: true });
   for (const child of src.list()) {
-    child.copy(dst);
+    await child.copy(dst);
   }
   rgbLog('[rgb-adapter] restoreAllRgbData: restored from', src.uri);
   return { restored: true };
@@ -250,12 +256,8 @@ export async function restoreAllRgbData(): Promise<{ restored: boolean; reason?:
 
 export async function wipeAllRgbData(): Promise<void> {
   rgbLog('[rgb-adapter] wipeAllRgbData start');
-  // Tear down every live SDK wallet BEFORE removing the on-disk data — the
-  // native RLN binding is per-process, and if we skip destroy() the binding
-  // keeps the old `rlnNodeId` cached against a storageDirPath we just
-  // deleted. The next `createWallet` for the same mnemonic then races
-  // between the stale in-memory node and a fresh on-disk shell, and every
-  // op throws "conflict with current node state" / "RLN node is not created".
+  // Close every open engine BEFORE removing its directory: each holds a lock
+  // on it, and a later open of the same seed must start from a clean slate.
   const pending = Array.from(walletByKey.values());
   rgbLog('[rgb-adapter] wipeAllRgbData: cached wallet count =', pending.length);
   walletByKey.clear();
@@ -274,8 +276,7 @@ export async function wipeAllRgbData(): Promise<void> {
   if (root.exists) {
     // Deliberately NOT swallowed: Clear All Data's success alert promises
     // "all app data has been cleared", and a leftover `Documents/rgb/`
-    // makes the next same-seed import init on top of stale native state
-    // ("conflict with current node state" on every op). Let the caller
+    // makes the next same-seed import reopen the old wallet. Let the caller
     // surface the failure instead of lying.
     root.delete();
     rgbLog('[rgb-adapter] wipeAllRgbData: deleted', root.uri);

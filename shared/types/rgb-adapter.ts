@@ -48,7 +48,8 @@ export type IRgbWallet = IRgbWalletBase;
 export interface IRgbAdapterCreateParams {
   mnemonic: string;
   network: RgbNetwork;
-  /** Optional override; defaults to the SDK's DEFAULT_VSS_SERVER_URL. */
+  /** Cloud-backup server override. Without it the adapter decides: mobile has
+   *  no VSS at all on the L1 engine, the extension keeps it off (see its adapter). */
   vssServerUrl?: string;
 }
 
