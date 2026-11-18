@@ -1,8 +1,16 @@
 # RGB migration: rgb-sdk-rn beta.39 (RLN) → beta.41 (`RgbLibRn`, L1 only)
 
 Status: PLAN (2026-11-18). Waiting on UTEXO answers in rgb-sdk-rn#74.
-Decisions already made: nothing shipped with RGB → no backup compatibility
-needed; Lightning is dropped.
+Decisions (user, 2026-11-18):
+- nothing shipped with RGB → no backup compatibility needed; Lightning dropped;
+- migrate NOW without cloud backup (phase 3 option C as the interim state:
+  ledger kept as scaffolding, "no cloud backup" banner, manual file
+  export/import in Tools);
+- mainnet USDT IS in scope → mainnet enablement is GATED on cloud recovery
+  (option A if UTEXO ships VSS on RgbLibRn, else option B — our own). The
+  migration itself lands on testnet first; the mainnet switch is the last
+  step and does not flip until restore-by-seed is proven (X2/X11/X13/X15);
+- ext migrates in the same effort (rgb-sdk-web beta.13, `RgbLibWeb`).
 
 ## Target stack
 
@@ -139,10 +147,21 @@ the `vssBackup()` call site changes.
       Videos to ~/Desktop/rgb-test-videos.
 - [ ] dual review (codex + superpowers) before merge.
 
-### 7. Ext (separate, later)
-`rgb-sdk-web` beta.9 → beta.13 (`RgbLibWeb` on rgb-lib-wasm; has VSS per the
-facade README). Shares `shared/class/wallets/rgb-wallet.ts`, so phase 2 must
-keep the ext adapter compiling (ext tsc + units are the guard).
+### 7. Ext (same effort, after mobile phase 2)
+- [ ] `rgb-sdk-web` beta.9 → beta.13 (`RgbLibWeb` on rgb-lib-wasm 1.0.0-beta.4),
+      `rgb-sdk-core` beta.3 → beta.10, add `@utexo/rgb-sdk` facade.
+- [ ] ext adapter on the same shrunken `IRgbWallet`; drop ext LN UI
+      (ReceiveLightning/SendLightning RGB branches) and LN adapter code.
+- [ ] RgbLibWeb HAS the VSS extension → wire ledger to `backupToVss()` /
+      `restoreFromVss()` there first: it is the cheapest place to learn the
+      new VSS API and proves option A's shape before RN gets it.
+- [ ] ext tsc + units + Playwright smoke; manual restore check in Chrome.
+
+### 8. Mainnet (last, gated)
+- [ ] cloud recovery live on RN (A or B) and re-tested.
+- [ ] NETWORK_RGB endpoints (indexer/proxy/evm) confirmed with UTEXO.
+- [ ] "one seed = one device" rule decided (X4/#62 equivalent on L1).
+- [ ] only then expose NETWORK_RGB in the switcher.
 
 ## Open questions
 - Upstream (#74): RLN future; VSS on L1; facade vs engine; release plan.
