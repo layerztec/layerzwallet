@@ -60,3 +60,27 @@ test('rgb backup file exports and imports back', async ({ page, extensionId }) =
   await page.goto(`chrome-extension://${extensionId}/popup.html`);
   await expect(page.locator('body')).toContainText('tBTC', { timeout: 60_000 });
 });
+
+// KNOWN UPSTREAM BUG (rgb-sdk-web beta.13 and beta.14, rgb-lib-wasm beta.4):
+// syncing a wallet whose state was loaded rather than freshly created — a
+// reopen from IndexedDB, or a restoreBackup() — can kill the renderer
+// (SIGTRAP, no JS error). Probabilistic: roughly one reopen in ten on an empty
+// wallet, nearly every reopen on a wallet with on-chain history. In the
+// extension a reopen is every popup open after the first one.
+// Un-fixme on each SDK bump; it must pass before RGB ships in the extension.
+test.fixme('rgb wallet survives being reopened', async ({ page, extensionId }) => {
+  test.setTimeout(240_000);
+  await helperImportWallet(page, extensionId);
+  let crashed = false;
+  page.on('crash', () => (crashed = true));
+  const run = page.evaluate(async () => {
+    const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+    for (let i = 0; i < 10; i++) {
+      const wallet = await globalThis.rgbAdapter.createWallet({ mnemonic, network: 'testnet' });
+      await wallet.syncWallet();
+      await wallet.dispose();
+    }
+  });
+  await Promise.race([run.catch(() => {}), page.waitForEvent('crash').catch(() => {})]);
+  expect(crashed).toBe(false);
+});
