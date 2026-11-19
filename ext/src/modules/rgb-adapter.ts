@@ -2,8 +2,9 @@ import { UTEXOWallet } from '@utexo/rgb-sdk';
 import { isEngineError } from '@utexo/rgb-sdk-core';
 import { RgbLibWeb } from '@utexo/rgb-sdk-web';
 
+import { rgbBackupPassword } from '@shared/modules/rgb-backup-password';
 import { proxyRgbFacade } from '@shared/modules/rgb-facade-proxy';
-import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet } from '@shared/types/rgb-adapter';
+import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet, RgbNetwork } from '@shared/types/rgb-adapter';
 
 type Wallet = UTEXOWallet<RgbLibWeb>;
 
@@ -95,6 +96,45 @@ class RgbAdapter implements IRgbAdapter {
       if (missing) throw Object.assign(new Error('VSS backup not found'), { code: 'VssBackupNotFound' });
       throw e;
     }
+  }
+}
+
+/**
+ * Encrypted copy of the wallet's whole RGB state, for the user to keep as a
+ * file. With the seed it is the only way to get RGB assets back while there is
+ * no cloud backup. `sdk` is the open wallet (`RgbWallet.getSdk()`).
+ */
+export async function exportRgbBackup(sdk: IRgbWallet, mnemonic: string, network: RgbNetwork): Promise<Uint8Array> {
+  return (sdk as unknown as Wallet).exportBackup({ password: rgbBackupPassword(mnemonic, network) });
+}
+
+/**
+ * Replace the local RGB state with a backup file made for the SAME seed and
+ * network (by this extension or by the mobile app). The current state is kept
+ * in memory and put back if the file does not restore. Caller must reload the
+ * popup afterwards: `sdk` is disposed here.
+ */
+export async function importRgbBackup(sdk: IRgbWallet, mnemonic: string, network: RgbNetwork, bytes: Uint8Array): Promise<void> {
+  const password = rgbBackupPassword(mnemonic, network);
+  const previous = await (sdk as unknown as Wallet).exportBackup({ password });
+  await sdk.dispose();
+
+  // The engine restores only between init() and the first connection, so each
+  // attempt gets its own short-lived instance.
+  const restore = async (data: Uint8Array) => {
+    const wallet = await open({ mnemonic, network });
+    try {
+      await wallet.restoreBackup({ bytes: data, password, overwrite: true });
+    } finally {
+      await wallet.dispose().catch(() => {});
+    }
+  };
+
+  try {
+    await restore(bytes);
+  } catch (e) {
+    await restore(previous).catch(() => {});
+    throw e;
   }
 }
 

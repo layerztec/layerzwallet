@@ -1,17 +1,21 @@
-import React, { useContext } from 'react';
+import React, { useContext, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { BackgroundCaller } from '../../modules/background-caller';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
 import { HDSegwitBech32Wallet } from '@shared/class/wallets/hd-segwit-bech32-wallet';
+import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 import { SETTINGS_CONFIG } from '@shared/hooks/SettingsContext';
+import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { useSettings } from '@shared/hooks/useSettings';
+import { NETWORK_RGB, NETWORK_RGB_TESTNET } from '@shared/types/networks';
 import { Csprng } from '../../class/rng';
 import { ThemedText } from '../../components/ThemedText';
 import { decrypt, encrypt } from '../../modules/encryption';
+import { exportRgbBackup, importRgbBackup } from '../../modules/rgb-adapter';
 import { LayerzStorage } from '../../class/layerz-storage';
 import { Button, Select } from './DesignSystem';
 
@@ -22,6 +26,9 @@ const SettingsPage: React.FC = () => {
   const { setStep } = useContext(InitializationContext);
   const { accountNumber, setAccountNumber } = useContext(AccountNumberContext);
   const { settings, updateSetting } = useSettings();
+  const { network } = useContext(NetworkContext);
+  const rgbFileInput = useRef<HTMLInputElement>(null);
+  const [rgbBusy, setRgbBusy] = useState(false);
 
   const assert = (condition: boolean, message: string) => {
     if (!condition) throw new Error('Assertion failed: ' + message);
@@ -45,6 +52,51 @@ const SettingsPage: React.FC = () => {
     } catch (error) {
       console.error('Error updating setting:', error);
     }
+  };
+
+  // Backup acts on the selected RGB network; from any other network, on RGB testnet.
+  const rgbBackupTarget = async () => {
+    const rgbNetwork = network === NETWORK_RGB ? NETWORK_RGB : NETWORK_RGB_TESTNET;
+    const wallet = await BackgroundCaller.lazyInitWallet(rgbNetwork, 0);
+    if (!(wallet instanceof RgbWallet)) throw new Error('RGB wallet is unavailable');
+    return { wallet, mnemonic: wallet.getSecret(), sdkNetwork: rgbNetwork === NETWORK_RGB ? ('mainnet' as const) : ('testnet' as const) };
+  };
+
+  const handleExportRgbBackup = async () => {
+    setRgbBusy(true);
+    try {
+      const { wallet, mnemonic, sdkNetwork } = await rgbBackupTarget();
+      const bytes = await exportRgbBackup(wallet.getSdk(), mnemonic, sdkNetwork);
+      const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/octet-stream' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `layerz-rgb-${sdkNetwork}.rgbbackup`;
+      a.click();
+      URL.revokeObjectURL(url);
+      await log('RGB backup file saved. Export again after every receive or send.');
+    } catch (err: any) {
+      await log('RGB backup export failed: ' + err.message);
+    } finally {
+      setRgbBusy(false);
+    }
+  };
+
+  const handleImportRgbBackup = async (file: File | undefined) => {
+    if (!file) return;
+    setRgbBusy(true);
+    try {
+      const { wallet, mnemonic, sdkNetwork } = await rgbBackupTarget();
+      if (!window.confirm(`Replace the RGB ${sdkNetwork} wallet state on this browser with "${file.name}"? The file must come from this same seed.`)) {
+        setRgbBusy(false);
+        return;
+      }
+      await importRgbBackup(wallet.getSdk(), mnemonic, sdkNetwork, new Uint8Array(await file.arrayBuffer()));
+      window.alert('RGB backup restored.');
+    } catch (err: any) {
+      window.alert('RGB backup import failed, previous state kept: ' + err.message);
+    }
+    // The wallet's engine is disposed either way; start from a clean page.
+    window.location.reload();
   };
 
   return (
@@ -175,6 +227,15 @@ const SettingsPage: React.FC = () => {
         Seed Backup
       </Button>
       <span> </span>
+
+      <Button onClick={handleExportRgbBackup} disabled={rgbBusy} data-testid="export-rgb-backup" style={{ marginBottom: '10px' }}>
+        Export RGB backup file
+      </Button>
+      <span> </span>
+      <Button onClick={() => rgbFileInput.current?.click()} disabled={rgbBusy} data-testid="import-rgb-backup" style={{ marginBottom: '10px' }}>
+        Import RGB backup file
+      </Button>
+      <input ref={rgbFileInput} type="file" data-testid="import-rgb-backup-input" style={{ display: 'none' }} onChange={(e) => handleImportRgbBackup(e.target.files?.[0])} />
 
       <div id="messages" data-testid="messages"></div>
     </div>

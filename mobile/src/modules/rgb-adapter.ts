@@ -4,6 +4,7 @@ import { accountXpubsFromMnemonic } from '@utexo/rgb-sdk-core';
 import { RgbLibRn, restoreBackupFromFile } from '@utexo/rgb-sdk-rn';
 import { Directory, File, Paths } from 'expo-file-system';
 
+import { rgbBackupPassword } from '@shared/modules/rgb-backup-password';
 import { proxyRgbFacade } from '@shared/modules/rgb-facade-proxy';
 import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet, RgbNetwork } from '@shared/types/rgb-adapter';
 
@@ -37,15 +38,6 @@ function hex(bytes: Uint8Array, length = bytes.length): string {
 
 function mnemonicFingerprint(mnemonic: string): string {
   return hex(sha256(new TextEncoder().encode(mnemonic)), 8);
-}
-
-// Backup files are encrypted with a key derived from the seed, so "seed +
-// file" is all a user needs to recover — no extra password to lose.
-// The network is part of the key: the native restore does not check which
-// network a file belongs to, and a testnet file restored into the mainnet
-// directory would leave a wallet that refuses to open.
-function backupPassword(mnemonic: string, network: RgbNetwork): string {
-  return hex(sha256(new TextEncoder().encode(`rgb-backup-v1\0${network}\0${mnemonic}`)));
 }
 
 /** sha256 of the RGB (colored) account xpub — public, deterministic per seed. */
@@ -121,7 +113,7 @@ export async function exportRgbBackupFile(mnemonic: string, network: RgbNetwork)
   const wallet = (await globalThis.rgbAdapter.createWallet({ mnemonic, network })) as unknown as { exportBackupToFile(p: { filePath: string; password: string }): Promise<unknown> };
   const file = new File(Paths.cache, `layerz-rgb-${network}-${mnemonicFingerprint(mnemonic)}.rgbbackup`);
   if (file.exists) file.delete();
-  await wallet.exportBackupToFile({ filePath: file.uri.replace(/^file:\/\//, ''), password: backupPassword(mnemonic, network) });
+  await wallet.exportBackupToFile({ filePath: file.uri.replace(/^file:\/\//, ''), password: rgbBackupPassword(mnemonic, network) });
   return file.uri;
 }
 
@@ -148,7 +140,7 @@ export async function importRgbBackupFile(mnemonic: string, network: RgbNetwork,
   await live.move(aside);
   try {
     const fresh = dataDirFor(mnemonic, network);
-    await restoreBackupFromFile({ filePath: fileUri.replace(/^file:\/\//, ''), password: backupPassword(mnemonic, network), dataDir: dataDirSdkPath(fresh) });
+    await restoreBackupFromFile({ filePath: fileUri.replace(/^file:\/\//, ''), password: rgbBackupPassword(mnemonic, network), dataDir: dataDirSdkPath(fresh) });
     // Prove the restored state opens before giving up the old one.
     await globalThis.rgbAdapter.createWallet({ mnemonic, network });
   } catch (e) {
