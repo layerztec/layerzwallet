@@ -250,7 +250,10 @@ the `vssBackup()` call site changes.
       the 3 transfers are back. Video `l1 ios — wipe, seed only…`.
 - [x] Send FROM the file-restored iOS wallet — PASS (300 units to Android,
       credited; Android now 600, iOS 99400).
-- [ ] Android: export/import run (needs the system file picker scripted).
+- [x] Android: export/import run — PASS 2026-11-19 (export → pm clear → seed
+      only shows no tokens → Tools import via DocumentsUI → 600 LZ back).
+      AOSP emulator has no share targets ("No apps can perform this action");
+      the file was taken from the app cache.
 - [ ] X-matrix on the new engine: X9 (expired slots), kill/relaunch
       mid-send, wipe → import file → balances.
 - [x] WalletConnect E2E on Android — PASS (build `lzw-l1d-android`): pair →
@@ -258,9 +261,33 @@ the `vssBackup()` call site changes.
       methods = our v1 list only) → blindReceive consent sheet → invoice to
       the dApp → paid from iOS → credited. Old pre-migration sessions do not
       match the new account id (expected; re-pair).
-- [ ] WalletConnect on iOS + restart/resume path (webrgb-walletconnect 0.1.5).
-- [ ] ext: file export/import UI (only recovery path while VSS is off).
+- [~] WalletConnect on iOS + restart/resume — pair, approve, enable, getInfo,
+      listAssets PASS; after kill + relaunch the session resumes (dApp lib
+      re-enables by itself) and the consent sheet shows. The invoice itself
+      could not be made: UTEXO dev RGB proxy was down (see below). Re-run.
+- [x] ext: file export/import in Settings (23bc0bd8), Playwright round trip.
+      A native (RN) backup file does NOT import into the web engine
+      ("Invalid backup data"): files are per-platform.
 - [ ] ask UTEXO: new VSS server URL (web engine default is dead), a faucet
       or Mint UI link for test USDT, whether `dev.*` hosts are the intended
       public signet.
 - [ ] mainnet stays gated (phase 8).
+
+## 2026-11-19 findings
+- BLOCKER (ext): the web engine kills the renderer (SIGTRAP, no JS error) when
+  it syncs a wallet whose state was loaded rather than freshly created — a
+  reopen from IndexedDB or a `restoreBackup()`. Minimal repro, no app code:
+  `createWallet → syncWallet → dispose`, repeated, same seed. About one reopen
+  in ten on an empty wallet, nearly every reopen on a wallet with history
+  (wallet17/wallet16). rgb-sdk-web beta.13 and beta.14 (same rgb-lib-wasm
+  beta.4). Seen in Playwright's Chromium (Chrome for Testing 1208); not yet
+  checked in a regular Chrome. Repro kept as `test.fixme` in
+  `ext/src/tests/e2e/rgb-smoke.spec.ts`. The earlier ext smoke never hit it:
+  it only ever used the document the wallet was imported in.
+- UTEXO dev RGB proxy (`dev.rgb-proxy.utexo.com`, 46.101.112.9) refused
+  connections on 2026-11-19 ~09:45 UTC+?; mainnet proxy answers. Every
+  receive fails with `NoValidTransportEndpoint` (WC dApp sees INTERNAL_ERROR).
+  Blocks: X9, kill-mid-send, WC invoice on iOS. WC path now reports the raw
+  engine error through `handleError`.
+- Questions for UTEXO (added): the reopen crash; is the dev proxy meant to be
+  stable; are backup files meant to be portable between native and web.

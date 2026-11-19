@@ -15,6 +15,7 @@ import type { WalletConnectBackend, WalletConnectWalletContext } from '@utexo/we
 
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
+import { proxyRgbFacade } from '@shared/modules/rgb-facade-proxy';
 import { NETWORK_RGB_TESTNET } from '@shared/types/networks';
 
 /** The SDK chain name for our RGB testnet (mobile maps testnet → 'utexo'). */
@@ -56,7 +57,20 @@ type Host = {
 
 export async function buildBackend(context: WalletConnectWalletContext, host: Host): Promise<WalletConnectBackend> {
   const rgbWallet = await getRgbWallet();
-  const sdk = rgbWallet.getSdk() as unknown as WebRgbWallet;
+  const rawSdk = rgbWallet.getSdk();
+  // The provider turns any engine failure into a bare INTERNAL_ERROR for the
+  // dApp; report the real one here or it is lost (e.g. the RGB proxy being
+  // down surfaces as `NoValidTransportEndpoint`).
+  const sdk = proxyRgbFacade(rawSdk, {
+    blindReceive: async (params: Parameters<typeof rawSdk.blindReceive>[0]) => {
+      try {
+        return await rawSdk.blindReceive(params);
+      } catch (e) {
+        globalThis.handleError?.(e, 'wc-provider.ts:blindReceive');
+        throw e;
+      }
+    },
+  }) as unknown as WebRgbWallet;
   const provider = new WebRgbProvider(sdk, {
     burn: { operations: new BurnOperations(sdk, NO_BURN_STORE) },
     origin: context.origin,
