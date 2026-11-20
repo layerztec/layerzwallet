@@ -2,7 +2,19 @@ import useSWR from 'swr';
 import assert from 'assert';
 import { ethers } from 'ethers';
 
-import { NETWORK_ARK, NETWORK_ARK_MUTINYNET, NETWORK_BITCOIN, NETWORK_LIQUID, NETWORK_LIQUID_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_STACKS, Networks } from '../types/networks';
+import {
+  NETWORK_ARK,
+  NETWORK_ARK_MUTINYNET,
+  NETWORK_BITCOIN,
+  NETWORK_LIQUID,
+  NETWORK_LIQUID_TESTNET,
+  NETWORK_RGB,
+  NETWORK_RGB_TESTNET,
+  NETWORK_ROOTSTOCK,
+  NETWORK_SPARK,
+  NETWORK_STACKS,
+  Networks,
+} from '../types/networks';
 import { StringNumber } from '../types/string-number';
 import { IBackgroundCaller } from '../types/IBackgroundCaller';
 import { getIsEVM, getRpcProvider } from '../models/network-getters';
@@ -48,7 +60,7 @@ export const tokenBalanceFetcher = async (arg: tokenBalanceFetcherArg): Promise<
       throw new Error('tokenBalanceFetcher: not supported');
     }
 
-    if (network === NETWORK_SPARK || network === NETWORK_STACKS || network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET) {
+    if (network === NETWORK_SPARK || network === NETWORK_STACKS || network === NETWORK_ARK || network === NETWORK_ARK_MUTINYNET || network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
       const wallet = await backgroundCaller.lazyInitWallet(network, accountNumber);
       assert(walletCanHaveTokens(wallet), 'Not a wallet that can have tokens');
       // not doing network request here, as its not a separate request, its a call to getBalance of the wallet, and in case user

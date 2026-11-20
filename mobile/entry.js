@@ -2,6 +2,10 @@
 // This replaces expo-router/entry to include necessary polyfills
 
 import 'react-native-get-random-values';
+// WalletConnect/Reown must initialize its RN shims before anything touches
+// crypto or storage (like noble v1, it captures globals at module eval).
+// eslint-disable-next-line import/no-unresolved
+import '@walletconnect/react-native-compat';
 import { LogBox } from 'react-native';
 
 // A failed Lightning history fetch must not cover the receive sheet during dev/Maestro.

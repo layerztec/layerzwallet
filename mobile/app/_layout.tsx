@@ -1,4 +1,5 @@
 import { DarkTheme, ThemeProvider } from 'expo-router';
+import { WcBootstrap } from '@/src/features/walletconnect/components/WcBootstrap';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -11,6 +12,7 @@ import { SWRConfig } from 'swr';
 
 import '../src/modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import '../src/modules/spark-adapter'; // needed to be imported before we can use SparkWallet
+import '../src/modules/rgb-adapter'; // needed to be imported before we can use RgbWallet
 
 import AutoClaimMonitor from '@/components/AutoClaimMonitor';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -160,6 +162,10 @@ export default function RootLayout() {
               <TunnelKeepAwake />
               <SettingsContextProvider storage={LayerzStorage}>
                 <AuthStateContextProvider>
+                  {/* Must live under AuthStateContextProvider: the WalletConnect
+                      consent sheet is gated on the real unlock state. Outside it
+                      the context defaults made the gate inert (see rgb test plan). */}
+                  <WcBootstrap />
                   <AccountNumberContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                     <NetworkContextProvider storage={LayerzStorage} backgroundCaller={BackgroundExecutor} messenger={Messenger}>
                       <ActionPopupProvider>

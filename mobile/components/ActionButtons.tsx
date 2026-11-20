@@ -10,7 +10,7 @@ import { getNetworkImageAsset } from '@/utils/networkAssets';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { fiatOnRamp } from '@shared/models/fiat-on-ramp';
 import { USDT_TOKENS } from '@shared/models/token-list';
-import { NETWORK_LIGHTNING, NETWORK_LIQUID, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
+import { NETWORK_LIGHTNING, NETWORK_LIQUID, NETWORK_RGB, NETWORK_RGB_TESTNET, NETWORK_ROOTSTOCK, NETWORK_SPARK, NETWORK_USDT, Networks } from '@shared/types/networks';
 import { ReceiveTokenProps } from '@/app/Receive';
 import { SendTokenEvmProps } from '@/app/SendTokenEvm';
 import { SendParams } from '@/app/send';
@@ -117,6 +117,17 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
     { children: <Action text="Cancel" />, onClick: () => {} },
   ];
 
+  // RGB has two distinct receive flavors: a plain bech32m address for BTC sats
+  // (handled by the existing /Receive screen) and an RGB invoice for assets
+  // (new /receive-rgb-token screen). Surface both via the popup pattern that
+  // USDT already uses.
+  const handleReceiveRgbToken = () => router.push('/receive-rgb-token');
+  const rgbReceiveActions = [
+    { children: <Action network={network} text="Receive sats" />, onClick: handleReceive },
+    { children: <Action network={network} text="Receive RGB asset" />, onClick: handleReceiveRgbToken },
+    { children: <Action text="Cancel" />, onClick: () => {} },
+  ];
+
   // Render Send button
   const renderSendButton = () => {
     if (network === NETWORK_USDT) {
@@ -145,6 +156,14 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
       );
     }
 
+    if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+      return (
+        <ActionPopupButton actions={rgbReceiveActions} title="What to receive">
+          <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={() => {}} glow={highlightReceive} testID="ReceiveButton" />
+        </ActionPopupButton>
+      );
+    }
+
     return <HomeActionButton title="Receive" icon={{ name: 'call-received', type: 'material', size: 24 }} onPress={handleReceive} glow={highlightReceive} testID="ReceiveButton" />;
   };
 
@@ -157,12 +176,29 @@ export default function ActionButtons({ onFundPress, highlightReceive = false, o
     return <HomeActionButton title="Fund" icon={{ name: 'add', type: 'ionicons', size: 24 }} onPress={handleFund} testID="FundButton" />;
   };
 
+  // RGB-only: lets the user mint a NIA asset directly from the wallet so they
+  // can self-fund test assets without depending on a counterparty.
+  const renderIssueButton = () => {
+    if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) return null;
+    return <HomeActionButton title="Issue" icon={{ name: 'add-circle-outline', type: 'material', size: 24 }} onPress={() => router.push('/issue-asset')} testID="IssueButton" />;
+  };
+
+  // RGB-only debug surface: list colorable UTXOs, allocations attached to
+  // each output, and create more on demand. Helpful when InsufficientAllocationSlots
+  // shows up unexpectedly or a pending blind-receive is holding a slot.
+  const renderUtxosButton = () => {
+    if (network !== NETWORK_RGB && network !== NETWORK_RGB_TESTNET) return null;
+    return <HomeActionButton title="UTXOs" icon={{ name: 'view-list', type: 'material', size: 24 }} onPress={() => router.push('/utxo-manager')} testID="UtxosButton" />;
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.buttonsRow}>
         {renderReceiveButton()}
         {renderSendButton()}
         {renderFundButton()}
+        {renderIssueButton()}
+        {renderUtxosButton()}
       </View>
     </View>
   );

@@ -5,6 +5,7 @@ import { SWRConfig } from 'swr';
 
 import '../../modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import '../../modules/error-handler';
+import '../../modules/rgb-adapter'; // needed to be imported before we can use RgbWallet
 import '../../modules/spark-adapter'; // needed to be imported before we can use SparkWallet
 
 import { AccountNumberContextProvider } from '@shared/hooks/AccountNumberContext';
@@ -26,15 +27,18 @@ import OnboardingCreateWallet from './OnboardingCreateWallet';
 import OnboardingImportWallet from './OnboardingImportWallet';
 import OnboardingIntro from './OnboardingIntro';
 import OnboardingTos from './OnboardingTos';
+import OnboardingVerifyingRgbBackup from './OnboardingVerifyingRgbBackup';
 import './Popup.css';
 import Receive from './Receive';
 import ReceiveLightning from './ReceiveLightning';
+import ReceiveRgbToken from './ReceiveRgbToken';
 import SeedBackup from './SeedBackup';
 import SendAccountBased from './SendAccountBased';
 import SendBtc from './SendBtc';
 import SendEvm from './SendEvm';
 import SendLightning from './SendLightning';
 import SendLiquid from './SendLiquid';
+import SendRgb from './SendRgb';
 import SendTokenEvm from './SendTokenEvm';
 import SettingsPage from './SettingsPage';
 import SwapDetails from './SwapDetails';
@@ -70,6 +74,7 @@ const AppContent: React.FC = () => {
           <Routes>
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/onboarding-create-password" element={<OnboardingCreatePassword />} />
+            <Route path="/onboarding-verifying-rgb-backup" element={<OnboardingVerifyingRgbBackup />} />
             <Route path="*" element={<Navigate to="/onboarding-create-password" replace />} />
           </Routes>
         );
@@ -89,6 +94,7 @@ const AppContent: React.FC = () => {
           <Routes>
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/onboarding-tos" element={<OnboardingTos />} />
+            <Route path="/onboarding-verifying-rgb-backup" element={<OnboardingVerifyingRgbBackup />} />
             <Route path="*" element={<Navigate to="/onboarding-tos" replace />} />
           </Routes>
         );
@@ -100,6 +106,7 @@ const AppContent: React.FC = () => {
             <Route path="/home" element={<Home />} />
             <Route path="/receive" element={<Receive />} />
             <Route path="/receive-lightning" element={<ReceiveLightning />} />
+            <Route path="/receive-rgb-token" element={<ReceiveRgbToken />} />
             <Route path="/seed-backup" element={<SeedBackup />} />
             <Route path="/send-liquid" element={<SendLiquid />} />
             <Route path="/send-evm" element={<SendEvm />} />
@@ -107,6 +114,7 @@ const AppContent: React.FC = () => {
             <Route path="/send-token-evm" element={<SendTokenEvm />} />
             <Route path="/send-token-stacks" element={<SendTokenStacks />} />
             <Route path="/send-btc" element={<SendBtc />} />
+            <Route path="/send-rgb" element={<SendRgb />} />
             <Route path="/send-lightning" element={<SendLightning />} />
             <Route path="/swap-details" element={<SwapDetails />} />
             {/* we are using camel case because screen name matches one in the mobile app */}

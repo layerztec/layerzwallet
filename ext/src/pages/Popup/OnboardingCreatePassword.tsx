@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 import { ThemedText } from '../../components/ThemedText';
 import { BackgroundCaller } from '../../modules/background-caller';
+import { LayerzStorage } from '../../class/layerz-storage';
+import { STORAGE_KEY_RGB_JUST_IMPORTED } from '@shared/types/IStorage';
 import { Button, Input } from './DesignSystem';
 
 export default function OnboardingCreatePassword() {
@@ -25,8 +27,21 @@ export default function OnboardingCreatePassword() {
 
     try {
       await BackgroundCaller.encryptMnemonic(pass1);
-      setStep(EStep.TOS);
-      navigate('/onboarding-tos');
+      // On the import path we run a one-time VSS reachability probe before
+      // letting the user reach the wallet. Create-wallet skips it (no
+      // backup to restore from). Flag is set in OnboardingImportWallet.
+      // The gate route is registered in BOTH EStep.PASSWORD and EStep.TOS
+      // Routes blocks so this navigate matches without first transitioning
+      // EStep — the gate itself bumps EStep to TOS when it proceeds.
+      const justImported = (await LayerzStorage.getItem(STORAGE_KEY_RGB_JUST_IMPORTED)) === '1';
+      // One-shot: clear so a later re-onboarding doesn't inherit the flag.
+      if (justImported) await LayerzStorage.setItem(STORAGE_KEY_RGB_JUST_IMPORTED, '');
+      if (justImported) {
+        navigate('/onboarding-verifying-rgb-backup');
+      } else {
+        setStep(EStep.TOS);
+        navigate('/onboarding-tos');
+      }
     } catch (error) {
       setValidationError('An error occurred');
       setIsLoading(false);

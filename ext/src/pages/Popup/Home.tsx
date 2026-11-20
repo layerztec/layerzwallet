@@ -17,6 +17,8 @@ import {
   NETWORK_LIGHTNING,
   NETWORK_LIQUID,
   NETWORK_LIQUID_TESTNET,
+  NETWORK_RGB,
+  NETWORK_RGB_TESTNET,
   NETWORK_ROOTSTOCK,
   NETWORK_SPARK,
   NETWORK_STACKS,
@@ -29,6 +31,7 @@ import { BackgroundCaller } from '../../modules/background-caller';
 import Balance from './components/Balance';
 import NftsView from './components/NftsView';
 import PartnersView from './components/PartnersView';
+import RgbBackupBanner from './components/RgbBackupBanner';
 import SwapInterfaceView from './components/SwapInterfaceView';
 import SwapListView from './components/SwapListView';
 import TokensView from './components/TokensView';
@@ -58,6 +61,10 @@ const Home: React.FC = () => {
   }, [network]);
 
   const handleReceive = () => {
+    if (network === NETWORK_RGB || network === NETWORK_RGB_TESTNET) {
+      navigate('/receive-rgb-token');
+      return;
+    }
     navigate('/receive');
   };
 
@@ -78,6 +85,10 @@ const Home: React.FC = () => {
         break;
       case NETWORK_LIGHTNING:
         navigate('/send-lightning');
+        break;
+      case NETWORK_RGB:
+      case NETWORK_RGB_TESTNET:
+        navigate('/send-rgb');
         break;
       default:
         navigate('/send-evm');
@@ -200,6 +211,8 @@ const Home: React.FC = () => {
       </div>
 
       <Balance ref={balanceRef} network={network} accountNumber={accountNumber} BackgroundCaller={BackgroundCaller} />
+
+      <RgbBackupBanner />
 
       {showSwapInterface ? (
         <SwapInterfaceView fromNetwork={swapFromNetwork} />

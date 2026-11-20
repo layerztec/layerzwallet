@@ -1,6 +1,7 @@
 import { Alert, PressableStateCallbackType, ScrollView, SectionList, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { File } from 'expo-file-system';
+import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Bugsnag from '@bugsnag/expo';
@@ -17,11 +18,13 @@ import { useContext, useEffect, useState } from 'react';
 
 import { Csprng } from '@/src/class/rng';
 import * as BlueElectrum from '@shared/blue_modules/BlueElectrum';
+import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { SparkWallet } from '@shared/class/wallets/spark-wallet';
 import SettingsRow from '@/components/SettingsRow';
 import { AccountNumberContext } from '@shared/hooks/AccountNumberContext';
 import { LayerzStorage } from '@/src/class/layerz-storage';
 import { STORAGE_KEY_BTC_XPUB, STORAGE_KEY_MNEMONIC } from '@shared/types/IStorage';
+import { NETWORK_RGB, NETWORK_RGB_TESTNET } from '@shared/types/networks';
 import { getDeviceIdentifier } from '@/src/utils/device-id';
 import { ScanQrContext } from '@/src/hooks/ScanQrContext';
 import { SETTINGS_CONFIG } from '@shared/hooks/SettingsContext';
@@ -29,12 +32,14 @@ import { useSettings } from '@shared/hooks/useSettings';
 import { capitalizeFirstLetter } from '@shared/modules/string-utils';
 import { useAuthState } from '@/src/hooks/AuthStateContext';
 import { BackgroundExecutor } from '@/src/modules/background-executor';
+import { wcService } from '@/src/features/walletconnect/modules/wc-service';
 import { SecureStorage } from '@/src/class/secure-storage';
 import { EStep, InitializationContext } from '@shared/hooks/InitializationContext';
 import { useRouter } from 'expo-router';
 import { NetworkContext } from '@shared/hooks/NetworkContext';
 import { applogFilePath, disableLoggingToFile, enableLoggingToFile, isLoggingToFileEnabled } from '@/src/modules/error-handler';
 import { globalDarkBackground } from '@shared/constants/Colors';
+import { exportRgbBackupFile, importRgbBackupFile, restoreAllRgbData, snapshotAllRgbData, wipeAllRgbData } from '@/src/modules/rgb-adapter';
 
 type TSettingsKey = keyof typeof SETTINGS_CONFIG;
 
@@ -49,6 +54,7 @@ export default function TabThreeScreen() {
   const [testState, setTestState] = useState<'not_started' | 'running' | 'ok' | 'error'>('not_started');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isClearing, setIsClearing] = useState(false);
+  const [isSnapshotBusy, setIsSnapshotBusy] = useState(false);
   const [btcXpub, setBtcXpub] = useState('');
   const [deviceId, setDeviceId] = useState('');
   const [isLogFileEnabled, setIsLogFileEnabled] = useState(isLoggingToFileEnabled());
@@ -220,9 +226,17 @@ export default function TabThreeScreen() {
           try {
             await updateSetting('biometricAuth', 'OFF');
             await updateSetting('seedBackedUp', 'OFF');
+            // Sessions/transport are bound to the old wallet identity — a
+            // surviving dApp session would read the NEW wallet after re-import.
+            await wcService.reset().catch(() => {});
             await BackgroundExecutor.clear();
             await AsyncStorage.clear();
             await SecureStorage.setItem(STORAGE_KEY_MNEMONIC, '');
+            // JS AsyncStorage clear doesn't touch the RGB SDK's LDK/RLN
+            // state on the filesystem — nuke it explicitly, otherwise the
+            // next import into the same seed re-inits on top of stale
+            // native state and every op throws "conflict with current node state".
+            await wipeAllRgbData();
             Alert.alert('Storage Cleared', 'All app data has been cleared successfully. The app will now restart.', [
               {
                 text: 'OK',
@@ -242,6 +256,91 @@ export default function TabThreeScreen() {
         },
       },
     ]);
+  };
+
+  const handleSnapshotRgb = async () => {
+    setIsSnapshotBusy(true);
+    try {
+      const r = await snapshotAllRgbData();
+      Alert.alert('RGB Snapshot', r.empty ? 'No `Documents/rgb/` on disk yet — snapshot is empty.' : `Snapshotted to ${r.snapshottedPath}`);
+    } catch (e: any) {
+      Alert.alert('RGB Snapshot failed', e?.message ?? String(e));
+    } finally {
+      setIsSnapshotBusy(false);
+    }
+  };
+
+  const handleRestoreRgb = async () => {
+    Alert.alert('Restore RGB State', 'Wipes the live RGB dir and copies the snapshot back. Force-quit the app afterwards or the SDK will throw "conflict with current node state" on next init.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Restore',
+        style: 'destructive',
+        onPress: async () => {
+          setIsSnapshotBusy(true);
+          try {
+            const r = await restoreAllRgbData();
+            Alert.alert('RGB Restore', r.restored ? 'Restored. Now force-quit and relaunch the app.' : `No snapshot: ${r.reason}`);
+          } catch (e: any) {
+            Alert.alert('RGB Restore failed', e?.message ?? String(e));
+          } finally {
+            setIsSnapshotBusy(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  // Interim RGB recovery (the L1 engine has no cloud backup yet): the file is
+  // encrypted with a seed-derived key, so seed + file restores the assets.
+  const rgbBackupTarget = async () => {
+    const rgbNetwork = network === NETWORK_RGB ? NETWORK_RGB : NETWORK_RGB_TESTNET;
+    const wallet = await BackgroundExecutor.lazyInitWallet(rgbNetwork, 0);
+    if (!(wallet instanceof RgbWallet)) throw new Error('RGB wallet is unavailable');
+    return { mnemonic: wallet.getSecret(), sdkNetwork: rgbNetwork === NETWORK_RGB ? ('mainnet' as const) : ('testnet' as const) };
+  };
+
+  const handleExportRgbBackup = async () => {
+    setIsSnapshotBusy(true);
+    try {
+      const { mnemonic, sdkNetwork } = await rgbBackupTarget();
+      const uri = await exportRgbBackupFile(mnemonic, sdkNetwork);
+      await Sharing.shareAsync(uri, { mimeType: 'application/octet-stream', dialogTitle: 'Save RGB backup file' });
+    } catch (e: any) {
+      Alert.alert('RGB backup export failed', e?.message ?? String(e));
+    } finally {
+      setIsSnapshotBusy(false);
+    }
+  };
+
+  const handleImportRgbBackup = async () => {
+    const picked = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true, multiple: false });
+    if (picked.canceled) return;
+    const fileUri = picked.assets[0].uri;
+    const target = network === NETWORK_RGB ? 'RGB mainnet' : 'RGB testnet';
+    Alert.alert(
+      `Import ${target} backup`,
+      `Replaces the ${target} state on this device with the backup file. Anything received or sent after the backup was made will be lost. The file must be a ${target} backup of this same seed.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Import',
+          style: 'destructive',
+          onPress: async () => {
+            setIsSnapshotBusy(true);
+            try {
+              const { mnemonic, sdkNetwork } = await rgbBackupTarget();
+              await importRgbBackupFile(mnemonic, sdkNetwork, fileUri);
+              Alert.alert('RGB backup imported', 'Now force-quit and relaunch the app.');
+            } catch (e: any) {
+              Alert.alert('RGB backup import failed', `${e?.message ?? String(e)}\n\nYour previous RGB state was kept. Force-quit and relaunch the app.`);
+            } finally {
+              setIsSnapshotBusy(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleLogSettingChange = async (option: 'enabled' | 'disabled') => {
@@ -353,6 +452,11 @@ export default function TabThreeScreen() {
       title: 'Developer Options',
       key: 'developerOptions',
       data: ['developerOptions'],
+    },
+    {
+      title: 'RGB Backup',
+      key: 'rgbSnapshot',
+      data: ['rgbSnapshot'],
     },
     {
       title: 'Security Actions',
@@ -502,6 +606,25 @@ export default function TabThreeScreen() {
               </>
             )}
           </View>
+        );
+
+      case 'rgbSnapshot':
+        return (
+          <>
+            <View style={styles.settingsGroup}>
+              <SettingsRow title={isSnapshotBusy ? 'Snapshotting…' : 'Snapshot RGB State'} onPress={handleSnapshotRgb} disabled={isSnapshotBusy} testID="SnapshotRgbButton" hideChevron />
+              <View style={styles.divider} />
+              <SettingsRow title={isSnapshotBusy ? 'Restoring…' : 'Restore RGB State'} onPress={handleRestoreRgb} disabled={isSnapshotBusy} testID="RestoreRgbButton" hideChevron />
+              <View style={styles.divider} />
+              <SettingsRow title="Export RGB Backup File" onPress={handleExportRgbBackup} disabled={isSnapshotBusy} testID="ExportRgbBackupButton" hideChevron />
+              <View style={styles.divider} />
+              <SettingsRow title="Import RGB Backup File" onPress={handleImportRgbBackup} disabled={isSnapshotBusy} testID="ImportRgbBackupButton" hideChevron />
+            </View>
+            <ThemedText style={styles.warningText}>
+              Export saves an encrypted backup of your RGB assets (there is no cloud backup yet) — keep the file together with your seed phrase; after losing the device, seed + file restores them.
+              Export again after every receive or send. Snapshot/Restore are dev tools: they copy `Documents/rgb/` to a sibling dir and back; force-quit the app after Restore.
+            </ThemedText>
+          </>
         );
 
       case 'securityActions':

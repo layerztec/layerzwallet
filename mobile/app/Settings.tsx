@@ -174,6 +174,7 @@ export default function SettingsScreen() {
       hasBackground: false,
       data: [
         { id: 'tools', title: 'Tools', onPress: handleToolsPress, testID: 'ToolsButton' },
+        { id: 'walletconnect', title: 'Connected dApps', onPress: () => router.push('/WalletConnectSessions'), testID: 'WalletConnectButton' },
         { id: 'support', title: 'Support', onPress: handleSupportPress },
         { id: 'about', title: 'About', onPress: handleAboutPress },
       ],
