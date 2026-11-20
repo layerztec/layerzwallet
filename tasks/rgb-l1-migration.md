@@ -291,3 +291,23 @@ the `vssBackup()` call site changes.
   engine error through `handleError`.
 - Questions for UTEXO (added): the reopen crash; is the dev proxy meant to be
   stable; are backup files meant to be portable between native and web.
+
+## 2026-11-20 — testnet moved to public signet
+
+UTEXO answer: SDK network `utexo` is their private dev chain; the Mint console
+(`mint.utexo.com`, backend `sandbox.gateway.mint.utexo.com`) mints on public
+signet, so the wallet must use SDK network `signet`.
+
+- Done (`007467df`): engine network `signet` on mobile + ext, WC chain `rgb:signet`.
+- SDK signet defaults are not usable as shipped:
+  - proxy `staging.rgb-proxy.utexo.com` answers 404 → pinned `sandbox.rgb-proxy.utexo.com`
+  - indexer is Electrum (`electrum.iriswallet.com:50033`): fine for native,
+    unusable in the browser → ext uses `https://mempool.space/signet/api`
+    (rate-limits: 429s seen in the smoke run; ask UTEXO for an Esplora)
+- Engine now gets an Arbitrum RPC (`evmRpcUrls`), needed to validate BFA mints.
+- Open: the Mint console hardcodes WalletConnect network `utexo`
+  (`getInfo().network` check), so a signet wallet will be refused over WC;
+  pasting an invoice still works. Ask UTEXO.
+- Old test wallets (wallet16/17, LZ token) live on the dev chain and are empty
+  on signet. Need signet sats + a first mint to test receive/send again.
+- Mint deposits are real USDT0 (Arbitrum mainnet); unverified limit 100 USDT.
