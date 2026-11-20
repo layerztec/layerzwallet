@@ -16,10 +16,11 @@ import type { WalletConnectBackend, WalletConnectWalletContext } from '@utexo/we
 import { BackgroundExecutor } from '@/src/modules/background-executor';
 import { RgbWallet } from '@shared/class/wallets/rgb-wallet';
 import { proxyRgbFacade } from '@shared/modules/rgb-facade-proxy';
+import { RGB_TESTNET_ENGINE_NETWORK } from '@shared/modules/rgb-testnet-endpoints';
 import { NETWORK_RGB_TESTNET } from '@shared/types/networks';
 
-/** The SDK chain name for our RGB testnet (mobile maps testnet → 'utexo'). */
-export const WC_NETWORK = 'utexo';
+/** The SDK chain name for our RGB testnet (public signet). */
+export const WC_NETWORK = RGB_TESTNET_ENGINE_NETWORK;
 
 /** dApp accounts are pinned to account 0 — same policy as the rest of RGB. */
 const WC_ACCOUNT_NUMBER = 0;

@@ -9,7 +9,7 @@ vi.mock('@/src/class/layerz-storage', () => ({ LayerzStorage: { getItem: vi.fn(a
 vi.mock('../../features/walletconnect/modules/wc-provider', () => ({
   buildBackend: vi.fn(),
   resolveAccount: vi.fn(),
-  WC_NETWORK: 'utexo',
+  WC_NETWORK: 'signet',
   WC_METHODS: ['enable', 'getInfo'],
   WC_RPC_METHODS: ['rgb_enable', 'rgb_getInfo'],
 }));

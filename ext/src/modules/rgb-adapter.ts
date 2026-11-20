@@ -4,6 +4,7 @@ import { RgbLibWeb } from '@utexo/rgb-sdk-web';
 
 import { rgbBackupPassword } from '@shared/modules/rgb-backup-password';
 import { proxyRgbFacade } from '@shared/modules/rgb-facade-proxy';
+import { RGB_EVM_RPC_URLS, RGB_TESTNET_ENGINE_NETWORK, RGB_TESTNET_ESPLORA, RGB_TESTNET_PROXY } from '@shared/modules/rgb-testnet-endpoints';
 import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet, RgbNetwork } from '@shared/types/rgb-adapter';
 
 type Wallet = UTEXOWallet<RgbLibWeb>;
@@ -54,7 +55,13 @@ const vssUrlFor = (params: IRgbAdapterCreateParams) => params.vssServerUrl ?? RG
 // The engine keeps its state in IndexedDB under <masterFingerprint>/<network>,
 // so wallets of different seeds don't collide and no per-seed path is needed.
 async function open(params: IRgbAdapterCreateParams): Promise<Wallet> {
-  const engine = new RgbLibWeb({ network: params.network === 'testnet' ? 'utexo' : 'mainnet', mnemonic: params.mnemonic, vssUrl: vssUrlFor(params) });
+  const engine = new RgbLibWeb({
+    mnemonic: params.mnemonic,
+    vssUrl: vssUrlFor(params),
+    evmRpcUrls: RGB_EVM_RPC_URLS,
+    // Signet's SDK default indexer is Electrum, which a browser cannot reach.
+    ...(params.network === 'testnet' ? { network: RGB_TESTNET_ENGINE_NETWORK, proxyEndpoint: RGB_TESTNET_PROXY, indexerUrl: RGB_TESTNET_ESPLORA } : { network: 'mainnet' as const }),
+  });
   const wallet = new UTEXOWallet({ engine });
   await wallet.init();
   return wallet;

@@ -22,7 +22,7 @@ const client = await SignClient.init({
 
 const connection = await connectWalletConnect({
   client,
-  network: 'utexo',
+  network: process.env.WC_NETWORK || 'signet',
   methods: ['enable', 'getInfo', 'getAddress', 'listAssets', 'blindReceive'],
 });
 

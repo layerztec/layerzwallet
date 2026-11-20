@@ -6,6 +6,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 
 import { rgbBackupPassword } from '@shared/modules/rgb-backup-password';
 import { proxyRgbFacade } from '@shared/modules/rgb-facade-proxy';
+import { RGB_EVM_RPC_URLS, RGB_TESTNET_ENGINE_NETWORK, RGB_TESTNET_PROXY } from '@shared/modules/rgb-testnet-endpoints';
 import type { IRgbAdapter, IRgbAdapterCreateParams, IRgbWallet, RgbNetwork } from '@shared/types/rgb-adapter';
 
 const RGB_DATA_ROOT = 'rgb';
@@ -24,10 +25,13 @@ function rgbLog(...args: unknown[]): void {
   if ((globalThis as { __DEV__?: boolean }).__DEV__) console.log(...args);
 }
 
-// Must be `'utexo'`, NOT `'signet'`: the SDK ships separate defaults for each
-// and the faucet + USDT asset live on the UTEXO chain.
-function toEngineNetwork(network: RgbNetwork): 'utexo' | 'mainnet' {
-  return network === 'testnet' ? 'utexo' : 'mainnet';
+function toEngineNetwork(network: RgbNetwork): typeof RGB_TESTNET_ENGINE_NETWORK | 'mainnet' {
+  return network === 'testnet' ? RGB_TESTNET_ENGINE_NETWORK : 'mainnet';
+}
+
+/** Connection settings the SDK defaults get wrong or cannot know. */
+function engineEndpoints(network: RgbNetwork) {
+  return network === 'testnet' ? { proxyEndpoint: RGB_TESTNET_PROXY, evmRpcUrls: RGB_EVM_RPC_URLS } : { evmRpcUrls: RGB_EVM_RPC_URLS };
 }
 
 function hex(bytes: Uint8Array, length = bytes.length): string {
@@ -47,7 +51,7 @@ async function accountIdFor(mnemonic: string, network: RgbNetwork): Promise<stri
 }
 
 function dataDirFor(mnemonic: string, network: RgbNetwork): Directory {
-  const root = new Directory(Paths.document, RGB_DATA_ROOT, RGB_ENGINE_DIR, network, mnemonicFingerprint(mnemonic));
+  const root = new Directory(Paths.document, RGB_DATA_ROOT, RGB_ENGINE_DIR, toEngineNetwork(network), mnemonicFingerprint(mnemonic));
   if (!root.exists) root.create({ intermediates: true });
   return root;
 }
@@ -165,7 +169,7 @@ class RgbAdapter implements IRgbAdapter {
     const created = (async () => {
       const dir = dataDirFor(params.mnemonic, params.network);
       rgbLog('[rgb-adapter] opening RGB_L1 wallet at', dir.uri);
-      const engine = new RgbLibRn({ network: toEngineNetwork(params.network), storageDirPath: dataDirSdkPath(dir) }, params.mnemonic);
+      const engine = new RgbLibRn({ network: toEngineNetwork(params.network), storageDirPath: dataDirSdkPath(dir), ...engineEndpoints(params.network) }, params.mnemonic);
       const wallet = new UTEXOWallet({ engine });
       await wallet.init();
       return adapt(wallet, await accountIdFor(params.mnemonic, params.network));

@@ -13,7 +13,7 @@ RGB_E2E_SIM="${RGB_E2E_SIM:-597E4F02-2EE7-45D7-A185-266F99631F4B}"
 RGB_E2E_AVD="${RGB_E2E_AVD:-Pixel_API_29_AOSP}"
 RGB_E2E_APPID="com.layerzwallet.mobile"
 RGB_E2E_FAUCET="https://rln-signet.utexo.com/faucet"
-RGB_E2E_ESPLORA="https://dev.esplora-01.mint.utexo.com"
+RGB_E2E_ESPLORA="https://mempool.space/signet/api"
 RGB_E2E_FAUCET_CLI="${RGB_E2E_FAUCET_CLI:-/Users/limp/z/rgb-faucet/bin/faucet-http.js}"
 
 # ── shared ────────────────────────────────────────────────────────────────
