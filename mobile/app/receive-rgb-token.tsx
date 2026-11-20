@@ -127,18 +127,17 @@ export default function ReceiveRgbTokenScreen() {
       const wallet = await BackgroundExecutor.lazyInitWallet(network, accountNumber);
       if (!(wallet instanceof RgbWallet)) throw new Error('Wallet is not an RgbWallet');
 
-      // SDK bug workaround: passing `amount: undefined` to blindReceive /
-      // witnessReceive crashes the native iOS module via a Swift `fatalError`
-      // (assignment is hardcoded to `Fungible`, which requires an amount).
-      // Until upstream fixes it, force the caller to enter an amount.
-      // Tracked: https://github.com/UTEXO-Protocol/rgb-sdk-rn/issues/21
-      const n = Number(amountStr);
-      if (!amountStr.trim() || !Number.isFinite(n) || n <= 0 || !Number.isSafeInteger(n)) {
-        setError('Amount is required and must be a positive integer (in base units).');
-        setIsGenerating(false);
-        return;
+      // Empty amount = the sender decides (what a UTEXO Mint invoice needs).
+      const params: { assetId?: string; amount?: number } = {};
+      if (amountStr.trim()) {
+        const n = Number(amountStr);
+        if (!Number.isFinite(n) || n <= 0 || !Number.isSafeInteger(n)) {
+          setError('Amount must be a positive integer (in base units), or empty for any amount.');
+          setIsGenerating(false);
+          return;
+        }
+        params.amount = n;
       }
-      const params: { assetId?: string; amount: number } = { amount: n };
       if (selectedAssetId !== ANY_ASSET) params.assetId = selectedAssetId;
 
       const r = await wallet.requestReceive(params);
@@ -249,7 +248,7 @@ export default function ReceiveRgbTokenScreen() {
             style={styles.input}
             value={amountStr}
             onChangeText={(t) => setAmountStr(t.replace(/[^0-9]/g, ''))}
-            placeholder="e.g. 100"
+            placeholder="Any amount"
             placeholderTextColor="rgba(255,255,255,0.4)"
             keyboardType="number-pad"
             testID="ReceiveRgb.Amount"

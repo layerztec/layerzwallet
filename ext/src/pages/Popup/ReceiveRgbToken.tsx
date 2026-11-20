@@ -134,13 +134,17 @@ const ReceiveRgbToken: React.FC = () => {
     try {
       const wallet = await BackgroundCaller.lazyInitWallet(network, accountNumber);
       assert(wallet instanceof RgbWallet, 'Wallet is not an RgbWallet');
-      const n = Number(amountStr);
-      if (!amountStr.trim() || !Number.isFinite(n) || n <= 0 || !Number.isSafeInteger(n)) {
-        setError('Amount is required and must be a positive integer (in base units).');
-        setIsGenerating(false);
-        return;
+      // Empty amount = the sender decides (what a UTEXO Mint invoice needs).
+      const params: { assetId?: string; amount?: number } = {};
+      if (amountStr.trim()) {
+        const n = Number(amountStr);
+        if (!Number.isFinite(n) || n <= 0 || !Number.isSafeInteger(n)) {
+          setError('Amount must be a positive integer (in base units), or empty for any amount.');
+          setIsGenerating(false);
+          return;
+        }
+        params.amount = n;
       }
-      const params: { assetId?: string; amount: number } = { amount: n };
       if (selectedAssetId !== ANY_ASSET) params.assetId = selectedAssetId;
       const r = await wallet.requestReceive(params);
       setResult({ invoice: r.invoice, type: r.type, expirationTimestamp: r.expirationTimestamp });
@@ -266,7 +270,7 @@ const ReceiveRgbToken: React.FC = () => {
       <div style={{ textAlign: 'left', marginTop: 16 }}>
         <b>Amount (base units)</b>
         <div style={{ marginBottom: 10 }}></div>
-        <Input type="number" inputMode="numeric" placeholder="e.g. 100" value={amountStr} onChange={(e) => setAmountStr(e.target.value.replace(/[^0-9]/g, ''))} data-testid="ReceiveRgb.Amount" />
+        <Input type="number" inputMode="numeric" placeholder="Any amount" value={amountStr} onChange={(e) => setAmountStr(e.target.value.replace(/[^0-9]/g, ''))} data-testid="ReceiveRgb.Amount" />
       </div>
 
       {error ? (
