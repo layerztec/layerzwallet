@@ -5,6 +5,9 @@ node_modules/
 android/
 ios/
 
+# cached breez native artifacts (re-downloaded by scripts/ensure-breez-artifacts.js)
+.cache/
+
 # Expo
 .expo/
 dist/
