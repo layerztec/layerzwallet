@@ -95,13 +95,7 @@ export async function saveWalletState(storage: IStorage, wallet: WatchOnlyWallet
 }
 
 export type TSupportedLazyInitWalletNetworks =
-  | typeof NETWORK_BITCOIN
-  | typeof NETWORK_SPARK
-  | typeof NETWORK_LIQUID
-  | typeof NETWORK_LIQUID_TESTNET
-  | typeof NETWORK_ARK_MUTINYNET
-  | typeof NETWORK_STACKS
-  | typeof NETWORK_ARK;
+  typeof NETWORK_BITCOIN | typeof NETWORK_SPARK | typeof NETWORK_LIQUID | typeof NETWORK_LIQUID_TESTNET | typeof NETWORK_ARK_MUTINYNET | typeof NETWORK_STACKS | typeof NETWORK_ARK;
 export type TLazyInitedWallets = WatchOnlyWallet | SparkWallet | BreezWallet | ArkWallet | StacksWallet;
 
 /**

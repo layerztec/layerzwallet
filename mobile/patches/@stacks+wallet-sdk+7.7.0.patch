@@ -1,9 +1,9 @@
 diff --git a/node_modules/@stacks/wallet-sdk/dist/generate.js b/node_modules/@stacks/wallet-sdk/dist/generate.js
-index a53b946..4e48069 100644
+index a9d6aa1..4d4493e 100644
 --- a/node_modules/@stacks/wallet-sdk/dist/generate.js
 +++ b/node_modules/@stacks/wallet-sdk/dist/generate.js
 @@ -15,14 +15,14 @@ function randomSeedPhrase(entropy = 256) {
- exports.randomSeedPhrase = randomSeedPhrase;
+ }
  exports.generateSecretKey = randomSeedPhrase;
  const generateWallet = async ({ secretKey, password, }) => {
 -    const ciphertextBytes = await (0, encryption_1.encryptMnemonic)(secretKey, password);
