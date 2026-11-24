@@ -57,7 +57,7 @@
     "@expo/vector-icons": "15.1.1",
     "@flashnet/sdk": "0.5.10",
     "@gorhom/bottom-sheet": "5.2.14",
-    "@metamask/eth-sig-util": "8.2.0",
+    "@metamask/eth-sig-util": "10.0.1",
     "@modelcontextprotocol/sdk": "1.32.2",
     "@noble/curves": "2.4.0",
     "@noble/hashes": "^1.8.0",
