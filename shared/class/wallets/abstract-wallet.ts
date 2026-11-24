@@ -451,7 +451,7 @@ export class AbstractWallet {
    */
   static _ypubToXpub(ypub: string): string {
     let data = b58.decode(ypub);
-    if (data.readUInt32BE() !== 0x049d7cb2) throw new Error('Not a valid ypub extended key!');
+    if (uint8ArrayToHex(data.slice(0, 4)) !== '049d7cb2') throw new Error('Not a valid ypub extended key!');
     data = data.slice(4);
     const concatenated = concatUint8Arrays([hexToUint8Array('0488b21e'), data]);
 
