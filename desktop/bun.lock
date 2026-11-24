@@ -20,7 +20,7 @@
         "@noble/secp256k1": "1.6.3",
         "@paulmillr/qr": "0.3.0",
         "@spsina/bip47": "github:BlueWallet/bip47#df823454092a9993edeea11d663f8eb9a522a174",
-        "@stacks/blockchain-api-client": "8.15.3",
+        "@stacks/blockchain-api-client": "9.10.0",
         "@stacks/transactions": "7.7.0",
         "@stacks/wallet-sdk": "7.7.0",
         "assert": "2.1.0",
@@ -573,7 +573,7 @@
 
     "@stacks/auth": ["@stacks/auth@7.7.0", "", { "dependencies": { "@noble/secp256k1": "1.7.1", "@stacks/common": "^7.7.0", "@stacks/encryption": "^7.7.0", "@stacks/network": "^7.7.0", "@stacks/profile": "^7.7.0", "jsontokens": "^4.0.1" } }, "sha512-SHCmcS6e1VJx4SHacvMvKtWbkyQV5e4mYNR10qMEMXwMqqeVbV+dZUNzKuGxzVSjD/GqDDHbLFPTxz+wBRJC4A=="],
 
-    "@stacks/blockchain-api-client": ["@stacks/blockchain-api-client@8.15.3", "", { "dependencies": { "@types/node": "20.14.14", "eventemitter3": "^4.0.7", "jsonrpc-lite": "^2.2.0", "openapi-fetch": "^0.10.5", "socket.io-client": "^4.7.5" } }, "sha512-/FJpz9/oS/e1cWR/YprqUaaV9fd9rIK4TV+KLKtG1QnQPs1ghP1auf/xau852Rj4JLfpxNJs5ILBBXw3wt/Q3Q=="],
+    "@stacks/blockchain-api-client": ["@stacks/blockchain-api-client@9.10.0", "", { "dependencies": { "eventemitter3": "^5.0.4", "jsonrpc-lite": "^2.2.0", "openapi-fetch": "^0.17.0", "socket.io-client": "^4.8.4" } }, "sha512-6JK6Zn7nIqcDqIHsWuQUwSIlvgGZ01SvTk8bDv9v0TM6LDg+dPdKkkXiz7gs06Gam3xBFUzpqVX8qc8KKiyHoQ=="],
 
     "@stacks/common": ["@stacks/common@7.7.0", "", {}, "sha512-5ZypU9BN/6jiG9d3pvd5Jgj96vO4vwxLQkYjczeF0ymNtMyv9Niw1F9FjazFJn/Gfcef+WBKFIX65mcA7Xk/SQ=="],
 
@@ -1461,9 +1461,9 @@
 
     "once": ["once@1.4.0", "", { "dependencies": { "wrappy": "1" } }, "sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w=="],
 
-    "openapi-fetch": ["openapi-fetch@0.10.6", "", { "dependencies": { "openapi-typescript-helpers": "^0.0.11" } }, "sha512-6xXfvIEL/POtLGOaFPsp3O+pDe+J3DZYxbD9BrsQHXOTeNK8z/gsWHT6adUy1KcpQOhmkerMzlQrJM6DbN55dQ=="],
+    "openapi-fetch": ["openapi-fetch@0.17.0", "", { "dependencies": { "openapi-typescript-helpers": "^0.1.0" } }, "sha512-PsbZR1wAPcG91eEthKhN+Zn92FMHxv+/faECIwjXdxfTODGSGegYv0sc1Olz+HYPvKOuoXfp+0pA2XVt2cI0Ig=="],
 
-    "openapi-typescript-helpers": ["openapi-typescript-helpers@0.0.11", "", {}, "sha512-xofUHlVFq+BMquf3nh9I8N2guHckW6mrDO/F3kaFgrL7MGbjldDnQ9TIT+rkH/+H0LiuO+RuZLnNmsJwsjwUKg=="],
+    "openapi-typescript-helpers": ["openapi-typescript-helpers@0.1.0", "", {}, "sha512-OKTGPthhivLw/fHz6c3OPtg72vi86qaMlqbJuVJ23qOvQ+53uw1n7HdmkJFibloF7QEjDrDkzJiOJuockM/ljw=="],
 
     "optionator": ["optionator@0.9.4", "", { "dependencies": { "deep-is": "^0.1.3", "fast-levenshtein": "^2.0.6", "levn": "^0.4.1", "prelude-ls": "^1.2.1", "type-check": "^0.4.0", "word-wrap": "^1.2.5" } }, "sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g=="],
 
@@ -1669,7 +1669,7 @@
 
     "smart-buffer": ["smart-buffer@4.2.0", "", {}, "sha512-94hK0Hh8rPqQl2xXc3HsaBoOXKV20MToPkcXvwbISWLEs+64sBq5kFgn2kJDHb1Pry9yrP0dxrCI9RRci7RXKg=="],
 
-    "socket.io-client": ["socket.io-client@4.8.3", "", { "dependencies": { "@socket.io/component-emitter": "~3.1.0", "debug": "~4.4.1", "engine.io-client": "~6.6.1", "socket.io-parser": "~4.2.4" } }, "sha512-uP0bpjWrjQmUt5DTHq9RuoCBdFJF10cdX9X+a368j/Ft0wmaVgxlrjvK3kjvgCODOMMOz9lcaRzxmso0bTWZ/g=="],
+    "socket.io-client": ["socket.io-client@4.8.4", "", { "dependencies": { "@socket.io/component-emitter": "~3.1.0", "debug": "~4.4.1", "engine.io-client": "~6.6.1", "socket.io-parser": "~4.2.4" } }, "sha512-7wjKAvVXYOJsbmUgkWbnhPD4bFpkqrUR0++XOjpGFmqDqsqV1CI93VTraeExLxpjxEqrWgFoSRZu1ihjLWfkAA=="],
 
     "socket.io-parser": ["socket.io-parser@4.2.6", "", { "dependencies": { "@socket.io/component-emitter": "~3.1.0", "debug": "~4.4.1" } }, "sha512-asJqbVBDsBCJx0pTqw3WfesSY0iRX+2xzWEWzrpcH7L6fLzrhyF8WPI8UaeM4YCuDfpwA/cgsdugMsmtz8EJeg=="],
 
@@ -2213,10 +2213,6 @@
 
     "@stacks/auth/@noble/secp256k1": ["@noble/secp256k1@1.7.1", "", {}, "sha512-hOUk6AyBFmqVrv7k5WAw/LpszxVbj9gGN4JRkIX52fdFAj1UA61KXmZDvqVEm+pOyec3+fIeZB02LYa/pWOArw=="],
 
-    "@stacks/blockchain-api-client/@types/node": ["@types/node@20.14.14", "", { "dependencies": { "undici-types": "~5.26.4" } }, "sha512-d64f00982fS9YoOgJkAMolK7MN8Iq3TDdVjchbYHdEmjth/DHowx82GnoA+tVUAN+7vxfYUgAzi+JXbKNd2SDQ=="],
-
-    "@stacks/blockchain-api-client/eventemitter3": ["eventemitter3@4.0.7", "", {}, "sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw=="],
-
     "@stacks/encryption/@noble/hashes": ["@noble/hashes@1.1.5", "", {}, "sha512-LTMZiiLc+V4v1Yi16TD6aX2gmtKszNye0pQgbaLqkvhIqP7nVsSaJsWloGQjJfJ8offaoP5GtX3yY5swbcJxxQ=="],
 
     "@stacks/encryption/@noble/secp256k1": ["@noble/secp256k1@1.7.1", "", {}, "sha512-hOUk6AyBFmqVrv7k5WAw/LpszxVbj9gGN4JRkIX52fdFAj1UA61KXmZDvqVEm+pOyec3+fIeZB02LYa/pWOArw=="],
@@ -2654,8 +2650,6 @@
     "@spsina/bip47/bitcoinjs-lib/bs58check": ["bs58check@3.0.1", "", { "dependencies": { "@noble/hashes": "^1.2.0", "bs58": "^5.0.0" } }, "sha512-hjuuJvoWEybo7Hn/0xOrczQKKEKD63WguEjlhLExYs2wUBcebDC1jDNK17eEAD2lYfw82d5ASC1d7K3SWszjaQ=="],
 
     "@spsina/bip47/bitcoinjs-lib/varuint-bitcoin": ["varuint-bitcoin@1.1.2", "", { "dependencies": { "safe-buffer": "^5.1.1" } }, "sha512-4EVb+w4rx+YfVM32HQX42AbbT7/1f5zwAYhIujKXKk8NQK+JfRVl3pqT3hjNn/L+RstigmGGKVwHA/P0wgITZw=="],
-
-    "@stacks/blockchain-api-client/@types/node/undici-types": ["undici-types@5.26.5", "", {}, "sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA=="],
 
     "@stacks/encryption/@scure/bip39/@scure/base": ["@scure/base@1.1.1", "", {}, "sha512-ZxOhsSyxYwLJj3pLZCefNitxsj093tb2vq90mp2txoYeBqbcjDjqFhyM8eUjq/uFm6zJ+mUuqxlS2FkuSY1MTA=="],
 

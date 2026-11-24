@@ -69,7 +69,7 @@
     "@react-navigation/native": "^7.1.33",
     "@rive-app/react-native": "^0.5.18",
     "@spsina/bip47": "github:BlueWallet/bip47#df823454092a9993edeea11d663f8eb9a522a174",
-    "@stacks/blockchain-api-client": "8.15.3",
+    "@stacks/blockchain-api-client": "9.10.0",
     "@stacks/transactions": "7.7.0",
     "@stacks/wallet-sdk": "7.7.0",
     "assert": "2.1.0",
