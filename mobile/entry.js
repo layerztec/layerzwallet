@@ -2,6 +2,7 @@
 // This replaces expo-router/entry to include necessary polyfills
 
 import 'react-native-get-random-values';
+import '@shared/modules/bignumber-config';
 import { LogBox } from 'react-native';
 
 // A failed Lightning history fetch must not cover the receive sheet during dev/Maestro.

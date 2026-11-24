@@ -1,3 +1,4 @@
+import '../modules/bignumber-config';
 import nodeCrypto from 'crypto';
 
 const mockStorage = {};

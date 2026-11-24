@@ -1,3 +1,4 @@
+import '@shared/modules/bignumber-config';
 /**
  * @fileoverview This is the OUTER content script that gets injected into webpages. Due to Chrome's security model,
  * content scripts cannot directly modify webpage variables like `window.ethereum`. Instead, we need to inject an INNER

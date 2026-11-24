@@ -87,7 +87,7 @@ export default defineConfig(({ mode }) => {
         },
         {
           find: 'bignumber.js',
-          replacement: path.resolve(__dirname, 'node_modules/bignumber.js/bignumber.mjs'),
+          replacement: path.resolve(__dirname, 'node_modules/bignumber.js/dist/bignumber.mjs'),
         },
         {
           find: 'ethers',

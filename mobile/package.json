@@ -73,7 +73,7 @@
     "@stacks/transactions": "7.7.0",
     "@stacks/wallet-sdk": "7.7.0",
     "assert": "2.1.0",
-    "bignumber.js": "9.3.1",
+    "bignumber.js": "11.1.5",
     "bip21": "3.0.0",
     "bip32": "4.0.0",
     "bip39": "3.1.2",

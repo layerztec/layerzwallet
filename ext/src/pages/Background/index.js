@@ -1,3 +1,4 @@
+import '@shared/modules/bignumber-config';
 import '../../modules/breeze-adapter'; // needed to be imported before we can use BreezWallet
 import '../../modules/error-handler';
 import { handleMessage } from '../../modules/background-message-controller';
