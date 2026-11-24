@@ -4,7 +4,7 @@
  */
 import b58 from 'bs58check';
 import { sha256 } from '@noble/hashes/sha256';
-import wif from 'wif';
+import * as wif from 'wif';
 
 import { BitcoinUnit, Chain, TBitcoinUnit, TChain } from '../../models/bitcoinUnits';
 import { CreateTransactionResult, CreateTransactionUtxo, Transaction, Utxo } from './types';
@@ -224,7 +224,7 @@ export class AbstractWallet {
       // minikey + ? hashed with SHA256 starts with 0x00 byte
       if (uint8ArrayToHex(sha256(`${newSecret}?`)).startsWith('00')) {
         // it is a valid minikey
-        newSecret = wif.encode(0x80, Buffer.from(sha256(newSecret)), false);
+        newSecret = wif.encode({ version: 0x80, privateKey: sha256(newSecret), compressed: false });
       }
     }
 
