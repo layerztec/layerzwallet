@@ -10,7 +10,7 @@
         "@arkade-os/sdk": "0.4.42",
         "@atomiqlabs/chain-evm": "2.5.0",
         "@atomiqlabs/sdk": "8.9.6",
-        "@bitcoinerlab/secp256k1": "1.2.0",
+        "@bitcoinerlab/secp256k1": "2.0.0",
         "@breeztech/breez-sdk-liquid": "0.12.4",
         "@buildonspark/spark-sdk": "0.12.1",
         "@flashnet/sdk": "0.5.10",
@@ -343,7 +343,7 @@
 
     "@bitcoinerlab/miniscript": ["@bitcoinerlab/miniscript@2.0.0", "", { "dependencies": { "bip68": "^1.0.4" } }, "sha512-P8yyubPf6lphmIZfyD/ZbhT/umJX7zH1mKjGql7z0Qt+xuffnz2AueQqq2/01VE2rTIq80VM0oRFdJClGBYx/g=="],
 
-    "@bitcoinerlab/secp256k1": ["@bitcoinerlab/secp256k1@1.2.0", "", { "dependencies": { "@noble/curves": "^1.7.0" } }, "sha512-jeujZSzb3JOZfmJYI0ph1PVpCRV5oaexCgy+RvCXV8XlY+XFB/2n3WOcvBsKLsOw78KYgnQrQWb2HrKE4be88Q=="],
+    "@bitcoinerlab/secp256k1": ["@bitcoinerlab/secp256k1@2.0.0", "", { "dependencies": { "@noble/curves": "^2.3.0" } }, "sha512-l8wO4Hx7fovtcDVU5xYEa7yfP9DokC8QxYlJoaP1zi2/iX+c6NNSvMzq+oCZ8ikqvrXTuhSQ6iP1IRx08kWZgw=="],
 
     "@breeztech/breez-sdk-liquid": ["@breeztech/breez-sdk-liquid@0.12.4", "", {}, "sha512-bjUtKRqJslLVb+O+BQ8PvTJzmKGA/Yz9F/Bq65J6FQh0qHbf5UYOa941TkJKEGXkI7E8HMsZoTsERovvygyF+Q=="],
 
@@ -2163,7 +2163,7 @@
 
     "@bitcoinerlab/descriptors-scure/@noble/hashes": ["@noble/hashes@2.2.0", "", {}, "sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg=="],
 
-    "@bitcoinerlab/secp256k1/@noble/curves": ["@noble/curves@1.9.7", "", { "dependencies": { "@noble/hashes": "1.8.0" } }, "sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw=="],
+    "@bitcoinerlab/secp256k1/@noble/curves": ["@noble/curves@2.4.0", "", { "dependencies": { "@noble/hashes": "2.4.0" } }, "sha512-P4/62zrgfH33CneE3Dn4WhJVA22YUU0eR51wKIan4NVRvwsA0YnPTwWGpNbpuacSujmSFLvyzpyuR30+fbq2Ew=="],
 
     "@buildonspark/spark-sdk/@noble/curves": ["@noble/curves@1.9.7", "", { "dependencies": { "@noble/hashes": "1.8.0" } }, "sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw=="],
 
@@ -2640,6 +2640,8 @@
     "@babel/preset-modules/@babel/types/@babel/helper-validator-identifier": ["@babel/helper-validator-identifier@7.29.7", "", {}, "sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg=="],
 
     "@bitcoinerlab/descriptors-core/varuint-bitcoin/uint8array-tools": ["uint8array-tools@0.0.8", "", {}, "sha512-xS6+s8e0Xbx++5/0L+yyexukU7pz//Yg6IHg3BKhXotg1JcYtgxVcUctQ0HxLByiJzpAkNFawz1Nz5Xadzo82g=="],
+
+    "@bitcoinerlab/secp256k1/@noble/curves/@noble/hashes": ["@noble/hashes@2.4.0", "", {}, "sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA=="],
 
     "@buildonspark/spark-sdk/@scure/btc-signer/micro-packed": ["micro-packed@0.7.3", "", { "dependencies": { "@scure/base": "~1.2.5" } }, "sha512-2Milxs+WNC00TRlem41oRswvw31146GiSaoCT7s3Xi2gMUglW5QBeqlQaZeHr5tJx9nm3i57LNXPqxOOaWtTYg=="],
 

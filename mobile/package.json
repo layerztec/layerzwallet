@@ -49,7 +49,7 @@
     "@arkade-os/sdk": "0.4.42",
     "@atomiqlabs/chain-evm": "2.5.0",
     "@atomiqlabs/sdk": "8.9.6",
-    "@bitcoinerlab/secp256k1": "1.2.0",
+    "@bitcoinerlab/secp256k1": "2.0.0",
     "@breeztech/breez-sdk-liquid": "0.12.4",
     "@breeztech/breez-sdk-liquid-react-native": "0.12.4",
     "@bugsnag/expo": "58.0.1",
