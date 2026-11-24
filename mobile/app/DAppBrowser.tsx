@@ -3,7 +3,24 @@ import Pressable from '../components/Pressable';
 import * as FileSystem from 'expo-file-system';
 import { File as ExpoFsFile, Directory } from 'expo-file-system';
 import React, { useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
-import { StyleSheet, View, Alert, TextInput, PanResponder, Image, AppState, AppStateStatus, ViewStyle, StyleProp, Dimensions, BackHandler, Platform, Modal } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  ViewInstance,
+  Alert,
+  TextInput,
+  TextInputInstance,
+  PanResponder,
+  Image,
+  AppState,
+  AppStateStatus,
+  ViewStyle,
+  StyleProp,
+  Dimensions,
+  BackHandler,
+  Platform,
+  Modal,
+} from 'react-native';
 import WebView, { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import type { WebViewErrorEvent, WebViewNavigationEvent } from 'react-native-webview/lib/WebViewTypes';
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
@@ -170,9 +187,9 @@ const DAppBrowser: React.FC = () => {
   const navigation = useNavigation();
   const webviewRef = useRef<WebView>(null);
   const tabWebViewRefs = useRef<{ [key: string]: React.RefObject<WebView | null> }>({});
-  const tabContainerRefs = useRef<{ [key: string]: React.RefObject<View | null> }>({});
+  const tabContainerRefs = useRef<{ [key: string]: React.RefObject<ViewInstance | null> }>({});
   const browserBridgeRef = useRef<BrowserBridge>(null);
-  const addressInputRef = useRef<TextInput>(null);
+  const addressInputRef = useRef<TextInputInstance>(null);
   const [js, setJs] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const params = useLocalSearchParams<DappBrowserProps>();
@@ -1463,7 +1480,8 @@ const DAppBrowser: React.FC = () => {
                       {tab.screenshot && <Image source={{ uri: tab.screenshot }} style={styles.absoluteFill} resizeMode="cover" />}
                       <WebView
                         key={`webview-${tab.id}`}
-                        ref={(ref) => {
+                        ref={(instance) => {
+                          const ref = instance as WebView | null;
                           if (ref) {
                             if (!tabWebViewRefs.current[tab.id]) {
                               tabWebViewRefs.current[tab.id] = { current: ref };

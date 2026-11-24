@@ -1,7 +1,7 @@
 import * as Application from 'expo-application';
 import { useRouter } from 'expo-router';
 import React, { useContext } from 'react';
-import { SectionList, SectionListData, StyleSheet, View } from 'react-native';
+import { SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
 import { ThemedText } from '@/components/ThemedText';
@@ -19,7 +19,7 @@ interface SettingsItem {
   renderAccessory?: () => React.ReactElement | null;
 }
 
-interface SettingsSection extends SectionListData<SettingsItem> {
+interface SettingsSection {
   title: string;
   key: string;
   hasBackground: boolean;

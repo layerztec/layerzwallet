@@ -5,7 +5,7 @@ import * as bip21 from 'bip21';
 import * as bolt11 from 'bolt11';
 import { Stack, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TextInputInstance, View } from 'react-native';
 
 import { BalanceLightning } from '@/components/Balance';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
@@ -37,7 +37,7 @@ const SendAddressLightning: React.FC = () => {
   const [lnurlInstance, setLnurlInstance] = useState<{ [invoice: string]: Lnurl | undefined }>({});
   const [decodedInvoice, setDecodedInvoice] = useState<{ [invoice: string]: DecodedInvoice | undefined }>({});
   const [memo, setMemo] = useState<{ [invoice: string]: string | undefined }>({});
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
 
   const handleLayerSelect = (selectedNetwork: Networks) => {
     const n = selectedNetwork as LightningLayer;

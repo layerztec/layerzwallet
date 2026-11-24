@@ -130,11 +130,11 @@ export default function RootLayout() {
         },
         // @see https://swr.vercel.app/docs/advanced/react-native.en-US
         initFocus(callback) {
-          let appState: AppStateStatus = AppState.currentState;
+          let appState = AppState.currentState;
 
           const onAppStateChange = (nextAppState: AppStateStatus) => {
             /* If it's resuming from background or inactive mode to active one */
-            if (appState.match(/inactive|background/) && nextAppState === 'active') {
+            if (appState?.match(/inactive|background/) && nextAppState === 'active') {
               callback();
             }
             appState = nextAppState;

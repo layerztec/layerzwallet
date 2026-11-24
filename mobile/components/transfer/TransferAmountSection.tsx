@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import BigNumber from 'bignumber.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, TextInputInstance, View } from 'react-native';
 
 import { overlayBackgroundDeeper } from '@shared/constants/Colors';
 import { getAssetInfo } from '@shared/models/asset-info';
@@ -38,7 +38,7 @@ export default function TransferAmountSection({
   exchangeRate,
   onDenominationSwitch,
 }: TransferAmountSectionProps) {
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const [localDisplayValue, setLocalDisplayValue] = useState('');
   const isFocused = useRef(false);
   const hasRate = !!exchangeRate && exchangeRate > 0;

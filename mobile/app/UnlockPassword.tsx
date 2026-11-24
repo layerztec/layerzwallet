@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useContext, useMemo } from 'react';
 import Pressable from '../components/Pressable';
-import { StyleSheet, TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated } from 'react-native';
+import { StyleSheet, TextInput, TextInputInstance, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
@@ -26,7 +26,7 @@ export default function UnlockPassword() {
   const router = useRouter();
   const { setStep } = useContext(InitializationContext);
 
-  const passwordInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInputInstance>(null);
 
   const shakeAnimation = useMemo(() => new Animated.Value(0), []);
   const scaleAnimation = useMemo(() => new Animated.Value(1), []);

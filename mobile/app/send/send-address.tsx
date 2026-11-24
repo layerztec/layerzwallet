@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as bip21 from 'bip21';
 import { Stack, useRouter } from 'expo-router';
 import React, { useCallback, useContext, useRef, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, TextInputInstance, View } from 'react-native';
 import Pressable from '../../components/Pressable';
 
 import RadialGradientScreen from '@/components/RadialGradientScreen';
@@ -24,7 +24,7 @@ const SendAddress: React.FC = () => {
 
   const [localAddress, setLocalAddress] = useState(contextAddress);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
 
   const handleScanQR = useCallback(async () => {
     const scanned = await scanQr();

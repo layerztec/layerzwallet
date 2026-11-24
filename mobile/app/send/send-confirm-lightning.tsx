@@ -5,7 +5,7 @@ import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { Alignment, Fit, RiveView, useRiveFile } from '@rive-app/react-native';
+import { Alignment, DataBindMode, Fit, RiveView, useRiveFile } from '@rive-app/react-native';
 import Pressable from '../../components/Pressable';
 import successRiv from '../../assets/animations/success.riv';
 
@@ -29,7 +29,17 @@ const maxFeePercent = 5; // hardcoded at the moment
 const SuccessRiveAnimation = () => {
   const { riveFile } = useRiveFile(successRiv);
   if (!riveFile) return <View style={styles.riveAnimation} />;
-  return <RiveView autoPlay={true} alignment={Alignment.Center} fit={Fit.Contain} file={riveFile} onError={(error) => console.log('Rive error:', error.message)} style={styles.riveAnimation} />;
+  return (
+    <RiveView
+      autoPlay={true}
+      dataBind={DataBindMode.None}
+      alignment={Alignment.Center}
+      fit={Fit.Contain}
+      file={riveFile}
+      onError={(error) => console.log('Rive error:', error.message)}
+      style={styles.riveAnimation}
+    />
+  );
 };
 
 const SendConfirmLightning: React.FC = () => {

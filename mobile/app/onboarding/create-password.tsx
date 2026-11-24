@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { StyleSheet, TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated, Keyboard } from 'react-native';
+import { StyleSheet, TextInput, TextInputInstance, Alert, KeyboardAvoidingView, Platform, ScrollView, View, Animated, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,7 +27,7 @@ export default function CreatePasswordScreen() {
   const passwordBorderAnimation = useMemo(() => new Animated.Value(0), []);
   const repeatPasswordBorderAnimation = useMemo(() => new Animated.Value(0), []);
 
-  const repeatPasswordInputRef = useRef<TextInput>(null);
+  const repeatPasswordInputRef = useRef<TextInputInstance>(null);
 
   const titleTransition = useSequentialSpringAnimation(200);
   const subtitleTransition = useSequentialSpringAnimation(400);

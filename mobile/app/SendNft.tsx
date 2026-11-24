@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as bip21 from 'bip21';
 import React, { useCallback, useContext, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, TextInput, TextInputInstance, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import Pressable from '../components/Pressable';
 
@@ -51,7 +51,7 @@ export default function SendNft() {
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [txid, setTxid] = useState<string | null>(null);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
 
   const handleScanQR = useCallback(async () => {
     try {
