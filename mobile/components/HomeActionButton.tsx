@@ -13,8 +13,7 @@ const GLOW_MAX = 0.62;
 const GLOW_DURATION = 2400; // ms per half-cycle — slow, calm breathing
 
 type IconConfig =
-  | { name: React.ComponentProps<typeof MaterialIcons>['name']; type: 'material'; size?: number }
-  | { name: React.ComponentProps<typeof Ionicons>['name']; type?: 'ionicons'; size?: number };
+  { name: React.ComponentProps<typeof MaterialIcons>['name']; type: 'material'; size?: number } | { name: React.ComponentProps<typeof Ionicons>['name']; type?: 'ionicons'; size?: number };
 
 export interface HomeActionButtonProps extends PressableProps {
   title: string;
