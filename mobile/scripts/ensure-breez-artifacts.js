@@ -79,12 +79,18 @@ function markersPresent(name) {
 
 // Download with resume: `curl -C -` picks up where the previous attempt stopped, so a connection
 // reset costs us a few seconds, not the whole file.
+// --speed-limit/--speed-time abort a silent stall (no RST, no bytes): curl exits 28 and the retry resumes.
+// Deliberately not --max-time, which would also kill a legitimately slow 245 MB transfer.
 function download(url, dest) {
   const attempts = 12;
   for (let i = 1; i <= attempts; i++) {
-    const res = spawnSync('curl', ['-fsSL', '-C', '-', '--retry', '5', '--retry-all-errors', '--retry-delay', '2', '--connect-timeout', '30', '-o', dest, url], {
-      stdio: ['ignore', 'inherit', 'inherit'],
-    });
+    const res = spawnSync(
+      'curl',
+      ['-fsSL', '-C', '-', '--retry', '5', '--retry-all-errors', '--retry-delay', '2', '--connect-timeout', '30', '--speed-limit', '10240', '--speed-time', '30', '-o', dest, url],
+      {
+        stdio: ['ignore', 'inherit', 'inherit'],
+      }
+    );
     if (res.status === 0) return true;
     const size = fs.existsSync(dest) ? fs.statSync(dest).size : 0;
     console.log(`[breez-artifacts] download attempt ${i}/${attempts} interrupted (exit ${res.status}), ${size} bytes on disk, resuming`);
