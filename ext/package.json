@@ -34,7 +34,7 @@
     "@noble/hashes": "1.8.0",
     "@noble/secp256k1": "1.6.3",
     "@paulmillr/qr": "0.3.0",
-    "@playwright/test": "1.58.2",
+    "@playwright/test": "1.65.1",
     "@spsina/bip47": "github:BlueWallet/bip47#df823454092a9993edeea11d663f8eb9a522a174",
     "@stacks/blockchain-api-client": "9.10.0",
     "@stacks/transactions": "7.7.0",
