@@ -78,7 +78,7 @@
     "@commitlint/config-conventional": "^20.3.1",
     "@pmmmwh/react-refresh-webpack-plugin": "0.6.2",
     "@types/bs58check": "^2.1.2",
-    "@types/chrome": "^0.1.32",
+    "@types/chrome": "0.3.7",
     "@types/create-hash": "1.2.6",
     "@types/react": "~19.1.10",
     "@types/react-dom": "~19.1.10",
