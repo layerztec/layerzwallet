@@ -3,7 +3,7 @@ import Pressable from '../components/Pressable';
 import { useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import React, { useContext, useEffect, useState } from 'react';
-import { Alert, SectionList, SectionListData, StyleSheet, View } from 'react-native';
+import { Alert, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '@/components/navigation/ScreenHeader';
@@ -29,7 +29,7 @@ interface SettingsItem {
   renderAccessory?: () => React.ReactElement | null;
 }
 
-interface SettingsSection extends SectionListData<SettingsItem> {
+interface SettingsSection {
   title: string;
   key: string;
   hasBackground: boolean;

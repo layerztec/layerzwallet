@@ -323,7 +323,7 @@ export const useBiometrics = (): BiometricInfo => {
 
     // Listen for app state changes to refresh when app comes to foreground
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
+      if (appStateRef.current?.match(/inactive|background/) && nextAppState === 'active') {
         // App has come to the foreground, refresh biometric state
         setBiometricInfo((prev) => ({
           ...prev,

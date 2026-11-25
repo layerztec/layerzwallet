@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@shared/constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Alignment, Fit, RiveView, useRiveFile } from '@rive-app/react-native';
+import { Alignment, DataBindMode, Fit, RiveView, useRiveFile } from '@rive-app/react-native';
 import Pressable from '../../components/Pressable';
 import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, Easing } from 'react-native-reanimated';
@@ -179,7 +179,15 @@ const SlideItem: React.FC<SlideItemProps> = ({ item }) => {
     <View style={styles.slideContent}>
       <View style={[styles.animationContainer, isFullWidth && styles.animationContainerFullWidth]}>
         {riveFile ? (
-          <RiveView autoPlay={true} alignment={Alignment.Center} fit={Fit.Contain} file={riveFile} onError={(error) => console.log('Rive error:', error.message)} style={styles.riveAnimation} />
+          <RiveView
+            autoPlay={true}
+            dataBind={DataBindMode.None}
+            alignment={Alignment.Center}
+            fit={Fit.Contain}
+            file={riveFile}
+            onError={(error) => console.log('Rive error:', error.message)}
+            style={styles.riveAnimation}
+          />
         ) : (
           <View style={styles.riveAnimation} />
         )}

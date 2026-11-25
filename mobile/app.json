@@ -76,10 +76,11 @@
           },
           "android": {
             "androidGradlePluginVersion": "8.6.0",
-            "compileSdkVersion": 36,
+            "compileSdkVersion": 37,
             "targetSdkVersion": 36,
-            "buildToolsVersion": "36.0.0",
+            "buildToolsVersion": "37.0.0",
             "ndkVersion": "29.0.13113456",
+            "enableMinifyInReleaseBuilds": false,
             "packagingOptions": {
               "jniLibs": {
                 "useLegacyPackaging": false

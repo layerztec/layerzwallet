@@ -17,7 +17,7 @@ let loggingTofileEnabled = false;
 export function enableLoggingToFile() {
   loggingTofileEnabled = true;
   return Promise.resolve().then(() => {
-    applogFile.write('', { encoding: 'utf8' });
+    applogFile.writeSync('', { encoding: 'utf8' });
   });
 }
 
@@ -44,7 +44,7 @@ try {
     loggingTofileEnabled = true;
     console.log('applogFile.info():', info);
     if (info.size && info.size >= logfileSizeCutoff) {
-      applogFile.write('', { encoding: 'utf8' });
+      applogFile.writeSync('', { encoding: 'utf8' });
     }
   }
 } catch (_: unknown) {
@@ -61,7 +61,7 @@ export function appendLog(contents: string | unknown[], context: string = 'unkno
     const handle = applogFile.open();
     try {
       handle.offset = handle.size ?? 0;
-      handle.writeBytes(new TextEncoder().encode(line));
+      handle.writeBytesSync(new TextEncoder().encode(line));
     } finally {
       handle.close();
     }

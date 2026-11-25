@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable as RNPressable, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+import { FlatList, Pressable as RNPressable, StyleSheet, TextInput, TextInputInstance, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,7 +33,7 @@ export default function SelectAsset() {
   const params = useLocalSearchParams<SelectAssetParams>();
   const { setSendAsset, setReceiveAsset, transferService } = useTransferFlow();
   const [searchText, setSearchText] = useState('');
-  const searchInputRef = useRef<TextInput>(null);
+  const searchInputRef = useRef<TextInputInstance>(null);
   const flatListRef = useRef<FlatList>(null);
 
   const translateY = useSharedValue(screenHeight);

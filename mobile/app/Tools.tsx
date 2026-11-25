@@ -302,7 +302,7 @@ export default function TabThreeScreen() {
           const readSize = Math.min(chunkSize, offset);
           offset -= readSize;
           handle.offset = offset;
-          const chunk = decoder.decode(handle.readBytes(readSize));
+          const chunk = decoder.decode(handle.readBytesSync(readSize));
           buffer = chunk + buffer;
 
           const lineCount = buffer.split('\n').length - 1;
@@ -361,9 +361,9 @@ export default function TabThreeScreen() {
     },
   ];
 
-  const renderSectionHeader = ({ section }: { section: { title: string } }) => <ThemedText style={styles.sectionHeader}>{section.title}</ThemedText>;
+  const renderSectionHeader = ({ section }: { section: { title: string; key: string } }) => <ThemedText style={styles.sectionHeader}>{section.title}</ThemedText>;
 
-  const renderItem = ({ item, section }: { item: string; section: { key: string } }) => {
+  const renderItem = ({ item, section }: { item: string; section: { title: string; key: string } }) => {
     switch (section.key) {
       case 'selfTest':
         return (

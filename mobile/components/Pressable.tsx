@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Platform, Pressable as RNPressable, PressableProps as RNPressableProps, StyleProp, View, ViewStyle } from 'react-native';
+import { Animated, Platform, Pressable as RNPressable, PressableProps as RNPressableProps, StyleProp, View, ViewInstance, ViewStyle } from 'react-native';
 
 export type PressableProps = RNPressableProps & {
   style?: StyleProp<ViewStyle>;
@@ -10,7 +10,7 @@ export type PressableProps = RNPressableProps & {
   pressedStyle?: StyleProp<ViewStyle>; // additional style applied when pressed
 };
 
-const Pressable = React.forwardRef<View, PressableProps>(
+const Pressable = React.forwardRef<ViewInstance, PressableProps>(
   ({ style, children, disabled, activeOpacity = 0.6, androidRippleColor, android_ripple, noFeedback = false, scaleOnPress, pressedStyle, ...rest }, ref) => {
     const ripple = noFeedback ? undefined : (android_ripple ?? (Platform.OS === 'android' ? { color: androidRippleColor ?? 'rgba(255, 255, 255, 0.08)', foreground: true } : undefined));
     const scaleAnim = React.useMemo(() => new Animated.Value(1), []);

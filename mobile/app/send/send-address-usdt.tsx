@@ -3,7 +3,7 @@ import Pressable from '../../components/Pressable';
 import * as bip21 from 'bip21';
 import { Stack, useRouter } from 'expo-router';
 import React, { useContext, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TextInputInstance, View } from 'react-native';
 
 import { BalanceUsdt } from '@/components/Balance';
 import RadialGradientScreen from '@/components/RadialGradientScreen';
@@ -28,7 +28,7 @@ const SendAddressUsdt: React.FC = () => {
   const [localAddress, setLocalAddress] = useState(contextAddress);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
 
   const handleScanQR = async () => {
     const scanned = await scanQr();

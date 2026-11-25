@@ -1,0 +1,13 @@
+diff --git a/node_modules/@buildonspark/spark-sdk/android/build.gradle b/node_modules/@buildonspark/spark-sdk/android/build.gradle
+index 95a94fc..3904234 100644
+--- a/node_modules/@buildonspark/spark-sdk/android/build.gradle
++++ b/node_modules/@buildonspark/spark-sdk/android/build.gradle
+@@ -15,7 +15,7 @@ apply plugin: 'kotlin-android'
+ 
+ android {
+     namespace "com.spark"
+-    compileSdkVersion 33
++    compileSdkVersion rootProject.ext.has("compileSdkVersion") ? rootProject.ext.compileSdkVersion : 33
+ 
+     defaultConfig {
+         minSdkVersion 21
