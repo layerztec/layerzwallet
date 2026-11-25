@@ -142,7 +142,8 @@
     "swr": "2.5.1",
     "timers-browserify": "2.0.12",
     "uint8array-extras": "1.6.0",
-    "url": "0.11.4"
+    "url": "0.11.4",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
