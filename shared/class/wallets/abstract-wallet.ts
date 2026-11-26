@@ -4,7 +4,7 @@
  */
 import b58 from 'bs58check';
 import { sha256 } from '@noble/hashes/sha256';
-import wif from 'wif';
+import * as wif from 'wif';
 
 import { BitcoinUnit, Chain, TBitcoinUnit, TChain } from '../../models/bitcoinUnits';
 import { CreateTransactionResult, CreateTransactionUtxo, Transaction, Utxo } from './types';
@@ -224,7 +224,7 @@ export class AbstractWallet {
       // minikey + ? hashed with SHA256 starts with 0x00 byte
       if (uint8ArrayToHex(sha256(`${newSecret}?`)).startsWith('00')) {
         // it is a valid minikey
-        newSecret = wif.encode(0x80, Buffer.from(sha256(newSecret)), false);
+        newSecret = wif.encode({ version: 0x80, privateKey: sha256(newSecret), compressed: false });
       }
     }
 
@@ -451,7 +451,7 @@ export class AbstractWallet {
    */
   static _ypubToXpub(ypub: string): string {
     let data = b58.decode(ypub);
-    if (data.readUInt32BE() !== 0x049d7cb2) throw new Error('Not a valid ypub extended key!');
+    if (uint8ArrayToHex(data.slice(0, 4)) !== '049d7cb2') throw new Error('Not a valid ypub extended key!');
     data = data.slice(4);
     const concatenated = concatUint8Arrays([hexToUint8Array('0488b21e'), data]);
 
