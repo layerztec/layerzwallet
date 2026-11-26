@@ -6,7 +6,7 @@ import { Colors } from '@shared/constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Alignment, DataBindMode, Fit, RiveView, useRiveFile } from '@rive-app/react-native';
 import Pressable from '../../components/Pressable';
-import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
+import { Carousel, CarouselRef } from 'react-native-reanimated-carousel';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, Easing } from 'react-native-reanimated';
 import { RadialGradient } from '@/components/RadialGradient';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -208,7 +208,7 @@ export default function IntroScreen() {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [prevIndex, setPrevIndex] = useState(0);
-  const carouselRef = useRef<ICarouselInstance>(null);
+  const carouselRef = useRef<CarouselRef>(null);
   const autoPlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleCreateWallet = () => {
@@ -281,7 +281,7 @@ export default function IntroScreen() {
 
         {/* Carousel Content CENTERED */}
         <View style={styles.carouselContainer}>
-          <Carousel ref={carouselRef} data={SLIDES} width={SCREEN_WIDTH} height={450} loop={true} onSnapToItem={handleSnapToItem} renderItem={renderItem} />
+          <Carousel ref={carouselRef} data={SLIDES} style={{ width: SCREEN_WIDTH, height: 450 }} loop={true} onSnapToItem={handleSnapToItem} renderItem={renderItem} />
         </View>
 
         {/* Buttons at BOTTOM */}
